@@ -34,7 +34,7 @@ boxxy/
 │   ├── contract/                the oRPC contract the server serves and the CLI calls
 │   └── content-hash/            the ContentHash type and hashes for recipes, rules versions, verdicts
 ├── docs/                        design/ and decisions/
-├── scripts/                     repo tooling only
+├── scripts/                     repo tooling; may do I/O and import any workspace package
 ├── test-utils/                  cross-package test helpers
 └── e2e/                         end-to-end lane
 ```

@@ -619,8 +619,8 @@ A signal with parameters takes a one-key map in `order` or `lead`, such as
 `order: [oldest, { kind-order: { order: [chore, bug] } }]`. No slice 1 signal takes parameters, so
 the example uses bare names.
 
-- **The loader rejects** each of these, and reports it with the file, the path in the file and the
-  reason:
+- **The loader rejects** each of these, and reports it with the file, the path in the file, such as
+  `pools[0].order[1]`, and the reason:
   - a `rules.yaml` that isn't valid YAML, or that fails the file's schema (`invalid`);
   - an unknown concept name;
   - a pool whose `order` or `lead` names a signal no concept registers;
@@ -900,8 +900,8 @@ dedupe.
   equal after lowercasing, trimming, and collapsing each run of whitespace to one space. A match
   files no new item. It links the existing item to the attempt: the attempt's
   `boxxy.attempt.settled` fact lists it in `matched`. With no match, settle files a new item with
-  the entry's `body` as its outcome and an empty acceptance list, so it starts as an `idea`, with
-  `found_in_attempt` set.
+  the entry's `body` as its outcome, the repo of the attempt's item, and an empty acceptance list,
+  so it starts as an `idea`, with `found_in_attempt` set.
 - **Friction** becomes a `boxxy.proposal.recorded` fact. Slice 1 acts on it no further.
 
 ## Links to commits and PRs
@@ -983,8 +983,14 @@ Slice 1 runs Claude Code only. A1 holds the open question about Codex.
 
 Every state change in the store writes its facts to the outbox in the same transaction as the change
 ([decision 0013](../../decisions/0013-one-write-path-per-fact.md)). The outbox sender in the server
-sends unsent rows in `seq` order, in batches of up to 100, through `FactSink`. Before it sends a row,
-it adds the row's `seq` to the payload as `storeVersion`.
+sends unsent rows in `seq` order, in batches of up to 100, through `FactSink`. The pepys adapter
+builds each envelope from its outbox row, and adds the row's `seq` to the payload as `storeVersion`.
+The catalog's payload schemas leave `storeVersion` out.
+
+Every fact the runner writes carries the actor `boxxy:runner:<runner_id>`: claims, starts,
+reconciles, settles, the PR watch's facts, and the items and proposals that settle files. An item
+that settle files has `filed_by` set to `boxxy:attempt:<attempt_id>` and the repo of the attempt's
+item.
 
 - On `accepted`, the outbox sender marks the rows sent with `markFactsSent`, a bookkeeping write
   ([one write path](#one-write-path)).
@@ -1403,9 +1409,10 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
 
 ### S1-08: Server, contract and CLI
 
-- **Delivers:** `@boxxy/contract`, `@boxxy/server` (Elysia, the oRPC router, configuration) and
-  `@boxxy/cli` with every command in [the table](#commands-and-api) except `boxxy cost`,
-  `boxxy attempt current` and the hook commands.
+- **Delivers:** `@boxxy/contract`, the commands' logic in `@boxxy/dispatch`, `@boxxy/server`
+  (Elysia, the oRPC router, configuration) and `@boxxy/cli` with every command in
+  [the table](#commands-and-api) except `boxxy cost`, `boxxy attempt current` and the hook commands.
+  The server reloads the rules on its own 5-second timer until S1-09 moves the reload into the tick.
 - **Depends on:** S1-06, S1-07.
 - **Acceptance:**
   - An e2e test starts the server on a temporary store, files two items with the CLI, links one as
@@ -1419,8 +1426,8 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
 
 ### S1-09: The atc worker and the runner loop
 
-- **Delivers:** `@boxxy/worker-atc` (spawn, and reconcile by session name), the reconcile table in
-  `@boxxy/dispatch`, the runner loop in `@boxxy/server` with the `attempt_sessions` writes
+- **Delivers:** `@boxxy/worker-atc` (spawn, and reconcile by session name), the reconcile table,
+  `createFakeWorker()` and the `WorkerKind` contract suite in `@boxxy/dispatch`, the runner loop in `@boxxy/server` with the `attempt_sessions` writes
   ([agent sessions](#agent-sessions)), and the example rules checkout with a minimal
   `prompts/build-v1.md` that uses every [template value](#rules-for-slice-1).
 - **Depends on:** S1-08, A1.
@@ -1451,8 +1458,9 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
 
 ### S1-10: Commit and PR links
 
-- **Delivers:** the Claude Code plugin in `apps/cli/plugin/`, the hook commands, `attempt.current`,
-  `evidence.recordPr`, `@boxxy/forge-github` and the PR watch.
+- **Delivers:** the Claude Code plugin in `apps/cli/plugin/`, the hook commands, `attempt.current`
+  and `boxxy attempt current`, `evidence.recordPr`, `@boxxy/forge-github`, `createFakeForge()` and
+  the `Forge` contract suite in `@boxxy/dispatch`, and the PR watch.
 - **Depends on:** S1-09.
 - **Acceptance:**
   - `boxxy hook pre-tool-use` denies `git commit -m "x"` in a boxxy session and allows
@@ -1469,7 +1477,9 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
 
 ### S1-11: The outbox to pepys
 
-- **Delivers:** `@boxxy/facts-pepys` (`FactSink` over P2) and the outbox sender.
+- **Delivers:** `@boxxy/facts-pepys` (`FactSink` over P2), `createFakeFactSink()` and the `FactSink`
+  contract suite in `@boxxy/dispatch`, and the outbox sender. The sender joins the runner's tick,
+  as step 4.
 - **Depends on:** S1-08, P2, P4.
 - **Acceptance:**
   - The `FactSink` contract suite passes against the fake and against the adapter with pepys's

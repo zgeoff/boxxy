@@ -29,7 +29,7 @@ export type CloseOutContext = { readonly item: ItemView; readonly attempt: Attem
 
 /** One reason a close-out doesn't parse. The parser returns all of them. Slice 1 (build's four). */
 export type CloseOutProblem =
-  | { readonly kind: "schema"; readonly path: string; readonly message: string }
+  | { readonly kind: "schema"; readonly path: string; readonly message: string } // path as the loader writes it, such as `friction[0].target.kind`
   | { readonly kind: "unknown-criterion"; readonly criterion: CriterionId } // not in the item's acceptance list
   | { readonly kind: "foreign-evidence"; readonly evidence: FactId } // belongs to another attempt
   | { readonly kind: "built-without-evidence"; readonly criteria: readonly CriterionId[] }
