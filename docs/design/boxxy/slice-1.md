@@ -1427,7 +1427,8 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
 ### S1-09: The atc worker and the runner loop
 
 - **Delivers:** `@boxxy/worker-atc` (spawn, and reconcile by session name), the reconcile table,
-  `createFakeWorker()` and the `WorkerKind` contract suite in `@boxxy/dispatch`, the runner loop in `@boxxy/server` with the `attempt_sessions` writes
+  `createFakeWorker()` and the `WorkerKind` contract suite in `@boxxy/dispatch`, the runner loop in
+  `@boxxy/server` with the `attempt_sessions` writes
   ([agent sessions](#agent-sessions)), and the example rules checkout with a minimal
   `prompts/build-v1.md` that uses every [template value](#rules-for-slice-1).
 - **Depends on:** S1-08, A1.
