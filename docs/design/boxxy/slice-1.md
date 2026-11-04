@@ -805,7 +805,8 @@ after the commit, outside the lock:
 
 The server runs one runner. Each tick, every 5 seconds by default:
 
-1. Write the runner's heartbeat with `writeHeartbeat`.
+1. Write the runner's heartbeat with `writeHeartbeat`. Then check the rules checkout for a new
+   commit, and reload the rules when it has one ([rules for slice 1](#rules-for-slice-1)).
 2. Call `claimNext` until it returns `null` or throws, and start each claim.
 3. Reconcile each attempt in `starting`, `running` or `reconciling` through `WorkerKind.reconcile`,
    and act on the reading by the table below.
