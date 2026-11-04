@@ -1170,6 +1170,10 @@ boxxy needs pepys to ingest Claude Code's OpenTelemetry log records as facts. pe
 projects each `claude_code.api_request` record into a table with the model, `cost_usd`, the token
 counts, the `session.id` and the time. The cost query joins on the `session.id`.
 
+The records reach pepys by push. pepys serves an OTLP/HTTP logs receiver on the private network,
+and the local OTLP sink forwards each record to it as the record arrives. pepys reads no files from
+the machine that runs the agents.
+
 The P1 ticket in pepys settles the telemetry table's name and its column names and types. S1-12
 writes the query against them, and needs them before it starts.
 
@@ -1180,9 +1184,9 @@ Each fact id is the event name, joined with one of these:
 - the session id and the event sequence, for an event with neither.
 
 A consumer drops a repeated fact id ([facts and the outbox](#facts-and-the-outbox)), so two
-distinct events must never share one. A test delivers the same record twice and keeps one. It also delivers
-a `claude_code.api_request` and a
-`claude_code.api_error` that share a `request_id`, and keeps both.
+distinct events must never share one. A test delivers the same record twice and keeps one. It also
+delivers a `claude_code.api_request` and a `claude_code.api_error` that share a `request_id`, and
+keeps both.
 
 #### P2: A fact-append route for boxxy
 
