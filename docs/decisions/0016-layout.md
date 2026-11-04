@@ -1,7 +1,6 @@
 # 0016: The workspace layout
 
-Date: 2026-11-04
-Updated: 2026-11-05
+Date: 2026-11-04 Updated: 2026-11-05
 
 ## Decision
 
@@ -31,5 +30,5 @@ tree and where a helper goes.
 ## Why
 
 The core must stay pure (see [0005](./0005-the-core-stays-generic.md)), and the split makes that a
-build failure instead of a review comment. noslop and nixie run this split with the same
-tags, so agents that work across the repos meet one rule.
+build failure instead of a review comment. noslop and nixie run this split with the same tags, so
+agents that work across the repos meet one rule.

@@ -1,0 +1,26 @@
+# pnpm-style symlinked node_modules — no phantom dependencies
+[install]
+linker = "isolated"
+
+# bun add saves exact versions, no ^/~ ranges
+exact = true
+
+# supply-chain guard: only install versions published >= 7 days ago
+minimumReleaseAge = 604800
+
+# first-party packages skip the gate; their third-party dependencies stay
+# behind it. Renovate bumps @zgeoff packages as soon as they publish, so each
+# one boxxy installs needs an entry here, or bun install refuses the bump.
+minimumReleaseAgeExcludes = [
+  "@zgeoff/agent-hooks",
+  "@zgeoff/bun-test-extended",
+  "@zgeoff/commitlint-config",
+  "@zgeoff/format-codemod",
+  "@zgeoff/oxfmt-config",
+  "@zgeoff/oxlint-config",
+  "@zgeoff/skill-gate",
+]
+
+[test]
+# registers the jest-extended matchers
+preload = ["@zgeoff/bun-test-extended"]

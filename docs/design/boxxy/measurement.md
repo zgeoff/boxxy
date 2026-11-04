@@ -35,8 +35,8 @@ whether atc records it. An investigation in atc answers it.
   sends logs; its `codex.sse_event` gives token counts per response.
 - pepys ingests the OTLP logs as facts. Each event kind has its own fact identity: `request_id` for
   `api_request`, `tool_use_id` for a tool result, and the pair (session id, sequence) for an event
-  with neither. A retried append can store a fact twice, and each consumer drops the copy by its id, so two
-  distinct events must never share an id.
+  with neither. A retried append can store a fact twice, and each consumer drops the copy by its id,
+  so two distinct events must never share an id.
 - Hooks carry the work events that OTel lacks: tool use, subagents, compaction, stop and failure. No
   hook payload carries token usage. A query joins hook facts to OTel facts on the session id.
 - Prompts and responses stay redacted, which is OTel's default in both agents.

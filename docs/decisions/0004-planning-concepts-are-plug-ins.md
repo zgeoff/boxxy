@@ -1,7 +1,6 @@
 # 0004: Planning concepts are plug-ins
 
-Date: 2026-11-04
-Updated: 2026-11-05
+Date: 2026-11-04 Updated: 2026-11-05
 
 ## Decision
 
@@ -30,9 +29,9 @@ each plug-in kind.
 
 ## Why
 
-Three sketches, each from a different approach, were scored blind by two judges from different
-model families on five criteria: the owner's override always wins, one policy change touches one
-place, a forecast you can trust, one ordering function, and a small first slice. The plug-in design
-won on the combined score, 31 against 29 and 28. It is also the heaviest of the three, and a wrong
-plug-in interface is costly because everything rests on it. Building the most different shapes first
-tests that interface while it is still cheap to change.
+Three sketches, each from a different approach, were scored blind by two judges from different model
+families on five criteria: the owner's override always wins, one policy change touches one place, a
+forecast you can trust, one ordering function, and a small first slice. The plug-in design won on
+the combined score, 31 against 29 and 28. It is also the heaviest of the three, and a wrong plug-in
+interface is costly because everything rests on it. Building the most different shapes first tests
+that interface while it is still cheap to change.

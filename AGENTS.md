@@ -59,8 +59,9 @@ Two checks enforce the layout in CI:
 
 - `turbo boundaries` fails on an import that the package's `turbo.json` tag doesn't allow.
 - The `zgeoff/import-zones` lint rule lets only one named package import each outside library, and
-  fails on I/O in `modules/` and `libs/`. The layout doc lists which package owns each library. To
-  add a new outside library, add it to that list in the same PR.
+  fails on I/O in `modules/` and `libs/`, with oxlint's `no-restricted-globals` for the clock, the
+  environment and `Bun`. The layout doc lists which package owns each library. To add a new
+  outside library, add it to that list in the same PR.
 
 When a check fails, move the code to the package the layout names. Never add an exception to a rule.
 
@@ -77,14 +78,15 @@ When a check fails, move the code to the package the layout names. Never add an 
 
 ## Checks
 
-The repo-setup unit adds a lefthook pre-push hook that runs lint, format, type checks, tests and
-`turbo boundaries`. Run it by hand before you push:
+lefthook's pre-push hook runs lint, the format check, type checks, tests and `turbo boundaries`.
+Run it by hand before you push:
 
 ```bash
 bun x lefthook run pre-push
 ```
 
-Fix every failure before you push.
+Fix every failure before you push. `bun run check` runs every check that CI runs, type-aware lint
+and dead code included.
 
 ## Commits and pull requests
 

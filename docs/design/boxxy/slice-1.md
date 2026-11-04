@@ -29,52 +29,52 @@ function. This doc owns the behaviour, and links each shape to the sketch file t
 
 Where another design doc owns a term, the link goes to that doc.
 
-| Term | Meaning |
-| --- | --- |
-| item | A typed piece of work. Slice 1 has one kind, `core.issue`, an issue to build ([core model](./core-model.md#items)). |
-| phase | One step of an item kind's pipeline. Slice 1's one phase is `build` ([core model](./core-model.md#phases)). |
-| item phase | One phase of one item, such as the `build` phase of one issue. |
-| attempt | One run of one phase on one item ([core model](./core-model.md#attempts)). An attempt can collect more than one agent session, such as when atc respawns its session. |
-| agent session id | The id that the agent CLI gives its own session. Claude Code puts it on each telemetry record as `session.id`, and atc reports it as `agentSessionID`. boxxy records each agent session id of an attempt as a row in `attempt_sessions` ([the session-id join](#the-session-id-join)). |
-| close-out | The typed report an agent sends at the end of its attempt ([close-outs](./close-outs.md)). |
-| recipe | What an attempt runs with: agent, model, effort, prompt template and capacity source. Each attempt stores its recipe's content hash ([core model](./core-model.md#attempts)). |
-| capacity source | What pays for an attempt's model use, such as a subscription account's usage window or a pay-per-token provider's balance ([capacity](./capacity.md#capacity-sources)). |
-| the owner | The person who runs boxxy. |
-| lever | An owner command that changes the order of work now, such as defer or expedite. boxxy stores each lever as a row in the store's `levers` table, with its actor, time and reason ([rules](./rules.md#levers-as-facts)). |
-| live lever | A lever that is not past its `expires_at`, and that no later lever of its undo kind on the same item cancels. `plan.undefer` undoes `plan.defer`, and `plan.unexpedite` undoes `plan.expedite`. |
-| fact | A record of one change, in pepys. boxxy writes a fact for every change to its store. |
-| the fact catalog | The list of boxxy fact types, with a schema for each payload, in `@boxxy/model`. [Facts and the outbox](#facts-and-the-outbox) lists the types. |
-| concept | One module that adds one planning idea, such as defer. A concept registers one or more plug-ins ([planning](./planning.md#concepts)). |
-| open item | An item that is neither `done` nor `archived`. |
-| `buildFrame` and `decide` | `buildFrame` reads every open item, runs the plug-ins and the propagation, and returns the frame. `decide` reads the frame and the pools, and returns the picks ([planning](#planning-buildframe-and-decide)). |
-| frame | What `buildFrame` returns: the `ready` candidates, the holds and signal values the plug-ins gave them, and the faults. |
-| plug-in | A function of one plug-in kind, which `buildFrame` calls for an item. Slice 1 has plug-ins of three kinds: signal, gate and waiver. |
-| plug-in reference | How `rules.yaml` names a plug-in: a bare name, such as `oldest`, or a one-key map from the name to its parameters, such as `{ kind-order: { order: [chore, bug] } }`. |
-| signal | A plug-in kind that gives an item a number. A pool sorts items by signals, lowest first. |
-| gate | A plug-in kind that holds an item back, with a reason. A gate is liftable when a waiver may lift its hold. Every slice 1 gate is liftable. |
-| waiver | A plug-in kind that lifts one gate's hold on one item. |
-| admission | A plug-in kind that widens which pools may take an item. Slice 1 has none. |
-| view | A plug-in kind that computes a read-only result from the frame, such as `explain`. Slice 1 has none. |
-| propagation line | An entry under `propagation` in `rules.yaml`. It carries a signal's value across links of one type, and `buildFrame` runs it over every open item. The registry holds no propagation plug-ins. |
-| pool | A named set of slots, with a filter for the work it takes and the signals it sorts by ([planning](./planning.md#pools)). |
-| claim | What `claimNext` makes when it picks an item phase: an attempt and the two leases it runs under. |
-| runner | The loop in the server that claims attempts, starts them and settles them ([the runner loop](#the-runner-loop)). |
-| lease | The store's record that one attempt holds part of a claim. Each claim takes two leases. The item-phase lease is a row in `leases`, and makes the attempt the only live one on its item phase. The slot lease is the `holder` column of a `pool_slots` row, and holds one slot in a pool ([dispatch](./dispatch.md#leases-and-generations)). |
-| lease generation | A number on each item-phase lease, one higher than the last lease on the same item phase. Every write about an attempt carries it, and the store refuses the write when the lease is released or the number differs. |
-| the outbox | A table in the boxxy store that holds each fact until boxxy sends it to pepys. A change and its outbox rows commit in one transaction. |
-| pepys | [pepys](https://github.com/zgeoff/pepys), an event store. boxxy sends its facts to pepys and reads cost from it. |
-| pepys consumer | Code in a pepys deployment that reads one fact stream and keeps read tables from it. |
-| scope mode | The pepys consumer mode that recomputes everything a consumer owns for one scope, such as one attempt, from all of that scope's facts, whenever one of them changes ([pepys consumers](https://github.com/zgeoff/pepys/blob/main/docs/design/pepys/consumers.md#input-modes)). |
-| atc | [atc](https://github.com/zgeoff/atc) runs agent sessions. boxxy starts each attempt with atc's `session.spawn`. |
-| hq | [hq](https://github.com/zgeoff/hq), the tool that hands tasks to agents. hq dispatches the tasks that build boxxy, the units in [build order](#build-order). |
-| the local OTLP sink | An OTLP receiver on the owner's machine that writes the telemetry records it gets to files. atc's agent config points each agent's telemetry at it. boxxy doesn't build it, and S1-09's live check needs one running. |
-| explain | A command that shows why boxxy picked an item, from its decision row. Slice 1 doesn't build it. |
-| replay | A rerun of `decide()` on a decision row's recorded inputs. Slice 1 doesn't build it. |
-| import zones | The `zgeoff/import-zones` lint rule. Each pin in it sets the one package that may import a library ([layout](./layout.md#import-pins)). |
-| gunshi | The CLI library that the `boxxy` commands use. |
-| msw | An HTTP mocking library for tests. |
-| wringer | [wringer](https://github.com/zgeoff/wringer), a repo that publishes npm packages. boxxy copies its repo setup. |
-| repo-sync | The workflow that copies shared files from [zgeoff/tools](https://github.com/zgeoff/tools) into each repo ([tech stack](./tech-stack.md#what-repo-sync-delivers)). |
+| Term                      | Meaning                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| item                      | A typed piece of work. Slice 1 has one kind, `core.issue`, an issue to build ([core model](./core-model.md#items)).                                                                                                                                                                                                                         |
+| phase                     | One step of an item kind's pipeline. Slice 1's one phase is `build` ([core model](./core-model.md#phases)).                                                                                                                                                                                                                                 |
+| item phase                | One phase of one item, such as the `build` phase of one issue.                                                                                                                                                                                                                                                                              |
+| attempt                   | One run of one phase on one item ([core model](./core-model.md#attempts)). An attempt can collect more than one agent session, such as when atc respawns its session.                                                                                                                                                                       |
+| agent session id          | The id that the agent CLI gives its own session. Claude Code puts it on each telemetry record as `session.id`, and atc reports it as `agentSessionID`. boxxy records each agent session id of an attempt as a row in `attempt_sessions` ([the session-id join](#the-session-id-join)).                                                      |
+| close-out                 | The typed report an agent sends at the end of its attempt ([close-outs](./close-outs.md)).                                                                                                                                                                                                                                                  |
+| recipe                    | What an attempt runs with: agent, model, effort, prompt template and capacity source. Each attempt stores its recipe's content hash ([core model](./core-model.md#attempts)).                                                                                                                                                               |
+| capacity source           | What pays for an attempt's model use, such as a subscription account's usage window or a pay-per-token provider's balance ([capacity](./capacity.md#capacity-sources)).                                                                                                                                                                     |
+| the owner                 | The person who runs boxxy.                                                                                                                                                                                                                                                                                                                  |
+| lever                     | An owner command that changes the order of work now, such as defer or expedite. boxxy stores each lever as a row in the store's `levers` table, with its actor, time and reason ([rules](./rules.md#levers-as-facts)).                                                                                                                      |
+| live lever                | A lever that is not past its `expires_at`, and that no later lever of its undo kind on the same item cancels. `plan.undefer` undoes `plan.defer`, and `plan.unexpedite` undoes `plan.expedite`.                                                                                                                                             |
+| fact                      | A record of one change, in pepys. boxxy writes a fact for every change to its store.                                                                                                                                                                                                                                                        |
+| the fact catalog          | The list of boxxy fact types, with a schema for each payload, in `@boxxy/model`. [Facts and the outbox](#facts-and-the-outbox) lists the types.                                                                                                                                                                                             |
+| concept                   | One module that adds one planning idea, such as defer. A concept registers one or more plug-ins ([planning](./planning.md#concepts)).                                                                                                                                                                                                       |
+| open item                 | An item that is neither `done` nor `archived`.                                                                                                                                                                                                                                                                                              |
+| `buildFrame` and `decide` | `buildFrame` reads every open item, runs the plug-ins and the propagation, and returns the frame. `decide` reads the frame and the pools, and returns the picks ([planning](#planning-buildframe-and-decide)).                                                                                                                              |
+| frame                     | What `buildFrame` returns: the `ready` candidates, the holds and signal values the plug-ins gave them, and the faults.                                                                                                                                                                                                                      |
+| plug-in                   | A function of one plug-in kind, which `buildFrame` calls for an item. Slice 1 has plug-ins of three kinds: signal, gate and waiver.                                                                                                                                                                                                         |
+| plug-in reference         | How `rules.yaml` names a plug-in: a bare name, such as `oldest`, or a one-key map from the name to its parameters, such as `{ kind-order: { order: [chore, bug] } }`.                                                                                                                                                                       |
+| signal                    | A plug-in kind that gives an item a number. A pool sorts items by signals, lowest first.                                                                                                                                                                                                                                                    |
+| gate                      | A plug-in kind that holds an item back, with a reason. A gate is liftable when a waiver may lift its hold. Every slice 1 gate is liftable.                                                                                                                                                                                                  |
+| waiver                    | A plug-in kind that lifts one gate's hold on one item.                                                                                                                                                                                                                                                                                      |
+| admission                 | A plug-in kind that widens which pools may take an item. Slice 1 has none.                                                                                                                                                                                                                                                                  |
+| view                      | A plug-in kind that computes a read-only result from the frame, such as `explain`. Slice 1 has none.                                                                                                                                                                                                                                        |
+| propagation line          | An entry under `propagation` in `rules.yaml`. It carries a signal's value across links of one type, and `buildFrame` runs it over every open item. The registry holds no propagation plug-ins.                                                                                                                                              |
+| pool                      | A named set of slots, with a filter for the work it takes and the signals it sorts by ([planning](./planning.md#pools)).                                                                                                                                                                                                                    |
+| claim                     | What `claimNext` makes when it picks an item phase: an attempt and the two leases it runs under.                                                                                                                                                                                                                                            |
+| runner                    | The loop in the server that claims attempts, starts them and settles them ([the runner loop](#the-runner-loop)).                                                                                                                                                                                                                            |
+| lease                     | The store's record that one attempt holds part of a claim. Each claim takes two leases. The item-phase lease is a row in `leases`, and makes the attempt the only live one on its item phase. The slot lease is the `holder` column of a `pool_slots` row, and holds one slot in a pool ([dispatch](./dispatch.md#leases-and-generations)). |
+| lease generation          | A number on each item-phase lease, one higher than the last lease on the same item phase. Every write about an attempt carries it, and the store refuses the write when the lease is released or the number differs.                                                                                                                        |
+| the outbox                | A table in the boxxy store that holds each fact until boxxy sends it to pepys. A change and its outbox rows commit in one transaction.                                                                                                                                                                                                      |
+| pepys                     | [pepys](https://github.com/zgeoff/pepys), an event store. boxxy sends its facts to pepys and reads cost from it.                                                                                                                                                                                                                            |
+| pepys consumer            | Code in a pepys deployment that reads one fact stream and keeps read tables from it.                                                                                                                                                                                                                                                        |
+| scope mode                | The pepys consumer mode that recomputes everything a consumer owns for one scope, such as one attempt, from all of that scope's facts, whenever one of them changes ([pepys consumers](https://github.com/zgeoff/pepys/blob/main/docs/design/pepys/consumers.md#input-modes)).                                                              |
+| atc                       | [atc](https://github.com/zgeoff/atc) runs agent sessions. boxxy starts each attempt with atc's `session.spawn`.                                                                                                                                                                                                                             |
+| hq                        | [hq](https://github.com/zgeoff/hq), the tool that hands tasks to agents. hq dispatches the tasks that build boxxy, the units in [build order](#build-order).                                                                                                                                                                                |
+| the local OTLP sink       | An OTLP receiver on the owner's machine that writes the telemetry records it gets to files. atc's agent config points each agent's telemetry at it. boxxy doesn't build it, and S1-09's live check needs one running.                                                                                                                       |
+| explain                   | A command that shows why boxxy picked an item, from its decision row. Slice 1 doesn't build it.                                                                                                                                                                                                                                             |
+| replay                    | A rerun of `decide()` on a decision row's recorded inputs. Slice 1 doesn't build it.                                                                                                                                                                                                                                                        |
+| import zones              | The `zgeoff/import-zones` lint rule. Each pin in it sets the one package that may import a library ([layout](./layout.md#import-pins)).                                                                                                                                                                                                     |
+| gunshi                    | The CLI library that the `boxxy` commands use.                                                                                                                                                                                                                                                                                              |
+| msw                       | An HTTP mocking library for tests.                                                                                                                                                                                                                                                                                                          |
+| wringer                   | [wringer](https://github.com/zgeoff/wringer), a repo that publishes npm packages. boxxy copies its repo setup.                                                                                                                                                                                                                              |
+| repo-sync                 | The workflow that copies shared files from [zgeoff/tools](https://github.com/zgeoff/tools) into each repo ([tech stack](./tech-stack.md#what-repo-sync-delivers)).                                                                                                                                                                          |
 
 ## Scope
 
@@ -101,8 +101,7 @@ Slice 1 leaves out each of these. Where slice 1 still needs the job done, each l
 does it.
 
 - The merge train ([merge train](./merge-train.md)). The repo's review gate merges every PR.
-- The router and the pacing gate ([capacity](./capacity.md)). Each recipe sets one capacity
-  source.
+- The router and the pacing gate ([capacity](./capacity.md)). Each recipe sets one capacity source.
 - The model-swap evaluation on a pay-per-token provider
   ([capacity](./capacity.md#the-model-swap-eval)).
 - Experiments ([measurement](./measurement.md)). Slice 1 builds the cost query that experiments
@@ -141,9 +140,9 @@ on pepys outside boxxy. These rules keep that true:
 
 ## Packages
 
-Slice 1 creates these packages and no others. Each folder name is the package name under
-`@boxxy/`, and the folder's parent sets the package's dependency tag ([layout](./layout.md)). Every
-package publishes ([tech stack](./tech-stack.md#every-package-publishes)).
+Slice 1 creates these packages and no others. Each folder name is the package name under `@boxxy/`,
+and the folder's parent sets the package's dependency tag ([layout](./layout.md)). Every package
+publishes ([tech stack](./tech-stack.md#every-package-publishes)).
 
 The apps, tagged `app`:
 
@@ -177,9 +176,9 @@ The libs, tagged `lib`:
 
 - `@boxxy/model`, in `libs/model`, holds every type that two or more packages share: the ids, the
   store rows, `Snapshot`, `StoreChange`, the port interfaces, the fact catalog, the plug-in
-  interfaces (`Signal`, `Gate`, `Waiver`, `Concept`, `Pool`, `LoadedRules`), the `define…`
-  helpers, and `BuildCloseOut` with its zod schema. It also holds the pure helpers several packages
-  call: `deriveItemState`, `liveLevers` and `signalKey`. It re-exports `ContentHash`.
+  interfaces (`Signal`, `Gate`, `Waiver`, `Concept`, `Pool`, `LoadedRules`), the `define…` helpers,
+  and `BuildCloseOut` with its zod schema. It also holds the pure helpers several packages call:
+  `deriveItemState`, `liveLevers` and `signalKey`. It re-exports `ContentHash`.
 - `@boxxy/content-hash`, in `libs/content-hash`, holds the `ContentHash` type, canonical JSON,
   `hashTree`, and the SHA-256 hashes for recipes, rules versions and snapshots.
 - `@boxxy/contract`, in `libs/contract`, holds the oRPC contract that the server serves and the CLI
@@ -199,12 +198,12 @@ A module reaches an outside system through a port. Each port has a real adapter 
 port types live in `@boxxy/model`, because `dispatch` and the adapters both use them. `dispatch`
 drives all four slice 1 ports, so it holds each port's fake and contract suite.
 
-| Port | Real adapter | Test fake |
-| --- | --- | --- |
+| Port         | Real adapter          | Test fake                                                  |
+| ------------ | --------------------- | ---------------------------------------------------------- |
 | `ClaimStore` | `@boxxy/store-sqlite` | `createMemoryClaimStore()` in `@boxxy/dispatch/test-utils` |
-| `WorkerKind` | `@boxxy/worker-atc` | `createFakeWorker()` in `@boxxy/dispatch/test-utils` |
-| `FactSink` | `@boxxy/facts-pepys` | `createFakeFactSink()` in `@boxxy/dispatch/test-utils` |
-| `Forge` | `@boxxy/forge-github` | `createFakeForge()` in `@boxxy/dispatch/test-utils` |
+| `WorkerKind` | `@boxxy/worker-atc`   | `createFakeWorker()` in `@boxxy/dispatch/test-utils`       |
+| `FactSink`   | `@boxxy/facts-pepys`  | `createFakeFactSink()` in `@boxxy/dispatch/test-utils`     |
+| `Forge`      | `@boxxy/forge-github` | `createFakeForge()` in `@boxxy/dispatch/test-utils`        |
 
 One contract test suite per port, in `@boxxy/dispatch/test-utils`, runs against the fake and against
 the real adapter. A fake that passes the suite is safe to use in module tests.
@@ -224,8 +223,8 @@ The port shapes are in [`02-ports.ts`](./sketches/02-ports.ts):
 - `Forge`, with `PullRequestReading`: read PRs and their commits
   ([the GitHub adapter](#the-github-adapter)).
 
-Time, ids and configuration come into modules as arguments. The same file holds `Clock` and
-`NewId`: only the apps hold them, and they pass `now` and `newId` to each module call.
+Time, ids and configuration come into modules as arguments. The same file holds `Clock` and `NewId`:
+only the apps hold them, and they pass `now` and `newId` to each module call.
 
 The memory fake `createMemoryClaimStore()` keeps the [store rules](#store-rules) without SQLite:
 
@@ -241,8 +240,8 @@ function of the command and the rows it read. Inside `exclusive`, the module pas
 `StoreTx.applyChange`, which writes every row and every outbox fact in it, or none of them.
 
 The caller makes every fact id and the time. Each fact in the change carries its id, `manual:` and a
-`newId()` value, and the change carries `at`, the time for each outbox row. The store makes no id and
-reads no clock.
+`newId()` value, and the change carries `at`, the time for each outbox row. The store makes no id
+and reads no clock.
 
 A change about an existing attempt names, in `under`, the leases it writes under: the item phase and
 its lease generation. A settle also names the slot lease, with the slot `gen` that the attempt's
@@ -273,9 +272,10 @@ on `StoreTx` outside `StoreChange`, writes no fact, and leaves the store version
 ### The atc adapter
 
 atc publishes no client. It publishes its contract, `@atcx/contract`: `DAEMON_CONTRACT`, the oRPC
-contract of every daemon procedure, with `resolveAtcPaths` for the daemon's socket and
-`checkDaemon` for the version check. The adapter builds its own oRPC client from `DAEMON_CONTRACT`.
-It speaks atc's [client protocol](https://github.com/zgeoff/atc/blob/main/docs/architecture/protocol/protocol.md):
+contract of every daemon procedure, with `resolveAtcPaths` for the daemon's socket and `checkDaemon`
+for the version check. The adapter builds its own oRPC client from `DAEMON_CONTRACT`. It speaks
+atc's
+[client protocol](https://github.com/zgeoff/atc/blob/main/docs/architecture/protocol/protocol.md):
 JSON-line oRPC messages over the daemon's unix socket, after a `daemon.hello` handshake.
 
 - `start` calls `session.spawn` with these fields from the stored spawn request: `cwd`, `name` set
@@ -305,16 +305,15 @@ JSON-line oRPC messages over the daemon's unix socket, after a `daemon.hello` ha
 ### The pepys adapter
 
 - `append` sends a batch of facts to pepys's fact-append route
-  ([P2](#p2-a-fact-append-route-for-boxxy)). It returns `accepted`, `unknown` when no answer came, or
-  `rejected` with pepys's error.
+  ([P2](#p2-a-fact-append-route-for-boxxy)). It returns `accepted`, `unknown` when no answer came,
+  or `rejected` with pepys's error.
 - `createCostReader(config)` calls pepys's `boxxy.costToLand` query for the `boxxy cost` command.
 
 ## The store schema
 
 The store is one SQLite file in WAL mode, with `synchronous=NORMAL` and `busy_timeout` at 5,000 ms,
-so a second `BEGIN IMMEDIATE` waits for the first. Migrations run through Kysely's
-`Migrator` with an in-code provider. Only `adapters/store-sqlite` imports `bun:sqlite`
-and `kysely`.
+so a second `BEGIN IMMEDIATE` waits for the first. Migrations run through Kysely's `Migrator` with
+an in-code provider. Only `adapters/store-sqlite` imports `bun:sqlite` and `kysely`.
 
 The store holds no item state column. `@boxxy/model` derives each item's state from its rows each
 time it reads them ([derived item state](#derived-item-state)).
@@ -323,19 +322,19 @@ time it reads them ([derived item state](#derived-item-state)).
 
 The primary key is `id`.
 
-| Column | Holds | Nullable |
-| --- | --- | --- |
-| `id` | the item id | no |
-| `kind` | the item kind, `core.issue` | no |
-| `repo` | the repo, such as `zgeoff/pepys` | no |
-| `title` | the title | no |
-| `outcome` | what the item must achieve | no |
-| `acceptance` | the acceptance criteria, as a JSON list of `{ id, text, evidence }`: `item.file` gives the ids `a1`, `a2`, … in order, and `evidence` lists the evidence ids that settle copies in, empty until then | no |
-| `found_in_attempt` | the attempt whose close-out filed the item | yes |
-| `filed_by` | the actor that filed the item | no |
-| `filed_at` | when the item was filed | no |
-| `closed_at` | when `item.close` archived the item | yes |
-| `close_reason` | the reason given to `item.close` | yes |
+| Column             | Holds                                                                                                                                                                                                | Nullable |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `id`               | the item id                                                                                                                                                                                          | no       |
+| `kind`             | the item kind, `core.issue`                                                                                                                                                                          | no       |
+| `repo`             | the repo, such as `zgeoff/pepys`                                                                                                                                                                     | no       |
+| `title`            | the title                                                                                                                                                                                            | no       |
+| `outcome`          | what the item must achieve                                                                                                                                                                           | no       |
+| `acceptance`       | the acceptance criteria, as a JSON list of `{ id, text, evidence }`: `item.file` gives the ids `a1`, `a2`, … in order, and `evidence` lists the evidence ids that settle copies in, empty until then | no       |
+| `found_in_attempt` | the attempt whose close-out filed the item                                                                                                                                                           | yes      |
+| `filed_by`         | the actor that filed the item                                                                                                                                                                        | no       |
+| `filed_at`         | when the item was filed                                                                                                                                                                              | no       |
+| `closed_at`        | when `item.close` archived the item                                                                                                                                                                  | yes      |
+| `close_reason`     | the reason given to `item.close`                                                                                                                                                                     | yes      |
 
 ### `links`
 
@@ -343,84 +342,84 @@ The primary key is `(source, target, type, added_at)`. A partial unique index on
 `(source, target, type) WHERE removed_at IS NULL` allows one live link of each type between two
 items.
 
-| Column | Holds | Nullable |
-| --- | --- | --- |
-| `source` | the blocking item | no |
-| `target` | the blocked item | no |
-| `type` | the link type, `blocks` | no |
-| `added_by` | the actor that added the link | no |
-| `added_at` | when the link was added | no |
-| `removed_at` | when `link.remove` removed the link | yes |
+| Column       | Holds                               | Nullable |
+| ------------ | ----------------------------------- | -------- |
+| `source`     | the blocking item                   | no       |
+| `target`     | the blocked item                    | no       |
+| `type`       | the link type, `blocks`             | no       |
+| `added_by`   | the actor that added the link       | no       |
+| `added_at`   | when the link was added             | no       |
+| `removed_at` | when `link.remove` removed the link | yes      |
 
 ### `levers`
 
 The primary key is `seq`, which autoincrements. An index covers `(item, kind)`. A lever's `kind` is
 one of `plan.defer`, `plan.undefer`, `plan.expedite`, `plan.unexpedite` and `item.retry`.
 
-| Column | Holds | Nullable |
-| --- | --- | --- |
-| `seq` | the lever's order | no |
-| `kind` | the lever kind | no |
-| `item` | the item | no |
-| `until` | when a defer ends | yes |
-| `expires_at` | when an expedite ends | yes |
-| `reason` | the reason the actor gave | yes |
-| `actor` | who wrote the lever | no |
-| `at` | when the lever was written | no |
+| Column       | Holds                      | Nullable |
+| ------------ | -------------------------- | -------- |
+| `seq`        | the lever's order          | no       |
+| `kind`       | the lever kind             | no       |
+| `item`       | the item                   | no       |
+| `until`      | when a defer ends          | yes      |
+| `expires_at` | when an expedite ends      | yes      |
+| `reason`     | the reason the actor gave  | yes      |
+| `actor`      | who wrote the lever        | no       |
+| `at`         | when the lever was written | no       |
 
 ### `attempts`
 
 The primary key is `id`. `(item, phase, number)` is unique, and an index covers `atc_session`. An
 attempt's `state` is one of `starting`, `running`, `reconciling`, `succeeded` and `failed`.
 
-| Column | Holds | Nullable |
-| --- | --- | --- |
-| `id` | the attempt id | no |
-| `item` | the item | no |
-| `phase` | the phase, `build` | no |
-| `number` | the attempt's count on this item phase, from 1 | no |
-| `runner` | the runner that claimed it | no |
-| `recipe_hash` | the recipe's content hash | no |
-| `rules_version` | the rules version that decided the claim | no |
-| `pool` | the pool | no |
-| `slot` | the slot number of the attempt's slot lease | no |
-| `slot_gen` | the slot's `gen` after the attempt's take | no |
-| `lease_gen` | the generation of the attempt's item-phase lease | no |
-| `spawn_request` | the exact spawn request, as JSON | no |
-| `spawn_request_hash` | the spawn request's content hash | no |
-| `state` | the attempt state | no |
-| `failure` | the failure reason | yes |
-| `atc_session` | atc's current session id for the attempt, which reconcile reads | yes |
-| `close_out` | the latest valid close-out, as JSON | yes |
-| `claimed_at` | when the claim committed | no |
-| `started_at` | when atc started the session | yes |
-| `ended_at` | when the attempt settled | yes |
+| Column               | Holds                                                           | Nullable |
+| -------------------- | --------------------------------------------------------------- | -------- |
+| `id`                 | the attempt id                                                  | no       |
+| `item`               | the item                                                        | no       |
+| `phase`              | the phase, `build`                                              | no       |
+| `number`             | the attempt's count on this item phase, from 1                  | no       |
+| `runner`             | the runner that claimed it                                      | no       |
+| `recipe_hash`        | the recipe's content hash                                       | no       |
+| `rules_version`      | the rules version that decided the claim                        | no       |
+| `pool`               | the pool                                                        | no       |
+| `slot`               | the slot number of the attempt's slot lease                     | no       |
+| `slot_gen`           | the slot's `gen` after the attempt's take                       | no       |
+| `lease_gen`          | the generation of the attempt's item-phase lease                | no       |
+| `spawn_request`      | the exact spawn request, as JSON                                | no       |
+| `spawn_request_hash` | the spawn request's content hash                                | no       |
+| `state`              | the attempt state                                               | no       |
+| `failure`            | the failure reason                                              | yes      |
+| `atc_session`        | atc's current session id for the attempt, which reconcile reads | yes      |
+| `close_out`          | the latest valid close-out, as JSON                             | yes      |
+| `claimed_at`         | when the claim committed                                        | no       |
+| `started_at`         | when atc started the session                                    | yes      |
+| `ended_at`           | when the attempt settled                                        | yes      |
 
 ### `attempt_sessions`
 
 Each row is one agent session of one attempt. The primary key is `(attempt, agent_session)`, and
 `agent_session` is unique, so one agent session belongs to one attempt.
 
-| Column | Holds | Nullable |
-| --- | --- | --- |
-| `attempt` | the attempt id | no |
-| `agent_session` | the agent CLI's own session id | no |
-| `atc_session` | atc's session id that carried the agent session | no |
-| `seen_at` | when the runner first saw the pair | no |
+| Column          | Holds                                           | Nullable |
+| --------------- | ----------------------------------------------- | -------- |
+| `attempt`       | the attempt id                                  | no       |
+| `agent_session` | the agent CLI's own session id                  | no       |
+| `atc_session`   | atc's session id that carried the agent session | no       |
+| `seen_at`       | when the runner first saw the pair              | no       |
 
 ### `leases`
 
-Each row is one item-phase lease. The primary key is `(item, phase, gen)`. A partial unique
-index on `(item, phase) WHERE released_at IS NULL` allows one live item-phase lease per item phase.
+Each row is one item-phase lease. The primary key is `(item, phase, gen)`. A partial unique index on
+`(item, phase) WHERE released_at IS NULL` allows one live item-phase lease per item phase.
 
-| Column | Holds | Nullable |
-| --- | --- | --- |
-| `item` | the item | no |
-| `phase` | the phase | no |
-| `attempt` | the attempt that holds the lease | no |
-| `gen` | the lease generation | no |
-| `taken_at` | when the claim took the lease | no |
-| `released_at` | when settle released the lease | yes |
+| Column        | Holds                            | Nullable |
+| ------------- | -------------------------------- | -------- |
+| `item`        | the item                         | no       |
+| `phase`       | the phase                        | no       |
+| `attempt`     | the attempt that holds the lease | no       |
+| `gen`         | the lease generation             | no       |
+| `taken_at`    | when the claim took the lease    | no       |
+| `released_at` | when settle released the lease   | yes      |
 
 ### `pool_slots`
 
@@ -432,30 +431,30 @@ UPDATE pool_slots SET holder = ?, gen = gen + 1
 WHERE pool = ? AND slot = ? AND holder IS NULL AND retired = 0
 ```
 
-| Column | Holds | Nullable |
-| --- | --- | --- |
-| `pool` | the pool | no |
-| `slot` | the slot number | no |
-| `holder` | the slot lease: the attempt that holds the slot | yes |
-| `gen` | the slot's generation, one higher on each take. A settle names it in `under`, so a stale release of an old slot lease changes nothing | no |
-| `retired` | 1 when the slot is above the pool's slot count | no |
+| Column    | Holds                                                                                                                                 | Nullable |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `pool`    | the pool                                                                                                                              | no       |
+| `slot`    | the slot number                                                                                                                       | no       |
+| `holder`  | the slot lease: the attempt that holds the slot                                                                                       | yes      |
+| `gen`     | the slot's generation, one higher on each take. A settle names it in `under`, so a stale release of an old slot lease changes nothing | no       |
+| `retired` | 1 when the slot is above the pool's slot count                                                                                        | no       |
 
 ### `decisions`
 
 The primary key is `id`.
 
-| Column | Holds | Nullable |
-| --- | --- | --- |
-| `id` | the decision id | no |
-| `attempt` | the attempt the decision claimed | no |
-| `item` | the item | no |
-| `pool` | the pool | no |
-| `rules_version` | the rules version | no |
-| `snapshot_hash` | the content hash of the snapshot `decide()` read | no |
-| `store_version` | the store version the snapshot read | no |
-| `pepys_offsets` | the offset read in each pepys stream, as JSON | no |
-| `faults` | the plug-in faults, as JSON | no |
-| `at` | when the decision was made | no |
+| Column          | Holds                                            | Nullable |
+| --------------- | ------------------------------------------------ | -------- |
+| `id`            | the decision id                                  | no       |
+| `attempt`       | the attempt the decision claimed                 | no       |
+| `item`          | the item                                         | no       |
+| `pool`          | the pool                                         | no       |
+| `rules_version` | the rules version                                | no       |
+| `snapshot_hash` | the content hash of the snapshot `decide()` read | no       |
+| `store_version` | the store version the snapshot read              | no       |
+| `pepys_offsets` | the offset read in each pepys stream, as JSON    | no       |
+| `faults`        | the plug-in faults, as JSON                      | no       |
+| `at`            | when the decision was made                       | no       |
 
 ### `evidence`
 
@@ -463,57 +462,57 @@ The primary key is `fact_id`. `(attempt, kind, ref)` is unique. An evidence row'
 `pr`, `commit`, `test`, `ci-run` and `live-check`, and its `source` is one of `hook`, `trailer`,
 `agent` and `watch`, for the PR watch.
 
-| Column | Holds | Nullable |
-| --- | --- | --- |
-| `fact_id` | the id of the evidence fact | no |
-| `attempt` | the attempt | no |
-| `kind` | the evidence kind | no |
-| `ref` | what the evidence points at, as text: a PR URL, a commit sha, a test file and name, a CI run URL, or a live check's URL or command | no |
-| `observed` | what the agent saw, from `--observed` | yes |
-| `source` | how boxxy learned of the evidence | no |
-| `at` | when the evidence was recorded | no |
+| Column     | Holds                                                                                                                              | Nullable |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `fact_id`  | the id of the evidence fact                                                                                                        | no       |
+| `attempt`  | the attempt                                                                                                                        | no       |
+| `kind`     | the evidence kind                                                                                                                  | no       |
+| `ref`      | what the evidence points at, as text: a PR URL, a commit sha, a test file and name, a CI run URL, or a live check's URL or command | no       |
+| `observed` | what the agent saw, from `--observed`                                                                                              | yes      |
+| `source`   | how boxxy learned of the evidence                                                                                                  | no       |
+| `at`       | when the evidence was recorded                                                                                                     | no       |
 
 ### `pull_requests`
 
 The primary key is `(repo, number)`.
 
-| Column | Holds | Nullable |
-| --- | --- | --- |
-| `repo` | the repo | no |
-| `number` | the PR number | no |
-| `attempt` | the attempt that opened the PR | no |
-| `state` | `open`, `closed` or `merged` | no |
-| `merged_at` | when the PR merged | yes |
-| `merge_commit` | the merge commit | yes |
-| `checked_at` | when the PR watch last read the PR | no |
+| Column         | Holds                              | Nullable |
+| -------------- | ---------------------------------- | -------- |
+| `repo`         | the repo                           | no       |
+| `number`       | the PR number                      | no       |
+| `attempt`      | the attempt that opened the PR     | no       |
+| `state`        | `open`, `closed` or `merged`       | no       |
+| `merged_at`    | when the PR merged                 | yes      |
+| `merge_commit` | the merge commit                   | yes      |
+| `checked_at`   | when the PR watch last read the PR | no       |
 
 ### `runners`
 
 The primary key is `id`, the runner id from the server's configuration, so the row keeps the paused
-flag across restarts. `runner.pause` and `runner.resume` upsert the row in a `StoreChange` with their
-fact.
+flag across restarts. `runner.pause` and `runner.resume` upsert the row in a `StoreChange` with
+their fact.
 
-| Column | Holds | Nullable |
-| --- | --- | --- |
-| `id` | the runner id | no |
-| `heartbeat_at` | the runner's last heartbeat | no |
-| `paused` | 1 when `runner.pause` stopped new claims | no |
+| Column         | Holds                                    | Nullable |
+| -------------- | ---------------------------------------- | -------- |
+| `id`           | the runner id                            | no       |
+| `heartbeat_at` | the runner's last heartbeat              | no       |
+| `paused`       | 1 when `runner.pause` stopped new claims | no       |
 
 ### `outbox`
 
 The primary key is `seq`, which autoincrements. `fact_id` is unique, and a partial index covers
 `seq WHERE sent_at IS NULL`.
 
-| Column | Holds | Nullable |
-| --- | --- | --- |
-| `seq` | the row's order, and the store version it made | no |
-| `fact_id` | the fact id, `manual:<uuidv7>` | no |
-| `type` | the fact type | no |
-| `entity` | the fact's entity | no |
-| `actor` | the fact's actor | no |
-| `at` | when the change was applied | no |
-| `payload` | the fact payload, as JSON | no |
-| `sent_at` | when pepys accepted the fact | yes |
+| Column    | Holds                                          | Nullable |
+| --------- | ---------------------------------------------- | -------- |
+| `seq`     | the row's order, and the store version it made | no       |
+| `fact_id` | the fact id, `manual:<uuidv7>`                 | no       |
+| `type`    | the fact type                                  | no       |
+| `entity`  | the fact's entity                              | no       |
+| `actor`   | the fact's actor                               | no       |
+| `at`      | when the change was applied                    | no       |
+| `payload` | the fact payload, as JSON                      | no       |
+| `sent_at` | when pepys accepted the fact                   | yes      |
 
 ### Store rules
 
@@ -526,12 +525,12 @@ The primary key is `seq`, which autoincrements. `fact_id` is unique, and a parti
   guarded update on `pool_slots` allows one holder per slot. A claim takes the item-phase lease and
   the slot lease in one `StoreChange`.
 - **A new item-phase lease's `gen`** is one more than the highest `gen` for that item phase. The
-  attempt stores it as `lease_gen`. Every change about the attempt after the claim, such as a
-  start, a close-out or a settle, puts that generation in `under`.
+  attempt stores it as `lease_gen`. Every change about the attempt after the claim, such as a start,
+  a close-out or a settle, puts that generation in `under`.
 - **A claim names the pool, and the store picks the slot.** The claim's change writes `slot` and
-  `slotGen` as `0` in the attempt row and the `boxxy.attempt.claimed` payload. Inside
-  `applyChange`, the adapter takes the lowest free slot that isn't retired, and writes the slot's
-  number and new `gen` into both.
+  `slotGen` as `0` in the attempt row and the `boxxy.attempt.claimed` payload. Inside `applyChange`,
+  the adapter takes the lowest free slot that isn't retired, and writes the slot's number and new
+  `gen` into both.
 - **A lever insert leaves `seq` to the store.** The change writes `seq` as `0`, and `applyChange`
   writes the real `seq` into the row and the `boxxy.lever.recorded` payload.
 - **An `attempt_sessions` row** is inserted only after a read in the same `exclusive` call
@@ -554,17 +553,17 @@ The primary key is `seq`, which autoincrements. `fact_id` is unique, and a parti
 `deriveItemState(item, rows, now)` in `@boxxy/model` returns the first state in this table whose
 condition holds:
 
-| State | When | Reason |
-| --- | --- | --- |
-| `archived` | `closed_at` is set | |
-| `done` | a PR linked to one of the item's succeeded attempts is merged | |
-| `running` | the item holds a live item-phase lease | |
-| `waiting` | an attempt succeeded and its PR is open | PR open |
-| `waiting` | an attempt succeeded and no PR is linked to it | no PR linked |
-| `waiting` | the failed attempts reached the kind's `maxAttempts` | attempts used up |
-| `idea` | the acceptance list is empty | |
-| `blocked` | the item is the target of a live `blocks` link whose source is not `done` or `archived` | |
-| `ready` | none of the above | |
+| State      | When                                                                                    | Reason           |
+| ---------- | --------------------------------------------------------------------------------------- | ---------------- |
+| `archived` | `closed_at` is set                                                                      |                  |
+| `done`     | a PR linked to one of the item's succeeded attempts is merged                           |                  |
+| `running`  | the item holds a live item-phase lease                                                  |                  |
+| `waiting`  | an attempt succeeded and its PR is open                                                 | PR open          |
+| `waiting`  | an attempt succeeded and no PR is linked to it                                          | no PR linked     |
+| `waiting`  | the failed attempts reached the kind's `maxAttempts`                                    | attempts used up |
+| `idea`     | the acceptance list is empty                                                            |                  |
+| `blocked`  | the item is the target of a live `blocks` link whose source is not `done` or `archived` |                  |
+| `ready`    | none of the above                                                                       |                  |
 
 - The `waiting` rows count only attempts that ended after the item's latest `item.retry` lever. So
   `boxxy item retry` returns a `waiting` item to `ready`.
@@ -631,6 +630,7 @@ the example uses bare names.
 
   The server checks the checkout for uncommitted changes before it calls the loader, and reports
   them as `uncommitted-changes`.
+
 - **The loader resolves every plug-in reference** to its plug-in and its parsed parameters, and
   `LoadedRules` carries them ([`01-registries.ts`](./sketches/01-registries.ts)), so `buildFrame`
   calls each plug-in with its own parameters. A bare name parses `{}`. A signal's key is
@@ -643,11 +643,11 @@ the example uses bare names.
   the loader read, and each concept pin ([rules](./rules.md#the-rules-version)). A pin is
   `name@version` with the content hash of the concept's TypeScript source: its module file and every
   file inside `@boxxy/planning` that it imports, transitively.
-- **The build computes the pins, and the server passes them in.** `@boxxy/planning`'s build step runs
-  the repo tool `scripts/concept-pins.ts`, which hashes each concept's source and writes the module
-  `src/generated/concept-pins.ts`. The module is committed, and the root check fails when it is
-  stale. The server imports `concepts` and `conceptPins` from `@boxxy/planning`, and passes both to
-  `loadRules`. `@boxxy/rules` never imports `@boxxy/planning`.
+- **The build computes the pins, and the server passes them in.** `@boxxy/planning`'s build step
+  runs the repo tool `scripts/concept-pins.ts`, which hashes each concept's source and writes the
+  module `src/generated/concept-pins.ts`. The module is committed, and the root check fails when it
+  is stale. The server imports `concepts` and `conceptPins` from `@boxxy/planning`, and passes both
+  to `loadRules`. `@boxxy/rules` never imports `@boxxy/planning`.
 - **The server checks the checkout for a new commit each tick**, and reloads the rules by
   [the rules version](./rules.md#the-rules-version) rule. `boxxy status` shows a rejected commit.
 - **The recipe hash** is the content hash of the recipe's fields, the prompt template's bytes, the
@@ -669,12 +669,12 @@ the example uses bare names.
 - **The prompt tells each attempt to make its own git worktree** in the target repo, named after the
   attempt id, and to work only there. Two slots of one pool start their sessions in the same repo
   path, so without this they would share one working tree.
-- **S1-09 ships a minimal `prompts/build-v1.md`** that uses every value, in an example rules checkout
-  at `apps/server/test-utils/rules/`, beside an example `rules.yaml`. S1-13 copies both into the rules
-  repo and tunes the prompt.
+- **S1-09 ships a minimal `prompts/build-v1.md`** that uses every value, in an example rules
+  checkout at `apps/server/test-utils/rules/`, beside an example `rules.yaml`. S1-13 copies both
+  into the rules repo and tunes the prompt.
 - **One configuration file holds the machine details:** the runner id, the store file, the rules
-  checkout's path, the plugin folder's path, the hook log's path, each repo's local path, the atc and
-  pepys endpoints, and the tokens. The server and the CLI both read it, from the path in
+  checkout's path, the plugin folder's path, the hook log's path, each repo's local path, the atc
+  and pepys endpoints, and the tokens. The server and the CLI both read it, from the path in
   `BOXXY_CONFIG`, so the hooks and `boxxy cost` work with the server stopped. The rules hold none of
   these details.
 
@@ -708,8 +708,8 @@ one item per free slot.
 
 ### Plug-in kind interfaces
 
-Slice 1 has plug-ins of three kinds: signal, gate and waiver. The registry also declares
-`admission` and `view`, with no slice 1 plug-in. `buildFrame` runs the propagation lines itself.
+Slice 1 has plug-ins of three kinds: signal, gate and waiver. The registry also declares `admission`
+and `view`, with no slice 1 plug-in. `buildFrame` runs the propagation lines itself.
 
 [`04-planning.ts`](./sketches/04-planning.ts) holds `PlanContext` and the `Signal`, `Gate` and
 `Waiver` interfaces. [`01-registries.ts`](./sketches/01-registries.ts) holds `Concept`, which
@@ -725,15 +725,15 @@ throws carries nothing.
 
 ### The slice 1 concepts
 
-Slice 1 has three concepts, and together they register four plug-ins. `rules.yaml` pins each
-concept by name and version.
+Slice 1 has three concepts, and together they register four plug-ins. `rules.yaml` pins each concept
+by name and version.
 
-| Plug-in | Kind | Concept |
-| --- | --- | --- |
-| `oldest` | signal | `pool` |
-| `defer` | gate | `defer` |
-| `expedite-lifts-defer` | waiver | `defer` |
-| `expedite` | signal | `expedite` |
+| Plug-in                | Kind   | Concept    |
+| ---------------------- | ------ | ---------- |
+| `oldest`               | signal | `pool`     |
+| `defer`                | gate   | `defer`    |
+| `expedite-lifts-defer` | waiver | `defer`    |
+| `expedite`             | signal | `expedite` |
 
 - `oldest` gives the item's `filed_at` in milliseconds.
 - `defer` holds an item that has a live `plan.defer` lever. When the item has more than one, the
@@ -745,21 +745,21 @@ concept by name and version.
   first expedite sorts first. An item with two live expedites takes the position of its oldest one.
   Its `combine` is `min`.
 
-The `pool` concept declares the pool filter fields `phase`, `kind` and `repo` in its
-`filterFields`. The `defer` concept registers the levers `plan.defer` and `plan.undefer`. The
-`expedite` concept registers the levers `plan.expedite` and `plan.unexpedite`.
+The `pool` concept declares the pool filter fields `phase`, `kind` and `repo` in its `filterFields`.
+The `defer` concept registers the levers `plan.defer` and `plan.undefer`. The `expedite` concept
+registers the levers `plan.expedite` and `plan.unexpedite`.
 
 For each propagation line, `buildFrame` starts from every open item with a value for the line's
-signal. It walks the named link type in the named direction, and gives each open item it reaches
-the value, combined by the signal's `combine`. It stops at an item it has already visited.
+signal. It walks the named link type in the named direction, and gives each open item it reaches the
+value, combined by the signal's `combine`. It stops at an item it has already visited.
 
 A `blocked` item is never a candidate. Propagation still reads it, so an expedited blocked item
 gives its blockers its `expedite` value, and they run first.
 
 ## claimNext
 
-`claimNext(input)` in `@boxxy/dispatch` claims at most one item phase. The runner calls it whenever a
-slot may be free.
+`claimNext(input)` in `@boxxy/dispatch` claims at most one item phase. The runner calls it whenever
+a slot may be free.
 
 [`05-dispatch.ts`](./sketches/05-dispatch.ts) holds the shapes of `claimNext`, `SpawnContext` and
 `Claim`. The app passes in the store, the runner id, the loaded rules, `now`, `newId` for attempt,
@@ -815,15 +815,15 @@ The server runs one runner. Each tick, every 5 seconds by default:
 
 Each change below runs under the attempt's generation.
 
-| Reading | Attempt state | Action |
-| --- | --- | --- |
-| `running` | `starting` | move the attempt to `running` with atc's session id, and write `boxxy.attempt.started` |
+| Reading   | Attempt state | Action                                                                                    |
+| --------- | ------------- | ----------------------------------------------------------------------------------------- |
+| `running` | `starting`    | move the attempt to `running` with atc's session id, and write `boxxy.attempt.started`    |
 | `running` | `reconciling` | move the attempt to `running` with atc's session id, and write `boxxy.attempt.reconciled` |
-| `running` | `running` | record a new agent session ([agent sessions](#agent-sessions)) |
-| `ended` | any | settle the attempt |
-| `absent` | `starting` | send the stored spawn request again, with the same idempotency key |
-| `absent` | `running` | settle the attempt with the forced reason `session-lost` |
-| `absent` | `reconciling` | send the stored spawn request again, with the same idempotency key |
+| `running` | `running`     | record a new agent session ([agent sessions](#agent-sessions))                            |
+| `ended`   | any           | settle the attempt                                                                        |
+| `absent`  | `starting`    | send the stored spawn request again, with the same idempotency key                        |
+| `absent`  | `running`     | settle the attempt with the forced reason `session-lost`                                  |
+| `absent`  | `reconciling` | send the stored spawn request again, with the same idempotency key                        |
 
 An `absent` reading on a `starting` attempt means the server stopped between the claim's commit and
 the spawn. When atc still shows no session for a `starting` or `reconciling` attempt 10 minutes
@@ -869,9 +869,9 @@ agent session id in `attempt_sessions`:
 - **Each new row writes `boxxy.attempt.session_bound`,** in the same `StoreChange` as the row and
   the reading's action from the runner loop's table, such as a settle. The same change sets the
   attempt's `atc_session` to the atc session id that carried the new agent session.
-- **An agent session id that belongs to another attempt writes no row and no `session_bound`
-  fact.** `bindSession` in `@boxxy/dispatch` returns the fault, the server logs it, and the rest of
-  the change, such as a move to `running` or a settle, still lands.
+- **An agent session id that belongs to another attempt writes no row and no `session_bound` fact.**
+  `bindSession` in `@boxxy/dispatch` returns the fault, the server logs it, and the rest of the
+  change, such as a move to `running` or a settle, still lands.
 
 ## The build close-out
 
@@ -881,8 +881,7 @@ proposed.
 
 [`00-core.ts`](./sketches/00-core.ts) holds the shape, `BuildCloseOut`: a result of `built`,
 `blocked` or `abandoned`, the evidence cited for each criterion, `openItems`, and friction entries.
-[`06-closeouts.ts`](./sketches/06-closeouts.ts) holds the parser, the criteria check and the
-dedupe.
+[`06-closeouts.ts`](./sketches/06-closeouts.ts) holds the parser, the criteria check and the dedupe.
 
 - **A friction entry's target kind** is one of `skill`, `rule`, `lint`, `agents-md` and `tool`. A
   target of any other kind fails the parse. An entry with no target is dropped, as
@@ -918,10 +917,10 @@ session through `pluginDirs`, and with the PR watch in the server. The plugin li
 
 The hooks and the `boxxy attempt` commands find their attempt by `ATC_SESSION_ID`, which atc sets in
 every session it starts. The `PreToolUse` hook calls `attempt.current`, and the `PostToolUse` hook
-passes the id to `evidence.recordPr`. The server looks the attempt up with
-`findAttemptBySession`, which matches only once the runner has recorded the atc session id. The
-runner records it from a `started` outcome, or from the next tick's reading, within about 5 seconds.
-Before then, and for a `reconciling` attempt with no session yet, the lookup misses:
+passes the id to `evidence.recordPr`. The server looks the attempt up with `findAttemptBySession`,
+which matches only once the runner has recorded the atc session id. The runner records it from a
+`started` outcome, or from the next tick's reading, within about 5 seconds. Before then, and for a
+`reconciling` attempt with no session yet, the lookup misses:
 
 - the hooks exit 0 and allow the call;
 - the PR watch links any PR that the `PostToolUse` hook missed;
@@ -936,19 +935,18 @@ Before then, and for a `reconciling` attempt with no session yet, the lookup mis
   It also allows the commit when the API is down or the session holds no attempt.
 - **When the agent opens a PR, the `PostToolUse` hook links it.** The hook,
   `boxxy hook post-tool-use`, matches a Bash call whose command runs `gh pr create`. It reads the PR
-  URL from the command's output and calls `evidence.recordPr`. The server writes a `pr` evidence
-  row with source `hook`, adds the PR to `pull_requests`, and writes `boxxy.evidence.pr_linked`.
-  When the PR is already linked to this attempt, `evidence.recordPr` answers `linked` again and
-  writes nothing.
+  URL from the command's output and calls `evidence.recordPr`. The server writes a `pr` evidence row
+  with source `hook`, adds the PR to `pull_requests`, and writes `boxxy.evidence.pr_linked`. When
+  the PR is already linked to this attempt, `evidence.recordPr` answers `linked` again and writes
+  nothing.
 - **The PR watch and `evidence.recordPr` write with no lease.** Their changes carry no `under`,
   because settle has released a succeeded attempt's lease. The watch's facts carry the actor
   `boxxy:runner:<runner_id>`. The watch takes each PR's URL from `PullRequestReading.url`.
-- **Every 5 minutes, the PR watch reads each open PR** in `pull_requests`, and sets its
-  `checked_at` with `markPullRequestChecked`. For each commit in the PR whose `Boxxy-Attempt`
-  trailer carries the id of an attempt of the same item, the watch writes a `commit` evidence row
-  with source `trailer` and `boxxy.evidence.commit_linked`, once per commit. When the PR has merged,
-  the watch writes `boxxy.pr.merged`. When the PR has closed without a merge, it writes
-  `boxxy.pr.closed`.
+- **Every 5 minutes, the PR watch reads each open PR** in `pull_requests`, and sets its `checked_at`
+  with `markPullRequestChecked`. For each commit in the PR whose `Boxxy-Attempt` trailer carries the
+  id of an attempt of the same item, the watch writes a `commit` evidence row with source `trailer`
+  and `boxxy.evidence.commit_linked`, once per commit. When the PR has merged, the watch writes
+  `boxxy.pr.merged`. When the PR has closed without a merge, it writes `boxxy.pr.closed`.
 - **The PR watch also links each PR the hook missed.** For each attempt that succeeded with no PR
   linked, the watch lists the repo's open PRs. It links the first PR with a commit whose trailer
   carries that attempt's id. It writes the same rows and fact as `evidence.recordPr`, with source
@@ -1013,46 +1011,46 @@ Each fact uses pepys's envelope
 ([pepys log design](https://github.com/zgeoff/pepys/blob/main/docs/design/pepys/log.md#the-fact-envelope)),
 on one stream, `facts.boxxy.work`:
 
-| Envelope field | Value |
-| --- | --- |
-| `id` | the outbox row's `fact_id`: `manual:<uuidv7>`, from the `newId()` of the caller that built the change, with the `manual:` prefix |
-| `type` | the fact type, from the table below |
-| `v` | `1` |
-| `api` | `boxxy/1` |
-| `entity` | the entity for the fact type, from the table below |
-| `actor` | an entity id: `boxxy:owner:local`, `boxxy:runner:<runner_id>`, `boxxy:attempt:<attempt_id>` or `boxxy:hook:<attempt_id>` |
-| `at` | the change's `at`, which the caller sets |
-| `payload` | the change, typed per fact type in `@boxxy/model`, with `storeVersion` |
+| Envelope field | Value                                                                                                                            |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `id`           | the outbox row's `fact_id`: `manual:<uuidv7>`, from the `newId()` of the caller that built the change, with the `manual:` prefix |
+| `type`         | the fact type, from the table below                                                                                              |
+| `v`            | `1`                                                                                                                              |
+| `api`          | `boxxy/1`                                                                                                                        |
+| `entity`       | the entity for the fact type, from the table below                                                                               |
+| `actor`        | an entity id: `boxxy:owner:local`, `boxxy:runner:<runner_id>`, `boxxy:attempt:<attempt_id>` or `boxxy:hook:<attempt_id>`         |
+| `at`           | the change's `at`, which the caller sets                                                                                         |
+| `payload`      | the change, typed per fact type in `@boxxy/model`, with `storeVersion`                                                           |
 
 Every entity id has the form `boxxy:<kind>:<id>`, and every actor is an entity id. pepys needs no
 registration for boxxy's fact types.
 
-| Type | Entity | Written by | Payload |
-| --- | --- | --- | --- |
-| `boxxy.item.filed` | `boxxy:item:<item_id>` | `item.file` | the item row |
-| `boxxy.item.filed` | `boxxy:item:<item_id>` | settle, for `openItems` | the item row |
-| `boxxy.item.edited` | `boxxy:item:<item_id>` | `item.edit` | the changed fields |
-| `boxxy.item.closed` | `boxxy:item:<item_id>` | `item.close` | the reason |
-| `boxxy.link.added` | `boxxy:link:<source_id>:<type>:<target_id>` | `link.add` | source, target and type |
-| `boxxy.link.added` | `boxxy:link:<source_id>:<type>:<target_id>` | `item.file`, one per `--blocked-by`, in the same change as the item | source, target and type |
-| `boxxy.link.removed` | `boxxy:link:<source_id>:<type>:<target_id>` | `link.remove` | source, target and type |
-| `boxxy.lever.recorded` | `boxxy:item:<item_id>` | `plan.*` and `item.retry` | the lever row |
-| `boxxy.attempt.claimed` | `boxxy:attempt:<attempt_id>` | `claimNext` | item, phase, number, pool, slot, gen, recipe hash and rules version |
-| `boxxy.decision.recorded` | `boxxy:decision:<decision_id>` | `claimNext` | the decision row |
-| `boxxy.attempt.started` | `boxxy:attempt:<attempt_id>` | the runner, on a `started` start or reconcile | atc session id |
-| `boxxy.attempt.reconciling` | `boxxy:attempt:<attempt_id>` | the runner, on an `unknown` start | the reason |
-| `boxxy.attempt.reconciled` | `boxxy:attempt:<attempt_id>` | reconcile | atc session id |
-| `boxxy.attempt.session_bound` | `boxxy:attempt:<attempt_id>` | the runner, with each new `attempt_sessions` row | `{ atcSession, agentSession, seenAt }` |
-| `boxxy.attempt.closed_out` | `boxxy:attempt:<attempt_id>` | `attempt.closeOut` | the close-out |
-| `boxxy.attempt.settled` | `boxxy:attempt:<attempt_id>` | settle | state, failure reason, end time, the evidence ids copied into each criterion, the items dedupe matched, and the count of dropped friction entries |
-| `boxxy.evidence.recorded` | `boxxy:attempt:<attempt_id>` | `attempt.evidence` | kind, ref and observed |
-| `boxxy.evidence.pr_linked` | `boxxy:attempt:<attempt_id>` | `evidence.recordPr` and the PR watch | repo, number and URL |
-| `boxxy.evidence.commit_linked` | `boxxy:attempt:<attempt_id>` | the PR watch | repo, sha and PR number |
-| `boxxy.pr.merged` | `boxxy:attempt:<attempt_id>` | the PR watch | repo, number, merge time and merge commit |
-| `boxxy.pr.closed` | `boxxy:attempt:<attempt_id>` | the PR watch | repo and number |
-| `boxxy.proposal.recorded` | `boxxy:attempt:<attempt_id>` | settle, for friction | target and change |
-| `boxxy.runner.paused` | `boxxy:runner:<runner_id>` | `runner.pause` | runner id |
-| `boxxy.runner.resumed` | `boxxy:runner:<runner_id>` | `runner.resume` | runner id |
+| Type                           | Entity                                      | Written by                                                          | Payload                                                                                                                                           |
+| ------------------------------ | ------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `boxxy.item.filed`             | `boxxy:item:<item_id>`                      | `item.file`                                                         | the item row                                                                                                                                      |
+| `boxxy.item.filed`             | `boxxy:item:<item_id>`                      | settle, for `openItems`                                             | the item row                                                                                                                                      |
+| `boxxy.item.edited`            | `boxxy:item:<item_id>`                      | `item.edit`                                                         | the changed fields                                                                                                                                |
+| `boxxy.item.closed`            | `boxxy:item:<item_id>`                      | `item.close`                                                        | the reason                                                                                                                                        |
+| `boxxy.link.added`             | `boxxy:link:<source_id>:<type>:<target_id>` | `link.add`                                                          | source, target and type                                                                                                                           |
+| `boxxy.link.added`             | `boxxy:link:<source_id>:<type>:<target_id>` | `item.file`, one per `--blocked-by`, in the same change as the item | source, target and type                                                                                                                           |
+| `boxxy.link.removed`           | `boxxy:link:<source_id>:<type>:<target_id>` | `link.remove`                                                       | source, target and type                                                                                                                           |
+| `boxxy.lever.recorded`         | `boxxy:item:<item_id>`                      | `plan.*` and `item.retry`                                           | the lever row                                                                                                                                     |
+| `boxxy.attempt.claimed`        | `boxxy:attempt:<attempt_id>`                | `claimNext`                                                         | item, phase, number, pool, slot, gen, recipe hash and rules version                                                                               |
+| `boxxy.decision.recorded`      | `boxxy:decision:<decision_id>`              | `claimNext`                                                         | the decision row                                                                                                                                  |
+| `boxxy.attempt.started`        | `boxxy:attempt:<attempt_id>`                | the runner, on a `started` start or reconcile                       | atc session id                                                                                                                                    |
+| `boxxy.attempt.reconciling`    | `boxxy:attempt:<attempt_id>`                | the runner, on an `unknown` start                                   | the reason                                                                                                                                        |
+| `boxxy.attempt.reconciled`     | `boxxy:attempt:<attempt_id>`                | reconcile                                                           | atc session id                                                                                                                                    |
+| `boxxy.attempt.session_bound`  | `boxxy:attempt:<attempt_id>`                | the runner, with each new `attempt_sessions` row                    | `{ atcSession, agentSession, seenAt }`                                                                                                            |
+| `boxxy.attempt.closed_out`     | `boxxy:attempt:<attempt_id>`                | `attempt.closeOut`                                                  | the close-out                                                                                                                                     |
+| `boxxy.attempt.settled`        | `boxxy:attempt:<attempt_id>`                | settle                                                              | state, failure reason, end time, the evidence ids copied into each criterion, the items dedupe matched, and the count of dropped friction entries |
+| `boxxy.evidence.recorded`      | `boxxy:attempt:<attempt_id>`                | `attempt.evidence`                                                  | kind, ref and observed                                                                                                                            |
+| `boxxy.evidence.pr_linked`     | `boxxy:attempt:<attempt_id>`                | `evidence.recordPr` and the PR watch                                | repo, number and URL                                                                                                                              |
+| `boxxy.evidence.commit_linked` | `boxxy:attempt:<attempt_id>`                | the PR watch                                                        | repo, sha and PR number                                                                                                                           |
+| `boxxy.pr.merged`              | `boxxy:attempt:<attempt_id>`                | the PR watch                                                        | repo, number, merge time and merge commit                                                                                                         |
+| `boxxy.pr.closed`              | `boxxy:attempt:<attempt_id>`                | the PR watch                                                        | repo and number                                                                                                                                   |
+| `boxxy.proposal.recorded`      | `boxxy:attempt:<attempt_id>`                | settle, for friction                                                | target and change                                                                                                                                 |
+| `boxxy.runner.paused`          | `boxxy:runner:<runner_id>`                  | `runner.pause`                                                      | runner id                                                                                                                                         |
+| `boxxy.runner.resumed`         | `boxxy:runner:<runner_id>`                  | `runner.resume`                                                     | runner id                                                                                                                                         |
 
 ## The pepys consumer and the query
 
@@ -1101,34 +1099,34 @@ allows for a query across consumer files.
 ## Commands and API
 
 The server serves one oRPC router on Elysia, on `127.0.0.1` only, under `/rpc`. `@boxxy/contract`
-holds its contract, and the CLI calls it through an oRPC client. In slice 1 the API checks no
-caller identity. The actor recorded on a fact is `boxxy:owner:local` for CLI commands,
+holds its contract, and the CLI calls it through an oRPC client. In slice 1 the API checks no caller
+identity. The actor recorded on a fact is `boxxy:owner:local` for CLI commands,
 `boxxy:attempt:<attempt_id>` for the attempt procedures, and `boxxy:hook:<attempt_id>` for the hook
 procedures ([facts and the outbox](#facts-and-the-outbox)).
 
-| Procedure | CLI command | Does |
-| --- | --- | --- |
-| `item.file` | `boxxy item file --repo <repo> --title <text> --outcome <text> [--acceptance <text>]… [--blocked-by <item_id>]…` | files a `core.issue` with a `blocks` link from each `--blocked-by` item, and returns its id |
-| `item.edit` | `boxxy item edit <item_id> [--title] [--outcome] [--acceptance <text>]…` | replaces the given fields |
-| `item.get` | `boxxy item show <item_id>` | returns the item, its derived state, live levers, attempts, links, evidence and PRs |
-| `item.list` | `boxxy item list [--state <state>] [--repo <repo>]` | returns items with their derived state and live levers |
-| `item.close` | `boxxy item close <item_id> --reason <text>` | archives the item |
-| `item.retry` | `boxxy item retry <item_id>` | writes an `item.retry` lever, which returns a `waiting` item to `ready` |
-| `link.add` | `boxxy link add <source_id> blocks <target_id>` | adds a `blocks` link |
-| `link.remove` | `boxxy link remove <source_id> blocks <target_id>` | removes a `blocks` link |
-| `plan.defer` | `boxxy defer <item_id> [--until <time>] --reason <text>` | writes a `plan.defer` lever |
-| `plan.undefer` | `boxxy undefer <item_id>` | writes a `plan.undefer` lever |
-| `plan.expedite` | `boxxy expedite <item_id>… --reason <text> [--expires <time>]` | writes one `plan.expedite` lever per item, in the order given |
-| `plan.unexpedite` | `boxxy unexpedite <item_id>` | writes a `plan.unexpedite` lever |
-| `runner.status` | `boxxy status` | returns pools and slots, running attempts, the paused flag, the outbox lag, the latest outbox error and the latest rules rejection |
-| `runner.pause` | `boxxy runner pause` | stops new claims |
-| `runner.resume` | `boxxy runner resume` | restarts new claims |
-| `attempt.current` | `boxxy attempt current` | returns the attempt for `ATC_SESSION_ID`, with its item and acceptance, or `no-live-attempt` |
-| `attempt.evidence` | `boxxy attempt evidence --kind <kind> --ref <ref> [--observed <text>]` | records evidence, and prints its fact id |
-| `attempt.closeOut` | `boxxy attempt close-out` (JSON on stdin) | parses and records the close-out, and prints every problem on failure |
-| `evidence.recordPr` | `boxxy hook post-tool-use` (hook payload on stdin) | links a PR to the session's attempt |
-| `attempt.current` | `boxxy hook pre-tool-use` (hook payload on stdin) | finds the session's attempt, then checks the trailer on `git commit` |
-| none | `boxxy cost [--repo <repo>] [--since <date>] [--until <date>]` | prints pepys's `boxxy.costToLand` rows |
+| Procedure           | CLI command                                                                                                      | Does                                                                                                                               |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `item.file`         | `boxxy item file --repo <repo> --title <text> --outcome <text> [--acceptance <text>]… [--blocked-by <item_id>]…` | files a `core.issue` with a `blocks` link from each `--blocked-by` item, and returns its id                                        |
+| `item.edit`         | `boxxy item edit <item_id> [--title] [--outcome] [--acceptance <text>]…`                                         | replaces the given fields                                                                                                          |
+| `item.get`          | `boxxy item show <item_id>`                                                                                      | returns the item, its derived state, live levers, attempts, links, evidence and PRs                                                |
+| `item.list`         | `boxxy item list [--state <state>] [--repo <repo>]`                                                              | returns items with their derived state and live levers                                                                             |
+| `item.close`        | `boxxy item close <item_id> --reason <text>`                                                                     | archives the item                                                                                                                  |
+| `item.retry`        | `boxxy item retry <item_id>`                                                                                     | writes an `item.retry` lever, which returns a `waiting` item to `ready`                                                            |
+| `link.add`          | `boxxy link add <source_id> blocks <target_id>`                                                                  | adds a `blocks` link                                                                                                               |
+| `link.remove`       | `boxxy link remove <source_id> blocks <target_id>`                                                               | removes a `blocks` link                                                                                                            |
+| `plan.defer`        | `boxxy defer <item_id> [--until <time>] --reason <text>`                                                         | writes a `plan.defer` lever                                                                                                        |
+| `plan.undefer`      | `boxxy undefer <item_id>`                                                                                        | writes a `plan.undefer` lever                                                                                                      |
+| `plan.expedite`     | `boxxy expedite <item_id>… --reason <text> [--expires <time>]`                                                   | writes one `plan.expedite` lever per item, in the order given                                                                      |
+| `plan.unexpedite`   | `boxxy unexpedite <item_id>`                                                                                     | writes a `plan.unexpedite` lever                                                                                                   |
+| `runner.status`     | `boxxy status`                                                                                                   | returns pools and slots, running attempts, the paused flag, the outbox lag, the latest outbox error and the latest rules rejection |
+| `runner.pause`      | `boxxy runner pause`                                                                                             | stops new claims                                                                                                                   |
+| `runner.resume`     | `boxxy runner resume`                                                                                            | restarts new claims                                                                                                                |
+| `attempt.current`   | `boxxy attempt current`                                                                                          | returns the attempt for `ATC_SESSION_ID`, with its item and acceptance, or `no-live-attempt`                                       |
+| `attempt.evidence`  | `boxxy attempt evidence --kind <kind> --ref <ref> [--observed <text>]`                                           | records evidence, and prints its fact id                                                                                           |
+| `attempt.closeOut`  | `boxxy attempt close-out` (JSON on stdin)                                                                        | parses and records the close-out, and prints every problem on failure                                                              |
+| `evidence.recordPr` | `boxxy hook post-tool-use` (hook payload on stdin)                                                               | links a PR to the session's attempt                                                                                                |
+| `attempt.current`   | `boxxy hook pre-tool-use` (hook payload on stdin)                                                                | finds the session's attempt, then checks the trailer on `git commit`                                                               |
+| none                | `boxxy cost [--repo <repo>] [--since <date>] [--until <date>]`                                                   | prints pepys's `boxxy.costToLand` rows                                                                                             |
 
 - `boxxy attempt evidence` takes `--kind` as `test`, `ci-run` or `live-check`. `--ref` is what the
   agent checked: a test file and test name, a CI run URL, or the URL or command of a live check.
@@ -1179,10 +1177,9 @@ Each fact id is the event name, joined with one of these:
 - the `tool_use_id`, for a tool result;
 - the session id and the event sequence, for an event with neither.
 
-A consumer drops a repeated fact id ([facts and the outbox](#facts-and-the-outbox)), so two
-distinct events must never share one. A test delivers the same record twice and keeps one. It also delivers
-a `claude_code.api_request` and a
-`claude_code.api_error` that share a `request_id`, and keeps both.
+A consumer drops a repeated fact id ([facts and the outbox](#facts-and-the-outbox)), so two distinct
+events must never share one. A test delivers the same record twice and keeps one. It also delivers a
+`claude_code.api_request` and a `claude_code.api_error` that share a `request_id`, and keeps both.
 
 #### P2: A fact-append route for boxxy
 
@@ -1219,10 +1216,10 @@ runs on.
 
 #### A1: Agent session ids and telemetry config in atc
 
-boxxy needs atc to record each agent's session id as `agentSessionID`, and to report it in the
-spawn response or the session list. boxxy also needs per-agent telemetry config in atc that points
-each agent at the local OTLP sink. A1 changes no atc protocol: `session.spawn` takes no telemetry
-field. S1-09 depends on A1.
+boxxy needs atc to record each agent's session id as `agentSessionID`, and to report it in the spawn
+response or the session list. boxxy also needs per-agent telemetry config in atc that points each
+agent at the local OTLP sink. A1 changes no atc protocol: `session.spawn` takes no telemetry field.
+S1-09 depends on A1.
 
 An investigation in atc settles both needs, and answers these open questions:
 
@@ -1247,8 +1244,8 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
 - **Delivers:** the workspace, toolchain, CI, release and sync, copied from wringer as
   [tech stack](./tech-stack.md) lists:
   - Files:
-    - the root `package.json`, with the catalog and the four workspace folders, `apps/`,
-      `modules/`, `adapters/` and `libs/`, with `test-utils/` and `e2e/` beside them;
+    - the root `package.json`, with the catalog and the four workspace folders, `apps/`, `modules/`,
+      `adapters/` and `libs/`, with `test-utils/` and `e2e/` beside them;
     - `bunfig.toml` and the tsconfig;
     - the turbo boundaries config;
     - the oxlint config, with the import zones pins;
@@ -1302,8 +1299,8 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
   - `liveLevers` drops an undone lever and an expired one (test).
   - The same value with its object keys in another order hashes the same, and a changed value hashes
     differently (`content-hash.test.ts`).
-  - Each fact type's schema accepts an example payload that the test invents, and rejects one with
-    a missing field (test).
+  - Each fact type's schema accepts an example payload that the test invents, and rejects one with a
+    missing field (test).
 
 ### S1-03: Rules loader and registry
 
@@ -1329,10 +1326,10 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
 - **Acceptance:**
   - A deferred item is held; an expedited deferred item is picked; a deferred item expires and is
     picked after its `until` (tests).
-  - An expedited blocked item gives its blocker the `expedite` value, and the blocker is picked first
-    (test).
-  - An item with two live expedites sorts by its oldest one, and a `plan.undefer` ends a defer's hold,
-    with the snapshot's levers built by `liveLevers` (tests).
+  - An expedited blocked item gives its blocker the `expedite` value, and the blocker is picked
+    first (test).
+  - An item with two live expedites sorts by its oldest one, and a `plan.undefer` ends a defer's
+    hold, with the snapshot's levers built by `liveLevers` (tests).
   - A pool takes only the candidates whose filter-field values in the frame match its `takes`
     (test).
   - The generated pins module changes when one byte of a concept's source changes (test).
@@ -1398,10 +1395,10 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
     slot, never claim the same item phase and never exceed the slot count (test).
   - A claim writes the attempt, the item-phase lease, the slot lease, the decision row and both
     outbox facts, or none of them when a step throws (test).
-  - When `applyChange` returns `lease-held` or `no-free-slot`, `claimNext` throws, the store keeps no
-    decision row, and the runner logs the throw and ends that tick's claim loop (test).
-  - Settle releases the item-phase lease and the slot lease and writes `boxxy.attempt.settled` in one
-    transaction (test).
+  - When `applyChange` returns `lease-held` or `no-free-slot`, `claimNext` throws, the store keeps
+    no decision row, and the runner logs the throw and ends that tick's claim loop (test).
+  - Settle releases the item-phase lease and the slot lease and writes `boxxy.attempt.settled` in
+    one transaction (test).
   - A settle with the forced reason `session-lost` fails the attempt even with a `built` close-out,
     and still files the close-out's `openItems` (test).
   - An `openItems` entry that matches an open `core.issue` files no item, and the settled fact lists
@@ -1429,9 +1426,9 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
 
 - **Delivers:** `@boxxy/worker-atc` (spawn, and reconcile by session name), the reconcile table,
   `createFakeWorker()` and the `WorkerKind` contract suite in `@boxxy/dispatch`, the runner loop in
-  `@boxxy/server` with the `attempt_sessions` writes
-  ([agent sessions](#agent-sessions)), and the example rules checkout with a minimal
-  `prompts/build-v1.md` that uses every [template value](#rules-for-slice-1).
+  `@boxxy/server` with the `attempt_sessions` writes ([agent sessions](#agent-sessions)), and the
+  example rules checkout with a minimal `prompts/build-v1.md` that uses every
+  [template value](#rules-for-slice-1).
 - **Depends on:** S1-08, A1.
 - **Acceptance:**
   - The `WorkerKind` contract suite passes against the fake and against `worker-atc` with atc's
@@ -1441,9 +1438,8 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
     one in `reconciling` (test).
   - A second agent session on one attempt, such as after a respawn, writes a second row, and a
     repeated reading of a known pair writes nothing (test).
-  - A reading whose agent session id belongs to another attempt writes no row and no
-    `session_bound` fact, the runner logs a fault, and the rest of the change, such as a settle,
-    lands (test).
+  - A reading whose agent session id belongs to another attempt writes no row and no `session_bound`
+    fact, the runner logs a fault, and the rest of the change, such as a settle, lands (test).
   - An `unknown` start moves the attempt to `reconciling`, and a later reading of its session moves
     it to `running` (test).
   - A session in a state the adapter doesn't know reads as `running`, and the adapter logs a warning
@@ -1472,20 +1468,20 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
   - `boxxy hook post-tool-use` on a recorded `gh pr create` payload links the PR (test).
   - The PR watch writes `commit_linked` once per trailer commit and `pr.merged` once, across two
     polls (test with the fake forge, and the `Forge` contract suite against GitHub mocked with msw).
-  - The PR watch links an open PR whose commit trailer carries the id of a succeeded attempt with no PR linked
-    (test with the fake forge).
+  - The PR watch links an open PR whose commit trailer carries the id of a succeeded attempt with no
+    PR linked (test with the fake forge).
   - A plain Claude Code session in the pepys repo, started without boxxy, runs no boxxy hook (live
     check: the session's hook log).
 
 ### S1-11: The outbox to pepys
 
 - **Delivers:** `@boxxy/facts-pepys` (`FactSink` over P2), `createFakeFactSink()` and the `FactSink`
-  contract suite in `@boxxy/dispatch`, and the outbox sender. The sender joins the runner's tick,
-  as step 4.
+  contract suite in `@boxxy/dispatch`, and the outbox sender. The sender joins the runner's tick, as
+  step 4.
 - **Depends on:** S1-08, P2, P4.
 - **Acceptance:**
-  - The `FactSink` contract suite passes against the fake and against the adapter with pepys's
-    route mocked (test).
+  - The `FactSink` contract suite passes against the fake and against the adapter with pepys's route
+    mocked (test).
   - An `unknown` append resends the same fact ids, and the fake sink keeps one copy of each id
     (test).
   - With the sink failing, claims and settles go on and `boxxy status` shows the outbox lag (test).
@@ -1517,9 +1513,9 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
   tracker ticket only, never in this public repo or a PR description.
 - **Depends on:** S1-10, S1-12.
 - **Acceptance:**
-  - One item goes from `item.file` through a build attempt, a PR, the repo's review gate and a
-    merge to `done`, and `boxxy cost` shows its rows with the model (live check; the output goes in
-    the tracker ticket).
+  - One item goes from `item.file` through a build attempt, a PR, the repo's review gate and a merge
+    to `done`, and `boxxy cost` shows its rows with the model (live check; the output goes in the
+    tracker ticket).
   - With the boxxy server stopped, a pepys PR outside boxxy is opened, reviewed and merged with no
     boxxy error in its session or its checks (live check).
   - Every merged PR from a boxxy attempt has a `pr_linked` fact and at least one `commit_linked`

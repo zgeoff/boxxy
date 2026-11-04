@@ -4,10 +4,10 @@ Date: 2026-11-04
 
 ## Decision
 
-Triage, design, build, review, release and QA are phases of an item, not standing roles. Each
-phase runs as one attempt: one run of one phase on one item, with its own recipe, and then the
-attempt stops. A retry is a new attempt. The [core model](../design/boxxy/core-model.md) defines
-items, phases and attempts.
+Triage, design, build, review, release and QA are phases of an item, not standing roles. Each phase
+runs as one attempt: one run of one phase on one item, with its own recipe, and then the attempt
+stops. A retry is a new attempt. The [core model](../design/boxxy/core-model.md) defines items,
+phases and attempts.
 
 ## Rejected alternatives
 

@@ -1,7 +1,6 @@
 # 0007: Spend capture goes through OpenTelemetry
 
-Date: 2026-11-04
-Updated: 2026-11-05
+Date: 2026-11-04 Updated: 2026-11-05
 
 ## Decision
 
@@ -22,12 +21,12 @@ usage-fields-only read of past session logs gave a baseline before boxxy existed
 
 ## Rejected alternatives
 
-| Option                         | Why not                                                              |
-| ------------------------------ | -------------------------------------------------------------------- |
-| OTel only                      | it answers nothing about the weeks before capture started            |
-| the past-log read only         | it answers nothing going forward, and it is not boxxy's capture path |
-| token usage from hooks         | no hook payload carries token usage                                  |
-| transcripts as the main source | boxxy captures structured data first; transcripts are a fallback     |
+| Option                               | Why not                                                                                            |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| OTel only                            | it answers nothing about the weeks before capture started                                          |
+| the past-log read only               | it answers nothing going forward, and it is not boxxy's capture path                               |
+| token usage from hooks               | no hook payload carries token usage                                                                |
+| transcripts as the main source       | boxxy captures structured data first; transcripts are a fallback                                   |
 | attempt attributes set on each spawn | atc's `session.spawn` would need a telemetry field, and the session id joins each record with none |
 
 ## Why

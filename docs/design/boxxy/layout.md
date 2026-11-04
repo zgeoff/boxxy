@@ -75,23 +75,28 @@ A package's `turbo.json` holds only its tag:
 
 ## Import pins
 
-The `zgeoff/import-zones` rule in `.oxlintrc.json` pins each outside library to the one package that
-owns it:
+Each outside system has one package that may talk to it:
 
-| Import                           | Allowed only in         |
-| -------------------------------- | ----------------------- |
-| `bun:sqlite`, `kysely`           | `adapters/store-sqlite` |
-| `@atcx/contract`, the atc socket | `adapters/worker-atc`   |
-| GitHub API calls                 | `adapters/forge-github` |
-| pepys API calls                  | `adapters/facts-pepys`  |
+| Outside system | Package                 | What lint checks                                                      |
+| -------------- | ----------------------- | --------------------------------------------------------------------- |
+| the store      | `adapters/store-sqlite` | only it imports `bun:sqlite`, `kysely` or `@zgeoff/kysely-bun-sqlite` |
+| atc            | `adapters/worker-atc`   | only it imports `@atcx/contract`                                      |
+| GitHub         | `adapters/forge-github` | only an adapter calls `fetch`                                         |
+| pepys          | `adapters/facts-pepys`  | only an adapter calls `fetch`                                         |
 
-`modules/**` and `libs/**` may not use `node:fs`, `node:child_process`, `fetch`, or the `Date` and
-`process` globals. Time and environment come into a module or a lib as arguments, so a test or a
-replay sets them.
+The `zgeoff/import-zones` rule in `.oxlintrc.json` holds these pins. Lint can't tell which adapter a
+`fetch` reaches, so review checks that GitHub calls stay in `forge-github` and pepys calls in
+`facts-pepys`.
+
+`modules/**` and `libs/**` do no I/O. The import zones fail an import of `node:fs`,
+`node:child_process`, `node:net`, `node:http` or `node:https` there, and oxlint's
+`no-restricted-globals` rule fails any use of the `Date`, `process` or `Bun` globals. Time and
+environment come into a module or a lib as arguments, so a test or a replay sets them.
 
 Packages import each other only through their `index.ts`. The one exception is a package's
 `./test-utils` entry, which other packages' tests import. A deep import, such as
-`@boxxy/planning/src/decide.ts`, is banned.
+`@boxxy/planning/src/decide.ts`, is banned: the import zones fail an import whose path no `exports`
+key of the package lists.
 
 ## Inside a package
 

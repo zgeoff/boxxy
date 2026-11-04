@@ -30,7 +30,7 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | Strict config      | `@tsconfig/strictest` `2.0.8`                                                                                         | wringer                                 |
 | Lint               | `oxlint` `1.90.0`, `@zgeoff/oxlint-config` `0.7.7`                                                                    | atc; zgeoff/tools                       |
 | Type-aware lint    | `@maschwenk/tsrslint` `0.1.6`                                                                                         | wringer, nixie, atc, noslop             |
-| Format             | `oxfmt` `0.75.0`, `@zgeoff/oxfmt-config` `0.1.1`, `@zgeoff/format-codemod` `0.3.5`                                    | atc (oxfmt); zgeoff/tools (the configs) |
+| Format             | `oxfmt` `0.75.0`, `@zgeoff/oxfmt-config` `0.1.0`, `@zgeoff/format-codemod` `0.3.5`                                    | atc (oxfmt); zgeoff/tools (the configs) |
 | Package boundaries | `turbo` `2.11.10`                                                                                                     | noslop, nixie                           |
 | Typed API          | `@orpc/contract`, `@orpc/server`, `@orpc/client` `1.16.1`                                                             | nixie, atc, pepys                       |
 | HTTP server        | `elysia` `2.0.0-rc.0`, with `typebox` `1.4.3`, `exact-mirror` `1.2.6` and `openapi-types` `12.1.3` as pepys pins them | pepys                                   |
@@ -51,8 +51,8 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 - msw stays on 2, because msw 3 doesn't intercept `fetch` under Bun.
 - Expected outcomes are values of a union type, branched with `ts-pattern`'s `match().exhaustive()`.
   `tiny-invariant` guards states that only a bug can reach. boxxy uses no result library.
-- boxxy has no OpenTelemetry SDK. Agents send their own telemetry, which atc's agent config
-  switches on, and boxxy joins it to attempts by the agent session id (see
+- boxxy has no OpenTelemetry SDK. Agents send their own telemetry, which atc's agent config switches
+  on, and boxxy joins it to attempts by the agent session id (see
   [measurement](./measurement.md#spend-capture)).
 
 ## Repo setup files
@@ -65,7 +65,7 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | `tsconfig.base.json`, `tsconfig.json`                                             | the shared compiler options, and the root files' typecheck                                                        | wringer        |
 | `turbo.json`                                                                      | the boundaries tags and what each may import                                                                      | noslop         |
 | `.oxlintrc.json`                                                                  | extends `@zgeoff/oxlint-config`; holds the `zgeoff/import-zones` pins                                             | wringer, nixie |
-| `.oxfmtrc.json`, `.formatignore`                                                  | the formatter config, and the files `format-codemod` skips                                                        | wringer        |
+| `oxfmt.config.ts`, `.formatignore`                                                | the formatter config, which spreads `@zgeoff/oxfmt-config`, and the files `format-codemod` skips                  | wringer        |
 | `lefthook.yml`                                                                    | pre-commit fixes staged files and runs gitleaks; commit-msg runs commitlint; extends the synced pre-push baseline | wringer        |
 | `commitlint.config.js`                                                            | extends `@zgeoff/commitlint-config`                                                                               | wringer        |
 | `knip.json`                                                                       | the dead-code check's entries per workspace                                                                       | wringer        |
@@ -80,10 +80,13 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | `.github/workflows/main.yml`                                                      | checks on each push to `main`, then release-please, then a dispatched publish at the release tag                  | wringer        |
 | `.github/workflows/npm-packages.yml`                                              | packs each published package and dry-runs its publish                                                             | wringer        |
 | `.github/workflows/repo-sync.yml`                                                 | calls zgeoff/tools's repo-sync, pinned to the newest green tools commit                                           | zgeoff/tools   |
-| `scripts/publish/`, `scripts/release/`, `scripts/ci/`, `scripts/first-publish.sh` | the publish dispatch, the package publish and the one-time first publish                                          | wringer        |
+| `scripts/publish/`, `scripts/release/`, `scripts/ci/`, `scripts/first-publish.sh` | the publish dispatch, the package publish and the one-time first publish; `scripts/test-utils/` holds their stubs | wringer        |
 
 The root `check` script runs audit, dead code, format check, type-aware lint, typecheck, prose and
-tests, as wringer's does, and adds `boundaries` (`turbo boundaries`), as noslop's does.
+tests, as wringer's does, and adds `boundaries` (`turbo boundaries`), as noslop's does. The
+`BUN_CHECK_SCRIPTS` repo variable gives CI the same list:
+`audit deadcode format:check lint:full typecheck boundaries prose test`. Change both together.
+lefthook's pre-push runs `prose` and `boundaries`, then the synced baseline.
 
 ### What repo-sync delivers
 
@@ -94,7 +97,8 @@ boxxy's `repo-sync.yml` uses wringer's `include` list: `workflow-bun-pr`, `workf
 - `.github/workflows/pr.yml`, which runs the shared Bun checks; the ruleset requires `pr / checks`;
 - `.github/workflows/audit-fix.yml` and `.github/workflows/repo-sync-guard.yml`;
 - `.lefthook/pre-push-baseline.yml` and the scripts it calls, each run under a memory cap;
-- the shared skills, the skill-gate hook and its rules;
+- the shared skills and the skill-gate hook. boxxy keeps its own `.claude/skill-gate.json`, so the
+  `skill-gate-rules` entry of zgeoff/tools lists boxxy in its `except`;
 - the PR template, the issue templates, `.editorconfig` and `socket.yml`.
 
 A synced file is overwritten on the next sync, so change it in zgeoff/tools. zgeoff/tools's
@@ -116,8 +120,7 @@ does. One workflow, `main.yml`, publishes. `npm-packages.yml` only rehearses the
 
 Publish runs queue and never cancel, so a release never stops halfway. A package that is new to npm
 gets one local publish through `scripts/first-publish.sh`, then a trusted publisher on npmjs.com
-that names `main.yml`.
-The `npm-publish` skill covers that flow.
+that names `main.yml`. The [releasing runbook](../../runbooks/releasing.md) gives the steps.
 
 ## tsconfig
 
@@ -143,8 +146,8 @@ each package's `tsconfig.json` extends it. The base:
 
 A package's `tsconfig.json` is
 `{ "extends": "../../tsconfig.base.json", "include": ["src", "test-utils"] }`, and its `typecheck`
-script runs `tsrs --noEmit`. Each package also has a `tsconfig.build.json` that emits
-declarations only, from `src` to `dist`, and excludes `src/**/*.test.ts`.
+script runs `tsrs --noEmit`. Each package also has a `tsconfig.build.json` that emits declarations
+only, from `src` to `dist`, and excludes `src/**/*.test.ts`.
 
 ## Package manifests
 
@@ -181,14 +184,11 @@ release-please writes. It also sets `description`, `homepage` and `bugs`, as wri
 Every package under `apps/`, `modules/`, `adapters/` and `libs/` publishes as `@boxxy/<folder>`, as
 wringer publishes each of its packages. A published package ships source, so it can't depend on a
 private one; publishing all of them keeps the CLI's dependencies installable without a bundler.
-`test-utils/` and `e2e/` are private workspace packages, which only tests import, and never
-publish. The oRPC contract lives in `libs/contract`
-(`@boxxy/contract`), as nixie keeps its contract.
+`test-utils/` and `e2e/` are private workspace packages, which only tests import, and never publish.
+The oRPC contract lives in `libs/contract` (`@boxxy/contract`), as nixie keeps its contract.
 
 ## Open questions
 
-- **Publish paths.** wringer's `first-publish.sh` and release-please config assume `packages/<dir>`.
-  boxxy's packages sit under `apps/`, `modules/`, `adapters/` and `libs/`, so both need those paths.
 - **The shared configs adopted nowhere yet.** `@zgeoff/oxfmt-config` and `@zgeoff/tsconfig` are new
   in zgeoff/tools. boxxy takes the oxfmt config, as the stack decision sets, and stays on
   `@tsconfig/strictest`, which all five repos run, until `@zgeoff/tsconfig` is proven downstream.

@@ -46,9 +46,9 @@ the lock ([measurement](./measurement.md)).
 - **Each lease has a generation number.** Every write made under a lease carries its generation, and
   the store refuses a write whose generation is not the live one. A runner that lost its lease, for
   example after a pause, can't overwrite the attempt that replaced it.
-- **A runner renews its leases with a heartbeat** (from Beads, research). When the heartbeats stop, a
-  reaper moves the attempt to `reconciling` (proposed). It doesn't release the item-phase lease, because a
-  silent runner doesn't prove that the session stopped.
+- **A runner renews its leases with a heartbeat** (from Beads, research). When the heartbeats stop,
+  a reaper moves the attempt to `reconciling` (proposed). It doesn't release the item-phase lease,
+  because a silent runner doesn't prove that the session stopped.
 - **Guarded updates fail loudly.** A write that expects a holder or a state and finds another fails
   with the mismatch, rather than writing over it.
 
@@ -74,10 +74,10 @@ Each size ran 300 claims, with churn between claims: a random running item finis
 fact lands. Two runs agreed within a few milliseconds.
 
 | Open items | Lock p50 (ms) | Lock p99 (ms) | `decide()` p50 / p99 (ms) |
-| --- | --- | --- | --- |
-| 1,000 | 0.5 | 4.0 | 0.1 / 2.3 |
-| 5,000 | 3.6 | 6.8 | 0.9 / 4.2 |
-| 20,000 | 14.4 | 23.5 | 5.9 / 10.9 |
+| ---------- | ------------- | ------------- | ------------------------- |
+| 1,000      | 0.5           | 4.0           | 0.1 / 2.3                 |
+| 5,000      | 3.6           | 6.8           | 0.9 / 4.2                 |
+| 20,000     | 14.4          | 23.5          | 5.9 / 10.9                |
 
 - **The claim rate is low (measured).** The busiest 10 minutes of a busy day had 19 session starts,
   about 2 claims a minute. A claim runs only when a slot frees.
@@ -94,13 +94,13 @@ fact lands. Two runs agreed within a few milliseconds.
 
 `buildFrame()` records every plug-in that throws as a fault fact, then treats its output by kind:
 
-| Plug-in kind | On a fault |
-| --- | --- |
-| gate | holds the item, with the fault as its reason |
-| pool gate | holds the pool, with the fault as its reason |
-| waiver | lifts nothing |
-| admission | admits nothing |
-| signal | gives no opinion; the pool sorts by its other keys |
+| Plug-in kind | On a fault                                         |
+| ------------ | -------------------------------------------------- |
+| gate         | holds the item, with the fault as its reason       |
+| pool gate    | holds the pool, with the fault as its reason       |
+| waiver       | lifts nothing                                      |
+| admission    | admits nothing                                     |
+| signal       | gives no opinion; the pool sorts by its other keys |
 
 A [propagation line](./planning.md#propagation) that throws is a fault too, and carries nothing
 (proposed).

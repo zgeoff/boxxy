@@ -19,8 +19,8 @@ a fact it is the first to see writes it through that path; it never reads it and
 ## Why
 
 The review tool records the answer to each finding through one command, and only one flow ran that
-command: the merge gate. When the gate switched to a command that reads findings and writes
-nothing, answers stopped being recorded, while fixes went on. Since that switch, 2,756 of 2,832
-findings have no recorded answer (measured). No check failed, so the gap showed only when a
-measurement came out empty. boxxy measures from facts, so a fact that one flow forgets to write
-makes every query built on it wrong.
+command: the merge gate. When the gate switched to a command that reads findings and writes nothing,
+answers stopped being recorded, while fixes went on. Since that switch, 2,756 of 2,832 findings have
+no recorded answer (measured). No check failed, so the gap showed only when a measurement came out
+empty. boxxy measures from facts, so a fact that one flow forgets to write makes every query built
+on it wrong.
