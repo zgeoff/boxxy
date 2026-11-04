@@ -29,8 +29,9 @@ part-done states, such as "shipped, one step owed", from which criteria still la
 
 Each open item is work the agent found and did not do. boxxy files it through dedupe. When an open
 item matches an open item already filed, boxxy files nothing and links the existing item to the
-attempt: in slice 1, the attempt's settle fact lists it. An item filed from an open item records the
-attempt that reported it as `found-in` ([slice 1](./slice-1.md#the-build-close-out)).
+attempt: in slice 1, the attempt's settle fact lists it. An item filed from an open item records
+the attempt that reported it as `found-in`
+([slice 1](./slice-1.md#the-build-close-out)).
 
 ### friction
 
@@ -43,25 +44,25 @@ complaint with nowhere to go becomes backlog that nobody acts on.
 Each phase kind declares its own close-out type in the registry ([rules](./rules.md)). These
 constraints apply to the kinds the design names:
 
-| Phase kind   | Close-out constraint                                                                                            |
-| ------------ | --------------------------------------------------------------------------------------------------------------- |
-| triage       | carries a typed `size`, which cohort keys and the [forecast](./planning.md#forecast-proposed) read              |
-| contract     | files a draft `core.decision` for the [sign-off gate](./core-model.md#gates-and-sign-offs)                      |
+| Phase kind | Close-out constraint |
+| --- | --- |
+| triage | carries a typed `size`, which cohort keys and the [forecast](./planning.md#forecast-proposed) read |
+| contract | files a draft `core.decision` for the [sign-off gate](./core-model.md#gates-and-sign-offs) |
 | `plan.judge` | ends the strand with an override (pin, admit or lift) or a defer ([planning](./planning.md#the-judgement-pool)) |
-| review       | the review worker's own check result is the outcome ([merge train](./merge-train.md))                           |
+| review | the review worker's own check result is the outcome ([merge train](./merge-train.md)) |
 
 ## Derived from facts
 
 boxxy never asks the agent for these, because a fact records each one:
 
-| What                    | Source fact                                                                                                |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------- |
-| commits and PRs         | the trailer and the PR hook ([below](#linking-attempts-to-commits-and-prs))                                |
-| CI results              | GitHub check runs                                                                                          |
-| review findings         | noslop's review facts                                                                                      |
-| tokens, cost and time   | OTel request records, joined to the attempt by the agent session id ([measurement](./measurement.md))      |
+| What | Source fact |
+| --- | --- |
+| commits and PRs | the trailer and the PR hook ([below](#linking-attempts-to-commits-and-prs)) |
+| CI results | GitHub check runs |
+| review findings | noslop's review facts |
+| tokens, cost and time | OTel request records, joined to the attempt by the agent session id ([measurement](./measurement.md)) |
 | changes the attempt saw | the notify, restart, cancel and ignore facts ([core model](./core-model.md#changes-while-an-attempt-runs)) |
-| owner attention         | atc's event trail                                                                                          |
+| owner attention | atc's event trail |
 
 Late outcomes, such as a revert or an escaped defect, attach to the attempt as new facts and never
 change its close-out.

@@ -4,9 +4,10 @@ Date: 2026-11-04
 
 ## Decision
 
-An attempt's close-out holds only what the agent alone knows. Commits, PRs, CI, findings, tokens and
-time come from facts. Each phase kind brings its own typed close-out, and an attempt whose close-out
-doesn't parse fails. The [close-out design](../design/boxxy/close-outs.md) defines each field.
+An attempt's close-out holds only what the agent alone knows. Commits, PRs, CI, findings, tokens
+and time come from facts. Each phase kind brings its own typed close-out, and an attempt whose
+close-out doesn't parse fails. The [close-out design](../design/boxxy/close-outs.md) defines each
+field.
 
 - `result`: what the attempt did.
 - `criteria`: each criterion linked to its evidence fact. An item is done when every criterion has

@@ -12,19 +12,19 @@ and one plug-in reference in the rules.
 A concept is one module. It registers its item kinds, link types, fact kinds, commands and levers,
 the pool filter fields it defines in `filterFields`, and the plug-ins that act on ordering:
 
-| Plug-in kind | What it does                                  | Example                                            |
-| ------------ | --------------------------------------------- | -------------------------------------------------- |
-| signal       | gives a sort key that a pool can name         | rank, age                                          |
-| gate         | holds an item off the frontier, with a reason | defer, blocked                                     |
-| pool gate    | holds a whole pool, with a reason             | pacing ([capacity](./capacity.md#the-pacing-gate)) |
-| waiver       | lifts one gate's hold for one item            | expedite lifts defer                               |
-| admission    | widens which pools may take an item           | `--any-pool`                                       |
-| view         | a pure function over the frame                | explain, forecast, roadmap                         |
+| Plug-in kind | What it does | Example |
+| --- | --- | --- |
+| signal | gives a sort key that a pool can name | rank, age |
+| gate | holds an item off the frontier, with a reason | defer, blocked |
+| pool gate | holds a whole pool, with a reason | pacing ([capacity](./capacity.md#the-pacing-gate)) |
+| waiver | lifts one gate's hold for one item | expedite lifts defer |
+| admission | widens which pools may take an item | `--any-pool` |
+| view | a pure function over the frame | explain, forecast, roadmap |
 
-A signal, a gate or a pool gate can declare a schema for its parameters. The rules name a plug-in by
-a plug-in reference: a bare name, or a one-key map from the name to its parameters, such as
-`{ kind-order: { order: [chore, bug] } }`. The loader checks the parameters against the schema. A
-pool filter field, such as `repo`, gives the value that a pool's `takes` matches.
+A signal, a gate or a pool gate can declare a schema for its parameters. The rules name a plug-in
+by a plug-in reference: a bare name, or a one-key map from the name to its parameters, such as
+`{ kind-order: { order: [chore, bug] } }`. The loader checks the parameters against the schema. A pool filter field, such
+as `repo`, gives the value that a pool's `takes` matches.
 
 The concepts boxxy builds first are the ones whose shapes differ most: a pool, defer as a gate with
 expedite as its waiver, and expedite propagation over links. They test the plug-in interface before
@@ -35,9 +35,8 @@ arrives, and later concepts are additions to the same registry.
 
 `buildFrame()` runs each propagation line in the rules over every open item, ready or not. A line
 names a signal, a link type and a direction, such as rank down `serves` or expedite back over
-`blocks`. `buildFrame()` carries the signal's value across those links, and the signal's `combine`
-keeps one value where two meet. A propagation line is rules data, so the registry has no propagation
-kind.
+`blocks`. `buildFrame()` carries the signal's value across those links, and the signal's `combine` keeps one value where two meet. A
+propagation line is rules data, so the registry has no propagation kind.
 
 ## buildFrame and decide
 
@@ -88,9 +87,9 @@ pools:
 
 A ready item that no pool or admission takes for a set time is stranded. boxxy gives it a
 `plan.judge` phase in a judgement pool with one slot. The judgement close-out must end the strand
-with an override (pin, admit or lift) or a defer. A second strand on the same item goes to the
-owner. The judgement pool also takes other cases that no rule covers, such as an attempt that passed
-its cost cap ([capacity](./capacity.md)).
+with an override (pin, admit or lift) or a defer. A second strand on the same item goes to the owner.
+The judgement pool also takes other cases that no rule covers, such as an attempt that passed its
+cost cap ([capacity](./capacity.md)).
 
 ## Ordering levers
 
@@ -102,8 +101,8 @@ time ([rules](./rules.md#levers-as-facts)).
   - It reaches through blockers: an expedited blocked item pulls its blockers forward first.
   - It takes the next free slot in any pool whose filter matches, or with `--any-pool` the next free
     build slot anywhere. It never stops running work.
-  - It lifts defer, quiet hours and budget holds on the pulled work and its blockers. A gate
-    declared unliftable, such as `blocked` or `attended`, still holds.
+  - It lifts defer, quiet hours and budget holds on the pulled work and its blockers. A gate declared
+    unliftable, such as `blocked` or `attended`, still holds.
   - It carries a reason and an optional expiry. Only the owner's sender kind can expedite, with a
     confirmation bound to the person ([core model](./core-model.md#entry-points)). An owner pull
     ranks ahead of a judgement phase's pull.
@@ -117,8 +116,8 @@ boxxy refuses cycles, estimates and a default priority.
 
 ## Projects, areas and goals
 
-- **A project** (`core.project`) is a body of work with an outcome: a goal, repos, an optional
-  target date and acceptance. Items link `serves` to it, and its progress is derived.
+- **A project** (`core.project`) is a body of work with an outcome: a goal, repos, an optional target
+  date and acceptance. Items link `serves` to it, and its progress is derived.
 - **An area** is a standing bucket, such as maintenance of one repo, not a project. It is a field
   derived from repo and kind, or set at triage. Pools filter on it.
 - **A goal** (`core.goal`) has an optional target date. Projects and items link `serves` to goals. A
@@ -140,8 +139,8 @@ mechanism to show what a new rules version would have done.
 
 ## Forecast (proposed)
 
-A forecast gives the date goal G lands as a range from measured work, never from estimates. It is a
-view over replay, not a second scheduler, so it can never disagree with dispatch about order.
+A forecast gives the date goal G lands as a range from measured work, never from estimates. It
+is a view over replay, not a second scheduler, so it can never disagree with dispatch about order.
 
 1. **Like-work cohorts.** Each open item gets a cohort key: kind, repo and size band. The size band
    comes from the triage close-out's typed `size`, or from lines changed at merge for done items.
@@ -164,8 +163,8 @@ Open issues:
 - **Scope grows while work runs.** Items filed later against G, such as follow-ups and findings,
   aren't in today's tree. Either model them from each cohort's measured follow-up rate, or label the
   forecast "for the current scope" and track scope growth beside it.
-- **Cost.** 500 runs of `decide()` over weeks of simulated time is millions of calls. Cache the
-  frame between steps and recompute only changed items. Measure before promising a live view.
+- **Cost.** 500 runs of `decide()` over weeks of simulated time is millions of calls. Cache the frame
+  between steps and recompute only changed items. Measure before promising a live view.
 - **Lag.** Reruns and review loops sit inside cycle time, so a recipe that cuts rework moves
   forecasts only after 30 days of new data. Either weight recent items more, or show the recipe mix.
 - **The owner isn't simulated.** Future expedites, holds and decisions aren't in the model, so the

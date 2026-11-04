@@ -24,6 +24,6 @@ links. Both mechanisms are proposed.
 
 Every outcome query, such as cost to land, survival, reverts and findings per recipe, depends on
 this link. Entire's commit trailer keeps its link through rebase, cherry-pick and squash (research),
-so a trailer survives the merge train's rebases (see [0011](./0011-merge-train-rules.md)). The hook
-reads the PR number from the command that created it, so the link points to the attempt that opened
-the PR.
+so a trailer survives the merge train's rebases (see [0011](./0011-merge-train-rules.md)). The
+hook reads the PR number from the command that created it, so the link points to the attempt that
+opened the PR.

@@ -11,7 +11,8 @@ export default defineConfig({
     '.claude/skills/testing/**',
     '.claude/hooks/skill-gate/**',
 
-    // design sketches that keep the layout of the design review
-    'docs/design/boxxy/sketches/**',
+    // the design docs and decision records keep the wrapping and tables their authors gave them
+    'docs/decisions/**',
+    'docs/design/**',
   ],
 });

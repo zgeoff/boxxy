@@ -16,8 +16,8 @@ experiments, so every part of the system can be compared and improved. Packages 
   replay CI.
 - [Planning](./planning.md): concepts as plug-ins, `buildFrame()` and `decide()`, pools, ordering
   levers, explain and the proposed forecast.
-- [Dispatch](./dispatch.md): `claimNext` in one transaction, leases and generation numbers, the
-  benchmark, faults and reconcile.
+- [Dispatch](./dispatch.md): `claimNext` in one transaction, leases and generation numbers, the benchmark,
+  faults and reconcile.
 - [Close-outs](./close-outs.md): the typed outcome of an attempt, what is derived from facts, and
   links to commits and PRs.
 - [Measurement](./measurement.md): spend capture, queries, experiments and the verdict.
@@ -30,8 +30,8 @@ experiments, so every part of the system can be compared and improved. Packages 
 
 ## Reading order
 
-1. Read [architecture](./architecture.md), then [core model](./core-model.md), for the parts and the
-   nouns.
+1. Read [architecture](./architecture.md), then [core model](./core-model.md), for the parts and
+   the nouns.
 2. Read [planning](./planning.md), then [dispatch](./dispatch.md), for how work gets picked and
    claimed.
 3. Read [slice 1](./slice-1.md) before you build, then [layout](./layout.md) and

@@ -51,8 +51,8 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 - msw stays on 2, because msw 3 doesn't intercept `fetch` under Bun.
 - Expected outcomes are values of a union type, branched with `ts-pattern`'s `match().exhaustive()`.
   `tiny-invariant` guards states that only a bug can reach. boxxy uses no result library.
-- boxxy has no OpenTelemetry SDK. Agents send their own telemetry, which atc's agent config switches
-  on, and boxxy joins it to attempts by the agent session id (see
+- boxxy has no OpenTelemetry SDK. Agents send their own telemetry, which atc's agent config
+  switches on, and boxxy joins it to attempts by the agent session id (see
   [measurement](./measurement.md#spend-capture)).
 
 ## Repo setup files
@@ -146,8 +146,8 @@ each package's `tsconfig.json` extends it. The base:
 
 A package's `tsconfig.json` is
 `{ "extends": "../../tsconfig.base.json", "include": ["src", "test-utils"] }`, and its `typecheck`
-script runs `tsrs --noEmit`. Each package also has a `tsconfig.build.json` that emits declarations
-only, from `src` to `dist`, and excludes `src/**/*.test.ts`.
+script runs `tsrs --noEmit`. Each package also has a `tsconfig.build.json` that emits
+declarations only, from `src` to `dist`, and excludes `src/**/*.test.ts`.
 
 ## Package manifests
 
@@ -184,8 +184,9 @@ release-please writes. It also sets `description`, `homepage` and `bugs`, as wri
 Every package under `apps/`, `modules/`, `adapters/` and `libs/` publishes as `@boxxy/<folder>`, as
 wringer publishes each of its packages. A published package ships source, so it can't depend on a
 private one; publishing all of them keeps the CLI's dependencies installable without a bundler.
-`test-utils/` and `e2e/` are private workspace packages, which only tests import, and never publish.
-The oRPC contract lives in `libs/contract` (`@boxxy/contract`), as nixie keeps its contract.
+`test-utils/` and `e2e/` are private workspace packages, which only tests import, and never
+publish. The oRPC contract lives in `libs/contract`
+(`@boxxy/contract`), as nixie keeps its contract.
 
 ## Open questions
 

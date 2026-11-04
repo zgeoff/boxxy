@@ -44,5 +44,6 @@ One repo took 133 of 207 merges on the busiest measured day, with 18 merges insi
 that burst was one 17-PR stack (measured). CI wall time was 4.2 min at p50 and 20.2 min at p90
 across repos (measured). Batching pays only while combined heads rarely fail: at p90 CI, a batch
 size of 6 gives a wait p50 near 30 min at a 5% failure rate, and near-serial waits at 20%
-(modelled). The rate is unknown until combined-head runs supply it, so the batch-size rule reads it.
-Rerunning only the failed tests plus quarantine kept every stress cell at its baseline (modelled).
+(modelled). The rate is unknown until combined-head runs supply it, so the batch-size rule reads
+it. Rerunning only the failed tests plus quarantine kept every stress cell at its baseline
+(modelled).

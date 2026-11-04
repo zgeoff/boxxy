@@ -8,13 +8,13 @@ boxxy measures recipes and rules with the verdict pattern of noslop's eval harne
 traffic, with metrics and cohort keys as plug-ins from the start. The
 [measurement design](../design/boxxy/measurement.md) defines the experiment file and the verdict.
 
-- **Plug-ins:** a metric declares its kind (cost, time or rate) and observes one item at an analysis
-  date. A cohort key reads only facts recorded before the item's exposure.
+- **Plug-ins:** a metric declares its kind (cost, time or rate) and observes one item at an
+  analysis date. A cohort key reads only facts recorded before the item's exposure.
 - **Fixed in the core:** assignment and the exposure fact, one estimator per metric kind, the noise
   floor, and the stop rules. An estimator becomes a plug-in on its first real need.
 - **Two experiment types:** live buckets for recipes, and shadow runs for dispatch rules.
-- **Required in every experiment:** a powered minimum sample, no call before the declared stop date,
-  and every exposed item kept in its arm's denominator, finished or not (proposed).
+- **Required in every experiment:** a powered minimum sample, no call before the declared stop
+  date, and every exposed item kept in its arm's denominator, finished or not (proposed).
 - A verdict is computed, never stored. Promotion is an owner ask bound to the verdict's hash.
 
 ## Rejected alternatives

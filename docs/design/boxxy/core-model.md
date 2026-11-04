@@ -11,14 +11,14 @@ command API.
 An item is a typed node. Its kind comes from the item kind registry, and the core names only the
 `core.*` kinds:
 
-| Kind              | Holds                                                                    |
-| ----------------- | ------------------------------------------------------------------------ |
-| `core.issue`      | a piece of work to build                                                 |
-| `core.idea`       | a thought not yet triaged                                                |
-| `core.finding`    | a review finding, linked `found-in` to the item it was found in          |
-| `core.decision`   | a choice that freezes when done                                          |
-| `core.prevention` | a change that stops a class of finding from recurring                    |
-| `core.task`       | free-form work with a minimal pipeline, for work that fits no other kind |
+| Kind | Holds |
+| --- | --- |
+| `core.issue` | a piece of work to build |
+| `core.idea` | a thought not yet triaged |
+| `core.finding` | a review finding, linked `found-in` to the item it was found in |
+| `core.decision` | a choice that freezes when done |
+| `core.prevention` | a change that stops a class of finding from recurring |
+| `core.task` | free-form work with a minimal pipeline, for work that fits no other kind |
 
 [Planning](./planning.md) adds `core.project` and `core.goal`. A new kind is a registry entry with
 its pipeline and typed fields, not new core code. Free tags are refused: a kind declares typed
@@ -40,16 +40,16 @@ boxxy computes it from facts each time, and no command sets it.
 
 Links are typed, and the link types are a registry like the item kinds.
 
-| Link         | Meaning                                                                 |
-| ------------ | ----------------------------------------------------------------------- |
-| `blocks`     | the target can't be ready until the source is done                      |
-| `parent`     | one item is a part of the other                                         |
-| `supersedes` | the source replaces the target, usually a decision                      |
-| `found-in`   | the source was found while working on the target                        |
-| `designs`    | the source is the design for the target                                 |
-| `prevents`   | the source stops a class of finding                                     |
-| `relies-on`  | the source rests on a decision                                          |
-| `serves`     | the source contributes to a project or goal ([planning](./planning.md)) |
+| Link | Meaning |
+| --- | --- |
+| `blocks` | the target can't be ready until the source is done |
+| `parent` | one item is a part of the other |
+| `supersedes` | the source replaces the target, usually a decision |
+| `found-in` | the source was found while working on the target |
+| `designs` | the source is the design for the target |
+| `prevents` | the source stops a class of finding |
+| `relies-on` | the source rests on a decision |
+| `serves` | the source contributes to a project or goal ([planning](./planning.md)) |
 
 Readiness reads only the blocking link types, such as `blocks`. The other types never hold an item.
 `relies-on` makes two questions into queries: why something is built the way it is, and what rested
@@ -57,8 +57,8 @@ on a decision that has since been superseded.
 
 ## Phases
 
-A phase defines what one attempt is for, what input it needs, which worker kind runs it, and what
-its outcome does to the item. Phases come in four shapes:
+A phase defines what one attempt is for, what input it needs, which worker kind runs it, and what its
+outcome does to the item. Phases come in four shapes:
 
 1. **Pipeline phases** are the steps of a kind's pipeline, such as triage, then design only when
    triage asks for it, then build, review, release and QA.
@@ -84,23 +84,23 @@ interface before anyone designs against it:
 ```yaml
 pipelines:
   contract-first:
-    - contract # an agent sketches the interfaces; the close-out files a draft core.decision
-    - sign-off # gate: an ask bound to the draft's hash; approval freezes the decision
-    - design # input: the frozen decision, linked relies-on
+    - contract   # an agent sketches the interfaces; the close-out files a draft core.decision
+    - sign-off   # gate: an ask bound to the draft's hash; approval freezes the decision
+    - design     # input: the frozen decision, linked relies-on
     - build
     - review
 ```
 
-- `claimNext` enforces the gate: nobody can claim `design` until a sign-off fact exists for the
-  exact draft hash. A changed draft needs a new sign-off.
+- `claimNext` enforces the gate: nobody can claim `design` until a sign-off fact exists for the exact
+  draft hash. A changed draft needs a new sign-off.
 - A rejection sends the item back to `contract`, with the reason as input.
 - A rule on the gate sets who may sign off, and whether the owner's override can skip it.
 - Time spent waiting at a gate counts as a cost of the pipeline (proposed).
 
 ## Attempts
 
-One attempt is one run of one phase on one item
-([decision 0002](../../decisions/0002-one-attempt-per-phase.md)). An attempt records:
+One attempt is one run of one phase on one item ([decision 0002](../../decisions/0002-one-attempt-per-phase.md)).
+An attempt records:
 
 - **Its recipe.** The recipe is what the attempt ran with: agent, model, effort, prompt template,
   skills, plugins, instruction files, rules version and experiment arm. It is content-addressed, so
@@ -117,8 +117,8 @@ One attempt is one run of one phase on one item
   ([close-outs](./close-outs.md#linking-attempts-to-commits-and-prs)).
 
 The attempt's record never changes. Late outcomes, such as a revert, a follow-up fix, an escaped
-defect or a review reply, attach as new facts. A crash or an unknown spawn result puts the attempt
-in `reconciling`, which [dispatch](./dispatch.md#unknown-outcomes) settles.
+defect or a review reply, attach as new facts. A crash or an unknown spawn result puts the attempt in
+`reconciling`, which [dispatch](./dispatch.md#unknown-outcomes) settles.
 
 ## Changes while an attempt runs
 
@@ -126,12 +126,12 @@ A relevant fact can land while an attempt is in flight: an answered ask, a super
 item relies on, a steer, a rank or expedite, a drop, a moved base branch, or a confirmed finding.
 When one lands, a rule picks one response:
 
-| Response | What happens                                                              |
-| -------- | ------------------------------------------------------------------------- |
-| notify   | the default: an atc message to the running session, as a steer            |
-| restart  | boxxy stops the attempt and starts a new one from the new state           |
-| cancel   | boxxy stops the attempt, because the item was dropped or superseded       |
-| ignore   | the attempt finishes, and its outcome is marked as built on a stale basis |
+| Response | What happens |
+| --- | --- |
+| notify | the default: an atc message to the running session, as a steer |
+| restart | boxxy stops the attempt and starts a new one from the new state |
+| cancel | boxxy stops the attempt, because the item was dropped or superseded |
+| ignore | the attempt finishes, and its outcome is marked as built on a stale basis |
 
 boxxy never stops an attempt silently. Each response is a fact, so the cost of mid-flight changes is
 a query, and review can see work that was built against a superseded decision.

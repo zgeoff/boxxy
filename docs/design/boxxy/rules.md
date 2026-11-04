@@ -4,20 +4,19 @@ boxxy takes two kinds of input, and stores them in two places
 ([decision 0003](../../decisions/0003-rules-in-git-levers-as-facts.md)). Policy, such as pools,
 pipelines, gates, experiments and plug-in versions, lives in a git config repo, and boxxy loads it
 from a merged commit as one [rules version](#the-rules-version). Levers, such as expedite, rank and
-defer, are facts written through the command API, and act at once. A policy change is a PR that CI
-replays against past weeks before anyone merges it. Every decision records the rules version in
-force.
+defer, are facts written through the command API, and act at once. A policy change is a PR that CI replays against past weeks before anyone
+merges it. Every decision records the rules version in force.
 
 ## Policy in git
 
-| What                                       | Where it is described                                       |
-| ------------------------------------------ | ----------------------------------------------------------- |
-| pools                                      | [planning](./planning.md#pools)                             |
-| pipelines, gates and sign-offs             | [core model](./core-model.md#phases)                        |
+| What | Where it is described |
+| --- | --- |
+| pools | [planning](./planning.md#pools) |
+| pipelines, gates and sign-offs | [core model](./core-model.md#phases) |
 | responses to changes while an attempt runs | [core model](./core-model.md#changes-while-an-attempt-runs) |
-| experiments                                | [measurement](./measurement.md)                             |
-| merge train rules                          | [merge train](./merge-train.md)                             |
-| plug-in versions                           | [the plug-in kinds registry](#the-plug-in-kinds-registry)   |
+| experiments | [measurement](./measurement.md) |
+| merge train rules | [merge train](./merge-train.md) |
+| plug-in versions | [the plug-in kinds registry](#the-plug-in-kinds-registry) |
 
 - **boxxy loads rules only from a merged commit,** and reloads them live. A checkout with
   uncommitted changes fails the load.
@@ -25,8 +24,8 @@ force.
   [replay CI](#replay-ci)).
 - **A rules PR touches dispatch for the whole fleet,** so it takes the full review gate. A new rule
   set then runs as a challenger in shadow before promotion ([measurement](./measurement.md)).
-- **The loader rejects a plug-in reference it can't check** (proposed): an unknown plug-in name, or
-  parameters that fail the plug-in's schema. The experiment loader adds its own checks
+- **The loader rejects a plug-in reference it can't check** (proposed): an unknown plug-in name,
+  or parameters that fail the plug-in's schema. The experiment loader adds its own checks
   ([measurement](./measurement.md)).
 
 ## The rules version
@@ -60,15 +59,15 @@ Each lever is a fact with its actor, time and reason, so `explain` shows it and 
 boxxy's behaviour beyond the core comes from plug-ins. Each plug-in kind is a strategy interface,
 and the registry lists the kinds and the plug-ins of each kind:
 
-| Plug-in kind                                                        | Doc                                   |
-| ------------------------------------------------------------------- | ------------------------------------- |
-| signal, gate, pool gate, waiver, admission, view, pool filter field | [planning](./planning.md#concepts)    |
-| item kind, link type, pipeline phase                                | [core model](./core-model.md)         |
-| worker kind (`start`, `reconcile`)                                  | [core model](./core-model.md#workers) |
-| close-out per phase kind                                            | [close-outs](./close-outs.md)         |
-| metric, cohort key                                                  | [measurement](./measurement.md)       |
-| capacity source                                                     | [capacity](./capacity.md)             |
-| batch-size rule                                                     | [merge train](./merge-train.md)       |
+| Plug-in kind | Doc |
+| --- | --- |
+| signal, gate, pool gate, waiver, admission, view, pool filter field | [planning](./planning.md#concepts) |
+| item kind, link type, pipeline phase | [core model](./core-model.md) |
+| worker kind (`start`, `reconcile`) | [core model](./core-model.md#workers) |
+| close-out per phase kind | [close-outs](./close-outs.md) |
+| metric, cohort key | [measurement](./measurement.md) |
+| capacity source | [capacity](./capacity.md) |
+| batch-size rule | [merge train](./merge-train.md) |
 
 - **A rules version pins plug-in code** through its concept pins
   ([the rules version](#the-rules-version)), so a replay runs the code that decided. A replay that
