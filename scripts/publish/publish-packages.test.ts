@@ -371,6 +371,55 @@ test('it skips a package whose version the registry already holds', async () => 
   expect(calls).toBe('npm view @zgeoff/std@0.4.0 version\n');
 });
 
+test('it publishes a package that npm answers E404 for, as the registry lacks it', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createNPM({
+    view: { exitCode: 1, errorOutput: 'npm error code E404\nnpm error 404 Not Found\n' },
+  });
+
+  await writeTreeFiles(ctx.repo, {
+    'libs/std/package.json': JSON.stringify({ name: '@zgeoff/std', version: '0.4.0' }),
+  });
+
+  const exitCode = await ctx.runPublish(['libs/std'], '');
+  const calls = await ctx.readNPMCalls();
+
+  expect(exitCode).toBe(0);
+
+  expect(calls).toBe(
+    [
+      'npm view @zgeoff/std@0.4.0 version',
+      'npm publish ./zgeoff-std-0.4.0.tgz --provenance --access public',
+      '',
+    ].join('\n'),
+  );
+});
+
+test('it stops before the pack when the registry check fails for a reason other than E404', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createNPM({ view: { exitCode: 1, errorOutput: 'npm error code ETIMEDOUT\n' } });
+
+  await writeTreeFiles(ctx.repo, {
+    'libs/std/package.json': JSON.stringify({ name: '@zgeoff/std', version: '0.4.0' }),
+  });
+
+  const failure = await ctx.runPublish(['libs/std'], '').then(
+    () => null,
+    (error: unknown) => error,
+  );
+
+  const calls = await ctx.readNPMCalls();
+
+  expect(failure).toMatchObject({
+    message: 'npm view @zgeoff/std@0.4.0 version failed: npm error code ETIMEDOUT',
+  });
+
+  expect(calls).toBe('npm view @zgeoff/std@0.4.0 version\n');
+  expect(ctx.loggedCalls).toStrictEqual([]);
+});
+
 test('it builds a package that defines a build script before it packs it', async () => {
   const ctx = await setupTest();
 

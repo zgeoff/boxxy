@@ -12,6 +12,7 @@ import type { ManifestParse, PackageManifest } from './parse-package-manifest.ts
 import { parsePackageManifest } from './parse-package-manifest.ts';
 import type { PublishMode, PublishRequest } from './parse-publish-request.ts';
 import { parsePublishRequest } from './parse-publish-request.ts';
+import { parseRegistryAnswer } from './parse-registry-answer.ts';
 import { pickTarball } from './pick-tarball.ts';
 
 export interface PackagesPublishOptions {
@@ -175,12 +176,20 @@ async function probePublishedVersion(
   entry: PublicManifest,
   options: PackagesPublishOptions,
 ): Promise<boolean> {
-  const published = await options.runCommand(
-    ['npm', 'view', `${entry.name}@${entry.version}`, 'version'],
-    { cwd: entry.folder, env: options.env },
-  );
+  const spec = `${entry.name}@${entry.version}`;
 
-  return published.stdout.trim() === entry.version;
+  const result = await options.runCommand(['npm', 'view', spec, 'version'], {
+    cwd: entry.folder,
+    env: options.env,
+  });
+
+  return match(parseRegistryAnswer(result, spec, entry.version))
+    .with({ kind: 'published' }, () => true)
+    .with({ kind: 'missing' }, () => false)
+    .with({ kind: 'failed' }, (failed) => {
+      throw new Error(failed.message);
+    })
+    .exhaustive();
 }
 
 // The manifest goes back as it was after the pack, whether the pack succeeds or not.

@@ -4,6 +4,8 @@ import { join } from 'node:path';
 export interface StubNPMAnswer {
   readonly output?: string;
 
+  readonly errorOutput?: string;
+
   readonly exitCode?: number;
 
   // A file the subcommand writes the file list of the tarball its first argument names to.
@@ -11,7 +13,7 @@ export interface StubNPMAnswer {
 }
 
 // Writes a stand-in for npm that appends each call's arguments to the log, one call per line, and
-// answers each subcommand with its given output and exit code. A subcommand with no answer prints
+// answers each subcommand with its given output, error output and exit code. A subcommand with no answer prints
 // nothing and succeeds.
 export async function createStubNPM(
   directory: string,
@@ -21,13 +23,15 @@ export async function createStubNPM(
   const cases = await Promise.all(
     Object.entries(answers).map(async ([subcommand, answer]) => {
       const outputPath = join(directory, `npm-${subcommand}.output`);
+      const errorPath = join(directory, `npm-${subcommand}.error`);
 
       await writeFile(outputPath, answer.output ?? '');
+      await writeFile(errorPath, answer.errorOutput ?? '');
 
       const listing =
         answer.tarballListPath === undefined ? '' : `tar -tzf "$2" > '${answer.tarballListPath}'; `;
 
-      return `  ${subcommand}) ${listing}cat '${outputPath}'; exit ${answer.exitCode ?? 0} ;;`;
+      return `  ${subcommand}) ${listing}cat '${outputPath}'; cat '${errorPath}' >&2; exit ${answer.exitCode ?? 0} ;;`;
     }),
   );
 
