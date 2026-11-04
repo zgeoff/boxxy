@@ -1,0 +1,158 @@
+# Planning
+
+Planning decides which ready item each free pool slot takes next. Every planning idea, such as rank,
+defer or expedite, is a concept: a module that registers plug-ins
+([decision 0004](../../decisions/0004-planning-concepts-are-plug-ins.md)). `buildFrame()` runs the
+plug-ins over the facts and builds one frame. `decide()` reads the frame and the pools and returns
+picks, and never names a concept. A new sort key, such as cheapest measured work first, is one file
+and one rules line.
+
+## Concepts
+
+A concept is one module. It registers its item kinds, link types, fact kinds and commands, and the
+plug-ins that act on ordering:
+
+| Plug-in kind | What it does | Example |
+| --- | --- | --- |
+| signal | gives a sort key that a pool can name | rank, age |
+| gate | holds an item off the frontier, with a reason | defer, blocked |
+| waiver | lifts one gate's hold for one item | expedite lifts defer |
+| admission | widens which pools may take an item | `--any-pool` |
+| propagation | carries a value across typed links; written as data | rank down `serves`, expedite back over `blocks` |
+| view | a pure function over the frame | explain, forecast, roadmap |
+
+The concepts boxxy builds first are the ones whose shapes differ most: a pool, defer as a gate with
+expedite as its waiver, and expedite propagation over links. They test the plug-in interface before
+many plug-ins depend on it. boxxy has no fixed list of concepts: it builds a concept when a need
+arrives, and later concepts are additions to the same registry.
+
+## buildFrame and decide
+
+```mermaid
+flowchart LR
+  facts[facts up to the observation boundary] --> buildFrame
+  rules[rules version: pools, plug-in versions] --> buildFrame
+  buildFrame --> frame[frame: holds, waivers, admissions, signal values]
+  frame --> decide
+  pools[pools and free slots] --> decide
+  decide --> picks
+```
+
+- `buildFrame()` runs each gate, waiver, admission, propagation and signal, and records each
+  plug-in's output and each fault in the frame.
+- `decide()` takes the ready items that no gate holds, offers them to each pool by its filter and
+  sort, and returns one pick per free slot.
+- Both are pure. Time, the free slots and every live reading come in as facts or arguments.
+- A plug-in that throws is a fault, and a failed gate holds
+  ([dispatch](./dispatch.md#gates-fail-toward-holding)).
+- `claimNext` runs both inside the store's write transaction ([dispatch](./dispatch.md)).
+
+## Pools
+
+A pool is a filter, a sort, a slot count and an empty policy. A pool's name carries no meaning: any
+ordering is configuration.
+
+```yaml
+pools:
+  - name: maintenance
+    slots: 5
+    takes: { phase: build, kind: [chore, improvement, bug] }
+    order: [kind: [chore, improvement, bug], oldest]
+  - name: nixie
+    slots: 1
+    takes: { phase: build, project: nixie }
+    when_empty: idle
+```
+
+- An item that fits two pools goes to the first match in declared order. `explain` shows this, and
+  the loader should warn about overlapping filters at load time (proposed).
+- Signal values must be cached by signal name and parameters, so two pools can use one signal with
+  different parameters.
+- A pool's slots are lease rows ([dispatch](./dispatch.md)).
+
+### The judgement pool
+
+A ready item that no pool or admission takes for a set time is stranded. boxxy gives it a
+`plan.judge` phase in a judgement pool with one slot. The judgement close-out must end the strand
+with an override (pin, admit or lift) or a defer. A second strand on the same item goes to the owner.
+The judgement pool also takes other cases that no rule covers, such as an attempt that passed its
+cost cap ([capacity](./capacity.md)).
+
+## Ordering levers
+
+These concepts give the owner and agents a lever on order. Each lever is a fact with its actor and
+time ([rules](./rules.md#levers-as-facts)).
+
+- **Expedite** beats every sort key.
+  - It takes items, an ordered list, or a goal or project (all its open items, in the order given).
+  - It reaches through blockers: an expedited blocked item pulls its blockers forward first.
+  - It takes the next free slot in any pool whose filter matches, or with `--any-pool` the next free
+    build slot anywhere. It never stops running work.
+  - It lifts defer, quiet hours and budget holds on the pulled work and its blockers. A gate declared
+    unliftable, such as `blocked` or `attended`, still holds.
+  - It carries a reason and an optional expiry. Only the owner's sender kind can expedite, with a
+    confirmation bound to the person ([core model](./core-model.md#entry-points)). An owner pull
+    ranks ahead of a judgement phase's pull.
+- **Defer** hides an item from the frontier. `defer --until <time>` wakes it at that time. `defer`
+  with no time keeps it out until `undefer`.
+- **Rank** is sparse. The owner ranks a few goals or items, and nothing gets a default rank. Items
+  inherit rank through `serves` and `blocks` links. An unranked item sorts by the pool's other keys.
+- **Deadline** is a rare optional field. Pools read it as urgency once it gets close.
+
+boxxy refuses cycles, estimates and a default priority.
+
+## Projects, areas and goals
+
+- **A project** (`core.project`) is a body of work with an outcome: a goal, repos, an optional target
+  date and acceptance. Items link `serves` to it, and its progress is derived.
+- **An area** is a standing bucket, such as maintenance of one repo, not a project. It is a field
+  derived from repo and kind, or set at triage. Pools filter on it.
+- **A goal** (`core.goal`) has an optional target date. Projects and items link `serves` to goals. A
+  roadmap is the goal tree over time. A goal that drifts from its date can open an ask.
+
+Whether goal and project are one kind or two is open.
+
+## Explain
+
+`explain` answers questions such as "why was the nixie slot idle on Tuesday at 14:00". It rebuilds
+the frame at that time from facts up to the recorded observation boundary
+([dispatch](./dispatch.md#the-observation-boundary)), reruns `decide()` with the recorded rules
+version, and returns each candidate with the reason it was not picked. Reasons cost nothing until
+someone asks.
+
+When the rebuilt input's hash doesn't match the recorded snapshot hash, or a pinned plug-in version
+is missing, `explain` marks the explanation suspect. [Replay CI](./rules.md#replay-ci) uses the same
+mechanism to show what a new rules version would have done.
+
+## Forecast (proposed)
+
+A forecast gives the date goal G lands as a range from measured work, never from estimates. It
+is a view over replay, not a second scheduler, so it can never disagree with dispatch about order.
+
+1. **Like-work cohorts.** Each open item gets a cohort key: kind, repo and size band. The size band
+   comes from the triage close-out's typed `size`, or from lines changed at merge for done items.
+   Each cohort holds the last 30 days of done items with their cycle time (claim to merge, all
+   attempts) and slot time (the sum of attempt durations).
+2. **Simulate `decide()` forward.** A Monte Carlo of 500 runs. Each run copies the current frame and
+   steps simulated time. Free slots ask the real `decide()`, with the same rules version and
+   plug-ins, for picks. Each pick draws a slot time from its cohort, then finishes and unblocks its
+   dependants. New items arrive at each cohort's measured rate. A run ends when every item serving G
+   is done. The answer is the p50 and p90 of the end dates.
+3. **What moves the date.** The view reruns the forecast with one change at a time: one more slot in
+   each pool, an expedite of G, each open blocker removed, each competing goal deferred. It returns
+   the shifts, largest first.
+4. **Confidence.** The range is the confidence. A cohort with fewer than 10 done items borrows the
+   next wider cohort (drop size, then repo), and the forecast shows the borrowing. An item with no
+   cohort makes the forecast "not enough data".
+
+Open issues:
+
+- **Scope grows while work runs.** Items filed later against G, such as follow-ups and findings,
+  aren't in today's tree. Either model them from each cohort's measured follow-up rate, or label the
+  forecast "for the current scope" and track scope growth beside it.
+- **Cost.** 500 runs of `decide()` over weeks of simulated time is millions of calls. Cache the frame
+  between steps and recompute only changed items. Measure before promising a live view.
+- **Lag.** Reruns and review loops sit inside cycle time, so a recipe that cuts rework moves
+  forecasts only after 30 days of new data. Either weight recent items more, or show the recipe mix.
+- **The owner isn't simulated.** Future expedites, holds and decisions aren't in the model, so the
+  forecast means "if nothing changes".
