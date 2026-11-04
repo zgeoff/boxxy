@@ -16,5 +16,5 @@ test('it gives each package in apps, modules, adapters and libs the release comp
     ([path, entry]) => [path, entry.component] as const,
   );
 
-  expect(components.toSorted()).toStrictEqual(listed.flat().toSorted());
+  expect(Object.fromEntries(components)).toStrictEqual(Object.fromEntries(listed.flat()));
 });
