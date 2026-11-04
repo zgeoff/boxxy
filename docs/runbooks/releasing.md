@@ -45,8 +45,9 @@ publisher. npm expires a trusted publisher that no publish uses in its first 2 d
 
    Expect `gh variable list --repo zgeoff/boxxy` to show `RELEASE_ENABLED` with the value `true`.
 
-5. Merge a releasable commit to `main`. Expect the release job to open a release pull request that
-   sets each package to `0.1.0`.
+5. Merge a `feat` or `fix` commit to `main` that changes a file in every package, such as each
+   package's `README.md`. release-please releases only the packages a commit changes. Expect the
+   release job to open a release pull request that sets each package to `0.1.0`.
 6. Merge that pull request, as [Merge a release pull request](#merge-a-release-pull-request)
    describes. Expect npm to hold `0.1.0` of each package, which CI published through each trusted
    publisher.
