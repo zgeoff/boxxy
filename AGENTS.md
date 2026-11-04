@@ -17,7 +17,7 @@ The mistakes that cost most here:
   your work needs.
 - [Layout](#layout): follow the layout doc. Code under `modules/` and `libs/` does no I/O.
 - [Docs and decisions](#docs-and-decisions): a design doc changes in the same PR as the code.
-- [Checks](#checks): the pre-push hook runs the checks; run it before you push.
+- [Checks](#checks): run the pre-push hook and `bun run check` before you push.
 - [Commits and pull requests](#commits-and-pull-requests): Conventional Commits, one PR per
   change, no attribution lines.
 - [Public repo](#public-repo): nothing from your machine or anyone's private setup.
@@ -55,13 +55,15 @@ Read it before you add a package, a file or an import. The workspace has four ki
 - `libs/`: types, schemas and pure helpers that two or more packages use, such as `@boxxy/model`.
   A lib does no I/O, the same as a module.
 
-Two checks enforce the layout in CI:
+Three checks enforce the layout in CI:
 
 - `turbo boundaries` fails on an import that the package's `turbo.json` tag doesn't allow.
-- The `zgeoff/import-zones` lint rule lets only one named package import each outside library, and
-  fails on I/O in `modules/` and `libs/`, with oxlint's `no-restricted-globals` for the clock, the
-  environment and `Bun`. The layout doc lists which package owns each library. To add a new
-  outside library, add it to that list in the same PR.
+- The `zgeoff/import-zones` lint rule lets only one package import each third-party library, and
+  fails when a file in `modules/` or `libs/` imports a Node module for files, processes or the
+  network. The layout doc lists which package owns each library. To add a new third-party library,
+  add it to that list in the same PR.
+- oxlint's `no-restricted-globals` rule fails on any use of `Date`, `process` or `Bun` in
+  `modules/` and `libs/`.
 
 When a check fails, move the code to the package the layout names. Never add an exception to a rule.
 
@@ -78,15 +80,21 @@ When a check fails, move the code to the package the layout names. Never add an 
 
 ## Checks
 
-lefthook's pre-push hook runs lint, the format check, type checks, tests and `turbo boundaries`.
-Run it by hand before you push:
+Before you push, run the lefthook pre-push hook, which runs lint, the format check, type checks,
+tests and `turbo boundaries`:
 
 ```bash
 bun x lefthook run pre-push
 ```
 
-Fix every failure before you push. `bun run check` runs every check that CI runs, type-aware lint
-and dead code included.
+Then run `bun run check`. It runs every check that CI runs, with the type-aware lint and the knip
+dead-code check that the hook skips:
+
+```bash
+bun run check
+```
+
+Fix every failure before you push.
 
 ## Commits and pull requests
 
