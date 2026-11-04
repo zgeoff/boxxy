@@ -40,8 +40,8 @@ no long session has to move between sources, and rotation is a choice made at ea
   a subscription to a pay-per-token provider, changes the recipe, so it is an experiment arm, never
   a routing choice.
 
-Once atc accepts telemetry attributes on spawn, the `worker-atc` adapter stamps the chosen source on
-the session's telemetry, so every request record carries its source (see
+boxxy records the chosen source on the attempt. Each request record joins to its attempt by the
+agent session id, so each request maps to its source (see
 [measurement](./measurement.md#spend-capture)).
 
 ## The pacing gate

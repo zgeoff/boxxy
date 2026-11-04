@@ -18,6 +18,7 @@ Where another design doc owns a term, the link goes to that doc.
 | phase | One step of an item kind's pipeline. Slice 1's one phase is `build` ([core model](./core-model.md#phases)). |
 | item phase | One phase of one item, such as the `build` phase of one issue. |
 | attempt | One run of one phase on one item, in one agent session ([core model](./core-model.md#attempts)). |
+| agent session id | The id that the agent CLI gives its own session. Claude Code puts it on each telemetry record as `session.id`, and atc reports it as `agentSessionID`. boxxy stores it on the attempt ([the session-id join](#the-session-id-join)). |
 | close-out | The typed report an agent sends at the end of its attempt ([close-outs](./close-outs.md)). |
 | recipe | What an attempt runs with: agent, model, effort, prompt template and capacity source. Each attempt stores its recipe's content hash ([core model](./core-model.md#attempts)). |
 | capacity source | What pays for an attempt's model use, such as a subscription account's usage window or a pay-per-token provider's balance ([capacity](./capacity.md#capacity-sources)). |
@@ -66,8 +67,7 @@ Slice 1 builds:
 - three planning concepts, the pool, defer with expedite as its waiver, and expedite propagation
   over links, which register four plug-ins: the `oldest` signal, the `defer` gate, the
   `expedite-lifts-defer` waiver and the `expedite` signal ([the slice 1 concepts](#the-slice-1-concepts));
-- the build worker through atc, in `adapters/worker-atc`, which sets `OTEL_RESOURCE_ATTRIBUTES` on
-  each session;
+- the build worker through atc, in `adapters/worker-atc`;
 - the typed build close-out ([close-outs](./close-outs.md));
 - links from attempts to commits, by a commit trailer, and to PRs, by a Claude Code hook and the PR
   watch;
@@ -278,8 +278,10 @@ writes outside `StoreChange`, writes no fact, and leaves the store version where
 ### The atc adapter
 
 - `start` calls atc's `session.spawn` with the stored spawn request, `idempotencyKey` set to the
-  attempt id, and `name` set to `boxxy/<attempt_id>`.
-- `reconcile` reads atc's session list and finds the session by that name. It never treats an
+  attempt id, and `name` set to `boxxy/<attempt_id>`. A `started` outcome carries atc's session id,
+  and the session's `agentSessionID` when atc reports it in the spawn response.
+- `reconcile` reads atc's session list and finds the session by that name. A `running` reading
+  carries the session's `agentSessionID` when atc has recorded it. `reconcile` never treats an
   unknown idempotency key as proof that a spawn never ran, because atc deletes completed keys after
   24 hours.
 - A session in state `done` or `exited` has ended. A session in `running` or `needs_you` is running.
@@ -737,8 +739,8 @@ transaction:
 4. Run `buildFrame`, then `decide`. With no pick, return `null` and write nothing.
 5. For the first pick, read the item phase's last lease generation with `readLastLeaseGen`.
 6. Build the spawn request from the recipe: cwd from the repo's configured path, the prompt from the
-   template, the agent, model and effort, the plugin folder, the name `boxxy/<attempt_id>`, the
-   idempotency key, and the telemetry attributes in [the OTel stamp](#the-otel-stamp).
+   template, the agent, model and effort, the plugin folder, the name `boxxy/<attempt_id>` and the
+   idempotency key.
 7. Apply one `StoreChange` that holds the item-phase lease at the next generation, the slot lease in
    the pick's pool, the attempt row in state `starting`, the decision row, and the outbox facts
    `boxxy.attempt.claimed` and `boxxy.decision.recorded`. `applyChange` takes the lowest free slot
@@ -777,6 +779,10 @@ Each change below runs under the attempt's generation.
 | `absent` | `starting` | settle the attempt as `failed` with reason `session-lost` |
 | `absent` | `running` | settle the attempt as `failed` with reason `session-lost` |
 | `absent` | `reconciling` | send the stored spawn request again, with the same idempotency key |
+
+The session ids are atc's session id and the agent session id. atc may report the agent session id
+after the session starts, so a `running` reading that first carries it stores it on the attempt. The
+cost query needs that id ([the session-id join](#the-session-id-join)).
 
 When atc still shows no session for a `reconciling` attempt 10 minutes after the claim, settle the
 attempt as `failed` with reason `spawn-lost`. Every settle releases the item-phase lease and the
@@ -856,25 +862,28 @@ session it starts.
   carries that attempt's id, with the same rows and fact as `evidence.recordPr`.
 - Both hooks exit 0, print nothing on failure, and give up after 5 seconds.
 
-## The OTel stamp
+## The session-id join
 
-`worker-atc` sets `OTEL_RESOURCE_ATTRIBUTES` on each session it starts, so every request record the
-agent sends carries the attempt beside its `model` ([measurement](./measurement.md#spend-capture)).
-The stamp is the only join from a request record to its attempt. A record with no `boxxy.attempt`
-attribute belongs to no attempt.
+boxxy joins each telemetry record to its attempt by the agent session id
+([measurement](./measurement.md#spend-capture)). The spawn request carries no telemetry settings,
+and boxxy sets no telemetry attributes on the session.
 
-The value is a comma-separated list of `key=value` pairs, with each value percent-encoded:
+- **atc turns telemetry on.** atc's own agent config sends each agent's telemetry to the local OTLP
+  receiver ([A1](#a1-agent-session-ids-and-telemetry-config-in-atc)).
+- **Claude Code puts the id on each record.** Every telemetry record Claude Code sends carries a
+  `session.id` attribute, which is its agent session id.
+- **atc records the id.** atc stores each session's agent session id as `agentSessionID`.
+- **boxxy stores the id on the attempt.** boxxy spawns each session itself, so the attempt row holds
+  the item, phase and recipe. The runner writes the agent session id into the attempt's
+  `agent_session` column from the `started` outcome, or from the first reconcile reading that
+  carries it ([the runner loop](#the-runner-loop)).
+- **The cost query joins at read time.** A record belongs to the attempt whose `agent_session`
+  equals the record's `session.id`. A record sent before the runner stored the id still joins. A
+  record whose `session.id` matches no attempt belongs to no attempt.
 
-| Key | Value |
-| --- | --- |
-| `boxxy.item` | the item id |
-| `boxxy.phase` | `build` |
-| `boxxy.attempt` | the attempt id |
-| `boxxy.recipe` | the recipe hash |
-| `boxxy.source` | the recipe's capacity source name |
-
-`worker-atc` needs atc to pass the stamp to the agent process
-([A1](#a1-telemetry-attributes-on-spawn)).
+Codex is an open question. Whether Codex telemetry carries a session id that boxxy can join on, and
+whether atc records that id for a Codex session, waits on an investigation in atc. Slice 1 runs
+Claude Code only.
 
 ## Facts and the outbox
 
@@ -964,8 +973,8 @@ allows for a query across consumer files.
 - An item has landed when one of its PRs has `merged_at` set. Its landing time is the earliest such
   `merged_at`.
 - Its cost is every `claude_code.api_request` record of every attempt of that item, failed and
-  abandoned attempts included. A record belongs to an attempt when its `boxxy.attempt` resource
-  attribute holds the attempt's id.
+  abandoned attempts included. A record belongs to an attempt when its `session.id` equals the
+  attempt's agent session id ([the session-id join](#the-session-id-join)).
 - Output: one row per landed item and model: item id, title, repo, landed at, model, attempts,
   requests, input tokens, output tokens, cache read tokens, cache creation tokens, total input
   tokens, and cost in USD.
@@ -1032,7 +1041,7 @@ they depend on. H1 blocks S1-01, and every other unit depends on S1-01, so H1 bl
 
 boxxy needs pepys to ingest Claude Code's OpenTelemetry log records as facts. pepys's OTel consumer
 projects each `claude_code.api_request` record into a table with the model, `cost_usd`, the token
-counts, the `session.id`, the time, and every resource attribute whose key starts with `boxxy.`.
+counts, the `session.id` and the time. The cost query joins on the `session.id`.
 
 Each fact id is the event name, joined with one of these:
 
@@ -1062,11 +1071,13 @@ runs on.
 
 ### atc
 
-#### A1: Telemetry attributes on spawn
+#### A1: Agent session ids and telemetry config in atc
 
-boxxy needs `session.spawn` to accept telemetry resource attributes, or environment variables, for
-each session, and to pass them to the agent process as `OTEL_RESOURCE_ATTRIBUTES`. S1-09 depends on
-A1.
+boxxy needs atc to record each agent's session id as `agentSessionID`, and to report it in the
+spawn response or the session list. boxxy also needs per-agent telemetry config in atc that points
+each agent at an OTLP receiver. A1 changes no atc protocol: `session.spawn` takes no telemetry
+field. An investigation in atc settles both needs, and also whether Codex telemetry carries a
+session id that atc can record. S1-09 depends on A1.
 
 ### hq
 
@@ -1217,13 +1228,14 @@ Each unit is one PR or a short stack. "Depends on" lists units and prerequisites
 
 ### S1-09: The atc worker and the runner loop
 
-- **Delivers:** `@boxxy/worker-atc` (spawn with the stamp, reconcile by session name) and the runner
-  loop in `@boxxy/server`.
+- **Delivers:** `@boxxy/worker-atc` (spawn, and reconcile by session name) and the runner loop in
+  `@boxxy/server`.
 - **Depends on:** S1-08, A1.
 - **Acceptance:**
   - The `WorkerKind` contract suite passes against the fake and against `worker-atc` with atc's
     client mocked at its oRPC boundary (test).
-  - The spawn request carries the five `boxxy.*` attributes, percent-encoded (test).
+  - A `running` reading that carries `agentSessionID` stores it in the attempt's `agent_session`,
+    both on an attempt that started without it and on one in `reconciling` (test).
   - An `unknown` start moves the attempt to `reconciling`, and a later reading of its session moves
     it to `running` (test).
   - An `absent` reading for an attempt in `running` settles it as `failed` with reason
@@ -1232,7 +1244,8 @@ Each unit is one PR or a short stack. "Depends on" lists units and prerequisites
   - `boxxy runner pause` stops claims: with the runner paused, a ready item stays ready across 3
     ticks (test with the fake worker).
   - A live attempt on a scratch repo starts through atc, and its `claude_code.api_request` records
-    in the local OTLP sink carry `boxxy.attempt` (live check, record lines quoted in the PR).
+    in the local OTLP sink carry a `session.id` equal to the attempt's stored agent session id (live
+    check, record lines and the attempt row quoted in the PR).
 
 ### S1-10: Commit and PR links
 
@@ -1273,7 +1286,7 @@ Each unit is one PR or a short stack. "Depends on" lists units and prerequisites
   - The consumer's golden-fact test feeds a fixture of boxxy facts in two orders and gets the same
     rows (pepys test).
   - The query's golden test returns one row per item and model, counts a failed attempt's requests,
-    leaves out a request with no `boxxy.attempt` attribute, and sums total input with both cache
+    leaves out a request whose `session.id` matches no attempt, and sums total input with both cache
     counts (pepys test).
   - `boxxy cost` prints the rows from a live pepys (live check).
 

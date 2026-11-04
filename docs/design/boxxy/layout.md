@@ -26,7 +26,7 @@ boxxy/
 │   └── train/         (later)   merge train rules
 ├── adapters/                    one package per outside system, named <port>-<system>
 │   ├── store-sqlite/            the only bun:sqlite + Kysely user; migrations
-│   ├── worker-atc/              spawns attempts through atc, stamps OTEL_RESOURCE_ATTRIBUTES
+│   ├── worker-atc/              spawns attempts through atc, reads back their session ids
 │   ├── facts-pepys/             the outbox and the append client for pepys (the consumer lives in pepys)
 │   ├── forge-github/            PR and commit links, later the train's merges
 │   └── capacity-<provider>/   (slice 2) one per capacity source

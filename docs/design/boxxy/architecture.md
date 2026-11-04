@@ -72,10 +72,12 @@ them as facts ([decision 0007](../../decisions/0007-spend-capture-through-otel.m
 work events that OTel lacks, such as tool use, subagents and compaction, and join to OTel on the
 session id.
 
-The atc worker kind stamps each attempt's spawn with `OTEL_RESOURCE_ATTRIBUTES` (item, phase,
-attempt, recipe hash, capacity source), so every request record carries its attempt. The stamp is
-the only join from a request to its attempt. Prompt and response text stay redacted, which is the
-OTel default. [Measurement](./measurement.md) owns the capture details.
+atc's own agent config switches telemetry on per agent, and the spawn request carries no telemetry
+settings. boxxy joins each request record to its attempt by the agent session id: the record's
+`session.id` matches the id that atc reports and boxxy stores on the attempt. boxxy spawns each
+session, so the attempt row gives the item, phase, recipe and capacity source. Prompt and
+response text stay redacted, which is the OTel default. [Measurement](./measurement.md) owns the
+capture details.
 
 ## Principles
 

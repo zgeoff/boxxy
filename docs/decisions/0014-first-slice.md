@@ -1,6 +1,7 @@
 # 0014: The first slice
 
 Date: 2026-11-04
+Updated: 2026-11-05
 
 ## Decision
 
@@ -10,9 +11,9 @@ The [slice 1 design](../design/boxxy/slice-1.md) specifies it.
 - **In:** one item kind, the build phase and one pool; the boxxy store with claims (see
   [0001](./0001-claims-live-in-the-boxxy-store.md)) and three plug-ins: a pool, defer with expedite
   as its waiver, and expedite propagation (see [0004](./0004-planning-concepts-are-plug-ins.md));
-  the build worker through atc; the OTel stamp (see [0007](./0007-spend-capture-through-otel.md));
-  the build close-out; PR and commit links; one pepys consumer and one query: cost to land per
-  item, by model.
+  the build worker through atc; the join from telemetry to attempts by agent session id (see
+  [0007](./0007-spend-capture-through-otel.md)); the build close-out; PR and commit links; one
+  pepys consumer and one query: cost to land per item, by model.
 - **Out:** the merge train, the router, the pacing gate, experiments and the forecast. The older
   tool's merge gate keeps merging.
 - **Trial:** boxxy dispatches work for the pepys repo only, beside the older tool.

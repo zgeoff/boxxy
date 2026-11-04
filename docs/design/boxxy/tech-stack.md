@@ -51,8 +51,8 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 - msw stays on 2, because msw 3 doesn't intercept `fetch` under Bun.
 - Expected outcomes are values of a union type, branched with `ts-pattern`'s `match().exhaustive()`.
   `tiny-invariant` guards states that only a bug can reach. boxxy uses no result library.
-- boxxy has no OpenTelemetry SDK. Agents send their own telemetry; `worker-atc` sets only the
-  resource attributes on each session, once atc accepts them on spawn (see
+- boxxy has no OpenTelemetry SDK. Agents send their own telemetry, which atc's agent config
+  switches on, and boxxy joins it to attempts by the agent session id (see
   [measurement](./measurement.md#spend-capture)).
 
 ## Repo setup files

@@ -85,7 +85,7 @@ boxxy never asks the agent for these, because a fact records each one:
 | commits and PRs | the trailer and the PR hook ([below](#linking-attempts-to-commits-and-prs)) |
 | CI results | GitHub check runs |
 | review findings | noslop's review facts |
-| tokens, cost and time | OTel request records stamped with the attempt ([measurement](./measurement.md)) |
+| tokens, cost and time | OTel request records, joined to the attempt by the agent session id ([measurement](./measurement.md)) |
 | changes the attempt saw | the notify, restart, cancel and ignore facts ([core model](./core-model.md#changes-while-an-attempt-runs)) |
 | owner attention | atc's event trail |
 

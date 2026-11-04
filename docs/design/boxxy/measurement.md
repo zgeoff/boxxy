@@ -13,18 +13,21 @@ and [0007: spend capture through OTel](../../decisions/0007-spend-capture-throug
 ## Spend capture
 
 Each attempt runs in an agent session that boxxy starts through atc (see [dispatch](./dispatch.md)).
-The `worker-atc` adapter sets `OTEL_RESOURCE_ATTRIBUTES` on the session, so every request record the
-agent sends carries these attributes beside its `model`. The stamp is the only join from a request
-to its attempt. boxxy needs atc's `session.spawn` to accept telemetry attributes, which the
-[slice 1 prerequisites](./slice-1.md#prerequisites-outside-boxxy) list.
+atc's own agent config switches telemetry on per agent and sends it to an OTLP receiver. boxxy adds
+nothing to the spawn request for telemetry.
 
-| Attribute       | Value                                                        |
-| --------------- | ------------------------------------------------------------ |
-| item            | the item's id                                                |
-| phase           | the phase the attempt runs                                   |
-| attempt         | the attempt's id                                             |
-| recipe          | the recipe's content hash                                    |
-| capacity source | the source the router picked (see [capacity](./capacity.md)) |
+boxxy joins spend to an attempt by the agent's own session id. Claude Code puts a `session.id`
+attribute on every telemetry record, and atc records each session's agent session id as
+`agentSessionID`. boxxy spawns each session itself, so the attempt row holds the item, phase, recipe
+and capacity source of each one. The runner stores the agent session id on the attempt when atc reports
+it, and a spend query joins each record's `session.id` to that stored id. A record whose
+`session.id` matches no attempt belongs to no attempt.
+[Slice 1](./slice-1.md#the-session-id-join) specifies the join, and its
+[prerequisites](./slice-1.md#a1-agent-session-ids-and-telemetry-config-in-atc) list what boxxy needs
+from atc.
+
+Codex is an open question: whether Codex telemetry carries a session id that boxxy can join on, and
+whether atc records it. An investigation in atc answers it.
 
 - Claude Code sends logs and metrics over OTLP; its `claude_code.api_request` event gives the model,
   cost, input, output, cache read and cache write tokens, and the duration of each request. Codex
@@ -42,8 +45,8 @@ to its attempt. boxxy needs atc's `session.spawn` to accept telemetry attributes
 alone undercounts.
 
 One attempt uses several models: the main session, subagents, an advisor and a review model. The
-resource attributes tie each request to its attempt whatever model served it, so spend splits by
-phase and model with no transcript read.
+session-id join ties each request to its attempt whatever model served it, so spend splits by phase
+and model with no transcript read.
 
 ## Experiments
 
