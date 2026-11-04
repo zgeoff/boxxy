@@ -1,5 +1,5 @@
 import { expect, onTestFinished, test } from 'bun:test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { nodeFileSystem } from './node-file-system.ts';
 
@@ -53,4 +53,27 @@ test('it removes a missing path with no error', async () => {
   const exists = await nodeFileSystem.probePath(join(ctx.directory, 'teapot'));
 
   expect(exists).toBeFalse();
+});
+
+test('it probes a path below a file as missing', async () => {
+  const ctx = await setupTest();
+
+  await nodeFileSystem.writeText(join(ctx.directory, 'kettle'), 'tea\n');
+
+  const exists = await nodeFileSystem.probePath(join(ctx.directory, 'kettle', 'spout'));
+
+  expect(exists).toBeFalse();
+});
+
+test('it rethrows a probe error other than a missing path', async () => {
+  const ctx = await setupTest();
+
+  await symlink('loop', join(ctx.directory, 'loop'));
+
+  const failure = await nodeFileSystem.probePath(join(ctx.directory, 'loop')).then(
+    () => null,
+    (error: unknown) => error,
+  );
+
+  expect(failure).toMatchObject({ code: 'ELOOP' });
 });

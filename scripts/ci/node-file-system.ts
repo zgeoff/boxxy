@@ -24,8 +24,20 @@ export const nodeFileSystem: FileSystem = {
       await stat(path);
 
       return true;
-    } catch {
-      return false;
+    } catch (error) {
+      if (isMissingPathError(error)) {
+        return false;
+      }
+
+      throw error;
     }
   },
 };
+
+function isMissingPathError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    'code' in error &&
+    (error.code === 'ENOENT' || error.code === 'ENOTDIR')
+  );
+}
