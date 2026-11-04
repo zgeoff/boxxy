@@ -99,11 +99,11 @@ modules/planning/
 │   ├── build-frame.test.ts  tests sit beside the file
 │   ├── decide.ts
 │   ├── explain.ts
+│   ├── propagate.ts         runs the propagation lines, which are rules data
 │   └── concepts/            one subfolder per plug-in kind, one file per plug-in
 │       ├── pools.ts
 │       ├── defer.ts
-│       ├── expedite.ts
-│       └── propagation.ts
+│       └── expedite.ts
 └── test-utils/              this package's factories, exported as "./test-utils"
 ```
 

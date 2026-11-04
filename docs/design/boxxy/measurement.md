@@ -12,16 +12,17 @@ and [0007: spend capture through OTel](../../decisions/0007-spend-capture-throug
 
 ## Spend capture
 
-Each attempt runs in an agent session that boxxy starts through atc (see [dispatch](./dispatch.md)).
+Each attempt runs in agent sessions that boxxy starts through atc (see [dispatch](./dispatch.md)).
 atc's own agent config switches telemetry on per agent and sends it to an OTLP receiver. boxxy adds
 nothing to the spawn request for telemetry.
 
 boxxy joins spend to an attempt by the agent's own session id. Claude Code puts a `session.id`
 attribute on every telemetry record, and atc records each session's agent session id as
 `agentSessionID`. boxxy spawns each session itself, so the attempt row holds the item, phase, recipe
-and capacity source of each one. The runner stores the agent session id on the attempt when atc reports
-it, and a spend query joins each record's `session.id` to that stored id. A record whose
-`session.id` matches no attempt belongs to no attempt.
+and capacity source of each one. An attempt can collect more than one agent session, such as when
+atc respawns its session. The runner records each agent session id of an attempt in the store's
+`attempt_sessions` table when atc reports it, and a spend query joins each record's `session.id` to
+those ids at read time. A record whose `session.id` matches no attempt belongs to no attempt.
 [Slice 1](./slice-1.md#the-session-id-join) specifies the join, and its
 [prerequisites](./slice-1.md#a1-agent-session-ids-and-telemetry-config-in-atc) list what boxxy needs
 from atc.
@@ -96,25 +97,10 @@ experiment id.
 Metrics and cohort keys are plug-ins. Adding one is one file plus its name in an experiment's
 `metrics` or `cohort` list.
 
-```ts
-interface CohortKey {
-  name: string;
-  // The loader passes only facts recorded before the exposure fact.
-  value(item: PreExposureView): string;
-}
-
-interface Metric {
-  name: string;
-  kind: 'cost' | 'time' | 'rate'; // picks the estimator: time uses Kaplan-Meier
-  unit: 'usd' | 'tokens' | 'minutes' | 'ratio';
-  observe(item: ItemFacts, at: AnalysisDate): Observation;
-}
-
-type Observation =
-  | { state: 'done'; value: number }
-  | { state: 'pending' } // counts toward the pending stop rule
-  | { state: 'censored'; atLeast: number }; // time metrics only
-```
+[`07-measurement.ts`](./sketches/07-measurement.ts) holds the shapes. A `CohortKey` gives an item a
+cell from its pre-exposure facts. A `Metric` gives an item an `Observation`: done with a value,
+pending, or censored with a lower bound. A metric's `kind` (cost, time or rate) picks its estimator
+([fixed in the core](#fixed-in-the-core)). Only time metrics are censored.
 
 A cohort key reads only facts recorded before exposure, such as the size set at triage. It never
 reads the arm's own output, such as the lines its diff changed, because the arm could move the item

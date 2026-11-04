@@ -1,6 +1,7 @@
 # 0003: Rules live in git, and levers are facts
 
 Date: 2026-11-04
+Updated: 2026-11-05
 
 ## Decision
 
@@ -8,7 +9,8 @@ boxxy takes two kinds of input, stored in two places. The [rules design](../desi
 lists each kind.
 
 - **Policy** lives in git, in a config repo: pools, pipelines, gates, experiments and plug-in code.
-  The rules version is the commit hash. A change is a PR that takes the full review gate, and a CI
+  The rules version hashes the commit, the files the loader read, and a pin of each concept's
+  source code. A change is a PR that takes the full review gate, and a CI
   job replays the last few weeks under the new rules and posts what would have changed. boxxy loads
   a version only from a merged commit.
 - **Levers** are facts written through the command API: expedite, rank, defer, pool holds and
@@ -28,6 +30,6 @@ lists each kind.
 ## Why
 
 `decide(state at T, rules version V)` is a pure function, so every decision must name the exact
-rules that made it. A commit hash does that, and a PR makes each policy change diffable and
+rules that made it. The commit and the concept pins do that, and a PR makes each policy change diffable and
 reviewed before it reaches dispatch. Levers are the owner's direct steering, and a steer that waits
 for a review is no steer.

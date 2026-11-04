@@ -5,26 +5,38 @@ defer or expedite, is a concept: a module that registers plug-ins
 ([decision 0004](../../decisions/0004-planning-concepts-are-plug-ins.md)). `buildFrame()` runs the
 plug-ins over the facts and builds one frame. `decide()` reads the frame and the pools and returns
 picks, and never names a concept. A new sort key, such as cheapest measured work first, is one file
-and one rules line.
+and one plug-in reference in the rules.
 
 ## Concepts
 
-A concept is one module. It registers its item kinds, link types, fact kinds and commands, and the
-plug-ins that act on ordering:
+A concept is one module. It registers its item kinds, link types, fact kinds, commands and levers,
+the pool filter fields it defines in `filterFields`, and the plug-ins that act on ordering:
 
 | Plug-in kind | What it does | Example |
 | --- | --- | --- |
 | signal | gives a sort key that a pool can name | rank, age |
 | gate | holds an item off the frontier, with a reason | defer, blocked |
+| pool gate | holds a whole pool, with a reason | pacing ([capacity](./capacity.md#the-pacing-gate)) |
 | waiver | lifts one gate's hold for one item | expedite lifts defer |
 | admission | widens which pools may take an item | `--any-pool` |
-| propagation | carries a value across typed links; written as data | rank down `serves`, expedite back over `blocks` |
 | view | a pure function over the frame | explain, forecast, roadmap |
+
+A signal, a gate or a pool gate can declare a schema for its parameters. The rules name a plug-in
+by a plug-in reference: a bare name, or a one-key map from the name to its parameters, such as
+`{ kind-order: { order: [chore, bug] } }`. The loader checks the parameters against the schema. A pool filter field, such
+as `repo`, gives the value that a pool's `takes` matches.
 
 The concepts boxxy builds first are the ones whose shapes differ most: a pool, defer as a gate with
 expedite as its waiver, and expedite propagation over links. They test the plug-in interface before
 many plug-ins depend on it. boxxy has no fixed list of concepts: it builds a concept when a need
 arrives, and later concepts are additions to the same registry.
+
+### Propagation
+
+`buildFrame()` runs each propagation line in the rules over every open item, ready or not. A line
+names a signal, a link type and a direction, such as rank down `serves` or expedite back over
+`blocks`. `buildFrame()` carries the signal's value across those links, and the signal's `combine` keeps one value where two meet. A
+propagation line is rules data, so the registry has no propagation kind.
 
 ## buildFrame and decide
 
@@ -38,10 +50,11 @@ flowchart LR
   decide --> picks
 ```
 
-- `buildFrame()` runs each gate, waiver, admission, propagation and signal, and records each
-  plug-in's output and each fault in the frame.
+- `buildFrame()` runs each propagation line, and each signal that a line carries, over every open
+  item. It runs each gate, pool gate, waiver, admission and other signal over the ready items. It
+  records each output and each fault in the frame.
 - `decide()` takes the ready items that no gate holds, offers them to each pool by its filter and
-  sort, and returns one pick per free slot.
+  `order`, and returns one pick per free slot.
 - Both are pure. Time, the free slots and every live reading come in as facts or arguments.
 - A plug-in that throws is a fault, and a failed gate holds
   ([dispatch](./dispatch.md#gates-fail-toward-holding)).

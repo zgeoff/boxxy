@@ -97,10 +97,13 @@ fact lands. Two runs agreed within a few milliseconds.
 | Plug-in kind | On a fault |
 | --- | --- |
 | gate | holds the item, with the fault as its reason |
+| pool gate | holds the pool, with the fault as its reason |
 | waiver | lifts nothing |
 | admission | admits nothing |
 | signal | gives no opinion; the pool sorts by its other keys |
-| propagation | carries nothing (proposed) |
+
+A [propagation line](./planning.md#propagation) that throws is a fault too, and carries nothing
+(proposed).
 
 A gate that fails open would let blocked work run, so a failed gate holds. The cost is a stranded
 item, which the [judgement pool](./planning.md#the-judgement-pool) picks up.

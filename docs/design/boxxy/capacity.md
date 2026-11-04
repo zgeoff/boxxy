@@ -32,7 +32,9 @@ review model. One attempt uses several models, so a recipe that named only one w
 its spend.
 
 The router picks a capacity source for each attempt when the claim commits. Attempts are short, so
-no long session has to move between sources, and rotation is a choice made at each claim.
+no long session has to move between sources, and rotation is a choice made at each claim. A recipe
+names a source only as an optional pin, for work that must run on one source. With no pin, the
+router picks.
 
 - **Routing among accounts that serve the same model through the same provider doesn't change
   outcomes.** It never confounds an experiment, so the router is free to balance load across them.
@@ -46,17 +48,19 @@ agent session id, so each request maps to its source (see
 
 ## The pacing gate
 
-The pacing gate is a gate plug-in (see [planning](./planning.md)). It holds lower-priority pools off
-the frontier when a source's burn forecast runs out before the source's next reset.
+The pacing gate is a pool gate: a plug-in that holds a whole pool, never a single item (see
+[planning](./planning.md#concepts)). It holds lower-priority pools off the frontier when a source's
+burn forecast runs out before the source's next reset. Its parameters in the rules name the pools it
+protects.
 
 - **The forecast is per source.** It takes the queued work, times each phase's measured model mix,
   and compares the demand with what is left on each source.
 - **A reserve stays free for the owner's own sessions.** The gate holds dispatch before the source
   reaches the reserve, so the owner never finds a source spent by the fleet.
-- **Expedite lifts it.** Expedite is the gate's waiver, so an owner pull runs even while the gate
-  holds a pool.
-- **A failed gate holds.** If the pacing plug-in throws, the gate holds with the fault as its
-  reason, as every gate does.
+- **Expedite lifts it for one item.** Expedite is the gate's waiver, so an owner pull runs even
+  while the gate holds its pool.
+- **A failed gate holds.** If the pacing plug-in throws, the gate holds the pool with the fault as
+  its reason, as every gate does.
 
 ## Caps per phase and model
 

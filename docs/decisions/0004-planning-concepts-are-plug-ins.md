@@ -1,6 +1,7 @@
 # 0004: Planning concepts are plug-ins
 
 Date: 2026-11-04
+Updated: 2026-11-05
 
 ## Decision
 
@@ -8,7 +9,8 @@ Ordering is built from plug-in concepts. The [planning design](../design/boxxy/p
 each plug-in kind.
 
 - A concept is one module that registers its item kinds, link types, fact kinds, commands, and its
-  plug-ins: signals, gates, waivers, admissions, propagations and views.
+  plug-ins: signals, gates, pool gates, waivers, admissions and views. A propagation line is rules
+  data, and `buildFrame()` runs it.
 - `buildFrame()` runs the plug-ins and builds one frame. `decide()` reads the frame and the pools,
   and never names a concept.
 - A plug-in that throws fails toward holding: a failed gate holds the item, and a failed waiver or

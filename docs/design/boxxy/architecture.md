@@ -23,7 +23,7 @@ reach each other, and the principles every other design doc follows.
               └────────────────────────────────────────────────────────▶ pepys facts
 
  rules repo (git): pools, pipelines, gates, experiments, plug-in versions
-              │ merged commit = rules version
+              │ merged commit + concept pins = rules version
               └──▶ boxxy store loads it; every decision records it
 ```
 
@@ -34,7 +34,7 @@ reach each other, and the principles every other design doc follows.
 | runner | Calls `claimNext`, resolves the recipe, starts the attempt through a worker kind, and settles its outcome. | [dispatch](./dispatch.md) |
 | workers | A worker kind starts an attempt and reconciles it after a crash. atc runs agent sessions; noslop runs reviews; `script` runs deterministic steps. | [core model](./core-model.md#workers) |
 | pepys | The fact log and every read table. A new view is a new query or consumer in pepys, not a table in the boxxy store. | [measurement](./measurement.md) |
-| rules repo | Policy in git. The commit hash is the rules version. | [rules](./rules.md) |
+| rules repo | Policy in git. The rules version hashes the commit, the files the loader read and the concept pins. | [rules](./rules.md#the-rules-version) |
 | telemetry | Agent CLIs send OpenTelemetry logs and metrics. Each request record joins to its attempt. | [measurement](./measurement.md) |
 
 ### The boxxy store and pepys
@@ -74,7 +74,8 @@ session id.
 
 atc's own agent config switches telemetry on per agent, and the spawn request carries no telemetry
 settings. boxxy joins each request record to its attempt by the agent session id: the record's
-`session.id` matches the id that atc reports and boxxy stores on the attempt. boxxy spawns each
+`session.id` matches an id that atc reports and boxxy records with the attempt. An attempt can
+collect more than one agent session, such as when atc respawns its session. boxxy spawns each
 session, so the attempt row gives the item, phase, recipe and capacity source. Prompt and
 response text stay redacted, which is the OTel default. [Measurement](./measurement.md) owns the
 capture details.
@@ -96,7 +97,8 @@ capture details.
 4. **State is derived, never typed.** Nobody sets a status. An item's state comes from its links,
    attempts, asks and outside facts.
 5. **Every decision is reproducible.** `decide(state at T, rules version V)` is a pure function, and
-   everything it reads is a fact. The clock is an input.
+   everything it reads is a fact. Time is an argument: only the apps read the clock, and each module
+   gets the time it needs from its caller.
 6. **One write path per fact.** Each fact has one function that writes it, and every flow that sees
    the fact calls that function. A fact written from only some flows leaves gaps that no query can
    detect ([decision 0013](../../decisions/0013-one-write-path-per-fact.md)).
@@ -121,9 +123,10 @@ A fixed rule can be wrong. These guards stop a wrong rule from blocking work:
 
 - **Hexagonal.** The core (items, `buildFrame()`, `decide()`, settle rules) is pure. Driving
   adapters are the entry points (CLI, MCP, nixie, hooks) on one command port. Driven adapters sit
-  behind ports: the store, the fact sources, the worker kinds, the ask channels and the clock.
-- **Strategies.** Each plug-in kind is a strategy interface: signal, gate, waiver, admission, view, a
-  worker kind's `reconcile`, and a phase's settle rule. A planning concept is a bundle of
+  behind ports: the store, the fact sources, the worker kinds and the ask channels. The clock is not a
+  port: only the apps read it, and modules get time as an argument ([layout](./layout.md#import-pins)).
+- **Strategies.** Each plug-in kind is a strategy interface: signal, gate, pool gate, waiver,
+  admission, view, a worker kind's `reconcile`, and a phase's settle rule. A planning concept is a bundle of
   strategies ([decision 0004](../../decisions/0004-planning-concepts-are-plug-ins.md)).
 - **Champion and challenger.** Rule sets and recipes each have a champion and challengers. Dispatch
   rules run challengers in shadow; recipes run them in live buckets

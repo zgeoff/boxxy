@@ -10,35 +10,8 @@ fails. The close-out has no free-text `learnings` or `intent` field.
 
 The field names and the friction targets are decided. The shape inside each field is proposed.
 
-```ts
-type BuildCloseOut = {
-  result: BuildResult;
-  criteria: CriterionEvidence[];
-  openItems: OpenItem[];
-  friction: Friction[];
-};
-
-type BuildResult =
-  | { kind: "built" }
-  | { kind: "blocked"; reason: string }
-  | { kind: "abandoned"; reason: string };
-
-type CriterionEvidence = {
-  criterion: CriterionId; // one entry in the item's acceptance list
-  evidence: FactId; // the fact that shows the criterion holds
-};
-
-type OpenItem = {
-  kind: ItemKind;
-  title: string;
-  body: string;
-};
-
-type Friction = {
-  target: { kind: "skill" | "rule" | "lint" | "agents-md" | "tool"; name: string };
-  change: string; // what to change in the target
-};
-```
+[`06-closeouts.ts`](./sketches/06-closeouts.ts) holds the shape, `BuildCloseOut`, with four fields:
+`result`, `criteria`, `openItems` and `friction`. The sections below give what each field holds.
 
 ### result
 
