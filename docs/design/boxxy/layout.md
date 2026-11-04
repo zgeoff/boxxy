@@ -13,26 +13,26 @@ repo setup files are in [tech stack](./tech-stack.md).
 ```text
 boxxy/
 ├── apps/                        composition roots: build adapters, pass them to modules
-│   ├── cli/                     @boxxy/cli (published): gunshi commands
+│   ├── cli/                     @boxxy/cli: gunshi commands
 │   └── server/                  @boxxy/server: Elysia + oRPC API, the runner loop
 ├── modules/                     the domain; no I/O, no adapter imports
-│   ├── model/                   items, phases, attempts, facts, links: types + parsers
 │   ├── rules/                   rules loader, plug-in kind registry, rules version hash
 │   ├── planning/                buildFrame, decide, explain + built-in concepts
 │   ├── dispatch/                claimNext over a ClaimStore port; leases, fencing
-│   ├── closeout/                close-out types per phase kind, parse, criteria → evidence
+│   ├── closeout/                close-out parse, criteria → evidence, openItems dedupe
 │   ├── measurement/   (slice 2) experiments, assignment, verdict, metric + cohort plug-ins
 │   ├── capacity/      (slice 2) capacity sources, router, pacing gate
 │   └── train/         (later)   merge train rules
 ├── adapters/                    one package per outside system, named <port>-<system>
 │   ├── store-sqlite/            the only bun:sqlite + Kysely user; migrations
 │   ├── worker-atc/              spawns attempts through atc, reads back their session ids
-│   ├── facts-pepys/             the outbox and the append client for pepys (the consumer lives in pepys)
+│   ├── facts-pepys/             the FactSink append client and the cost reader for pepys (the consumer lives in pepys)
 │   ├── forge-github/            PR and commit links, later the train's merges
 │   └── capacity-<provider>/   (slice 2) one per capacity source
-├── libs/                        boxxy-wide pieces with 2+ package users, named for what they do
+├── libs/                        shared types, schemas and pure helpers; no I/O
+│   ├── model/                   every type 2+ packages share, the fact catalog, schemas, derived state
 │   ├── contract/                the oRPC contract the server serves and the CLI calls
-│   └── content-hash/            hashes for recipes, rules versions, verdicts
+│   └── content-hash/            the ContentHash type and hashes for recipes, rules versions, verdicts
 ├── docs/                        design/ and decisions/
 ├── scripts/                     repo tooling only
 ├── test-utils/                  cross-package test helpers
@@ -46,6 +46,10 @@ describe the later ones.
 
 Each package's folder name is its package name under `@boxxy/`: `modules/planning` is
 `@boxxy/planning`, and `adapters/store-sqlite` is `@boxxy/store-sqlite`.
+
+A lib holds types, schemas and pure helpers that two or more packages use. Every type that two or
+more packages share lives in `@boxxy/model`, in `libs/model`, so the modules, the adapters and
+`@boxxy/contract` all import it, and no two modules import each other in a cycle.
 
 ## Dependency rules
 
@@ -74,14 +78,16 @@ A package's `turbo.json` holds only its tag:
 The `zgeoff/import-zones` rule in `.oxlintrc.json` pins each outside library to the one package that
 owns it:
 
-| Import                 | Allowed only in         |
-| ---------------------- | ----------------------- |
-| `bun:sqlite`, `kysely` | `adapters/store-sqlite` |
-| the atc client         | `adapters/worker-atc`   |
-| GitHub API calls       | `adapters/forge-github` |
+| Import                           | Allowed only in         |
+| -------------------------------- | ----------------------- |
+| `bun:sqlite`, `kysely`           | `adapters/store-sqlite` |
+| `@atcx/contract`, the atc socket | `adapters/worker-atc`   |
+| GitHub API calls                 | `adapters/forge-github` |
+| pepys API calls                  | `adapters/facts-pepys`  |
 
-`modules/**` may not use `node:fs`, `node:child_process`, `fetch`, or the `Date` and `process`
-globals. Time and environment come into a module as arguments, so a test or a replay sets them.
+`modules/**` and `libs/**` may not use `node:fs`, `node:child_process`, `fetch`, or the `Date` and
+`process` globals. Time and environment come into a module or a lib as arguments, so a test or a
+replay sets them.
 
 Packages import each other only through their `index.ts`. The one exception is a package's
 `./test-utils` entry, which other packages' tests import. A deep import, such as
@@ -100,8 +106,8 @@ modules/planning/
 │   ├── decide.ts
 │   ├── explain.ts
 │   ├── propagate.ts         runs the propagation lines, which are rules data
-│   └── concepts/            one subfolder per plug-in kind, one file per plug-in
-│       ├── pools.ts
+│   └── concepts/            one file per concept, named after it
+│       ├── pool.ts
 │       ├── defer.ts
 │       └── expedite.ts
 └── test-utils/              this package's factories, exported as "./test-utils"
@@ -110,8 +116,8 @@ modules/planning/
 - `src/index.ts` only re-exports. Code lives in the files beside it.
 - Each file has one main export, and the file is named after it in kebab case.
 - A test sits beside the file it tests, as `<file>.test.ts`.
-- A package with plug-ins keeps them in one subfolder per plug-in kind, one file per plug-in. A new
-  plug-in is a new file there.
+- A package with concepts keeps them in `src/concepts/`, one file per concept, named after it. A new
+  concept is a new file there.
 - A package's own test factories live in its `test-utils/` folder, which the package exports as
   `./test-utils` for other packages' tests.
 

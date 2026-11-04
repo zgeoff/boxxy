@@ -1,45 +1,30 @@
 // 06-closeouts.ts: the typed outcome of an attempt, per phase kind, and its parser.
 //
-// Package: @boxxy/closeout (modules/closeout). Owning docs: close-outs.md, slice-1.md "The build
-// close-out", decision 0009.
+// Package: @boxxy/closeout (modules/closeout) holds the parsers, `missingCriteria` and
+// `dedupeOpenItems`. Every type here, the build close-out's shape in 00-core.ts, and its zod schema
+// live in @boxxy/model, because dispatch, the contract and the rules' phase kinds use them. Owning docs:
+// close-outs.md, slice-1.md "The build close-out", decision 0009.
 //
 // A close-out holds only what the agent alone knows. Commits, PRs, CI, findings, tokens and time
 // come from facts. There is no free-text `learnings` or `intent` field. An attempt whose close-out
 // doesn't parse fails.
 
-import type { AttemptId, ContentHash, CriterionId, EvidenceRow, FactId, Instant, ItemKindName, ItemView, PoolName } from "./00-core.ts";
+import type { AttemptId, BuildCloseOut, ContentHash, CriterionId, EvidenceRow, FactId, Friction, Instant, ItemId, ItemView, OpenItem, OpenItemLater, PoolName } from "./00-core.ts";
 
 // ── Call site ──────────────────────────────────────────────────────────────────────────────────
 // `attempt.closeOut` parses the agent's JSON with the phase kind's parser, and returns every
 // problem at once, so the agent fixes the close-out and sends it again.
 
-declare const buildParser: CloseOutParser<BuildCloseOut>;
-
 export function exampleCloseOutCallSite(raw: unknown, item: ItemView, attempt: AttemptId, evidence: readonly EvidenceRow[]) {
-  const parsed = buildParser.parse(raw, { item, attempt, evidence });
+  const parsed = buildCloseOutParser.parse(raw, { item, attempt, evidence });
   return parsed.kind === "valid" ? parsed.closeOut.result.kind : parsed.problems.length;
 }
 
-// ── The build close-out (slice 1, verbatim) ────────────────────────────────────────────────────
-
-/** The build close-out. Slice 1. Owner: close-outs.md "The build close-out", slice-1.md. */
-export type BuildCloseOut = {
-  result: { kind: "built" } | { kind: "blocked"; reason: string } | { kind: "abandoned"; reason: string };
-  criteria: { criterion: CriterionId; evidence: FactId }[];
-  openItems: { kind: "core.issue"; title: string; body: string }[];
-  friction: {
-    target: { kind: "skill" | "rule" | "lint" | "agents-md" | "tool"; name: string };
-    change: string;
-  }[];
-};
-
-/** Work the agent found and did not do. Slice 1 files `core.issue` only; later any kind. */
-export type OpenItem = { readonly kind: ItemKindName | "core.issue"; readonly title: string; readonly body: string };
-/** A named change to a named target; becomes a `boxxy.proposal.recorded` fact. */
-export type Friction = BuildCloseOut["friction"][number];
+// The build close-out's shape (`BuildCloseOut`, `OpenItem`, `Friction`) is in 00-core.ts.
 
 // ── Parsing (slice 1) ──────────────────────────────────────────────────────────────────────────
 
+/** `evidence`: the attempt's own evidence rows. A cited id outside them is `foreign-evidence`. */
 export type CloseOutContext = { readonly item: ItemView; readonly attempt: AttemptId; readonly evidence: readonly EvidenceRow[] };
 
 /** One reason a close-out doesn't parse. The parser returns all of them. Slice 1 (build's four). */
@@ -59,10 +44,21 @@ export interface CloseOutParser<Out> {
   parse(raw: unknown, ctx: CloseOutContext): CloseOutParse<Out>;
 }
 
-/** Criteria without evidence; an item is done when this is empty. Slice 1. Owner: close-outs.md "criteria". */
+/** The build close-out's parser. Slice 1. */
+export declare const buildCloseOutParser: CloseOutParser<BuildCloseOut>;
+
+/** Criteria the close-out cites no evidence for; a `built` result with any fails the parse. Slice 1. Owner: close-outs.md "criteria". */
 export declare function missingCriteria(item: ItemView, evidence: readonly EvidenceRow[], cited: BuildCloseOut["criteria"]): readonly CriterionId[];
 
-/** Dedupe for `openItems`: a not-done item of the kind in the same repo whose title is equal after lowercasing and collapsing spaces. Slice 1. */
+/**
+ * Dedupe for `openItems`. An entry matches an open `core.issue` in the same repo whose title is equal
+ * after `normaliseTitle`. A match files nothing, and settle lists the matched item in the attempt's
+ * `boxxy.attempt.settled` fact. Settle reads `open` through the store and passes it in. Slice 1.
+ * Owner: slice-1.md "The build close-out".
+ */
+export declare function dedupeOpenItems(entries: readonly OpenItem[], open: readonly ItemView[]): { readonly file: readonly OpenItem[]; readonly matched: readonly ItemId[] };
+
+/** Lowercases, trims, and collapses each run of whitespace to one space. Slice 1. */
 export declare function normaliseTitle(title: string): string;
 
 // ── Other phase kinds (later; close-outs.md "Other phase kinds") ───────────────────────────────
@@ -71,7 +67,7 @@ export declare function normaliseTitle(title: string): string;
 export type TriageCloseOut = {
   readonly size: SizeBand;
   readonly needsDesign: boolean; // a pipeline step's `when` reads it
-  readonly openItems: readonly OpenItem[];
+  readonly openItems: readonly OpenItemLater[];
   readonly friction: readonly Friction[];
 };
 export type SizeBand = "xs" | "s" | "m" | "l" | "xl";

@@ -1,15 +1,14 @@
 // 02-ports.ts: the driven ports. A module reaches every outside system through one of these, and
 // an adapter in adapters/<port>-<system> implements it.
 //
-// Package: @boxxy/dispatch (modules/dispatch) declares the slice 1 ports; their types live in
-// @boxxy/model. Owning docs: slice-1.md "Ports and adapters", architecture.md "Style",
-// core-model.md "Workers" and "Asks and grants".
+// Package: the port types live in @boxxy/model (libs/model), because dispatch and the adapters both
+// use them. @boxxy/dispatch holds `bindSession`, each port's memory fake and its contract suite.
+// Owning docs: slice-1.md "Ports and adapters", architecture.md "Style", core-model.md "Workers"
+// and "Asks and grants".
 //
-// Slice 1 ports, from slice-1.md: ClaimStore (StoreReader, StoreTx, StoreChange, ApplyResult),
-// WorkerKind (StartOutcome, SessionReading), FactSink and Forge. Against slice-1.md, StoreReader
-// gains `findAttemptByAgentSession` and an `ended` reading carries the agent session id, for the
-// `attempt_sessions` table. Later ports follow.
-// Capacity readers are in 08-capacity.ts and the train's forge in 09-merge-train.ts.
+// Slice 1 ports: ClaimStore (StoreReader, StoreTx, StoreChange, ApplyResult), WorkerKind
+// (StartOutcome, SessionReading), FactSink, Forge, and the CostReader the CLI calls. Later ports
+// follow. Capacity readers are in 08-capacity.ts and the train's forge in 09-merge-train.ts.
 
 import type {
   AgentSessionId,
@@ -30,8 +29,10 @@ import type {
   ItemId,
   ItemState,
   ItemView,
+  ItemWithLevers,
   JsonValue,
   LeaseRow,
+  MaxAttemptsByKind,
   NewFact,
   OutboxFact,
   PhaseName,
@@ -42,6 +43,7 @@ import type {
   RepoName,
   RunnerId,
   RunnerRow,
+  SliceOneFacts,
   StreamName,
   WorkerKindName,
   ActorRef,
@@ -52,51 +54,56 @@ import type {
   DecisionRow,
   EvidenceRow,
 } from "./00-core.ts";
-import { workerKindName } from "./00-core.ts";
+import { factId, workerKindName } from "./00-core.ts";
 import type { Condition } from "./01-registries.ts";
 import type { Snapshot } from "./04-planning.ts";
 
 // ── Call site ──────────────────────────────────────────────────────────────────────────────────
-// The runner starts a claimed attempt after the commit, outside the lock, and records the outcome
-// under the claim's lease generation. A `started` outcome that carries an agent session id binds it
-// to the attempt in the same change. Reconcile binds a new id from a reading the same way.
+// `startClaim` in @boxxy/dispatch starts a claimed attempt after the commit, outside the lock, and
+// records the outcome under the claim's lease generation. A `started` outcome that carries an agent
+// session id binds it to the attempt in the same change. Reconcile binds a new id the same way. The
+// server passes `logFault`, because a module writes no log itself.
 
-export async function exampleStartCallSite(store: ClaimStore, worker: WorkerKind, claim: { attempt: AttemptRow; spawn: SpawnRequest }, now: Instant) {
+export async function exampleStartCallSite(store: ClaimStore, worker: WorkerKind, claim: { attempt: AttemptRow; spawn: SpawnRequest }, now: Instant, newId: NewId, logFault: (fault: SessionFault) => void) {
   const outcome = await worker.start(claim.spawn);
   if (outcome.kind !== "started") return;
   const attempt = claim.attempt;
   await store.exclusive(async (tx) => {
-    const binding = outcome.agentSession === null ? null : await bindSession(tx, attempt, { attempt: attempt.id, agentSession: outcome.agentSession, atcSession: outcome.atcSession, seenAt: now });
+    const bound = outcome.agentSession === null ? null : await bindSession(tx, attempt, { attempt: attempt.id, agentSession: outcome.agentSession, atcSession: outcome.atcSession, seenAt: now }, newId);
+    if (bound?.kind === "fault") logFault(bound);
+    const binding = bound?.kind === "bind" ? bound : null;
     return tx.applyChange({
+      at: now,
       under: { item: attempt.item, phase: attempt.phase, gen: attempt.leaseGen },
       writes: [
         { op: "update", table: "attempts", key: { id: attempt.id }, expect: { state: "starting" }, set: { state: "running", atcSession: outcome.atcSession, startedAt: now } },
         ...(binding ? [binding.write] : []),
       ],
       facts: [
-        { type: "boxxy.attempt.started", entity: `boxxy:attempt:${attempt.id}`, actor: `boxxy:runner:${attempt.runner}`, payload: { atcSession: outcome.atcSession } },
+        { id: factId(`manual:${newId()}`), type: "boxxy.attempt.started", entity: `boxxy:attempt:${attempt.id}`, actor: `boxxy:runner:${attempt.runner}`, payload: { atcSession: outcome.atcSession } },
         ...(binding ? [binding.fact] : []),
       ],
     });
   });
 }
 
+/** An agent session id that already belongs to another attempt. The runner logs it; nothing is written. */
+export type SessionFault = { readonly kind: "fault"; readonly fault: "agent-session-owned"; readonly agentSession: AgentSessionId; readonly attempt: AttemptId; readonly holder: AttemptId };
+
 /**
- * The row and fact that bind an agent session to an attempt, or null when there is nothing to write.
- * It reads inside the same `exclusive` call as the write, so the insert is idempotent: a pair the
- * table holds writes nothing. An agent session that belongs to another attempt writes nothing and
- * goes to the runner log as a fault. Slice 1. Owner: slice-1.md "Agent sessions".
+ * The row and fact that bind an agent session to an attempt, in @boxxy/dispatch. It reads inside the
+ * same `exclusive` call as the write, so the insert is idempotent: a pair the table holds gives
+ * `held` and writes nothing. Slice 1. Owner: slice-1.md "Agent sessions".
  */
-async function bindSession(tx: StoreReader, attempt: AttemptRow, row: AttemptSessionRow): Promise<{ write: RowWrite; fact: AnyNewFact } | null> {
+export async function bindSession(tx: StoreReader, attempt: AttemptRow, row: AttemptSessionRow, newId: NewId): Promise<{ kind: "bind"; write: RowWrite; fact: AnyNewFact } | { kind: "held" } | SessionFault> {
   const holder = await tx.findAttemptByAgentSession(row.agentSession);
-  if (holder === attempt.id) return null;
-  if (holder !== null) {
-    logFault({ kind: "agent-session-owned", agentSession: row.agentSession, attempt: attempt.id, holder });
-    return null;
-  }
+  if (holder === attempt.id) return { kind: "held" };
+  if (holder !== null) return { kind: "fault", fault: "agent-session-owned", agentSession: row.agentSession, attempt: attempt.id, holder };
   return {
+    kind: "bind",
     write: { op: "insert", table: "attempt_sessions", row },
     fact: {
+      id: factId(`manual:${newId()}`),
       type: "boxxy.attempt.session_bound",
       entity: `boxxy:attempt:${attempt.id}`,
       actor: `boxxy:runner:${attempt.runner}`,
@@ -104,9 +111,6 @@ async function bindSession(tx: StoreReader, attempt: AttemptRow, row: AttemptSes
     },
   };
 }
-
-/** The runner log. A fault here writes no row and no fact. */
-declare function logFault(fault: { kind: "agent-session-owned"; agentSession: AgentSessionId; attempt: AttemptId; holder: AttemptId }): void;
 
 // ── ClaimStore (slice 1, verbatim) ─────────────────────────────────────────────────────────────
 
@@ -120,20 +124,39 @@ export interface ClaimStore {
 
 // The rules every ClaimStore keeps, which its contract suite checks: slice-1.md "Store rules".
 
-/** Reads inside one store transaction. Slice 1. Owner: slice-1.md "Ports and adapters". */
+/**
+ * Reads inside one store transaction. A reader that derives item state takes `now` and each kind's
+ * `maxAttempts`, and applies `liveLevers` and `deriveItemState` from @boxxy/model, so the SQLite
+ * store and the fake agree. Slice 1. Owner: slice-1.md "Ports and adapters".
+ */
 export interface StoreReader {
-  readSnapshot(now: Instant): Promise<Snapshot>; // filters levers and derives item state at `now`
-  readItem(id: ItemId): Promise<ItemView | null>;
-  listItems(filter: ItemFilter): Promise<ItemView[]>;
+  readSnapshot(now: Instant, maxAttemptsByKind: MaxAttemptsByKind): Promise<Snapshot>;
+  readItem(id: ItemId, now: Instant, maxAttemptsByKind: MaxAttemptsByKind): Promise<ItemView | null>;
+  readItemDetail(id: ItemId, now: Instant, maxAttemptsByKind: MaxAttemptsByKind): Promise<ItemDetailRows | null>; // `item.get`
+  listItems(filter: ItemFilter, now: Instant, maxAttemptsByKind: MaxAttemptsByKind): Promise<ItemWithLevers[]>; // `item.list`, with live levers
+  listOpenIssues(repo: RepoName, now: Instant, maxAttemptsByKind: MaxAttemptsByKind): Promise<ItemView[]>; // settle's dedupe: open `core.issue` items
   readLastLeaseGen(item: ItemId, phase: PhaseName): Promise<number>; // 0 when the item phase has no lease
+  readAttempt(id: AttemptId): Promise<AttemptRow | null>;
+  listEvidence(attempt: AttemptId): Promise<EvidenceRow[]>; // the close-out parser's context
   listLiveAttempts(): Promise<AttemptRow[]>;
   listSucceededAttemptsWithoutPr(): Promise<AttemptRow[]>;
   findAttemptBySession(session: AtcSessionId): Promise<AttemptRow | null>;
   findAttemptByAgentSession(session: AgentSessionId): Promise<AttemptId | null>; // from `attempt_sessions`
-  listWatchedPullRequests(): Promise<PullRequestRow[]>;
-  readUnsentFacts(limit: number): Promise<OutboxFact[]>;
-  readRunner(id: RunnerId): Promise<RunnerRow | null>;
+  listWatchedPullRequests(): Promise<PullRequestRow[]>; // rows in state `open`
+  listPoolSlots(): Promise<PoolSlotRow[]>; // retired rows included, for `runner.status`
+  readUnsentFacts(limit: number): Promise<OutboxFact[]>; // oldest first
+  readOutboxLag(): Promise<{ readonly unsent: number; readonly oldestUnsentAt: Instant | null }>;
+  readRunner(id: RunnerId): Promise<RunnerRow | null>; // null before the first heartbeat: not paused
 }
+
+/** The rows `item.get` returns beside the item. */
+export type ItemDetailRows = {
+  readonly item: ItemWithLevers;
+  readonly attempts: readonly AttemptRow[];
+  readonly links: readonly LinkRow[];
+  readonly evidence: readonly EvidenceRow[];
+  readonly pullRequests: readonly PullRequestRow[];
+};
 
 /** Writes inside `exclusive`. Slice 1. Owner: slice-1.md "One write path". */
 export interface StoreTx extends StoreReader {
@@ -145,20 +168,29 @@ export interface StoreTx extends StoreReader {
   markPullRequestChecked(ref: PullRequestRef, at: Instant): Promise<void>;
 }
 
-/** Every write of boxxy state: rows and their outbox facts, all or none. Slice 1. */
+/**
+ * Every write of boxxy state: rows and their outbox facts, all or none. The caller makes every
+ * fact id and the time, so the store makes no id and reads no clock. Slice 1.
+ */
 export type StoreChange = {
+  at: Instant; // each outbox row's `at`
   // The leases it writes under: the item phase and its live lease generation, and for a settle the
   // slot lease with the slot `gen` the attempt's take made. A stale generation refuses the change.
+  // A change with no `under` holds no lease: the commands, the PR watch and `evidence.recordPr`.
   under?: { item: ItemId; phase: PhaseName; gen: number; slot?: { pool: PoolName; slot: number; gen: number } };
-  writes: RowWrite[]; // inserts and guarded updates, typed per table in @boxxy/model
+  writes: RowWrite[]; // inserts and guarded updates, typed per table
   facts: AnyNewFact[]; // outbox rows, written in the same transaction as the writes
 };
+// later: `StoreChangeLater` below takes facts from every later catalog.
 
 export type ApplyResult =
   | { kind: "applied"; slot: { pool: PoolName; slot: number; gen: number } | null } // slot: the slot lease it took
   | { kind: "stale-generation" }
   | { kind: "lease-held" }
-  | { kind: "no-free-slot" };
+  | { kind: "no-free-slot" }
+  | { kind: "guard-mismatch"; table: TableName; key: JsonValue }; // an update found no row, or a row its `expect` doesn't match
+// A unique index that refuses an insert throws, and the transaction rolls back: no caller in slice 1
+// writes one without reading first.
 
 export type ItemFilter = { readonly state?: ItemState; readonly repo?: RepoName };
 
@@ -174,6 +206,7 @@ export type Tables = {
   decisions: DecisionRow;
   evidence: EvidenceRow;
   pull_requests: PullRequestRow;
+  runners: RunnerRow; // `runner.pause` and `runner.resume` upsert the row with their fact
 };
 export type TableName = keyof Tables;
 
@@ -189,16 +222,21 @@ export type RowWrite =
         readonly set: Partial<Tables[T]>;
       };
     }[TableName]
-  // The change names only the pool. Inside applyChange the adapter takes the lowest free, unretired
-  // slot, and writes its number and new `gen` into the attempt row and the `boxxy.attempt.claimed` payload.
+  // The change names only the pool. The caller writes `slot: 0` and `slotGen: 0` in the attempt row
+  // and the `boxxy.attempt.claimed` payload. Inside applyChange the adapter takes the lowest free,
+  // unretired slot, and overwrites both in the `attempts` insert whose id is `holder` and in the
+  // claimed fact whose entity is `boxxy:attempt:<holder>`. A lever insert works the same way: the
+  // caller writes `seq: 0`, and the adapter writes the real `seq` into the row and its fact.
   | { readonly op: "take-slot"; readonly pool: PoolName; readonly holder: AttemptId }
   | { readonly op: "release-slot"; readonly pool: PoolName; readonly slot: number; readonly holder: AttemptId };
 
-/** A new fact of any catalog type, with its payload tied to its type. */
-export type AnyNewFact = { [T in keyof AnyFacts & string]: NewFact<T, AnyFacts> }[keyof AnyFacts & string];
+/** A new slice 1 fact, with its payload tied to its type. */
+export type AnyNewFact = { [T in keyof SliceOneFacts & string]: NewFact<T, SliceOneFacts> }[keyof SliceOneFacts & string];
 
-/** Every fact type any slice writes through a StoreChange. Slice 1 writes only `SliceOneFacts`. */
-export type AnyFacts = import("./00-core.ts").SliceOneFacts & import("./05-dispatch.ts").DispatchFacts & import("./07-measurement.ts").MeasurementFacts & import("./08-capacity.ts").CapacityFacts & import("./09-merge-train.ts").TrainFacts;
+/** The change with facts from every later catalog. Each later slice adds its catalog to `AnyFactsLater`. */
+export type StoreChangeLater = Omit<StoreChange, "facts"> & { facts: AnyNewFactLater[] };
+export type AnyNewFactLater = { [T in keyof AnyFactsLater & string]: NewFact<T, AnyFactsLater> }[keyof AnyFactsLater & string];
+export type AnyFactsLater = SliceOneFacts & import("./05-dispatch.ts").DispatchFacts & import("./07-measurement.ts").MeasurementFacts & import("./08-capacity.ts").CapacityFacts & import("./09-merge-train.ts").TrainFacts;
 
 // ── WorkerKind (slice 1; generics and host needs later) ────────────────────────────────────────
 
@@ -236,12 +274,17 @@ export type StartOutcome =
   | { kind: "refused"; reason: string } // atc answered no; nothing runs
   | { kind: "unknown"; reason: string }; // no answer; the attempt goes to reconciling
 
+// `refused`: atc answered with a typed error, such as a failed input check or an unknown agent.
+// `unknown`: no answer, a dropped socket, or a timeout.
+
+// Settle sets the attempt's `endedAt` to the tick's `now`; atc's session list gives no end time.
 export type SessionReading =
   | { kind: "running"; atcSession: AtcSessionId; agentSession: AgentSessionId | null }
-  | { kind: "ended"; atcSession: AtcSessionId; agentSession: AgentSessionId | null; endedAt: Instant }
+  | { kind: "ended"; atcSession: AtcSessionId; agentSession: AgentSessionId | null }
   | { kind: "absent" }; // no session named `boxxy/<attempt_id>` in atc's session list
 // worker-atc maps atc's states: `done` and `exited` read as `ended`; `running`, `needs_you` and any
-// state it doesn't know read as `running`, and an unknown state logs a warning.
+// state it doesn't know read as `running`, and an unknown state logs a warning. When the list holds
+// more than one session with the name, a live one wins, then the newest.
 
 /** The reading shape every worker kind's `reconcile` returns, so the runner's table applies to all. */
 export type WorkerReading = { readonly kind: "running" | "ended" | "absent" };
@@ -253,7 +296,7 @@ export type WorkerReading = { readonly kind: "running" | "ended" | "absent" };
  * per session through atc's own config. Slice 1. Owner: slice-1.md "claimNext" step 6.
  */
 export type SpawnRequest = {
-  readonly cwd: string; // the repo's configured local path
+  readonly cwd: string; // the repo's configured local path; the prompt tells the agent to make its own worktree
   readonly prompt: string; // the rendered template
   readonly agent: string;
   readonly model: string;
@@ -380,6 +423,7 @@ export interface Forge {
 }
 
 export type PullRequestReading = {
+  url: string; // the PR's web URL, for `boxxy.evidence.pr_linked` and the `pr` evidence `ref`
   state: "open" | "closed" | "merged";
   mergedAt: Instant | null;
   mergeCommit: CommitSha | null;

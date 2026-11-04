@@ -1,9 +1,10 @@
 // 01-registries.ts: the plug-in registry, the concept (the one unit that registers plug-ins), the
 // item kind, phase kind, link type and fact kind registries, pipelines as data, and the loaded rules.
 //
-// Package: @boxxy/rules (modules/rules) for the registry, the loader and the rules version;
-// @boxxy/model for the declarations. Owning docs: rules.md, core-model.md "Phases", planning.md
-// "Concepts", slice-1.md "Rules for slice 1".
+// Package: @boxxy/model (libs/model) holds every type here, `Schema`, and the `define…` helpers,
+// because the rules loader, planning and the app all use them. @boxxy/rules (modules/rules) holds
+// `loadRules`, which builds the registry and the rules version. Owning docs: rules.md,
+// core-model.md "Phases", planning.md "Concepts", slice-1.md "Rules for slice 1".
 //
 // Two kinds of thing fill the registry. Pure plug-ins (signals, gates, metrics, phase kinds, ...)
 // come from concepts, compiled in and pinned by the rules version. Adapters (worker kinds, capacity
@@ -19,10 +20,11 @@ import type {
   JsonValue,
   LeverKind,
   LinkTypeName,
+  LoadedRecipe,
+  MaxAttemptsByKind,
   PhaseName,
   PipelineName,
   RecipeName,
-  ResolvedRecipe,
   RulesVersion,
   SenderKind,
   StreamName,
@@ -30,7 +32,7 @@ import type {
 } from "./00-core.ts";
 import { itemKindName, linkTypeName, phaseName, pipelineName, workerKindName } from "./00-core.ts";
 import type { CommandDecl } from "./03-commands.ts";
-import type { Admission, FrameItem, Gate, Pool, PoolGate, PropagationLine, Signal, SignalName, View, Waiver } from "./04-planning.ts";
+import type { Admission, FrameItem, Gate, Pool, PoolGate, PropagationLine, Signal, SignalKey, SignalName, View, Waiver } from "./04-planning.ts";
 import type { AttemptBasis, ResponseLine, SettleRule, StrandRule, TriggerLine } from "./05-dispatch.ts";
 import type { CloseOutParser, TriageCloseOut } from "./06-closeouts.ts";
 import type { CohortKey, ExperimentDecl, Metric } from "./07-measurement.ts";
@@ -38,16 +40,19 @@ import type { CapacityReader, CapacitySourceKind, SourceDecl } from "./08-capaci
 import type { BatchSizeRule, TrainRules } from "./09-merge-train.ts";
 
 // ── Call site ──────────────────────────────────────────────────────────────────────────────────
-// The server loads a merged rules checkout over the compiled-in concepts, and every later call
-// (claimNext, buildFrame, settle) takes the loaded rules as an argument.
+// The server loads a rules checkout over the compiled-in concepts, and every later call (claimNext,
+// buildFrame, settle) takes the loaded rules as an argument. The server imports `concepts` and
+// `conceptPins` from @boxxy/planning, whose build step generates the pins module, and passes both
+// in: @boxxy/rules never imports planning.
 
 declare function loadRules(input: {
   checkout: { path: string; commit: string; files: ReadonlyMap<string, Uint8Array> };
   concepts: readonly Concept[];
+  pins: ReadonlyMap<ConceptName, ConceptPin>; // one per concept, from planning's generated module
 }): LoadResult;
 
-export function exampleLoadCallSite(files: ReadonlyMap<string, Uint8Array>, concepts: readonly Concept[]): RulesVersion | null {
-  const loaded = loadRules({ checkout: { path: "/rules", commit: "3f2a1c0", files }, concepts });
+export function exampleLoadCallSite(files: ReadonlyMap<string, Uint8Array>, concepts: readonly Concept[], conceptPins: ReadonlyMap<ConceptName, ConceptPin>): RulesVersion | null {
+  const loaded = loadRules({ checkout: { path: "/rules", commit: "3f2a1c0", files }, concepts, pins: conceptPins });
   return loaded.kind === "loaded" ? loaded.rules.version : null; // on `rejected`, the previous version stays live
 }
 
@@ -56,7 +61,7 @@ export function exampleLoadCallSite(files: ReadonlyMap<string, Uint8Array>, conc
 /**
  * A parameter or payload schema whose output is `T`. A structural stand-in for Standard Schema v1,
  * which zod 4's `ZodType<T>` implements, so these sketches typecheck with no dependency. The real
- * packages use zod. slice-1.md writes `ZodType`; read it as `Schema<P>`.
+ * packages use zod.
  */
 export type Schema<T> = {
   readonly "~standard": {
@@ -108,6 +113,18 @@ export interface Registered<K extends ParamKindName> {
   readonly kind: K;
   readonly name: string;
   open<R>(use: <P>(plugin: ParamKinds<P>[K]) => R): R;
+}
+
+/**
+ * A plug-in reference after the loader checks it: the plug-in and its parsed parameters, with `P`
+ * hidden as in `Registered`. buildFrame calls `open` to run the plug-in with its own parameters. A
+ * bare name parses `{}`. `key` is `signalKey(name, params)` for a signal and the name for a gate. Slice 1.
+ */
+export interface Resolved<K extends ParamKindName> {
+  readonly kind: K;
+  readonly name: string;
+  readonly key: string;
+  open<R>(use: <P>(plugin: ParamKinds<P>[K], params: P) => R): R;
 }
 
 // One helper per kind. `P` comes from the plug-in's `params` schema at the call, and the result
@@ -234,7 +251,7 @@ export interface ItemKindDecl<F = unknown> {
   freezesWhenDone?: boolean; // core.decision: change course by filing one that `supersedes` it
 }
 
-/** What the rules give an item kind. Slice 1 (`pipeline`, `maxAttempts`, `recipes`). */
+/** What the rules give an item kind. Slice 1. A pipeline step holds the phase's `maxAttempts`. */
 export type KindRules = {
   readonly pipeline: Pipeline; // the kind's default; a project or an item may override it (later)
   readonly recipes: Readonly<Record<PhaseName, RecipeName>>;
@@ -329,8 +346,8 @@ export const exampleTriagePhase: PhaseKind<{ title: string; outcome: string }, T
   settle: {
     settle: ({ closeOut }) =>
       closeOut?.kind === "valid"
-        ? { state: "succeeded", failure: null, openItems: closeOut.closeOut.openItems, criteria: [], facts: [] }
-        : { state: "failed", failure: "closeout-missing", openItems: [], criteria: [], facts: [] },
+        ? { state: "succeeded", failure: null, openItems: [], criteria: [], friction: closeOut.closeOut.friction, frictionDropped: 0 }
+        : { state: "failed", failure: "closeout-missing", openItems: [], criteria: [], friction: [], frictionDropped: 0 },
   },
 };
 
@@ -418,8 +435,10 @@ export type RulesFileLater = RulesFile & {
 };
 
 /**
- * What every pure call takes. buildFrame gets its plug-ins from `registry`, which the loader builds
- * from the pinned concepts, so no call takes a registry beside the rules. Slice 1.
+ * What every pure call takes. buildFrame gets its plug-ins from `signals`, `gates` and `registry`,
+ * which the loader builds from the pinned concepts, so no call takes a registry beside the rules.
+ * Every gate and waiver of a pinned concept runs: `rules.yaml` lists no gates, and the loader checks
+ * each gate's parameters as `{}`. Slice 1.
  *
  * Reload: the server checks the checkout's commit each tick. A new commit loads into a new
  * LoadedRules; on `loaded` the next claim uses it, and on `rejected` the previous version stays live
@@ -430,10 +449,13 @@ export type LoadedRules = {
   readonly version: RulesVersion;
   readonly commit: string;
   readonly registry: Registry;
+  readonly signals: ReadonlyMap<SignalKey, Resolved<"signal">>; // every key a pool's `order` or a propagation line names
+  readonly gates: readonly Resolved<"gate">[];
   readonly kinds: ReadonlyMap<ItemKindName, KindRules>;
+  readonly maxAttemptsByKind: MaxAttemptsByKind; // from `kinds`, for the store readers
   readonly pools: readonly Pool[]; // in declared order; each pool's `order` already starts with `lead`
   readonly propagation: readonly PropagationLine[];
-  readonly recipes: ReadonlyMap<RecipeName, ResolvedRecipe>;
+  readonly recipes: ReadonlyMap<RecipeName, LoadedRecipe>;
 };
 // later: `LoadedRulesLater` below adds `triggers`, `responses` and `strand` (after slice 2),
 // `experiments` and `sources` (slice 2), and `train` (with the train).
@@ -451,6 +473,7 @@ export type LoadedRulesLater = LoadedRules & {
 export type LoadRejection = { readonly file: string; readonly path: string; readonly reason: LoadRejectionReason };
 
 export type LoadRejectionReason =
+  | { readonly kind: "invalid"; readonly message: string } // the YAML doesn't parse, or the file fails the `RulesFile` schema
   | { readonly kind: "unknown-concept"; readonly ref: string }
   | { readonly kind: "unknown-signal"; readonly signal: string } // in a pool's `order` or in `lead`
   | { readonly kind: "bad-plugin-params"; readonly pluginKind: ParamKindName; readonly name: string; readonly message: string } // the plug-in's `params` refused the plug-in reference's parameters
@@ -458,7 +481,7 @@ export type LoadRejectionReason =
   | { readonly kind: "signal-without-combine"; readonly signal: string } // a propagation line's signal
   | { readonly kind: "missing-recipe"; readonly itemKind: string; readonly phase: string } // a pipeline phase with no recipe
   | { readonly kind: "missing-prompt"; readonly path: string }
-  | { readonly kind: "uncommitted-changes" }
+  | { readonly kind: "uncommitted-changes" } // the server checks git and returns this; loadRules never does
   | { readonly kind: "unknown-plugin"; readonly pluginKind: PluginKindName; readonly name: string } // later
   | { readonly kind: "experiment"; readonly message: string }; // later: the experiment loader's own checks
 

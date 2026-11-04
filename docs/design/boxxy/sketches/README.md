@@ -33,6 +33,9 @@ Each file has three parts, in this order:
 
 The files have no implementations.
 
+A file groups its interfaces by topic. Its header names the package that holds each part.
+Every type that two or more packages share lives in `@boxxy/model`, whichever file declares it.
+
 A plug-in kind that takes parameters is generic over them, such as `Gate<P>`. Its `params` field is
 a `Schema<P>`, and its methods receive a `P`. Write a plug-in through its `define…` helper, such
 as `defineGate`. The helper checks the plug-in against `P`, then returns it with a type that drops
@@ -44,13 +47,13 @@ Read the files in this order.
 
 | File | Slice 1 | Later slices |
 | --- | --- | --- |
-| `00-core.ts` | Ids, `Instant`, actors, store rows, derived item state, recipes, the rules version, facts | the `…Later` fields |
+| `00-core.ts` | Ids, `Instant`, actors, store rows, derived item state, recipes, the rules version, the build close-out's shape, facts | the `…Later` fields |
 | `01-registries.ts` | `Schema`, `define…` helpers, `Concept`, item kinds, pipelines, the `rules.yaml` shape, the loader | concept parameters, sign-off gates |
 | `02-ports.ts` | `ClaimStore`, `WorkerKind`, `FactSink`, `Forge`, `CostReader` | target providers, asks, grants |
 | `03-commands.ts` | Every command, with its input, output and callers | the later command fields |
 | `04-planning.ts` | `buildFrame`, `decide`, pools, signals, gates, waivers, propagation lines | admissions, pool gates, views, `explain` |
 | `05-dispatch.ts` | `claimNext`, reconcile, settle | responses to mid-flight changes, triggers |
-| `06-closeouts.ts` | The build close-out and its parser | the other close-outs |
+| `06-closeouts.ts` | The build close-out's parser, the criteria check and the dedupe | the other close-outs |
 | `07-measurement.ts` | none | experiments, metrics, verdicts |
 | `08-capacity.ts` | none | capacity sources, the router, the pacing gate |
 | `09-merge-train.ts` | none | the merge gate and the merge train |

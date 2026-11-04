@@ -1,11 +1,14 @@
 // 04-planning.ts: the planning core. buildFrame runs the plug-ins over the snapshot; decide reads
 // the frame and the pools and returns picks; explain reruns both from a decision's recorded inputs.
 //
-// Package: @boxxy/planning (modules/planning). Owning docs: planning.md, slice-1.md "Planning:
-// buildFrame and decide", dispatch.md "Gates fail toward holding", decision 0004.
+// Package: @boxxy/planning (modules/planning) holds `buildFrame`, `decide`, the concepts and the
+// build step that generates the concept pins module. Every type here, and `signalKey`, live in
+// @boxxy/model, because the store, the rules loader and planning share them. Owning docs:
+// planning.md, slice-1.md "Planning: buildFrame and decide", dispatch.md "Gates fail toward
+// holding", decision 0004.
 //
-// Slice 1 types, from slice-1.md: Snapshot, buildFrame, Frame, decide, Decision, Pick,
-// PlanContext, Signal, Gate, Waiver. Every plug-in kind with parameters is generic over them:
+// Slice 1 types: Snapshot, Frame, Decision, Pick, Pool, PlanContext, Signal, Gate, Waiver. Every
+// plug-in kind with parameters is generic over them:
 // `params` is a `Schema<P>`, and the plug-in's call takes `P`. Gate takes `params` like Signal, so
 // one loader path checks both. decide never names a concept.
 
@@ -16,6 +19,7 @@ import type {
   Instant,
   ItemId,
   ItemView,
+  JsonValue,
   LeverRow,
   LinkRow,
   LinkTypeName,
@@ -48,6 +52,12 @@ export type ViewName = string;
 /** A signal's name plus its parameters' content hash, so two pools can use one signal with different parameters. */
 export type SignalKey = `${SignalName}#${string}`;
 
+/**
+ * `name#` plus the content hash of the parsed parameters' canonical JSON. A bare name hashes `{}`,
+ * so `lead: [expedite]` and a propagation line's `value: expedite` give one key. In @boxxy/model.
+ */
+export declare function signalKey(name: SignalName, params: JsonValue): SignalKey;
+
 // ── The snapshot, the frame and the decision (slice 1, verbatim) ───────────────────────────────
 
 /** What claimNext reads inside the transaction. Slice 1. Owner: slice-1.md "Planning". */
@@ -69,6 +79,7 @@ export declare function buildFrame(input: { snapshot: Snapshot; rules: LoadedRul
 /** What buildFrame returns. Slice 1. */
 export type Frame = {
   candidates: FrameItem[]; // open items in state `ready`; decide picks only these
+  fields: Map<ItemId, Readonly<Record<string, readonly string[]>>>; // each candidate's filter-field values, from the concepts' `filterFields`; decide matches `takes` against them
   values: Map<SignalKey, Map<ItemId, number>>; // after propagation; SignalKey = name + parameters
   holds: Map<ItemId, Hold[]>; // gate holds still in force after waivers
   lifted: Map<ItemId, Lift[]>; // holds a waiver lifted, with the waiver's name

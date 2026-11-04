@@ -59,7 +59,7 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 
 | File                                                                              | What it does                                                                                                      | Copied from    |
 | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------- |
-| `package.json` (root)                                                             | the workspace list (`apps/*`, `modules/*`, `adapters/*`, `libs/*`), the catalog, tooling, scripts                 | wringer        |
+| `package.json` (root)                                                             | the workspace list (`apps/*`, `modules/*`, `adapters/*`, `libs/*`, `test-utils`, `e2e`), the catalog, tooling     | wringer        |
 | `.bun-version`                                                                    | the Bun version CI and `packageManager` use                                                                       | wringer        |
 | `bunfig.toml`                                                                     | isolated linker, exact saves, a 7-day minimum release age with first-party excludes, the test preload             | wringer        |
 | `tsconfig.base.json`, `tsconfig.json`                                             | the shared compiler options, and the root files' typecheck                                                        | wringer        |
@@ -103,7 +103,7 @@ downstream repo setup runbook gives the one-time steps for a new repo.
 ## Release
 
 boxxy releases through release-please and publishes through npm trusted publishing, both as wringer
-does.
+does. One workflow, `main.yml`, publishes. `npm-packages.yml` only rehearses the publish on a PR.
 
 1. A releasable commit lands on `main`. The shared release-please job opens or updates one release
    PR with the version bumps and changelogs.
@@ -115,7 +115,8 @@ does.
    support, so npm publishes.
 
 Publish runs queue and never cancel, so a release never stops halfway. A package that is new to npm
-gets one local publish through `scripts/first-publish.sh`, then a trusted publisher on npmjs.com.
+gets one local publish through `scripts/first-publish.sh`, then a trusted publisher on npmjs.com
+that names `main.yml`.
 The `npm-publish` skill covers that flow.
 
 ## tsconfig
@@ -168,7 +169,7 @@ files add emitted declarations, as `@wringer/core` does:
     "build": "rm -rf dist && tsrs -p tsconfig.build.json",
     "typecheck": "tsrs --noEmit"
   },
-  "engines": { "bun": ">=1.3" }
+  "engines": { "bun": ">=1.3", "node": ">=24" }
 }
 ```
 
@@ -177,9 +178,11 @@ release-please writes. It also sets `description`, `homepage` and `bugs`, as wri
 
 ## Every package publishes
 
-Every workspace package publishes as `@boxxy/<folder>`, as wringer publishes each of its packages.
-A published package ships source, so it can't depend on a private one; publishing all of them keeps
-the CLI's dependencies installable without a bundler. The oRPC contract lives in `libs/contract`
+Every package under `apps/`, `modules/`, `adapters/` and `libs/` publishes as `@boxxy/<folder>`, as
+wringer publishes each of its packages. A published package ships source, so it can't depend on a
+private one; publishing all of them keeps the CLI's dependencies installable without a bundler.
+`test-utils/` and `e2e/` are private workspace packages, which only tests import, and never
+publish. The oRPC contract lives in `libs/contract`
 (`@boxxy/contract`), as nixie keeps its contract.
 
 ## Open questions

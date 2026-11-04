@@ -1,23 +1,24 @@
 // 00-core.ts: ids, time, actors, the core records, recipes, the rules version, the fact envelope
 // and the slice 1 fact catalog.
 //
-// Package: @boxxy/model (modules/model), with the hashes in @boxxy/content-hash (libs/content-hash).
-// Owning docs: core-model.md, slice-1.md "The store schema" and "Facts and the outbox".
+// Package: @boxxy/model (libs/model). `ContentHash` and `hashTree` are in @boxxy/content-hash
+// (libs/content-hash), and model re-exports `ContentHash`. Owning docs: core-model.md, slice-1.md
+// "The store schema" and "Facts and the outbox".
 //
 // Every type a store row, a fact or a port carries starts here. Rows use camelCase for the slice 1
-// columns; the store adapter maps them to snake_case.
-
-import type { BuildCloseOut, Friction } from "./06-closeouts.ts";
+// columns; the store adapter maps them to snake_case. The build close-out's shape sits here too,
+// because a fact and a row carry it; its parser is in @boxxy/closeout (06-closeouts.ts).
 
 // ── Call site ──────────────────────────────────────────────────────────────────────────────────
 // Settle builds its fact from the catalog, so a wrong payload fails the typecheck, and the store
 // writes it to the outbox in the same transaction as the attempt row.
 
 export const exampleSettledFact: NewFact<"boxxy.attempt.settled"> = {
+  id: factId("manual:0192f0c4-7b1f-7c22-8e01-6a4b2d9f1c30"),
   type: "boxxy.attempt.settled",
   entity: "boxxy:attempt:0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77",
   actor: "boxxy:runner:runner-1",
-  payload: { state: "failed", failure: "session-lost", endedAt: instant(1_762_300_000_000), criteria: [] },
+  payload: { state: "failed", failure: "session-lost", endedAt: instant(1_762_300_000_000), criteria: [], matched: [], frictionDropped: 0 },
 };
 
 // ── Brands ─────────────────────────────────────────────────────────────────────────────────────
@@ -31,6 +32,7 @@ export type Brand<T, B extends string> = T & { readonly [brand]: B };
  * declare them so the examples need no casts.
  */
 export declare function instant(ms: number): Instant;
+export declare function factId(id: `manual:${string}`): FactId;
 export declare function phaseName(name: string): PhaseName;
 export declare function pipelineName(name: string): PipelineName;
 export declare function itemKindName(name: string): ItemKindName;
@@ -50,9 +52,9 @@ export type ItemId = Brand<string, "ItemId">;
 export type AttemptId = Brand<string, "AttemptId">;
 export type DecisionId = Brand<string, "DecisionId">;
 /**
- * `manual:<uuidv7>`: the outbox row's UUIDv7, made when the row is written, with the `manual:`
- * prefix pepys's envelope parser takes for a fact a producer sends. pepys drops a fact id it has
- * applied before.
+ * `manual:<uuidv7>`: the caller that builds the StoreChange makes it as `manual:${newId()}`, with the
+ * `manual:` prefix pepys's envelope parser takes for a fact a producer sends. A resent fact keeps
+ * its id, so a consumer drops the second copy by it.
  */
 export type FactId = Brand<`manual:${string}`, "FactId">;
 export type RunnerId = Brand<string, "RunnerId">;
@@ -94,7 +96,7 @@ export type Minutes = number;
 
 // ── Content addressing (slice 1, slice-1.md "Rules for slice 1") ───────────────────────────────
 
-/** SHA-256 hex of canonical JSON, from @boxxy/content-hash. */
+/** SHA-256 hex of canonical JSON. Declared in @boxxy/content-hash, with its own brand; model re-exports it. */
 export type ContentHash = Brand<string, "ContentHash">;
 export type RecipeHash = Brand<ContentHash, "RecipeHash">;
 export type SnapshotHash = Brand<ContentHash, "SnapshotHash">;
@@ -113,6 +115,7 @@ export type RulesVersion = Brand<ContentHash, "RulesVersion">;
 export type ConceptPin = { readonly ref: `${string}@${number}`; readonly sourceHash: ContentHash };
 
 /**
+ * In @boxxy/content-hash, which reads no files: the caller walks the folder and passes the entries.
  * How a folder is hashed (the plugin folder, a concept's files): walk it recursively, take regular
  * files only and follow no links, write each path relative to the root with `/`, sort by those
  * paths' UTF-8 bytes, and hash the canonical JSON list of `{ path, sha256, executable }`. Slice 1.
@@ -199,6 +202,18 @@ export type ItemRows = {
 /** Derived item state: pure, in @boxxy/model. Slice 1. Owner: slice-1.md "Derived item state". */
 export declare function deriveItemState(item: ItemRow, rows: ItemRows, now: Instant): DerivedState;
 
+/**
+ * The live levers at `now`: not undone by a later lever and not past `expiresAt`. Pure, in
+ * @boxxy/model, so the SQLite store, the memory fake and planning's tests apply one rule. Slice 1.
+ */
+export declare function liveLevers(levers: readonly LeverRow[], now: Instant): LeverRow[];
+
+/** Each kind's `maxAttempts` per phase, from `LoadedRules`; the store readers take it to derive state. */
+export type MaxAttemptsByKind = ReadonlyMap<ItemKindName, ReadonlyMap<PhaseName, number>>;
+
+/** An item with its live levers, as `item.list` and `boxxy item show` print it. Slice 1. */
+export type ItemWithLevers = ItemView & { readonly levers: readonly LeverRow[] };
+
 // ── Links (slice 1: `blocks` only; core-model.md "Links") ──────────────────────────────────────
 
 export type LinkRow = {
@@ -258,7 +273,7 @@ export type AttemptRow = {
   readonly state: AttemptState;
   readonly failure: KnownFailure | string | null;
   readonly atcSession: AtcSessionId | null; // the current atc session, which reconcile reads
-  readonly closeOut: BuildCloseOut | null; // the latest valid close-out; later phase kinds widen it to `CloseOut`
+  readonly closeOut: BuildCloseOut | null; // the latest valid close-out; later phase kinds widen it
   readonly claimedAt: Instant;
   readonly startedAt: Instant | null;
   readonly endedAt: Instant | null;
@@ -388,12 +403,44 @@ export type RecipeMaterial = {
 };
 // later: `RecipeMaterialLater` below adds `arm`, the experiment arm. Slice 2.
 
+/** A recipe as the loader resolves it. The loader can't see the plugin folder, so claimNext adds its hash. */
+export type LoadedRecipe = Omit<RecipeMaterial, "pluginFolderHash">;
+
+/** A recipe with its hash, as claimNext computes it. */
 export type ResolvedRecipe = RecipeMaterial & { readonly hash: RecipeHash };
+
+// ── The build close-out's shape (slice 1, close-outs.md "The build close-out") ─────────────────
+// The shape and its zod schema live here; the parser, the criteria check and the dedupe are in
+// @boxxy/closeout (06-closeouts.ts).
+
+/**
+ * A build close-out after parsing. The agent may send a friction entry with no target: the parser
+ * drops it and counts it in `frictionDropped` (decision 0009). A target kind outside the list fails
+ * the parse. Slice 1. Owner: slice-1.md "The build close-out".
+ */
+export type BuildCloseOut = {
+  readonly result: { readonly kind: "built" } | { readonly kind: "blocked"; readonly reason: string } | { readonly kind: "abandoned"; readonly reason: string };
+  readonly criteria: readonly { readonly criterion: CriterionId; readonly evidence: FactId }[];
+  readonly openItems: readonly OpenItem[];
+  readonly friction: readonly Friction[];
+  readonly frictionDropped: number;
+};
+
+/** Work the agent found and did not do. Slice 1 files `core.issue` only. */
+export type OpenItem = { readonly kind: "core.issue"; readonly title: string; readonly body: string };
+// later: `OpenItemLater` below takes any item kind.
+export type OpenItemLater = { readonly kind: ItemKindName; readonly title: string; readonly body: string };
+
+/** A named change to a named target; becomes a `boxxy.proposal.recorded` fact. */
+export type Friction = {
+  readonly target: { readonly kind: "skill" | "rule" | "lint" | "agents-md" | "tool"; readonly name: string };
+  readonly change: string;
+};
 
 // ── The fact envelope (slice 1, slice-1.md "Facts and the outbox") ─────────────────────────────
 // @boxxy/model declares its own copy of pepys's envelope and depends on no pepys package, so boxxy
-// builds and publishes apart from pepys. The FactSink contract suite, run against pepys's route,
-// checks that the two shapes agree.
+// builds and publishes apart from pepys. The FactSink contract suite runs against a mock of pepys's
+// append route; the S1-11 live check is the first run against pepys itself.
 
 export type EntityRef =
   | `boxxy:item:${string}`
@@ -415,8 +462,12 @@ export type FactEnvelope<M extends FactMap = SliceOneFacts, T extends keyof M & 
   readonly payload: M[T] & { readonly storeVersion: number };
 };
 
-/** A fact as a change carries it, before the outbox gives it an id, a time and a store version. */
+/**
+ * A fact as a change carries it. The caller makes its id; the store takes the time from the
+ * change's `at` and the store version from the outbox row.
+ */
 export type NewFact<T extends keyof M & string, M extends FactMap = SliceOneFacts> = {
+  readonly id: FactId;
   readonly type: T;
   readonly entity: EntityRef;
   readonly actor: ActorRef;
@@ -468,6 +519,8 @@ export type SliceOneFacts = {
     readonly failure: string | null;
     readonly endedAt: Instant;
     readonly criteria: readonly { readonly criterion: CriterionId; readonly evidence: readonly FactId[] }[]; // copied into the item's acceptance
+    readonly matched: readonly ItemId[]; // open items whose `openItems` entry matched them; settle filed nothing for them
+    readonly frictionDropped: number; // friction entries with no target, from the close-out
   }; // settle
   "boxxy.evidence.recorded": Pick<EvidenceRow, "kind" | "ref" | "observed">; // `attempt.evidence`
   "boxxy.evidence.pr_linked": { readonly repo: RepoName; readonly number: number; readonly url: string }; // `evidence.recordPr`, PR watch

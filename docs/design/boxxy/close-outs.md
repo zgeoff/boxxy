@@ -27,9 +27,11 @@ part-done states, such as "shipped, one step owed", from which criteria still la
 
 ### openItems
 
-Each open item is work the agent found and did not do. boxxy files it through dedupe: when an open
-item matches an item already filed, boxxy links the existing item rather than filing a second one.
-Each open item links `found-in` to the attempt that reported it.
+Each open item is work the agent found and did not do. boxxy files it through dedupe. When an open
+item matches an open item already filed, boxxy files nothing and links the existing item to the
+attempt: in slice 1, the attempt's settle fact lists it. An item filed from an open item records
+the attempt that reported it as `found-in`
+([slice 1](./slice-1.md#the-build-close-out)).
 
 ### friction
 

@@ -2,7 +2,8 @@
 // taken from atc's sender kind.
 //
 // Package: @boxxy/contract (libs/contract) holds the oRPC contract the server serves and the CLI
-// calls; the commands' logic is in @boxxy/dispatch. Owning docs: slice-1.md "Commands and API",
+// calls. It imports its row types from @boxxy/model, a lib too. The commands' logic is in
+// @boxxy/dispatch. Owning docs: slice-1.md "Commands and API",
 // core-model.md "Entry points", rules.md "Levers as facts".
 //
 // The map below is the contract's shape: one entry per procedure, with its input and output. The
@@ -25,6 +26,7 @@ import type {
   ItemId,
   ItemState,
   ItemView,
+  ItemWithLevers,
   LeverKind,
   LinkRow,
   LinkTypeName,
@@ -41,7 +43,8 @@ import type {
 } from "./00-core.ts";
 import { z } from "./01-registries.ts";
 import type { Schema } from "./01-registries.ts";
-import type { AskAnswer } from "./02-ports.ts";
+import type { LoadRejection } from "./01-registries.ts";
+import type { AskAnswer, ItemDetailRows } from "./02-ports.ts";
 import type { Explanation } from "./04-planning.ts";
 import type { CloseOutProblem } from "./06-closeouts.ts";
 import type { Verdict } from "./07-measurement.ts";
@@ -60,14 +63,8 @@ export type Client = { readonly [K in keyof Procedures]: (input: Procedures[K]["
 
 // ── The procedures ─────────────────────────────────────────────────────────────────────────────
 
-/** An item with everything `boxxy item show` prints. */
-export type ItemDetail = {
-  readonly item: ItemView;
-  readonly attempts: readonly AttemptRow[];
-  readonly links: readonly LinkRow[];
-  readonly evidence: readonly EvidenceRow[];
-  readonly pullRequests: readonly PullRequestRow[];
-};
+/** An item with its live levers and everything else `boxxy item show` prints. */
+export type ItemDetail = ItemDetailRows;
 
 /** The session an `attempt.*` or hook call comes from. Slice 1 reads `ATC_SESSION_ID`; later the kernel-bound sender. */
 export type FromSession = { readonly session: AtcSessionId };
@@ -85,7 +82,7 @@ export type Procedures = {
   "item.edit": { input: { item: ItemId; title?: string; outcome?: string; acceptance?: string[] }; output: { item: ItemId } };
   // later: input `pipeline?: PipelineName`, a per-item pipeline override. After slice 2.
   "item.get": { input: { item: ItemId }; output: ItemDetail | null };
-  "item.list": { input: { state?: ItemState; repo?: RepoName }; output: ItemView[] };
+  "item.list": { input: { state?: ItemState; repo?: RepoName }; output: ItemWithLevers[] };
   "item.close": { input: { item: ItemId; reason: string }; output: { item: ItemId } };
   "item.retry": { input: { item: ItemId }; output: { lever: number } };
   // Refuses a link of a blocking type that closes a cycle (planning.md: boxxy refuses cycles); slice 1 checks `blocks`.
@@ -99,7 +96,7 @@ export type Procedures = {
   "runner.status": { input: Record<string, never>; output: RunnerStatus };
   "runner.pause": { input: { runner?: RunnerId }; output: { paused: true } };
   "runner.resume": { input: { runner?: RunnerId }; output: { paused: false } };
-  "attempt.current": { input: FromSession; output: { attempt: AttemptRow; item: ItemView } | null };
+  "attempt.current": { input: FromSession; output: { attempt: AttemptRow; item: ItemView } | { refused: "no-live-attempt" } };
   "attempt.evidence": {
     input: FromSession & { kind: "test" | "ci-run" | "live-check"; ref: string; observed?: string };
     output: { factId: FactId } | { refused: "no-live-attempt" };
@@ -108,6 +105,7 @@ export type Procedures = {
     input: FromSession & { closeOut: unknown }; // parsed by the phase kind's close-out parser
     output: { kind: "recorded"; factId: FactId } | { kind: "rejected"; problems: CloseOutProblem[] } | { kind: "refused"; reason: "no-live-attempt" };
   };
+  // A PR already linked to this attempt answers `linked` again and writes nothing.
   "evidence.recordPr": { input: FromSession & { url: string }; output: { linked: PullRequestRef } | { linked: null; reason: "no-attempt" | "not-a-pr-url" } };
 
   // later
@@ -136,8 +134,12 @@ export type RunnerStatus = {
   readonly pools: readonly { readonly name: PoolName; readonly slots: number; readonly held: number }[];
   readonly running: readonly AttemptRow[];
   readonly paused: boolean;
-  readonly outbox: { readonly unsent: number; readonly oldestUnsentAge: Minutes | null };
-  readonly rules: { readonly version: string; readonly commit: string; readonly lastRejected: { readonly commit: string; readonly reasons: number } | null };
+  readonly outbox: {
+    readonly unsent: number;
+    readonly lag: Minutes | null; // the oldest unsent fact's age; null when every fact is sent
+    readonly lastError: { readonly kind: "unknown" | "rejected"; readonly message: string; readonly at: Instant } | null; // the latest failed send; a `rejected` one stops the sender
+  };
+  readonly rules: { readonly version: string; readonly commit: string; readonly lastRejected: { readonly commit: string; readonly rejections: readonly LoadRejection[] } | null };
 };
 
 // ── Who may call what (core-model.md "Entry points") ───────────────────────────────────────────

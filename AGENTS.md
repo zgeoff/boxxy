@@ -15,7 +15,7 @@ The mistakes that cost most here:
 
 - [Before you start](#before-you-start): read the design doc for your task, and load the skills
   your work needs.
-- [Layout](#layout): follow the layout doc. Code under `modules/` does no I/O.
+- [Layout](#layout): follow the layout doc. Code under `modules/` and `libs/` does no I/O.
 - [Docs and decisions](#docs-and-decisions): a design doc changes in the same PR as the code.
 - [Checks](#checks): the pre-push hook runs the checks; run it before you push.
 - [Commits and pull requests](#commits-and-pull-requests): Conventional Commits, one PR per
@@ -52,14 +52,15 @@ Read it before you add a package, a file or an import. The workspace has four ki
 - `modules/`: the domain logic. A module reads no files, starts no processes, makes no network
   calls, and reads neither the clock nor the environment. It gets time and settings as arguments.
 - `adapters/`: one package for each outside system, such as the store or GitHub.
-- `libs/`: shared pieces that two or more packages use.
+- `libs/`: types, schemas and pure helpers that two or more packages use, such as `@boxxy/model`.
+  A lib does no I/O, the same as a module.
 
 Two checks enforce the layout in CI:
 
 - `turbo boundaries` fails on an import that the package's `turbo.json` tag doesn't allow.
 - The `zgeoff/import-zones` lint rule lets only one named package import each outside library, and
-  fails on I/O in `modules/`. The layout doc lists which package owns each library. To add a new
-  outside library, add it to that list in the same PR.
+  fails on I/O in `modules/` and `libs/`. The layout doc lists which package owns each library. To
+  add a new outside library, add it to that list in the same PR.
 
 When a check fails, move the code to the package the layout names. Never add an exception to a rule.
 

@@ -1,7 +1,9 @@
 // 05-dispatch.ts: claimNext, the runner tick, reconcile, settle as a strategy per phase kind, the
 // mid-flight response rule, triggers, and the stranded-item path to judgement.
 //
-// Package: @boxxy/dispatch (modules/dispatch); the runner loop that calls it is in @boxxy/server.
+// Package: @boxxy/dispatch (modules/dispatch) holds `claimNext`, `startClaim`, `settleAttempt`,
+// the reconcile table and the settle rules; the runner loop that calls them is in @boxxy/server.
+// The types live in @boxxy/model, because the rules' phase kinds and the server use them too.
 // Owning docs: dispatch.md, slice-1.md "claimNext" and "The runner loop", core-model.md "Changes
 // while an attempt runs", planning.md "The judgement pool".
 
@@ -21,25 +23,27 @@ import type {
   Minutes,
   NewFact,
   ObservationBoundary,
+  OpenItem,
   PhaseName,
   PoolName,
   RecipeHash,
+  RecipeName,
+  RepoName,
   RunnerId,
 } from "./00-core.ts";
 import { phaseName } from "./00-core.ts";
 import type { Condition, LoadedRules } from "./01-registries.ts";
-import type { ClaimStore, NewId, SessionReading, SpawnRequest, StoreChange } from "./02-ports.ts";
-import type { CloseOutParse, OpenItem } from "./06-closeouts.ts";
+import type { ApplyResult, ClaimStore, NewId, SessionFault, SessionReading, SpawnRequest, StoreChange, WorkerKind } from "./02-ports.ts";
+import type { CloseOutParse } from "./06-closeouts.ts";
 
 // ── Call site ──────────────────────────────────────────────────────────────────────────────────
 // One runner tick in @boxxy/server: heartbeat, claim until none, start each, reconcile, send facts.
+// The server builds `spawnContext` from its configuration and the rules checkout.
 
-declare function startClaim(claim: Claim): Promise<void>;
-
-export async function exampleTickCallSite(store: ClaimStore, rules: LoadedRules, runner: RunnerId, now: Instant, newId: NewId) {
+export async function exampleTickCallSite(store: ClaimStore, worker: WorkerKind, rules: LoadedRules, spawnContext: SpawnContext, runner: RunnerId, now: Instant, newId: NewId, logFault: (fault: SessionFault) => void) {
   await store.exclusive((tx) => tx.writeHeartbeat(runner, now));
-  for (let claim = await claimNext({ store, runner, rules, now, newId }); claim; claim = await claimNext({ store, runner, rules, now, newId })) {
-    await startClaim(claim); // outside the lock
+  for (let claim = await claimNext({ store, runner, rules, spawnContext, now, newId }); claim; claim = await claimNext({ store, runner, rules, spawnContext, now, newId })) {
+    await startClaim({ store, worker, claim, now, newId, logFault }); // outside the lock
   }
 }
 
@@ -54,11 +58,27 @@ export declare function claimNext(input: {
   store: ClaimStore;
   runner: RunnerId;
   rules: LoadedRules;
+  spawnContext: SpawnContext;
   now: Instant;
-  newId: () => string; // attempt, decision and fact ids, from the app
+  newId: NewId; // attempt, decision and fact ids, from the app
 }): Promise<Claim | null>;
 
-export type Claim = { attempt: AttemptId; item: ItemId; pool: PoolName; slot: number; gen: number; spawn: SpawnRequest };
+/**
+ * What a module can't read itself, so the app passes it in: each repo's local path, the plugin
+ * folder's path and hash, and each recipe's prompt template text. claimNext renders the prompt and
+ * computes the recipe hash from these. Slice 1. Owner: slice-1.md "claimNext".
+ */
+export type SpawnContext = {
+  readonly repoPaths: ReadonlyMap<RepoName, string>;
+  readonly pluginFolder: { readonly path: string; readonly hash: ContentHash };
+  readonly promptTemplates: ReadonlyMap<RecipeName, string>;
+};
+
+/** The claim: the attempt row as written, with its slot and slot `gen` from the take, and the spawn request. */
+export type Claim = { readonly attempt: AttemptRow; readonly spawn: SpawnRequest };
+
+/** Starts a claimed attempt outside the lock and records the outcome under its lease (02-ports.ts call site). Slice 1. */
+export declare function startClaim(input: { store: ClaimStore; worker: WorkerKind; claim: Claim; now: Instant; newId: NewId; logFault: (fault: SessionFault) => void }): Promise<ApplyResult>;
 
 // ── Reconcile (slice 1; dispatch.md "Unknown outcomes") ────────────────────────────────────────
 
@@ -88,7 +108,7 @@ export const reconcileTable: ReconcileTable = {
   },
   ended: { starting: { kind: "settle" }, running: { kind: "settle" }, reconciling: { kind: "settle" } },
   absent: {
-    starting: { kind: "fail", failure: "session-lost" },
+    starting: { kind: "respawn", giveUpAfter: 10, then: "spawn-lost" }, // the server stopped between the claim and the spawn
     running: { kind: "fail", failure: "session-lost" },
     reconciling: { kind: "respawn", giveUpAfter: 10, then: "spawn-lost" }, // 10 minutes after the claim
   },
@@ -103,13 +123,28 @@ export type ReaperRule = { readonly after: Minutes };
 
 // ── Settle (slice 1 for build; a strategy per phase kind) ──────────────────────────────────────
 
+/**
+ * Settles one attempt in one `exclusive` call: reads the attempt, its item and the repo's open
+ * issues, runs the phase kind's settle rule, dedupes `openItems`, and applies `buildSettleChange`.
+ * Returns the store's answer; the runner logs a refusal and moves on. Slice 1. Owner: slice-1.md "Settle".
+ */
+export declare function settleAttempt(input: {
+  store: ClaimStore;
+  attempt: AttemptId;
+  forced: Extract<KnownFailure, "spawn-refused" | "session-lost" | "spawn-lost"> | null;
+  rules: LoadedRules;
+  now: Instant;
+  newId: NewId;
+}): Promise<ApplyResult>;
+
 /** What a settle rule decides. The core turns it into one StoreChange that also releases both leases. */
 export type Settlement = {
   readonly state: "succeeded" | "failed";
   readonly failure: KnownFailure | string | null;
   readonly openItems: readonly OpenItem[]; // filed through dedupe, whatever the result
   readonly criteria: readonly { readonly criterion: CriterionId; readonly evidence: readonly FactId[] }[]; // from the latest valid close-out
-  readonly facts: readonly NewFact<"boxxy.proposal.recorded">[]; // friction, as proposals
+  readonly friction: readonly NewFact<"boxxy.proposal.recorded">["payload"][]; // each becomes a proposal fact
+  readonly frictionDropped: number; // from the close-out; recorded on `boxxy.attempt.settled`
 };
 
 /**
@@ -122,8 +157,19 @@ export interface SettleRule<Out = unknown> {
   settle(input: { attempt: AttemptRow; item: ItemView; closeOut: CloseOutParse<Out> | null; forced: Extract<KnownFailure, "spawn-refused" | "session-lost" | "spawn-lost"> | null; now: Instant }): Settlement;
 }
 
-/** Builds the settle StoreChange: the attempt row, both lease releases, `boxxy.attempt.settled`, and the settlement's facts. */
-export declare function buildSettleChange(attempt: AttemptRow, settlement: Settlement, now: Instant, newId: NewId): StoreChange;
+/**
+ * Builds the settle StoreChange: the attempt row, both lease releases, the item's acceptance with the
+ * copied evidence ids, an item and `boxxy.item.filed` per entry in `dedupe.file`,
+ * `boxxy.attempt.settled` with `dedupe.matched`, and a proposal per friction entry.
+ */
+export declare function buildSettleChange(input: {
+  attempt: AttemptRow;
+  item: ItemView;
+  settlement: Settlement;
+  dedupe: { readonly file: readonly OpenItem[]; readonly matched: readonly ItemId[] };
+  now: Instant;
+  newId: NewId;
+}): StoreChange;
 
 /**
  * Adding a settle rule for a later phase kind is one object. A triage attempt succeeds whenever its
@@ -132,8 +178,8 @@ export declare function buildSettleChange(attempt: AttemptRow, settlement: Settl
 export const exampleTriageSettle: SettleRule<{ size: string; needsDesign: boolean }> = {
   settle: ({ closeOut }) =>
     closeOut?.kind === "valid"
-      ? { state: "succeeded", failure: null, openItems: [], criteria: [], facts: [] }
-      : { state: "failed", failure: "closeout-missing", openItems: [], criteria: [], facts: [] },
+      ? { state: "succeeded", failure: null, openItems: [], criteria: [], friction: [], frictionDropped: 0 }
+      : { state: "failed", failure: "closeout-missing", openItems: [], criteria: [], friction: [], frictionDropped: 0 },
 };
 
 // ── Changes while an attempt runs (later; core-model.md "Changes while an attempt runs") ───────
