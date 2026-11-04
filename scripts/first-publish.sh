@@ -29,8 +29,13 @@ npm whoami > /dev/null || {
   exit 1
 }
 
-if npm view "$name" version > /dev/null 2>&1; then
+# npm view answers E404 for a package the registry lacks; any other failure leaves it unknown
+if view_error=$(npm view "$name" version 2>&1 > /dev/null); then
   echo "$name already exists on npm — releases go through CI, not this script" >&2
+  exit 1
+elif [[ $view_error != *E404* ]]; then
+  echo "npm view $name failed, so whether npm holds it is unknown:" >&2
+  echo "$view_error" >&2
   exit 1
 fi
 

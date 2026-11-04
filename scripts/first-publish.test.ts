@@ -40,7 +40,7 @@ async function setupTest() {
 test('it packs a package that is new to npm, publishes the tarball, and prints the trusted publisher', async () => {
   const ctx = await setupTest();
 
-  await ctx.createNPM({ view: { exitCode: 1 } });
+  await ctx.createNPM({ view: { exitCode: 1, errorOutput: 'npm error code E404\n' } });
 
   await writeTreeFiles(ctx.repo, {
     'package.json': JSON.stringify({ name: 'kettle-workspace', private: true }),
@@ -71,7 +71,10 @@ test('it builds a package that has a build script and publishes the built output
 
   const listPath = join(ctx.repo, 'tarball-files');
 
-  await ctx.createNPM({ view: { exitCode: 1 }, publish: { tarballListPath: listPath } });
+  await ctx.createNPM({
+    view: { exitCode: 1, errorOutput: 'npm error code E404\n' },
+    publish: { tarballListPath: listPath },
+  });
 
   await writeTreeFiles(ctx.repo, {
     'package.json': JSON.stringify({ name: 'kettle-workspace', private: true }),
@@ -106,6 +109,28 @@ test('it refuses a package that npm already holds and publishes nothing', async 
 
   expect(result.stderr.toString()).toBe(
     '@acme/kettle already exists on npm — releases go through CI, not this script\n',
+  );
+
+  expect(calls).toBe(['npm whoami', 'npm view @acme/kettle version', ''].join('\n'));
+});
+
+test('it stops when npm view fails for a reason other than E404, and publishes nothing', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createNPM({ view: { exitCode: 1, errorOutput: 'npm error code ETIMEDOUT\n' } });
+
+  await writeTreeFiles(ctx.repo, {
+    'package.json': JSON.stringify({ name: 'kettle-workspace', private: true }),
+    'libs/kettle/package.json': JSON.stringify({ name: '@acme/kettle', version: '0.0.0' }),
+  });
+
+  const result = await ctx.runFirstPublish('libs/kettle');
+  const calls = await ctx.readNPMCalls();
+
+  expect(result.exitCode).toBe(1);
+
+  expect(result.stderr.toString()).toBe(
+    'npm view @acme/kettle failed, so whether npm holds it is unknown:\nnpm error code ETIMEDOUT\n',
   );
 
   expect(calls).toBe(['npm whoami', 'npm view @acme/kettle version', ''].join('\n'));
