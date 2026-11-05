@@ -14,6 +14,8 @@ This version is a placeholder that exports only its package name, as `packageNam
 
 ## Install
 
+Install the package from [npm](https://www.npmjs.com/package/@boxxy/store-sqlite) with Bun:
+
 ```bash
 bun add @boxxy/store-sqlite
 ```
