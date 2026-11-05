@@ -1,6 +1,4 @@
 {
   "extends": "./tsconfig.base.json",
-  "include": ["*.ts", "scripts/**/*.ts", "e2e/**/*.ts", ".claude/hooks/**/*.ts"],
-  // bad imports that only the import rules test lints, in a copy of the workspace
-  "exclude": ["e2e/fixtures/**"]
+  "include": ["*.ts", "scripts/**/*.ts", ".claude/hooks/**/*.ts"]
 }

@@ -1,8 +1,7 @@
 {
   "$schema": "./node_modules/knip/schema.json",
-  // repo-sync delivers .claude/ verbatim, the design sketches only show the planned shapes, and the
-  // import rules test copies the bad-import fixtures into a copy of the workspace
-  "ignore": [".claude/**", "docs/design/boxxy/sketches/**", "e2e/fixtures/**"],
+  // repo-sync delivers .claude/ verbatim, and the design sketches only show the planned shapes
+  "ignore": [".claude/**", "docs/design/boxxy/sketches/**"],
   // the shared oxlint config loads the plugin, and the synced skill-gate hook in .claude/ imports
   // the package, so knip sees neither
   "ignoreDependencies": ["@stylistic/eslint-plugin", "@zgeoff/skill-gate"],
@@ -10,7 +9,7 @@
   // types that only their own file uses
   // the test script names its roots, so knip reads no package's tests from it
   "workspaces": {
-    ".": { "entry": ["*.test.ts", "scripts/**/*.test.ts", "e2e/*.test.ts"] },
+    ".": { "entry": ["*.test.ts", "scripts/**/*.test.ts"] },
     "{apps,modules,adapters,libs}/*": { "entry": ["src/**/*.test.ts"] }
   },
   "ignoreIssues": {
