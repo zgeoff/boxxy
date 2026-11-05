@@ -36,7 +36,6 @@ boxxy/
 ├── docs/                        design/ and decisions/
 ├── scripts/                     repo tooling; may do I/O and import any workspace package
 ├── test-utils/                  cross-package test helpers
-├── integration/                 tests that run the repo's checks on fixtures, such as bad imports
 └── e2e/                         end-to-end lane
 ```
 

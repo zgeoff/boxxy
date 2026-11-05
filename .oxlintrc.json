@@ -11,7 +11,7 @@
     ".worktrees/**",
     "docs/design/boxxy/sketches/**",
     // bad imports that only the import rules test lints, in a copy of the workspace
-    "integration/fixtures/**"
+    "e2e/fixtures/**"
   ],
   "rules": {
     // the layout doc's import pins: each outside library has one package that may import it, and

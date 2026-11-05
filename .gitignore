@@ -30,7 +30,7 @@ Thumbs.db
 # test temp trees
 scripts/*/.test-*
 scripts/.test-*
-integration/.test-*
+e2e/.test-*
 
 # turbo cache and logs
 .turbo

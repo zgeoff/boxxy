@@ -1,7 +1,7 @@
 import { expect, onTestFinished, test } from 'bun:test';
 import { cp, mkdtemp, rm, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
-import { runCommand } from '../scripts/ci/run-command.ts';
+import { $ } from 'bun';
 
 // Each check runs in a copy of the workspace beside this file, so a bad fixture never enters the
 // real workspace, where it would fail every run of the checks.
@@ -40,11 +40,19 @@ async function setupTest() {
       { recursive: true },
     );
 
-  const runCheck = (argv: readonly string[]) =>
-    runCommand(argv, {
-      cwd: workspace,
-      env: { PATH: process.env['PATH'], HOME: workspace, TURBO_TELEMETRY_DISABLED: '1' },
-    });
+  const runCheck = async (argv: readonly string[]) => {
+    const result = await $`${argv}`
+      .cwd(workspace)
+      .env({ PATH: process.env['PATH'], HOME: workspace, TURBO_TELEMETRY_DISABLED: '1' })
+      .nothrow()
+      .quiet();
+
+    return {
+      exitCode: result.exitCode,
+      stdout: result.stdout.toString(),
+      stderr: result.stderr.toString(),
+    };
+  };
 
   const runBoundaries = () => runCheck([join(repoRoot, 'node_modules/.bin/turbo'), 'boundaries']);
 
