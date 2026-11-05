@@ -12,9 +12,7 @@
       "apps/*",
       "modules/*",
       "adapters/*",
-      "libs/*",
-      "test-utils",
-      "e2e"
+      "libs/*"
     ],
     "catalog": {
       "@commitlint/cli": "21.2.4",
@@ -22,6 +20,7 @@
       "@stylistic/eslint-plugin": "5.10.0",
       "@tsconfig/strictest": "2.0.8",
       "@types/bun": "1.4.4",
+      "@zgeoff/chex": "0.1.4",
       "@zgeoff/bun-test-extended": "0.2.3",
       "@zgeoff/commitlint-config": "0.1.0",
       "@zgeoff/format-codemod": "0.3.5",
@@ -42,7 +41,7 @@
   "scripts": {
     "audit": "bun audit --ignore=GHSA-g3hv-75wg-m249",
     "boundaries": "turbo boundaries",
-    "check": "bun run audit && bun run deadcode && bun run format:check && bun run lint:full && bun run typecheck && bun run boundaries && bun run prose && bun run test",
+    "check": "bun run audit && bun run deadcode && bun run format:check && bun run lint:full && bun run typecheck && bun run boundaries && bun run check:test-layout && bun run prose && bun run test",
     "deadcode": "knip",
     "format": "oxfmt . && { [ -z \"$(git ls-files -co --exclude-standard -- '*.ts' '*.tsx' $(sed -e '/^#/d' -e '/^$/d' -e 's/^/:(exclude,glob)/' .formatignore))\" ] || format-codemod --quiet .; }",
     "format:check": "oxfmt --check . && { [ -z \"$(git ls-files -co --exclude-standard -- '*.ts' '*.tsx' $(sed -e '/^#/d' -e '/^$/d' -e 's/^/:(exclude,glob)/' .formatignore))\" ] || format-codemod --check --quiet .; }",
@@ -57,6 +56,7 @@
     "test:related": "bun scripts/run-related-tests.ts",
     "check:commits": "bun scripts/run-commits-check.ts",
     "check:local-paths": "bun scripts/run-local-paths-check.ts",
+    "check:test-layout": "chex test-layout",
     "check:test-timeouts": "bun scripts/run-test-timeouts-check.ts",
     "check:dependency-gates": "bun scripts/dependency-gates/run-dependency-gates-check.ts",
     "check:workflows": "bun scripts/run-workflows-check.ts",
@@ -72,6 +72,7 @@
     "@tsconfig/strictest": "catalog:",
     "@types/bun": "catalog:",
     "@zgeoff/bun-test-extended": "catalog:",
+    "@zgeoff/chex": "catalog:",
     "@zgeoff/commitlint-config": "catalog:",
     "@zgeoff/format-codemod": "catalog:",
     "@zgeoff/oxfmt-config": "catalog:",

@@ -34,9 +34,7 @@ boxxy/
 │   ├── contract/                the oRPC contract the server serves and the CLI calls
 │   └── content-hash/            the ContentHash type and hashes for recipes, rules versions, verdicts
 ├── docs/                        design/ and decisions/
-├── scripts/                     repo tooling; may do I/O and import any workspace package
-├── test-utils/                  cross-package test helpers
-└── e2e/                         end-to-end lane
+└── scripts/                     repo tooling; may do I/O and import any workspace package
 ```
 
 The repo creates a package only when a slice needs it. The tree lists the later packages so each
@@ -94,7 +92,7 @@ The `zgeoff/import-zones` rule in `.oxlintrc.json` holds these pins. Lint can't 
 environment come into a module or a lib as arguments, so a test or a replay sets them.
 
 Packages import each other only through their `index.ts`. The one exception is a package's
-`./test-utils` entry, which other packages' tests import. A deep import, such as
+`./test-utils/*` entry, which other packages' tests import. A deep import, such as
 `@boxxy/planning/src/decide.ts`, is banned: the import zones fail an import whose path no `exports`
 key of the package lists.
 
@@ -111,11 +109,12 @@ modules/planning/
 │   ├── decide.ts
 │   ├── explain.ts
 │   ├── propagate.ts         runs the propagation lines, which are rules data
-│   └── concepts/            one file per concept, named after it
-│       ├── pool.ts
-│       ├── defer.ts
-│       └── expedite.ts
-└── test-utils/              this package's factories, exported as "./test-utils"
+│   ├── concepts/            one file per concept, named after it
+│   │   ├── pool.ts
+│   │   ├── defer.ts
+│   │   └── expedite.ts
+│   └── test-utils/          this package's test helpers, exported as "./test-utils/*"
+└── e2e/                     end-to-end tests of a program this package builds
 ```
 
 - `src/index.ts` only re-exports. Code lives in the files beside it.
@@ -123,8 +122,12 @@ modules/planning/
 - A test sits beside the file it tests, as `<file>.test.ts`.
 - A package with concepts keeps them in `src/concepts/`, one file per concept, named after it. A new
   concept is a new file there.
-- A package's own test factories live in its `test-utils/` folder, which the package exports as
-  `./test-utils` for other packages' tests.
+- A package's test helpers, such as its fakes and factories, live in its `src/test-utils/` folder,
+  which the package exports as `./test-utils/*` for other packages' tests. A helper that two or more
+  packages' tests use lives in the package that owns what it starts, builds or fakes.
+- An end-to-end test lives in the `e2e/` folder of the package that builds the program it runs, such
+  as `apps/server/e2e/`. The repo root holds no `test-utils/` or `e2e/` folder, and
+  `bun run check:test-layout` fails a test or a helper outside this layout.
 
 ## Where a helper goes
 

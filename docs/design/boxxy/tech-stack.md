@@ -59,7 +59,7 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 
 | File                                                                              | What it does                                                                                                      | Copied from    |
 | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------- |
-| `package.json` (root)                                                             | the workspace list (`apps/*`, `modules/*`, `adapters/*`, `libs/*`, `test-utils`, `e2e`), the catalog, tooling     | wringer        |
+| `package.json` (root)                                                             | the workspace list (`apps/*`, `modules/*`, `adapters/*`, `libs/*`), the catalog, tooling                          | wringer        |
 | `.bun-version`                                                                    | the Bun version CI and `packageManager` use                                                                       | wringer        |
 | `bunfig.toml`                                                                     | isolated linker, exact saves, a 7-day minimum release age with first-party excludes, the test preload             | wringer        |
 | `tsconfig.base.json`, `tsconfig.json`                                             | the shared compiler options, and the root files' typecheck                                                        | wringer        |
@@ -83,9 +83,11 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | `scripts/publish/`, `scripts/release/`, `scripts/ci/`, `scripts/first-publish.sh` | the publish dispatch, the package publish and the one-time first publish; `scripts/test-utils/` holds their stubs | wringer        |
 
 The root `check` script runs audit, dead code, format check, type-aware lint, typecheck, prose and
-tests, as wringer's does, and adds `boundaries` (`turbo boundaries`), as noslop's does. The
-`BUN_CHECK_SCRIPTS` repo variable gives CI the same list:
-`audit deadcode format:check lint:full typecheck boundaries prose test`. Change both together.
+tests, as wringer's does, and adds `boundaries` (`turbo boundaries`), as noslop's does. It also adds
+`check:test-layout` (`chex test-layout`), which fails a test or a test helper outside the
+[test layout](./layout.md#inside-a-package). The `BUN_CHECK_SCRIPTS` repo variable gives CI the same
+list: `audit deadcode format:check lint:full typecheck boundaries check:test-layout prose test`.
+Change both together.
 lefthook's pre-push runs `prose` and `boundaries`, then the synced baseline.
 
 ### What repo-sync delivers
@@ -148,7 +150,7 @@ each package's `tsconfig.json` extends it. The base:
 ```
 
 A package's `tsconfig.json` is
-`{ "extends": "../../tsconfig.base.json", "include": ["src", "test-utils"] }`, and its `typecheck`
+`{ "extends": "../../tsconfig.base.json", "include": ["src", "e2e"] }`, and its `typecheck`
 script runs `tsrs --noEmit`. Each package also has a `tsconfig.build.json` that emits
 declarations only, from `src` to `dist`, and excludes `src/**/*.test.ts`.
 
@@ -187,8 +189,7 @@ release-please writes. It also sets `description`, `homepage` and `bugs`, as wri
 Every package under `apps/`, `modules/`, `adapters/` and `libs/` publishes as `@boxxy/<folder>`, as
 wringer publishes each of its packages. A published package ships source, so it can't depend on a
 private one; publishing all of them keeps the CLI's dependencies installable without a bundler.
-`test-utils/` and `e2e/` are private workspace packages, which only tests import, and never
-publish. The oRPC contract lives in `libs/contract`
+The repo has no private package. The oRPC contract lives in `libs/contract`
 (`@boxxy/contract`), as nixie keeps its contract.
 
 ## Open questions
