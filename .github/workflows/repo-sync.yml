@@ -1,0 +1,54 @@
+# Calls the repo-sync workflow in zgeoff/tools, which opens one pull request that
+# carries every manifest entry whose files this repository is behind on.
+#
+# Two optional string inputs under `with:` change which entries run. `skip`
+# takes the comma-separated names of the entries to leave alone. `include`
+# takes the comma-separated names of the opt-in entries to sync, which reach
+# this repository only when they are listed. A name in `include` that is not an
+# opt-in entry fails the run.
+#
+# The `uses:` line pins a commit on main of zgeoff/tools. A green main there
+# that changes a synced file sends this repository a repository_dispatch event
+# with its commit, and the run syncs that commit's files. The sync pull request
+# moves the pin to that commit, and merges on green checks. A run from any other
+# trigger syncs the newest green commit on main there. Each run also opens an
+# issue when the sync pull request is red for more than a day.
+name: Repo sync
+
+on:
+  repository_dispatch:
+    types: [zgeoff-tools-sync]
+  push:
+    branches: [main]
+    paths: [.github/workflows/repo-sync.yml]
+  schedule:
+    # 06:00 UTC
+    - cron: 0 6 * * *
+  workflow_dispatch:
+
+# github.sha of a repository_dispatch run is this repository's main, so the
+# group names the dispatched commit. A newer run replaces only a pending run of
+# the same commit, or a pending run of another trigger, which syncs the newest
+# green commit as the newer run does. No run cancels a running one.
+concurrency:
+  group: repo-sync-caller-${{ github.event.client_payload.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+      checks: read
+      statuses: read
+      actions: read
+    uses: zgeoff/tools/.github/workflows/repo-sync.yml@c8d8d0439395ed094413950974be43ca7dac65cb # main
+    with:
+      ref: ${{ github.event.client_payload.sha }}
+      include:
+        workflow-bun-pr, workflow-audit-fix, pre-push-baseline, hook-skill-gate, skill-testing,
+        skill-code-style, skill-docs-writing, skill-skill-writing, skill-ci-design
+    secrets:
+      REPO_SYNC_APP_CLIENT_ID: ${{ secrets.REPO_SYNC_APP_CLIENT_ID }}
+      REPO_SYNC_APP_PRIVATE_KEY: ${{ secrets.REPO_SYNC_APP_PRIVATE_KEY }}

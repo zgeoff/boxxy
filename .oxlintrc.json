@@ -1,0 +1,88 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["./node_modules/@zgeoff/oxlint-config/oxlintrc.json"],
+  "env": {
+    "node": true,
+    "es2024": true
+  },
+  "ignorePatterns": [".claude/**", ".reviews/**", ".worktrees/**", "docs/design/boxxy/sketches/**"],
+  "rules": {
+    // the layout doc's import pins: each outside library has one package that may import it, and
+    // the modules and libs do no I/O
+    "zgeoff/import-zones": [
+      "error",
+      {
+        "workspaces": ["apps/*", "modules/*", "adapters/*", "libs/*", "test-utils", "e2e"],
+        "zones": {
+          "packages": ["apps/**", "modules/**", "adapters/**", "libs/**"],
+          "adapters": ["adapters/**"],
+          "domain": ["modules/**", "libs/**"],
+          "store-sqlite": ["adapters/store-sqlite/**"],
+          "worker-atc": ["adapters/worker-atc/**"]
+        },
+        "modules": [
+          {
+            "name": "sqlite",
+            "modules": ["bun:sqlite", "kysely", "@zgeoff/kysely-bun-sqlite"],
+            "allow": ["store-sqlite"],
+            "reason": "only adapters/store-sqlite opens the database; use its ClaimStore"
+          },
+          {
+            "name": "atc",
+            "modules": ["@atcx/contract"],
+            "allow": ["worker-atc"],
+            "reason": "only adapters/worker-atc talks to atc; use its WorkerKind"
+          },
+          {
+            "name": "domain-io",
+            "modules": ["node:fs", "node:child_process", "node:net", "node:http", "node:https"],
+            "from": ["domain"],
+            "allow": [],
+            "reason": "a module or a lib does no I/O; take an adapter through a port"
+          }
+        ],
+        "globals": [
+          {
+            "name": "network",
+            "globals": ["fetch"],
+            "from": ["packages"],
+            "allow": ["adapters"],
+            "reason": "only an adapter calls an outside system"
+          }
+        ],
+        "unresolved": [
+          {
+            "name": "unresolved",
+            "from": ["packages"],
+            "reason": "a package imports another only through the entries its exports list"
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    // a module or a lib takes time and settings as arguments, so a test or a replay sets them
+    {
+      "files": ["modules/**", "libs/**"],
+      "rules": {
+        "no-restricted-globals": [
+          "error",
+          { "name": "Date", "message": "Take the time as an argument." },
+          { "name": "process", "message": "Take settings as arguments." },
+          {
+            "name": "Bun",
+            "message": "A module or a lib does no I/O; take an adapter through a port."
+          }
+        ]
+      }
+    },
+    // repo-sync delivers these scripts from zgeoff/tools and overwrites a local edit, so their verbs
+    // are fixed at that source
+    {
+      "files": ["scripts/read-branch-files.ts", "scripts/run-related-tests.ts"],
+      "rules": {
+        "zgeoff/verb-contract": "off"
+      }
+    }
+  ]
+}

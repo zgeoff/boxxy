@@ -1,0 +1,36 @@
+{
+  "name": "@boxxy/store-sqlite",
+  "version": "0.0.0",
+  "description": "boxxy's store on SQLite",
+  "homepage": "https://github.com/zgeoff/boxxy/tree/main/adapters/store-sqlite#readme",
+  "bugs": "https://github.com/zgeoff/boxxy/issues",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zgeoff/boxxy.git",
+    "directory": "adapters/store-sqlite"
+  },
+  "files": [
+    "src",
+    "!src/**/*.test.ts",
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsrs -p tsconfig.build.json",
+    "typecheck": "tsrs --noEmit"
+  },
+  "engines": {
+    "bun": ">=1.3",
+    "node": ">=24"
+  }
+}
