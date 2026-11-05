@@ -5,7 +5,14 @@
     "node": true,
     "es2024": true
   },
-  "ignorePatterns": [".claude/**", ".reviews/**", ".worktrees/**", "docs/design/boxxy/sketches/**"],
+  "ignorePatterns": [
+    ".claude/**",
+    ".reviews/**",
+    ".worktrees/**",
+    "docs/design/boxxy/sketches/**",
+    // bad imports that only the import rules test lints, in a copy of the workspace
+    "integration/fixtures/**"
+  ],
   "rules": {
     // the layout doc's import pins: each outside library has one package that may import it, and
     // the modules and libs do no I/O

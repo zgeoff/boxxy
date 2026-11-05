@@ -1,0 +1,9 @@
+{
+  "name": "@boxxy/module-imports-adapter",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@boxxy/store-sqlite": "workspace:*"
+  }
+}
