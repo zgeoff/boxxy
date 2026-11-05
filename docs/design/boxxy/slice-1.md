@@ -188,10 +188,8 @@ The libs, tagged `lib`:
 
 A lib does no I/O, as a module doesn't ([layout](./layout.md)).
 
-`test-utils/` holds cross-package helpers, and `e2e/` holds the end-to-end tests, which run as their
-own CI job. Both are private workspace packages that never publish, and the first unit that needs
-each one adds it. Each package's own fakes and factories sit in its `test-utils/` folder, exported
-as `./test-utils`.
+Each package keeps its own fakes, factories and end-to-end tests, in the folders that
+[layout](./layout.md#inside-a-package) sets. The end-to-end tests run as their own CI job.
 
 ## Ports and adapters
 
@@ -201,12 +199,12 @@ drives all four slice 1 ports, so it holds each port's fake and contract suite.
 
 | Port | Real adapter | Test fake |
 | --- | --- | --- |
-| `ClaimStore` | `@boxxy/store-sqlite` | `createMemoryClaimStore()` in `@boxxy/dispatch/test-utils` |
-| `WorkerKind` | `@boxxy/worker-atc` | `createFakeWorker()` in `@boxxy/dispatch/test-utils` |
-| `FactSink` | `@boxxy/facts-pepys` | `createFakeFactSink()` in `@boxxy/dispatch/test-utils` |
-| `Forge` | `@boxxy/forge-github` | `createFakeForge()` in `@boxxy/dispatch/test-utils` |
+| `ClaimStore` | `@boxxy/store-sqlite` | `createMemoryClaimStore()` in `@boxxy/dispatch/test-utils/create-memory-claim-store` |
+| `WorkerKind` | `@boxxy/worker-atc` | `createFakeWorker()` in `@boxxy/dispatch/test-utils/create-fake-worker` |
+| `FactSink` | `@boxxy/facts-pepys` | `createFakeFactSink()` in `@boxxy/dispatch/test-utils/create-fake-fact-sink` |
+| `Forge` | `@boxxy/forge-github` | `createFakeForge()` in `@boxxy/dispatch/test-utils/create-fake-forge` |
 
-One contract test suite per port, in `@boxxy/dispatch/test-utils`, runs against the fake and against
+One contract test suite per port, in `@boxxy/dispatch`'s `src/test-utils/`, runs against the fake and against
 the real adapter. A fake that passes the suite is safe to use in module tests.
 
 The port shapes are in [`02-ports.ts`](./sketches/02-ports.ts):
@@ -670,7 +668,7 @@ the example uses bare names.
   attempt id, and to work only there. Two slots of one pool start their sessions in the same repo
   path, so without this they would share one working tree.
 - **S1-09 ships a minimal `prompts/build-v1.md`** that uses every value, in an example rules checkout
-  at `apps/server/test-utils/rules/`, beside an example `rules.yaml`. S1-13 copies both into the rules
+  at `apps/server/src/test-utils/rules/`, beside an example `rules.yaml`. S1-13 copies both into the rules
   repo and tunes the prompt.
 - **One configuration file holds the machine details:** the runner id, the store file, the rules
   checkout's path, the plugin folder's path, the hook log's path, each repo's local path, the atc and
@@ -1252,7 +1250,7 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
   [tech stack](./tech-stack.md) lists:
   - Files:
     - the root `package.json`, with the catalog and the four workspace folders, `apps/`,
-      `modules/`, `adapters/` and `libs/`, with `test-utils/` and `e2e/` beside them;
+      `modules/`, `adapters/` and `libs/`;
     - `bunfig.toml` and the tsconfig;
     - the turbo boundaries config;
     - the oxlint config, with the import zones pins;

@@ -34,17 +34,15 @@ compare models, prompts and rules on the same kind of task.
 boxxy is one [Bun](https://bun.sh) workspace. The [layout](./docs/design/boxxy/layout.md) sets which
 folder holds what, and which package may import which.
 
-| Package               | Folder                  | Holds                                                 |
-| --------------------- | ----------------------- | ----------------------------------------------------- |
-| `@boxxy/cli`          | `apps/cli`              | the `boxxy` command line                              |
-| `@boxxy/dispatch`     | `modules/dispatch`      | claiming the next task, and settling each attempt     |
-| `@boxxy/store-sqlite` | `adapters/store-sqlite` | the store on SQLite                                   |
-| `@boxxy/model`        | `libs/model`            | the types the packages share, and the fact catalog    |
-| `@boxxy/test-utils`   | `test-utils`            | test helpers that two or more packages share; private |
-| `@boxxy/e2e`          | `e2e`                   | the end-to-end tests; private                         |
+| Package               | Folder                  | Holds                                              |
+| --------------------- | ----------------------- | -------------------------------------------------- |
+| `@boxxy/cli`          | `apps/cli`              | the `boxxy` command line                           |
+| `@boxxy/dispatch`     | `modules/dispatch`      | claiming the next task, and settling each attempt  |
+| `@boxxy/store-sqlite` | `adapters/store-sqlite` | the store on SQLite                                |
+| `@boxxy/model`        | `libs/model`            | the types the packages share, and the fact catalog |
 
-Every package outside `test-utils` and `e2e` publishes to npm. The
-[releasing runbook](./docs/runbooks/releasing.md) covers a release.
+Every package publishes to npm. The [releasing runbook](./docs/runbooks/releasing.md) covers a
+release.
 
 Run the checks that CI runs:
 

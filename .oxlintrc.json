@@ -12,7 +12,7 @@
     "zgeoff/import-zones": [
       "error",
       {
-        "workspaces": ["apps/*", "modules/*", "adapters/*", "libs/*", "test-utils", "e2e"],
+        "workspaces": ["apps/*", "modules/*", "adapters/*", "libs/*"],
         "zones": {
           "packages": ["apps/**", "modules/**", "adapters/**", "libs/**"],
           "adapters": ["adapters/**"],
