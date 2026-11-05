@@ -12,18 +12,18 @@ export interface StubNPMAnswer {
   readonly tarballListPath?: string;
 }
 
-// Writes a stand-in for npm that appends each call's arguments to the log, one call per line, and
-// answers each subcommand with its given output, error output and exit code. A subcommand with no answer prints
-// nothing and succeeds.
+// Writes a stand-in for npm that logs each call and answers it from `answers`. A key such as
+// `view dist-tags.latest` names a subcommand and its third argument, and wins over `view`.
 export async function createStubNPM(
   directory: string,
   log: string,
   answers: Readonly<Record<string, StubNPMAnswer>> = {},
 ): Promise<void> {
   const cases = await Promise.all(
-    Object.entries(answers).map(async ([subcommand, answer]) => {
-      const outputPath = join(directory, `npm-${subcommand}.output`);
-      const errorPath = join(directory, `npm-${subcommand}.error`);
+    Object.entries(answers).map(async ([key, answer]) => {
+      const fileName = key.replaceAll(' ', '-');
+      const outputPath = join(directory, `npm-${fileName}.output`);
+      const errorPath = join(directory, `npm-${fileName}.error`);
 
       await writeFile(outputPath, answer.output ?? '');
       await writeFile(errorPath, answer.errorOutput ?? '');
@@ -31,7 +31,10 @@ export async function createStubNPM(
       const listing =
         answer.tarballListPath === undefined ? '' : `tar -tzf "$2" > '${answer.tarballListPath}'; `;
 
-      return `  ${subcommand}) ${listing}cat '${outputPath}'; cat '${errorPath}' >&2; exit ${answer.exitCode ?? 0} ;;`;
+      return {
+        isField: key.includes(' '),
+        line: `  '${key}') ${listing}cat '${outputPath}'; cat '${errorPath}' >&2; exit ${answer.exitCode ?? 0} ;;`,
+      };
     }),
   );
 
@@ -39,7 +42,17 @@ export async function createStubNPM(
 
   await writeFile(
     path,
-    ['#!/bin/sh', `echo "npm $*" >> '${log}'`, 'case "$1" in', ...cases, 'esac', ''].join('\n'),
+    [
+      '#!/bin/sh',
+      `echo "npm $*" >> '${log}'`,
+      'case "$1 $3" in',
+      ...cases.filter((entry) => entry.isField).map((entry) => entry.line),
+      'esac',
+      'case "$1" in',
+      ...cases.filter((entry) => !entry.isField).map((entry) => entry.line),
+      'esac',
+      '',
+    ].join('\n'),
   );
 
   await chmod(path, 0o755);

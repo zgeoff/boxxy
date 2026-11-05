@@ -8,11 +8,13 @@ import type { CommandResult, RunCommand } from '../ci/run-command.ts';
 import { runCommand } from '../ci/run-command.ts';
 import { buildPackageSteps } from './build-package-steps.ts';
 import { buildPublishPlan } from './build-publish-plan.ts';
+import { parseLatestVersion } from './parse-latest-version.ts';
 import type { ManifestParse, PackageManifest } from './parse-package-manifest.ts';
 import { parsePackageManifest } from './parse-package-manifest.ts';
 import type { PublishMode, PublishRequest } from './parse-publish-request.ts';
 import { parsePublishRequest } from './parse-publish-request.ts';
 import { parseRegistryAnswer } from './parse-registry-answer.ts';
+import { pickDistTagArgs } from './pick-dist-tag-args.ts';
 import { pickTarball } from './pick-tarball.ts';
 
 export interface PackagesPublishOptions {
@@ -150,6 +152,9 @@ async function publishPackage(
     }
   }
 
+  const latestVersion = steps.probeRegistry ? await readLatestVersion(entry, options) : null;
+  const tagArgs = pickDistTagArgs(latestVersion, entry.version);
+
   if (steps.build) {
     await run(['bun', 'run', 'build']);
   }
@@ -166,7 +171,7 @@ async function publishPackage(
     .exhaustive();
 
   try {
-    await run(['npm', 'publish', `./${tarball}`, ...steps.publishArgs]);
+    await run(['npm', 'publish', `./${tarball}`, ...steps.publishArgs, ...tagArgs]);
   } finally {
     await options.fileSystem.removePath(join(entry.folder, tarball));
   }
@@ -186,6 +191,24 @@ async function probePublishedVersion(
   return match(parseRegistryAnswer(result, spec, entry.version))
     .with({ kind: 'published' }, () => true)
     .with({ kind: 'missing' }, () => false)
+    .with({ kind: 'failed' }, (failed) => {
+      throw new Error(failed.message);
+    })
+    .exhaustive();
+}
+
+async function readLatestVersion(
+  entry: PublicManifest,
+  options: PackagesPublishOptions,
+): Promise<string | null> {
+  const result = await options.runCommand(['npm', 'view', entry.name, 'dist-tags.latest'], {
+    cwd: entry.folder,
+    env: options.env,
+  });
+
+  return match(parseLatestVersion(result, entry.name))
+    .with({ kind: 'found' }, (found) => found.version)
+    .with({ kind: 'none' }, () => null)
     .with({ kind: 'failed' }, (failed) => {
       throw new Error(failed.message);
     })

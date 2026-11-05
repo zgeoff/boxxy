@@ -82,6 +82,7 @@ test('it packs and publishes each released package with provenance', async () =>
   expect(calls).toBe(
     [
       'npm view @zgeoff/std@0.4.0 version',
+      'npm view @zgeoff/std dist-tags.latest',
       'npm publish ./zgeoff-std-0.4.0.tgz --provenance --access public',
       '',
     ].join('\n'),
@@ -105,6 +106,7 @@ test('it publishes the given paths in a republish by hand, which names no releas
   expect(calls).toBe(
     [
       'npm view @zgeoff/std@0.4.0 version',
+      'npm view @zgeoff/std dist-tags.latest',
       'npm publish ./zgeoff-std-0.4.0.tgz --provenance --access public',
       '',
     ].join('\n'),
@@ -129,6 +131,7 @@ test('it skips a private root with no version and publishes the rest of a republ
   expect(calls).toBe(
     [
       'npm view @zgeoff/std@0.4.0 version',
+      'npm view @zgeoff/std dist-tags.latest',
       'npm publish ./zgeoff-std-0.4.0.tgz --provenance --access public',
       '',
     ].join('\n'),
@@ -390,6 +393,7 @@ test('it publishes a package that npm answers E404 for, as the registry lacks it
   expect(calls).toBe(
     [
       'npm view @zgeoff/std@0.4.0 version',
+      'npm view @zgeoff/std dist-tags.latest',
       'npm publish ./zgeoff-std-0.4.0.tgz --provenance --access public',
       '',
     ].join('\n'),
@@ -417,6 +421,53 @@ test('it stops before the pack when the registry check fails for a reason other 
   });
 
   expect(calls).toBe('npm view @zgeoff/std@0.4.0 version\n');
+  expect(ctx.loggedCalls).toStrictEqual([]);
+});
+
+test('it publishes a version below the latest dist-tag under backport, so latest stays on the newer version', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createNPM({ 'view dist-tags.latest': { output: '0.5.0\n' } });
+
+  await writeTreeFiles(ctx.repo, {
+    'libs/std/package.json': JSON.stringify({ name: '@zgeoff/std', version: '0.4.1' }),
+  });
+
+  const exitCode = await ctx.runPublish(['libs/std'], '');
+  const calls = await ctx.readNPMCalls();
+
+  expect(exitCode).toBe(0);
+
+  expect(calls).toBe(
+    [
+      'npm view @zgeoff/std@0.4.1 version',
+      'npm view @zgeoff/std dist-tags.latest',
+      'npm publish ./zgeoff-std-0.4.1.tgz --provenance --access public --tag backport',
+      '',
+    ].join('\n'),
+  );
+});
+
+test('it stops before the pack when the latest dist-tag check fails for a reason other than E404', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createNPM({
+    'view dist-tags.latest': { exitCode: 1, errorOutput: 'npm error code ETIMEDOUT\n' },
+  });
+
+  await writeTreeFiles(ctx.repo, {
+    'libs/std/package.json': JSON.stringify({ name: '@zgeoff/std', version: '0.4.0' }),
+  });
+
+  const failure = await ctx.runPublish(['libs/std'], '').then(
+    () => null,
+    (error: unknown) => error,
+  );
+
+  expect(failure).toMatchObject({
+    message: 'npm view @zgeoff/std dist-tags.latest failed: npm error code ETIMEDOUT',
+  });
+
   expect(ctx.loggedCalls).toStrictEqual([]);
 });
 
@@ -572,5 +623,7 @@ test('it refuses to publish when the pack leaves more than one tarball', async (
 
   const calls = await ctx.readNPMCalls();
 
-  expect(calls).toBe('npm view @zgeoff/std@0.4.0 version\n');
+  expect(calls).toBe(
+    ['npm view @zgeoff/std@0.4.0 version', 'npm view @zgeoff/std dist-tags.latest', ''].join('\n'),
+  );
 });

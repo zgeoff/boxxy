@@ -159,7 +159,8 @@ scope.
 ## Republish a release that failed to publish
 
 A release can create its tags and then fail to publish, such as during an npm outage. A republish
-skips each version that npm already holds.
+skips each version that npm already holds. It publishes a version below the package's `latest`
+dist-tag under the `backport` dist-tag, so `latest` stays on the newer version.
 
 Every package of one release pull request has its tag on the same merge commit. Dispatch one run at
 any of those tags, and list the `<path>` of each package to publish:

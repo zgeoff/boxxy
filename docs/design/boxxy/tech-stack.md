@@ -118,7 +118,10 @@ does. One workflow, `main.yml`, publishes. `npm-packages.yml` only rehearses the
    bundled npm with the job's OIDC token. No npm token exists in the repo. `bun publish` has no OIDC
    support, so npm publishes.
 
-Publish runs queue and never cancel, so a release never stops halfway. A package that is new to npm
+Publish runs queue and never cancel, so a release never stops halfway. Each publish run waits in
+one queue with its own checks, so releases publish in the order they were tagged. A version below
+the package's `latest` dist-tag publishes under the `backport` dist-tag, so `latest` stays on the
+newest version. A package that is new to npm
 gets one local publish through `scripts/first-publish.sh`, then a trusted publisher on npmjs.com
 that names `main.yml`. The [releasing runbook](../../runbooks/releasing.md) gives the steps.
 

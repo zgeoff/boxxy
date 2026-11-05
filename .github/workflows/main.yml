@@ -29,6 +29,18 @@ on:
 permissions:
   contents: read
 
+# Each dispatched publish run, its checks and its publish together, waits in one queue, so releases
+# publish in the order the push runs dispatched them; a queue on the publish job alone lets a run
+# whose checks finish first publish a newer release before an older one. A push run gets a group
+# of its own. queue: max keeps every waiting run, and no publish run cancels, so a release never
+# stops halfway.
+concurrency:
+  group:
+    ${{ github.event_name == 'workflow_dispatch' && 'publish' || format('main-{0}', github.run_id)
+    }}
+  cancel-in-progress: false
+  queue: max
+
 jobs:
   # A newer push makes an older run's checks moot. A dispatched publish run
   # gates its publish on these checks, and two dispatches can share a tag, so
@@ -112,19 +124,12 @@ jobs:
           RELEASE_OUTPUTS: ${{ needs.release.outputs.release-outputs }}
         run: bun run --silent ci:dispatch-publish
 
-  # queue: max keeps every waiting run; the default replaces a waiting run,
-  # which would cancel a pending publish dispatch. A cancelled run could stop
-  # a publish halfway, so publish runs never cancel.
   publish:
     name: Publish the release
     needs: checks
     if: github.event_name == 'workflow_dispatch' && vars.RELEASE_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    concurrency:
-      group: publish
-      cancel-in-progress: false
-      queue: max
     permissions:
       contents: read
       # npm's trusted publishing takes the job's OIDC token, so no npm token

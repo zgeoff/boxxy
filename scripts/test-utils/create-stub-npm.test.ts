@@ -64,3 +64,18 @@ test('it writes the file list of the tarball a subcommand receives when the answ
   expect(publish.exitCode).toBe(0);
   expect(files.split('\n')).toContain('package/dist/index.js');
 });
+
+test('it answers a call by its field ahead of its subcommand', async () => {
+  const ctx = await setupTest();
+
+  await createStubNPM(ctx.directory, ctx.log, {
+    view: { output: '1.0.0\n' },
+    'view dist-tags.latest': { output: '2.0.0\n' },
+  });
+
+  const version = await $`${ctx.npmPath} view @acme/kettle@1.0.0 version`.nothrow().quiet();
+  const latest = await $`${ctx.npmPath} view @acme/kettle dist-tags.latest`.nothrow().quiet();
+
+  expect(version.stdout.toString()).toBe('1.0.0\n');
+  expect(latest.stdout.toString()).toBe('2.0.0\n');
+});
