@@ -29,19 +29,19 @@
     },
     "adapters/store-sqlite": {
       "name": "@boxxy/store-sqlite",
-      "version": "0.0.0",
+      "version": "0.1.0",
     },
     "apps/cli": {
       "name": "@boxxy/cli",
-      "version": "0.0.0",
+      "version": "0.1.0",
     },
     "libs/model": {
       "name": "@boxxy/model",
-      "version": "0.0.0",
+      "version": "0.1.0",
     },
     "modules/dispatch": {
       "name": "@boxxy/dispatch",
-      "version": "0.0.0",
+      "version": "0.1.0",
     },
   },
   "catalog": {
