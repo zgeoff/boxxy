@@ -49,8 +49,8 @@ publisher. npm expires a trusted publisher that no publish uses in its first 2 d
    package's `README.md`. release-please releases only the packages a commit changes. Expect the
    release job to open a release pull request that sets each package to `0.1.0`.
 6. Merge that pull request, as [Merge a release pull request](#merge-a-release-pull-request)
-   describes. Expect npm to hold `0.1.0` of each package, which CI published through each trusted
-   publisher.
+   describes. Expect `npm view @boxxy/<folder>@0.1.0 version` to print `0.1.0` for each package,
+   which CI published through each trusted publisher.
 
 ## Publish a new package
 
@@ -85,9 +85,13 @@ first release of the package is `0.1.0`.
 5. Turn on "Allow npm publish" for the publisher. While it is off, the publisher allows only
    `npm stage publish`, and the publish in `main.yml` fails with `ENEEDAUTH`. Expect the access page
    to show npm publish allowed.
-6. Within 2 days of step 4, merge a releasable commit that changes the package. Expect a release
-   pull request that sets the package to `0.1.0`.
-7. Merge the release pull request. Expect npm to hold `0.1.0` of the package.
+6. **CAUTION:** Finish this step and step 7 within 2 days of step 4. npm expires a trusted publisher
+   that no publish uses in its first 2 days, and CI's publish in step 7 is the first use.
+
+   Merge a releasable commit that changes the package. Expect a release pull request that sets the
+   package to `0.1.0`.
+
+7. Merge the release pull request. Expect `npm view @boxxy/<folder>@0.1.0 version` to print `0.1.0`.
 
 ## Merge a release pull request
 
@@ -110,11 +114,11 @@ first release of the package is `0.1.0`.
 5. Check the registry:
 
    ```bash
-   npm view @boxxy/<folder> version
+   npm view @boxxy/<folder>@<version> version
    ```
 
-   Expect the version you released. Right after the first publish of a package that npm never held,
-   `npm view` can answer `E404`; run the command again until it prints the version.
+   Expect the version you released. Right after a publish, `npm view` can print nothing, or answer
+   `E404` for a package that npm never held. Run the command again until it prints the version.
 
 ## Recover a release blocked by a workflow change
 
