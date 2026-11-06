@@ -549,7 +549,7 @@ The primary key is `seq`, which autoincrements. `fact_id` is unique, and a parti
 
 ### Derived item state
 
-`deriveItemState(item, rows, now)` in `@boxxy/model` returns the first state in this table whose
+`deriveItemState(item, rows)` in `@boxxy/model` returns the first state in this table whose
 condition holds:
 
 | State | When | Reason |

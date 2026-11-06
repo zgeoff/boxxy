@@ -28,8 +28,9 @@ declare const brand: unique symbol;
 export type Brand<T, B extends string> = T & { readonly [brand]: B };
 
 /**
- * Brand constructors. The real package checks each value's format here, at the edge; the sketches
- * declare them so the examples need no casts.
+ * Brand constructors. @boxxy/model holds one zod schema per brand in `brandSchemas`, which checks
+ * each value's format at the edge: `brandSchemas.instant.parse(ms)` is `instant(ms)`. The sketches
+ * declare these so the examples need no casts.
  */
 export declare function instant(ms: number): Instant;
 export declare function factId(id: `manual:${string}`): FactId;
@@ -200,7 +201,7 @@ export type ItemRows = {
 };
 
 /** Derived item state: pure, in @boxxy/model. Slice 1. Owner: slice-1.md "Derived item state". */
-export declare function deriveItemState(item: ItemRow, rows: ItemRows, now: Instant): DerivedState;
+export declare function deriveItemState(item: ItemRow, rows: ItemRows): DerivedState;
 
 /**
  * The live levers at `now`: not undone by a later lever and not past `expiresAt`. Pure, in

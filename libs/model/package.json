@@ -20,7 +20,8 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./src/index.ts"
-    }
+    },
+    "./test-utils/*": "./src/test-utils/*.ts"
   },
   "publishConfig": {
     "access": "public"
@@ -28,6 +29,13 @@
   "scripts": {
     "build": "rm -rf dist && tsrs -p tsconfig.build.json",
     "typecheck": "tsrs --noEmit"
+  },
+  "dependencies": {
+    "@boxxy/content-hash": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "catalog:"
   },
   "engines": {
     "bun": ">=1.3",
