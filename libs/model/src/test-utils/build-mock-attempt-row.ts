@@ -6,7 +6,10 @@ import type { AttemptRow } from '../types/core.ts';
 const hashOptions = { length: 64, casing: 'lower', prefix: '' } as const;
 
 export function buildMockAttemptRow(overrides: Partial<AttemptRow> = {}): AttemptRow {
-  const spawnRequest = overrides.spawnRequest ?? { prompt: faker.lorem.sentence() };
+  const spawnRequest =
+    overrides.spawnRequest === undefined
+      ? { prompt: faker.lorem.sentence() }
+      : overrides.spawnRequest;
 
   return {
     id: brandSchemas.attemptId.parse(faker.string.uuid({ version: 7 })),

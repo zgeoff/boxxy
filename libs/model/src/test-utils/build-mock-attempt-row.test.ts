@@ -49,6 +49,12 @@ test('it sets the spawn request hash to the content hash of an overridden spawn 
   expect(attempt.spawnRequestHash).toBe(contentHash({ prompt: 'Check the upload' }));
 });
 
+test('it sets the spawn request hash to the content hash of a null spawn request', () => {
+  const attempt = buildMockAttemptRow({ spawnRequest: null });
+
+  expect(attempt.spawnRequestHash).toBe(contentHash(null));
+});
+
 test('it keeps an overridden spawn request hash', () => {
   const hash = contentHash({ prompt: 'Another request' });
 
