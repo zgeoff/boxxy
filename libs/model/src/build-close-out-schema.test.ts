@@ -19,6 +19,34 @@ test('it accepts a built close-out with cited evidence, an open item and frictio
   expect(built).toStrictEqual(closeOut);
 });
 
+test('it accepts an abandoned close-out with its reason', () => {
+  const closeOut = {
+    result: { kind: 'abandoned', reason: 'The upload service is gone' },
+    criteria: [],
+    openItems: [],
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  const parsed: unknown = buildCloseOutSchema.safeParse(closeOut).data;
+
+  expect(parsed).toStrictEqual(closeOut);
+});
+
+test('it rejects an abandoned result with no reason', () => {
+  const closeOut = {
+    result: { kind: 'abandoned' },
+    criteria: [],
+    openItems: [],
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  expect(buildCloseOutSchema.safeParse(closeOut).error?.issues).toPartiallyContain({
+    path: ['result', 'reason'],
+  });
+});
+
 test('it rejects a blocked result with no reason', () => {
   const closeOut = {
     result: { kind: 'blocked' },
