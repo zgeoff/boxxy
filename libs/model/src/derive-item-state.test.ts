@@ -243,6 +243,35 @@ test('it derives ready after an item.retry lever for a succeeded attempt with no
   expect(deriveItemState(item, rows)).toStrictEqual({ state: 'ready' });
 });
 
+test('it counts only the attempts that ended after the latest of two item.retry levers', () => {
+  const item = buildMockItemRow();
+
+  const rows = buildMockItemRows({
+    attempts: [
+      buildMockAttemptRow({
+        item: item.id,
+        state: 'failed',
+        endedAt: brandSchemas.instant.parse(2000),
+      }),
+    ],
+    levers: [
+      buildMockLeverRow({
+        item: item.id,
+        kind: 'item.retry',
+        at: brandSchemas.instant.parse(1000),
+      }),
+      buildMockLeverRow({
+        item: item.id,
+        kind: 'item.retry',
+        at: brandSchemas.instant.parse(3000),
+      }),
+    ],
+    maxAttempts: 1,
+  });
+
+  expect(deriveItemState(item, rows)).toStrictEqual({ state: 'ready' });
+});
+
 test('it counts a failed attempt that ended after the latest item.retry lever', () => {
   const item = buildMockItemRow();
 
