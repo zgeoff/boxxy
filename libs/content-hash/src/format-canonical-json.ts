@@ -7,18 +7,22 @@ export function formatCanonicalJson(value: JsonValue): string {
     return formatCanonicalNumber(value);
   }
 
-  // RFC 8785 writes literals and strings as ECMAScript's JSON.stringify does
-  if (value === null || typeof value === 'boolean' || typeof value === 'string') {
+  if (typeof value === 'string') {
+    return formatCanonicalString(value);
+  }
+
+  // RFC 8785 writes the literals as ECMAScript's JSON.stringify does
+  if (value === null || typeof value === 'boolean') {
     return JSON.stringify(value);
   }
 
   if (isJsonList(value)) {
-    return `[${value.map((item) => formatCanonicalJson(item)).join(',')}]`;
+    return formatCanonicalList(value);
   }
 
   const members = Object.entries(value)
     .toSorted(([left], [right]) => (left < right ? -1 : 1))
-    .map(([key, member]) => `${JSON.stringify(key)}:${formatCanonicalJson(member)}`);
+    .map(([key, member]) => `${formatCanonicalString(key)}:${formatCanonicalJson(member)}`);
 
   return `{${members.join(',')}}`;
 }
@@ -32,6 +36,24 @@ function formatCanonicalNumber(number: number): string {
   return JSON.stringify(number);
 }
 
+function formatCanonicalString(text: string): string {
+  // JSON.stringify escapes a lone surrogate, but RFC 8785 rejects a string that holds one
+  if (!text.isWellFormed()) {
+    throw new TypeError('RFC 8785 has no form for a string with a lone UTF-16 surrogate');
+  }
+
+  return JSON.stringify(text);
+}
+
 function isJsonList(value: JsonValue): value is readonly JsonValue[] {
   return Array.isArray(value);
+}
+
+function formatCanonicalList(list: readonly JsonValue[]): string {
+  // map() skips the holes of a sparse array, which would write `[,]` or hash like a shorter list
+  if (Object.keys(list).length !== list.length) {
+    throw new TypeError('RFC 8785 has no form for a sparse array');
+  }
+
+  return `[${list.map((item) => formatCanonicalJson(item)).join(',')}]`;
 }

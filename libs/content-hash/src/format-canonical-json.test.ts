@@ -39,3 +39,23 @@ test.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
     expect(() => formatCanonicalJson([number])).toThrow(TypeError);
   },
 );
+
+test('it throws on a string value with a lone UTF-16 surrogate', () => {
+  expect(() => formatCanonicalJson({ title: 'broken \uD800 text' })).toThrow(TypeError);
+});
+
+test('it throws on an object key with a lone UTF-16 surrogate', () => {
+  expect(() => formatCanonicalJson({ 'key \uDC00': 'value' })).toThrow(TypeError);
+});
+
+test('it writes a string with a surrogate pair as its character', () => {
+  expect(formatCanonicalJson('\uD83D\uDE00')).toBe('"\u{1F600}"');
+});
+
+test('it throws on a sparse array', () => {
+  const sparse: string[] = ['first'];
+
+  sparse.length = 2;
+
+  expect(() => formatCanonicalJson(sparse)).toThrow(TypeError);
+});

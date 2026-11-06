@@ -47,10 +47,8 @@
       "version": "0.1.0",
       "dependencies": {
         "@boxxy/content-hash": "workspace:*",
-        "zod": "catalog:",
-      },
-      "devDependencies": {
         "@faker-js/faker": "catalog:",
+        "zod": "catalog:",
       },
     },
     "modules/dispatch": {

@@ -32,10 +32,8 @@
   },
   "dependencies": {
     "@boxxy/content-hash": "workspace:*",
+    "@faker-js/faker": "catalog:",
     "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@faker-js/faker": "catalog:"
   },
   "engines": {
     "bun": ">=1.3",
