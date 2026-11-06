@@ -196,6 +196,53 @@ test('it derives ready for a waiting item after an item.retry lever', () => {
   expect(deriveItemState(item, rows)).toStrictEqual({ state: 'ready' });
 });
 
+test('it derives ready after an item.retry lever for a succeeded attempt with an open PR', () => {
+  const item = buildMockItemRow();
+
+  const succeeded = buildMockAttemptRow({
+    item: item.id,
+    state: 'succeeded',
+    endedAt: brandSchemas.instant.parse(1000),
+  });
+
+  const rows = buildMockItemRows({
+    attempts: [succeeded],
+    pullRequests: [buildMockPullRequestRow({ attempt: succeeded.id, state: 'open' })],
+    levers: [
+      buildMockLeverRow({
+        item: item.id,
+        kind: 'item.retry',
+        at: brandSchemas.instant.parse(3000),
+      }),
+    ],
+  });
+
+  expect(deriveItemState(item, rows)).toStrictEqual({ state: 'ready' });
+});
+
+test('it derives ready after an item.retry lever for a succeeded attempt with no PR', () => {
+  const item = buildMockItemRow();
+
+  const rows = buildMockItemRows({
+    attempts: [
+      buildMockAttemptRow({
+        item: item.id,
+        state: 'succeeded',
+        endedAt: brandSchemas.instant.parse(1000),
+      }),
+    ],
+    levers: [
+      buildMockLeverRow({
+        item: item.id,
+        kind: 'item.retry',
+        at: brandSchemas.instant.parse(3000),
+      }),
+    ],
+  });
+
+  expect(deriveItemState(item, rows)).toStrictEqual({ state: 'ready' });
+});
+
 test('it counts a failed attempt that ended after the latest item.retry lever', () => {
   const item = buildMockItemRow();
 
