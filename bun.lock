@@ -35,9 +35,21 @@
       "name": "@boxxy/cli",
       "version": "0.1.0",
     },
+    "libs/content-hash": {
+      "name": "@boxxy/content-hash",
+      "version": "0.0.0",
+      "dependencies": {
+        "zod": "catalog:",
+      },
+    },
     "libs/model": {
       "name": "@boxxy/model",
       "version": "0.1.0",
+      "dependencies": {
+        "@boxxy/content-hash": "workspace:*",
+        "@faker-js/faker": "catalog:",
+        "zod": "catalog:",
+      },
     },
     "modules/dispatch": {
       "name": "@boxxy/dispatch",
@@ -46,6 +58,7 @@
   },
   "catalog": {
     "@commitlint/cli": "21.2.4",
+    "@faker-js/faker": "10.6.0",
     "@maschwenk/tsrslint": "0.1.6",
     "@stylistic/eslint-plugin": "5.10.0",
     "@tsconfig/strictest": "2.0.8",
@@ -65,6 +78,7 @@
     "tsrs": "0.18.0-ts7.1.0-dev.20260929",
     "turbo": "2.11.10",
     "typescript": "7.0.2",
+    "zod": "4.6.7",
   },
   "packages": {
     "@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],
@@ -72,6 +86,8 @@
     "@babel/helper-validator-identifier": ["@babel/helper-validator-identifier@7.29.7", "", {}, "sha512-qehxGkRj55h/ff8EMaJ+cYhyaKlHIxqYDn682wQD7RNp9UujOQsHog2uS0r2vzr4pW+sXf90NeeayjcNaX3fFg=="],
 
     "@boxxy/cli": ["@boxxy/cli@workspace:apps/cli"],
+
+    "@boxxy/content-hash": ["@boxxy/content-hash@workspace:libs/content-hash"],
 
     "@boxxy/dispatch": ["@boxxy/dispatch@workspace:modules/dispatch"],
 
@@ -140,6 +156,8 @@
     "@eslint/object-schema": ["@eslint/object-schema@3.0.5", "", {}, "sha512-vqTaUEgxzm+YDSdElad6PiRoX4t8VGDjCtt05zn4nU810UIx/uNEV7/lZJ6KwFThKZOzOxzXy48da+No7HZaMw=="],
 
     "@eslint/plugin-kit": ["@eslint/plugin-kit@0.7.3", "", { "dependencies": { "@eslint/core": "^1.2.1", "levn": "^0.4.1" } }, "sha512-IkO+/KEUvwbVpiURZg+P7zF74z5Jxe0UgJxVni+RtoHQ6IZieXaO02kmadomap/q+l6bc/jdPGGqTjhuZnuz1Q=="],
+
+    "@faker-js/faker": ["@faker-js/faker@10.6.0", "", {}, "sha512-3RQHgEtvL1Frl/d1cSreo7qhJ3Gk1OdNUai/CtZ8G+wYeRQnJih3s9xJ9/kgYekPQRdwgh0HXRPqMlzWGwivIQ=="],
 
     "@humanfs/core": ["@humanfs/core@0.19.2", "", { "dependencies": { "@humanfs/types": "^0.15.0" } }, "sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA=="],
 

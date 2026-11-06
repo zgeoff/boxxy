@@ -14,7 +14,8 @@
 Decides which task a fleet of coding agents works on next, and measures what each task costs in
 tokens and money.
 
-**Status: workspace set up, no features yet.** Each package is a placeholder. The
+**Status: slice 1 in progress.** `@boxxy/model` and `@boxxy/content-hash` hold the shared types,
+schemas and hashes, and the other packages are placeholders. The
 [first build spec](./docs/design/boxxy/slice-1.md) sets out the first working version, which the
 design calls slice 1.
 
@@ -40,6 +41,7 @@ folder holds what, and which package may import which.
 | `@boxxy/dispatch`     | `modules/dispatch`      | claiming the next task, and settling each attempt  |
 | `@boxxy/store-sqlite` | `adapters/store-sqlite` | the store on SQLite                                |
 | `@boxxy/model`        | `libs/model`            | the types the packages share, and the fact catalog |
+| `@boxxy/content-hash` | `libs/content-hash`     | canonical JSON and the SHA-256 content hashes      |
 
 Every package publishes to npm. The [releasing runbook](./docs/runbooks/releasing.md) covers a
 release.

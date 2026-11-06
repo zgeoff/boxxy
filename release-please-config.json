@@ -22,6 +22,10 @@
       "component": "@boxxy/store-sqlite",
       "initial-version": "0.1.0"
     },
+    "libs/content-hash": {
+      "component": "@boxxy/content-hash",
+      "initial-version": "0.1.0"
+    },
     "libs/model": {
       "component": "@boxxy/model",
       "initial-version": "0.1.0"
