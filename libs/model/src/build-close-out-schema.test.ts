@@ -47,6 +47,20 @@ test('it rejects an abandoned result with no reason', () => {
   });
 });
 
+test.each([-1, 0.5])('it rejects a frictionDropped count of %p', (frictionDropped) => {
+  const closeOut = {
+    result: { kind: 'built' },
+    criteria: [],
+    openItems: [],
+    friction: [],
+    frictionDropped,
+  };
+
+  expect(buildCloseOutSchema.safeParse(closeOut).error?.issues).toPartiallyContain({
+    path: ['frictionDropped'],
+  });
+});
+
 test('it rejects a blocked result with no reason', () => {
   const closeOut = {
     result: { kind: 'blocked' },
