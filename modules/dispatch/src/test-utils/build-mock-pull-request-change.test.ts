@@ -47,3 +47,19 @@ test('it builds a change that links PR 7 with its evidence row and fact', () => 
     ],
   });
 });
+
+test('it links the PR number it is given in the row, the evidence and the fact', () => {
+  const attempt = buildMockAttemptRow();
+  const change = buildMockPullRequestChange({ attempt, state: 'open', number: 8 });
+  const linked: unknown = { writes: change.writes, payload: change.facts[0]?.payload };
+
+  expect(linked).toStrictEqual({
+    writes: [
+      expect.objectContaining({ row: expect.objectContaining({ number: 8 }) }),
+      expect.objectContaining({
+        row: expect.objectContaining({ ref: 'https://github.com/acme/lamps/pull/8' }),
+      }),
+    ],
+    payload: { repo: 'acme/lamps', number: 8, url: 'https://github.com/acme/lamps/pull/8' },
+  });
+});
