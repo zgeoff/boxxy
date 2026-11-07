@@ -86,7 +86,7 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
-    '#applyChange refuses a change under a stale lease generation whole',
+    '#applyChange returns stale-generation and writes no fact under a stale lease generation',
     async (store) => {
       const item = buildMockItemRow();
       const attempt = buildMockAttemptRow({ item: item.id, state: 'starting' });
@@ -238,6 +238,50 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
         table: 'items',
         key: { id: item.id },
       });
+    },
+  ],
+  [
+    '#applyChange matches a JSON column guard whose keys come in another order',
+    async (store) => {
+      const criterion = {
+        id: brandSchemas.criterionId.parse('a1'),
+        text: 'The gate swings shut',
+        evidence: [],
+      };
+
+      const item = buildMockItemRow({ acceptance: [criterion] });
+
+      await store.exclusive((tx) => tx.applyChange(buildMockFileItemChange(item)));
+
+      const result = await store.exclusive((tx) =>
+        tx.applyChange({
+          at: brandSchemas.instant.parse(3000),
+          writes: [
+            {
+              op: 'update',
+              table: 'items',
+              key: { id: item.id },
+              expect: {
+                acceptance: [
+                  { evidence: criterion.evidence, text: criterion.text, id: criterion.id },
+                ],
+              },
+              set: { title: 'Mend the gate' },
+            },
+          ],
+          facts: [
+            {
+              id: buildMockFactId(),
+              type: 'boxxy.item.edited',
+              entity: `boxxy:item:${item.id}`,
+              actor: 'boxxy:owner:local',
+              payload: { title: 'Mend the gate' },
+            },
+          ],
+        }),
+      );
+
+      expect(result).toStrictEqual({ kind: 'applied', slot: null });
     },
   ],
   [

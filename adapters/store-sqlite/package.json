@@ -30,6 +30,7 @@
     "typecheck": "tsrs --noEmit"
   },
   "dependencies": {
+    "@boxxy/content-hash": "workspace:*",
     "@boxxy/model": "workspace:*",
     "@zgeoff/kysely-bun-sqlite": "catalog:",
     "kysely": "catalog:",

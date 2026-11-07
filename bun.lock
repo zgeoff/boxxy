@@ -31,6 +31,7 @@
       "name": "@boxxy/store-sqlite",
       "version": "0.1.0",
       "dependencies": {
+        "@boxxy/content-hash": "workspace:*",
         "@boxxy/model": "workspace:*",
         "@zgeoff/kysely-bun-sqlite": "catalog:",
         "kysely": "catalog:",

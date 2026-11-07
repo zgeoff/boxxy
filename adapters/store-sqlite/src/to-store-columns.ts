@@ -1,3 +1,5 @@
+import { formatCanonicalJson } from '@boxxy/content-hash';
+import { toJsonValue } from '@boxxy/model';
 import type { TableName } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { tableCodecs } from './table-codecs.ts';
@@ -5,8 +7,7 @@ import { toColumnName } from './to-column-name.ts';
 
 export type StoreValue = string | number | null;
 
-// Each column of a partial row, with its value as SQLite stores it. A field outside the table's
-// codec fails, so no caller's key reaches the SQL as a column name.
+// a field outside the table's codec fails, so no caller's key reaches the SQL as a column name
 export function toStoreColumns(table: TableName, fields: object): [string, StoreValue][] {
   const codec = tableCodecs[table];
 
@@ -26,7 +27,8 @@ function toStoreValue(value: unknown, isJSON: boolean): StoreValue {
   }
 
   if (isJSON) {
-    return JSON.stringify(value);
+    // an update compares the stored text, so two objects with their keys in another order match
+    return formatCanonicalJson(toJsonValue(value));
   }
 
   if (typeof value === 'boolean') {
