@@ -622,9 +622,11 @@ the example uses bare names.
 - **The loader rejects** each of these, and reports it with the file, the path in the file, such as
   `pools[0].order[1]`, and the reason. It returns every rejection it finds in one result.
   - a checkout with no `rules.yaml`, or a `rules.yaml` that isn't valid YAML, or that fails the
-    file's schema (`invalid`). The schema refuses an unknown field, the key `__proto__`, a pipeline
-    phase with no `maxAttempts`, a concept pinned twice and two pools with one name. Two pinned
-    concepts that register one plug-in name are `invalid` too, at the second concept's entry;
+    file's schema (`invalid`). The schema refuses an unknown field, a pipeline phase with no
+    `maxAttempts`, a concept pinned twice and two pools with one name. Two pinned concepts that
+    register one plug-in name are `invalid` too, at the second concept's entry. Before the schema
+    check, the loader refuses each `__proto__` key, and a file with one gets only those
+    rejections;
   - an unknown concept name, or a known name at a version no concept has;
   - a pool whose `order` or `lead` names a signal no pinned concept registers;
   - a plug-in reference whose parameters fail the plug-in's `params` schema (`bad-plugin-params`).
