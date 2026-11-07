@@ -15,6 +15,7 @@ export { defineSignal } from './define-signal.ts';
 export { deriveItemState } from './derive-item-state.ts';
 export { factSchemas } from './fact-schemas.ts';
 export { findSlotTake, type SlotTake } from './find-slot-take.ts';
+export { formatKeyPath } from './format-key-path.ts';
 export { frictionSchema } from './friction-schema.ts';
 export { liveLevers } from './live-levers.ts';
 export { outboxFactSchema } from './outbox-fact-schema.ts';
