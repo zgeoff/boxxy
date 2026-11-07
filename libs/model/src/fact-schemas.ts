@@ -1,15 +1,9 @@
 import { z } from 'zod';
+import { actorRefSchema } from './actor-ref-schema.ts';
 import { brandSchemas } from './brand-schemas.ts';
 import { buildCloseOutSchema } from './build-close-out-schema.ts';
 import { frictionSchema } from './friction-schema.ts';
 import type { FactType, SliceOneFacts } from './types/facts.ts';
-
-const actorRefSchema = z.union([
-  z.literal('boxxy:owner:local'),
-  z.templateLiteral(['boxxy:runner:', brandSchemas.runnerId]),
-  z.templateLiteral(['boxxy:attempt:', brandSchemas.attemptId]),
-  z.templateLiteral(['boxxy:hook:', brandSchemas.attemptId]),
-]);
 
 const criterionSchema = z.object({
   id: brandSchemas.criterionId,

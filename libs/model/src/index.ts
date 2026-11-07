@@ -14,8 +14,11 @@ export { defineGate } from './define-gate.ts';
 export { defineSignal } from './define-signal.ts';
 export { deriveItemState } from './derive-item-state.ts';
 export { factSchemas } from './fact-schemas.ts';
+export { findSlotTake, type SlotTake } from './find-slot-take.ts';
 export { frictionSchema } from './friction-schema.ts';
 export { liveLevers } from './live-levers.ts';
+export { outboxFactSchema } from './outbox-fact-schema.ts';
+export { rowSchemas } from './row-schemas.ts';
 export { signalKey } from './signal-key.ts';
 export { toJsonValue } from './to-json-value.ts';
 

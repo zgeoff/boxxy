@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
-import { buildAppliedChange, buildItemViews, toJsonValue } from '@boxxy/model';
+import { buildAppliedChange, buildItemViews, findSlotTake, toJsonValue } from '@boxxy/model';
 import type {
   ApplyResult,
   AttemptRow,
@@ -9,11 +9,13 @@ import type {
   ItemSetRows,
   ItemView,
   ItemWithLevers,
+  LinkRow,
   MaxAttemptsByKind,
   OutboxFact,
   PoolName,
   PullRequestRow,
   RowWrite,
+  SlotTake,
   StoreChange,
   StoreReader,
   StoreTx,
@@ -136,7 +138,7 @@ function buildMemoryReader(getTables: () => MemoryTables): StoreReader {
       return Promise.resolve({
         storeVersion: getTables().outbox.length,
         items: open.map((item) => toItemView(item)),
-        links: getTables().links.filter((link) => link.removedAt === null),
+        links: sortLinks(getTables().links.filter((link) => link.removedAt === null)),
         levers: open
           .flatMap((item) => item.levers)
           .toSorted((first, second) => first.seq - second.seq),
@@ -161,14 +163,11 @@ function buildMemoryReader(getTables: () => MemoryTables): StoreReader {
 
       const attemptIds = new Set(attempts.map((attempt) => attempt.id));
 
-      const links = tables.links
-        .filter((link) => link.removedAt === null && (link.source === id || link.target === id))
-        .toSorted(
-          (first, second) =>
-            first.addedAt - second.addedAt ||
-            compareText(first.source, second.source) ||
-            compareText(first.target, second.target),
-        );
+      const links = sortLinks(
+        tables.links.filter(
+          (link) => link.removedAt === null && (link.source === id || link.target === id),
+        ),
+      );
 
       return Promise.resolve({
         item,
@@ -297,6 +296,15 @@ function toItemView(item: ItemWithLevers): ItemView {
   return view;
 }
 
+function sortLinks(links: readonly LinkRow[]): LinkRow[] {
+  return links.toSorted(
+    (first, second) =>
+      first.addedAt - second.addedAt ||
+      compareText(first.source, second.source) ||
+      compareText(first.target, second.target),
+  );
+}
+
 function collectFreeSlots(tables: MemoryTables): Record<PoolName, number> {
   const free: Record<PoolName, number> = {};
 
@@ -331,7 +339,7 @@ function applyMemoryChange(tables: MemoryTables, change: StoreChange): ApplyResu
   }
 
   const before = structuredClone(tables);
-  const take = findOneTake(change.writes);
+  const take = findSlotTake(change.writes);
   const taken = take === null ? null : takeMemorySlot(tables, take);
 
   if (take !== null && taken === null) {
@@ -400,17 +408,7 @@ function hasLiveUnder(tables: MemoryTables, under: StoreChange['under']): boolea
   );
 }
 
-type TakeSlot = Extract<RowWrite, { op: 'take-slot' }>;
-
-function findOneTake(writes: readonly RowWrite[]): TakeSlot | null {
-  const takes = writes.filter((write): write is TakeSlot => write.op === 'take-slot');
-
-  invariant(takes.length <= 1, 'a change takes one slot at most');
-
-  return takes.at(0) ?? null;
-}
-
-function takeMemorySlot(tables: MemoryTables, take: TakeSlot): TakenSlot | null {
+function takeMemorySlot(tables: MemoryTables, take: SlotTake): TakenSlot | null {
   const free = tables.pool_slots
     .filter((row) => row.pool === take.pool && row.holder === null && !row.retired)
     .toSorted((first, second) => first.slot - second.slot)
