@@ -18,7 +18,7 @@ function parseBuildCloseOut(raw: unknown, ctx: CloseOutContext): CloseOutParse<B
   if (!parsed.success) {
     return {
       kind: 'invalid',
-      problems: parsed.error.issues.map((issue) => buildSchemaProblem(issue, split.keptIndexes)),
+      problems: parsed.error.issues.map((issue) => buildSchemaProblem(issue, split.keptRawIndexes)),
     };
   }
 
@@ -31,26 +31,24 @@ function parseBuildCloseOut(raw: unknown, ctx: CloseOutContext): CloseOutParse<B
 
 interface FrictionSplit {
   readonly candidate: unknown;
-
-  // the raw index of each friction entry the candidate keeps, in order
-  readonly keptIndexes: readonly number[];
+  readonly keptRawIndexes: readonly number[];
 }
 
 function splitFriction(raw: unknown): FrictionSplit {
   if (!isRecord(raw)) {
-    return { candidate: raw, keptIndexes: [] };
+    return { candidate: raw, keptRawIndexes: [] };
   }
 
   const entries: readonly unknown[] = Array.isArray(raw['friction']) ? raw['friction'] : [];
-  const keptIndexes = entries.flatMap((entry, index) => (isUntargeted(entry) ? [] : [index]));
+  const keptRawIndexes = entries.flatMap((entry, index) => (isUntargeted(entry) ? [] : [index]));
 
   const friction = Array.isArray(raw['friction'])
-    ? keptIndexes.map((index) => entries[index])
+    ? keptRawIndexes.map((index) => entries[index])
     : raw['friction'];
 
   return {
-    candidate: { ...raw, friction, frictionDropped: entries.length - keptIndexes.length },
-    keptIndexes,
+    candidate: { ...raw, friction, frictionDropped: entries.length - keptRawIndexes.length },
+    keptRawIndexes,
   };
 }
 
@@ -67,22 +65,25 @@ interface SchemaIssue {
   readonly message: string;
 }
 
-function buildSchemaProblem(issue: SchemaIssue, keptIndexes: readonly number[]): CloseOutProblem {
+function buildSchemaProblem(
+  issue: SchemaIssue,
+  keptRawIndexes: readonly number[],
+): CloseOutProblem {
   return {
     kind: 'schema',
-    path: formatKeyPath(toRawPath(issue.path, keptIndexes)),
+    path: formatKeyPath(toRawPath(issue.path, keptRawIndexes)),
     message: issue.message,
   };
 }
 
-function toRawPath(path: readonly PropertyKey[], keptIndexes: readonly number[]): PropertyKey[] {
+function toRawPath(path: readonly PropertyKey[], keptRawIndexes: readonly number[]): PropertyKey[] {
   const [field, index, ...rest] = path;
 
   if (field !== 'friction' || typeof index !== 'number') {
     return [...path];
   }
 
-  const rawIndex = keptIndexes[index];
+  const rawIndex = keptRawIndexes[index];
 
   invariant(rawIndex !== undefined, 'a friction issue points at an entry the parser kept');
 
