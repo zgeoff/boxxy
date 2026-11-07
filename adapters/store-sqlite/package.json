@@ -29,6 +29,17 @@
     "build": "rm -rf dist && tsrs -p tsconfig.build.json",
     "typecheck": "tsrs --noEmit"
   },
+  "dependencies": {
+    "@boxxy/model": "workspace:*",
+    "@zgeoff/kysely-bun-sqlite": "catalog:",
+    "kysely": "catalog:",
+    "tiny-invariant": "catalog:",
+    "ts-pattern": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@boxxy/dispatch": "workspace:*"
+  },
   "engines": {
     "bun": ">=1.3",
     "node": ">=24"
