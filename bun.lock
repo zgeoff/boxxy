@@ -68,7 +68,7 @@
     "@zgeoff/commitlint-config": "0.1.0",
     "@zgeoff/format-codemod": "0.3.5",
     "@zgeoff/oxfmt-config": "0.1.0",
-    "@zgeoff/oxlint-config": "0.8.6",
+    "@zgeoff/oxlint-config": "0.10.0",
     "@zgeoff/skill-gate": "0.2.25",
     "knip": "6.43.0",
     "lefthook": "2.2.2",
@@ -445,7 +445,7 @@
 
     "@zgeoff/oxfmt-config": ["@zgeoff/oxfmt-config@0.1.0", "", { "peerDependencies": { "oxfmt": ">=0.56.0" } }, "sha512-DS79sjXQLVAqql36hr3yknd9eD5p2oBod1cuEff1GsQoG3EX3Ge2pDmpJiEgahsWA4uwJIoxZthUbsnAuIzVog=="],
 
-    "@zgeoff/oxlint-config": ["@zgeoff/oxlint-config@0.8.6", "", { "dependencies": { "@stylistic/eslint-plugin": "5.10.0" }, "peerDependencies": { "oxlint": ">=1.78.0" } }, "sha512-gBnGBTPgUNK3j4S6CDMwMlGMxPrjmcdDSLAiXs0bAl252PMBILMujeqGnmBZ6NVo+WwCAHvWQFrsjixHozl1DA=="],
+    "@zgeoff/oxlint-config": ["@zgeoff/oxlint-config@0.10.0", "", { "dependencies": { "@stylistic/eslint-plugin": "5.10.0" }, "peerDependencies": { "oxlint": ">=1.78.0" } }, "sha512-uR/niINMViL6AEbrIMb1CG3ugMpNPsWtyLbT0unTJA5HL8OVUYPLPk13Mvi5K2JOVYbT6ke/oRiv1S/vQ4fU+Q=="],
 
     "@zgeoff/skill-gate": ["@zgeoff/skill-gate@0.2.25", "", { "dependencies": { "@zgeoff/agent-hooks": "0.2.9" } }, "sha512-KW+YiBBfrHX/UctIu6OJqhsucFEBI8Z/KJVBUw+Jiu12O5L+d43KUpzJu5/2Qo9AmDTOQVR//hNkDNockhmfzA=="],
 
