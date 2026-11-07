@@ -12,7 +12,6 @@ export interface SQLiteClaimStore extends ClaimStore {
   close: () => Promise<void>;
 }
 
-// Opens the store file, creates it when it's missing, and runs the migrations it hasn't run.
 export async function createSQLiteClaimStore(path: string): Promise<SQLiteClaimStore> {
   const writer = openStoreHandle(path);
   const reader = openStoreHandle(path);
@@ -70,7 +69,13 @@ async function withTransaction<T>(
 
     return result;
   } catch (error) {
-    await sql`ROLLBACK`.execute(db);
+    // SQLite ends the transaction by itself after some errors, such as a full disk, and ROLLBACK
+    // then fails; its error joins the first one, never replaces it
+    await sql`ROLLBACK`.execute(db).catch((rollbackError: unknown) => {
+      throw new AggregateError([error, rollbackError], 'the work failed, and so did its rollback', {
+        cause: error,
+      });
+    });
 
     throw error;
   }

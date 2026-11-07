@@ -8,8 +8,8 @@ import { toStoreColumns } from './to-store-columns.ts';
 import type { StoreValue } from './to-store-columns.ts';
 import type { StoreDatabase } from './types.ts';
 
-// Runs inside the caller's transaction. A savepoint undoes the writes of a refused change, so a
-// refusal writes nothing, and the caller's earlier changes stay.
+// A savepoint, not the transaction, so a refusal keeps the caller's earlier changes in the same
+// exclusive call. The caller runs one change at a time, so one savepoint name is enough.
 export async function applySQLiteChange(
   db: Kysely<StoreDatabase>,
   change: StoreChange,
@@ -18,20 +18,21 @@ export async function applySQLiteChange(
 
   await sql`SAVEPOINT apply_change`.execute(db);
 
-  const result = await writeSQLiteChange(db, change).catch(async (error: unknown) => {
-    await sql`ROLLBACK TO apply_change`.execute(db);
+  try {
+    const result = await writeSQLiteChange(db, change);
+
+    if (result.kind !== 'applied') {
+      await sql`ROLLBACK TO apply_change`.execute(db);
+    }
+
     await sql`RELEASE apply_change`.execute(db);
 
+    return result;
+  } catch (error) {
+    await removeSavepoint(db, error);
+
     throw error;
-  });
-
-  if (result.kind !== 'applied') {
-    await sql`ROLLBACK TO apply_change`.execute(db);
   }
-
-  await sql`RELEASE apply_change`.execute(db);
-
-  return result;
 }
 
 async function writeSQLiteChange(
@@ -117,8 +118,6 @@ async function probeLiveUnder(
   return slot !== undefined;
 }
 
-// The guarded update from the store schema: it takes the lowest free slot that isn't retired, and
-// changes no row when the pool has none.
 async function writeSlotTake(db: Kysely<StoreDatabase>, take: SlotTake): Promise<TakenSlot | null> {
   const lowest = db
     .selectFrom('pool_slots')
@@ -159,7 +158,7 @@ function writeSQLiteRow(db: Kysely<StoreDatabase>, write: RowWrite): Promise<App
     .with({ op: 'insert', table: 'leases' }, async (insert) => {
       const columns = toStoreColumns(insert.table, insert.row);
 
-      // the partial unique index on leases refuses a second live lease on one item phase
+      // ON CONFLICT names the partial unique index, so SQLite skips a second live lease, not throws
       const result = await sql`${buildInsert(insert.table, columns)}
         ON CONFLICT (item, phase) WHERE released_at IS NULL DO NOTHING`.execute(db);
 
@@ -205,4 +204,17 @@ function buildGuards(guards: [string, StoreValue][]): RawBuilder<unknown> {
     guards.map(([column, value]) => sql`${sql.ref(column)} IS ${value}`),
     sql` AND `,
   );
+}
+
+// SQLite rolls the whole transaction back by itself after some errors, such as a full disk, and the
+// savepoint is gone; the rollback's own error then joins the first one, never replaces it.
+async function removeSavepoint(db: Kysely<StoreDatabase>, cause: unknown): Promise<void> {
+  try {
+    await sql`ROLLBACK TO apply_change`.execute(db);
+    await sql`RELEASE apply_change`.execute(db);
+  } catch (rollbackError) {
+    throw new AggregateError([cause, rollbackError], 'the change failed, and so did its rollback', {
+      cause: rollbackError,
+    });
+  }
 }

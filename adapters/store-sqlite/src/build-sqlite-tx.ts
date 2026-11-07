@@ -5,9 +5,26 @@ import { buildSQLiteReader } from './build-sqlite-reader.ts';
 import type { StoreDatabase } from './types.ts';
 
 export function buildSQLiteTx(db: Kysely<StoreDatabase>): StoreTx {
+  // Calls started together would interleave their statements on the one connection and share the
+  // change's savepoint, so each change waits for the one before it.
+  let turn: Promise<unknown> = Promise.resolve();
+
   return {
     ...buildSQLiteReader(db),
-    applyChange: (change) => applySQLiteChange(db, change),
+    applyChange: async (change) => {
+      const previous = turn;
+      const next = Promise.withResolvers<void>();
+
+      turn = next.promise;
+
+      await previous;
+
+      try {
+        return await applySQLiteChange(db, change);
+      } finally {
+        next.resolve();
+      }
+    },
     markFactsSent: async (ids, at) => {
       if (ids.length === 0) {
         return;
