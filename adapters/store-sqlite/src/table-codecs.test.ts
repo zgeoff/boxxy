@@ -21,7 +21,9 @@ async function setupTest() {
 
   const sqlite = new Database(path, { readonly: true });
 
-  onTestFinished(() => sqlite.close());
+  onTestFinished(() => {
+    sqlite.close();
+  });
 
   return {
     readColumns: (table: string) =>

@@ -16,7 +16,9 @@ async function setupTest() {
 
   const sqlite = new Database(join(folder, 'store.db'), { create: true });
 
-  onTestFinished(() => sqlite.close());
+  onTestFinished(() => {
+    sqlite.close();
+  });
 
   const db = new Kysely<StoreDatabase>({ dialect: buildSQLiteDialect(sqlite) });
 
