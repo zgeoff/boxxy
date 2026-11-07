@@ -13,13 +13,29 @@ export interface SQLiteClaimStore extends ClaimStore {
 }
 
 export async function createSQLiteClaimStore(path: string): Promise<SQLiteClaimStore> {
+  await using opened = new AsyncDisposableStack();
+
   const writer = openStoreHandle(path);
+
+  opened.defer(() => {
+    writer.close();
+  });
+
   const reader = openStoreHandle(path);
+
+  opened.defer(() => {
+    reader.close();
+  });
 
   const writerDB = new Kysely<StoreDatabase>({ dialect: buildSQLiteDialect(writer) });
   const readerDB = new Kysely<StoreDatabase>({ dialect: buildSQLiteDialect(reader) });
 
+  opened.defer(() => readerDB.destroy());
+  opened.defer(() => writerDB.destroy());
+
   await runStoreMigrations(writerDB);
+
+  const handles = opened.move();
 
   return {
     // Kysely holds the one connection of a handle from acquire to release, so two calls on this
@@ -35,13 +51,7 @@ export async function createSQLiteClaimStore(path: string): Promise<SQLiteClaimS
         .connection()
         .execute((db) => withTransaction(db, sql`BEGIN`, () => work(buildSQLiteReader(db)))),
 
-    close: async () => {
-      await writerDB.destroy();
-      await readerDB.destroy();
-
-      reader.close();
-      writer.close();
-    },
+    close: () => handles.disposeAsync(),
   };
 }
 
