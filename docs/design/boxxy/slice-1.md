@@ -622,8 +622,9 @@ the example uses bare names.
 - **The loader rejects** each of these, and reports it with the file, the path in the file, such as
   `pools[0].order[1]`, and the reason. It returns every rejection it finds in one result.
   - a checkout with no `rules.yaml`, or a `rules.yaml` that isn't valid YAML, or that fails the
-    file's schema (`invalid`). The schema refuses an unknown field, a pipeline phase with no
-    `maxAttempts`, a concept pinned twice and two pools with one name;
+    file's schema (`invalid`). The schema refuses an unknown field, the key `__proto__`, a pipeline
+    phase with no `maxAttempts`, a concept pinned twice and two pools with one name. Two pinned
+    concepts that register one plug-in name are `invalid` too, at the second concept's entry;
   - an unknown concept name, or a known name at a version no concept has;
   - a pool whose `order` or `lead` names a signal no pinned concept registers;
   - a plug-in reference whose parameters fail the plug-in's `params` schema (`bad-plugin-params`).
@@ -631,12 +632,14 @@ the example uses bare names.
   - a propagation line over a link type other than `blocks`, or for a signal with no `combine`;
   - a kind with no recipe for a pipeline phase, or one that names a recipe `recipes` doesn't
     define;
-  - a missing prompt file. A recipe's `prompt` is a path relative to the checkout's root.
+  - a missing prompt file. A recipe's `prompt` is the file's path from the checkout's root, with
+    `/` between folders. The schema refuses an empty, `.` or `..` folder in it.
 
   The server checks the checkout for uncommitted changes before it calls the loader, and reports
   them as `uncommitted-changes`.
 - **A pool's `takes` maps each filter field to one name or a list of names.** The loader turns one
-  name into a list of one. A kind's `pipeline` list becomes a pipeline named after the kind.
+  name into a list of one. A kind's `pipeline` list becomes a pipeline named after the kind. A
+  pool's order holds each signal key once: a signal that `lead` names keeps its place from `lead`.
 - **The loader resolves every plug-in reference** to its plug-in and its parsed parameters, and
   `LoadedRules` carries them ([`01-registries.ts`](./sketches/01-registries.ts)), so `buildFrame`
   calls each plug-in with its own parameters. A bare name parses `{}`. A signal's key is
@@ -653,7 +656,9 @@ the example uses bare names.
   the repo tool `scripts/concept-pins.ts`, which hashes each concept's source and writes the module
   `src/generated/concept-pins.ts`. The module is committed, and the root check fails when it is
   stale. The server imports `concepts` and `conceptPins` from `@boxxy/planning`, and passes both to
-  `loadRules`. `@boxxy/rules` never imports `@boxxy/planning`.
+  `loadRules`. `@boxxy/rules` never imports `@boxxy/planning`. The pins are keyed by concept name,
+  so the server compiles in one version of each concept, and passes a pin for each one. The loader
+  throws when a pinned concept has no matching pin, because only a server bug reaches that.
 - **The server checks the checkout for a new commit each tick**, and reloads the rules by
   [the rules version](./rules.md#the-rules-version) rule. `boxxy status` shows a rejected commit.
 - **The recipe hash** is the content hash of the recipe's fields, the prompt template's bytes, the

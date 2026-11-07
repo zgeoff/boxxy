@@ -1,4 +1,4 @@
-import type { LoadRejection, Resolved, SignalKey } from '@boxxy/model';
+import type { Concept, LoadRejection, Resolved, SignalKey } from '@boxxy/model';
 
 export interface Checked<T> {
   readonly value: T | null;
@@ -8,4 +8,9 @@ export interface Checked<T> {
 export interface ResolvedSignal {
   readonly key: SignalKey;
   readonly resolved: Resolved<'signal'>;
+}
+
+export interface PinnedConcept {
+  readonly concept: Concept;
+  readonly entryIndex: number;
 }

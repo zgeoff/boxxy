@@ -59,6 +59,11 @@ function setupTest() {
         }),
       ],
     },
+    {
+      name: 'age',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
   ];
 
   const pins = new Map(
@@ -405,7 +410,51 @@ recipes:
   });
 });
 
-test('it rejects a pipeline phase with no maxAttempts as invalid', () => {
+test.each(['build', 'constructor'])(
+  'it rejects the pipeline phase %s with no maxAttempts as invalid',
+  (phase) => {
+    const ctx = setupTest();
+
+    const result: unknown = loadRules({
+      checkout: {
+        commit: '3f2a1c0',
+        files: new Map([
+          [
+            'rules.yaml',
+            new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+kinds:
+  core.issue: { pipeline: [${phase}], maxAttempts: {}, recipes: { ${phase}: build-v1 } }
+pools:
+  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+lead: []
+propagation: []
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+`),
+          ],
+          ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+        ]),
+      },
+      concepts: ctx.concepts,
+      pins: ctx.pins,
+    });
+
+    expect(result).toStrictEqual({
+      kind: 'rejected',
+      rejections: [
+        {
+          file: 'rules.yaml',
+          path: `kinds["core.issue"].maxAttempts.${phase}`,
+          reason: { kind: 'invalid', message: `the pipeline phase ${phase} has no maxAttempts` },
+        },
+      ],
+    });
+  },
+);
+
+test('it rejects the reserved key __proto__ as invalid', () => {
   const ctx = setupTest();
 
   const result: unknown = loadRules({
@@ -418,7 +467,7 @@ test('it rejects a pipeline phase with no maxAttempts as invalid', () => {
 version: 1
 concepts: [pool@1]
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: {}, recipes: { build: build-v1 } }
+  __proto__: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
 pools:
   - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
 lead: []
@@ -439,11 +488,130 @@ recipes:
     rejections: [
       {
         file: 'rules.yaml',
-        path: 'kinds["core.issue"].maxAttempts.build',
-        reason: { kind: 'invalid', message: 'the pipeline phase build has no maxAttempts' },
+        path: 'kinds.__proto__',
+        reason: { kind: 'invalid', message: 'the key __proto__ is reserved' },
       },
     ],
   });
+});
+
+test('it rejects two pinned concepts that register one plug-in name as invalid', () => {
+  const ctx = setupTest();
+
+  const result: unknown = loadRules({
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1, age@1]
+kinds:
+  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+pools:
+  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+lead: []
+propagation: []
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+      ]),
+    },
+    concepts: ctx.concepts,
+    pins: ctx.pins,
+  });
+
+  expect(result).toStrictEqual({
+    kind: 'rejected',
+    rejections: [
+      {
+        file: 'rules.yaml',
+        path: 'concepts[1]',
+        reason: { kind: 'invalid', message: 'the concepts pool and age both register oldest' },
+      },
+    ],
+  });
+});
+
+test('it rejects a prompt path with a "." folder as invalid', () => {
+  const ctx = setupTest();
+
+  const result: unknown = loadRules({
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+kinds:
+  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+pools:
+  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+lead: []
+propagation: []
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: ./prompts/build-v1.md, source: subscription }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+      ]),
+    },
+    concepts: ctx.concepts,
+    pins: ctx.pins,
+  });
+
+  expect(result).toStrictEqual({
+    kind: 'rejected',
+    rejections: [
+      {
+        file: 'rules.yaml',
+        path: 'recipes.build-v1.prompt',
+        reason: { kind: 'invalid', message: expect.any(String) },
+      },
+    ],
+  });
+});
+
+test('it puts a signal that lead and a pool order both name once in the pool order', () => {
+  const ctx = setupTest();
+
+  const result = loadRules({
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1, expedite@1]
+kinds:
+  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+pools:
+  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest, expedite] }
+lead: [expedite]
+propagation: []
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+      ]),
+    },
+    concepts: ctx.concepts,
+    pins: ctx.pins,
+  });
+
+  invariant(result.kind === 'loaded');
+
+  expect(result.rules.pools[0]?.order).toStrictEqual([
+    signalKey('expedite', {}),
+    signalKey('oldest', {}),
+  ]);
 });
 
 test('it rejects a concept pinned twice as invalid', () => {
@@ -487,7 +655,10 @@ recipes:
   });
 });
 
-test('it rejects an unknown concept name', () => {
+test.each([
+  ['an unknown concept name', 'triage@1'],
+  ['a known concept name at a version no concept has', 'expedite@2'],
+])('it rejects %s', (_, ref) => {
   const ctx = setupTest();
 
   const result: unknown = loadRules({
@@ -498,7 +669,7 @@ test('it rejects an unknown concept name', () => {
           'rules.yaml',
           new TextEncoder().encode(`
 version: 1
-concepts: [pool@1, triage@1]
+concepts: [pool@1, ${ref}]
 kinds:
   core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
 pools:
@@ -522,7 +693,7 @@ recipes:
       {
         file: 'rules.yaml',
         path: 'concepts[1]',
-        reason: { kind: 'unknown-concept', ref: 'triage@1' },
+        reason: { kind: 'unknown-concept', ref },
       },
     ],
   });
@@ -789,6 +960,7 @@ recipes:
 test.each([
   ['no recipe entry', '{}'],
   ['a recipe name the rules file does not define', '{ build: build-v2 }'],
+  ['a recipe name every object inherits', '{ build: toString }'],
 ])('it rejects a kind with %s for a pipeline phase', (_, recipes) => {
   const ctx = setupTest();
 

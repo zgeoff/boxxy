@@ -1,4 +1,4 @@
-import type { Effort, RulesFile } from '@boxxy/model';
+import type { Effort, PipelineStep, RulesFile } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { z } from 'zod';
 import { parseConceptEntry } from './parse-concept-entry.ts';
@@ -18,16 +18,27 @@ const kindSchema = z
     maxAttempts: z.record(brandSchemas.phaseName, z.int().positive()),
     recipes: z.record(brandSchemas.phaseName, brandSchemas.recipeName),
   })
-  .superRefine((kind, ctx) => {
+  .transform((kind, ctx) => {
+    const steps: PipelineStep[] = [];
+
     for (const phase of kind.pipeline) {
-      if (kind.maxAttempts[phase] === undefined) {
-        ctx.addIssue({
+      const maxAttempts = Object.hasOwn(kind.maxAttempts, phase)
+        ? kind.maxAttempts[phase]
+        : undefined;
+
+      if (maxAttempts === undefined) {
+        ctx.issues.push({
           code: 'custom',
+          input: kind.maxAttempts,
           path: ['maxAttempts', phase],
           message: `the pipeline phase ${phase} has no maxAttempts`,
         });
+      } else {
+        steps.push({ phase, maxAttempts });
       }
     }
+
+    return { ...kind, steps };
   });
 
 const takesValueSchema = z.union([nameSchema, z.array(nameSchema).min(1)]);
@@ -45,7 +56,9 @@ const recipeSchema = z.strictObject({
   agent: nameSchema,
   model: nameSchema,
   effort: z.enum(efforts),
-  prompt: nameSchema,
+  prompt: nameSchema.refine(isCheckoutPath, {
+    message: 'a prompt path runs from the checkout root, with no empty, "." or ".." folder',
+  }),
   source: brandSchemas.sourceName,
 });
 
@@ -93,3 +106,7 @@ export const rulesFileSchema = z
   }) satisfies z.ZodType<RulesFile>;
 
 export type ParsedRulesFile = z.output<typeof rulesFileSchema>;
+
+function isCheckoutPath(path: string): boolean {
+  return path.split('/').every((segment) => segment !== '' && segment !== '.' && segment !== '..');
+}

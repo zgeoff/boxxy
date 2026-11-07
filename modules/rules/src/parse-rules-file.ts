@@ -49,6 +49,18 @@ function toPlainValue(document: Document): PlainValue {
 }
 
 function parseRulesValue(fileName: string, value: unknown): RulesFileParse {
+  // zod's record schema drops a `__proto__` key with no issue, so the loader would miss its value
+  const protoKeyPaths = collectProtoKeyPaths(value, []);
+
+  if (protoKeyPaths.length > 0) {
+    return {
+      kind: 'rejected',
+      rejections: protoKeyPaths.map((path) =>
+        buildInvalid(fileName, formatRulesPath(path), 'the key __proto__ is reserved'),
+      ),
+    };
+  }
+
   const checked = rulesFileSchema.safeParse(value);
 
   if (!checked.success) {
@@ -61,4 +73,18 @@ function parseRulesValue(fileName: string, value: unknown): RulesFileParse {
   }
 
   return { kind: 'parsed', file: checked.data };
+}
+
+function collectProtoKeyPaths(value: unknown, path: readonly PropertyKey[]): PropertyKey[][] {
+  if (Array.isArray(value)) {
+    return value.flatMap((item: unknown, index) => collectProtoKeyPaths(item, [...path, index]));
+  }
+
+  if (typeof value !== 'object' || value === null) {
+    return [];
+  }
+
+  return Object.entries(value).flatMap(([key, item]: [string, unknown]) =>
+    key === '__proto__' ? [[...path, key]] : collectProtoKeyPaths(item, [...path, key]),
+  );
 }

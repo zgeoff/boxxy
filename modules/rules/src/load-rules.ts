@@ -9,7 +9,6 @@ import type {
   LoadRejection,
   LoadResult,
   LoadedRecipe,
-  PhaseName,
   Pool,
   RecipeName,
   RulesVersion,
@@ -25,7 +24,7 @@ import { parseRulesFile } from './parse-rules-file.ts';
 import { resolvePlugin } from './resolve-plugin.ts';
 import { resolveSignalRef } from './resolve-signal-ref.ts';
 import type { ParsedRulesFile } from './rules-file-schema.ts';
-import type { Checked, ResolvedSignal } from './types.ts';
+import type { Checked, PinnedConcept, ResolvedSignal } from './types.ts';
 
 interface LoadRulesInput {
   readonly checkout: {
@@ -61,11 +60,12 @@ function buildLoadResult(
 ): LoadResult {
   const pinned = collectPinnedConcepts(file, input.concepts);
 
-  const registry = buildRegistry(
-    pinned.value.map((entry) => entry.concept),
+  const built = buildRegistry(
+    pinned.value,
     pinned.value.map((entry) => getPin(input.pins, entry.concept)),
   );
 
+  const registry = built.value;
   const lead = file.lead.map((ref, index) => resolveSignalRef(ref, ['lead', index], registry));
 
   const pools = file.pools.map((pool, poolIndex) => ({
@@ -90,6 +90,7 @@ function buildLoadResult(
 
   const rejections = [
     ...pinned.rejections,
+    ...built.rejections,
     ...[...signals, ...gates].flatMap((checked) => checked.rejections),
     ...collectPropagationRejections(file, propagation),
     ...collectMissingRecipes(file),
@@ -137,7 +138,7 @@ function buildLoadResult(
         name: entry.pool.name,
         slots: entry.pool.slots,
         takes: buildTakes(entry.pool.takes),
-        order: [...leadKeys, ...entry.order.map((checked) => getValue(checked).key)],
+        order: [...new Set([...leadKeys, ...entry.order.map((checked) => getValue(checked).key)])],
       })),
       propagation: file.propagation,
       recipes: new Map(
@@ -154,11 +155,6 @@ function buildLoadResult(
     },
     warnings: [],
   };
-}
-
-interface PinnedConcept {
-  readonly concept: Concept;
-  readonly entryIndex: number;
 }
 
 function collectPinnedConcepts(
@@ -262,11 +258,11 @@ function collectPropagationRejections(
 function collectMissingRecipes(file: ParsedRulesFile): LoadRejection[] {
   return Object.entries(file.kinds).flatMap(([itemKind, kind]) =>
     kind.pipeline
-      .filter((phase) => {
-        const recipe = kind.recipes[phase];
-
-        return recipe === undefined || file.recipes[recipe] === undefined;
-      })
+      .filter(
+        (phase) =>
+          !Object.hasOwn(kind.recipes, phase) ||
+          !Object.hasOwn(file.recipes, kind.recipes[phase] ?? ''),
+      )
       .map((phase) =>
         buildRejection(['kinds', itemKind, 'recipes', phase], {
           kind: 'missing-recipe',
@@ -304,29 +300,12 @@ function buildKinds(file: ParsedRulesFile): ReadonlyMap<ItemKindName, KindRules>
       {
         pipeline: {
           name: brandSchemas.pipelineName.parse(name),
-          steps: kind.pipeline.map((phase) => ({
-            phase,
-            maxAttempts: getMaxAttempts(kind.maxAttempts, phase),
-          })),
+          steps: kind.steps,
         },
         recipes: kind.recipes,
       },
     ]),
   );
-}
-
-function getMaxAttempts(
-  maxAttempts: Readonly<Record<PhaseName, number>>,
-  phase: PhaseName,
-): number {
-  const attempts = maxAttempts[phase];
-
-  invariant(
-    attempts !== undefined,
-    'the rules file schema gives each pipeline phase a maxAttempts',
-  );
-
-  return attempts;
 }
 
 function buildTakes(
