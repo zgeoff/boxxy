@@ -39,6 +39,7 @@ folder holds what, and which package may import which.
 | --------------------- | ----------------------- | -------------------------------------------------- |
 | `@boxxy/cli`          | `apps/cli`              | the `boxxy` command line                           |
 | `@boxxy/dispatch`     | `modules/dispatch`      | claiming the next task, and settling each attempt  |
+| `@boxxy/rules`        | `modules/rules`         | the rules loader and the rules version             |
 | `@boxxy/store-sqlite` | `adapters/store-sqlite` | the store on SQLite                                |
 | `@boxxy/model`        | `libs/model`            | the types the packages share, and the fact catalog |
 | `@boxxy/content-hash` | `libs/content-hash`     | canonical JSON and the SHA-256 content hashes      |

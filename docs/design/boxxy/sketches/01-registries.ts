@@ -46,13 +46,13 @@ import type { BatchSizeRule, TrainRules } from "./09-merge-train.ts";
 // in: @boxxy/rules never imports planning.
 
 declare function loadRules(input: {
-  checkout: { path: string; commit: string; files: ReadonlyMap<string, Uint8Array> };
+  checkout: { commit: string; files: ReadonlyMap<string, Uint8Array> }; // paths relative to the checkout's root
   concepts: readonly Concept[];
   pins: ReadonlyMap<ConceptName, ConceptPin>; // one per concept, from planning's generated module
 }): LoadResult;
 
 export function exampleLoadCallSite(files: ReadonlyMap<string, Uint8Array>, concepts: readonly Concept[], conceptPins: ReadonlyMap<ConceptName, ConceptPin>): RulesVersion | null {
-  const loaded = loadRules({ checkout: { path: "/rules", commit: "3f2a1c0", files }, concepts, pins: conceptPins });
+  const loaded = loadRules({ checkout: { commit: "3f2a1c0", files }, concepts, pins: conceptPins });
   return loaded.kind === "loaded" ? loaded.rules.version : null; // on `rejected`, the previous version stays live
 }
 

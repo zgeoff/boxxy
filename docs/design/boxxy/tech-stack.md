@@ -37,6 +37,7 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | Database           | `kysely` `0.29.7` on `bun:sqlite` through `@zgeoff/kysely-bun-sqlite` `0.3.0`                                         | nixie, atc                              |
 | Migrations         | Kysely's `Migrator` with an in-code migration provider                                                                | atc                                     |
 | Validation         | `zod` `4.6.7`                                                                                                         | all five                                |
+| Rules files        | `yaml` `2.9.1`                                                                                                        | boxxy's own choice                      |
 | CLI                | `gunshi` `1.0.0-rc.1`                                                                                                 | nixie, atc, noslop                      |
 | Logging            | `@logtape/logtape` `2.4.2`                                                                                            | nixie, atc, noslop                      |
 | Control flow       | `ts-pattern` `5.9.2`, `tiny-invariant` `1.3.3`, `type-fest` `5.10.0`, `@zgeoff/std` `0.4.0`                           | atc, pepys                              |

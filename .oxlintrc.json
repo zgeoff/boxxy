@@ -17,6 +17,7 @@
           "packages": ["apps/**", "modules/**", "adapters/**", "libs/**"],
           "adapters": ["adapters/**"],
           "domain": ["modules/**", "libs/**"],
+          "rules": ["modules/rules/**"],
           "store-sqlite": ["adapters/store-sqlite/**"],
           "worker-atc": ["adapters/worker-atc/**"]
         },
@@ -32,6 +33,12 @@
             "modules": ["@atcx/contract"],
             "allow": ["worker-atc"],
             "reason": "only adapters/worker-atc talks to atc; use its WorkerKind"
+          },
+          {
+            "name": "yaml",
+            "modules": ["yaml"],
+            "allow": ["rules"],
+            "reason": "only modules/rules parses YAML; load a rules checkout with its loadRules"
           },
           {
             "name": "domain-io",
