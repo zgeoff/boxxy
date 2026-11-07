@@ -125,6 +125,27 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
+    '#read keeps one snapshot across a commit made during the call',
+    async (store) => {
+      const committed = buildMockItemRow({ filedAt: brandSchemas.instant.parse(1000) });
+      const later = buildMockItemRow({ filedAt: brandSchemas.instant.parse(2000) });
+
+      await store.exclusive((tx) => tx.applyChange(buildMockFileItemChange(committed)));
+
+      const seen: unknown = await store.read(async (tx) => {
+        const before = await tx.listItems({}, brandSchemas.instant.parse(5000), new Map());
+
+        await store.exclusive((writer) => writer.applyChange(buildMockFileItemChange(later)));
+
+        const after = await tx.listItems({}, brandSchemas.instant.parse(5000), new Map());
+
+        return { before: before.map((item) => item.id), after: after.map((item) => item.id) };
+      });
+
+      expect(seen).toStrictEqual({ before: [committed.id], after: [committed.id] });
+    },
+  ],
+  [
     '#applyChange writes the rows and the outbox facts of a change',
     async (store) => {
       const item = buildMockItemRow({ filedAt: brandSchemas.instant.parse(1000) });

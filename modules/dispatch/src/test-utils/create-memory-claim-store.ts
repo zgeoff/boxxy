@@ -51,7 +51,11 @@ export function createMemoryClaimStore(): ClaimStore {
         next.resolve();
       }
     },
-    read: (work) => work(buildMemoryReader(() => committed)),
+    read: (work) => {
+      const snapshot = committed;
+
+      return work(buildMemoryReader(() => snapshot));
+    },
   };
 }
 
@@ -77,7 +81,7 @@ function buildEmptyTables(): MemoryTables {
 function buildMemoryTx(tables: MemoryTables): StoreTx {
   return {
     ...buildMemoryReader(() => tables),
-    applyChange: (change) => Promise.resolve(applyMemoryChange(tables, change)),
+    applyChange: (change) => Promise.try(() => applyMemoryChange(tables, change)),
     markFactsSent: (ids, at) => {
       for (const fact of tables.outbox) {
         if (ids.includes(fact.factId) && fact.sentAt === null) {
@@ -227,7 +231,8 @@ function buildMemoryReader(getTables: () => MemoryTables): StoreReader {
     },
     findAttemptBySession: (session) =>
       Promise.resolve(
-        getTables().attempts.find((attempt) => attempt.atcSession === session) ?? null,
+        sortAttempts(getTables().attempts).find((attempt) => attempt.atcSession === session) ??
+          null,
       ),
     findAttemptByAgentSession: (session) =>
       Promise.resolve(
@@ -251,8 +256,9 @@ function buildMemoryReader(getTables: () => MemoryTables): StoreReader {
       ),
     readOutboxLag: () => {
       const unsent = getTables().outbox.filter((fact) => fact.sentAt === null);
+      const oldest = unsent.toSorted((first, second) => first.at - second.at).at(0);
 
-      return Promise.resolve({ unsent: unsent.length, oldestUnsentAt: unsent[0]?.at ?? null });
+      return Promise.resolve({ unsent: unsent.length, oldestUnsentAt: oldest?.at ?? null });
     },
     readRunner: (id) => Promise.resolve(getTables().runners.find((row) => row.id === id) ?? null),
   };
@@ -329,16 +335,30 @@ function sortPullRequests(rows: readonly PullRequestRow[]): PullRequestRow[] {
   );
 }
 
-// Each refusal returns before the first write, or puts the tables back, so a refused change writes
-// nothing, as a SQLite savepoint does.
 function applyMemoryChange(tables: MemoryTables, change: StoreChange): ApplyResult {
+  const before = structuredClone(tables);
+
+  try {
+    const result = writeMemoryChange(tables, change);
+
+    if (result.kind !== 'applied') {
+      Object.assign(tables, before);
+    }
+
+    return result;
+  } catch (error) {
+    Object.assign(tables, before);
+    throw error;
+  }
+}
+
+function writeMemoryChange(tables: MemoryTables, change: StoreChange): ApplyResult {
   invariant(change.facts.length > 0, 'a change writes at least one fact');
 
   if (!hasLiveUnder(tables, change.under)) {
     return { kind: 'stale-generation' };
   }
 
-  const before = structuredClone(tables);
   const take = findSlotTake(change.writes);
   const taken = take === null ? null : takeMemorySlot(tables, take);
 
@@ -353,8 +373,6 @@ function applyMemoryChange(tables: MemoryTables, change: StoreChange): ApplyResu
     const refusal = applyMemoryWrite(tables, write);
 
     if (refusal !== null) {
-      Object.assign(tables, before);
-
       return refusal;
     }
   }

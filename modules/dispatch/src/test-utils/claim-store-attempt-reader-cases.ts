@@ -252,6 +252,22 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
+    '#readOutboxLag reads the earliest time of the unsent facts, whatever their order',
+    async (store) => {
+      const later = buildMockItemRow({ filedAt: brandSchemas.instant.parse(2000) });
+      const earlier = buildMockItemRow({ filedAt: brandSchemas.instant.parse(1000) });
+
+      await store.exclusive(async (tx) => {
+        await tx.applyChange(buildMockFileItemChange(later));
+        await tx.applyChange(buildMockFileItemChange(earlier));
+      });
+
+      const lag: unknown = await store.read((tx) => tx.readOutboxLag());
+
+      expect(lag).toStrictEqual({ unsent: 2, oldestUnsentAt: 1000 });
+    },
+  ],
+  [
     '#writeHeartbeat inserts the runner row on its first beat, not paused',
     async (store) => {
       const runner = brandSchemas.runnerId.parse('runner-1');
