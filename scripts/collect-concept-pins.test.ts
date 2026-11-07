@@ -51,6 +51,23 @@ test('it keeps the pin when a file the concept does not import changes', () => {
   expect(collectConceptPins(refs, edited)).toStrictEqual(collectConceptPins(refs, files));
 });
 
+test('it reads no import from a comment', () => {
+  const encoder = new TextEncoder();
+
+  const refs = [{ name: 'snooze', version: 1 }];
+
+  const commented = new Map([
+    [
+      'concepts/snooze.ts',
+      encoder.encode(
+        "// the wake time comes from './wake-table.ts'\n/* import { a } from './gone.ts' */\nexport const snooze = 1;\n",
+      ),
+    ],
+  ]);
+
+  expect(() => collectConceptPins(refs, commented)).not.toThrow();
+});
+
 test('it throws on a relative import that names no source file', () => {
   const refs = [{ name: 'snooze', version: 1 }];
 

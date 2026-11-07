@@ -66,9 +66,10 @@ function getBytes(files: ReadonlyMap<string, Uint8Array>, path: string): Uint8Ar
 
 // a type-only import counts too, which Bun's transpiler drops from its import scan
 const importPattern = /(?:\bfrom\s*|\bimport\s*\(?\s*)['"](?<specifier>[^'"]+)['"]/gu;
+const commentPattern = /\/\*[\s\S]*?\*\/|\/\/.*$/gmu;
 
 function collectRelativeImports(path: string, source: string): string[] {
-  return [...source.matchAll(importPattern)]
+  return [...source.replaceAll(commentPattern, '').matchAll(importPattern)]
     .map((found) => found.groups?.['specifier'] ?? '')
     .filter((specifier) => specifier.startsWith('.'))
     .map((specifier) => posix.join(posix.dirname(path), specifier));
