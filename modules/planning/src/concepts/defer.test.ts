@@ -54,6 +54,33 @@ test('it picks an expedited deferred item', () => {
   });
 });
 
+test('it picks an expedited deferred item when no propagation line carries expedite', () => {
+  const rules = buildMockLoadedRules({ propagation: [] });
+  const now = brandSchemas.instant.parse(50_000);
+  const item = buildMockItemView();
+
+  const levers = [
+    buildMockLeverRow({ seq: 1, kind: 'plan.defer', item: item.id }),
+    buildMockLeverRow({ seq: 2, kind: 'plan.expedite', item: item.id }),
+  ];
+
+  const frame = buildFrame({
+    snapshot: buildMockSnapshot({ items: [item], levers: liveLevers(levers, now) }),
+    rules,
+    now,
+  });
+
+  const decision: unknown = decide({
+    frame,
+    pools: [...rules.pools],
+    freeSlots: { [brandSchemas.poolName.parse('build')]: 1 },
+  });
+
+  expect(decision).toStrictEqual({
+    picks: [{ item: item.id, phase: 'build', pool: 'build' }],
+  });
+});
+
 test("it records the waiver that lifts an expedited item's defer hold", () => {
   const rules = buildMockLoadedRules();
   const now = brandSchemas.instant.parse(50_000);

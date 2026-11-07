@@ -730,10 +730,11 @@ candidates are the open items in state `ready`. It runs these steps in order:
    open item, from the item and its live levers.
 2. `buildFrame` runs each propagation line over the open items
    ([the slice 1 concepts](#the-slice-1-concepts)).
-3. Each gate decides whether it holds each candidate.
-4. Each waiver may lift the hold of a liftable gate on a candidate, reading the propagated values.
-   The first waiver that lifts a hold wins.
-5. Each other signal, such as `oldest`, computes its value for each candidate.
+3. Each other signal, such as `oldest`, computes its value for each candidate.
+4. Each gate decides whether it holds each candidate.
+5. Each waiver may lift the hold of a liftable gate on a candidate, reading every signal value, so a
+   waiver sees `expedite` whether or not a propagation line carries it. The first waiver that lifts
+   a hold wins.
 6. Each filter field that a concept's `filterFields` declares gives its value for each candidate,
    and `buildFrame` puts the values in the frame's `fields`.
 

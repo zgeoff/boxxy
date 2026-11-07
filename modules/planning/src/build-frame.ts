@@ -53,24 +53,27 @@ export function buildFrame(input: BuildFrameInput): Frame {
     values: new Map(carried.map((entry) => [entry.key, entry.values])),
   });
 
-  const context = buildContext(propagated.values);
-  const waivers = [...input.rules.registry.waiver.values()];
-  const gated = candidates.map((item) => collectHolds(item, input.rules.gates, waivers, context));
-
   const others = [...input.rules.signals]
     .filter(([key]) => !carriedKeys.has(key))
-    .map(([key, signal]) => collectSignalValues(key, signal, candidates, context));
+    .map(([key, signal]) =>
+      collectSignalValues(key, signal, candidates, buildContext(propagated.values)),
+    );
 
+  const values = new Map([
+    ...propagated.values,
+    ...others.map((entry): [SignalKey, Map<ItemId, number>] => [entry.key, entry.values]),
+  ]);
+
+  const context = buildContext(values);
+  const waivers = [...input.rules.registry.waiver.values()];
+  const gated = candidates.map((item) => collectHolds(item, input.rules.gates, waivers, context));
   const filterFields = [...input.rules.registry['filter-field'].values()];
   const fields = candidates.map((item) => collectFieldValues(item, filterFields));
 
   return {
     candidates,
     fields: new Map(fields.map((entry) => [entry.item, entry.values])),
-    values: new Map([
-      ...propagated.values,
-      ...others.map((entry): [SignalKey, Map<ItemId, number>] => [entry.key, entry.values]),
-    ]),
+    values,
     holds: new Map(
       gated.flatMap((entry) => (entry.holds.length > 0 ? [[entry.item, entry.holds]] : [])),
     ),
@@ -80,8 +83,8 @@ export function buildFrame(input: BuildFrameInput): Frame {
     faults: [
       ...carried.flatMap((entry) => entry.faults),
       ...propagated.faults,
-      ...gated.flatMap((entry) => entry.faults),
       ...others.flatMap((entry) => entry.faults),
+      ...gated.flatMap((entry) => entry.faults),
       ...fields.flatMap((entry) => entry.faults),
     ],
   };
