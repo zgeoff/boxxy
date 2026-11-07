@@ -8,7 +8,6 @@ interface PullRequestInput {
   readonly state: PullRequestRow['state'];
 }
 
-// PR 7 of acme/lamps, linked by the hook, with its evidence row
 export function buildMockPullRequestChange(input: PullRequestInput): StoreChange {
   const attempt = input.attempt;
   const linkedAt = brandSchemas.instant.parse(4000);

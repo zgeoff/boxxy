@@ -1,7 +1,5 @@
 import type { Generated } from 'kysely';
 
-// The tables as SQLite stores them: an instant is an integer of milliseconds, a flag is 0 or 1, and
-// a list or an object is JSON text. The store parses each row it reads with the row schemas.
 export interface StoreDatabase {
   items: {
     id: string;

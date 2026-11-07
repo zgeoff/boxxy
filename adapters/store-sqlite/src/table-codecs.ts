@@ -1,13 +1,10 @@
 import type { TableName, Tables } from '@boxxy/model';
 
 interface TableCodec<Row> {
-  // every field of the row; the column is the field's name in snake case
   readonly fields: readonly (keyof Row & string)[];
 
-  // the fields stored as JSON text
   readonly json: readonly (keyof Row & string)[];
 
-  // the boolean fields, stored as 0 or 1
   readonly flags: readonly (keyof Row & string)[];
 }
 

@@ -6,8 +6,7 @@ import type { StoreDatabase } from './types.ts';
 
 export type ItemScope = (eb: ExpressionBuilder<StoreDatabase, 'items'>) => Expression<SqlBool>;
 
-// The items in scope, oldest first, with their state derived at `now`. It loads each item that
-// blocks one of them too, because a target's state needs its blocker's own state.
+// a target's state needs each blocker's own state, so this loads the blockers too
 export async function readItemViews(
   db: Kysely<StoreDatabase>,
   scope: ItemScope,

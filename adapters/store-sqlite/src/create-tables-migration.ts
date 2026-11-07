@@ -2,8 +2,7 @@ import { sql } from 'kysely';
 import type { Kysely } from 'kysely';
 import type { Migration } from 'kysely/migration';
 
-// The tables and indexes of the store schema in docs/design/boxxy/slice-1.md. A STRICT table
-// refuses a value of the wrong type, so a bad write fails at the store.
+// a STRICT table refuses a value of the wrong type, so a bad write fails at the store
 const statements = [
   sql`CREATE TABLE items (
     id TEXT PRIMARY KEY,

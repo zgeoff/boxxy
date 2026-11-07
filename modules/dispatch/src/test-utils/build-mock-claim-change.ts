@@ -1,7 +1,6 @@
 import type { AttemptRow, StoreChange } from '@boxxy/model';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
 
-// The change leaves the slot to the store, as a claim does: slot and slot gen are 0.
 export function buildMockClaimChange(attempt: AttemptRow): StoreChange {
   return {
     at: attempt.claimedAt,
