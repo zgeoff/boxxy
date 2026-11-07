@@ -131,7 +131,11 @@ function buildMemoryTx(tables: MemoryTables): StoreTx {
   };
 }
 
-function buildMemoryReader(getTables: () => MemoryTables): StoreReader {
+// SQLite hands out new objects on each read, so a caller that keeps or edits a row never touches
+// the store's own rows; each read here works on a copy to match.
+function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReader {
+  const getTables = () => structuredClone(getLiveTables());
+
   const buildViews = (now: Instant, maxAttemptsByKind: MaxAttemptsByKind): ItemWithLevers[] =>
     buildItemViews(toItemSetRows(getTables()), now, maxAttemptsByKind);
 
@@ -493,7 +497,7 @@ function applyMemoryWrite(tables: MemoryTables, write: RowWrite): ApplyResult | 
       }
 
       for (const row of matched) {
-        Object.assign(row, update.set);
+        Object.assign(row, structuredClone(update.set));
 
         assertMemoryUnique(update.table, rows, row);
       }
