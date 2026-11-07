@@ -1,0 +1,40 @@
+{
+  "name": "@boxxy/closeout",
+  "version": "0.1.0",
+  "description": "boxxy's close-out parser: checks the close-out an agent sends at the end of an attempt",
+  "homepage": "https://github.com/zgeoff/boxxy/tree/main/modules/closeout#readme",
+  "bugs": "https://github.com/zgeoff/boxxy/issues",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zgeoff/boxxy.git",
+    "directory": "modules/closeout"
+  },
+  "files": [
+    "src",
+    "!src/**/*.test.ts",
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsrs -p tsconfig.build.json",
+    "typecheck": "tsrs --noEmit"
+  },
+  "dependencies": {
+    "@boxxy/model": "workspace:*",
+    "tiny-invariant": "catalog:"
+  },
+  "engines": {
+    "bun": ">=1.3",
+    "node": ">=24"
+  }
+}

@@ -64,6 +64,14 @@
         "zod": "catalog:",
       },
     },
+    "modules/closeout": {
+      "name": "@boxxy/closeout",
+      "version": "0.1.0",
+      "dependencies": {
+        "@boxxy/model": "workspace:*",
+        "tiny-invariant": "catalog:",
+      },
+    },
     "modules/dispatch": {
       "name": "@boxxy/dispatch",
       "version": "0.1.0",
@@ -120,6 +128,8 @@
     "@babel/helper-validator-identifier": ["@babel/helper-validator-identifier@7.29.7", "", {}, "sha512-qehxGkRj55h/ff8EMaJ+cYhyaKlHIxqYDn682wQD7RNp9UujOQsHog2uS0r2vzr4pW+sXf90NeeayjcNaX3fFg=="],
 
     "@boxxy/cli": ["@boxxy/cli@workspace:apps/cli"],
+
+    "@boxxy/closeout": ["@boxxy/closeout@workspace:modules/closeout"],
 
     "@boxxy/content-hash": ["@boxxy/content-hash@workspace:libs/content-hash"],
 

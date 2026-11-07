@@ -1,0 +1,8 @@
+import type { ItemView } from '../types/core.ts';
+import { buildMockItemRow } from './build-mock-item-row.ts';
+
+export function buildMockItemView(overrides: Partial<ItemView> = {}): ItemView {
+  const { derived, ...row } = overrides;
+
+  return { ...buildMockItemRow(row), derived: derived ?? { state: 'ready' } };
+}

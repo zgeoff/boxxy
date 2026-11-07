@@ -1,8 +1,8 @@
 import type { LoadRejection } from '@boxxy/model';
+import { formatKeyPath } from '@boxxy/model';
 import { match } from 'ts-pattern';
 import type { Document } from 'yaml';
 import { parseDocument } from 'yaml';
-import { formatRulesPath } from './format-rules-path.ts';
 import type { ParsedRulesFile } from './rules-file-schema.ts';
 import { rulesFileSchema } from './rules-file-schema.ts';
 
@@ -75,7 +75,7 @@ function parseRulesValue(fileName: string, value: unknown): RulesFileParse {
     return {
       kind: 'rejected',
       rejections: protoKeyPaths.map((path) =>
-        buildInvalid(fileName, formatRulesPath(path), 'the key __proto__ is reserved'),
+        buildInvalid(fileName, formatKeyPath(path), 'the key __proto__ is reserved'),
       ),
     };
   }
@@ -86,7 +86,7 @@ function parseRulesValue(fileName: string, value: unknown): RulesFileParse {
     return {
       kind: 'rejected',
       rejections: checked.error.issues.map((issue) =>
-        buildInvalid(fileName, formatRulesPath(issue.path), issue.message),
+        buildInvalid(fileName, formatKeyPath(issue.path), issue.message),
       ),
     };
   }
