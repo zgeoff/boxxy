@@ -1009,3 +1009,48 @@ recipes:
 
   expect(after.rules.version).toBe(before.rules.version);
 });
+
+test('it returns every rejection a rules file has in one result', () => {
+  const ctx = setupTest();
+
+  const result: unknown = loadRules({
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1, triage@1]
+kinds:
+  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+pools:
+  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+lead: []
+propagation: []
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+`),
+        ],
+      ]),
+    },
+    concepts: ctx.concepts,
+    pins: ctx.pins,
+  });
+
+  expect(result).toStrictEqual({
+    kind: 'rejected',
+    rejections: [
+      {
+        file: 'rules.yaml',
+        path: 'concepts[1]',
+        reason: { kind: 'unknown-concept', ref: 'triage@1' },
+      },
+      {
+        file: 'rules.yaml',
+        path: 'recipes.build-v1.prompt',
+        reason: { kind: 'missing-prompt', path: 'prompts/build-v1.md' },
+      },
+    ],
+  });
+});
