@@ -15,9 +15,10 @@ Decides which task a fleet of coding agents works on next, and measures what eac
 tokens and money.
 
 **Status: slice 1 in progress.** `@boxxy/model` and `@boxxy/content-hash` hold the shared types,
-schemas and hashes, and the other packages are placeholders. The
-[first build spec](./docs/design/boxxy/slice-1.md) sets out the first working version, which the
-design calls slice 1.
+schemas and hashes, `@boxxy/rules` loads the rules, and `@boxxy/store-sqlite` stores boxxy's state.
+`@boxxy/dispatch` holds only the store's memory fake and contract cases, and `@boxxy/cli` is a
+placeholder. The [first build spec](./docs/design/boxxy/slice-1.md) sets out the first working
+version, which the design calls slice 1.
 
 ## What boxxy does
 

@@ -178,8 +178,10 @@ The libs, tagged `lib`:
 - `@boxxy/model`, in `libs/model`, holds every type that two or more packages share: the ids, the
   store rows, `Snapshot`, `StoreChange`, the port interfaces, the fact catalog, the plug-in
   interfaces (`Signal`, `Gate`, `Waiver`, `Concept`, `Pool`, `LoadedRules`), the `define…`
-  helpers, and `BuildCloseOut` with its zod schema. It also holds the pure helpers several packages
-  call: `deriveItemState`, `liveLevers` and `signalKey`. It re-exports `ContentHash`.
+  helpers, `BuildCloseOut` with its zod schema, and a zod schema for each store row. It also holds
+  the pure helpers several packages call: `deriveItemState`, `liveLevers`, `signalKey`, and the
+  helpers both `ClaimStore`s share, `buildItemViews`, `buildAppliedChange`, `findSlotTake` and
+  `toJsonValue`. It re-exports `ContentHash`.
 - `@boxxy/content-hash`, in `libs/content-hash`, holds the `ContentHash` type, canonical JSON,
   `hashTree`, and the SHA-256 hashes for recipes, rules versions and snapshots.
 - `@boxxy/contract`, in `libs/contract`, holds the oRPC contract that the server serves and the CLI
@@ -205,7 +207,10 @@ drives all four slice 1 ports, so it holds each port's fake and contract suite.
 | `Forge` | `@boxxy/forge-github` | `createFakeForge()` in `@boxxy/dispatch/test-utils/create-fake-forge` |
 
 One contract test suite per port, in `@boxxy/dispatch`'s `src/test-utils/`, runs against the fake and against
-the real adapter. A fake that passes the suite is safe to use in module tests.
+the real adapter. A fake that passes the suite is safe to use in module tests. The `ClaimStore`
+suite is `claimStoreContract` in `@boxxy/dispatch/test-utils/claim-store-contract`: a list of named
+cases, each a check that takes a new store. The fake's test and the adapter's test each run every
+case with `test.each`.
 
 The port shapes are in [`02-ports.ts`](./sketches/02-ports.ts):
 
@@ -213,7 +218,8 @@ The port shapes are in [`02-ports.ts`](./sketches/02-ports.ts):
   gets a `StoreTx`, inside one write transaction. `read(work)` runs `work` with a `StoreReader`
   inside one read transaction. Each reader that derives item state, such as `readSnapshot`,
   `readItem` and `listItems`, takes `now` and `maxAttemptsByKind` from the loaded rules, and applies
-  `liveLevers` and `deriveItemState` from `@boxxy/model`.
+  `liveLevers` and `deriveItemState` through `buildItemViews` from `@boxxy/model`. The reader loads
+  each item that blocks an item it reads, so the blocked item's state is right.
 - `StoreChange` and `ApplyResult`: one write of boxxy state, and why the store refused it
   ([one write path](#one-write-path)).
 - `WorkerKind`, with `StartOutcome` and `SessionReading`: start an attempt, and read its session
@@ -251,12 +257,17 @@ way, so a hook that fires after settle still links its PR.
 When `applyChange` refuses a change, it writes nothing and returns one of these:
 
 - `stale-generation` when `under` names a lease that is released, or a generation that isn't the
-  live one;
+  live one, or when a `release-slot` names a slot that its attempt doesn't hold;
 - `lease-held` when the partial unique index on `leases` refuses a new item-phase lease;
 - `no-free-slot` when the change takes a slot lease and the pool has no free slot;
 - `guard-mismatch` when an update finds no row for its key, or a row its `expect` doesn't match.
 
 A unique index that refuses an insert throws, and the transaction rolls back.
+
+`applyChange` checks `under` first, then takes the slot, then applies the writes in order, then
+writes the facts. The first refusal stops it, and the store undoes that change's earlier writes, the
+SQLite store with a savepoint. A work function that goes on after a refusal keeps its earlier
+changes.
 
 A few writes are bookkeeping. Each changes no row that derived state or `decide()` reads. Each runs
 on `StoreTx` outside `StoreChange`, writes no fact, and leaves the store version where it is:
@@ -313,6 +324,11 @@ The store is one SQLite file in WAL mode, with `synchronous=NORMAL` and `busy_ti
 so a second `BEGIN IMMEDIATE` waits for the first. Migrations run through Kysely's
 `Migrator` with an in-code provider. Only `adapters/store-sqlite` imports `bun:sqlite`
 and `kysely`.
+
+The store opens the file twice. `exclusive` runs on the first handle, and `read` runs on the second,
+so a read sees the last commit and never the writes of a running `exclusive` call. Each table is
+`STRICT`. A time is an integer of milliseconds, a flag is `0` or `1`, and a list or an object is
+JSON text. The store parses each row it reads with the row's zod schema from `@boxxy/model`.
 
 The store holds no item state column. `@boxxy/model` derives each item's state from its rows each
 time it reads them ([derived item state](#derived-item-state)).
@@ -531,7 +547,8 @@ The primary key is `seq`, which autoincrements. `fact_id` is unique, and a parti
   `applyChange`, the adapter takes the lowest free slot that isn't retired, and writes the slot's
   number and new `gen` into both.
 - **A lever insert leaves `seq` to the store.** The change writes `seq` as `0`, and `applyChange`
-  writes the real `seq` into the row and the `boxxy.lever.recorded` payload.
+  writes the real `seq` into the row and the `boxxy.lever.recorded` payload. It pairs them in order:
+  a change's second lever insert gets its `seq` in the change's second `boxxy.lever.recorded` fact.
 - **An `attempt_sessions` row** is inserted only after a read in the same `exclusive` call
   ([agent sessions](#agent-sessions)).
 - **Pool slots follow the rules.** On each rules load, `syncPoolSlots` adds slot rows up to each
@@ -567,6 +584,8 @@ condition holds:
 - The `waiting` rows count only attempts that ended after the item's latest `item.retry` lever. So
   `boxxy item retry` returns a `waiting` item to `ready`.
 - A succeeded attempt whose PR closes unmerged no longer counts, so the item returns to `ready`.
+- The kind's `maxAttempts` comes from the first phase of its pipeline, the only phase a slice 1 kind
+  has. An item whose kind the loaded rules don't name never reaches "attempts used up".
 - When the PR watch finds the PR of an attempt in "no PR linked", it links the PR
   ([links](#links-to-commits-and-prs)), and the item waits on "PR open".
 
