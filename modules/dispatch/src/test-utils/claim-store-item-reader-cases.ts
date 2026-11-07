@@ -16,14 +16,14 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       const open = buildMockItemRow();
       const archived = buildMockItemRow({ closedAt: brandSchemas.instant.parse(1500) });
 
-      await store.exclusive(async (tx) => {
-        await tx.syncPoolSlots([{ name: brandSchemas.poolName.parse('build'), slots: 2 }]);
-        await tx.applyChange(buildMockFileItemChange(open));
-        await tx.applyChange(buildMockFileItemChange(archived));
+      await store.exclusive(async (transaction) => {
+        await transaction.syncPoolSlots([{ name: brandSchemas.poolName.parse('build'), slots: 2 }]);
+        await transaction.applyChange(buildMockFileItemChange(open));
+        await transaction.applyChange(buildMockFileItemChange(archived));
       });
 
-      const snapshot: unknown = await store.read((tx) =>
-        tx.readSnapshot(brandSchemas.instant.parse(5000), new Map()),
+      const snapshot: unknown = await store.read((transaction) =>
+        transaction.readSnapshot(brandSchemas.instant.parse(5000), new Map()),
       );
 
       expect(snapshot).toStrictEqual({
@@ -41,23 +41,23 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       const item = buildMockItemRow();
       const attempt = buildMockAttemptRow({ item: item.id, state: 'starting' });
 
-      await store.exclusive(async (tx) => {
-        await tx.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
-        await tx.applyChange(buildMockFileItemChange(item));
-        await tx.applyChange(buildMockClaimChange(attempt));
+      await store.exclusive(async (transaction) => {
+        await transaction.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
+        await transaction.applyChange(buildMockFileItemChange(item));
+        await transaction.applyChange(buildMockClaimChange(attempt));
 
-        await tx.applyChange(
+        await transaction.applyChange(
           buildMockSettleChange({
             attempt: { ...attempt, slot: 1, slotGen: 1 },
             state: 'succeeded',
           }),
         );
 
-        await tx.applyChange(buildMockPullRequestChange({ attempt, state: 'merged' }));
+        await transaction.applyChange(buildMockPullRequestChange({ attempt, state: 'merged' }));
       });
 
-      const snapshot = await store.read((tx) =>
-        tx.readSnapshot(brandSchemas.instant.parse(5000), new Map()),
+      const snapshot = await store.read((transaction) =>
+        transaction.readSnapshot(brandSchemas.instant.parse(5000), new Map()),
       );
 
       expect(snapshot.items).toStrictEqual([]);
@@ -66,8 +66,8 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
   [
     '#readItem returns null for an unknown item',
     async (store) => {
-      const read = await store.read((tx) =>
-        tx.readItem(buildMockItemRow().id, brandSchemas.instant.parse(5000), new Map()),
+      const read = await store.read((transaction) =>
+        transaction.readItem(buildMockItemRow().id, brandSchemas.instant.parse(5000), new Map()),
       );
 
       expect(read).toBeNull();
@@ -79,14 +79,17 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       const source = buildMockItemRow();
       const target = buildMockItemRow();
 
-      await store.exclusive(async (tx) => {
-        await tx.applyChange(buildMockFileItemChange(source));
-        await tx.applyChange(buildMockFileItemChange(target));
-        await tx.applyChange(buildMockLinkChange({ source: source.id, target: target.id }));
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(buildMockFileItemChange(source));
+        await transaction.applyChange(buildMockFileItemChange(target));
+
+        await transaction.applyChange(
+          buildMockLinkChange({ source: source.id, target: target.id }),
+        );
       });
 
-      const read = await store.read((tx) =>
-        tx.readItem(target.id, brandSchemas.instant.parse(5000), new Map()),
+      const read = await store.read((transaction) =>
+        transaction.readItem(target.id, brandSchemas.instant.parse(5000), new Map()),
       );
 
       expect(read?.derived).toStrictEqual({ state: 'blocked' });
@@ -98,14 +101,17 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       const source = buildMockItemRow({ closedAt: brandSchemas.instant.parse(1500) });
       const target = buildMockItemRow();
 
-      await store.exclusive(async (tx) => {
-        await tx.applyChange(buildMockFileItemChange(source));
-        await tx.applyChange(buildMockFileItemChange(target));
-        await tx.applyChange(buildMockLinkChange({ source: source.id, target: target.id }));
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(buildMockFileItemChange(source));
+        await transaction.applyChange(buildMockFileItemChange(target));
+
+        await transaction.applyChange(
+          buildMockLinkChange({ source: source.id, target: target.id }),
+        );
       });
 
-      const read = await store.read((tx) =>
-        tx.readItem(target.id, brandSchemas.instant.parse(5000), new Map()),
+      const read = await store.read((transaction) =>
+        transaction.readItem(target.id, brandSchemas.instant.parse(5000), new Map()),
       );
 
       expect(read?.derived).toStrictEqual({ state: 'ready' });
@@ -119,18 +125,22 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
 
       const phases = new Map([[attempt.phase, 1]]);
 
-      await store.exclusive(async (tx) => {
-        await tx.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
-        await tx.applyChange(buildMockFileItemChange(item));
-        await tx.applyChange(buildMockClaimChange(attempt));
+      await store.exclusive(async (transaction) => {
+        await transaction.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
+        await transaction.applyChange(buildMockFileItemChange(item));
+        await transaction.applyChange(buildMockClaimChange(attempt));
 
-        await tx.applyChange(
+        await transaction.applyChange(
           buildMockSettleChange({ attempt: { ...attempt, slot: 1, slotGen: 1 }, state: 'failed' }),
         );
       });
 
-      const read = await store.read((tx) =>
-        tx.readItem(item.id, brandSchemas.instant.parse(5000), new Map([[item.kind, phases]])),
+      const read = await store.read((transaction) =>
+        transaction.readItem(
+          item.id,
+          brandSchemas.instant.parse(5000),
+          new Map([[item.kind, phases]]),
+        ),
       );
 
       expect(read?.derived).toStrictEqual({ state: 'waiting', reason: 'attempts used up' });
@@ -145,15 +155,19 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       const idea = buildMockItemRow({ repo, acceptance: [] });
       const elsewhere = buildMockItemRow({ repo: brandSchemas.repoName.parse('acme/fans') });
 
-      await store.exclusive(async (tx) => {
-        await tx.applyChange(buildMockFileItemChange(newer));
-        await tx.applyChange(buildMockFileItemChange(older));
-        await tx.applyChange(buildMockFileItemChange(idea));
-        await tx.applyChange(buildMockFileItemChange(elsewhere));
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(buildMockFileItemChange(newer));
+        await transaction.applyChange(buildMockFileItemChange(older));
+        await transaction.applyChange(buildMockFileItemChange(idea));
+        await transaction.applyChange(buildMockFileItemChange(elsewhere));
       });
 
-      const listed = await store.read((tx) =>
-        tx.listItems({ state: 'ready', repo }, brandSchemas.instant.parse(5000), new Map()),
+      const listed = await store.read((transaction) =>
+        transaction.listItems(
+          { state: 'ready', repo },
+          brandSchemas.instant.parse(5000),
+          new Map(),
+        ),
       );
 
       expect(listed.map((item) => item.id)).toStrictEqual([older.id, newer.id]);
@@ -167,14 +181,14 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       const closed = buildMockItemRow({ repo, closedAt: brandSchemas.instant.parse(1500) });
       const elsewhere = buildMockItemRow({ repo: brandSchemas.repoName.parse('acme/fans') });
 
-      await store.exclusive(async (tx) => {
-        await tx.applyChange(buildMockFileItemChange(open));
-        await tx.applyChange(buildMockFileItemChange(closed));
-        await tx.applyChange(buildMockFileItemChange(elsewhere));
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(buildMockFileItemChange(open));
+        await transaction.applyChange(buildMockFileItemChange(closed));
+        await transaction.applyChange(buildMockFileItemChange(elsewhere));
       });
 
-      const listed: unknown = await store.read((tx) =>
-        tx.listOpenIssues(repo, brandSchemas.instant.parse(5000), new Map()),
+      const listed: unknown = await store.read((transaction) =>
+        transaction.listOpenIssues(repo, brandSchemas.instant.parse(5000), new Map()),
       );
 
       expect(listed).toStrictEqual([{ ...open, derived: { state: 'ready' } }]);
@@ -187,25 +201,25 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       const blocker = buildMockItemRow();
       const attempt = buildMockAttemptRow({ item: item.id, state: 'starting' });
 
-      await store.exclusive(async (tx) => {
-        await tx.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
-        await tx.applyChange(buildMockFileItemChange(item));
-        await tx.applyChange(buildMockFileItemChange(blocker));
-        await tx.applyChange(buildMockClaimChange(attempt));
+      await store.exclusive(async (transaction) => {
+        await transaction.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
+        await transaction.applyChange(buildMockFileItemChange(item));
+        await transaction.applyChange(buildMockFileItemChange(blocker));
+        await transaction.applyChange(buildMockClaimChange(attempt));
 
-        await tx.applyChange(
+        await transaction.applyChange(
           buildMockSettleChange({
             attempt: { ...attempt, slot: 1, slotGen: 1 },
             state: 'succeeded',
           }),
         );
 
-        await tx.applyChange(buildMockPullRequestChange({ attempt, state: 'open' }));
-        await tx.applyChange(buildMockLinkChange({ source: blocker.id, target: item.id }));
+        await transaction.applyChange(buildMockPullRequestChange({ attempt, state: 'open' }));
+        await transaction.applyChange(buildMockLinkChange({ source: blocker.id, target: item.id }));
       });
 
-      const detail: unknown = await store.read((tx) =>
-        tx.readItemDetail(item.id, brandSchemas.instant.parse(5000), new Map()),
+      const detail: unknown = await store.read((transaction) =>
+        transaction.readItemDetail(item.id, brandSchemas.instant.parse(5000), new Map()),
       );
 
       expect(detail).toStrictEqual({
@@ -220,8 +234,12 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
   [
     '#readItemDetail returns null for an unknown item',
     async (store) => {
-      const detail = await store.read((tx) =>
-        tx.readItemDetail(buildMockItemRow().id, brandSchemas.instant.parse(5000), new Map()),
+      const detail = await store.read((transaction) =>
+        transaction.readItemDetail(
+          buildMockItemRow().id,
+          brandSchemas.instant.parse(5000),
+          new Map(),
+        ),
       );
 
       expect(detail).toBeNull();

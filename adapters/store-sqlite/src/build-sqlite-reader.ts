@@ -10,7 +10,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
     readSnapshot: async (now, maxAttemptsByKind) => {
       const views = await readItemViews(
         db,
-        (eb) => eb('closed_at', 'is', null),
+        (builder) => builder('closed_at', 'is', null),
         now,
         maxAttemptsByKind,
       );
@@ -28,7 +28,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
 
       const version = await db
         .selectFrom('outbox')
-        .select((eb) => eb.fn.max('seq').as('seq'))
+        .select((builder) => builder.fn.max('seq').as('seq'))
         .executeTakeFirst();
 
       return {
@@ -42,14 +42,24 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
       };
     },
     readItem: async (id, now, maxAttemptsByKind) => {
-      const views = await readItemViews(db, (eb) => eb('id', '=', id), now, maxAttemptsByKind);
+      const views = await readItemViews(
+        db,
+        (builder) => builder('id', '=', id),
+        now,
+        maxAttemptsByKind,
+      );
 
       const item = views.at(0);
 
       return item === undefined ? null : toItemView(item);
     },
     readItemDetail: async (id, now, maxAttemptsByKind) => {
-      const views = await readItemViews(db, (eb) => eb('id', '=', id), now, maxAttemptsByKind);
+      const views = await readItemViews(
+        db,
+        (builder) => builder('id', '=', id),
+        now,
+        maxAttemptsByKind,
+      );
 
       const item = views.at(0);
 
@@ -71,7 +81,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         .selectFrom('links')
         .selectAll()
         .where('removed_at', 'is', null)
-        .where((eb) => eb.or([eb('source', '=', id), eb('target', '=', id)]))
+        .where((builder) => builder.or([builder('source', '=', id), builder('target', '=', id)]))
         .orderBy('added_at')
         .orderBy('source')
         .orderBy('target')
@@ -106,7 +116,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
 
       const views = await readItemViews(
         db,
-        (eb) => (repo === undefined ? eb.lit(true) : eb('repo', '=', repo)),
+        (builder) => (repo === undefined ? builder.lit(true) : builder('repo', '=', repo)),
         now,
         maxAttemptsByKind,
       );
@@ -118,11 +128,11 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
     listOpenIssues: async (repo, now, maxAttemptsByKind) => {
       const views = await readItemViews(
         db,
-        (eb) =>
-          eb.and([
-            eb('kind', '=', 'core.issue'),
-            eb('repo', '=', repo),
-            eb('closed_at', 'is', null),
+        (builder) =>
+          builder.and([
+            builder('kind', '=', 'core.issue'),
+            builder('repo', '=', repo),
+            builder('closed_at', 'is', null),
           ]),
         now,
         maxAttemptsByKind,
@@ -133,7 +143,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
     readLastLeaseGen: async (item, phase) => {
       const row = await db
         .selectFrom('leases')
-        .select((eb) => eb.fn.max('gen').as('gen'))
+        .select((builder) => builder.fn.max('gen').as('gen'))
         .where('item', '=', item)
         .where('phase', '=', phase)
         .executeTakeFirst();
@@ -253,7 +263,10 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
     readOutboxLag: async () => {
       const row = await db
         .selectFrom('outbox')
-        .select((eb) => [eb.fn.countAll<number>().as('unsent'), eb.fn.min('at').as('oldest')])
+        .select((builder) => [
+          builder.fn.countAll<number>().as('unsent'),
+          builder.fn.min('at').as('oldest'),
+        ])
         .where('sent_at', 'is', null)
         .executeTakeFirstOrThrow();
 

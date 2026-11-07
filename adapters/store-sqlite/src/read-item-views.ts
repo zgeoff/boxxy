@@ -4,7 +4,7 @@ import type { Expression, ExpressionBuilder, Kysely, SqlBool } from 'kysely';
 import { parseStoreRow } from './parse-store-row.ts';
 import type { StoreDatabase } from './types.ts';
 
-export type ItemScope = (eb: ExpressionBuilder<StoreDatabase, 'items'>) => Expression<SqlBool>;
+export type ItemScope = (builder: ExpressionBuilder<StoreDatabase, 'items'>) => Expression<SqlBool>;
 
 // a target's state needs each blocker's own state, so this loads the blockers too
 export async function readItemViews(
@@ -24,7 +24,7 @@ export async function readItemViews(
   const loaded = db
     .selectFrom('items')
     .select('id')
-    .where((eb) => eb.or([eb('id', 'in', scoped), eb('id', 'in', blockers)]));
+    .where((builder) => builder.or([builder('id', 'in', scoped), builder('id', 'in', blockers)]));
 
   const attemptsOfLoaded = db.selectFrom('attempts').select('id').where('item', 'in', loaded);
 

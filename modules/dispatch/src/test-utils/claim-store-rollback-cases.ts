@@ -16,10 +16,10 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
       const attempt = buildMockAttemptRow({ item: item.id, state: 'starting' });
       const other = buildMockAttemptRow();
 
-      await store.exclusive(async (tx) => {
-        await tx.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
-        await tx.applyChange(buildMockFileItemChange(item));
-        await tx.applyChange(buildMockClaimChange(attempt));
+      await store.exclusive(async (transaction) => {
+        await transaction.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
+        await transaction.applyChange(buildMockFileItemChange(item));
+        await transaction.applyChange(buildMockClaimChange(attempt));
       });
 
       const settle = buildMockSettleChange({
@@ -35,12 +35,17 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
         ],
       };
 
-      const result = await store.exclusive((tx) => tx.applyChange(misnamed));
+      const result = await store.exclusive((transaction) => transaction.applyChange(misnamed));
 
-      const state: unknown = await store.read(async (tx) => {
-        const read = await tx.readAttempt(attempt.id);
-        const facts = await tx.readUnsentFacts(10);
-        const view = await tx.readItem(item.id, brandSchemas.instant.parse(5000), new Map());
+      const state: unknown = await store.read(async (transaction) => {
+        const read = await transaction.readAttempt(attempt.id);
+        const facts = await transaction.readUnsentFacts(10);
+
+        const view = await transaction.readItem(
+          item.id,
+          brandSchemas.instant.parse(5000),
+          new Map(),
+        );
 
         return { attempt: read?.state, facts: facts.length, item: view?.derived };
       });
@@ -61,16 +66,16 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
       const claim = buildMockClaimChange(attempt);
       const reusedFactId: StoreChange = { ...claim, facts: [...claim.facts, ...fileChange.facts] };
 
-      await store.exclusive(async (tx) => {
-        await tx.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
-        await tx.applyChange(fileChange);
-        await tx.applyChange(buildMockFileItemChange(claimed));
-        await tx.applyChange(reusedFactId).catch(() => null);
+      await store.exclusive(async (transaction) => {
+        await transaction.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
+        await transaction.applyChange(fileChange);
+        await transaction.applyChange(buildMockFileItemChange(claimed));
+        await transaction.applyChange(reusedFactId).catch(() => null);
       });
 
-      const state: unknown = await store.read(async (tx) => ({
-        attempt: await tx.readAttempt(attempt.id),
-        slots: await tx.listPoolSlots(),
+      const state: unknown = await store.read(async (transaction) => ({
+        attempt: await transaction.readAttempt(attempt.id),
+        slots: await transaction.listPoolSlots(),
       }));
 
       expect(state).toStrictEqual({
@@ -93,21 +98,21 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
         number: 2,
       });
 
-      await store.exclusive(async (tx) => {
-        await tx.syncPoolSlots([{ name: first.pool, slots: 2 }]);
-        await tx.applyChange(buildMockFileItemChange(claimed));
-        await tx.applyChange(buildMockClaimChange(first));
+      await store.exclusive(async (transaction) => {
+        await transaction.syncPoolSlots([{ name: first.pool, slots: 2 }]);
+        await transaction.applyChange(buildMockFileItemChange(claimed));
+        await transaction.applyChange(buildMockClaimChange(first));
       });
 
-      const results = await store.exclusive((tx) =>
+      const results = await store.exclusive((transaction) =>
         Promise.all([
-          tx.applyChange(buildMockClaimChange(second)),
-          tx.applyChange(buildMockFileItemChange(later)),
+          transaction.applyChange(buildMockClaimChange(second)),
+          transaction.applyChange(buildMockFileItemChange(later)),
         ]),
       );
 
-      const read = await store.read((tx) =>
-        tx.readItem(later.id, brandSchemas.instant.parse(5000), new Map()),
+      const read = await store.read((transaction) =>
+        transaction.readItem(later.id, brandSchemas.instant.parse(5000), new Map()),
       );
 
       expect({ results, item: read?.id }).toStrictEqual({

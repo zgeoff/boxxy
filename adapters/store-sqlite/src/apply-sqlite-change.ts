@@ -52,7 +52,7 @@ async function writeSQLiteChange(
 
   const lastLever = await db
     .selectFrom('levers')
-    .select((eb) => eb.fn.max('seq').as('seq'))
+    .select((builder) => builder.fn.max('seq').as('seq'))
     .executeTakeFirst();
 
   const applied = buildAppliedChange(change, { taken, lastLeverSeq: lastLever?.seq ?? 0 });
@@ -121,14 +121,14 @@ async function probeLiveUnder(
 async function writeSlotTake(db: Kysely<StoreDatabase>, take: SlotTake): Promise<TakenSlot | null> {
   const lowest = db
     .selectFrom('pool_slots')
-    .select((eb) => eb.fn.min('slot').as('slot'))
+    .select((builder) => builder.fn.min('slot').as('slot'))
     .where('pool', '=', take.pool)
     .where('holder', 'is', null)
     .where('retired', '=', 0);
 
   const row = await db
     .updateTable('pool_slots')
-    .set((eb) => ({ holder: take.holder, gen: eb('gen', '+', 1) }))
+    .set((builder) => ({ holder: take.holder, gen: builder('gen', '+', 1) }))
     .where('pool', '=', take.pool)
     .where('slot', '=', lowest)
     .where('holder', 'is', null)

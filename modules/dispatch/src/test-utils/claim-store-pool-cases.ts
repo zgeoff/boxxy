@@ -11,14 +11,14 @@ export const claimStorePoolCases: readonly ClaimStoreCase[] = [
   [
     '#syncPoolSlots adds a row for each slot of each pool',
     async (store) => {
-      await store.exclusive((tx) =>
-        tx.syncPoolSlots([
+      await store.exclusive((transaction) =>
+        transaction.syncPoolSlots([
           { name: brandSchemas.poolName.parse('build'), slots: 2 },
           { name: brandSchemas.poolName.parse('review'), slots: 1 },
         ]),
       );
 
-      const slots: unknown = await store.read((tx) => tx.listPoolSlots());
+      const slots: unknown = await store.read((transaction) => transaction.listPoolSlots());
 
       expect(slots).toStrictEqual([
         { pool: 'build', slot: 1, holder: null, gen: 0, retired: false },
@@ -32,12 +32,12 @@ export const claimStorePoolCases: readonly ClaimStoreCase[] = [
     async (store) => {
       const pool = brandSchemas.poolName.parse('build');
 
-      await store.exclusive(async (tx) => {
-        await tx.syncPoolSlots([{ name: pool, slots: 3 }]);
-        await tx.syncPoolSlots([{ name: pool, slots: 1 }]);
+      await store.exclusive(async (transaction) => {
+        await transaction.syncPoolSlots([{ name: pool, slots: 3 }]);
+        await transaction.syncPoolSlots([{ name: pool, slots: 1 }]);
       });
 
-      const slots = await store.read((tx) => tx.listPoolSlots());
+      const slots = await store.read((transaction) => transaction.listPoolSlots());
 
       const retired: unknown = slots.map((slot) => [slot.slot, slot.retired]);
 
@@ -54,16 +54,16 @@ export const claimStorePoolCases: readonly ClaimStoreCase[] = [
       const build = brandSchemas.poolName.parse('build');
       const review = brandSchemas.poolName.parse('review');
 
-      await store.exclusive(async (tx) => {
-        await tx.syncPoolSlots([
+      await store.exclusive(async (transaction) => {
+        await transaction.syncPoolSlots([
           { name: build, slots: 1 },
           { name: review, slots: 2 },
         ]);
 
-        await tx.syncPoolSlots([{ name: build, slots: 1 }]);
+        await transaction.syncPoolSlots([{ name: build, slots: 1 }]);
       });
 
-      const slots = await store.read((tx) => tx.listPoolSlots());
+      const slots = await store.read((transaction) => transaction.listPoolSlots());
 
       const retired: unknown = slots.map((slot) => [slot.pool, slot.slot, slot.retired]);
 
@@ -82,16 +82,16 @@ export const claimStorePoolCases: readonly ClaimStoreCase[] = [
       const lower = buildMockAttemptRow({ item: first.id, state: 'starting' });
       const upper = buildMockAttemptRow({ item: second.id, state: 'starting' });
 
-      await store.exclusive(async (tx) => {
-        await tx.syncPoolSlots([{ name: lower.pool, slots: 2 }]);
-        await tx.applyChange(buildMockFileItemChange(first));
-        await tx.applyChange(buildMockFileItemChange(second));
-        await tx.applyChange(buildMockClaimChange(lower));
-        await tx.applyChange(buildMockClaimChange(upper));
-        await tx.syncPoolSlots([{ name: lower.pool, slots: 1 }]);
+      await store.exclusive(async (transaction) => {
+        await transaction.syncPoolSlots([{ name: lower.pool, slots: 2 }]);
+        await transaction.applyChange(buildMockFileItemChange(first));
+        await transaction.applyChange(buildMockFileItemChange(second));
+        await transaction.applyChange(buildMockClaimChange(lower));
+        await transaction.applyChange(buildMockClaimChange(upper));
+        await transaction.syncPoolSlots([{ name: lower.pool, slots: 1 }]);
       });
 
-      const slots = await store.read((tx) => tx.listPoolSlots());
+      const slots = await store.read((transaction) => transaction.listPoolSlots());
 
       expect(slots[1]).toStrictEqual({
         pool: upper.pool,
@@ -110,15 +110,17 @@ export const claimStorePoolCases: readonly ClaimStoreCase[] = [
       const held = buildMockAttemptRow({ item: first.id, state: 'starting' });
       const refused = buildMockAttemptRow({ item: second.id, state: 'starting' });
 
-      await store.exclusive(async (tx) => {
-        await tx.syncPoolSlots([{ name: held.pool, slots: 2 }]);
-        await tx.syncPoolSlots([{ name: held.pool, slots: 1 }]);
-        await tx.applyChange(buildMockFileItemChange(first));
-        await tx.applyChange(buildMockFileItemChange(second));
-        await tx.applyChange(buildMockClaimChange(held));
+      await store.exclusive(async (transaction) => {
+        await transaction.syncPoolSlots([{ name: held.pool, slots: 2 }]);
+        await transaction.syncPoolSlots([{ name: held.pool, slots: 1 }]);
+        await transaction.applyChange(buildMockFileItemChange(first));
+        await transaction.applyChange(buildMockFileItemChange(second));
+        await transaction.applyChange(buildMockClaimChange(held));
       });
 
-      const result = await store.exclusive((tx) => tx.applyChange(buildMockClaimChange(refused)));
+      const result = await store.exclusive((transaction) =>
+        transaction.applyChange(buildMockClaimChange(refused)),
+      );
 
       expect(result).toStrictEqual({ kind: 'no-free-slot' });
     },
@@ -133,23 +135,25 @@ export const claimStorePoolCases: readonly ClaimStoreCase[] = [
       const upper = buildMockAttemptRow({ item: second.id, state: 'starting' });
       const later = buildMockAttemptRow({ item: third.id, state: 'starting' });
 
-      await store.exclusive(async (tx) => {
-        await tx.syncPoolSlots([{ name: lower.pool, slots: 2 }]);
-        await tx.applyChange(buildMockFileItemChange(first));
-        await tx.applyChange(buildMockFileItemChange(second));
-        await tx.applyChange(buildMockFileItemChange(third));
-        await tx.applyChange(buildMockClaimChange(lower));
-        await tx.applyChange(buildMockClaimChange(upper));
+      await store.exclusive(async (transaction) => {
+        await transaction.syncPoolSlots([{ name: lower.pool, slots: 2 }]);
+        await transaction.applyChange(buildMockFileItemChange(first));
+        await transaction.applyChange(buildMockFileItemChange(second));
+        await transaction.applyChange(buildMockFileItemChange(third));
+        await transaction.applyChange(buildMockClaimChange(lower));
+        await transaction.applyChange(buildMockClaimChange(upper));
 
-        await tx.applyChange(
+        await transaction.applyChange(
           buildMockSettleChange({ attempt: { ...upper, slot: 2, slotGen: 1 }, state: 'failed' }),
         );
 
-        await tx.syncPoolSlots([{ name: lower.pool, slots: 1 }]);
-        await tx.syncPoolSlots([{ name: lower.pool, slots: 2 }]);
+        await transaction.syncPoolSlots([{ name: lower.pool, slots: 1 }]);
+        await transaction.syncPoolSlots([{ name: lower.pool, slots: 2 }]);
       });
 
-      const result = await store.exclusive((tx) => tx.applyChange(buildMockClaimChange(later)));
+      const result = await store.exclusive((transaction) =>
+        transaction.applyChange(buildMockClaimChange(later)),
+      );
 
       expect(result).toStrictEqual({
         kind: 'applied',

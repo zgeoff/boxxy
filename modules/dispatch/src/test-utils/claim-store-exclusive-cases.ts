@@ -41,16 +41,16 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
     async (store) => {
       const item = buildMockItemRow();
 
-      const writing = store.exclusive(async (tx) => {
-        await tx.applyChange(buildMockFileItemChange(item));
+      const writing = store.exclusive(async (transaction) => {
+        await transaction.applyChange(buildMockFileItemChange(item));
 
         throw new Error('the work failed');
       });
 
       await writing.catch(() => null);
 
-      const snapshot: unknown = await store.read((tx) =>
-        tx.readSnapshot(brandSchemas.instant.parse(5000), new Map()),
+      const snapshot: unknown = await store.read((transaction) =>
+        transaction.readSnapshot(brandSchemas.instant.parse(5000), new Map()),
       );
 
       expect(snapshot).toStrictEqual({
@@ -84,10 +84,13 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
       });
 
       await failing.catch(() => null);
-      await store.exclusive((tx) => tx.applyChange(buildMockFileItemChange(item)));
 
-      const read = await store.read((tx) =>
-        tx.readItem(item.id, brandSchemas.instant.parse(5000), new Map()),
+      await store.exclusive((transaction) =>
+        transaction.applyChange(buildMockFileItemChange(item)),
+      );
+
+      const read = await store.read((transaction) =>
+        transaction.readItem(item.id, brandSchemas.instant.parse(5000), new Map()),
       );
 
       expect(read?.id).toBe(item.id);
@@ -101,10 +104,12 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
       const gate = Promise.withResolvers<void>();
       const written = Promise.withResolvers<void>();
 
-      await store.exclusive((tx) => tx.applyChange(buildMockFileItemChange(committed)));
+      await store.exclusive((transaction) =>
+        transaction.applyChange(buildMockFileItemChange(committed)),
+      );
 
-      const writing = store.exclusive(async (tx) => {
-        await tx.applyChange(buildMockFileItemChange(pending));
+      const writing = store.exclusive(async (transaction) => {
+        await transaction.applyChange(buildMockFileItemChange(pending));
 
         written.resolve();
 
@@ -113,8 +118,8 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
 
       await written.promise;
 
-      const seen = await store.read((tx) =>
-        tx.listItems({}, brandSchemas.instant.parse(5000), new Map()),
+      const seen = await store.read((transaction) =>
+        transaction.listItems({}, brandSchemas.instant.parse(5000), new Map()),
       );
 
       gate.resolve();
@@ -130,14 +135,16 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
       const committed = buildMockItemRow({ filedAt: brandSchemas.instant.parse(1000) });
       const later = buildMockItemRow({ filedAt: brandSchemas.instant.parse(2000) });
 
-      await store.exclusive((tx) => tx.applyChange(buildMockFileItemChange(committed)));
+      await store.exclusive((transaction) =>
+        transaction.applyChange(buildMockFileItemChange(committed)),
+      );
 
-      const seen: unknown = await store.read(async (tx) => {
-        const before = await tx.listItems({}, brandSchemas.instant.parse(5000), new Map());
+      const seen: unknown = await store.read(async (transaction) => {
+        const before = await transaction.listItems({}, brandSchemas.instant.parse(5000), new Map());
 
         await store.exclusive((writer) => writer.applyChange(buildMockFileItemChange(later)));
 
-        const after = await tx.listItems({}, brandSchemas.instant.parse(5000), new Map());
+        const after = await transaction.listItems({}, brandSchemas.instant.parse(5000), new Map());
 
         return { before: before.map((item) => item.id), after: after.map((item) => item.id) };
       });
@@ -151,9 +158,9 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
       const item = buildMockItemRow({ filedAt: brandSchemas.instant.parse(1000) });
       const change = buildMockFileItemChange(item);
 
-      await store.exclusive((tx) => tx.applyChange(change));
+      await store.exclusive((transaction) => transaction.applyChange(change));
 
-      const facts: unknown = await store.read((tx) => tx.readUnsentFacts(10));
+      const facts: unknown = await store.read((transaction) => transaction.readUnsentFacts(10));
 
       expect(facts).toStrictEqual([
         {
@@ -174,7 +181,7 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
     async (store) => {
       const change = buildMockFileItemChange(buildMockItemRow());
 
-      const result = await store.exclusive((tx) => tx.applyChange(change));
+      const result = await store.exclusive((transaction) => transaction.applyChange(change));
 
       expect(result).toStrictEqual({ kind: 'applied', slot: null });
     },
