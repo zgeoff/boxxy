@@ -1,14 +1,26 @@
 export type { ContentHash, JsonValue } from '@boxxy/content-hash';
 export { brandSchemas } from './brand-schemas.ts';
+
+export {
+  buildAppliedChange,
+  type ChangeAssignments,
+  type TakenSlot,
+} from './build-applied-change.ts';
+
 export { buildCloseOutSchema } from './build-close-out-schema.ts';
+export { buildItemViews } from './build-item-views.ts';
 export { defineAdmission } from './define-admission.ts';
 export { defineGate } from './define-gate.ts';
 export { defineSignal } from './define-signal.ts';
 export { deriveItemState } from './derive-item-state.ts';
 export { factSchemas } from './fact-schemas.ts';
+export { findSlotTake, type SlotTake } from './find-slot-take.ts';
 export { frictionSchema } from './friction-schema.ts';
 export { liveLevers } from './live-levers.ts';
+export { outboxFactSchema } from './outbox-fact-schema.ts';
+export { rowSchemas } from './row-schemas.ts';
 export { signalKey } from './signal-key.ts';
+export { toJSONValue } from './to-json-value.ts';
 
 export type {
   Actor,
@@ -38,6 +50,7 @@ export type {
   ItemKindName,
   ItemRow,
   ItemRows,
+  ItemSetRows,
   ItemState,
   ItemView,
   ItemWithLevers,

@@ -33,6 +33,7 @@
   "dependencies": {
     "@boxxy/content-hash": "workspace:*",
     "@faker-js/faker": "catalog:",
+    "tiny-invariant": "catalog:",
     "zod": "catalog:"
   },
   "engines": {

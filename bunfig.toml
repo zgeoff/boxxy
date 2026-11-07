@@ -17,6 +17,7 @@ minimumReleaseAgeExcludes = [
   "@zgeoff/chex",
   "@zgeoff/commitlint-config",
   "@zgeoff/format-codemod",
+  "@zgeoff/kysely-bun-sqlite",
   "@zgeoff/oxfmt-config",
   "@zgeoff/oxlint-config",
   "@zgeoff/skill-gate",

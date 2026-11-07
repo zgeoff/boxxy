@@ -1,1 +1,1 @@
-export { packageName } from './package-name.ts';
+export { createSQLiteClaimStore, type SQLiteClaimStore } from './create-sqlite-claim-store.ts';
