@@ -1,5 +1,5 @@
 import { formatCanonicalJson } from '@boxxy/content-hash';
-import { toJsonValue } from '@boxxy/model';
+import { toJSONValue } from '@boxxy/model';
 import type { TableName } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { tableCodecs } from './table-codecs.ts';
@@ -28,7 +28,7 @@ function toStoreValue(value: unknown, isJSON: boolean): StoreValue {
 
   if (isJSON) {
     // an update compares the stored text, so two objects with their keys in another order match
-    return formatCanonicalJson(toJsonValue(value));
+    return formatCanonicalJson(toJSONValue(value));
   }
 
   if (typeof value === 'boolean') {

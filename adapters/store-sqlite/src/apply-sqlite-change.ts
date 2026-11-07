@@ -1,4 +1,4 @@
-import { buildAppliedChange, findSlotTake, toJsonValue } from '@boxxy/model';
+import { buildAppliedChange, findSlotTake, toJSONValue } from '@boxxy/model';
 import type { ApplyResult, RowWrite, SlotTake, StoreChange, TakenSlot } from '@boxxy/model';
 import { sql } from 'kysely';
 import type { Kysely, RawBuilder } from 'kysely';
@@ -74,7 +74,7 @@ async function writeSQLiteChange(
         entity: fact.entity,
         actor: fact.actor,
         at: change.at,
-        payload: JSON.stringify(toJsonValue(fact.payload)),
+        payload: JSON.stringify(toJSONValue(fact.payload)),
         sent_at: null,
       })
       .execute();
@@ -184,7 +184,7 @@ function writeSQLiteRow(db: Kysely<StoreDatabase>, write: RowWrite): Promise<App
         WHERE ${buildGuards(guards)}`.execute(db);
 
       return result.numAffectedRows === 0n
-        ? ({ kind: 'guard-mismatch', table: update.table, key: toJsonValue(update.key) } as const)
+        ? ({ kind: 'guard-mismatch', table: update.table, key: toJSONValue(update.key) } as const)
         : null;
     })
     .exhaustive();

@@ -181,7 +181,7 @@ The libs, tagged `lib`:
   helpers, `BuildCloseOut` with its zod schema, and a zod schema for each store row. It also holds
   the pure helpers several packages call: `deriveItemState`, `liveLevers`, `signalKey`, and the
   helpers both `ClaimStore`s share, `buildItemViews`, `buildAppliedChange`, `findSlotTake` and
-  `toJsonValue`. It re-exports `ContentHash`.
+  `toJSONValue`. It re-exports `ContentHash`.
 - `@boxxy/content-hash`, in `libs/content-hash`, holds the `ContentHash` type, canonical JSON,
   `hashTree`, and the SHA-256 hashes for recipes, rules versions and snapshots.
 - `@boxxy/contract`, in `libs/contract`, holds the oRPC contract that the server serves and the CLI

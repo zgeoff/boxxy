@@ -1,7 +1,7 @@
 import type { JsonValue } from '@boxxy/content-hash';
 import invariant from 'tiny-invariant';
 
-export function toJsonValue(value: unknown): JsonValue {
+export function toJSONValue(value: unknown): JsonValue {
   if (
     value === null ||
     typeof value === 'boolean' ||
@@ -12,7 +12,7 @@ export function toJsonValue(value: unknown): JsonValue {
   }
 
   if (Array.isArray(value)) {
-    return value.map((entry: unknown) => toJsonValue(entry));
+    return value.map((entry: unknown) => toJSONValue(entry));
   }
 
   invariant(typeof value === 'object', `a ${typeof value} has no JSON form`);
@@ -20,6 +20,6 @@ export function toJsonValue(value: unknown): JsonValue {
   return Object.fromEntries(
     Object.entries(value)
       .filter(([, entry]: [string, unknown]) => entry !== undefined)
-      .map(([key, entry]: [string, unknown]) => [key, toJsonValue(entry)]),
+      .map(([key, entry]: [string, unknown]) => [key, toJSONValue(entry)]),
   );
 }

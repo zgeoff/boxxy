@@ -20,7 +20,7 @@ export { liveLevers } from './live-levers.ts';
 export { outboxFactSchema } from './outbox-fact-schema.ts';
 export { rowSchemas } from './row-schemas.ts';
 export { signalKey } from './signal-key.ts';
-export { toJsonValue } from './to-json-value.ts';
+export { toJSONValue } from './to-json-value.ts';
 
 export type {
   Actor,

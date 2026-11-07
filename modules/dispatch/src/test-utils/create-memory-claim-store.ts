@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
-import { buildAppliedChange, buildItemViews, findSlotTake, toJsonValue } from '@boxxy/model';
+import { buildAppliedChange, buildItemViews, findSlotTake, toJSONValue } from '@boxxy/model';
 import type {
   ApplyResult,
   AttemptRow,
@@ -390,7 +390,7 @@ function writeMemoryChange(tables: MemoryTables, change: StoreChange): ApplyResu
       entity: fact.entity,
       actor: fact.actor,
       at: change.at,
-      payload: toJsonValue(fact.payload),
+      payload: toJSONValue(fact.payload),
       sentAt: null,
     });
   }
@@ -487,7 +487,7 @@ function applyMemoryWrite(tables: MemoryTables, write: RowWrite): ApplyResult | 
       );
 
       if (matched.length === 0) {
-        const key = toJsonValue(update.key);
+        const key = toJSONValue(update.key);
 
         return { kind: 'guard-mismatch', table: update.table, key } as const;
       }
