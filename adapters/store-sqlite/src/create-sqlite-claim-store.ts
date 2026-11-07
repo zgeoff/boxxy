@@ -1,5 +1,5 @@
 import { Database } from 'bun:sqlite';
-import type { ClaimStore } from '@boxxy/model';
+import type { ClaimStore, StoreReader } from '@boxxy/model';
 import { buildSQLiteDialect } from '@zgeoff/kysely-bun-sqlite';
 import { Kysely, sql } from 'kysely';
 import { buildSQLiteReader } from './build-sqlite-reader.ts';
@@ -22,16 +22,8 @@ export async function createSQLiteClaimStore(path: string): Promise<SQLiteClaimS
     writer.close();
   });
 
-  const reader = openStoreHandle(path, 5000);
-
-  opened.defer(() => {
-    reader.close();
-  });
-
   const writerDB = new Kysely<StoreDatabase>({ dialect: buildSQLiteDialect(writer) });
-  const readerDB = new Kysely<StoreDatabase>({ dialect: buildSQLiteDialect(reader) });
 
-  opened.defer(() => readerDB.destroy());
   opened.defer(() => writerDB.destroy());
 
   await runStoreMigrations(writerDB);
@@ -46,15 +38,7 @@ export async function createSQLiteClaimStore(path: string): Promise<SQLiteClaimS
         .connection()
         .execute((db) => withTransaction(db, takeWriteLock, () => work(createSQLiteTx(db)))),
 
-    // a second handle, so a read sees the last commit and never a running exclusive call's writes
-    read: (work) =>
-      readerDB.connection().execute((db) =>
-        withTransaction(
-          db,
-          (connection) => sql`BEGIN`.execute(connection),
-          () => work(buildSQLiteReader(db)),
-        ),
-      ),
+    read: (work) => withReadHandle(path, work),
 
     close: () => handles.disposeAsync(),
   };
@@ -68,4 +52,31 @@ function openStoreHandle(path: string, busyTimeoutMs: number): Database {
   handle.run(`PRAGMA busy_timeout = ${busyTimeoutMs}`);
 
   return handle;
+}
+
+// A handle of its own per call, so a read sees the last commit and never a running exclusive
+// call's writes, and a read started inside another read never waits for the outer one's handle.
+async function withReadHandle<T>(
+  path: string,
+  work: (reader: StoreReader) => Promise<T>,
+): Promise<T> {
+  await using opened = new AsyncDisposableStack();
+
+  const handle = openStoreHandle(path, 5000);
+
+  opened.defer(() => {
+    handle.close();
+  });
+
+  const readerDB = new Kysely<StoreDatabase>({ dialect: buildSQLiteDialect(handle) });
+
+  opened.defer(() => readerDB.destroy());
+
+  return await readerDB.connection().execute((db) =>
+    withTransaction(
+      db,
+      (connection) => sql`BEGIN`.execute(connection),
+      () => work(buildSQLiteReader(db)),
+    ),
+  );
 }

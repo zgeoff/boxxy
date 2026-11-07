@@ -328,8 +328,9 @@ Migrations run through Kysely's `Migrator` with an in-code provider, inside one 
 transaction, so two stores that open a new file at once migrate it once. Only `adapters/store-sqlite` imports `bun:sqlite`
 and `kysely`.
 
-The store opens the file twice. `exclusive` runs on the first handle, and `read` runs on the second,
-so a read sees the last commit and never the writes of a running `exclusive` call. One `read` call
+`exclusive` runs on one handle that the store holds open, and each `read` call opens a handle of its
+own. A read sees the last commit and never the writes of a running `exclusive` call, and a `read`
+started inside another `read` runs at once. One `read` call
 keeps the snapshot of its first query, even when a commit lands before it ends. Each table is
 `STRICT`. A time is an integer of milliseconds, a flag is `0` or `1`, and a list or an object is
 canonical JSON text, so a guard on a JSON column matches whatever the key order of its value. The store parses each row it reads with the row's zod schema from `@boxxy/model`.
