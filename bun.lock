@@ -55,6 +55,18 @@
       "name": "@boxxy/dispatch",
       "version": "0.1.0",
     },
+    "modules/rules": {
+      "name": "@boxxy/rules",
+      "version": "0.1.0",
+      "dependencies": {
+        "@boxxy/content-hash": "workspace:*",
+        "@boxxy/model": "workspace:*",
+        "tiny-invariant": "catalog:",
+        "ts-pattern": "catalog:",
+        "yaml": "catalog:",
+        "zod": "catalog:",
+      },
+    },
   },
   "catalog": {
     "@commitlint/cli": "21.2.4",
@@ -74,10 +86,12 @@
     "lefthook": "2.2.2",
     "oxfmt": "0.75.0",
     "oxlint": "1.90.0",
+    "tiny-invariant": "1.3.3",
     "ts-pattern": "5.9.2",
     "tsrs": "0.18.0-ts7.1.0-dev.20260929",
     "turbo": "2.11.10",
     "typescript": "7.0.2",
+    "yaml": "2.9.1",
     "zod": "4.6.7",
   },
   "packages": {
@@ -92,6 +106,8 @@
     "@boxxy/dispatch": ["@boxxy/dispatch@workspace:modules/dispatch"],
 
     "@boxxy/model": ["@boxxy/model@workspace:libs/model"],
+
+    "@boxxy/rules": ["@boxxy/rules@workspace:modules/rules"],
 
     "@boxxy/store-sqlite": ["@boxxy/store-sqlite@workspace:adapters/store-sqlite"],
 
@@ -698,6 +714,8 @@
     "strip-json-comments": ["strip-json-comments@5.0.3", "", {}, "sha512-1tB5mhVo7U+ETBKNf92xT4hrQa3pm0MZ0PQvuDnWgAAGHDsfp4lPSpiS6psrSiet87wyGPh9ft6wmhOMQ0hDiw=="],
 
     "supports-color": ["supports-color@7.2.0", "", { "dependencies": { "has-flag": "^4.0.0" } }, "sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw=="],
+
+    "tiny-invariant": ["tiny-invariant@1.3.3", "", {}, "sha512-+FbBPE1o9QAYvviau/qC5SE3caw21q3xkvWKBtja5vgqOWIHHJ3ioaq1VPfn/Szqctz2bU/oYeKd9/z5BL+PVg=="],
 
     "tinyexec": ["tinyexec@1.3.1", "", {}, "sha512-GCvB3aoys96IuDFBMcTB46JOR6mdMtAToqwiW8JlWhsoh1mhHi/xn9ss/Dg7N555GiJyEt2qzoG/NHCwM6h1EA=="],
 
