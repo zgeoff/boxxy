@@ -1,10 +1,11 @@
 import { faker } from '@faker-js/faker';
 import { brandSchemas } from '../brand-schemas.ts';
 import type { EvidenceRow } from '../types/core.ts';
+import { buildMockFactId } from './build-mock-fact-id.ts';
 
 export function buildMockEvidenceRow(overrides: Partial<EvidenceRow> = {}): EvidenceRow {
   return {
-    factId: brandSchemas.factId.parse(`manual:${faker.string.uuid({ version: 7 })}`),
+    factId: buildMockFactId(),
     attempt: brandSchemas.attemptId.parse(faker.string.uuid({ version: 7 })),
     kind: 'test',
     ref: faker.system.filePath(),
