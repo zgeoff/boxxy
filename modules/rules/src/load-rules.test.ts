@@ -1,12 +1,12 @@
 import { expect, test } from 'bun:test';
 import { contentHash, hashBytes } from '@boxxy/content-hash';
-import type { Concept } from '@boxxy/model';
+import type { Concept, ConceptPin } from '@boxxy/model';
 import { defineGate, defineSignal, signalKey } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { z } from 'zod';
 import { loadRules } from './load-rules.ts';
 
-function setupTest() {
+test('it loads the example rules file', () => {
   const concepts: Concept[] = [
     {
       name: 'pool',
@@ -40,47 +40,13 @@ function setupTest() {
       ],
       levers: ['plan.expedite', 'plan.unexpedite'],
     },
-    {
-      name: 'rank',
-      version: 1,
-      signals: [
-        defineSignal({ name: 'rank', params: z.object({ boost: z.number() }), value: () => null }),
-      ],
-    },
-    {
-      name: 'hold',
-      version: 1,
-      gates: [
-        defineGate({
-          name: 'hold',
-          liftable: false,
-          params: z.object({ days: z.number() }),
-          hold: () => null,
-        }),
-      ],
-    },
-    {
-      name: 'age',
-      version: 1,
-      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
-    },
   ];
 
-  const pins = new Map(
-    concepts.map((concept) => [
-      concept.name,
-      {
-        ref: `${concept.name}@${concept.version}` as const,
-        sourceHash: contentHash(`${concept.name} source`),
-      },
-    ]),
-  );
-
-  return { concepts, pins };
-}
-
-test('it loads the example rules file', () => {
-  const ctx = setupTest();
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+    ['defer', { ref: 'defer@1', sourceHash: contentHash('defer source') }],
+    ['expedite', { ref: 'expedite@1', sourceHash: contentHash('expedite source') }],
+  ]);
 
   const prompt = new TextEncoder().encode('Build {{title}} in {{repo}}.\n');
 
@@ -129,8 +95,8 @@ recipes:
         ['prompts/build-v1.md', prompt],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   expect(result).toStrictEqual({
@@ -183,7 +149,54 @@ recipes:
 });
 
 test('it builds the registry from the pinned concepts only', () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+      filterFields: [
+        { name: 'phase', value: () => null },
+        { name: 'kind', value: () => null },
+        { name: 'repo', value: () => null },
+      ],
+    },
+    {
+      name: 'defer',
+      version: 1,
+      gates: [
+        defineGate({ name: 'defer', liftable: true, params: z.object({}), hold: () => null }),
+      ],
+      waivers: [{ name: 'expedite-lifts-defer', lifts: 'defer', lift: () => null }],
+      levers: ['plan.defer', 'plan.undefer'],
+    },
+    {
+      name: 'expedite',
+      version: 1,
+      signals: [
+        defineSignal({
+          name: 'expedite',
+          params: z.object({}),
+          value: () => null,
+          combine: (left, right) => Math.min(left, right),
+        }),
+      ],
+      levers: ['plan.expedite', 'plan.unexpedite'],
+    },
+    {
+      name: 'rank',
+      version: 1,
+      signals: [
+        defineSignal({ name: 'rank', params: z.object({ boost: z.number() }), value: () => null }),
+      ],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+    ['defer', { ref: 'defer@1', sourceHash: contentHash('defer source') }],
+    ['expedite', { ref: 'expedite@1', sourceHash: contentHash('expedite source') }],
+    ['rank', { ref: 'rank@1', sourceHash: contentHash('rank source') }],
+  ]);
 
   const result = loadRules({
     checkout: {
@@ -208,8 +221,8 @@ recipes:
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   invariant(result.kind === 'loaded');
@@ -236,7 +249,25 @@ recipes:
 });
 
 test('it hands a signal the parameters its plug-in reference gives', () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+    {
+      name: 'rank',
+      version: 1,
+      signals: [
+        defineSignal({ name: 'rank', params: z.object({ boost: z.number() }), value: () => null }),
+      ],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+    ['rank', { ref: 'rank@1', sourceHash: contentHash('rank source') }],
+  ]);
 
   const result = loadRules({
     checkout: {
@@ -260,8 +291,8 @@ recipes:
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   invariant(result.kind === 'loaded');
@@ -274,7 +305,30 @@ recipes:
 });
 
 test('it rejects a rules file that is not valid YAML', () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+    {
+      name: 'expedite',
+      version: 1,
+      signals: [
+        defineSignal({
+          name: 'expedite',
+          params: z.object({}),
+          value: () => null,
+          combine: (left, right) => Math.min(left, right),
+        }),
+      ],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+    ['expedite', { ref: 'expedite@1', sourceHash: contentHash('expedite source') }],
+  ]);
 
   const result: unknown = loadRules({
     checkout: {
@@ -290,8 +344,8 @@ concepts: [pool@1, expedite@1
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   expect(result).toStrictEqual({
@@ -303,7 +357,6 @@ concepts: [pool@1, expedite@1
 });
 
 test('it rejects a rules file whose aliases expand past the alias limit', () => {
-  const ctx = setupTest();
   const aliases = Array.from({ length: 200 }, () => '*lead').join(', ');
 
   const result: unknown = loadRules({
@@ -316,8 +369,8 @@ test('it rejects a rules file whose aliases expand past the alias limit', () => 
         ],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts: [],
+    pins: new Map(),
   });
 
   expect(result).toStrictEqual({
@@ -354,15 +407,13 @@ test('it rejects a rules file saved in Latin-1 as invalid', () => {
 });
 
 test('it rejects a checkout with no rules file', () => {
-  const ctx = setupTest();
-
   const result: unknown = loadRules({
     checkout: {
       commit: '3f2a1c0',
       files: new Map([['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')]]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts: [],
+    pins: new Map(),
   });
 
   expect(result).toStrictEqual({
@@ -399,7 +450,25 @@ test.each([
     'pools[1].name',
   ],
 ])('it rejects %s as invalid', (_, poolLines, path) => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+    {
+      name: 'rank',
+      version: 1,
+      signals: [
+        defineSignal({ name: 'rank', params: z.object({ boost: z.number() }), value: () => null }),
+      ],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+    ['rank', { ref: 'rank@1', sourceHash: contentHash('rank source') }],
+  ]);
 
   const result: unknown = loadRules({
     checkout: {
@@ -423,8 +492,8 @@ recipes:
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   expect(result).toStrictEqual({
@@ -438,7 +507,17 @@ recipes:
 test.each(['build', 'constructor'])(
   'it rejects the pipeline phase %s with no maxAttempts as invalid',
   (phase) => {
-    const ctx = setupTest();
+    const concepts: Concept[] = [
+      {
+        name: 'pool',
+        version: 1,
+        signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+      },
+    ];
+
+    const pins = new Map<string, ConceptPin>([
+      ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+    ]);
 
     const result: unknown = loadRules({
       checkout: {
@@ -462,8 +541,8 @@ recipes:
           ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
         ]),
       },
-      concepts: ctx.concepts,
-      pins: ctx.pins,
+      concepts,
+      pins,
     });
 
     expect(result).toStrictEqual({
@@ -480,7 +559,17 @@ recipes:
 );
 
 test('it rejects the reserved key __proto__ as invalid', () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
 
   const result: unknown = loadRules({
     checkout: {
@@ -504,8 +593,8 @@ recipes:
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   expect(result).toStrictEqual({
@@ -521,7 +610,23 @@ recipes:
 });
 
 test('it rejects two pinned concepts that register one plug-in name as invalid', () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+    {
+      name: 'age',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+    ['age', { ref: 'age@1', sourceHash: contentHash('age source') }],
+  ]);
 
   const result: unknown = loadRules({
     checkout: {
@@ -545,8 +650,8 @@ recipes:
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   expect(result).toStrictEqual({
@@ -562,7 +667,17 @@ recipes:
 });
 
 test('it rejects a prompt path with a "." folder as invalid', () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
 
   const result: unknown = loadRules({
     checkout: {
@@ -586,8 +701,8 @@ recipes:
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   expect(result).toStrictEqual({
@@ -603,7 +718,30 @@ recipes:
 });
 
 test('it puts a signal that lead and a pool order both name once in the pool order', () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+    {
+      name: 'expedite',
+      version: 1,
+      signals: [
+        defineSignal({
+          name: 'expedite',
+          params: z.object({}),
+          value: () => null,
+          combine: (left, right) => Math.min(left, right),
+        }),
+      ],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+    ['expedite', { ref: 'expedite@1', sourceHash: contentHash('expedite source') }],
+  ]);
 
   const result = loadRules({
     checkout: {
@@ -627,8 +765,8 @@ recipes:
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   invariant(result.kind === 'loaded');
@@ -640,7 +778,17 @@ recipes:
 });
 
 test('it rejects a concept pinned twice as invalid', () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
 
   const result: unknown = loadRules({
     checkout: {
@@ -664,8 +812,8 @@ recipes:
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   expect(result).toStrictEqual({
@@ -684,7 +832,30 @@ test.each([
   ['an unknown concept name', 'triage@1'],
   ['a known concept name at a version no concept has', 'expedite@2'],
 ])('it rejects %s', (_, ref) => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+    {
+      name: 'expedite',
+      version: 1,
+      signals: [
+        defineSignal({
+          name: 'expedite',
+          params: z.object({}),
+          value: () => null,
+          combine: (left, right) => Math.min(left, right),
+        }),
+      ],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+    ['expedite', { ref: 'expedite@1', sourceHash: contentHash('expedite source') }],
+  ]);
 
   const result: unknown = loadRules({
     checkout: {
@@ -708,8 +879,8 @@ recipes:
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   expect(result).toStrictEqual({
@@ -725,7 +896,17 @@ recipes:
 });
 
 test('it rejects a pool order that names a signal no pinned concept registers', () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
 
   const result: unknown = loadRules({
     checkout: {
@@ -749,8 +930,8 @@ recipes:
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   expect(result).toStrictEqual({
@@ -766,7 +947,17 @@ recipes:
 });
 
 test('it rejects a lead that names a signal no pinned concept registers', () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
 
   const result: unknown = loadRules({
     checkout: {
@@ -790,8 +981,8 @@ recipes:
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   expect(result).toStrictEqual({
@@ -807,7 +998,25 @@ recipes:
 });
 
 test("it rejects a pool order reference whose parameters the signal's params schema refuses", () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+    {
+      name: 'rank',
+      version: 1,
+      signals: [
+        defineSignal({ name: 'rank', params: z.object({ boost: z.number() }), value: () => null }),
+      ],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+    ['rank', { ref: 'rank@1', sourceHash: contentHash('rank source') }],
+  ]);
 
   const result: unknown = loadRules({
     checkout: {
@@ -831,8 +1040,8 @@ recipes:
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   expect(result).toStrictEqual({
@@ -853,7 +1062,30 @@ recipes:
 });
 
 test('it rejects a pinned concept whose gate refuses empty parameters', () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+    {
+      name: 'hold',
+      version: 1,
+      gates: [
+        defineGate({
+          name: 'hold',
+          liftable: false,
+          params: z.object({ days: z.number() }),
+          hold: () => null,
+        }),
+      ],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+    ['hold', { ref: 'hold@1', sourceHash: contentHash('hold source') }],
+  ]);
 
   const result: unknown = loadRules({
     checkout: {
@@ -877,8 +1109,8 @@ recipes:
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   expect(result).toStrictEqual({
@@ -899,7 +1131,30 @@ recipes:
 });
 
 test('it rejects a propagation line over an unknown link type', () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+    {
+      name: 'expedite',
+      version: 1,
+      signals: [
+        defineSignal({
+          name: 'expedite',
+          params: z.object({}),
+          value: () => null,
+          combine: (left, right) => Math.min(left, right),
+        }),
+      ],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+    ['expedite', { ref: 'expedite@1', sourceHash: contentHash('expedite source') }],
+  ]);
 
   const result: unknown = loadRules({
     checkout: {
@@ -924,8 +1179,8 @@ recipes:
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   expect(result).toStrictEqual({
@@ -941,7 +1196,30 @@ recipes:
 });
 
 test('it rejects a propagation line for a signal with no combine', () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+    {
+      name: 'expedite',
+      version: 1,
+      signals: [
+        defineSignal({
+          name: 'expedite',
+          params: z.object({}),
+          value: () => null,
+          combine: (left, right) => Math.min(left, right),
+        }),
+      ],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+    ['expedite', { ref: 'expedite@1', sourceHash: contentHash('expedite source') }],
+  ]);
 
   const result: unknown = loadRules({
     checkout: {
@@ -966,8 +1244,8 @@ recipes:
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   expect(result).toStrictEqual({
@@ -987,7 +1265,17 @@ test.each([
   ['a recipe name the rules file does not define', '{ build: build-v2 }'],
   ['a recipe name every object inherits', '{ build: toString }'],
 ])('it rejects a kind with %s for a pipeline phase', (_, recipes) => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
 
   const result: unknown = loadRules({
     checkout: {
@@ -1011,8 +1299,8 @@ recipes:
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   expect(result).toStrictEqual({
@@ -1028,7 +1316,17 @@ recipes:
 });
 
 test('it rejects a recipe whose prompt file is missing', () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
 
   const result: unknown = loadRules({
     checkout: {
@@ -1052,8 +1350,8 @@ recipes:
         ['prompts/build-v2.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   expect(result).toStrictEqual({
@@ -1069,7 +1367,17 @@ recipes:
 });
 
 test('it changes the rules version when one byte of the prompt template changes', () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
 
   const rules = new TextEncoder().encode(`
 version: 1
@@ -1092,8 +1400,8 @@ recipes:
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   const after = loadRules({
@@ -1104,8 +1412,8 @@ recipes:
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}!\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   invariant(before.kind === 'loaded');
@@ -1115,7 +1423,17 @@ recipes:
 });
 
 test("it changes the rules version when a concept's pinned hash changes", () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
 
   const files = new Map([
     [
@@ -1138,15 +1456,15 @@ recipes:
 
   const before = loadRules({
     checkout: { commit: '3f2a1c0', files },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   const after = loadRules({
     checkout: { commit: '3f2a1c0', files },
-    concepts: ctx.concepts,
+    concepts,
     pins: new Map([
-      ...ctx.pins,
+      ...pins,
       ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source, edited') }],
     ]),
   });
@@ -1158,7 +1476,17 @@ recipes:
 });
 
 test('it keeps the rules version when a file the loader does not read changes', () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
 
   const rules = new TextEncoder().encode(`
 version: 1
@@ -1184,8 +1512,8 @@ recipes:
         ['README.md', new TextEncoder().encode('The rules.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   const after = loadRules({
@@ -1197,8 +1525,8 @@ recipes:
         ['README.md', new TextEncoder().encode('The rules for the build pool.\n')],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   invariant(before.kind === 'loaded');
@@ -1208,7 +1536,17 @@ recipes:
 });
 
 test('it returns every rejection a rules file has in one result', () => {
-  const ctx = setupTest();
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
 
   const result: unknown = loadRules({
     checkout: {
@@ -1231,8 +1569,8 @@ recipes:
         ],
       ]),
     },
-    concepts: ctx.concepts,
-    pins: ctx.pins,
+    concepts,
+    pins,
   });
 
   expect(result).toStrictEqual({
