@@ -4,6 +4,7 @@ import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { claimStoreContract } from '@boxxy/dispatch/test-utils/claim-store-contract';
+import { brandSchemas } from '@boxxy/model';
 import { createSQLiteClaimStore } from './create-sqlite-claim-store.ts';
 import { createTestClaimStore } from './test-utils/create-test-claim-store.ts';
 
@@ -20,7 +21,13 @@ async function setupTest() {
 
   return {
     store: await createTestClaimStore(),
-    createStore: () => createSQLiteClaimStore(path),
+    createStore: async () => {
+      const store = await createSQLiteClaimStore(path);
+
+      cleanup.defer(() => store.close());
+
+      return store;
+    },
     listFiles: () => readdir(folder),
     seedForeignItemsTable: () => {
       const sqlite = new Database(path, { create: true });
@@ -51,4 +58,49 @@ test('it closes the file when the migrations fail', async () => {
   const files = await ctx.listFiles();
 
   expect({ created, files }).toStrictEqual({ created: 'refused', files: ['store.db'] });
+});
+
+test('it runs the exclusive calls of two stores on one file one after the other', async () => {
+  const ctx = await setupTest();
+  const first = await ctx.createStore();
+  const second = await ctx.createStore();
+
+  const secondCall = Promise.withResolvers<void>();
+
+  await first.exclusive(async (transaction) => {
+    await transaction.writeHeartbeat(
+      brandSchemas.runnerId.parse('runner-1'),
+      brandSchemas.instant.parse(1000),
+    );
+
+    secondCall.resolve(
+      second.exclusive((other) =>
+        other.writeHeartbeat(
+          brandSchemas.runnerId.parse('runner-2'),
+          brandSchemas.instant.parse(2000),
+        ),
+      ),
+    );
+
+    await transaction.listPoolSlots();
+    await transaction.listPoolSlots();
+  });
+
+  await secondCall.promise;
+
+  const runners = await second.read(async (transaction) => [
+    await transaction.readRunner(brandSchemas.runnerId.parse('runner-1')),
+    await transaction.readRunner(brandSchemas.runnerId.parse('runner-2')),
+  ]);
+
+  const beats: unknown = runners.map((runner) => runner?.heartbeatAt);
+
+  expect(beats).toStrictEqual([1000, 2000]);
+});
+
+test('it opens one new file from two stores started together', async () => {
+  const ctx = await setupTest();
+  const opened = await Promise.allSettled([ctx.createStore(), ctx.createStore()]);
+
+  expect(opened.map((result) => result.status)).toStrictEqual(['fulfilled', 'fulfilled']);
 });

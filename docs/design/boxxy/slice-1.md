@@ -321,9 +321,11 @@ JSON-line oRPC messages over the daemon's unix socket, after a `daemon.hello` ha
 
 ## The store schema
 
-The store is one SQLite file in WAL mode, with `synchronous=NORMAL` and `busy_timeout` at 5,000 ms,
-so a second `BEGIN IMMEDIATE` waits for the first. Migrations run through Kysely's
-`Migrator` with an in-code provider. Only `adapters/store-sqlite` imports `bun:sqlite`
+The store is one SQLite file in WAL mode, with `synchronous=NORMAL`. A second `BEGIN IMMEDIATE`
+waits for the first for up to 5,000 ms. The store retries it every 10 ms without blocking, because
+`bun:sqlite` waits for a lock synchronously and would stall every other store in the process.
+Migrations run through Kysely's `Migrator` with an in-code provider, inside one `BEGIN IMMEDIATE`
+transaction, so two stores that open a new file at once migrate it once. Only `adapters/store-sqlite` imports `bun:sqlite`
 and `kysely`.
 
 The store opens the file twice. `exclusive` runs on the first handle, and `read` runs on the second,
