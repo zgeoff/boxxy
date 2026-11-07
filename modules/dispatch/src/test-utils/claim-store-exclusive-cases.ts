@@ -158,6 +158,21 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
+    '#read rejects with the error work throws',
+    async (store) => {
+      const reading = store.read(() => {
+        throw new Error('the read failed');
+      });
+
+      const settled = await reading.then(
+        () => 'resolved',
+        (error: unknown) => error,
+      );
+
+      return { received: settled, expected: new Error('the read failed') };
+    },
+  ],
+  [
     '#read runs a read started inside another read',
     async (store) => {
       const item = buildMockItemRow();

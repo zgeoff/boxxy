@@ -54,7 +54,7 @@ export function createMemoryClaimStore(): ClaimStore {
     read: (work) => {
       const snapshot = committed;
 
-      return work(buildMemoryReader(() => snapshot));
+      return Promise.try(() => work(buildMemoryReader(() => snapshot)));
     },
   };
 }
