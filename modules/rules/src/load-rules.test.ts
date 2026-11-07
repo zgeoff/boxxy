@@ -328,6 +328,31 @@ test('it rejects a rules file whose aliases expand past the alias limit', () => 
   });
 });
 
+test('it rejects a rules file saved in Latin-1 as invalid', () => {
+  const latin1 = new Uint8Array([
+    ...new TextEncoder().encode('version: 1\nlead: [caf'),
+    0xe9,
+    ...new TextEncoder().encode(']\n'),
+  ]);
+
+  const result: unknown = loadRules({
+    checkout: { commit: '3f2a1c0', files: new Map([['rules.yaml', latin1]]) },
+    concepts: [],
+    pins: new Map(),
+  });
+
+  expect(result).toStrictEqual({
+    kind: 'rejected',
+    rejections: [
+      {
+        file: 'rules.yaml',
+        path: '',
+        reason: { kind: 'invalid', message: 'the file is not valid UTF-8' },
+      },
+    ],
+  });
+});
+
 test('it rejects a checkout with no rules file', () => {
   const ctx = setupTest();
 

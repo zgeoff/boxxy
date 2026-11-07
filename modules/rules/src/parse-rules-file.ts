@@ -11,7 +11,34 @@ type RulesFileParse =
   | { readonly kind: 'rejected'; readonly rejections: readonly LoadRejection[] };
 
 export function parseRulesFile(fileName: string, bytes: Uint8Array): RulesFileParse {
-  const document = parseDocument(new TextDecoder().decode(bytes));
+  return match(toText(bytes))
+    .with({ kind: 'refused' }, (refused): RulesFileParse => ({
+      kind: 'rejected',
+      rejections: [buildInvalid(fileName, '', refused.message)],
+    }))
+    .with({ kind: 'converted' }, (text) => parseRulesText(fileName, text.value))
+    .exhaustive();
+}
+
+type Converted<T> =
+  | { readonly kind: 'converted'; readonly value: T }
+  | { readonly kind: 'refused'; readonly message: string };
+
+function toText(bytes: Uint8Array): Converted<string> {
+  // TextDecoder reports bytes that aren't UTF-8 only by throwing, in its fatal mode
+  try {
+    return { kind: 'converted', value: new TextDecoder('utf-8', { fatal: true }).decode(bytes) };
+  } catch {
+    return { kind: 'refused', message: 'the file is not valid UTF-8' };
+  }
+}
+
+function buildInvalid(file: string, path: string, message: string): LoadRejection {
+  return { file, path, reason: { kind: 'invalid', message } };
+}
+
+function parseRulesText(fileName: string, text: string): RulesFileParse {
+  const document = parseDocument(text);
 
   if (document.errors.length > 0) {
     return {
@@ -25,24 +52,16 @@ export function parseRulesFile(fileName: string, bytes: Uint8Array): RulesFilePa
       kind: 'rejected',
       rejections: [buildInvalid(fileName, '', refused.message)],
     }))
-    .with({ kind: 'plain' }, (plain) => parseRulesValue(fileName, plain.value))
+    .with({ kind: 'converted' }, (plain) => parseRulesValue(fileName, plain.value))
     .exhaustive();
 }
 
-function buildInvalid(file: string, path: string, message: string): LoadRejection {
-  return { file, path, reason: { kind: 'invalid', message } };
-}
-
-type PlainValue =
-  | { readonly kind: 'plain'; readonly value: unknown }
-  | { readonly kind: 'refused'; readonly message: string };
-
-function toPlainValue(document: Document): PlainValue {
+function toPlainValue(document: Document): Converted<unknown> {
   // yaml throws, and returns no error, on a document whose aliases expand past its alias limit
   try {
     const value: unknown = document.toJS();
 
-    return { kind: 'plain', value };
+    return { kind: 'converted', value };
   } catch (error) {
     return { kind: 'refused', message: error instanceof Error ? error.message : String(error) };
   }
