@@ -1,6 +1,7 @@
 {
   "apps/cli": "0.1.0",
   "modules/dispatch": "0.1.0",
-  "libs/model": "0.1.0",
-  "adapters/store-sqlite": "0.1.0"
+  "libs/model": "0.1.1",
+  "adapters/store-sqlite": "0.1.0",
+  "libs/content-hash": "0.1.0"
 }

@@ -37,14 +37,14 @@
     },
     "libs/content-hash": {
       "name": "@boxxy/content-hash",
-      "version": "0.0.0",
+      "version": "0.1.0",
       "dependencies": {
         "zod": "catalog:",
       },
     },
     "libs/model": {
       "name": "@boxxy/model",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@boxxy/content-hash": "workspace:*",
         "@faker-js/faker": "catalog:",
