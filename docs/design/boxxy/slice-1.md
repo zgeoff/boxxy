@@ -679,8 +679,8 @@ the example uses bare names.
   the repo tool `scripts/write-concept-pins.ts`, which hashes each concept's source and writes the
   module `src/generated/concept-pins.ts`. A concept's source is `src/concepts/<name>.ts` and each
   file it imports by a relative path, type-only imports included. The module is committed, and a
-  test in `bun run test` fails when it is stale. The server imports `concepts` and `conceptPins` from `@boxxy/planning`, and passes both to
-  `loadRules`. `@boxxy/rules` never imports `@boxxy/planning`. The pins are keyed by concept name,
+  test in `bun run test` fails when it is stale. The server imports `concepts` and `conceptPins`
+  from `@boxxy/planning`, and passes both to `loadRules`. `@boxxy/rules` never imports `@boxxy/planning`. The pins are keyed by concept name,
   so the server compiles in one version of each concept, and passes a pin for each one. The loader
   throws when a pinned concept has no matching pin, because only a server bug reaches that.
 - **The server checks the checkout for a new commit each tick**, and reloads the rules by
@@ -757,8 +757,9 @@ an empty object.
 
 A plug-in that throws is a fault. `buildFrame` records it in `faults` and fails toward holding
 ([dispatch](./dispatch.md#gates-fail-toward-holding)): a failed gate holds with the fault as its
-reason, a failed waiver lifts nothing, and a failed signal gives no opinion. No waiver lifts the
-hold of a failed gate. A propagation line that throws carries nothing: its signal keeps the values
+reason, a failed waiver lifts nothing, and a failed signal gives no opinion. A failed filter field
+gives the item no value for that field, so no pool that filters on the field takes the item, and
+its fault has the kind `filter-field`. No waiver lifts the hold of a failed gate. A propagation line that throws carries nothing: its signal keeps the values
 it had before the line ran.
 
 `decide.ts`, `build-frame.ts` and `propagate.ts` never import a concept. An oxlint
@@ -784,8 +785,8 @@ concept by name and version.
 - `expedite-lifts-defer` lifts a `defer` hold on any candidate with an `expedite` value, propagated
   values included.
 - `expedite` gives the item's position among the live `plan.expedite` levers, in `seq` order, so
-  the first expedite sorts first. An item with two live expedites takes the position of its oldest one.
-  Its `combine` is `min`.
+  the first expedite sorts first. An item with two live expedites takes the position of its oldest
+  one. Its `combine` is `min`.
 
 The `pool` concept declares the pool filter fields `phase`, `kind` and `repo` in its
 `filterFields`. The `defer` concept registers the levers `plan.defer` and `plan.undefer`. The

@@ -61,11 +61,12 @@ export function buildFrame(input: BuildFrameInput): Frame {
     .filter(([key]) => !carriedKeys.has(key))
     .map(([key, signal]) => collectSignalValues(key, signal, candidates, context));
 
-  const fields = [...input.rules.registry['filter-field'].values()];
+  const filterFields = [...input.rules.registry['filter-field'].values()];
+  const fields = candidates.map((item) => collectFieldValues(item, filterFields));
 
   return {
     candidates,
-    fields: new Map(candidates.map((item) => [item.id, collectFieldValues(item, fields)])),
+    fields: new Map(fields.map((entry) => [entry.item, entry.values])),
     values: new Map([
       ...propagated.values,
       ...others.map((entry): [SignalKey, Map<ItemId, number>] => [entry.key, entry.values]),
@@ -81,6 +82,7 @@ export function buildFrame(input: BuildFrameInput): Frame {
       ...propagated.faults,
       ...gated.flatMap((entry) => entry.faults),
       ...others.flatMap((entry) => entry.faults),
+      ...fields.flatMap((entry) => entry.faults),
     ],
   };
 }
@@ -238,19 +240,32 @@ function pickLift(
   return { lift: null, faults };
 }
 
-function collectFieldValues(
-  item: FrameItem,
-  fields: readonly FilterField[],
-): Readonly<Record<string, readonly string[]>> {
-  return Object.fromEntries(
-    fields.flatMap((field) => {
+interface FieldValues {
+  readonly item: ItemId;
+  readonly values: Readonly<Record<string, readonly string[]>>;
+  readonly faults: readonly Fault[];
+}
+
+function collectFieldValues(item: FrameItem, fields: readonly FilterField[]): FieldValues {
+  const values: Record<string, readonly string[]> = {};
+  const faults: Fault[] = [];
+
+  for (const field of fields) {
+    try {
       const value = field.value(item);
 
-      if (value === null) {
-        return [];
+      if (value !== null) {
+        values[field.name] = typeof value === 'string' ? [value] : value;
       }
+    } catch (error) {
+      faults.push({
+        plugin: field.name,
+        kind: 'filter-field',
+        item: item.id,
+        error: formatFault(error),
+      });
+    }
+  }
 
-      return [[field.name, typeof value === 'string' ? [value] : value]];
-    }),
-  );
+  return { item: item.id, values, faults };
 }

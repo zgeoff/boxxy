@@ -236,6 +236,40 @@ test('it gives no value and records a fault when a signal throws for an item', (
   });
 });
 
+test('it gives no value for a filter field that throws, and records a fault', () => {
+  const rules = buildMockLoadedRules({
+    concepts: [
+      poolConcept,
+      expediteConcept,
+      {
+        name: 'area',
+        version: 1,
+        filterFields: [
+          {
+            name: 'area',
+            value: () => {
+              throw new Error('the area map has no entry');
+            },
+          },
+        ],
+      },
+    ],
+  });
+
+  const now = brandSchemas.instant.parse(50_000);
+  const item = buildMockItemView({ repo: brandSchemas.repoName.parse('acme/widgets') });
+  const frame = buildFrame({ snapshot: buildMockSnapshot({ items: [item] }), rules, now });
+
+  expect({ fields: frame.fields, faults: frame.faults }).toStrictEqual({
+    fields: new Map([
+      [item.id, { phase: ['build'], kind: ['core.issue'], repo: ['acme/widgets'] }],
+    ]),
+    faults: [
+      { plugin: 'area', kind: 'filter-field', item: item.id, error: 'the area map has no entry' },
+    ],
+  });
+});
+
 test('it carries nothing and records a fault when a propagation line throws', () => {
   const blocked = buildMockItemView({ derived: { state: 'blocked' } });
   const blocker = buildMockItemView();

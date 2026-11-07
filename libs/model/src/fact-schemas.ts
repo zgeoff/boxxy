@@ -19,7 +19,7 @@ const linkPayloadSchema = z.object({
 
 const faultSchema = z.object({
   plugin: z.string().min(1),
-  kind: z.enum(['signal', 'gate', 'waiver', 'admission', 'propagation']),
+  kind: z.enum(['signal', 'gate', 'waiver', 'admission', 'propagation', 'filter-field']),
   item: brandSchemas.itemId.nullable(),
   error: z.string(),
 });
