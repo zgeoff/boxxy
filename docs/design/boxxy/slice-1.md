@@ -919,9 +919,10 @@ proposed.
 dedupe.
 
 - **A friction entry's target kind** is one of `skill`, `rule`, `lint`, `agents-md` and `tool`. A
-  target of any other kind fails the parse. An entry with no target is dropped, as
-  [decision 0009](../../decisions/0009-close-outs-hold-what-only-the-agent-knows.md) says, and the
-  parser counts it in `frictionDropped`.
+  target of any other kind fails the parse. An entry whose `target` is missing or `null` is dropped,
+  as [decision 0009](../../decisions/0009-close-outs-hold-what-only-the-agent-knows.md) says, and
+  the parser counts it in `frictionDropped`. The agent never sends `frictionDropped`: the parser sets
+  it, and ignores a count the agent sends.
 
 - **Evidence ids** are the `fact_id`s of the attempt's `evidence` rows. The PR hook and the PR watch
   write PR and commit evidence. The agent writes test, CI run and live check evidence with
@@ -929,11 +930,15 @@ dedupe.
 - **The parser rejects** a close-out that fails the schema, cites a criterion the item lacks, cites
   an evidence id that belongs to another attempt, or has result `built` while a criterion has no
   evidence. The parser returns every problem at once, and the CLI prints them all, so the agent can
-  fix the close-out and send it again.
+  fix the close-out and send it again. When the close-out fails the schema, the parser returns only
+  the schema problems, because the other checks read the parsed fields. A schema problem's path
+  points into the close-out the agent sent, such as `friction[2].target.kind`, even when the parser
+  dropped an entry before it.
 - **The latest valid close-out wins.** Each valid one writes `boxxy.attempt.closed_out`.
 - **Dedupe matches an `openItems` entry** to an open `core.issue` in the same repo whose title is
-  equal after lowercasing, trimming, and collapsing each run of whitespace to one space. A match
-  files no new item. It links the existing item to the attempt: the attempt's
+  equal after lowercasing, trimming, and collapsing each run of whitespace to one space. Settle reads
+  the open `core.issue` items of the attempt's repo and passes them to `dedupeOpenItems`, which
+  compares titles only. A match files no new item. It links the existing item to the attempt: the attempt's
   `boxxy.attempt.settled` fact lists it in `matched`. With no match, settle files a new item with
   the entry's `body` as its outcome, the repo of the attempt's item, and an empty acceptance list,
   so it starts as an `idea`, with `found_in_attempt` set.
