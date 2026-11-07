@@ -6,10 +6,9 @@ export function dedupeOpenItems(
   open: readonly ItemView[],
 ): { readonly file: readonly OpenItem[]; readonly matched: readonly ItemId[] } {
   const openByTitle = collectOpenByTitle(open);
-  const file = entries.filter((entry) => !openByTitle.has(normaliseTitle(entry.title)));
   const matched = entries.flatMap((entry) => openByTitle.get(normaliseTitle(entry.title)) ?? []);
 
-  return { file, matched: [...new Set(matched)] };
+  return { file: collectNewEntries(entries, openByTitle), matched: [...new Set(matched)] };
 }
 
 function collectOpenByTitle(open: readonly ItemView[]): Map<string, ItemId> {
@@ -24,4 +23,25 @@ function collectOpenByTitle(open: readonly ItemView[]): Map<string, ItemId> {
   }
 
   return openByTitle;
+}
+
+function collectNewEntries(
+  entries: readonly OpenItem[],
+  openByTitle: ReadonlyMap<string, ItemId>,
+): OpenItem[] {
+  const seen = new Set<string>();
+
+  const file: OpenItem[] = [];
+
+  for (const entry of entries) {
+    const title = normaliseTitle(entry.title);
+
+    if (!openByTitle.has(title) && !seen.has(title)) {
+      file.push(entry);
+    }
+
+    seen.add(title);
+  }
+
+  return file;
 }

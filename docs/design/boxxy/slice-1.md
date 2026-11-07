@@ -941,7 +941,9 @@ dedupe.
   `dedupeOpenItems`, which compares titles only. A match files no new item. It links the existing item to the attempt: the attempt's
   `boxxy.attempt.settled` fact lists it in `matched`. With no match, settle files a new item with
   the entry's `body` as its outcome, the repo of the attempt's item, and an empty acceptance list,
-  so it starts as an `idea`, with `found_in_attempt` set.
+  so it starts as an `idea`, with `found_in_attempt` set. When two entries of one close-out have
+  titles that are equal after the same normalising, settle files only the first, so it files each new
+  item once.
 - **Friction** becomes a `boxxy.proposal.recorded` fact. Slice 1 acts on it no further.
 
 ## Links to commits and PRs

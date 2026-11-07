@@ -29,6 +29,22 @@ test('it files every entry when no open item matches', () => {
   });
 });
 
+test('it files the first of two entries whose titles are equal after normalising', () => {
+  const entries = [
+    { kind: 'core.issue', title: 'Show upload progress', body: 'Uploads look stuck' },
+    { kind: 'core.issue', title: 'Retry a failed download', body: 'Downloads fail too' },
+    { kind: 'core.issue', title: ' show  UPLOAD progress', body: 'Seen again on a big file' },
+  ] as const;
+
+  expect(dedupeOpenItems(entries, [])).toStrictEqual({
+    file: [
+      { kind: 'core.issue', title: 'Show upload progress', body: 'Uploads look stuck' },
+      { kind: 'core.issue', title: 'Retry a failed download', body: 'Downloads fail too' },
+    ],
+    matched: [],
+  });
+});
+
 test('it lists a matched item once when two entries match it', () => {
   const open = buildMockItemView({ title: 'Retry a failed download' });
 
