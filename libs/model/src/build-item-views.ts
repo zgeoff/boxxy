@@ -121,7 +121,6 @@ function buildItemRows(
   };
 }
 
-// each slice 1 kind has a pipeline of one phase, so an item's current phase is its kind's first
 function pickMaxAttempts(kind: ItemKindName, maxAttemptsByKind: MaxAttemptsByKind): number {
   const [first] = maxAttemptsByKind.get(kind)?.values() ?? [];
 
