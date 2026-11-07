@@ -77,9 +77,9 @@ test('it sorts an item with two live expedites by its oldest one', () => {
   const once = buildMockItemView({ filedAt: brandSchemas.instant.parse(1000) });
 
   const levers = [
-    buildMockLeverRow({ seq: 2, kind: 'plan.expedite', item: twice.id }),
     buildMockLeverRow({ seq: 5, kind: 'plan.expedite', item: once.id }),
     buildMockLeverRow({ seq: 9, kind: 'plan.expedite', item: twice.id }),
+    buildMockLeverRow({ seq: 2, kind: 'plan.expedite', item: twice.id }),
   ];
 
   const frame = buildFrame({

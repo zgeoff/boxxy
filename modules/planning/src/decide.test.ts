@@ -68,6 +68,58 @@ test('it returns the same picks for the same frame across 100 runs', () => {
   );
 });
 
+test('it breaks a tie on every signal by item id, whatever the candidate order', () => {
+  const lower = buildMockFrameItem({
+    id: brandSchemas.itemId.parse('0190a000-0000-7000-8000-000000000001'),
+  });
+
+  const higher = buildMockFrameItem({
+    id: brandSchemas.itemId.parse('0190a000-0000-7000-8000-000000000002'),
+  });
+
+  const frame = {
+    candidates: [higher, lower],
+    fields: new Map([
+      [higher.id, { phase: ['build'] }],
+      [lower.id, { phase: ['build'] }],
+    ]),
+    values: new Map([
+      [
+        signalKey('oldest', {}),
+        new Map([
+          [higher.id, 10],
+          [lower.id, 10],
+        ]),
+      ],
+    ]),
+    holds: new Map(),
+    lifted: new Map(),
+    faults: [],
+  };
+
+  const pools: Pool[] = [
+    {
+      name: brandSchemas.poolName.parse('build'),
+      slots: 2,
+      takes: { phase: ['build'] },
+      order: [signalKey('oldest', {})],
+    },
+  ];
+
+  const decision: unknown = decide({
+    frame,
+    pools,
+    freeSlots: { [brandSchemas.poolName.parse('build')]: 2 },
+  });
+
+  expect(decision).toStrictEqual({
+    picks: [
+      { item: lower.id, phase: 'build', pool: 'build' },
+      { item: higher.id, phase: 'build', pool: 'build' },
+    ],
+  });
+});
+
 test('it sorts a candidate with no value for a signal after the candidates with one', () => {
   const valued = buildMockFrameItem({
     id: brandSchemas.itemId.parse('0190a000-0000-7000-8000-000000000002'),
