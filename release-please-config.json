@@ -18,6 +18,10 @@
       "component": "@boxxy/dispatch",
       "initial-version": "0.1.0"
     },
+    "modules/closeout": {
+      "component": "@boxxy/closeout",
+      "initial-version": "0.1.0"
+    },
     "modules/rules": {
       "component": "@boxxy/rules",
       "initial-version": "0.1.0"
