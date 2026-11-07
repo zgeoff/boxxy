@@ -22,6 +22,10 @@
       "component": "@boxxy/closeout",
       "initial-version": "0.1.0"
     },
+    "modules/planning": {
+      "component": "@boxxy/planning",
+      "initial-version": "0.1.0"
+    },
     "modules/rules": {
       "component": "@boxxy/rules",
       "initial-version": "0.1.0"
