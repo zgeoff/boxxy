@@ -4,7 +4,7 @@ import { buildSQLiteDialect } from '@zgeoff/kysely-bun-sqlite';
 import { Kysely, sql } from 'kysely';
 import type { RawBuilder } from 'kysely';
 import { buildSQLiteReader } from './build-sqlite-reader.ts';
-import { buildSQLiteTx } from './build-sqlite-tx.ts';
+import { createSQLiteTx } from './create-sqlite-tx.ts';
 import { runStoreMigrations } from './run-store-migrations.ts';
 import type { StoreDatabase } from './types.ts';
 
@@ -43,7 +43,7 @@ export async function createSQLiteClaimStore(path: string): Promise<SQLiteClaimS
     exclusive: (work) =>
       writerDB
         .connection()
-        .execute((db) => withTransaction(db, sql`BEGIN IMMEDIATE`, () => work(buildSQLiteTx(db)))),
+        .execute((db) => withTransaction(db, sql`BEGIN IMMEDIATE`, () => work(createSQLiteTx(db)))),
 
     // a second handle, so a read sees the last commit and never a running exclusive call's writes
     read: (work) =>

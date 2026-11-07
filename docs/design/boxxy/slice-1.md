@@ -267,8 +267,8 @@ A unique index that refuses an insert throws, and the transaction rolls back.
 `applyChange` checks `under` first, then takes the slot, then applies the writes in order, then
 writes the facts. The first refusal or throw stops it, and the store undoes that change's earlier
 writes, the SQLite store with a savepoint. A work function that goes on after a refusal or a caught
-throw keeps its earlier changes. Two `applyChange` calls on one `StoreTx` run one after the other,
-even when the work function starts both at once.
+throw keeps its earlier changes. The calls on one `StoreTx` run one after the other, even when the
+work function starts several at once, so a refusal never rolls back another call's write.
 
 A few writes are bookkeeping. Each changes no row that derived state or `decide()` reads. Each runs
 on `StoreTx` outside `StoreChange`, writes no fact, and leaves the store version where it is:

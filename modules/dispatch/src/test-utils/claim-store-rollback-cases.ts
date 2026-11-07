@@ -2,6 +2,7 @@ import { expect } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
 import type { StoreChange } from '@boxxy/model';
 import { buildMockAttemptRow } from '@boxxy/model/test-utils/build-mock-attempt-row';
+import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
 import { buildMockItemRow } from '@boxxy/model/test-utils/build-mock-item-row';
 import { buildMockClaimChange } from './build-mock-claim-change.ts';
 import { buildMockFileItemChange } from './build-mock-file-item-change.ts';
@@ -82,6 +83,48 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
         attempt: null,
         slots: [{ pool: attempt.pool, slot: 1, holder: null, gen: 0, retired: false }],
       });
+    },
+  ],
+  [
+    '#applyChange keeps a heartbeat started beside a change it refuses',
+    async (store) => {
+      const filed = buildMockItemRow();
+      const missing = buildMockItemRow();
+      const runner = brandSchemas.runnerId.parse('runner-1');
+
+      await store.exclusive((transaction) =>
+        Promise.all([
+          transaction.applyChange({
+            at: brandSchemas.instant.parse(3000),
+            writes: [
+              { op: 'insert', table: 'items', row: filed },
+              {
+                op: 'update',
+                table: 'items',
+                key: { id: missing.id },
+                expect: {},
+                set: { title: 'Mend the gate' },
+              },
+            ],
+            facts: [
+              {
+                id: buildMockFactId(),
+                type: 'boxxy.item.edited',
+                entity: `boxxy:item:${missing.id}`,
+                actor: 'boxxy:owner:local',
+                payload: { title: 'Mend the gate' },
+              },
+            ],
+          }),
+          transaction
+            .listPoolSlots()
+            .then(() => transaction.writeHeartbeat(runner, brandSchemas.instant.parse(1000))),
+        ]),
+      );
+
+      const read: unknown = await store.read((transaction) => transaction.readRunner(runner));
+
+      expect(read).toStrictEqual({ id: 'runner-1', heartbeatAt: 1000, paused: false });
     },
   ],
   [
