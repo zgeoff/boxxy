@@ -1,5 +1,12 @@
 export type { ContentHash, JsonValue } from '@boxxy/content-hash';
 export { brandSchemas } from './brand-schemas.ts';
+
+export {
+  buildAppliedChange,
+  type ChangeAssignments,
+  type TakenSlot,
+} from './build-applied-change.ts';
+
 export { buildCloseOutSchema } from './build-close-out-schema.ts';
 export { buildItemViews } from './build-item-views.ts';
 export { defineAdmission } from './define-admission.ts';
@@ -10,6 +17,7 @@ export { factSchemas } from './fact-schemas.ts';
 export { frictionSchema } from './friction-schema.ts';
 export { liveLevers } from './live-levers.ts';
 export { signalKey } from './signal-key.ts';
+export { toJsonValue } from './to-json-value.ts';
 
 export type {
   Actor,

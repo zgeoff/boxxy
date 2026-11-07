@@ -1,0 +1,290 @@
+import { expect } from 'bun:test';
+import { brandSchemas } from '@boxxy/model';
+import { buildMockAttemptRow } from '@boxxy/model/test-utils/build-mock-attempt-row';
+import { buildMockItemRow } from '@boxxy/model/test-utils/build-mock-item-row';
+import { buildMockClaimChange } from './build-mock-claim-change.ts';
+import { buildMockFileItemChange } from './build-mock-file-item-change.ts';
+import { buildMockPauseChange } from './build-mock-pause-change.ts';
+import { buildMockPullRequestChange } from './build-mock-pull-request-change.ts';
+import { buildMockSettleChange } from './build-mock-settle-change.ts';
+import { buildMockStartChange } from './build-mock-start-change.ts';
+import type { ClaimStoreCase } from './types.ts';
+
+export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
+  [
+    '#readLastLeaseGen returns 0 for an item phase with no lease',
+    async (store) => {
+      const gen = await store.read((tx) =>
+        tx.readLastLeaseGen(buildMockItemRow().id, brandSchemas.phaseName.parse('build')),
+      );
+
+      expect(gen).toBe(0);
+    },
+  ],
+  [
+    '#readLastLeaseGen returns the highest gen after a released lease',
+    async (store) => {
+      const item = buildMockItemRow();
+      const attempt = buildMockAttemptRow({ item: item.id, state: 'starting', leaseGen: 3 });
+
+      await store.exclusive(async (tx) => {
+        await tx.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
+        await tx.applyChange(buildMockFileItemChange(item));
+        await tx.applyChange(buildMockClaimChange(attempt));
+
+        await tx.applyChange(
+          buildMockSettleChange({ attempt: { ...attempt, slot: 1, slotGen: 1 }, state: 'failed' }),
+        );
+      });
+
+      const gen = await store.read((tx) => tx.readLastLeaseGen(item.id, attempt.phase));
+
+      expect(gen).toBe(3);
+    },
+  ],
+  [
+    '#listLiveAttempts returns the attempts that have not settled',
+    async (store) => {
+      const first = buildMockItemRow();
+      const second = buildMockItemRow();
+      const live = buildMockAttemptRow({ item: first.id, state: 'starting' });
+      const settled = buildMockAttemptRow({ item: second.id, state: 'starting' });
+
+      await store.exclusive(async (tx) => {
+        await tx.syncPoolSlots([{ name: live.pool, slots: 2 }]);
+        await tx.applyChange(buildMockFileItemChange(first));
+        await tx.applyChange(buildMockFileItemChange(second));
+        await tx.applyChange(buildMockClaimChange(live));
+        await tx.applyChange(buildMockClaimChange(settled));
+
+        await tx.applyChange(
+          buildMockSettleChange({ attempt: { ...settled, slot: 2, slotGen: 1 }, state: 'failed' }),
+        );
+      });
+
+      const listed = await store.read((tx) => tx.listLiveAttempts());
+
+      expect(listed.map((attempt) => attempt.id)).toStrictEqual([live.id]);
+    },
+  ],
+  [
+    '#listSucceededAttemptsWithoutPr skips an attempt with a linked PR',
+    async (store) => {
+      const first = buildMockItemRow();
+      const second = buildMockItemRow();
+      const linked = buildMockAttemptRow({ item: first.id, state: 'starting' });
+      const unlinked = buildMockAttemptRow({ item: second.id, state: 'starting' });
+
+      await store.exclusive(async (tx) => {
+        await tx.syncPoolSlots([{ name: linked.pool, slots: 2 }]);
+        await tx.applyChange(buildMockFileItemChange(first));
+        await tx.applyChange(buildMockFileItemChange(second));
+        await tx.applyChange(buildMockClaimChange(linked));
+        await tx.applyChange(buildMockClaimChange(unlinked));
+
+        await tx.applyChange(
+          buildMockSettleChange({
+            attempt: { ...linked, slot: 1, slotGen: 1 },
+            state: 'succeeded',
+          }),
+        );
+
+        await tx.applyChange(
+          buildMockSettleChange({
+            attempt: { ...unlinked, slot: 2, slotGen: 1 },
+            state: 'succeeded',
+          }),
+        );
+
+        await tx.applyChange(buildMockPullRequestChange({ attempt: linked, state: 'open' }));
+      });
+
+      const listed = await store.read((tx) => tx.listSucceededAttemptsWithoutPr());
+
+      expect(listed.map((attempt) => attempt.id)).toStrictEqual([unlinked.id]);
+    },
+  ],
+  [
+    '#findAttemptBySession returns the attempt with an atc session id',
+    async (store) => {
+      const item = buildMockItemRow();
+      const attempt = buildMockAttemptRow({ item: item.id, state: 'starting' });
+
+      await store.exclusive(async (tx) => {
+        await tx.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
+        await tx.applyChange(buildMockFileItemChange(item));
+        await tx.applyChange(buildMockClaimChange(attempt));
+        await tx.applyChange(buildMockStartChange(attempt));
+      });
+
+      const found = await store.read((tx) =>
+        tx.findAttemptBySession(brandSchemas.atcSessionId.parse('atc-session-1')),
+      );
+
+      expect(found?.id).toBe(attempt.id);
+    },
+  ],
+  [
+    '#markPullRequestChecked sets the checked time of a watched PR',
+    async (store) => {
+      const item = buildMockItemRow();
+      const attempt = buildMockAttemptRow({ item: item.id, state: 'starting' });
+
+      await store.exclusive(async (tx) => {
+        await tx.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
+        await tx.applyChange(buildMockFileItemChange(item));
+        await tx.applyChange(buildMockClaimChange(attempt));
+        await tx.applyChange(buildMockPullRequestChange({ attempt, state: 'open' }));
+      });
+
+      await store.exclusive((tx) =>
+        tx.markPullRequestChecked(
+          { repo: brandSchemas.repoName.parse('acme/lamps'), number: 7 },
+          brandSchemas.instant.parse(9000),
+        ),
+      );
+
+      const watched = await store.read((tx) => tx.listWatchedPullRequests());
+
+      expect(watched[0]?.checkedAt).toBe(brandSchemas.instant.parse(9000));
+    },
+  ],
+  [
+    '#listWatchedPullRequests skips a merged PR',
+    async (store) => {
+      const item = buildMockItemRow();
+      const attempt = buildMockAttemptRow({ item: item.id, state: 'starting' });
+
+      await store.exclusive(async (tx) => {
+        await tx.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
+        await tx.applyChange(buildMockFileItemChange(item));
+        await tx.applyChange(buildMockClaimChange(attempt));
+        await tx.applyChange(buildMockPullRequestChange({ attempt, state: 'merged' }));
+      });
+
+      const watched = await store.read((tx) => tx.listWatchedPullRequests());
+
+      expect(watched).toStrictEqual([]);
+    },
+  ],
+  [
+    '#listEvidence returns the evidence of one attempt',
+    async (store) => {
+      const item = buildMockItemRow();
+      const attempt = buildMockAttemptRow({ item: item.id, state: 'starting' });
+
+      await store.exclusive(async (tx) => {
+        await tx.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
+        await tx.applyChange(buildMockFileItemChange(item));
+        await tx.applyChange(buildMockClaimChange(attempt));
+        await tx.applyChange(buildMockPullRequestChange({ attempt, state: 'open' }));
+      });
+
+      const evidence: unknown = await store.read((tx) => tx.listEvidence(attempt.id));
+
+      expect(evidence).toStrictEqual([
+        {
+          factId: expect.stringMatching(/^manual:/u),
+          attempt: attempt.id,
+          kind: 'pr',
+          ref: 'https://github.com/acme/lamps/pull/7',
+          observed: null,
+          source: 'hook',
+          at: 4000,
+        },
+      ]);
+    },
+  ],
+  [
+    '#markFactsSent drops the facts from the unsent facts and the outbox lag',
+    async (store) => {
+      const first = buildMockFileItemChange(
+        buildMockItemRow({ filedAt: brandSchemas.instant.parse(1000) }),
+      );
+
+      const second = buildMockFileItemChange(
+        buildMockItemRow({ filedAt: brandSchemas.instant.parse(2000) }),
+      );
+
+      await store.exclusive(async (tx) => {
+        await tx.applyChange(first);
+        await tx.applyChange(second);
+      });
+
+      await store.exclusive((tx) =>
+        tx.markFactsSent(
+          first.facts.map((fact) => fact.id),
+          brandSchemas.instant.parse(3000),
+        ),
+      );
+
+      const outbox: unknown = await store.read(async (tx) => {
+        const unsent = await tx.readUnsentFacts(10);
+
+        return { unsent: unsent.map((fact) => fact.factId), lag: await tx.readOutboxLag() };
+      });
+
+      expect(outbox).toStrictEqual({
+        unsent: second.facts.map((fact) => fact.id),
+        lag: { unsent: 1, oldestUnsentAt: 2000 },
+      });
+    },
+  ],
+  [
+    '#readUnsentFacts returns at most the limit, oldest first',
+    async (store) => {
+      await store.exclusive(async (tx) => {
+        await tx.applyChange(buildMockFileItemChange(buildMockItemRow()));
+        await tx.applyChange(buildMockFileItemChange(buildMockItemRow()));
+      });
+
+      const unsent = await store.read((tx) => tx.readUnsentFacts(1));
+
+      expect(unsent.map((fact) => fact.seq)).toStrictEqual([1]);
+    },
+  ],
+  [
+    '#readOutboxLag reads no lag from an empty outbox',
+    async (store) => {
+      const lag: unknown = await store.read((tx) => tx.readOutboxLag());
+
+      expect(lag).toStrictEqual({ unsent: 0, oldestUnsentAt: null });
+    },
+  ],
+  [
+    '#writeHeartbeat inserts the runner row on its first beat, not paused',
+    async (store) => {
+      const runner = brandSchemas.runnerId.parse('runner-1');
+
+      await store.exclusive((tx) => tx.writeHeartbeat(runner, brandSchemas.instant.parse(1000)));
+
+      const read: unknown = await store.read((tx) => tx.readRunner(runner));
+
+      expect(read).toStrictEqual({ id: 'runner-1', heartbeatAt: 1000, paused: false });
+    },
+  ],
+  [
+    '#writeHeartbeat moves the heartbeat and keeps the paused flag',
+    async (store) => {
+      const runner = brandSchemas.runnerId.parse('runner-1');
+
+      await store.exclusive(async (tx) => {
+        await tx.writeHeartbeat(runner, brandSchemas.instant.parse(1000));
+        await tx.applyChange(buildMockPauseChange(runner));
+        await tx.writeHeartbeat(runner, brandSchemas.instant.parse(2000));
+      });
+
+      const read: unknown = await store.read((tx) => tx.readRunner(runner));
+
+      expect(read).toStrictEqual({ id: 'runner-1', heartbeatAt: 2000, paused: true });
+    },
+  ],
+  [
+    '#readRunner returns null before the first heartbeat',
+    async (store) => {
+      const read = await store.read((tx) => tx.readRunner(brandSchemas.runnerId.parse('runner-1')));
+
+      expect(read).toBeNull();
+    },
+  ],
+];
