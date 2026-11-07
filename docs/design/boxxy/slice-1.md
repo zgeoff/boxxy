@@ -265,9 +265,10 @@ When `applyChange` refuses a change, it writes nothing and returns one of these:
 A unique index that refuses an insert throws, and the transaction rolls back.
 
 `applyChange` checks `under` first, then takes the slot, then applies the writes in order, then
-writes the facts. The first refusal stops it, and the store undoes that change's earlier writes, the
-SQLite store with a savepoint. A work function that goes on after a refusal keeps its earlier
-changes.
+writes the facts. The first refusal or throw stops it, and the store undoes that change's earlier
+writes, the SQLite store with a savepoint. A work function that goes on after a refusal or a caught
+throw keeps its earlier changes. Two `applyChange` calls on one `StoreTx` run one after the other,
+even when the work function starts both at once.
 
 A few writes are bookkeeping. Each changes no row that derived state or `decide()` reads. Each runs
 on `StoreTx` outside `StoreChange`, writes no fact, and leaves the store version where it is:
@@ -326,9 +327,10 @@ so a second `BEGIN IMMEDIATE` waits for the first. Migrations run through Kysely
 and `kysely`.
 
 The store opens the file twice. `exclusive` runs on the first handle, and `read` runs on the second,
-so a read sees the last commit and never the writes of a running `exclusive` call. Each table is
+so a read sees the last commit and never the writes of a running `exclusive` call. One `read` call
+keeps the snapshot of its first query, even when a commit lands before it ends. Each table is
 `STRICT`. A time is an integer of milliseconds, a flag is `0` or `1`, and a list or an object is
-JSON text. The store parses each row it reads with the row's zod schema from `@boxxy/model`.
+canonical JSON text, so a guard on a JSON column matches whatever the key order of its value. The store parses each row it reads with the row's zod schema from `@boxxy/model`.
 
 The store holds no item state column. `@boxxy/model` derives each item's state from its rows each
 time it reads them ([derived item state](#derived-item-state)).
