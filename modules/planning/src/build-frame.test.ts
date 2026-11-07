@@ -113,6 +113,53 @@ test('it lets no waiver lift the hold of a gate that threw', () => {
   });
 });
 
+test('it records only the first waiver that lifts a hold', () => {
+  const rules = buildMockLoadedRules({
+    concepts: [
+      poolConcept,
+      expediteConcept,
+      {
+        name: 'parked',
+        version: 1,
+        gates: [
+          defineGate({
+            name: 'parked',
+            liftable: true,
+            params: z.object({}),
+            hold: () => ({ gate: 'parked', reason: 'parked by hand' }),
+          }),
+        ],
+        waivers: [
+          {
+            name: 'unpark-by-owner',
+            lifts: 'parked',
+            lift: () => ({
+              waiver: 'unpark-by-owner',
+              gate: 'parked',
+              reason: 'the owner unparked it',
+            }),
+          },
+          {
+            name: 'unpark-by-age',
+            lifts: 'parked',
+            lift: () => ({ waiver: 'unpark-by-age', gate: 'parked', reason: 'parked too long' }),
+          },
+        ],
+      },
+    ],
+  });
+
+  const now = brandSchemas.instant.parse(50_000);
+  const item = buildMockItemView();
+  const frame = buildFrame({ snapshot: buildMockSnapshot({ items: [item] }), rules, now });
+
+  expect(frame.lifted).toStrictEqual(
+    new Map([
+      [item.id, [{ waiver: 'unpark-by-owner', gate: 'parked', reason: 'the owner unparked it' }]],
+    ]),
+  );
+});
+
 test('it lets no waiver lift the hold of a gate that is not liftable', () => {
   const rules = buildMockLoadedRules({
     concepts: [
