@@ -33,8 +33,9 @@ async function setupTest() {
 
 test.each(claimStoreContract)('it keeps the ClaimStore contract: %s', async (_title, check) => {
   const ctx = await setupTest();
+  const outcome = await check(ctx.store);
 
-  await check(ctx.store);
+  expect(outcome.received).toStrictEqual(outcome.expected);
 });
 
 test('it closes the file when the migrations fail', async () => {

@@ -1,4 +1,3 @@
-import { expect } from 'bun:test';
 import { setImmediate } from 'node:timers/promises';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockItemRow } from '@boxxy/model/test-utils/build-mock-item-row';
@@ -33,7 +32,7 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
 
       await Promise.all([first, second]);
 
-      expect(events).toStrictEqual(['first start', 'first end', 'second start']);
+      return { received: events, expected: ['first start', 'first end', 'second start'] };
     },
   ],
   [
@@ -53,13 +52,16 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
         transaction.readSnapshot(brandSchemas.instant.parse(5000), new Map()),
       );
 
-      expect(snapshot).toStrictEqual({
-        storeVersion: 0,
-        items: [],
-        links: [],
-        levers: [],
-        freeSlots: {},
-      });
+      return {
+        received: snapshot,
+        expected: {
+          storeVersion: 0,
+          items: [],
+          links: [],
+          levers: [],
+          freeSlots: {},
+        },
+      };
     },
   ],
   [
@@ -69,9 +71,12 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
         throw new Error('the work failed');
       });
 
-      await writing.catch(() => null);
+      const settled = await writing.then(
+        () => 'resolved',
+        (error: unknown) => error,
+      );
 
-      expect(writing).rejects.toThrow('the work failed');
+      return { received: settled, expected: new Error('the work failed') };
     },
   ],
   [
@@ -93,7 +98,7 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
         transaction.readItem(item.id, brandSchemas.instant.parse(5000), new Map()),
       );
 
-      expect(read?.id).toBe(item.id);
+      return { received: read?.id, expected: item.id };
     },
   ],
   [
@@ -126,7 +131,7 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
 
       await writing;
 
-      expect(seen.map((item) => item.id)).toStrictEqual([committed.id]);
+      return { received: seen.map((item) => item.id), expected: [committed.id] };
     },
   ],
   [
@@ -149,7 +154,7 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
         return { before: before.map((item) => item.id), after: after.map((item) => item.id) };
       });
 
-      expect(seen).toStrictEqual({ before: [committed.id], after: [committed.id] });
+      return { received: seen, expected: { before: [committed.id], after: [committed.id] } };
     },
   ],
   [
@@ -162,18 +167,21 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
 
       const facts: unknown = await store.read((transaction) => transaction.readUnsentFacts(10));
 
-      expect(facts).toStrictEqual([
-        {
-          seq: 1,
-          factId: change.facts[0]?.id,
-          type: 'boxxy.item.filed',
-          entity: `boxxy:item:${item.id}`,
-          actor: 'boxxy:owner:local',
-          at: 1000,
-          payload: { ...item },
-          sentAt: null,
-        },
-      ]);
+      return {
+        received: facts,
+        expected: [
+          {
+            seq: 1,
+            factId: change.facts[0]?.id,
+            type: 'boxxy.item.filed',
+            entity: `boxxy:item:${item.id}`,
+            actor: 'boxxy:owner:local',
+            at: 1000,
+            payload: { ...item },
+            sentAt: null,
+          },
+        ],
+      };
     },
   ],
   [
@@ -183,7 +191,7 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
 
       const result = await store.exclusive((transaction) => transaction.applyChange(change));
 
-      expect(result).toStrictEqual({ kind: 'applied', slot: null });
+      return { received: result, expected: { kind: 'applied', slot: null } };
     },
   ],
 ];

@@ -26,13 +26,16 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
         transaction.readSnapshot(brandSchemas.instant.parse(5000), new Map()),
       );
 
-      expect(snapshot).toStrictEqual({
-        storeVersion: 2,
-        items: [{ ...open, derived: { state: 'ready' } }],
-        links: [],
-        levers: [],
-        freeSlots: { build: 2 },
-      });
+      return {
+        received: snapshot,
+        expected: {
+          storeVersion: 2,
+          items: [{ ...open, derived: { state: 'ready' } }],
+          links: [],
+          levers: [],
+          freeSlots: { build: 2 },
+        },
+      };
     },
   ],
   [
@@ -60,7 +63,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
         transaction.readSnapshot(brandSchemas.instant.parse(5000), new Map()),
       );
 
-      expect(snapshot.items).toStrictEqual([]);
+      return { received: snapshot.items, expected: [] };
     },
   ],
   [
@@ -70,7 +73,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
         transaction.readItem(buildMockItemRow().id, brandSchemas.instant.parse(5000), new Map()),
       );
 
-      expect(read).toBeNull();
+      return { received: read, expected: null };
     },
   ],
   [
@@ -92,7 +95,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
         transaction.readItem(target.id, brandSchemas.instant.parse(5000), new Map()),
       );
 
-      expect(read?.derived).toStrictEqual({ state: 'blocked' });
+      return { received: read?.derived, expected: { state: 'blocked' } };
     },
   ],
   [
@@ -114,7 +117,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
         transaction.readItem(target.id, brandSchemas.instant.parse(5000), new Map()),
       );
 
-      expect(read?.derived).toStrictEqual({ state: 'ready' });
+      return { received: read?.derived, expected: { state: 'ready' } };
     },
   ],
   [
@@ -143,7 +146,10 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
         ),
       );
 
-      expect(read?.derived).toStrictEqual({ state: 'waiting', reason: 'attempts used up' });
+      return {
+        received: read?.derived,
+        expected: { state: 'waiting', reason: 'attempts used up' },
+      };
     },
   ],
   [
@@ -170,7 +176,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
         ),
       );
 
-      expect(listed.map((item) => item.id)).toStrictEqual([older.id, newer.id]);
+      return { received: listed.map((item) => item.id), expected: [older.id, newer.id] };
     },
   ],
   [
@@ -191,7 +197,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
         transaction.listOpenIssues(repo, brandSchemas.instant.parse(5000), new Map()),
       );
 
-      expect(listed).toStrictEqual([{ ...open, derived: { state: 'ready' } }]);
+      return { received: listed, expected: [{ ...open, derived: { state: 'ready' } }] };
     },
   ],
   [
@@ -222,13 +228,16 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
         transaction.readItemDetail(item.id, brandSchemas.instant.parse(5000), new Map()),
       );
 
-      expect(detail).toStrictEqual({
-        item: { ...item, derived: { state: 'waiting', reason: 'PR open' }, levers: [] },
-        attempts: [expect.objectContaining({ id: attempt.id, state: 'succeeded' })],
-        links: [expect.objectContaining({ source: blocker.id, target: item.id })],
-        evidence: [expect.objectContaining({ attempt: attempt.id, kind: 'pr' })],
-        pullRequests: [expect.objectContaining({ attempt: attempt.id, state: 'open' })],
-      });
+      return {
+        received: detail,
+        expected: {
+          item: { ...item, derived: { state: 'waiting', reason: 'PR open' }, levers: [] },
+          attempts: [expect.objectContaining({ id: attempt.id, state: 'succeeded' })],
+          links: [expect.objectContaining({ source: blocker.id, target: item.id })],
+          evidence: [expect.objectContaining({ attempt: attempt.id, kind: 'pr' })],
+          pullRequests: [expect.objectContaining({ attempt: attempt.id, state: 'open' })],
+        },
+      };
     },
   ],
   [
@@ -242,7 +251,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
         ),
       );
 
-      expect(detail).toBeNull();
+      return { received: detail, expected: null };
     },
   ],
 ];

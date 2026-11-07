@@ -1,4 +1,3 @@
-import { expect } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockAttemptRow } from '@boxxy/model/test-utils/build-mock-attempt-row';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
@@ -43,10 +42,13 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
 
       const slots = await store.read((transaction) => transaction.listPoolSlots());
 
-      expect({ result, slots }).toStrictEqual({
-        result: { kind: 'stale-generation' },
-        slots: [{ pool: holder.pool, slot: 1, holder: holder.id, gen: 2, retired: false }],
-      });
+      return {
+        received: { result, slots },
+        expected: {
+          result: { kind: 'stale-generation' },
+          slots: [{ pool: holder.pool, slot: 1, holder: holder.id, gen: 2, retired: false }],
+        },
+      };
     },
   ],
   [
@@ -74,15 +76,18 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
         transaction.readSnapshot(brandSchemas.instant.parse(5000), new Map()),
       );
 
-      expect({
-        result,
-        freeSlots: snapshot.freeSlots,
-        derived: snapshot.items[0]?.derived,
-      }).toStrictEqual({
-        result: { kind: 'applied', slot: null },
-        freeSlots: { [attempt.pool]: 1 },
-        derived: { state: 'waiting', reason: 'no PR linked' },
-      });
+      return {
+        received: {
+          result,
+          freeSlots: snapshot.freeSlots,
+          derived: snapshot.items[0]?.derived,
+        },
+        expected: {
+          result: { kind: 'applied', slot: null },
+          freeSlots: { [attempt.pool]: 1 },
+          derived: { state: 'waiting', reason: 'no PR linked' },
+        },
+      };
     },
   ],
   [
@@ -108,10 +113,13 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
         return { attempt: read?.state, facts: facts.length };
       });
 
-      expect({ result, state }).toStrictEqual({
-        result: { kind: 'stale-generation' },
-        state: { attempt: 'starting', facts: 2 },
-      });
+      return {
+        received: { result, state },
+        expected: {
+          result: { kind: 'stale-generation' },
+          state: { attempt: 'starting', facts: 2 },
+        },
+      };
     },
   ],
   [
@@ -134,7 +142,7 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
         transaction.applyChange(buildMockStartChange(attempt)),
       );
 
-      expect(result).toStrictEqual({ kind: 'stale-generation' });
+      return { received: result, expected: { kind: 'stale-generation' } };
     },
   ],
   [
@@ -152,7 +160,7 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
 
       const read = await store.read((transaction) => transaction.readAttempt(attempt.id));
 
-      expect(read?.state).toBe('running');
+      return { received: read?.state, expected: 'running' };
     },
   ],
   [
@@ -207,10 +215,13 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
         return { item: read, facts: facts.length };
       });
 
-      expect({ result, state }).toStrictEqual({
-        result: { kind: 'guard-mismatch', table: 'items', key: { id: item.id } },
-        state: { item: { ...item, derived: { state: 'ready' } }, facts: 1 },
-      });
+      return {
+        received: { result, state },
+        expected: {
+          result: { kind: 'guard-mismatch', table: 'items', key: { id: item.id } },
+          state: { item: { ...item, derived: { state: 'ready' } }, facts: 1 },
+        },
+      };
     },
   ],
   [
@@ -242,11 +253,14 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
         }),
       );
 
-      expect(result).toStrictEqual({
-        kind: 'guard-mismatch',
-        table: 'items',
-        key: { id: item.id },
-      });
+      return {
+        received: result,
+        expected: {
+          kind: 'guard-mismatch',
+          table: 'items',
+          key: { id: item.id },
+        },
+      };
     },
   ],
   [
@@ -292,7 +306,7 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
         }),
       );
 
-      expect(result).toStrictEqual({ kind: 'applied', slot: null });
+      return { received: result, expected: { kind: 'applied', slot: null } };
     },
   ],
   [
@@ -313,7 +327,7 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
         transaction.findAttemptByAgentSession(agentSession),
       );
 
-      expect(found).toBe(attempt.id);
+      return { received: found, expected: attempt.id };
     },
   ],
   [
@@ -323,7 +337,7 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
         transaction.findAttemptByAgentSession(brandSchemas.agentSessionId.parse('agent-session-9')),
       );
 
-      expect(found).toBeNull();
+      return { received: found, expected: null };
     },
   ],
   [
@@ -348,9 +362,12 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
         transaction.applyChange(buildMockBindChange({ attempt: other, agentSession })),
       );
 
-      await binding.catch(() => null);
+      const settled = await binding.then(
+        () => 'bound',
+        () => 'thrown',
+      );
 
-      expect(binding).rejects.toThrow();
+      return { received: settled, expected: 'thrown' };
     },
   ],
 ];

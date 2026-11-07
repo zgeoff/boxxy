@@ -209,8 +209,8 @@ drives all four slice 1 ports, so it holds each port's fake and contract suite.
 One contract test suite per port, in `@boxxy/dispatch`'s `src/test-utils/`, runs against the fake and against
 the real adapter. A fake that passes the suite is safe to use in module tests. The `ClaimStore`
 suite is `claimStoreContract` in `@boxxy/dispatch/test-utils/claim-store-contract`: a list of named
-cases, each a check that takes a new store. The fake's test and the adapter's test each run every
-case with `test.each`.
+cases. Each case takes a new store and returns what it read with what the contract expects. The
+fake's test and the adapter's test each run every case with `test.each` and compare the two.
 
 The port shapes are in [`02-ports.ts`](./sketches/02-ports.ts):
 

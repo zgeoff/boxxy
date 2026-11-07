@@ -1,4 +1,3 @@
-import { expect } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockAttemptRow } from '@boxxy/model/test-utils/build-mock-attempt-row';
 import { buildMockItemRow } from '@boxxy/model/test-utils/build-mock-item-row';
@@ -20,11 +19,14 @@ export const claimStorePoolCases: readonly ClaimStoreCase[] = [
 
       const slots: unknown = await store.read((transaction) => transaction.listPoolSlots());
 
-      expect(slots).toStrictEqual([
-        { pool: 'build', slot: 1, holder: null, gen: 0, retired: false },
-        { pool: 'build', slot: 2, holder: null, gen: 0, retired: false },
-        { pool: 'review', slot: 1, holder: null, gen: 0, retired: false },
-      ]);
+      return {
+        received: slots,
+        expected: [
+          { pool: 'build', slot: 1, holder: null, gen: 0, retired: false },
+          { pool: 'build', slot: 2, holder: null, gen: 0, retired: false },
+          { pool: 'review', slot: 1, holder: null, gen: 0, retired: false },
+        ],
+      };
     },
   ],
   [
@@ -41,11 +43,14 @@ export const claimStorePoolCases: readonly ClaimStoreCase[] = [
 
       const retired: unknown = slots.map((slot) => [slot.slot, slot.retired]);
 
-      expect(retired).toStrictEqual([
-        [1, false],
-        [2, true],
-        [3, true],
-      ]);
+      return {
+        received: retired,
+        expected: [
+          [1, false],
+          [2, true],
+          [3, true],
+        ],
+      };
     },
   ],
   [
@@ -67,11 +72,14 @@ export const claimStorePoolCases: readonly ClaimStoreCase[] = [
 
       const retired: unknown = slots.map((slot) => [slot.pool, slot.slot, slot.retired]);
 
-      expect(retired).toStrictEqual([
-        ['build', 1, false],
-        ['review', 1, true],
-        ['review', 2, true],
-      ]);
+      return {
+        received: retired,
+        expected: [
+          ['build', 1, false],
+          ['review', 1, true],
+          ['review', 2, true],
+        ],
+      };
     },
   ],
   [
@@ -93,13 +101,16 @@ export const claimStorePoolCases: readonly ClaimStoreCase[] = [
 
       const slots = await store.read((transaction) => transaction.listPoolSlots());
 
-      expect(slots[1]).toStrictEqual({
-        pool: upper.pool,
-        slot: 2,
-        holder: upper.id,
-        gen: 1,
-        retired: true,
-      });
+      return {
+        received: slots[1],
+        expected: {
+          pool: upper.pool,
+          slot: 2,
+          holder: upper.id,
+          gen: 1,
+          retired: true,
+        },
+      };
     },
   ],
   [
@@ -122,7 +133,7 @@ export const claimStorePoolCases: readonly ClaimStoreCase[] = [
         transaction.applyChange(buildMockClaimChange(refused)),
       );
 
-      expect(result).toStrictEqual({ kind: 'no-free-slot' });
+      return { received: result, expected: { kind: 'no-free-slot' } };
     },
   ],
   [
@@ -155,10 +166,13 @@ export const claimStorePoolCases: readonly ClaimStoreCase[] = [
         transaction.applyChange(buildMockClaimChange(later)),
       );
 
-      expect(result).toStrictEqual({
-        kind: 'applied',
-        slot: { pool: later.pool, slot: 2, gen: 2 },
-      });
+      return {
+        received: result,
+        expected: {
+          kind: 'applied',
+          slot: { pool: later.pool, slot: 2, gen: 2 },
+        },
+      };
     },
   ],
 ];

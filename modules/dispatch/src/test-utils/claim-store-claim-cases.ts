@@ -1,4 +1,3 @@
-import { expect } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockAttemptRow } from '@boxxy/model/test-utils/build-mock-attempt-row';
 import { buildMockItemRow } from '@boxxy/model/test-utils/build-mock-item-row';
@@ -32,7 +31,7 @@ export const claimStoreClaimCases: readonly ClaimStoreCase[] = [
         transaction.applyChange(buildMockClaimChange(second)),
       );
 
-      expect(result).toStrictEqual({ kind: 'lease-held' });
+      return { received: result, expected: { kind: 'lease-held' } };
     },
   ],
   [
@@ -69,15 +68,18 @@ export const claimStoreClaimCases: readonly ClaimStoreCase[] = [
         };
       });
 
-      expect(state).toStrictEqual({
-        attempt: null,
-        slots: [
-          { pool: first.pool, slot: 1, holder: first.id, gen: 1, retired: false },
-          { pool: first.pool, slot: 2, holder: null, gen: 0, retired: false },
-        ],
-        lastGen: 1,
-        version: 2,
-      });
+      return {
+        received: state,
+        expected: {
+          attempt: null,
+          slots: [
+            { pool: first.pool, slot: 1, holder: first.id, gen: 1, retired: false },
+            { pool: first.pool, slot: 2, holder: null, gen: 0, retired: false },
+          ],
+          lastGen: 1,
+          version: 2,
+        },
+      };
     },
   ],
   [
@@ -112,10 +114,13 @@ export const claimStoreClaimCases: readonly ClaimStoreCase[] = [
         };
       });
 
-      expect({ result, state }).toStrictEqual({
-        result: { kind: 'no-free-slot' },
-        state: { attempt: null, lastGen: 0, version: 3 },
-      });
+      return {
+        received: { result, state },
+        expected: {
+          result: { kind: 'no-free-slot' },
+          state: { attempt: null, lastGen: 0, version: 3 },
+        },
+      };
     },
   ],
   [
@@ -133,10 +138,13 @@ export const claimStoreClaimCases: readonly ClaimStoreCase[] = [
         transaction.applyChange(buildMockClaimChange(attempt)),
       );
 
-      expect(result).toStrictEqual({
-        kind: 'applied',
-        slot: { pool: attempt.pool, slot: 1, gen: 1 },
-      });
+      return {
+        received: result,
+        expected: {
+          kind: 'applied',
+          slot: { pool: attempt.pool, slot: 1, gen: 1 },
+        },
+      };
     },
   ],
   [
@@ -153,7 +161,7 @@ export const claimStoreClaimCases: readonly ClaimStoreCase[] = [
 
       const read = await store.read((transaction) => transaction.readAttempt(attempt.id));
 
-      expect(read).toStrictEqual({ ...attempt, slot: 1, slotGen: 1 });
+      return { received: read, expected: { ...attempt, slot: 1, slotGen: 1 } };
     },
   ],
   [
@@ -170,16 +178,19 @@ export const claimStoreClaimCases: readonly ClaimStoreCase[] = [
 
       const facts = await store.read((transaction) => transaction.readUnsentFacts(10));
 
-      expect(facts[1]?.payload).toStrictEqual({
-        item: item.id,
-        phase: attempt.phase,
-        number: attempt.number,
-        pool: attempt.pool,
-        slot: 1,
-        gen: 1,
-        recipeHash: attempt.recipeHash,
-        rulesVersion: attempt.rulesVersion,
-      });
+      return {
+        received: facts[1]?.payload,
+        expected: {
+          item: item.id,
+          phase: attempt.phase,
+          number: attempt.number,
+          pool: attempt.pool,
+          slot: 1,
+          gen: 1,
+          recipeHash: attempt.recipeHash,
+          rulesVersion: attempt.rulesVersion,
+        },
+      };
     },
   ],
   [
@@ -202,16 +213,19 @@ export const claimStoreClaimCases: readonly ClaimStoreCase[] = [
         return { levers: items[0]?.levers, payloads: facts.slice(1).map((fact) => fact.payload) };
       });
 
-      expect(state).toStrictEqual({
-        levers: [
-          { ...defer, seq: 1 },
-          { ...expedite, seq: 2 },
-        ],
-        payloads: [
-          { ...defer, seq: 1 },
-          { ...expedite, seq: 2 },
-        ],
-      });
+      return {
+        received: state,
+        expected: {
+          levers: [
+            { ...defer, seq: 1 },
+            { ...expedite, seq: 2 },
+          ],
+          payloads: [
+            { ...defer, seq: 1 },
+            { ...expedite, seq: 2 },
+          ],
+        },
+      };
     },
   ],
 ];

@@ -18,7 +18,7 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
         transaction.readLastLeaseGen(buildMockItemRow().id, brandSchemas.phaseName.parse('build')),
       );
 
-      expect(generation).toBe(0);
+      return { received: generation, expected: 0 };
     },
   ],
   [
@@ -41,7 +41,7 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
         transaction.readLastLeaseGen(item.id, attempt.phase),
       );
 
-      expect(generation).toBe(3);
+      return { received: generation, expected: 3 };
     },
   ],
   [
@@ -66,7 +66,7 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
 
       const listed = await store.read((transaction) => transaction.listLiveAttempts());
 
-      expect(listed.map((attempt) => attempt.id)).toStrictEqual([live.id]);
+      return { received: listed.map((attempt) => attempt.id), expected: [live.id] };
     },
   ],
   [
@@ -107,7 +107,7 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
         transaction.listSucceededAttemptsWithoutPr(),
       );
 
-      expect(listed.map((attempt) => attempt.id)).toStrictEqual([unlinked.id]);
+      return { received: listed.map((attempt) => attempt.id), expected: [unlinked.id] };
     },
   ],
   [
@@ -127,7 +127,7 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
         transaction.findAttemptBySession(brandSchemas.atcSessionId.parse('atc-session-1')),
       );
 
-      expect(found?.id).toBe(attempt.id);
+      return { received: found?.id, expected: attempt.id };
     },
   ],
   [
@@ -152,7 +152,7 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
 
       const watched = await store.read((transaction) => transaction.listWatchedPullRequests());
 
-      expect(watched[0]?.checkedAt).toBe(brandSchemas.instant.parse(9000));
+      return { received: watched[0]?.checkedAt, expected: brandSchemas.instant.parse(9000) };
     },
   ],
   [
@@ -170,7 +170,7 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
 
       const watched = await store.read((transaction) => transaction.listWatchedPullRequests());
 
-      expect(watched).toStrictEqual([]);
+      return { received: watched, expected: [] };
     },
   ],
   [
@@ -190,17 +190,20 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
         transaction.listEvidence(attempt.id),
       );
 
-      expect(evidence).toStrictEqual([
-        {
-          factId: expect.stringMatching(/^manual:/u),
-          attempt: attempt.id,
-          kind: 'pr',
-          ref: 'https://github.com/acme/lamps/pull/7',
-          observed: null,
-          source: 'hook',
-          at: 4000,
-        },
-      ]);
+      return {
+        received: evidence,
+        expected: [
+          {
+            factId: expect.stringMatching(/^manual:/u),
+            attempt: attempt.id,
+            kind: 'pr',
+            ref: 'https://github.com/acme/lamps/pull/7',
+            observed: null,
+            source: 'hook',
+            at: 4000,
+          },
+        ],
+      };
     },
   ],
   [
@@ -235,10 +238,13 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
         };
       });
 
-      expect(outbox).toStrictEqual({
-        unsent: second.facts.map((fact) => fact.id),
-        lag: { unsent: 1, oldestUnsentAt: 2000 },
-      });
+      return {
+        received: outbox,
+        expected: {
+          unsent: second.facts.map((fact) => fact.id),
+          lag: { unsent: 1, oldestUnsentAt: 2000 },
+        },
+      };
     },
   ],
   [
@@ -251,7 +257,7 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
 
       const unsent = await store.read((transaction) => transaction.readUnsentFacts(1));
 
-      expect(unsent.map((fact) => fact.seq)).toStrictEqual([1]);
+      return { received: unsent.map((fact) => fact.seq), expected: [1] };
     },
   ],
   [
@@ -259,7 +265,7 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
     async (store) => {
       const lag: unknown = await store.read((transaction) => transaction.readOutboxLag());
 
-      expect(lag).toStrictEqual({ unsent: 0, oldestUnsentAt: null });
+      return { received: lag, expected: { unsent: 0, oldestUnsentAt: null } };
     },
   ],
   [
@@ -275,7 +281,7 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
 
       const lag: unknown = await store.read((transaction) => transaction.readOutboxLag());
 
-      expect(lag).toStrictEqual({ unsent: 2, oldestUnsentAt: 1000 });
+      return { received: lag, expected: { unsent: 2, oldestUnsentAt: 1000 } };
     },
   ],
   [
@@ -289,7 +295,7 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
 
       const read: unknown = await store.read((transaction) => transaction.readRunner(runner));
 
-      expect(read).toStrictEqual({ id: 'runner-1', heartbeatAt: 1000, paused: false });
+      return { received: read, expected: { id: 'runner-1', heartbeatAt: 1000, paused: false } };
     },
   ],
   [
@@ -305,7 +311,7 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
 
       const read: unknown = await store.read((transaction) => transaction.readRunner(runner));
 
-      expect(read).toStrictEqual({ id: 'runner-1', heartbeatAt: 2000, paused: true });
+      return { received: read, expected: { id: 'runner-1', heartbeatAt: 2000, paused: true } };
     },
   ],
   [
@@ -315,7 +321,7 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
         transaction.readRunner(brandSchemas.runnerId.parse('runner-1')),
       );
 
-      expect(read).toBeNull();
+      return { received: read, expected: null };
     },
   ],
 ];

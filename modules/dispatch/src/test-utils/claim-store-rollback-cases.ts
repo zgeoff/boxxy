@@ -1,4 +1,3 @@
-import { expect } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
 import type { StoreChange } from '@boxxy/model';
 import { buildMockAttemptRow } from '@boxxy/model/test-utils/build-mock-attempt-row';
@@ -51,10 +50,13 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
         return { attempt: read?.state, facts: facts.length, item: view?.derived };
       });
 
-      expect({ result, state }).toStrictEqual({
-        result: { kind: 'stale-generation' },
-        state: { attempt: 'starting', facts: 2, item: { state: 'running' } },
-      });
+      return {
+        received: { result, state },
+        expected: {
+          result: { kind: 'stale-generation' },
+          state: { attempt: 'starting', facts: 2, item: { state: 'running' } },
+        },
+      };
     },
   ],
   [
@@ -79,10 +81,13 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
         slots: await transaction.listPoolSlots(),
       }));
 
-      expect(state).toStrictEqual({
-        attempt: null,
-        slots: [{ pool: attempt.pool, slot: 1, holder: null, gen: 0, retired: false }],
-      });
+      return {
+        received: state,
+        expected: {
+          attempt: null,
+          slots: [{ pool: attempt.pool, slot: 1, holder: null, gen: 0, retired: false }],
+        },
+      };
     },
   ],
   [
@@ -124,7 +129,7 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
 
       const read: unknown = await store.read((transaction) => transaction.readRunner(runner));
 
-      expect(read).toStrictEqual({ id: 'runner-1', heartbeatAt: 1000, paused: false });
+      return { received: read, expected: { id: 'runner-1', heartbeatAt: 1000, paused: false } };
     },
   ],
   [
@@ -158,10 +163,13 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
         transaction.readItem(later.id, brandSchemas.instant.parse(5000), new Map()),
       );
 
-      expect({ results, item: read?.id }).toStrictEqual({
-        results: [{ kind: 'lease-held' }, { kind: 'applied', slot: null }],
-        item: later.id,
-      });
+      return {
+        received: { results, item: read?.id },
+        expected: {
+          results: [{ kind: 'lease-held' }, { kind: 'applied', slot: null }],
+          item: later.id,
+        },
+      };
     },
   ],
 ];
