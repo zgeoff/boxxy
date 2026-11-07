@@ -82,6 +82,9 @@ Each outside system has one package that may talk to it:
 | GitHub         | `adapters/forge-github` | only an adapter calls `fetch`                                         |
 | pepys          | `adapters/facts-pepys`  | only an adapter calls `fetch`                                         |
 
+One library has a pin of its own: only `modules/rules` imports `yaml`, so every rules file reaches
+the other packages through `loadRules`.
+
 The `zgeoff/import-zones` rule in `.oxlintrc.json` holds these pins. Lint can't tell which adapter a
 `fetch` reaches, so review checks that GitHub calls stay in `forge-github` and pepys calls in
 `facts-pepys`.

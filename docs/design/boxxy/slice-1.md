@@ -617,18 +617,26 @@ A signal with parameters takes a one-key map in `order` or `lead`, such as
 `order: [oldest, { kind-order: { order: [chore, bug] } }]`. No slice 1 signal takes parameters, so
 the example uses bare names.
 
+- **The server reads the checkout, and the loader reads no file.** The server passes `loadRules`
+  the commit hash and a map from each file's path, relative to the checkout's root, to its bytes.
 - **The loader rejects** each of these, and reports it with the file, the path in the file, such as
-  `pools[0].order[1]`, and the reason:
-  - a `rules.yaml` that isn't valid YAML, or that fails the file's schema (`invalid`);
-  - an unknown concept name;
-  - a pool whose `order` or `lead` names a signal no concept registers;
-  - a plug-in reference whose parameters fail the plug-in's `params` schema (`bad-plugin-params`);
-  - a propagation line over an unknown link type, or for a signal with no `combine`;
-  - a kind with no recipe for a pipeline phase;
-  - a missing prompt file.
+  `pools[0].order[1]`, and the reason. It returns every rejection it finds in one result.
+  - a checkout with no `rules.yaml`, or a `rules.yaml` that isn't valid YAML, or that fails the
+    file's schema (`invalid`). The schema refuses an unknown field, a pipeline phase with no
+    `maxAttempts`, a concept pinned twice and two pools with one name;
+  - an unknown concept name, or a known name at a version no concept has;
+  - a pool whose `order` or `lead` names a signal no pinned concept registers;
+  - a plug-in reference whose parameters fail the plug-in's `params` schema (`bad-plugin-params`).
+    For a gate, the path is the entry in `concepts` that pins the gate's concept;
+  - a propagation line over a link type other than `blocks`, or for a signal with no `combine`;
+  - a kind with no recipe for a pipeline phase, or one that names a recipe `recipes` doesn't
+    define;
+  - a missing prompt file. A recipe's `prompt` is a path relative to the checkout's root.
 
   The server checks the checkout for uncommitted changes before it calls the loader, and reports
   them as `uncommitted-changes`.
+- **A pool's `takes` maps each filter field to one name or a list of names.** The loader turns one
+  name into a list of one. A kind's `pipeline` list becomes a pipeline named after the kind.
 - **The loader resolves every plug-in reference** to its plug-in and its parsed parameters, and
   `LoadedRules` carries them ([`01-registries.ts`](./sketches/01-registries.ts)), so `buildFrame`
   calls each plug-in with its own parameters. A bare name parses `{}`. A signal's key is
