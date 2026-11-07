@@ -9,9 +9,13 @@ import { tableCodecs } from './table-codecs.ts';
 import { toColumnName } from './to-column-name.ts';
 
 async function setupTest() {
+  const cleanup = new AsyncDisposableStack();
+
+  onTestFinished(() => cleanup.disposeAsync());
+
   const folder = await mkdtemp(join(tmpdir(), 'boxxy-codecs-'));
 
-  onTestFinished(() => rm(folder, { recursive: true, force: true }));
+  cleanup.defer(() => rm(folder, { recursive: true, force: true }));
 
   const path = join(folder, 'store.db');
 
@@ -21,7 +25,7 @@ async function setupTest() {
 
   const sqlite = new Database(path, { readonly: true });
 
-  onTestFinished(() => {
+  cleanup.defer(() => {
     sqlite.close();
   });
 

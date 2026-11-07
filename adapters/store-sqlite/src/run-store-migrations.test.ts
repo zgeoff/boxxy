@@ -10,19 +10,23 @@ import { runStoreMigrations } from './run-store-migrations.ts';
 import type { StoreDatabase } from './types.ts';
 
 async function setupTest() {
+  const cleanup = new AsyncDisposableStack();
+
+  onTestFinished(() => cleanup.disposeAsync());
+
   const folder = await mkdtemp(join(tmpdir(), 'boxxy-migrations-'));
 
-  onTestFinished(() => rm(folder, { recursive: true, force: true }));
+  cleanup.defer(() => rm(folder, { recursive: true, force: true }));
 
   const sqlite = new Database(join(folder, 'store.db'), { create: true });
 
-  onTestFinished(() => {
+  cleanup.defer(() => {
     sqlite.close();
   });
 
   const db = new Kysely<StoreDatabase>({ dialect: buildSQLiteDialect(sqlite) });
 
-  onTestFinished(() => db.destroy());
+  cleanup.defer(() => db.destroy());
 
   return {
     migrate: () => runStoreMigrations(db),
