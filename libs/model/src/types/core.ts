@@ -124,6 +124,18 @@ export interface ItemRows {
   readonly maxAttempts: number;
 }
 
+// the rows a store reads to derive the state of a set of items, with each blocking source item
+export interface ItemSetRows {
+  readonly items: readonly ItemRow[];
+
+  // live links only
+  readonly links: readonly LinkRow[];
+  readonly levers: readonly LeverRow[];
+  readonly attempts: readonly AttemptRow[];
+  readonly liveLeases: readonly LeaseRow[];
+  readonly pullRequests: readonly PullRequestRow[];
+}
+
 export type MaxAttemptsByKind = ReadonlyMap<ItemKindName, ReadonlyMap<PhaseName, number>>;
 
 export interface ItemWithLevers extends ItemView {
