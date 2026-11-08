@@ -5,6 +5,7 @@
     "": {
       "name": "boxxy",
       "devDependencies": {
+        "@boxxy/content-hash": "workspace:*",
         "@commitlint/cli": "catalog:",
         "@maschwenk/tsrslint": "catalog:",
         "@stylistic/eslint-plugin": "catalog:",
@@ -81,6 +82,17 @@
         "ts-pattern": "catalog:",
       },
     },
+    "modules/planning": {
+      "name": "@boxxy/planning",
+      "version": "0.1.0",
+      "dependencies": {
+        "@boxxy/content-hash": "workspace:*",
+        "@boxxy/model": "workspace:*",
+        "@boxxy/rules": "workspace:*",
+        "tiny-invariant": "catalog:",
+        "zod": "catalog:",
+      },
+    },
     "modules/rules": {
       "name": "@boxxy/rules",
       "version": "0.1.0",
@@ -136,6 +148,8 @@
     "@boxxy/dispatch": ["@boxxy/dispatch@workspace:modules/dispatch"],
 
     "@boxxy/model": ["@boxxy/model@workspace:libs/model"],
+
+    "@boxxy/planning": ["@boxxy/planning@workspace:modules/planning"],
 
     "@boxxy/rules": ["@boxxy/rules@workspace:modules/rules"],
 

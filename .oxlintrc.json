@@ -83,6 +83,27 @@
         ]
       }
     },
+    // the planning core reads concepts only through the loaded rules, so a new concept is one file
+    {
+      "files": [
+        "modules/planning/src/build-frame.ts",
+        "modules/planning/src/decide.ts",
+        "modules/planning/src/propagate.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/concepts", "**/concepts/**", "**/concepts.ts"],
+                "message": "The planning core never names a concept; read plug-ins from the loaded rules."
+              }
+            ]
+          }
+        ]
+      }
+    },
     // repo-sync delivers these scripts from zgeoff/tools and overwrites a local edit, so their verbs
     // are fixed at that source
     {

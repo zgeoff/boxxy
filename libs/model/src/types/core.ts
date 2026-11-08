@@ -236,9 +236,9 @@ export interface DecisionRow {
 }
 
 export interface FaultRecord {
-  // the signal, gate or waiver name, or `propagation:<signal>:<link>`
+  // the signal, gate, waiver or filter field name, or `propagation:<signal>:<link>`
   readonly plugin: string;
-  readonly kind: 'signal' | 'gate' | 'waiver' | 'admission' | 'propagation';
+  readonly kind: 'signal' | 'gate' | 'waiver' | 'admission' | 'propagation' | 'filter-field';
   readonly item: ItemId | null;
   readonly error: string;
 }

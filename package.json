@@ -72,6 +72,7 @@
     "ci:publish-packages": "bun scripts/publish/publish-packages.ts"
   },
   "devDependencies": {
+    "@boxxy/content-hash": "workspace:*",
     "@commitlint/cli": "catalog:",
     "@maschwenk/tsrslint": "catalog:",
     "@stylistic/eslint-plugin": "catalog:",

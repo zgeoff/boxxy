@@ -101,6 +101,7 @@ fact lands. Two runs agreed within a few milliseconds.
 | waiver | lifts nothing |
 | admission | admits nothing |
 | signal | gives no opinion; the pool sorts by its other keys |
+| filter field | gives no value, so no pool that filters on the field takes the item |
 
 A [propagation line](./planning.md#propagation) that throws is a fault too, and carries nothing
 (proposed).

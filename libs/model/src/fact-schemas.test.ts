@@ -275,3 +275,34 @@ test.each([
 ])[])('it rejects a %s payload with no %s', (type, _field, path, payload) => {
   expect(factSchemas[type].safeParse(payload).error?.issues).toPartiallyContain({ path });
 });
+
+test('it accepts a decision fault from a filter field', () => {
+  const fault: unknown = factSchemas['boxxy.decision.recorded'].safeParse({
+    id: '0192f0c5-2b3c-7d4e-9f50-6a7b8c9d0e1f',
+    attempt: '0192f0c5-1a2b-7c3d-8e4f-5a6b7c8d9e0f',
+    item: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77',
+    pool: 'build',
+    rulesVersion: '60303ae22b998861bce3b28f33eec1be758a213c86c93c076dbe9f558c11c752',
+    snapshotHash: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+    storeVersion: 42,
+    pepysOffsets: {},
+    faults: [
+      {
+        plugin: 'area',
+        kind: 'filter-field',
+        item: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77',
+        error: 'the area map has no entry',
+      },
+    ],
+    at: 1_762_300_000_000,
+  }).data?.faults;
+
+  expect(fault).toStrictEqual([
+    {
+      plugin: 'area',
+      kind: 'filter-field',
+      item: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77',
+      error: 'the area map has no entry',
+    },
+  ]);
+});
