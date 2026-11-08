@@ -30,7 +30,7 @@
     },
     "adapters/store-sqlite": {
       "name": "@boxxy/store-sqlite",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@boxxy/content-hash": "workspace:*",
         "@boxxy/model": "workspace:*",
@@ -57,7 +57,7 @@
     },
     "libs/model": {
       "name": "@boxxy/model",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@boxxy/content-hash": "workspace:*",
         "@faker-js/faker": "catalog:",
@@ -75,7 +75,7 @@
     },
     "modules/dispatch": {
       "name": "@boxxy/dispatch",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@boxxy/model": "workspace:*",
         "tiny-invariant": "catalog:",
