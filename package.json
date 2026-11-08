@@ -22,7 +22,7 @@
       "@tsconfig/strictest": "2.0.8",
       "@types/bun": "1.4.4",
       "@zgeoff/bun-test-extended": "0.2.3",
-      "@zgeoff/chex": "0.1.5",
+      "@zgeoff/chex": "0.2.5",
       "@zgeoff/commitlint-config": "0.1.0",
       "@zgeoff/format-codemod": "0.3.5",
       "@zgeoff/kysely-bun-sqlite": "0.3.2",
