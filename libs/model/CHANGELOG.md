@@ -2,12 +2,17 @@
 
 ## [0.1.2](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.1.1...@boxxy/model@0.1.2) (2026-11-08)
 
-
 ### Features
 
-* **closeout:** parse the build close-out and dedupe its open items ([#42](https://github.com/zgeoff/boxxy/issues/42)) ([d81fdfd](https://github.com/zgeoff/boxxy/commit/d81fdfd8dc2afded805e25268e0383fe6ee8b194))
-* **planning:** build the frame and decide the next picks ([#48](https://github.com/zgeoff/boxxy/issues/48)) ([5de3836](https://github.com/zgeoff/boxxy/commit/5de38366865fdc68a699d1c65afb89d600e8800d))
-* **store-sqlite:** build the sqlite store behind the claim store port ([#40](https://github.com/zgeoff/boxxy/issues/40)) ([98aac3a](https://github.com/zgeoff/boxxy/commit/98aac3aa5ed5a30ae09080f401f9e93f245230bb))
+- **closeout:** parse the build close-out and dedupe its open items
+  ([#42](https://github.com/zgeoff/boxxy/issues/42))
+  ([d81fdfd](https://github.com/zgeoff/boxxy/commit/d81fdfd8dc2afded805e25268e0383fe6ee8b194))
+- **planning:** build the frame and decide the next picks
+  ([#48](https://github.com/zgeoff/boxxy/issues/48))
+  ([5de3836](https://github.com/zgeoff/boxxy/commit/5de38366865fdc68a699d1c65afb89d600e8800d))
+- **store-sqlite:** build the sqlite store behind the claim store port
+  ([#40](https://github.com/zgeoff/boxxy/issues/40))
+  ([98aac3a](https://github.com/zgeoff/boxxy/commit/98aac3aa5ed5a30ae09080f401f9e93f245230bb))
 
 ## [0.1.1](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.1.0...@boxxy/model@0.1.1) (2026-11-07)
 
