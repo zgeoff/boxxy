@@ -28,7 +28,7 @@
       "@zgeoff/kysely-bun-sqlite": "0.3.2",
       "@zgeoff/oxfmt-config": "0.1.0",
       "@zgeoff/oxlint-config": "0.8.6",
-      "@zgeoff/skill-gate": "0.2.26",
+      "@zgeoff/skill-gate": "0.2.27",
       "knip": "6.44.1",
       "kysely": "0.29.8",
       "lefthook": "2.2.2",
