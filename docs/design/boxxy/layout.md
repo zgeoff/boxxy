@@ -103,7 +103,7 @@ Two libraries have a pin of their own. Only `modules/rules` imports `yaml`, so e
 reaches the other packages through `loadRules`. Only `modules/dispatch` imports `xstate`, for the
 attempt state table.
 
-The `zgeoff/import-zones` rule in `.oxlintrc.json` holds these pins. The v1 build adds the pins for `xstate` and `@boxxy/pepys` ([work list](./v1-work-list.md)). Lint lets an adapter and a package under `packages/` call `fetch`, and can't tell which one a
+The `zgeoff/import-zones` rule in `.oxlintrc.json` holds these pins. The v1 build adds the pin for `@boxxy/pepys` ([work list](./v1-work-list.md)). Lint lets an adapter and a package under `packages/` call `fetch`, and can't tell which one a
 `fetch` reaches, so review checks that GitHub calls stay in `forge-github` and pepys calls in
 `packages/pepys`.
 

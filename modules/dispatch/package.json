@@ -33,7 +33,8 @@
   "dependencies": {
     "@boxxy/model": "workspace:*",
     "tiny-invariant": "catalog:",
-    "ts-pattern": "catalog:"
+    "ts-pattern": "catalog:",
+    "xstate": "catalog:"
   },
   "engines": {
     "bun": ">=1.3",

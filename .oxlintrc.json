@@ -19,6 +19,7 @@
           "deployed": ["packages/**"],
           "domain": ["modules/**", "libs/**"],
           "rules": ["modules/rules/**"],
+          "dispatch": ["modules/dispatch/**"],
           "store-sqlite": ["adapters/store-sqlite/**"],
           "worker-atc": ["adapters/worker-atc/**"]
         },
@@ -40,6 +41,12 @@
             "modules": ["yaml"],
             "allow": ["rules"],
             "reason": "only modules/rules parses YAML; load a rules checkout with its loadRules"
+          },
+          {
+            "name": "xstate",
+            "modules": ["xstate"],
+            "allow": ["dispatch"],
+            "reason": "only modules/dispatch runs the attempt machine; build attempt writes with its buildAttemptChange"
           },
           {
             "name": "domain-io",
