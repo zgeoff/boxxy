@@ -1,5 +1,7 @@
 import type { SinkAnswer } from '@boxxy/model';
-import type { SendResult } from '../kit/types.ts';
+import type { Result, SendFailure } from '@pepys/kit';
+
+type SendResult = Result<{ stored: number }, SendFailure>;
 
 // A refusal with 400, 413 or 422 is the batch's content, which a split can find. Ingest answers
 // 500 when a source throws, it has no blob store, or its log refuses an append: no split fixes

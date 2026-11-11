@@ -2,7 +2,7 @@
 // union fits `WorkFact`. The glue types an `exactOptional` field of the model as `unknown`, so
 // those fields are `unknown` here and the fold narrows them.
 
-export interface CallerFields {
+interface CallerFields {
   issuer: string;
   subject: string;
 }
@@ -48,7 +48,7 @@ export interface AttemptSessionFact extends FactBase {
   payload: { attempt: string; atcSession: string; caller: CallerFields | null };
 }
 
-export interface SessionBoundFact extends FactBase {
+interface SessionBoundFact extends FactBase {
   type: 'boxxy.attempt.session_bound';
   payload: { attempt: string; atcSession: string; agentSession: string; product: string };
 }
@@ -70,7 +70,7 @@ export interface AttemptSettledFact extends FactBase {
   };
 }
 
-export interface PullRequestLinkedFact extends FactBase {
+interface PullRequestLinkedFact extends FactBase {
   type: 'boxxy.pull_request.linked';
   payload: { attempt: string; pullRequestId: string };
 }

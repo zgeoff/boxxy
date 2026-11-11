@@ -1,11 +1,10 @@
 import { costToLandSchema, stageTimeSchema } from '@boxxy/model';
 import type { ItemId, PepysAnswer, PepysReader } from '@boxxy/model';
 import type { z } from 'zod';
-import type { QueryClient } from './kit/types.ts';
+import type { UncheckedQueryClient } from './types.ts';
 
 interface PepysReaderOptions {
-  // the client of the plug-in's two queries on the pepys API's RPC route
-  readonly client: QueryClient;
+  readonly client: UncheckedQueryClient;
 
   // the environment whose deploy counts in the stage times, such as `production`
   readonly environment: string;

@@ -144,12 +144,23 @@
         "@boxxy/model": "workspace:*",
       },
       "devDependencies": {
+        "@pepys/cli": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-cli-0.0.1.tgz",
+        "@pepys/kit": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-kit-0.0.1.tgz",
+        "@pepys/testing": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-testing-0.0.1.tgz",
         "zod": "catalog:",
       },
       "peerDependencies": {
+        "@pepys/kit": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-kit-0.0.1.tgz",
         "zod": "catalog:",
       },
     },
+  },
+  "overrides": {
+    "@pepys/cli": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-cli-0.0.1.tgz",
+    "@pepys/kit": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-kit-0.0.1.tgz",
+    "@pepys/kysely-turso": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-kysely-turso-0.0.1.tgz",
+    "@pepys/schema": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-schema-0.0.1.tgz",
+    "@pepys/testing": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-testing-0.0.1.tgz",
   },
   "catalog": {
     "@commitlint/cli": "21.2.4",
@@ -483,6 +494,32 @@
 
     "@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.90.0", "", { "os": "win32", "cpu": "x64" }, "sha512-30JiaFEBUB9peEOcvVM8ggo88SoN/IdSr9DW505JdBji/R6dM66gKEiG65hw6qcaF2f4mO0cEJ+RwRZprmun9g=="],
 
+    "@pepys/cli": ["@pepys/cli@https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-cli-0.0.1.tgz", { "dependencies": { "@pepys/kit": "0.0.1", "@pepys/schema": "0.0.1", "@scriptc/runtime-wasm32-wasi": "0.4.5", "@zgeoff/std": "0.4.3", "scriptc": "0.4.5", "ts-pattern": "5.9.2" }, "bin": { "pepys": "./src/bin.ts" } }, "sha512-Sbj/cqwKPxOJZzwigVeOzWZnpJgfIzaQwkEz1v7KHKKWvaxB2STBJmUdGu1BkbTqEb/d5y6Cg/1DzaSAotY4XA=="],
+
+    "@pepys/kit": ["@pepys/kit@https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-kit-0.0.1.tgz", { "dependencies": { "@zgeoff/std": "0.4.3", "kysely": "0.29.7", "ts-pattern": "5.9.2", "type-fest": "5.10.0", "zod": "4.6.7" } }, "sha512-KMdwx6o7enj80caqyJ+yeNYupZP0drPVSgY+16e5D2BdBOzJRcAfzYM8duGxZtmFSGgIfXzab+ZQJQRvwiCaiA=="],
+
+    "@pepys/kysely-turso": ["@pepys/kysely-turso@https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-kysely-turso-0.0.1.tgz", { "dependencies": { "@tursodatabase/database": "0.8.3", "kysely": "0.29.7", "tiny-invariant": "1.3.3" } }, "sha512-sW+FZVOk00Rhik050q74QEbeH3JSJNL4N2OnZ5iN0064ZyFHu1tWew5+VxQ+MbInq4VSAXPZntrMhzuBnucsTw=="],
+
+    "@pepys/schema": ["@pepys/schema@https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-schema-0.0.1.tgz", { "dependencies": { "@pepys/kit": "0.0.1", "@zgeoff/std": "0.4.3", "ts-pattern": "5.9.2", "zod": "4.6.7" } }, "sha512-RZKsWjicFDsPfpIhc9yjOgyVKUHzttANPtl2/kWn7b5T4kZGhKgZQBiAf8PBm+XVvlf0tcQQ/OKd0cIN6yWqVw=="],
+
+    "@pepys/testing": ["@pepys/testing@https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-testing-0.0.1.tgz", { "dependencies": { "@pepys/kit": "0.0.1", "@pepys/kysely-turso": "0.0.1", "@tursodatabase/database": "0.8.3", "kysely": "0.29.7", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2", "zod": "4.6.7" } }, "sha512-smbCda19aTTT5ei6rcLmiYx1VZgOjWuPnsVwJcb8aMO8INw16Qkdu2sB6nH+ORdB47j9k+x3eKXgNBrap32+ZQ=="],
+
+    "@scriptc/cli-darwin-arm64": ["@scriptc/cli-darwin-arm64@0.4.5", "", { "os": "darwin", "cpu": "arm64" }, "sha512-iiA+mNYAn1oaiz6i8HM5Q/Aurn5ChYVonX2Dt/PcojhE7CTloWFfrLBBtdRmisbLKfw6vTwioadnSntfO3pN5g=="],
+
+    "@scriptc/cli-darwin-x64": ["@scriptc/cli-darwin-x64@0.4.5", "", { "os": "darwin", "cpu": "x64" }, "sha512-J4tlNHnIhxs6uLD9COOGt4KaZrOjMcOqdlhNmqRZenCjQ6Xy5kiiBiePD/bj6gGLp9rDTE77rTFbIuPIDU/qiA=="],
+
+    "@scriptc/cli-linux-arm64-gnu": ["@scriptc/cli-linux-arm64-gnu@0.4.5", "", { "os": "linux", "cpu": "arm64", "libc": "glibc" }, "sha512-wHpUho5Q623b9f1irZOKwKHy4dOvKNgVpcmu17HFatX2ZgKKbzG76zqWl0Qi59eTM5p6ryv9Xdo2DB4eqTMhsA=="],
+
+    "@scriptc/cli-linux-arm64-musl": ["@scriptc/cli-linux-arm64-musl@0.4.5", "", { "os": "linux", "cpu": "arm64", "libc": "musl" }, "sha512-AmSF/RVRWomBZJG4Icc/S5x0BdZpLUopTdsiGJE6c9DrkmgECyHEgP/bmfSYPtQ2gkHdH1m2bw1+pBMUIsf5Zg=="],
+
+    "@scriptc/cli-linux-x64-gnu": ["@scriptc/cli-linux-x64-gnu@0.4.5", "", { "os": "linux", "cpu": "x64", "libc": "glibc" }, "sha512-DbVixTQguCBMoVl+RaWZs8XfZOFMt8QJ+s3hCnNCpG90/akJ1dY3SoWZCQXzoUwTHbl5tnbMkyQpo8hdzzpDwg=="],
+
+    "@scriptc/cli-linux-x64-musl": ["@scriptc/cli-linux-x64-musl@0.4.5", "", { "os": "linux", "cpu": "x64", "libc": "musl" }, "sha512-kxJZD/tezl7oNAvBrG1hUAao3llP7zUDAcxKLVKFOTcYL+2M+EmzlPxOuB/jDUSiGeGdprCS0AiefSqb+z8CVg=="],
+
+    "@scriptc/cli-win32-x64-msvc": ["@scriptc/cli-win32-x64-msvc@0.4.5", "", { "os": "win32", "cpu": "x64" }, "sha512-Slap/gcxHD97V0iD26a1VGpZqkTzd37zix6GMXlqrcNUDRWWXm62c7SfPuFSbhDPkpsIAy4NwfVW9wY/xFfRLw=="],
+
+    "@scriptc/runtime-wasm32-wasi": ["@scriptc/runtime-wasm32-wasi@0.4.5", "", {}, "sha512-vnT5xW8uJRzBue9792dHSgsIFHN2ypUZ1Q/+tiDZBms6urw6CaYqB47pK4MTx0lghGlTC56L7/BetbqceIE9zg=="],
+
     "@simple-libs/child-process-utils": ["@simple-libs/child-process-utils@2.0.0", "", { "dependencies": { "@simple-libs/stream-utils": "^2.0.0" } }, "sha512-dvNoRKLijXnD0XoJAz94pbNuB5GQgDr55UhpSPhffDkTT0Cmcqh9jSCOtwfT2d4H6MI9E7c4SgtMuJXZ6F3c6A=="],
 
     "@simple-libs/stream-utils": ["@simple-libs/stream-utils@2.0.0", "", {}, "sha512-fCTuZK4QBa+39Oz9l4OGfJfz+GpwCp3AqO7Zch3to99xHPgstVsRFpeQ8LNd2o1Gv8raL2mCFwiaHh7bFSp5DQ=="],
@@ -530,6 +567,18 @@
     "@turbo/windows-64": ["@turbo/windows-64@2.11.10", "", { "os": "win32", "cpu": "x64" }, "sha512-UJOP3BkbreY3/JlMgJR6ZiimxYIBn+c+B4tnBIxD0E9c3Estmk+XoVNVBNBottZLNRXe3/ScgOU4+/k8tIWysg=="],
 
     "@turbo/windows-arm64": ["@turbo/windows-arm64@2.11.10", "", { "os": "win32", "cpu": "arm64" }, "sha512-xOkEjF3ws/b/YNlc+bvJHMYBn+vL+QbEISZFVi0qS+ImmhA1X3/gmNmBrjjIG3dg6aeN+n6gQitzSkXQ286qJQ=="],
+
+    "@tursodatabase/database": ["@tursodatabase/database@0.8.3", "", { "dependencies": { "@tursodatabase/database-common": "^0.8.3" }, "optionalDependencies": { "@tursodatabase/database-darwin-arm64": "0.8.3", "@tursodatabase/database-linux-arm64-gnu": "0.8.3", "@tursodatabase/database-linux-x64-gnu": "0.8.3", "@tursodatabase/database-win32-x64-msvc": "0.8.3" } }, "sha512-pYkADI524URbtreTz+JX7lKtNnfIZU5Pm0n8d6ENnLka3/l1sIexdDmPDWQea4M7CMURv7FxL44oJFYoMQLmOQ=="],
+
+    "@tursodatabase/database-common": ["@tursodatabase/database-common@0.8.3", "", {}, "sha512-T8sMfSnRjgGzKMDVkSg0lh1Jh6dDtTWzjYFK0ZJHtKzr+zs69a7Igo4Z+sxfh+rk9gEqn2njLgRYfpMEghMVMw=="],
+
+    "@tursodatabase/database-darwin-arm64": ["@tursodatabase/database-darwin-arm64@0.8.3", "", { "os": "darwin", "cpu": "arm64" }, "sha512-ZqXF8BUqED5mmSIRM5V13xiowc3CAekfpB26Opb4kbix5/9Q6AKgoxyZ1TkgMgjpih1FXAxD5UKdJ6b8D3IElw=="],
+
+    "@tursodatabase/database-linux-arm64-gnu": ["@tursodatabase/database-linux-arm64-gnu@0.8.3", "", { "os": "linux", "cpu": "arm64", "libc": "glibc" }, "sha512-4m9EqKDhL0gwqg6r4KHqX1+2PjMx0xS8CQ61hpoGmWPaCYygePo6O0Zv7EADcf8JJwSBhe7MHyt76gcaEuZDTA=="],
+
+    "@tursodatabase/database-linux-x64-gnu": ["@tursodatabase/database-linux-x64-gnu@0.8.3", "", { "os": "linux", "cpu": "x64", "libc": "glibc" }, "sha512-CrwYN45/zCSS+qPOqdOw7wI+MKE6ZHWehxwqJJwatW8CAI/tcEWxz3t+gc1v+p8jgGuNGqTJL3QUu2AnQYVC0Q=="],
+
+    "@tursodatabase/database-win32-x64-msvc": ["@tursodatabase/database-win32-x64-msvc@0.8.3", "", { "os": "win32", "cpu": "x64" }, "sha512-N19zq+nM9RSeYn4t0FOkfHPMkeWpgHLI2IM3L6dT8KH+bhvdAAAzp2E+cKjl8NQm6RaBSP8f5yqZqV3tp3ET0A=="],
 
     "@tybys/wasm-util": ["@tybys/wasm-util@0.10.4", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-W3c4gRigFS0T/Ma4qIYF3GDAc5AQdHb1yL5znJT1Zv1YaD9Kitx656wBjvr19qbiosmZT8lWDM5BEMynUqX65A=="],
 
@@ -841,6 +890,8 @@
 
     "resolve-pkg-maps": ["resolve-pkg-maps@1.0.0", "", {}, "sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw=="],
 
+    "scriptc": ["scriptc@0.4.5", "", { "optionalDependencies": { "@scriptc/cli-darwin-arm64": "0.4.5", "@scriptc/cli-darwin-x64": "0.4.5", "@scriptc/cli-linux-arm64-gnu": "0.4.5", "@scriptc/cli-linux-arm64-musl": "0.4.5", "@scriptc/cli-linux-x64-gnu": "0.4.5", "@scriptc/cli-linux-x64-musl": "0.4.5", "@scriptc/cli-win32-x64-msvc": "0.4.5" }, "hasInstallScript": true, "bin": { "scriptc": "bin/scriptc.exe" } }, "sha512-92vYUV2DR/F+Gw5CItjhCuImlUOiUAT6/HRG3JHgMEG0PYFOORsu8MXI4eKiKvNCbrSd1I/i4J24ByCpOhYqmw=="],
+
     "semver": ["semver@7.8.5", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA=="],
 
     "shebang-command": ["shebang-command@2.0.0", "", { "dependencies": { "shebang-regex": "^3.0.0" } }, "sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA=="],
@@ -914,6 +965,12 @@
     "@commitlint/config-validator/ajv": ["ajv@8.20.0", "", { "dependencies": { "fast-deep-equal": "^3.1.3", "fast-uri": "^3.0.1", "json-schema-traverse": "^1.0.0", "require-from-string": "^2.0.2" } }, "sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA=="],
 
     "@eslint-community/eslint-utils/eslint-visitor-keys": ["eslint-visitor-keys@3.4.3", "", {}, "sha512-wpc+LXeiyiisxPlEkUzU6svyS1frIO3Mgxj1fdy7Pm8Ygzguax2N3Fa/D/ag1WqbOprdI+uY6wMUl8/a2G+iag=="],
+
+    "@pepys/kit/kysely": ["kysely@0.29.7", "", {}, "sha512-fmIq+7kv4WbFm2tcfznRzikqB4cuNpgZ40PSU2fAJ2/OO5XhojqnTPrmgrCjYSRJVwBln03XcRXJGnw9H099IQ=="],
+
+    "@pepys/kysely-turso/kysely": ["kysely@0.29.7", "", {}, "sha512-fmIq+7kv4WbFm2tcfznRzikqB4cuNpgZ40PSU2fAJ2/OO5XhojqnTPrmgrCjYSRJVwBln03XcRXJGnw9H099IQ=="],
+
+    "@pepys/testing/kysely": ["kysely@0.29.7", "", {}, "sha512-fmIq+7kv4WbFm2tcfznRzikqB4cuNpgZ40PSU2fAJ2/OO5XhojqnTPrmgrCjYSRJVwBln03XcRXJGnw9H099IQ=="],
 
     "@zgeoff/format-codemod/oxc-parser": ["oxc-parser@0.155.0", "", { "dependencies": { "@oxc-project/types": "^0.155.0" }, "optionalDependencies": { "@oxc-parser/binding-android-arm-eabi": "0.155.0", "@oxc-parser/binding-android-arm64": "0.155.0", "@oxc-parser/binding-darwin-arm64": "0.155.0", "@oxc-parser/binding-darwin-x64": "0.155.0", "@oxc-parser/binding-freebsd-x64": "0.155.0", "@oxc-parser/binding-linux-arm-gnueabihf": "0.155.0", "@oxc-parser/binding-linux-arm-musleabihf": "0.155.0", "@oxc-parser/binding-linux-arm64-gnu": "0.155.0", "@oxc-parser/binding-linux-arm64-musl": "0.155.0", "@oxc-parser/binding-linux-ppc64-gnu": "0.155.0", "@oxc-parser/binding-linux-riscv64-gnu": "0.155.0", "@oxc-parser/binding-linux-riscv64-musl": "0.155.0", "@oxc-parser/binding-linux-s390x-gnu": "0.155.0", "@oxc-parser/binding-linux-x64-gnu": "0.155.0", "@oxc-parser/binding-linux-x64-musl": "0.155.0", "@oxc-parser/binding-openharmony-arm64": "0.155.0", "@oxc-parser/binding-win32-arm64-msvc": "0.155.0", "@oxc-parser/binding-win32-ia32-msvc": "0.155.0", "@oxc-parser/binding-win32-x64-msvc": "0.155.0" } }, "sha512-C/ReSf1JUFukK/zvk6jhcNibSssvas5+ktIzK7fbKVd3CedWe59C3QwHEOrEZj/4Rt9+xg0Jeis/Jv1F/KM1mw=="],
 

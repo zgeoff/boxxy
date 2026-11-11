@@ -11,6 +11,9 @@ export default defineConfig({
     '.claude/skills/testing/**',
     '.claude/hooks/skill-gate/**',
 
+    // the pepys glue, which `pepys build` writes and its check compares byte for byte
+    'packages/pepys/src/generated/**',
+
     // the design docs and decision records keep the wrapping and tables their authors gave them
     'docs/decisions/**',
     'docs/design/**',

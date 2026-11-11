@@ -5,7 +5,13 @@
     "node": true,
     "es2024": true
   },
-  "ignorePatterns": [".claude/**", ".reviews/**", ".worktrees/**", "docs/design/boxxy/sketches/**"],
+  "ignorePatterns": [
+    ".claude/**",
+    ".reviews/**",
+    ".worktrees/**",
+    "docs/design/boxxy/sketches/**",
+    "packages/pepys/src/generated/**"
+  ],
   "rules": {
     // the layout doc's import pins: each outside library has one package that may import it, and
     // the modules and libs do no I/O
@@ -21,7 +27,8 @@
           "rules": ["modules/rules/**"],
           "dispatch": ["modules/dispatch/**"],
           "store-sqlite": ["adapters/store-sqlite/**"],
-          "worker-atc": ["adapters/worker-atc/**"]
+          "worker-atc": ["adapters/worker-atc/**"],
+          "pepys-package": ["packages/pepys/**"]
         },
         "edges": [
           {
@@ -43,6 +50,12 @@
             "modules": ["@atcx/contract"],
             "allow": ["worker-atc"],
             "reason": "only adapters/worker-atc talks to atc; use its WorkerKind"
+          },
+          {
+            "name": "pepys-kit",
+            "modules": ["@pepys/kit", "@pepys/kit/send", "@pepys/testing"],
+            "allow": ["pepys-package"],
+            "reason": "only packages/pepys binds to the pepys kit; take its sink and reader through the ports"
           },
           {
             "name": "yaml",

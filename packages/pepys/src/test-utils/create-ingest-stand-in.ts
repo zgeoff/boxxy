@@ -1,53 +1,56 @@
-import type { FactBatchSend, WireFact } from '../kit/types.ts';
-import { wireFactSchemas } from '../wire-fact-schemas.ts';
+import { isDeliveryAuthentic } from '@pepys/kit';
+import { boxxySource } from '../boxxy-source.ts';
 
 export interface IngestStandIn {
-  // answers as the kit's sender does after ingest's receive route
-  readonly send: FactBatchSend;
+  // the receive route of the boxxy source, for the sender's `fetch` option
+  readonly handleRequest: (request: Request) => Promise<Response>;
 
   // the events of the stored facts, in arrival order, a copy counted once
   readStored: () => Promise<readonly string[]>;
 }
 
-// Ingest's answers to a fact batch, in memory: more than 100 facts is refused with 413 before any
-// is sent; a fact of an unknown type, or whose payload its family schema refuses, refuses the
-// batch whole with 422; any other batch is stored whole, and a copy of an event is dropped.
-export function createIngestStandIn(): IngestStandIn {
+// Ingest's receive route in memory, with the kit's own signature check and batch read. The kit
+// exports no route handler of ingest, so the answers are written here: 401, the read's 400 or
+// 422, or the batch stored whole with a copy of an event dropped.
+export function createIngestStandIn(secret: string): IngestStandIn {
+  const path = boxxySource.live;
+
+  if (path?.kind !== 'receive') {
+    throw new Error('the boxxy source has no receive path');
+  }
+
   const stored: string[] = [];
 
   return {
-    send: (facts) => {
-      if (facts.length > 100) {
-        return Promise.resolve({
-          ok: false,
-          failure: { kind: 'refused', status: 413, reason: 'over the fact limit' },
-        });
+    handleRequest: async (request) => {
+      const buffer = await request.arrayBuffer();
+
+      const body = new Uint8Array(buffer);
+
+      if (!isDeliveryAuthentic(path.check, secret, request.headers, body)) {
+        return Response.json({ error: 'the signature does not match' }, { status: 401 });
       }
 
-      const bad = facts.find((fact) => !isFamilyFact(fact));
+      const received = path.read(
+        { headers: request.headers, body },
+        { name: boxxySource.name, families: boxxySource.families },
+      );
 
-      if (bad !== undefined) {
-        return Promise.resolve({
-          ok: false,
-          failure: { kind: 'refused', status: 422, reason: `the fact ${bad.event} is not valid` },
-        });
+      if (received.kind === 'refused') {
+        return Response.json({ error: received.reason }, { status: received.status });
       }
 
-      const fresh = facts.map((fact) => fact.event).filter((event) => !stored.includes(event));
+      if (received.kind === 'ignored') {
+        return Response.json({ status: 'ignored' }, { status: 202 });
+      }
 
-      stored.push(...fresh);
+      const events = received.batch.facts.map((pending) => pending.fact.id);
 
-      return Promise.resolve({ ok: true, value: { stored: facts.length } });
+      stored.push(...events.filter((event) => !stored.includes(event)));
+
+      return Response.json({ status: 'stored', stored: events.length });
     },
-    readStored: () => Promise.resolve([...stored]),
+    readStored: () =>
+      Promise.resolve(stored.map((event) => event.replace(`event:${boxxySource.name}:`, ''))),
   };
-}
-
-function isFamilyFact(fact: WireFact): boolean {
-  const schemas: Readonly<Record<string, { safeParse: (value: unknown) => { success: boolean } }>> =
-    wireFactSchemas;
-
-  const schema = schemas[fact.type];
-
-  return schema !== undefined && schema.safeParse(fact.payload).success;
 }

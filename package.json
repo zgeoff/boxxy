@@ -98,6 +98,13 @@
     "turbo": "catalog:",
     "typescript": "catalog:"
   },
+  "overrides": {
+    "@pepys/cli": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-cli-0.0.1.tgz",
+    "@pepys/kit": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-kit-0.0.1.tgz",
+    "@pepys/kysely-turso": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-kysely-turso-0.0.1.tgz",
+    "@pepys/schema": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-schema-0.0.1.tgz",
+    "@pepys/testing": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-testing-0.0.1.tgz"
+  },
   "engines": {
     "node": ">=24"
   },

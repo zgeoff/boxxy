@@ -1,5 +1,7 @@
 import type { OutboxFact } from '@boxxy/model';
-import type { WireFact } from '../kit/types.ts';
+import type { FactBatchBody } from '@pepys/kit';
+
+type WireFact = FactBatchBody['facts'][number];
 
 // One outbox row as one fact of a batch. The event is the row's fact ID on every send, so a
 // resend is a copy that pepys drops; ingest makes the fact ID `event:boxxy:<event>`. The store

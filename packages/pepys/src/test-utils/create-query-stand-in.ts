@@ -1,10 +1,10 @@
 import type { CostToLand } from '@boxxy/model';
-import type { QueryClient } from '../kit/types.ts';
 import { buildCostToLand } from '../queries/build-cost-to-land.ts';
 import { buildStageTime } from '../queries/build-stage-time.ts';
+import type { UncheckedQueryClient } from '../types.ts';
 
 export interface QueryStandIn {
-  readonly client: QueryClient;
+  readonly client: UncheckedQueryClient;
 
   // the cost the query answers for the item's entity ID
   setCost: (item: string, cost: CostToLand) => void;

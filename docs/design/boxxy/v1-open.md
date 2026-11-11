@@ -67,15 +67,13 @@ Each row names the test that settles it, where one is known.
 
 | Point | The test |
 | --- | --- |
-| That the glue generator types the catalog's nested payloads, and that scriptc compiles the decoder for 27 types. It ran for flat payloads. | Build the package with the pepys CLI. |
 | Which `Date` functions scriptc refuses to compile. The sketch knows of `Date.now` alone, so the consumer's module calls no `Date` function. | Compile one call of each `Date` function that date arithmetic needs. |
 | That a scope consumer can write two entity tables and a link from one scope read. | Run the consumer on the real pepys host. |
-| The scriptc compile of the entry file and the Rust host. The tests on the kit's test store prove neither. | The end-to-end test, on a real pepys. |
-| How the glue types an `exactOptional` field of the model, such as `designMode` and every field of `item.edited`. The generator's source treats it as a required `unknown`, and the fold narrows each such field. | Read the generated glue. |
+| The Rust host, and the scriptc compile in CI. The tests on the kit's test store prove neither. The compile ran once on a dev machine; a fresh install blocks scriptc's install script, so CI does not compile. | The end-to-end test, on a real pepys. |
 | That a fact whose payload does not decode is reported. The scope read leaves it out with no error, so a newer boxxy server can lose a fact from a table. | Send one fact with an unknown field value. |
 | That a webhook's pull request ID equals the ID that REST returns. [`lookups.md`](./sketches/v1/pepys-package/lookups.md) compared REST with the Events API. | Compare one delivery in pepys with one REST read. |
-| That the five read statements of the two queries run on the real store. They ran on SQLite. | Run both queries on the real store. |
-| That the delivery module of the GitHub plug-in accepts two more joins. | Run the stage-time query. |
+| That the six statements of the two queries run on the real store. They ran on the kit's test store. | Run both queries on the real store. |
+| That the GitHub plug-in's delivery module fits the stage-time query's delivery read. The tests give the read as fixed rows. | Run the stage-time query in a deployment. |
 | That a zod schema made in boxxy's copy of zod works as a family type in the kit. The peer dependency is meant to make it one copy. | Build the deployment with the package. |
 | That a JSON column compares equal after a round trip, for the sleep stretches. | The shuffle test on the real store. |
 | Whether ingest stores a payload as sent or as parsed. If as parsed, a field the deployed package does not know is lost from the log. | Send one fact with an extra field and read the log. |
@@ -87,15 +85,15 @@ Each row names the test that settles it, where one is known.
 - An agent session ID never equals the atc session ID of another session.
 - The pepys test store returns rows and links in primary key order.
 - Ingest does not check the kind of a fact's actor. boxxy's actors are kinds that no plug-in brings.
-- The telemetry plug-in exports the consumers and the row builders that the package sketch imports.
+- The consumers of the GitHub and telemetry plug-ins have the columns that the queries' consumer types name. A deployment passes them to the plug-in.
 - The pepys API serves each plug-in query on its RPC route under its snake case name.
 
 ## Needs work outside this repo
 
 | What | Where | Needed for |
 | --- | --- | --- |
-| `@pepys/kit`, with the fact batch sender, the plug-in client type and the definers | pepys | the sink, the reader and the package |
-| `@pepys/testing`, with the test store | pepys | the package's tests and the end-to-end test |
+| `@pepys/kit`, `@pepys/testing` and `@pepys/cli` on npm. The package installs them from the tarballs of a prerelease. | pepys | publishing the package |
+| `@pepys/api` in a tarball or on npm, for its `DeploymentClient` type. The server builds the client with `@orpc/client` and passes it to the reader. | pepys | the reader on the boxxy server |
 | The GitHub and telemetry plug-ins, with the pull request entity ID built from GitHub's own ID, and a proven origin on each telemetry row | pepys | the `produced` link and the cost query |
 | A delivery module in the GitHub plug-in that gives the merge, release and deploy times of a pull request | pepys | the stage-time query |
 | The telemetry plug-in, with `origin_issuer` and `origin_subject` on each row | pepys | the cost query |

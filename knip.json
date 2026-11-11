@@ -13,6 +13,9 @@
     "{apps,modules,adapters,libs,packages}/*": { "entry": ["src/**/*.test.ts", "e2e/**/*.test.ts"] }
   },
   "ignoreIssues": {
+    // `pepys build` writes the glue whole: an ID helper or a row type of a table that the entry
+    // file does not use is still part of the generated boundary
+    "packages/pepys/src/generated/*.ts": ["exports", "types"],
     "scripts/parse-shell-words.ts": ["types"],
     "scripts/shell-escape-parsers.ts": ["types"]
   }

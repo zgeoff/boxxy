@@ -226,9 +226,10 @@ export type SinkAnswer =
 // `@boxxy/pepys`. It holds no HTTP code: the kit's sender builds the
 // body, signs it as the `check` of `boxxySource` says (HMAC-SHA256 of the raw body, in the header
 // `x-boxxy-signature-256`), and posts it.
-// Built (slice 18): until `@pepys/kit` is published, the sink takes `{ send, timeoutMs }`, where
-// `send` is the kit's batch sender; the answer mapping is `sink/pick-sink-answer.ts`. With the kit
-// the options are `{ url, secret, timeoutMs }`. The kit's sender throws on an empty secret.
+// Built (slice 18): the options are `{ url, secret, timeoutMs, fetch? }`, where `fetch` lets a
+// test pass ingest's route; the answer mapping is `sink/pick-sink-answer.ts`. A fact that its
+// family's schema refuses answers `refused-batch` 422 before any send. The kit's sender throws on
+// an empty secret.
 export function createPepysFactSink(options: { url: string; secret: string }): FactSink {
   const sendBatch = createFactBatchSender({ source: boxxySource, url: options.url, secret: options.secret });
 

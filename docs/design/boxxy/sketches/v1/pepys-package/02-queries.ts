@@ -5,11 +5,13 @@
 //   C. `boxxy_cost_to_land`                         packages/pepys/src/boxxy-cost-to-land-query.ts
 //   D. `boxxy_stage_time`                           packages/pepys/src/boxxy-stage-time-query.ts
 //
-// Built (slice 18): each query reads plain rows, one statement per table, in
-// `queries/constants.ts`, and a pure builder (`queries/build-cost-to-land.ts`,
-// `queries/build-stage-time.ts`) does the stretches, the caller match, the sums and the time
-// compares with `Date.parse`. The store runs no `julianday`, no window function and no common
-// table expression. A review that settled `unsettleable` starts no merge step.
+// Built (slice 18): each query reads plain rows, one statement per table, through `call.db`, in
+// `queries/build-cost-to-land-query.ts` and `queries/build-stage-time-query.ts`. A pure builder
+// (`queries/build-cost-to-land.ts`, `queries/build-stage-time.ts`) does the stretches, the caller
+// match, the sums and the time compares with `Date.parse`. The store runs no `julianday`, no
+// window function and no common table expression. The stage-time query calls the delivery read
+// that the deployment passes, in place of `selectPullRequestDelivery`. A review that settled
+// `unsettleable` starts no merge step.
 
 import { defineQuery } from '@pepys/kit';
 import type { QueryCall } from '@pepys/kit';

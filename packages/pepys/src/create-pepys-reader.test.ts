@@ -1,8 +1,16 @@
 import { expect, test } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
 import { pepysReaderContract } from '@boxxy/model/test-utils/pepys-reader-contract';
+import { createTestStore } from '@pepys/testing';
+import { boxxySource } from './boxxy-source.ts';
+import { buildBoxxyPlugin } from './build-boxxy-plugin.ts';
 import { createPepysReader } from './create-pepys-reader.ts';
+import { buildCostToLandQuery } from './queries/build-cost-to-land-query.ts';
+import { buildStageTimeQuery } from './queries/build-stage-time-query.ts';
+import { buildForeignStandIn } from './test-utils/build-foreign-stand-in.ts';
+import { buildMockItemFacts } from './test-utils/build-mock-item-facts.ts';
 import { createQueryStandIn } from './test-utils/create-query-stand-in.ts';
+import type { BoxxyQueryClient } from './types.ts';
 
 function setupTest() {
   const queries = createQueryStandIn();
@@ -35,6 +43,33 @@ test.each(pepysReaderContract)('it keeps the PepysReader contract: %s', async (_
   const outcome = await check(ctx.harness);
 
   expect(outcome.received).toStrictEqual(outcome.expected);
+});
+
+test('it reads the stage times of an item through the queries of the plug-in', async () => {
+  const standIn = buildForeignStandIn();
+  const item = brandSchemas.itemId.parse('0193a1b2-0000-7000-8000-000000000001');
+
+  await using store = await createTestStore({
+    plugins: [buildBoxxyPlugin(standIn.foreign), ...standIn.plugins],
+  });
+
+  const client: BoxxyQueryClient = {
+    boxxy_cost_to_land: (input) => store.query(buildCostToLandQuery(standIn.foreign), input),
+    boxxy_stage_time: (input) => store.query(buildStageTimeQuery(standIn.foreign.delivery), input),
+  };
+
+  await store.apply(boxxySource, buildMockItemFacts().applied, {
+    sender: { issuer: 'https://boxxy.example', subject: 'boxxy-server' },
+  });
+
+  const reader = createPepysReader({ client, environment: 'production', timeoutMs: 10_000 });
+
+  const answer = await reader.readStageTime(item);
+
+  expect(answer).toStrictEqual({
+    kind: 'value',
+    value: expect.objectContaining({ item: `boxxy:item:${item}`, sleepMinutes: 20 }),
+  });
 });
 
 test('it answers unavailable for an answer that the report schema refuses', async () => {

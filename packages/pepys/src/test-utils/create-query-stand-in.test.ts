@@ -30,7 +30,10 @@ test('it rejects every call once taken down', async () => {
 
   queries.takeDown();
 
-  await expect(
-    queries.client.boxxy_stage_time({ item: 'boxxy:item:i-1', environment: 'production' }),
-  ).rejects.toThrow('ECONNREFUSED');
+  const answer = queries.client.boxxy_stage_time({
+    item: 'boxxy:item:i-1',
+    environment: 'production',
+  });
+
+  await expect(answer).toReject();
 });

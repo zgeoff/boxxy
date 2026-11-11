@@ -17,19 +17,25 @@
   ],
   "type": "module",
   "exports": {
+    ".": "./src/index.ts",
     "./sink": "./src/create-pepys-fact-sink.ts",
     "./reader": "./src/create-pepys-reader.ts"
   },
   "scripts": {
+    "glue": "pepys build src/boxxy-work-plugin.ts",
     "typecheck": "tsrs --noEmit"
   },
   "dependencies": {
     "@boxxy/model": "workspace:*"
   },
   "devDependencies": {
+    "@pepys/cli": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-cli-0.0.1.tgz",
+    "@pepys/kit": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-kit-0.0.1.tgz",
+    "@pepys/testing": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-testing-0.0.1.tgz",
     "zod": "catalog:"
   },
   "peerDependencies": {
+    "@pepys/kit": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-kit-0.0.1.tgz",
     "zod": "catalog:"
   },
   "engines": {

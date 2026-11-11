@@ -27,6 +27,7 @@ pre-commit:
         - '**/coverage/**'
         - '.worktrees/**'
         - 'docs/design/boxxy/sketches/**'
+        - 'packages/pepys/src/generated/**'
       run: node_modules/.bin/format-codemod --quiet {staged_files}
       stage_fixed: true
     # last so it scans what the fixers above re-staged; needs the gitleaks

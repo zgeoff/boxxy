@@ -1,7 +1,16 @@
+import type { OutgoingFact } from '@pepys/kit';
+import type { boxxySource } from '../boxxy-source.ts';
 import type { WorkFact } from '../work/types.ts';
-import { buildMockScopeFact } from './build-mock-scope-fact.ts';
+import { buildMockAppliedFact } from './build-mock-applied-fact.ts';
+import { toScopeFact } from './to-scope-fact.ts';
+
+type AppliedFact = OutgoingFact<typeof boxxySource>;
 
 interface ItemFacts {
+  // the facts as boxxy's sink sends them
+  readonly applied: AppliedFact[];
+
+  // the same facts as the consumer reads them from the item's scope
   readonly facts: WorkFact[];
   readonly attempts: {
     readonly triage: string;
@@ -12,9 +21,9 @@ interface ItemFacts {
   };
 }
 
-// One item's facts in time order, fact IDs `event:boxxy:f01` to `f21`: a triage, a build that
-// slept for 20 minutes and linked pull request 9001, a review that asked for changes, a second
-// build in the first build's atc session, and a review that passed.
+// One item's facts in time order, events `f01` to `f21`: a triage, a build that slept 20 minutes
+// and linked pull request 9001, a review that asked for changes, a second build in the first
+// build's atc session, and a review that passed.
 export function buildMockItemFacts(): ItemFacts {
   const attempts = {
     triage: '0193a1b2-0000-7000-8000-0000000000a1',
@@ -24,8 +33,8 @@ export function buildMockItemFacts(): ItemFacts {
     rereview: '0193a1b2-0000-7000-8000-0000000000a5',
   };
 
-  const facts = [
-    buildMockScopeFact('boxxy.item.filed', {
+  const applied = [
+    buildItemFact('boxxy.item.filed', {
       event: 'f01',
       at: '2026-11-11T02:00:00.000Z',
       payload: {
@@ -40,7 +49,7 @@ export function buildMockItemFacts(): ItemFacts {
     buildSettled('f04', '02:05:00', { attempt: attempts.triage, outcome: 'accepted' }),
     buildClaimed('f05', '02:10:00', { attempt: attempts.build, phase: 'build', number: 2 }),
     buildStarted('f06', '02:10:05', attempts.build, 's-build'),
-    buildMockScopeFact('boxxy.attempt.session_bound', {
+    buildItemFact('boxxy.attempt.session_bound', {
       event: 'f07',
       at: '2026-11-11T02:10:05.000Z',
       payload: {
@@ -50,7 +59,7 @@ export function buildMockItemFacts(): ItemFacts {
         product: 'claude_code',
       },
     }),
-    buildMockScopeFact('boxxy.pull_request.linked', {
+    buildItemFact('boxxy.pull_request.linked', {
       event: 'f08',
       at: '2026-11-11T02:25:00.000Z',
       payload: { attempt: attempts.build, pullRequestId: '9001' },
@@ -80,19 +89,34 @@ export function buildMockItemFacts(): ItemFacts {
     buildSettled('f21', '04:30:00', { attempt: attempts.rereview, outcome: 'passed', round: 2 }),
   ];
 
-  return { facts, attempts };
+  return { applied, facts: applied.map((fact) => toScopeFact(fact)), attempts };
 }
 
-function buildClaimed(event: string, time: string, payload: Record<string, unknown>): WorkFact {
-  return buildMockScopeFact('boxxy.attempt.claimed', {
+function buildItemFact(
+  type: Parameters<typeof buildMockAppliedFact>[0],
+  overrides: Parameters<typeof buildMockAppliedFact>[1],
+): AppliedFact {
+  return buildMockAppliedFact(type, {
+    ...overrides,
+    entity: 'boxxy:item:0193a1b2-0000-7000-8000-000000000001',
+  });
+}
+
+function buildClaimed(event: string, time: string, payload: Record<string, unknown>): AppliedFact {
+  return buildItemFact('boxxy.attempt.claimed', {
     event,
     at: `2026-11-11T${time}.000Z`,
     payload: { round: 1, ...payload },
   });
 }
 
-function buildStarted(event: string, time: string, attempt: string, atcSession: string): WorkFact {
-  return buildMockScopeFact('boxxy.attempt.started', {
+function buildStarted(
+  event: string,
+  time: string,
+  attempt: string,
+  atcSession: string,
+): AppliedFact {
+  return buildItemFact('boxxy.attempt.started', {
     event,
     at: `2026-11-11T${time}.000Z`,
     payload: {
@@ -103,8 +127,8 @@ function buildStarted(event: string, time: string, attempt: string, atcSession: 
   });
 }
 
-function buildSettled(event: string, time: string, payload: Record<string, unknown>): WorkFact {
-  return buildMockScopeFact('boxxy.attempt.settled', {
+function buildSettled(event: string, time: string, payload: Record<string, unknown>): AppliedFact {
+  return buildItemFact('boxxy.attempt.settled', {
     event,
     at: `2026-11-11T${time}.000Z`,
     payload,
@@ -116,8 +140,8 @@ function buildMark(
   event: string,
   time: string,
   attempt: string,
-): WorkFact {
-  return buildMockScopeFact(type, {
+): AppliedFact {
+  return buildItemFact(type, {
     event,
     at: `2026-11-11T${time}.000Z`,
     payload: { attempt },

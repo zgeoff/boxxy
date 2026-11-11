@@ -1,3 +1,12 @@
+import type {
+  ColumnKind,
+  ConsumerDeclaration,
+  EntityID,
+  QueryCall,
+  TableDeclaration,
+} from '@pepys/kit';
+import type { boxxyWorkConsumer } from '../work/boxxy-work-consumer.ts';
+
 // The rows the statements of the two queries read. Each holds the columns of its table that the
 // builders need, under the column names.
 
@@ -63,4 +72,97 @@ export interface DeliveryReadRow {
   mergedAt: string | null;
   release: { at: string } | null;
   deploy: { at: string } | null;
+}
+
+interface Column<Kind extends ColumnKind> {
+  readonly kind: Kind;
+}
+
+interface NullableColumn<Kind extends ColumnKind> {
+  readonly kind: Kind;
+  readonly nullable: true;
+}
+
+// The columns that the queries read of each consumer of another plug-in. A consumer with more
+// columns fits. A table's columns take a type alias: an interface has no index signature.
+type TelemetryColumns = Readonly<{
+  session_id: Column<'entityID'>;
+  origin_issuer: NullableColumn<'text'>;
+  origin_subject: NullableColumn<'text'>;
+  product: Column<'text'>;
+  at: Column<'timestamp'>;
+}>;
+
+export type TelemetryModelRequestConsumer = ConsumerDeclaration<
+  'telemetry_model_request',
+  {
+    readonly telemetry_model_request: TableDeclaration<
+      TelemetryColumns & {
+        readonly model: Column<'text'>;
+        readonly cost_basis: Column<'text'>;
+        readonly cost_usd: NullableColumn<'real'>;
+        readonly input_tokens: Column<'integer'>;
+        readonly cache_read_tokens: Column<'integer'>;
+        readonly cache_creation_tokens: Column<'integer'>;
+        readonly output_tokens: Column<'integer'>;
+      }
+    >;
+  }
+>;
+
+export type TelemetryTurnCostConsumer = ConsumerDeclaration<
+  'telemetry_turn_cost',
+  {
+    readonly telemetry_turn_cost: TableDeclaration<
+      TelemetryColumns & {
+        readonly model: NullableColumn<'text'>;
+        readonly cost_usd: Column<'real'>;
+      }
+    >;
+  }
+>;
+
+export type GithubPullRequestConsumer = ConsumerDeclaration<
+  'github_pull_request',
+  {
+    readonly github_pull_request: TableDeclaration<{
+      readonly id: Column<'entityID'>;
+      readonly merged_at: NullableColumn<'timestamp'>;
+    }>;
+  }
+>;
+
+// A consumer whose tables the stage-time query does not type: the delivery read types its own,
+// so the query's statement on the boxxy tables keeps one table type. No table name holds a colon,
+// so the key pattern matches no real table and any consumer fits.
+export type OpaqueConsumer = ConsumerDeclaration<
+  string,
+  Readonly<Record<`opaque:${string}`, TableDeclaration>>
+>;
+
+export type StageTimeReads = readonly [typeof boxxyWorkConsumer, ...OpaqueConsumer[]];
+
+export interface DeliveryInput {
+  readonly item: EntityID;
+
+  // the environment whose deploy counts
+  readonly environment: string;
+}
+
+// The GitHub plug-in's delivery times of each pull request that an attempt of the item produced,
+// with the consumers that hold them.
+export interface DeliveryReads {
+  readonly consumers: readonly OpaqueConsumer[];
+  readonly readDeliveries: (
+    db: QueryCall<unknown, StageTimeReads>['db'],
+    input: DeliveryInput,
+  ) => Promise<readonly DeliveryReadRow[]>;
+}
+
+// The consumers of the GitHub and telemetry plug-ins that the two queries read.
+export interface ForeignReads {
+  readonly telemetryModelRequest: TelemetryModelRequestConsumer;
+  readonly telemetryTurnCost: TelemetryTurnCostConsumer;
+  readonly githubPullRequest: GithubPullRequestConsumer;
+  readonly delivery: DeliveryReads;
 }

@@ -162,21 +162,21 @@ adapters/worker-atc/src         @boxxy/worker-atc
   index  create-atc-worker  to-session-reading
 
 packages/pepys/src              @boxxy/pepys
+  index  build-boxxy-plugin     the `.` entry: the plug-in, given the GitHub and telemetry consumers
   create-pepys-fact-sink  create-pepys-reader   the `./sink` and `./reader` entries
+  boxxy-source    the fact family and the source
   wire-fact-schemas   the model's fact schemas plus the store version: the family's types
-  kit/            types: the kit types the package binds to, until `@pepys/kit` replaces them
-  sink/           to-wire-fact  pick-sink-answer
-  work/           fold-work-facts  types   the consumer's fold, with no kit import
-  queries/        build-cost-to-land  build-stage-time  constants (the statements)  types
-  test-utils/     create-ingest-stand-in  create-query-stand-in  build-mock-scope-fact
-                  build-mock-item-facts  build-mock-attempt-read-row
-                  build-mock-binding-read-row  build-mock-request-read-row
-  with @pepys/kit:
-  index           the plug-in
-  source          the fact family and the source; its own `exports` entry
-  work/           boxxy-work-consumer  link-types
-  consumers/      the scriptc entry files: boxxy-work
-  queries/        boxxy-cost-to-land-query  boxxy-stage-time-query
+  boxxy-work-plugin   the source and the consumer alone, from which `pepys build` writes the glue
+  types           the typed client of the two queries
+  sink/           to-wire-fact  pick-sink-answer  is-outgoing-fact
+  work/           boxxy-work-consumer  constants (the link types)  fold-work-facts  types
+  consumers/      apply-scope: the scriptc entry file of `boxxy_work`
+  generated/      the glue that `pepys build` writes; never edited by hand
+  queries/        build-cost-to-land-query  build-stage-time-query  build-cost-to-land
+                  build-stage-time  find-item-entity-id  constants  types
+  test-utils/     create-ingest-stand-in  create-query-stand-in  build-foreign-stand-in
+                  build-mock-applied-fact  build-mock-scope-fact  build-mock-item-facts
+                  to-scope-fact  to-entity-id  and the read-row factories
 ```
 
 The pepys package sits at `packages/pepys`, so the workspace has a `packages/*` glob.

@@ -11,5 +11,8 @@
 # design sketches that keep the layout of the design review
 docs/design/boxxy/sketches/**
 
+# the pepys glue, which `pepys build` writes and its check compares byte for byte
+packages/pepys/src/generated/**
+
 # nested checkouts
 .worktrees/**

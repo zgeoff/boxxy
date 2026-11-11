@@ -93,13 +93,15 @@ The consumer runs in scope mode, with one scope per item. From an item's facts i
 - An attempt with no claimed fact in the scope yields no row and no link. The fact marks the scope dirty when it arrives, and the next run writes them.
 - The consumer's module does no date arithmetic. It copies each fact's time, and stores sleep as a list of stretches that the query adds up.
 - The entry file of the consumer compiles with scriptc, so it imports generated glue only. The package commits the glue, and a check in CI fails when the glue is stale.
-- The pepys packages, zod and kysely are peer dependencies, so that the deployment holds one copy of each.
+- `@pepys/kit` and zod are peer dependencies, so that the deployment holds one copy of each. The package imports no kysely: each query runs on the kit's query database.
 
 [`lookups.md`](./sketches/v1/pepys-package/lookups.md) records the lookups behind the two join keys.
 
 ## The two queries
 
 [`02-queries.ts`](./sketches/v1/pepys-package/02-queries.ts) holds both queries and their output schemas, which are declared once in `@boxxy/model`. Each query takes one item.
+
+The deployment builds the plug-in with `buildBoxxyPlugin`, and passes it the GitHub and telemetry consumers that the queries read, with the GitHub plug-in's delivery read. The package's types name the columns that each query reads, so a consumer with fewer columns fails the type check.
 
 ### `boxxy_cost_to_land`
 
@@ -111,7 +113,7 @@ The query returns one line per phase, rework flag, product, model and cost basis
 - **Each telemetry row counts for one attempt.** The row's session and its proven origin must match the attempt's session and caller. When one session carried several attempts, each attempt owns the stretch from the time it was bound to the session until the next attempt was bound. A kept session is such a case.
 - **An unknown cost is null, never 0.** A product that reports cost per turn gets its own lines.
 
-Each query reads plain rows of its tables with one statement per table, and a builder in TypeScript does the stretches, the caller match and the sums. The statements need no window function, no `julianday` and no common table expression from the store.
+Each query reads plain rows of its tables with one statement per table, and a builder in TypeScript does the stretches, the caller match and the sums. The statements need no window function, no `julianday` and no common table expression from the store. An input that names no boxxy item answers as an item with no rows.
 
 ### `boxxy_stage_time`
 
