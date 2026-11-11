@@ -110,7 +110,9 @@ test('it refuses a second live relation of one source, target and type after the
 
   ctx.writeRaw(insert, 1000);
 
-  expect(() => ctx.writeRaw(insert, 2000)).toThrow(/UNIQUE constraint failed/u);
+  expect(() => {
+    ctx.writeRaw(insert, 2000);
+  }).toThrow(/UNIQUE constraint failed/u);
 });
 
 test('it changes nothing when it runs again on a migrated file', async () => {

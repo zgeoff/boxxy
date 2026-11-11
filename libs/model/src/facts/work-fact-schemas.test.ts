@@ -11,8 +11,8 @@ type DeepReadonly<T> = T extends readonly (infer E)[]
     ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
     : T;
 
-type IsEqual<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
+// each type is assignable to the other
+type IsEqual<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 
 type MismatchedFactType = {
   [T in FactType]: IsEqual<
