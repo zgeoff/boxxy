@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
 import { brandSchemas, defineGate, defineSignal, signalKey } from '@boxxy/model';
-import { buildMockItemView } from '@boxxy/model/test-utils/build-mock-item-view';
-import { buildMockLeverRow } from '@boxxy/model/test-utils/build-mock-lever-row';
 import { buildMockRelationRow } from '@boxxy/model/test-utils/build-mock-relation-row';
 import { buildMockSnapshot } from '@boxxy/model/test-utils/build-mock-snapshot';
+import { buildMockV1ItemView } from '@boxxy/model/test-utils/build-mock-v1-item-view';
+import { buildMockV1LeverRow } from '@boxxy/model/test-utils/build-mock-v1-lever-row';
 import { z } from 'zod';
 import { buildFrame } from './build-frame.ts';
 import { expedite as expediteConcept } from './concepts/expedite.ts';
@@ -13,9 +13,9 @@ import { buildMockLoadedRules } from './test-utils/build-mock-loaded-rules.ts';
 test('it makes candidates of the ready items only', () => {
   const rules = buildMockLoadedRules();
   const now = brandSchemas.instant.parse(50_000);
-  const ready = buildMockItemView();
-  const blocked = buildMockItemView({ derived: { state: 'blocked' } });
-  const running = buildMockItemView({ derived: { state: 'running' } });
+  const ready = buildMockV1ItemView();
+  const blocked = buildMockV1ItemView({ derived: { state: 'blocked' } });
+  const running = buildMockV1ItemView({ derived: { state: 'running' } });
 
   const frame = buildFrame({
     snapshot: buildMockSnapshot({ items: [blocked, ready, running] }),
@@ -24,19 +24,22 @@ test('it makes candidates of the ready items only', () => {
   });
 
   expect(frame.candidates).toStrictEqual([
-    { ...ready, phase: brandSchemas.phaseName.parse('build') },
+    { ...ready, phase: brandSchemas.phaseName.parse('build'), round: 1 },
   ]);
 });
 
-test('it leaves out an item whose kind the rules do not name', () => {
+test('it gives a candidate the phase and round of its position', () => {
   const rules = buildMockLoadedRules();
   const now = brandSchemas.instant.parse(50_000);
-  const issue = buildMockItemView();
-  const chore = buildMockItemView({ kind: brandSchemas.itemKindName.parse('core.chore') });
-  const frame = buildFrame({ snapshot: buildMockSnapshot({ items: [chore, issue] }), rules, now });
+
+  const item = buildMockV1ItemView({
+    position: { kind: 'phase', phase: brandSchemas.phaseName.parse('review'), round: 2 },
+  });
+
+  const frame = buildFrame({ snapshot: buildMockSnapshot({ items: [item] }), rules, now });
 
   expect(frame.candidates).toStrictEqual([
-    { ...issue, phase: brandSchemas.phaseName.parse('build') },
+    { ...item, phase: brandSchemas.phaseName.parse('review'), round: 2 },
   ]);
 });
 
@@ -63,7 +66,7 @@ test('it holds an item with the fault as its reason when a gate throws', () => {
   });
 
   const now = brandSchemas.instant.parse(50_000);
-  const item = buildMockItemView();
+  const item = buildMockV1ItemView();
   const frame = buildFrame({ snapshot: buildMockSnapshot({ items: [item] }), rules, now });
 
   expect({ holds: frame.holds, faults: frame.faults }).toStrictEqual({
@@ -104,7 +107,7 @@ test('it lets no waiver lift the hold of a gate that threw', () => {
   });
 
   const now = brandSchemas.instant.parse(50_000);
-  const item = buildMockItemView();
+  const item = buildMockV1ItemView();
   const frame = buildFrame({ snapshot: buildMockSnapshot({ items: [item] }), rules, now });
 
   expect({ holds: frame.holds, lifted: frame.lifted }).toStrictEqual({
@@ -150,7 +153,7 @@ test('it records only the first waiver that lifts a hold', () => {
   });
 
   const now = brandSchemas.instant.parse(50_000);
-  const item = buildMockItemView();
+  const item = buildMockV1ItemView();
   const frame = buildFrame({ snapshot: buildMockSnapshot({ items: [item] }), rules, now });
 
   expect(frame.lifted).toStrictEqual(
@@ -188,7 +191,7 @@ test('it lets no waiver lift the hold of a gate that is not liftable', () => {
   });
 
   const now = brandSchemas.instant.parse(50_000);
-  const item = buildMockItemView();
+  const item = buildMockV1ItemView();
   const frame = buildFrame({ snapshot: buildMockSnapshot({ items: [item] }), rules, now });
 
   expect(frame.holds).toStrictEqual(
@@ -226,7 +229,7 @@ test('it keeps the hold and records a fault when a waiver throws', () => {
   });
 
   const now = brandSchemas.instant.parse(50_000);
-  const item = buildMockItemView();
+  const item = buildMockV1ItemView();
   const frame = buildFrame({ snapshot: buildMockSnapshot({ items: [item] }), rules, now });
 
   expect({ holds: frame.holds, lifted: frame.lifted, faults: frame.faults }).toStrictEqual({
@@ -239,8 +242,8 @@ test('it keeps the hold and records a fault when a waiver throws', () => {
 });
 
 test('it gives no value and records a fault when a signal throws for an item', () => {
-  const failing = buildMockItemView();
-  const working = buildMockItemView();
+  const failing = buildMockV1ItemView();
+  const working = buildMockV1ItemView();
 
   const rules = buildMockLoadedRules({
     concepts: [
@@ -304,12 +307,15 @@ test('it gives no value for a filter field that throws, and records a fault', ()
   });
 
   const now = brandSchemas.instant.parse(50_000);
-  const item = buildMockItemView({ repo: brandSchemas.repoName.parse('acme/widgets') });
+  const item = buildMockV1ItemView({ repo: brandSchemas.repoName.parse('acme/widgets') });
   const frame = buildFrame({ snapshot: buildMockSnapshot({ items: [item] }), rules, now });
 
   expect({ fields: frame.fields, faults: frame.faults }).toStrictEqual({
     fields: new Map([
-      [item.id, { phase: ['build'], kind: ['core.issue'], repo: ['acme/widgets'] }],
+      [
+        item.id,
+        { phase: ['build'], kind: ['core.issue'], repo: ['acme/widgets'], designMode: ['agent'] },
+      ],
     ]),
     faults: [
       { plugin: 'area', kind: 'filter-field', item: item.id, error: 'the area map has no entry' },
@@ -318,8 +324,8 @@ test('it gives no value for a filter field that throws, and records a fault', ()
 });
 
 test('it carries nothing and records a fault when a propagation line throws', () => {
-  const blocked = buildMockItemView({ derived: { state: 'blocked' } });
-  const blocker = buildMockItemView();
+  const blocked = buildMockV1ItemView({ derived: { state: 'blocked' } });
+  const blocker = buildMockV1ItemView();
 
   const rules = buildMockLoadedRules({
     concepts: [
@@ -373,9 +379,9 @@ test('it carries nothing and records a fault when a propagation line throws', ()
 test("it combines carried values with the blocker's own value by the signal's combine", () => {
   const rules = buildMockLoadedRules();
   const now = brandSchemas.instant.parse(50_000);
-  const first = buildMockItemView({ derived: { state: 'blocked' } });
-  const blocker = buildMockItemView();
-  const last = buildMockItemView({ derived: { state: 'blocked' } });
+  const first = buildMockV1ItemView({ derived: { state: 'blocked' } });
+  const blocker = buildMockV1ItemView();
+  const last = buildMockV1ItemView({ derived: { state: 'blocked' } });
 
   const frame = buildFrame({
     snapshot: buildMockSnapshot({
@@ -385,9 +391,9 @@ test("it combines carried values with the blocker's own value by the signal's co
         buildMockRelationRow({ source: blocker.id, target: last.id }),
       ],
       levers: [
-        buildMockLeverRow({ seq: 1, kind: 'plan.expedite', item: first.id }),
-        buildMockLeverRow({ seq: 2, kind: 'plan.expedite', item: blocker.id }),
-        buildMockLeverRow({ seq: 3, kind: 'plan.expedite', item: last.id }),
+        buildMockV1LeverRow({ seq: 1, kind: 'plan.expedite', item: first.id }),
+        buildMockV1LeverRow({ seq: 2, kind: 'plan.expedite', item: blocker.id }),
+        buildMockV1LeverRow({ seq: 3, kind: 'plan.expedite', item: last.id }),
       ],
     }),
     rules,
@@ -406,9 +412,9 @@ test("it combines carried values with the blocker's own value by the signal's co
 test('it carries a value through a chain of blockers and stops on a cycle', () => {
   const rules = buildMockLoadedRules();
   const now = brandSchemas.instant.parse(50_000);
-  const blocked = buildMockItemView({ derived: { state: 'blocked' } });
-  const middle = buildMockItemView({ derived: { state: 'blocked' } });
-  const root = buildMockItemView({ derived: { state: 'blocked' } });
+  const blocked = buildMockV1ItemView({ derived: { state: 'blocked' } });
+  const middle = buildMockV1ItemView({ derived: { state: 'blocked' } });
+  const root = buildMockV1ItemView({ derived: { state: 'blocked' } });
 
   const frame = buildFrame({
     snapshot: buildMockSnapshot({
@@ -418,7 +424,7 @@ test('it carries a value through a chain of blockers and stops on a cycle', () =
         buildMockRelationRow({ source: root.id, target: middle.id }),
         buildMockRelationRow({ source: blocked.id, target: root.id }),
       ],
-      levers: [buildMockLeverRow({ seq: 1, kind: 'plan.expedite', item: blocked.id })],
+      levers: [buildMockV1LeverRow({ seq: 1, kind: 'plan.expedite', item: blocked.id })],
     }),
     rules,
     now,

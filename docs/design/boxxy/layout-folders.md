@@ -101,7 +101,7 @@ The attempt state machine is `attempts/attempt-machine`, with its test beside it
 
 ```text
 modules/planning/src
-  build-frame  decide  propagate  concepts  compare-item-ids  format-fault    v1: explain
+  build-frame  decide  propagate  concepts  compare-item-ids  format-fault
   concepts/       one file per concept; the file exports the concept under its own name
                   pool (exports `pool`)  defer  expedite
   generated/      concept-pins
@@ -121,7 +121,7 @@ modules/rules/src
 modules/rules/example           the v1 rules file and its prompts, which a loader test reads
 ```
 
-`modules/planning` reaches 7 loose modules with `explain`. `modules/rules` keeps its modules in the folders above, and only `index`, `types` and `constants` stay loose in `src/`, so the rules dry run is one more folder.
+`modules/planning` keeps 6 loose modules: v1 adds no `explain`, because the contract has no procedure that explains a decision. `modules/rules` keeps its modules in the folders above, and only `index`, `types` and `constants` stay loose in `src/`, so the rules dry run is one more folder.
 
 ## New packages
 

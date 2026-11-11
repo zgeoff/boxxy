@@ -1,5 +1,4 @@
 import type { Schema } from '../rules/types.ts';
-import type { SliceOneItemView, SliceOneLeverRow } from '../slice-one/types.ts';
 import type {
   AttemptId,
   FaultRecord,
@@ -67,6 +66,9 @@ export interface Wake {
   readonly item: ItemId;
   readonly phase: PhaseName;
 
+  // the attempt's pool: a pool in backoff holds back its wakes as well as its starts
+  readonly pool: PoolName;
+
   // the attempt's stored fields, which the limits are matched against again
   readonly fields: FieldValues;
   readonly requestedAt: Instant;
@@ -101,6 +103,7 @@ export interface Wait {
 
 export type WaitReason =
   | { readonly kind: 'limit-full'; readonly limit: LimitName }
+  | { readonly kind: 'backoff'; readonly pool: PoolName }
   | { readonly kind: 'no-pool' };
 
 export interface Decision {
@@ -128,8 +131,10 @@ export interface SeatRelease {
   readonly holdGen: number;
 }
 
-export interface FrameItem extends SliceOneItemView {
+// A ready item whose position is a phase, with that phase and the item's round.
+export interface FrameItem extends ItemView {
   readonly phase: PhaseName;
+  readonly round: number;
 }
 
 export interface Frame {
@@ -160,8 +165,8 @@ export type Fault = FaultRecord;
 
 export interface PlanContext {
   now: Instant;
-  levers: SliceOneLeverRow[];
-  relations: RelationRow[];
+  levers: readonly LeverRow[];
+  relations: readonly RelationRow[];
   values: FrameValues;
 }
 
@@ -170,7 +175,7 @@ export interface Signal<P> {
   params: Schema<P>;
 
   // null is no opinion
-  value: (item: FrameItem, ctx: PlanContext, params: P) => number | null;
+  value: (item: ItemView, ctx: PlanContext, params: P) => number | null;
   combine?: (left: number, right: number) => number;
 }
 

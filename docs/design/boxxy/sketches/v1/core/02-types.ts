@@ -5,9 +5,9 @@
 // It covers the pipeline engine and the close-outs, the store with named limits and `decide`,
 // and the worker port with the atc adapter. Each section header names the file of the existing
 // boxxy repo that the section changes or adds.
-// This sketch does not show the take SQL, `syncLimits`, `decide`, the atc calls of each worker
-// port method, or the effect handlers. The build designs them from the rules stated here and in
-// 03-flow.ts.
+// This sketch does not show the take SQL, `syncLimits`, the atc calls of each worker port method,
+// or the effect handlers. The build designs them from the rules stated here and in 03-flow.ts.
+// `decide` is built: libs/model/src/planning/types.ts holds its types, and planning.md its rules.
 
 import type { ContentHash, JsonValue } from '@boxxy/content-hash';
 
@@ -258,9 +258,18 @@ export type Claim =
   | { readonly kind: 'start'; readonly attempt: AttemptRow; readonly spawn: SpawnRequest }
   | { readonly kind: 'wake'; readonly attempt: AttemptRow };
 
-// `Snapshot.limits`, `Snapshot.wakes`, `Wake`, `Wait`, `Decision`, `decide`, `findLimits`,
+// `Snapshot.limits` is each limit as a `LimitFill`. `Snapshot.wakes` lists the sleeping attempts
+// whose wake was asked for, oldest request first. `Wake` names the attempt's `pool`, because a
+// pool in backoff holds back its wakes too. The build checked these against `decide`:
+export interface Wake { readonly attempt: AttemptId; readonly item: ItemId; readonly phase: PhaseName; readonly pool: PoolName; readonly fields: FieldValues; readonly requestedAt: Instant }
+export type WaitReason = { readonly kind: 'limit-full'; readonly limit: LimitName } | { readonly kind: 'backoff'; readonly pool: PoolName } | { readonly kind: 'no-pool' };
+export interface Wait { readonly subject: { readonly kind: 'item'; readonly item: ItemId } | { readonly kind: 'wake'; readonly attempt: AttemptId }; readonly reason: WaitReason }
+export interface Decision { readonly picks: readonly Pick[]; readonly waits: readonly Wait[] } // wakes first, then pool by pool
+// modules/planning/src/decide.ts. Pure: the claim passes the pools in backoff, which the store never sees.
+export declare function decide(input: { frame: Frame; pools: readonly Pool[]; snapshot: { limits: Snapshot['limits']; wakes: Snapshot['wakes'] }; backoff: readonly PoolName[] }): Decision;
 // `SeatTake`, `SeatRelease`, `LimitSeatRow`, `ApplyResult`: this sketch names them and does not
-// show their shapes. The build designs them from the rules stated here and in 03-flow.ts.
+// show their shapes. The build designs them from the rules stated here and in 03-flow.ts. The
+// match of a limit to a pick's fields is a helper inside `decide`; no `findLimits` exists.
 
 // ── libs/model/src/rules/types.ts: phases and the pipeline ────────────────────────────────
 

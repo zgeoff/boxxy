@@ -1,7 +1,7 @@
 import type {
   Fault,
-  FrameItem,
   ItemId,
+  ItemView,
   PropagationLine,
   RelationRow,
   Resolved,
@@ -14,7 +14,7 @@ import { formatFault } from './format-fault.ts';
 
 interface PropagateInput {
   readonly lines: readonly PropagationLine[];
-  readonly items: readonly FrameItem[];
+  readonly items: readonly ItemView[];
   readonly relations: readonly RelationRow[];
   readonly signals: ReadonlyMap<SignalKey, Resolved<'signal'>>;
   readonly values: ReadonlyMap<SignalKey, ReadonlyMap<ItemId, number>>;

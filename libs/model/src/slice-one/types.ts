@@ -260,17 +260,6 @@ export interface SliceOneSnapshot {
   freeSlots: Record<PoolName, number>;
 }
 
-export interface SliceOneDecision {
-  // in pool order, then by each pool's `order`
-  picks: SliceOnePick[];
-}
-
-export interface SliceOnePick {
-  item: ItemId;
-  phase: PhaseName;
-  pool: PoolName;
-}
-
 export type SliceOneEntityRef =
   | `boxxy:item:${string}`
   | `boxxy:relation:${string}:${string}:${string}`

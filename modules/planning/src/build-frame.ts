@@ -7,14 +7,13 @@ import type {
   Hold,
   Instant,
   ItemId,
-  ItemKindName,
-  KindRules,
+  ItemView,
   Lift,
   LoadedRules,
   PlanContext,
   Resolved,
   SignalKey,
-  SliceOneSnapshot as Snapshot,
+  Snapshot,
   Waiver,
 } from '@boxxy/model';
 import { signalKey } from '@boxxy/model';
@@ -29,8 +28,8 @@ interface BuildFrameInput {
 }
 
 export function buildFrame(input: BuildFrameInput): Frame {
-  const items = collectFrameItems(input.snapshot, input.rules.kinds);
-  const candidates = items.filter((item) => item.derived.state === 'ready');
+  const items = input.snapshot.items;
+  const candidates = collectCandidates(items);
 
   const buildContext = (values: FrameValues): PlanContext => ({
     now: input.now,
@@ -90,14 +89,17 @@ export function buildFrame(input: BuildFrameInput): Frame {
   };
 }
 
-function collectFrameItems(
-  snapshot: Snapshot,
-  kinds: ReadonlyMap<ItemKindName, KindRules>,
-): FrameItem[] {
-  return snapshot.items.flatMap((item) => {
-    const phase = kinds.get(item.kind)?.pipeline.steps[0]?.phase;
+function collectCandidates(items: readonly ItemView[]): FrameItem[] {
+  return items.flatMap((item) => {
+    if (item.derived.state !== 'ready') {
+      return [];
+    }
 
-    return phase === undefined ? [] : [{ ...item, phase }];
+    const position = item.position;
+
+    invariant(position.kind === 'phase', `ready item ${item.id} stands at no phase`);
+
+    return [{ ...item, phase: position.phase, round: position.round }];
   });
 }
 
@@ -110,7 +112,7 @@ interface SignalValues {
 function collectSignalValues(
   key: SignalKey,
   signal: Resolved<'signal'>,
-  items: readonly FrameItem[],
+  items: readonly ItemView[],
   context: PlanContext,
 ): SignalValues {
   const values = new Map<ItemId, number>();

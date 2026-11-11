@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 export const pool: Concept = {
   name: 'pool',
-  version: 1,
+  version: 2,
   signals: [
     defineSignal({
       name: 'oldest',
@@ -16,5 +16,8 @@ export const pool: Concept = {
     { name: 'phase', value: (item) => item.phase },
     { name: 'kind', value: (item) => item.kind },
     { name: 'repo', value: (item) => item.repo },
+
+    // an item that sets no design mode runs in agent mode
+    { name: 'designMode', value: (item) => item.fields.designMode ?? 'agent' },
   ],
 };

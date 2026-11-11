@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 import { brandSchemas, liveLevers } from '@boxxy/model';
-import { buildMockItemView } from '@boxxy/model/test-utils/build-mock-item-view';
-import { buildMockLeverRow } from '@boxxy/model/test-utils/build-mock-lever-row';
 import { buildMockSnapshot } from '@boxxy/model/test-utils/build-mock-snapshot';
+import { buildMockV1ItemView } from '@boxxy/model/test-utils/build-mock-v1-item-view';
+import { buildMockV1LeverRow } from '@boxxy/model/test-utils/build-mock-v1-lever-row';
 import { buildFrame } from '../build-frame.ts';
 import { decide } from '../decide.ts';
 import { buildMockLoadedRules } from '../test-utils/build-mock-loaded-rules.ts';
@@ -10,10 +10,10 @@ import { buildMockLoadedRules } from '../test-utils/build-mock-loaded-rules.ts';
 test("it holds a deferred item with its lever's reason", () => {
   const rules = buildMockLoadedRules();
   const now = brandSchemas.instant.parse(50_000);
-  const item = buildMockItemView();
+  const item = buildMockV1ItemView();
 
   const levers = [
-    buildMockLeverRow({ seq: 1, kind: 'plan.defer', item: item.id, reason: 'waits on a design' }),
+    buildMockV1LeverRow({ seq: 1, kind: 'plan.defer', item: item.id, reason: 'waits on a design' }),
   ];
 
   const frame = buildFrame({
@@ -30,11 +30,11 @@ test("it holds a deferred item with its lever's reason", () => {
 test('it picks an expedited deferred item', () => {
   const rules = buildMockLoadedRules();
   const now = brandSchemas.instant.parse(50_000);
-  const item = buildMockItemView();
+  const item = buildMockV1ItemView();
 
   const levers = [
-    buildMockLeverRow({ seq: 1, kind: 'plan.defer', item: item.id }),
-    buildMockLeverRow({ seq: 2, kind: 'plan.expedite', item: item.id }),
+    buildMockV1LeverRow({ seq: 1, kind: 'plan.defer', item: item.id }),
+    buildMockV1LeverRow({ seq: 2, kind: 'plan.expedite', item: item.id }),
   ];
 
   const frame = buildFrame({
@@ -43,25 +43,26 @@ test('it picks an expedited deferred item', () => {
     now,
   });
 
-  const decision: unknown = decide({
+  const decision = decide({
     frame,
-    pools: [...rules.pools],
-    freeSlots: { [brandSchemas.poolName.parse('build')]: 1 },
+    pools: rules.pools,
+    snapshot: { limits: [], wakes: [] },
+    backoff: [],
   });
 
-  expect(decision).toStrictEqual({
-    picks: [{ item: item.id, phase: 'build', pool: 'build' }],
-  });
+  expect(decision.picks).toStrictEqual([
+    expect.objectContaining({ kind: 'start', item: item.id, pool: 'build' }),
+  ]);
 });
 
 test('it picks an expedited deferred item when no propagation line carries expedite', () => {
   const rules = buildMockLoadedRules({ propagation: [] });
   const now = brandSchemas.instant.parse(50_000);
-  const item = buildMockItemView();
+  const item = buildMockV1ItemView();
 
   const levers = [
-    buildMockLeverRow({ seq: 1, kind: 'plan.defer', item: item.id }),
-    buildMockLeverRow({ seq: 2, kind: 'plan.expedite', item: item.id }),
+    buildMockV1LeverRow({ seq: 1, kind: 'plan.defer', item: item.id }),
+    buildMockV1LeverRow({ seq: 2, kind: 'plan.expedite', item: item.id }),
   ];
 
   const frame = buildFrame({
@@ -70,25 +71,26 @@ test('it picks an expedited deferred item when no propagation line carries exped
     now,
   });
 
-  const decision: unknown = decide({
+  const decision = decide({
     frame,
-    pools: [...rules.pools],
-    freeSlots: { [brandSchemas.poolName.parse('build')]: 1 },
+    pools: rules.pools,
+    snapshot: { limits: [], wakes: [] },
+    backoff: [],
   });
 
-  expect(decision).toStrictEqual({
-    picks: [{ item: item.id, phase: 'build', pool: 'build' }],
-  });
+  expect(decision.picks).toStrictEqual([
+    expect.objectContaining({ kind: 'start', item: item.id, pool: 'build' }),
+  ]);
 });
 
 test("it records the waiver that lifts an expedited item's defer hold", () => {
   const rules = buildMockLoadedRules();
   const now = brandSchemas.instant.parse(50_000);
-  const item = buildMockItemView();
+  const item = buildMockV1ItemView();
 
   const levers = [
-    buildMockLeverRow({ seq: 1, kind: 'plan.defer', item: item.id }),
-    buildMockLeverRow({ seq: 2, kind: 'plan.expedite', item: item.id }),
+    buildMockV1LeverRow({ seq: 1, kind: 'plan.defer', item: item.id }),
+    buildMockV1LeverRow({ seq: 2, kind: 'plan.expedite', item: item.id }),
   ];
 
   const frame = buildFrame({
@@ -109,10 +111,16 @@ test('it holds a deferred item until its until, with the until on the hold', () 
   const rules = buildMockLoadedRules();
   const now = brandSchemas.instant.parse(50_000);
   const until = brandSchemas.instant.parse(60_000);
-  const item = buildMockItemView();
+  const item = buildMockV1ItemView();
 
   const levers = [
-    buildMockLeverRow({ seq: 1, kind: 'plan.defer', item: item.id, until, reason: 'after lunch' }),
+    buildMockV1LeverRow({
+      seq: 1,
+      kind: 'plan.defer',
+      item: item.id,
+      until,
+      reason: 'after lunch',
+    }),
   ];
 
   const frame = buildFrame({
@@ -129,10 +137,10 @@ test('it holds a deferred item until its until, with the until on the hold', () 
 test('it picks a deferred item once its until has passed', () => {
   const rules = buildMockLoadedRules();
   const now = brandSchemas.instant.parse(60_000);
-  const item = buildMockItemView();
+  const item = buildMockV1ItemView();
 
   const levers = [
-    buildMockLeverRow({
+    buildMockV1LeverRow({
       seq: 1,
       kind: 'plan.defer',
       item: item.id,
@@ -146,25 +154,26 @@ test('it picks a deferred item once its until has passed', () => {
     now,
   });
 
-  const decision: unknown = decide({
+  const decision = decide({
     frame,
-    pools: [...rules.pools],
-    freeSlots: { [brandSchemas.poolName.parse('build')]: 1 },
+    pools: rules.pools,
+    snapshot: { limits: [], wakes: [] },
+    backoff: [],
   });
 
-  expect(decision).toStrictEqual({
-    picks: [{ item: item.id, phase: 'build', pool: 'build' }],
-  });
+  expect(decision.picks).toStrictEqual([
+    expect.objectContaining({ kind: 'start', item: item.id, pool: 'build' }),
+  ]);
 });
 
 test('it picks a deferred item after a later plan.undefer', () => {
   const rules = buildMockLoadedRules();
   const now = brandSchemas.instant.parse(50_000);
-  const item = buildMockItemView();
+  const item = buildMockV1ItemView();
 
   const levers = [
-    buildMockLeverRow({ seq: 1, kind: 'plan.defer', item: item.id }),
-    buildMockLeverRow({ seq: 2, kind: 'plan.undefer', item: item.id }),
+    buildMockV1LeverRow({ seq: 1, kind: 'plan.defer', item: item.id }),
+    buildMockV1LeverRow({ seq: 2, kind: 'plan.undefer', item: item.id }),
   ];
 
   const frame = buildFrame({
@@ -173,31 +182,32 @@ test('it picks a deferred item after a later plan.undefer', () => {
     now,
   });
 
-  const decision: unknown = decide({
+  const decision = decide({
     frame,
-    pools: [...rules.pools],
-    freeSlots: { [brandSchemas.poolName.parse('build')]: 1 },
+    pools: rules.pools,
+    snapshot: { limits: [], wakes: [] },
+    backoff: [],
   });
 
-  expect(decision).toStrictEqual({
-    picks: [{ item: item.id, phase: 'build', pool: 'build' }],
-  });
+  expect(decision.picks).toStrictEqual([
+    expect.objectContaining({ kind: 'start', item: item.id, pool: 'build' }),
+  ]);
 });
 
 test('it holds by the latest live defer when an item has two', () => {
   const rules = buildMockLoadedRules();
   const now = brandSchemas.instant.parse(50_000);
-  const item = buildMockItemView();
+  const item = buildMockV1ItemView();
 
   const levers = [
-    buildMockLeverRow({
+    buildMockV1LeverRow({
       seq: 4,
       kind: 'plan.defer',
       item: item.id,
       until: brandSchemas.instant.parse(90_000),
       reason: 'until the release',
     }),
-    buildMockLeverRow({
+    buildMockV1LeverRow({
       seq: 2,
       kind: 'plan.defer',
       item: item.id,

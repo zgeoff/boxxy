@@ -26,7 +26,7 @@ sequenceDiagram
 1. The runner calls `claimNext` through the command API.
 2. The store opens `BEGIN IMMEDIATE`, which takes SQLite's single write lock.
 3. The store reads its observation boundary and the snapshot: open items, links, the latest planning
-   facts, leases and free slots.
+   facts, leases, the seats held in each limit, and the wakes asked for.
 4. `buildFrame()` and `decide()` run over that snapshot ([planning](./planning.md)).
 5. The store takes the item-phase lease and a slot lease for the first pick. A unique index on the
    live item-phase lease, and a slot row with no holder, make both takes compare-and-set.

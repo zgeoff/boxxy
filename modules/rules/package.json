@@ -13,6 +13,7 @@
   "files": [
     "src",
     "!src/**/*.test.ts",
+    "example",
     "dist"
   ],
   "type": "module",
@@ -20,7 +21,8 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./src/index.ts"
-    }
+    },
+    "./example/*": "./example/*"
   },
   "publishConfig": {
     "access": "public"

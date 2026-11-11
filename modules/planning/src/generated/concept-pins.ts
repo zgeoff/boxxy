@@ -8,7 +8,7 @@ export const conceptPins: ReadonlyMap<ConceptName, ConceptPin> = new Map([
     {
       ref: 'defer@1',
       sourceHash: contentHashSchema.parse(
-        '5523aa373e2fc41b8075d161d7c9a942929c627db819b8c4a360b94e11bb0b4b',
+        'cbe173e108ca3b290f7f48ea3a4145b28f44611ae7f4a43d29430f08b88f46df',
       ),
     },
   ],
@@ -24,9 +24,9 @@ export const conceptPins: ReadonlyMap<ConceptName, ConceptPin> = new Map([
   [
     'pool',
     {
-      ref: 'pool@1',
+      ref: 'pool@2',
       sourceHash: contentHashSchema.parse(
-        '38ef5559dbd0f53e92a73eb49ee8a930de81f5588b70be3ac10074ed4ae2ab7f',
+        '1631a22966bd50fa39a8acc79f242fb0ac6603ead15b8f4ca3907f5e2cdd1214',
       ),
     },
   ],

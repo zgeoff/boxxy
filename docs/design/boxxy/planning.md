@@ -1,6 +1,6 @@
 # Planning
 
-Planning decides which ready item each free pool slot takes next. Every planning idea, such as rank,
+Planning decides which ready item starts next, and which sleeping attempt wakes. Every planning idea, such as rank,
 defer or expedite, is a concept: a module that registers plug-ins
 ([decision 0004](../../decisions/0004-planning-concepts-are-plug-ins.md)). `buildFrame()` runs the
 plug-ins over the facts and builds one frame. `decide()` reads the frame and the pools and returns
@@ -46,16 +46,16 @@ flowchart LR
   rules[rules version: pools, plug-in versions] --> buildFrame
   buildFrame --> frame[frame: holds, waivers, admissions, signal values]
   frame --> decide
-  pools[pools and free slots] --> decide
-  decide --> picks
+  pools[pools, limit seats, wakes, pools in backoff] --> decide
+  decide --> picks[picks and waits]
 ```
 
 - `buildFrame()` runs each propagation line, and each signal that a line carries, over every open
   item. It runs each gate, pool gate, waiver, admission and other signal over the ready items. It
   records each output and each fault in the frame.
 - `decide()` takes the ready items that no gate holds, offers them to each pool by its filter and
-  `order`, and returns one pick per free slot.
-- Both are pure. Time, the free slots and every live reading come in as facts or arguments.
+  `order`, and returns a pick for each item and wake that gets its seats ([limits](#limits-and-the-decision)).
+- Both are pure. Time, the seat counts, the pools in backoff and every live reading come in as facts or arguments.
 - A plug-in that throws is a fault, and a failed gate holds
   ([dispatch](./dispatch.md#gates-fail-toward-holding)).
 - `claimNext` runs both inside the store's write transaction ([dispatch](./dispatch.md)).
@@ -81,6 +81,19 @@ pools:
 - Signal values must be cached by signal name and parameters, so two pools can use one signal with
   different parameters.
 - A limit's seats are rows in the store, and a claim takes all of an attempt's seats or none ([dispatch](./dispatch.md)).
+
+### Limits and the decision
+
+A pick takes one seat in each limit whose `counts` filter matches the pick's field values, and `decide` gives a pick only when each of those limits has a free seat. The store's snapshot gives each limit's `max` and the seats held now, and `decide` counts down the seats of its own picks, so one decision never starts more than a limit allows. A limit can hold more seats than its `max` after a wake over the cap ([lifecycle](./v1-lifecycle.md)), and it then gives no pick until the count is under `max` again.
+
+`decide` returns its picks in this order:
+
+1. The wakes: each sleeping attempt whose wake was asked for, oldest request first. A wake matches the limits against the field values its attempt stored at the claim.
+2. The starts, pool by pool in declared order, and inside a pool by the pool's `order`. Each ready item that no gate holds belongs to the first pool whose filter takes it.
+
+`decide` gives no pick in a pool that is in backoff, for a start or for the wake of an attempt in that pool. The runner holds the backoff in memory and passes the pools in backoff to `decide` as an argument, because the store never sees them. Each item and wake that gets no pick gets a wait with its reason: `limit-full` with the first full limit, `backoff` with the pool, or `no-pool` when no pool takes the item. An item that a gate holds gets no wait, because the frame holds the reason.
+
+The filter field `designMode` of the pool concept gives `agent` for an item that sets no design mode, so each design item matches one of the two design pools of [v1](./v1.md#limits-and-pools).
 
 ### The judgement pool
 

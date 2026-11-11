@@ -7,7 +7,7 @@ No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc list
 | Point | Where |
 | --- | --- |
 | How boxxy detects that a session hit the account's usage limit: from the reading, the close-out or telemetry. The answer decides which caller forces the `usage-limit` failure. | [`03-flow.ts`](./sketches/v1/core/03-flow.ts), section F |
-| The parts that the core sketch names and does not show: the take SQL of the claim, the sync of the limit seats, `decide` itself, the effect handlers and their plans, and the size limits of a close-out with the raw form of a review body. `@boxxy/model` holds the rows and ports they read and write. The effect plans and the size limits have no type yet. | [`02-types.ts`](./sketches/v1/core/02-types.ts) |
+| The parts that the core sketch names and does not show: the take SQL of the claim, the sync of the limit seats, the effect handlers and their plans, and the size limits of a close-out with the raw form of a review body. `@boxxy/model` holds the rows and ports they read and write. The effect plans and the size limits have no type yet. | [`02-types.ts`](./sketches/v1/core/02-types.ts) |
 | The atc call behind each method of the worker port, and the crash windows of the three steps of a sleep. | [`02-types.ts`](./sketches/v1/core/02-types.ts), [`03-flow.ts`](./sketches/v1/core/03-flow.ts), section C |
 | Which outbox function lives in `modules/dispatch` and which in `apps/server`. | [folder layout](./layout-folders.md#open-questions) |
 | A query for the measure "attempts lost". No query reads the failure of an attempt. | [`04-facts.ts`](./sketches/v1/core/04-facts.ts), section D |

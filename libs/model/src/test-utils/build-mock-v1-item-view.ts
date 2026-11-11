@@ -3,7 +3,7 @@ import { brandSchemas } from '../rows/brand-schemas.ts';
 import type { ItemView } from '../types.ts';
 
 // A ready item at the build phase of round 1. `buildMockItemView` still builds the slice 1 view
-// that the store and planning read.
+// that the store reads.
 export function buildMockV1ItemView(overrides: Partial<ItemView> = {}): ItemView {
   return {
     id: brandSchemas.itemId.parse(faker.string.uuid({ version: 7 })),
