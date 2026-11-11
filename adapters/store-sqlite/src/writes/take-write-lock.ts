@@ -1,31 +1,8 @@
-import { SQLiteError } from 'bun:sqlite';
 import { sql } from 'kysely';
 import type { Kysely } from 'kysely';
 import type { StoreDatabase } from '../types.ts';
+import { withBusyRetry } from '../with-busy-retry.ts';
 
-const waitLimitMs = 5000;
-const retryDelayMs = 10;
-
-// bun:sqlite waits on a busy lock synchronously, which stalls every other store in the process for
-// the whole wait, so the writer handle fails at once and this waits between tries without blocking.
-export async function takeWriteLock(db: Kysely<StoreDatabase>): Promise<void> {
-  const startMs = performance.now();
-
-  for (;;) {
-    try {
-      await sql`BEGIN IMMEDIATE`.execute(db);
-
-      return;
-    } catch (error) {
-      if (!isBusy(error) || performance.now() - startMs >= waitLimitMs) {
-        throw error;
-      }
-    }
-
-    await Bun.sleep(retryDelayMs);
-  }
-}
-
-function isBusy(error: unknown): boolean {
-  return error instanceof SQLiteError && error.code === 'SQLITE_BUSY';
+export async function takeWriteLock(db: Kysely<StoreDatabase>, waitLimitMs: number): Promise<void> {
+  await withBusyRetry(waitLimitMs, () => sql`BEGIN IMMEDIATE`.execute(db));
 }

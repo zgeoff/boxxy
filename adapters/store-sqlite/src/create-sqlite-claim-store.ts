@@ -2,9 +2,11 @@ import { Database } from 'bun:sqlite';
 import type { ClaimStore, StoreReader } from '@boxxy/model';
 import { buildSQLiteDialect } from '@zgeoff/kysely-bun-sqlite';
 import { Kysely, sql } from 'kysely';
+import { lockWaitLimitMs } from './constants.ts';
 import { runStoreMigrations } from './migrations/run-store-migrations.ts';
 import { buildSQLiteReader } from './reads/build-sqlite-reader.ts';
 import type { StoreDatabase } from './types.ts';
+import { withBusyRetry } from './with-busy-retry.ts';
 import { withTransaction } from './with-transaction.ts';
 import { createSQLiteTx } from './writes/create-sqlite-tx.ts';
 import { takeWriteLock } from './writes/take-write-lock.ts';
@@ -22,6 +24,10 @@ export async function createSQLiteClaimStore(path: string): Promise<SQLiteClaimS
     writer.close();
   });
 
+  // The file keeps its journal mode, so a read handle never sets it. SQLite fails the switch at
+  // once, whatever the busy timeout, while another handle holds a lock on a file not yet in WAL.
+  await withBusyRetry(lockWaitLimitMs, () => writer.run('PRAGMA journal_mode = WAL'));
+
   const writerDB = new Kysely<StoreDatabase>({ dialect: buildSQLiteDialect(writer) });
 
   opened.defer(() => writerDB.destroy());
@@ -38,9 +44,13 @@ export async function createSQLiteClaimStore(path: string): Promise<SQLiteClaimS
     // Kysely holds the one connection of a handle from acquire to release, so two calls on this
     // store run one at a time, and the write lock makes another store's writer wait.
     exclusive: (work) =>
-      writerDB
-        .connection()
-        .execute((db) => withTransaction(db, takeWriteLock, () => work(createSQLiteTx(db)))),
+      writerDB.connection().execute((db) =>
+        withTransaction(
+          db,
+          (locked) => takeWriteLock(locked, lockWaitLimitMs),
+          () => work(createSQLiteTx(db)),
+        ),
+      ),
 
     read: async (work) => {
       if (isClosed) {
@@ -76,9 +86,8 @@ interface HandleOptions {
 function openStoreHandle(path: string, options: HandleOptions): Database {
   const handle = new Database(path, { readwrite: true, create: options.create });
 
-  handle.run('PRAGMA journal_mode = WAL');
-  handle.run('PRAGMA synchronous = NORMAL');
   handle.run(`PRAGMA busy_timeout = ${options.busyTimeoutMs}`);
+  handle.run('PRAGMA synchronous = NORMAL');
 
   return handle;
 }

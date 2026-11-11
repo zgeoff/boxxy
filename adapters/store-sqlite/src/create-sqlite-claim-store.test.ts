@@ -34,6 +34,16 @@ async function setupTest() {
 
       await Promise.all(files.map((file) => rm(join(folder, file))));
     },
+    lockNewFile: () => {
+      const sqlite = new Database(path, { create: true });
+
+      sqlite.run('BEGIN IMMEDIATE');
+
+      return () => {
+        sqlite.run('ROLLBACK');
+        sqlite.close();
+      };
+    },
     createForeignItemsTable: () => {
       const sqlite = new Database(path, { create: true });
 
@@ -126,4 +136,20 @@ test('it creates no file for a read after the file of the store is removed', asy
   const files = await ctx.listFiles();
 
   expect({ read, files }).toStrictEqual({ read: 'rejected', files: [] });
+});
+
+test('it waits for the lock of another handle on a new file', async () => {
+  const ctx = await setupTest();
+
+  const unlock = ctx.lockNewFile();
+  const creating = ctx.createStore();
+
+  unlock();
+
+  const created = await creating.then(
+    () => 'created',
+    () => 'refused',
+  );
+
+  expect(created).toBe('created');
 });

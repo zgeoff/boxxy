@@ -325,7 +325,9 @@ JSON-line oRPC messages over the daemon's unix socket, after a `daemon.hello` ha
 
 The store is one SQLite file in WAL mode, with `synchronous=NORMAL`. A second `BEGIN IMMEDIATE`
 waits for the first for up to 5,000 ms. The store retries it every 10 ms without blocking, because
-`bun:sqlite` waits for a lock synchronously and would stall every other store in the process.
+`bun:sqlite` waits for a lock synchronously and would stall every other store in the process. After
+5,000 ms the call rejects with SQLite's `SQLITE_BUSY` error. The switch of a new file to WAL mode
+waits and retries the same way, because SQLite fails it at once while another handle holds a lock.
 Migrations run through Kysely's `Migrator` with an in-code provider, inside one `BEGIN IMMEDIATE`
 transaction, so two stores that open a new file at once migrate it once. Only `adapters/store-sqlite` imports `bun:sqlite`
 and `kysely`.
