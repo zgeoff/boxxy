@@ -10,7 +10,8 @@ export async function createTestClaimStore(): Promise<SQLiteClaimStore> {
 
   onTestFinished(() => cleanup.disposeAsync());
 
-  const folder = await mkdtemp(join(tmpdir(), 'boxxy-store-'));
+  // the process id keeps the folders of test runs that share a temp folder apart by name
+  const folder = await mkdtemp(join(tmpdir(), `boxxy-store-${process.pid}-`));
 
   cleanup.defer(() => rm(folder, { recursive: true, force: true }));
 
