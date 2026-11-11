@@ -2,9 +2,9 @@ import type { JsonValue } from '@boxxy/content-hash';
 import type { Registry, SignalRef } from '@boxxy/model';
 import { signalKey } from '@boxxy/model';
 import invariant from 'tiny-invariant';
-import { buildRejection } from './build-rejection.ts';
+import { buildRejection } from '../loading/build-rejection.ts';
+import type { Checked, ResolvedSignal } from '../types.ts';
 import { resolvePlugin } from './resolve-plugin.ts';
-import type { Checked, ResolvedSignal } from './types.ts';
 
 export function resolveSignalRef(
   ref: SignalRef,

@@ -16,15 +16,15 @@ import type {
 import { brandSchemas } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { match } from 'ts-pattern';
-import { buildRegistry } from './build-registry.ts';
+import { rulesFileName } from '../constants.ts';
+import { parseConceptEntry } from '../parse/parse-concept-entry.ts';
+import { parseRulesFile } from '../parse/parse-rules-file.ts';
+import type { ParsedRulesFile } from '../parse/rules-file-schema.ts';
+import { buildRegistry } from '../registry/build-registry.ts';
+import { resolvePlugin } from '../registry/resolve-plugin.ts';
+import { resolveSignalRef } from '../registry/resolve-signal-ref.ts';
+import type { Checked, PinnedConcept, ResolvedSignal } from '../types.ts';
 import { buildRejection } from './build-rejection.ts';
-import { rulesFileName } from './constants.ts';
-import { parseConceptEntry } from './parse-concept-entry.ts';
-import { parseRulesFile } from './parse-rules-file.ts';
-import { resolvePlugin } from './resolve-plugin.ts';
-import { resolveSignalRef } from './resolve-signal-ref.ts';
-import type { ParsedRulesFile } from './rules-file-schema.ts';
-import type { Checked, PinnedConcept, ResolvedSignal } from './types.ts';
 
 interface LoadRulesInput {
   readonly checkout: {

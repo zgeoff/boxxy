@@ -1,1 +1,1 @@
-export { loadRules } from './load-rules.ts';
+export { loadRules } from './loading/load-rules.ts';

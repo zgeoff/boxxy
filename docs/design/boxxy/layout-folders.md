@@ -1,6 +1,6 @@
 # Folder layout
 
-This doc sets the folders inside each package that [v1](./v1.md) adds or grows. Put a new module in the folder this doc names. In a package that holds code, a line marked `v1:` names a module that v1 adds. Every module of `modules/dispatch/src` outside `test-utils/`, every folder of `modules/rules/src` and every package under "New packages" is new. The package split itself is in [layout](./layout.md).
+This doc sets the folders inside each package that [v1](./v1.md) adds or grows. Put a new module in the folder this doc names. In a package that holds code, a line marked `v1:` names a module that v1 adds. Every module of `modules/dispatch/src` outside `test-utils/`, the `dry-run/` folder of `modules/rules/src` and every package under "New packages" is new. The package split itself is in [layout](./layout.md).
 
 ## The rules the layout follows
 
@@ -114,7 +114,7 @@ modules/rules/src
   dry-run/        v1: dry-run-rules
 ```
 
-`modules/planning` reaches 7 loose modules with `explain`. The files of `modules/rules` are loose in `src/`, 8 of them, which is the limit, and the rules dry run would be the ninth. So the package gets the folders above with that module, and only `index`, `types` and `constants` stay loose.
+`modules/planning` reaches 7 loose modules with `explain`. `modules/rules` keeps its modules in the folders above, and only `index`, `types` and `constants` stay loose in `src/`, so the rules dry run is one more folder.
 
 ## New packages
 
@@ -160,10 +160,6 @@ A name in the trees above differs from the v1 sketches where a lint rule needs i
 
 - A file's name is its main export: a sketch's `handlers/item.ts` is `handlers/item-handlers.ts`, and `run-outbox-sender.ts` and `report-schemas.ts` each split into one file per export.
 - A test sits beside its module: a sketch's `outbox.test.ts` is `outbox/take-batch.test.ts`.
-
-## Files that move
-
-The files of `modules/rules/src` move into the folders above in the commit that adds the rules dry run. Each test file moves with its module.
 
 ## Open questions
 

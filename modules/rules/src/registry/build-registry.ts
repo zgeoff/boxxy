@@ -1,6 +1,6 @@
 import type { ConceptPin, LoadRejection, Registry } from '@boxxy/model';
-import { buildRejection } from './build-rejection.ts';
-import type { PinnedConcept } from './types.ts';
+import { buildRejection } from '../loading/build-rejection.ts';
+import type { PinnedConcept } from '../types.ts';
 
 export function buildRegistry(
   pinned: readonly PinnedConcept[],

@@ -2,8 +2,8 @@ import type { JsonValue } from '@boxxy/content-hash';
 import type { ParamKindName, Registered, Resolved } from '@boxxy/model';
 import { formatKeyPath } from '@boxxy/model';
 import type { z } from 'zod';
-import { buildRejection } from './build-rejection.ts';
-import type { Checked } from './types.ts';
+import { buildRejection } from '../loading/build-rejection.ts';
+import type { Checked } from '../types.ts';
 
 export function resolvePlugin<K extends ParamKindName>(
   registered: Registered<K>,
