@@ -624,7 +624,9 @@ export interface PullRequestReading {
 // scripts/collect-attempt-writes.ts fails when one does (tests and test-utils fixtures aside).
 // Callers decide WHEN (they hold the reading, the claim or the procedure input); this module
 // decides WHETHER the move is allowed and WHAT is written. A caller applies the change with
-// `tx.applyChange` and never edits it. So `closeOutAttempt`, `actOnReading`, `settleAttempt`
+// `tx.applyChange` and never edits the writes it holds. Two callers add writes and facts of their
+// own to the same change: `settleAttempt` (the effect plans) and `item.close` (the item's close
+// and `boxxy.item.closed`). So `closeOutAttempt`, `actOnReading`, `settleAttempt`
 // and `requestWake` build no write of their own, and the sleep, the wake and the suspend mark
 // have no builder of their own.
 

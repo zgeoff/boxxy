@@ -93,7 +93,7 @@ interface MoveTarget {
 type MoveHandler = (args: MoveArgs, enq: MoveEnqueue) => MoveTarget | undefined;
 
 // Every state lists every event, and a handler with no matching row leaves its event unhandled.
-// XState refuses an `on` object whose keys are optional.
+// The type check of `createMachine` refuses an `on` object whose keys are optional.
 function buildStateHandlers(state: AttemptState): Record<AttemptMachineEvent['type'], MoveHandler> {
   const build = (event: AttemptMachineEvent['type']): MoveHandler =>
     buildMoveHandler(

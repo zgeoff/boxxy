@@ -17,7 +17,7 @@ No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc list
 
 - Which rule wins for an agent-mode session that asks for input and then shows no activity. The idle sleep and the stall rule both fall due at 30 minutes, and the reconcile table gives no order for them.
 - Whether a review that settled `unsettleable` starts the merge step of the stage times. In the sketch it does not, so such an item has null merge minutes after its pull request merged.
-- Whether `runner.pause` breaks the rule that every store change writes an outbox row. The sketch writes the runner row and no fact.
+- Whether `runner.pause` and six attempt moves break the rule that every store change writes an outbox row. The sketch writes the runner row and no fact. The attempt change builder gives `item-closed`, `stalled`, `skill-missing`, `suspend-asked`, `suspend-refused` and `stray-stopped` no fact, as section A of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) says, and the slice 1 memory store refuses a change with no fact.
 - The name of boxxy's configuration value that holds the folders of the trust documents. The verifier itself is not open: impz builds it ([`01-api.ts`](./sketches/v1/edge/01-api.ts), section F).
 - Three points of the [folder layout](./layout-folders.md#open-questions).
 
@@ -60,6 +60,7 @@ Each row names the test that settles it, where one is known.
 | Whether an agent-mode session ever ends a turn on purpose before its close-out, such as to wait for a background task. boxxy closes such a session as `closeout-missing`. | Watch the first live attempts. |
 | Which error atc gives when the worker target has no free machine. The worker adapter must map it to the cause `capacity`. | Fill the target, then spawn. |
 | That the generic on the phase definer gives a compile error for an outcome the phase kind does not list. | Compile one phase file with a wrong outcome. |
+| That the store applies the attempt change's race guard: `under` with its hold generation, the update's `expect` on every column the machine reads, and the seat take and release, a release with no seat held being no error. The machine and the builder are checked. | The store contract's cases for the v1 attempt change. |
 | The cost of the position fold inside the claim's lock. | The dispatch benchmark with 20,000 items. |
 
 ### The API

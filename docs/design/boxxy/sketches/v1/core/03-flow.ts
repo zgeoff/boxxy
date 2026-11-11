@@ -59,7 +59,7 @@ import { hashCanonical } from '@boxxy/content-hash';
 //
 // The build follows this table in modules/dispatch/src/attempts/attempt-moves.ts, one data row per
 // line above (`started` has one row per `via` and one for `closing`; `settled` one per end
-// state). Four cells the table above leaves open, as built:
+// state). Five cells the table above leaves open, as built:
 //   - `resumed` clears the wake request. Without it a woken attempt keeps its request, and its
 //     next sleep reads as a sleep with a wake already asked for.
 //   - `wake-refused` writes `slept` with `idleSince` the earlier `sleptAt` and `asked: true`.
@@ -68,13 +68,18 @@ import { hashCanonical } from '@boxxy/content-hash';
 //   - `settled` builds the attempt's own writes and the `settled` fact. The event carries the
 //     fact's `criteria`, `matched`, `frictionDropped` and `skippedEffects`; `settleAttempt` adds
 //     the writes and facts of the effect plans to the same store change.
+//   - `release-seats` releases the seats that the attempt holds under its hold generation, and
+//     none held is no error. A `sleeping` attempt holds none, and so does a `closing` one that
+//     closed out while asleep; both settle with the same row as any other live state.
 //
 // The race guard. Each change of a live attempt carries `under: { item, phase, gen: leaseGen,
 // holdGen }`. Its update of the attempt row `expect`s every column the machine's context reads
 // (`AttemptGuard`: state, holdGen, the suspend mark, the wake request, closing, atcSession,
-// strayedAt, sessionStoppedAt), as the builder read them. So two callers that race on one row
-// get one `applied` and one `stale-generation` or `guard-mismatch`, also for two moves that keep
-// the state (two `suspend-asked`, two `wake-requested`, two `stray-stopped`). A caller drops a
+// strayedAt, sessionStoppedAt), as the builder read them. Once the first of two moves built from
+// one read applies, the second no longer matches, also for two moves that keep the state (two
+// `suspend-asked`, two `wake-requested`, two `stray-stopped`); the builder's tests show it. A
+// store that checks `under` and `expect` then answers one `applied` and one `stale-generation`
+// or `guard-mismatch`. No store applies this change yet (v1-open.md, Not checked). A caller drops a
 // refused change and reads again on the next tick. Two kinds of change carry no `under`: the
 // claim, which takes the lease (`lease-held` guards it), and a move of a settled attempt
 // (`session-seen`, `stray-stopped`), whose lease is released. `session-seen` writes no attempt
@@ -108,7 +113,8 @@ import { hashCanonical } from '@boxxy/content-hash';
 //   - v6 has no `guard` key: a guard is an `if` inside the transition function, and it returns
 //     before any `enq` call, because XState takes any queued effect as a taken transition.
 //   - Every state's `on` lists all 18 events, and a handler with no matching row returns
-//     `undefined` (unhandled). tsgo refuses an `on` object whose keys are optional.
+//     `undefined` (unhandled). The type check of `createMachine` refuses an `on` object whose
+//     keys are optional.
 //   - The machine's events use the field `type`, which XState needs. `AttemptEvent` uses
 //     `kind`, and `buildAttemptChange` maps one to the other.
 //   - `woken` carries the field `overCap`.
@@ -401,7 +407,7 @@ export function closeOutAttempt(input: CloseOutInput): Promise<CloseOutAnswer> {
       return { kind: 'rejected', problems: [{ kind: 'too-large', bytes, max: closeOutLimits.closeOutBytes }] };
     }
 
-    const built = buildAttemptChange({ attempt, event: { kind: 'closed-out', closeOut: parsed.closeOut, hash }, now: input.now, newId: input.newId });
+    const built = buildAttemptChange({ attempt, event: { kind: 'closed-out', closeOut: parsed.closeOut, hash }, actor: `boxxy:attempt:${attempt.id}`, now: input.now, newId: input.newId });
 
     if (built.kind === 'not-allowed') {
       return { kind: 'refused', reason: 'not-current' };
@@ -517,7 +523,9 @@ export function settleAttempt(input: SettleAttemptInput): Promise<ApplyResult> {
     // 4. One change: state, failure, OUTCOME, endedAt, release-seats, the lease release, the
     //    effects' rows and facts, and `boxxy.attempt.settled`. The change holds no next phase:
     //    nothing calls `advance` here. The item's position is read, not written.
-    const built = buildAttemptChange({ attempt, event: { kind: 'settled', settlement, returnedOutcome, plans, sessionStopped: input.sessionStopped }, now: input.now, newId: input.newId });
+    //    `buildAttemptChange` builds the attempt's part; this function adds the plans' writes
+    //    and facts to the same change (section A).
+    const built = buildAttemptChange({ attempt, event: { kind: 'settled', ...settlement, returnedOutcome, sessionStopped: input.sessionStopped, ...readSettledReport(plans) }, actor: input.actor, now: input.now, newId: input.newId });
 
     return built.kind === 'change' ? tx.applyChange(built.change) : { kind: 'guard-mismatch', table: 'attempts', key: { id: attempt.id } };
   });
@@ -846,5 +854,6 @@ declare function mergeByTime(attempts: readonly Settled[], retries: readonly Ret
 declare function readReturnedOutcome(settlement: Settlement & { returned?: string }): string | null;
 declare function tryPlanEffect(effect: Effect, ctx: EffectContext): EffectPlan; // a handler that throws gives `skip`
 declare function readClosedOutFact(change: StoreChange): FactId;
+declare function readSettledReport(plans: readonly EffectPlan[]): { criteria: SettledFact['criteria']; matched: readonly ItemId[]; frictionDropped: number; skippedEffects: SettledFact['skippedEffects'] }; // the `settled` fact's fields that the plans decide
 declare function measureJsonBytes(value: JsonValue): number; // the UTF-8 bytes of `JSON.stringify(value)`, never `.length`
 declare const isLive: (state: AttemptState) => boolean;
