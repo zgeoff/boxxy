@@ -427,14 +427,26 @@ test('it settles a built close-out with the open items to file and the cited evi
   });
 });
 
-test('it settles an abandoned close-out as failed, and asks for no change to the acceptance list', () => {
+test('it settles an abandoned close-out as failed, and leaves the acceptance list as it is', () => {
+  const cited = buildMockFactId();
+
+  const openItem = {
+    kind: 'core.issue',
+    title: 'Move the upload code',
+    body: 'It is in two repos',
+  };
+
   const settlement: unknown = build.settle({
     attempt: buildMockV1AttemptRow(),
-    item: buildMockV1ItemView(),
+    item: buildMockV1ItemView({
+      acceptance: [
+        { id: brandSchemas.criterionId.parse('a1'), text: 'Retries once', evidence: [] },
+      ],
+    }),
     closeOut: {
-      result: { kind: 'abandoned', reason: 'The upload code moved to another repo' },
-      criteria: [],
-      openItems: [],
+      result: { kind: 'abandoned', reason: 'no-capacity' },
+      criteria: [{ criterion: 'a1', evidence: cited }],
+      openItems: [openItem],
       friction: [],
       frictionDropped: 0,
     },
@@ -443,9 +455,9 @@ test('it settles an abandoned close-out as failed, and asks for no change to the
 
   expect(settlement).toStrictEqual({
     state: 'failed',
-    failure: 'The upload code moved to another repo',
+    failure: 'abandoned',
     outcome: 'abandoned',
-    effects: [],
+    effects: [{ kind: 'file-item', item: openItem }],
     frictionDropped: 0,
   });
 });

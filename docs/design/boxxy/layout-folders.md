@@ -45,7 +45,7 @@ ports/            the interfaces that an adapter implements
                   types: the store, the worker, the notifier, the pepys reader, the forge
 reports/          the output schemas of the pepys queries
                   cost-to-land-schema  stage-time-schema  types  constants (the step and basis lists)
-slice-one/        the slice 1 shapes that the store, planning and the close-out parser still use;
+slice-one/        the slice 1 shapes that the store and planning still use;
                   each slice that moves a package to v1 deletes what it no longer needs
                   types  slice-one-fact-schemas  slice-one-row-schemas  derive-slice-one-item-state
 utils/            format-key-path  to-json-value

@@ -114,7 +114,7 @@ Section D of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the settle func
 
 Settle never throws on stored data. The phase kind loaded now can differ from the one that accepted the close-out, so the settle rule of the phase kind runs inside a catch. When it throws, or returns an outcome that its kind does not list, the attempt settles as failed with `closeout-unsettleable` and the fixed outcome `unsettleable`. A name that the phase code returned goes to its own field, so that no rules file can give it an edge. The item then holds, and `boxxy item retry <item> --phase <phase>` moves it on.
 
-An attempt settles with one of ten forced failures, or with `closeout-missing` or `closeout-unsettleable`:
+An attempt fails with one of ten forced failures, or with `closeout-missing` or `closeout-unsettleable`. A design or build close-out that is `blocked` or `abandoned` also fails the attempt, with that outcome as the failure ([close-outs](./close-outs.md#the-v1-phase-kinds)).
 
 | Failure | Cause | Counts against `maxAttempts` |
 | --- | --- | --- |

@@ -196,7 +196,7 @@ export interface WorkFacts {
     readonly round: number;
     readonly state: 'succeeded' | 'failed';
     // `closeout-missing`, `closeout-unsettleable`, a forced reason (`item-closed` is one), or
-    // the close-out's reason.
+    // the outcome of a close-out that failed its phase (`blocked`, `abandoned`).
     readonly failure: string | null;
 
     // a name from the phase kind's list, or `lost`, or `unsettleable` (only with the failure

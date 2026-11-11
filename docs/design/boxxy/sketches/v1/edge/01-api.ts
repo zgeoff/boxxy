@@ -253,7 +253,7 @@ export const contract = {
     // ── C5. Reads (item) ──
     // `item.note` appends one note to an item. Notes are append-only; no procedure edits or
     // removes one. Writes `boxxy.item.noted` with the full text. The next attempt of the item
-    // gets the notes in its input. An owner tool: the owner's agent records an answer or a
+    // gets the notes with its input, from `attempt.current`. An owner tool: the owner's agent records an answer or a
     // decision here, and then calls `item.retry` when the item holds.
     note: tool('item_note', 'Appends a note to an item. A note cannot be changed or removed. The next attempt of the item reads every note.')
       .errors(notFound)

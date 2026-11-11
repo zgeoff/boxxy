@@ -25,13 +25,14 @@ export const design = definePhase({
     check: () => [],
   }),
 
-  // A blocked or abandoned design did not reach its goal, so its attempt fails with the reason.
+  // A blocked or abandoned design did not reach its goal, so its attempt fails. The failure is
+  // the outcome name, never the agent's free text; the reason stays in the close-out.
   settle: (input) => ({
     ...match(input.closeOut.result)
       .with({ kind: 'designed' }, () => ({ state: 'succeeded' as const, failure: null }))
       .with({ kind: 'blocked' }, { kind: 'abandoned' }, (ended) => ({
         state: 'failed' as const,
-        failure: ended.reason,
+        failure: ended.kind,
       }))
       .exhaustive(),
     outcome: input.closeOut.result.kind,

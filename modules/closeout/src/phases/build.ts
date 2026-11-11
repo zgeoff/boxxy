@@ -42,14 +42,15 @@ export const build = definePhase({
     check: collectBuildProblems,
   }),
 
-  // A blocked or abandoned build did not reach its goal, so its attempt fails with the reason,
-  // and no session is kept for it.
+  // A blocked or abandoned build did not reach its goal, so its attempt fails and keeps no
+  // session. The failure is the outcome name: the agent's reason is free text, and the engine
+  // reads some failure names, such as `no-capacity`. The reason stays in the close-out.
   settle: (input) => ({
     ...match(input.closeOut.result)
       .with({ kind: 'built' }, () => ({ state: 'succeeded' as const, failure: null }))
       .with({ kind: 'blocked' }, { kind: 'abandoned' }, (ended) => ({
         state: 'failed' as const,
-        failure: ended.reason,
+        failure: ended.kind,
       }))
       .exhaustive(),
     outcome: input.closeOut.result.kind,
@@ -98,9 +99,12 @@ function collectBuildProblems(closeOut: BuildCloseOut, ctx: CloseOutContext): Cl
 function collectBuildEffects(closeOut: BuildCloseOut, item: ItemView): Effect[] {
   const acceptance = buildCitedAcceptance(item.acceptance, closeOut.criteria);
 
-  const isChanged = acceptance.some(
-    (criterion, index) => criterion.evidence.length !== item.acceptance[index]?.evidence.length,
-  );
+  // a failed build changes no item: the next build of the item cites its evidence again
+  const isChanged =
+    closeOut.result.kind === 'built' &&
+    acceptance.some(
+      (criterion, index) => criterion.evidence.length !== item.acceptance[index]?.evidence.length,
+    );
 
   return [
     ...closeOut.openItems.map((openItem) => ({ kind: 'file-item' as const, item: openItem })),

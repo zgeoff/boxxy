@@ -72,7 +72,7 @@ test('it settles a designed close-out as succeeded, with a proposal for each fri
   });
 });
 
-test('it settles a blocked close-out as failed, with the agent question as the failure', () => {
+test('it settles a blocked close-out as failed, with the outcome name as the failure', () => {
   const settlement: unknown = design.settle({
     attempt: buildMockV1AttemptRow({ phase: brandSchemas.phaseName.parse('design') }),
     item: buildMockV1ItemView(),
@@ -86,7 +86,7 @@ test('it settles a blocked close-out as failed, with the agent question as the f
 
   expect(settlement).toStrictEqual({
     state: 'failed',
-    failure: 'Should a retry keep the old upload id?',
+    failure: 'blocked',
     outcome: 'blocked',
     effects: [],
     frictionDropped: 0,

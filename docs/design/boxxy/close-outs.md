@@ -67,11 +67,11 @@ The parser cuts no list. A cut finding or open item would be work lost with no c
 | Phase | The parser refuses | The settle |
 | --- | --- | --- |
 | triage | `accepted` that leaves the item with no acceptance list; an unknown item, kind or relation type; a relation to the item itself | succeeded. Asks to set the kind, the design mode and the acceptance list, numbered from `a1`, to add each relation, and to close a `duplicate` or `declined` item |
-| design | nothing past the schema | `designed`: succeeded. `blocked`, `abandoned`: failed, with the agent's reason as the failure |
-| build | a criterion the item lacks; evidence of another attempt; `built` with a criterion that has no evidence | as design. Asks to file each open item, and to add the cited evidence to the acceptance list |
+| design | nothing past the schema | `designed`: succeeded. `blocked`, `abandoned`: failed, with the outcome as the failure |
+| build | a criterion the item lacks; evidence of another attempt; `built` with a criterion that has no evidence | as design. Asks to file each open item, and, when `built`, to add the cited evidence to the acceptance list |
 | review | `changes-requested` with no finding | succeeded |
 
-A blocked or abandoned design or build fails, so it never reads as done work and no session is kept for it. Every settle also asks to record each friction entry as a proposal. The settle returns the effects and the outcome, and the caller applies the effects. When the rules map the outcome to a hold, the caller withholds each effect that changes an item ([v1](./v1.md#the-pipeline)).
+A blocked or abandoned design or build fails, so it never reads as done work and no session is kept for it. Its failure is the outcome name. The engine reads some failure names, such as `no-capacity`, and the agent's free-text reason could match one, so the reason stays in the close-out. Every settle also asks to record each friction entry as a proposal. The settle returns the effects and the outcome, and the caller applies the effects. When the rules map the outcome to a hold, the caller withholds each effect that changes an item ([v1](./v1.md#the-pipeline)).
 
 The review session sends noslop's whole result. The parser reads the version, the review ID, the head and the three lists it counts, and lets every other field through, so a newer noslop still parses. The stored close-out keeps `NoslopSummary`: the counts, the size of the result, and the result whole only when it is 32,768 bytes or smaller.
 
