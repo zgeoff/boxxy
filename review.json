@@ -41,6 +41,7 @@
     ".github/workflows/audit-fix.yml",
     ".github/workflows/repo-sync-guard.yml",
     "socket.yml",
+    "scripts/run-knip.sh",
     "scripts/read-checks-profile.ts",
     "scripts/read-optional-text.ts",
     ".claude/skills/cold-read/**",

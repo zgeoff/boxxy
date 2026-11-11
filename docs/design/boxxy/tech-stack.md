@@ -95,14 +95,18 @@ lefthook's pre-push runs `prose` and `boundaries`, then the synced baseline.
 ### What repo-sync delivers
 
 boxxy's `repo-sync.yml` uses wringer's `include` list: `workflow-bun-pr`, `workflow-audit-fix`,
-`pre-push-baseline`, `hook-skill-gate`, `skill-testing`, `skill-code-style`, `skill-docs-writing`,
-`skill-skill-writing` and `skill-ci-design`. With the entries every repo takes, repo-sync delivers:
+`pre-push-baseline`, `skill-testing`, `skill-code-style`, `skill-docs-writing`,
+`skill-skill-writing`, `skill-ci-design` and `knip-runner`. Its `skip` holds `hook-skill-gate`, an
+entry zgeoff/tools retired: repo-sync keeps a retired entry's files in a repo that skips it, so
+the skill-gate hook stays until boxxy moves to the `hook-start` entry. With the entries every repo
+takes, repo-sync delivers:
 
 - `.github/workflows/pr.yml`, which runs the shared Bun checks; the ruleset requires `pr / checks`;
 - `.github/workflows/audit-fix.yml` and `.github/workflows/repo-sync-guard.yml`;
 - `.lefthook/pre-push-baseline.yml` and the scripts it calls, each run under a memory cap;
-- the shared skills and the skill-gate hook. boxxy keeps its own `.claude/skill-gate.json`, so the
-  `skill-gate-rules` entry of zgeoff/tools lists boxxy in its `except`;
+- the shared skills, the skill-gate hook, and `scripts/run-knip.sh` for the dead-code check. boxxy
+  keeps its own `.claude/skill-gate.json`, so the `skill-gate-rules` entry of zgeoff/tools lists
+  boxxy in its `except`;
 - the PR template, the issue templates, `.editorconfig` and `socket.yml`.
 
 A synced file is overwritten on the next sync, so change it in zgeoff/tools. zgeoff/tools's
