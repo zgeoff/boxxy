@@ -174,7 +174,7 @@ Section F of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the tables for 
 
 ## The atc worker
 
-`@boxxy/worker-atc` implements the worker port on atc's `session.*` calls, through a client that the app builds and passes to `createAtcWorker`. Every kill it sends is stop-only, because atc forgets a session that a plain kill finds already exited.
+`@boxxy/worker-atc` implements the worker port on atc's `session.*` calls, through a client that the app builds and passes to `createAtcWorker`. Every `kill` that the adapter sends sets `stopOnly`, so atc stops the session and keeps its record. A `kill` without `stopOnly` makes atc forget a session that has already exited.
 
 | Port method | atc calls |
 | --- | --- |
@@ -200,4 +200,4 @@ Every other refusal that carries an atc error code answers `refused`. A call tha
 
 The trusted folders come from the app's configuration, by worker target: a folder is trusted when it is a listed folder or lies inside one. atc has no call that reads which folders an agent trusts.
 
-The adapter reads the caller identity from the session's `caller` field (`issuer` and `subject`), and the usage limit from its `usageLimit` field (`seenAt`, and `resetsAt` or null). A session without the field has no caller, or no usage limit. [Open for the builder](./v1-open.md#needs-work-outside-this-repo) lists both fields as atc's to add.
+The adapter reads the caller identity from the session's `caller` field (`issuer` and `subject`), and the usage limit from its `usageLimit` field (`seenAt`, and `resetsAt` or null). A session without the field has no caller, or no usage limit. [Open for the builder](./v1-open.md#needs-work-outside-this-repo) tracks which atc version reports each field.
