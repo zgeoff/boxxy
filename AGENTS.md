@@ -82,7 +82,8 @@ When a check fails, move the code to the package the layout names. Never add an 
 
 - `bun run typecheck`, `bun run lint` and `bun run test` are the local checks. Run them before you
   push, and fix every failure.
-- `bun run lint:full` adds the type-aware pass. It runs in CI only, so never run it locally.
+- `bun run lint:full` adds the type-aware pass and the type check. It runs in CI only, so never run
+  it locally.
 - lefthook runs the light checks before a commit and a push: lint on the files your branch changes,
   the format check, the type check, the tests beside the changed files, and `turbo boundaries`. To
   run the pre-push jobs before you push:
