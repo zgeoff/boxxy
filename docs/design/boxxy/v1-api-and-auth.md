@@ -16,7 +16,12 @@ flowchart LR
   smcp --> router
 ```
 
-The contract lives in the package `@boxxy/contract`, and the server builds one router from it on oRPC v2. Section A of [`01-api.ts`](./sketches/v1/edge/01-api.ts) shows the server, the CLI client and an MCP call. The server listens on one address of the owner's private network, which the configuration file sets.
+The contract lives in the package `@boxxy/contract`, and the server builds one router from it on oRPC v2. Section A of [`01-api.ts`](./sketches/v1/edge/01-api.ts) shows the server, the CLI client and an MCP call. The server opens two listeners, each on an address that the configuration file sets:
+
+- The owner listener sits on the owner's private network. It serves `/rpc`, `/mcp` and `/healthz`.
+- The worker listener is the broker's target. It serves `/rpc` and `/mcp/session`, and answers 401 on any path, unknown ones included, to a request without the worker token.
+
+Both listeners refuse a body over 256 KiB with 413. The server counts the bytes as it reads the body, so a streamed body with no length header gets the same limit.
 
 Section B holds the rules of the contract. Four of them shape every procedure:
 
@@ -71,8 +76,8 @@ Section E of [`01-api.ts`](./sketches/v1/edge/01-api.ts) holds the two paths, th
 
 | Path | Who | How the server knows |
 | --- | --- | --- |
-| the owner's path | the owner, the CLI and the owner's agent | the request arrives on the owner's private network, with no token |
-| the worker path | a session and its hooks | the request arrives through the impd broker, which adds a bearer token |
+| the owner's path | the owner, the CLI and the owner's agent | the request arrives on the owner listener, with no token |
+| the worker path | a session and its hooks | the request arrives through the impd broker, which adds the worker bearer token, on either listener |
 
 A worker session runs in an imp, which reaches the public internet only. The session calls a made-up host, and the broker sends the request to the boxxy server and adds the bearer token. The session never holds the token. It gets the address as `BOXXY_URL` from an atc auth profile.
 
@@ -100,11 +105,13 @@ The port has three adapters:
 | --- | --- |
 | the imp identity verifier | v1. It reads the `Imp-Identity` header, a short-lived token that the broker signs, and gives the token's issuer and subject. It imports the verifier from `@impz/client/identity`, which impz builds |
 | a fake | tests set who the next request is from |
-| none | the server uses it when its configuration names no trust document, so every session and hook call is refused |
+| none | the server uses it when its configuration has no `trustedIssuers` section, which names the trust document folders and the audience, so every session and hook call is refused |
 
 Section F of [`01-api.ts`](./sketches/v1/edge/01-api.ts) says what the server checks on the token. The broker removes any such header that a guest sends and adds its own.
 
-The package `@boxxy/caller-proof-imp` holds the verifier adapter, `impIdentityCallerProof({ issuers, audience, clock })`. It reads the `imp-identity` header and gives the token's issuer, and the machine ID as the subject: the same ID that atc reports for the session's host, which the runner stores as the caller. The imp's name is never the subject. The adapter reads no file: the app reads each trust document of the configured folders, parses it as JSON, and passes the list. A bad document, or two documents for one issuer, stops the server at start. With no document or an empty audience, the adapter proves no request. Only this adapter and the atc worker adapter name the imp or its token; every other package sees an issuer and a subject.
+The package `@boxxy/caller-proof-imp` holds the verifier adapter, `impIdentityCallerProof({ issuers, audience, clock })`. It reads the `imp-identity` header and gives the token's issuer, and the machine ID as the subject: the same ID that atc reports for the session's host, which the runner stores as the caller. The imp's name is never the subject.
+
+The adapter reads no file: the server reads every file in the folders of `trustedIssuers.folders`, parses each as JSON, and passes the list with `trustedIssuers.audience`. A missing folder or a file that is not JSON refuses the start, and a bad document, or two documents for one issuer, makes the adapter throw, so the server does not start either. With no document or an empty audience, the adapter proves no request. Only this adapter and the atc worker adapter name the imp or its token, apart from the one place in the server that builds the adapter; every other package sees an issuer and a subject.
 
 The adapter does not call the library's session check, `checkSessionImp`. That check compares the issuer and the machine ID of the caller with the host of a session. The server already makes the same comparison in step 2, when it finds the session by the caller, and the core makes it again on the attempt's own caller in step 3. A third check would add nothing, and a second definition of "the same machine" could drift from the store's.
 

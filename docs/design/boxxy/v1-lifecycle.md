@@ -225,7 +225,7 @@ A pull request that merged before the watch ever listed it is not found by step 
 
 ## The GitHub adapter
 
-`@boxxy/forge-github` implements the forge port with `fetch`, a REST root and an optional token. A deployment whose broker adds the credential leaves the token out. The adapter reads GitHub's own `id` of the pull request. A 404 for a pull request reads as `not-found`, and every other failure throws.
+`@boxxy/forge-github` implements the forge port with `fetch`, a REST root and an optional token. A deployment whose broker adds the credential leaves the token out. The server builds the adapter from the `github.baseUrl` of its configuration and the optional `BOXXY_GITHUB_TOKEN`. With no `github` section, the hook's link answers `retry` and no watch runs. The adapter reads GitHub's own `id` of the pull request. A 404 for a pull request reads as `not-found`, and every other failure throws.
 
 | Call | Endpoint |
 | --- | --- |

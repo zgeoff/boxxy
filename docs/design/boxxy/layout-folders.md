@@ -145,15 +145,22 @@ libs/contract/src               @boxxy/contract
   index  contract  access       the oRPC contract, and who may call each procedure
 
 apps/server/src                 @boxxy/server
-  start-server                  the entry: reads the configuration, builds the adapters
-  serve-api                     one router behind the RPC door and the two MCP doors
-  caller-proof                  the port that proves who sent a request
+  main                          the process entry: starts the server, stops it on a signal
+  start-server                  reads the configuration, builds the adapters, starts it all
+  serve-api                     one router behind three doors on the owner and worker listeners
+  read-limited-request          the body cap, counted while the body streams in
+  no-caller-proof               the `CallerProof` adapter that proves nobody
   create-capacity-backoff       the runner's memory of the pools a host refused for capacity
-  handlers/       one file per procedure group, named `<group>-handlers`
-                  item-handlers  relation-handlers  attempt-handlers  plan-handlers
-                  runner-handlers  outbox-handlers  report-cost  find-session-attempt
-  tick/           run-tick
-  outbox/         start-outbox-sender
+  auth/           pick-request-scope  authorize-call
+  config/         server-config-schema  read-server-config  pick-server-secrets
+                  read-trusted-issuers  read-caller-proof (the one place that builds the
+                  identity adapter)
+  rules/          read-rules-checkout  load-server-rules  create-rules-holder
+  handlers/       one file per procedure group, named `<group>-handlers`, with `api`
+                  and the helpers they share
+  tick/           run-tick  start-tick-loop
+  outbox/         start-outbox-sender  create-off-outbox
+  test-utils/     create-test-server  create-fake-caller-proof  and the request builders
 
 apps/cli/src                    @boxxy/cli
   index  create-client

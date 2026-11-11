@@ -19,7 +19,9 @@ merges it. Every decision records the rules version in force.
 | plug-in versions | [the plug-in kinds registry](#the-plug-in-kinds-registry) |
 
 - **boxxy loads rules only from a merged commit,** and reloads them live. A checkout with
-  uncommitted changes fails the load.
+  uncommitted changes fails the load. A rules folder with no `.git` loads as a plain folder, for
+  a local server and for tests: boxxy reads every file that is not hidden, and records the commit
+  as `folder`.
 - **A change is a PR.** It is diffable and reviewed, and CI replays it (see
   [replay CI](#replay-ci)).
 - **A rules PR touches dispatch for the whole fleet,** so it takes the full review gate. A new rule

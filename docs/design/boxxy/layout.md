@@ -99,7 +99,7 @@ Each outside system has one package that may talk to it:
 | GitHub         | `adapters/forge-github` | only an adapter or a package calls `fetch`                            |
 | pepys          | `packages/pepys`        | only it imports `@pepys/kit` or `@pepys/testing`; no module and no lib imports `@boxxy/pepys` |
 
-oRPC has an owner and no lint pin. Only `libs/contract` calls `oc` and `mcp.tool` to define a procedure. `apps/server` imports `@orpc/server`, `@orpc/mcp` and `@modelcontextprotocol/server` to serve the contract, and `apps/cli` imports `@orpc/client`. All oRPC packages sit at one exact version, `2.0.0-beta.50`, in the root catalog.
+oRPC has an owner and no lint pin. Only `libs/contract` calls `oc` and `mcp.tool` to define a procedure. `apps/server` imports `@orpc/server`, `@orpc/mcp` and `@modelcontextprotocol/server` to serve the contract, and `@orpc/client` to call atc and the pepys query API. `apps/cli` imports `@orpc/client` to call the server. Only `apps/server` imports `elysia`, and it lists Elysia's peers `exact-mirror`, `openapi-types` and `typebox` as its own dependencies. All oRPC packages sit at one exact version, `2.0.0-beta.50`, in the root catalog. `@impz/client` brings its own `@orpc/client` 1.x, which the lockfile nests under it, so every boxxy package resolves the catalog version.
 
 Two libraries have a pin of their own. Only `modules/rules` imports `yaml`, so every rules file
 reaches the other packages through `loadRules`. Only `modules/dispatch` imports `xstate`, for the

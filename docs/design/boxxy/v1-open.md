@@ -11,7 +11,6 @@ No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc list
 
 ## Not decided
 
-- The name of boxxy's configuration value that holds the folders of the trust documents. The verifier itself is not open: impz builds it ([`01-api.ts`](./sketches/v1/edge/01-api.ts), section F).
 - Three points of the [folder layout](./layout-folders.md#open-questions).
 - Whether to make the claim cheaper before the store holds thousands of open items. The built claim holds the lock for 418 ms at p50 with 20,000 open items, and for 2.4 s when every item has a lever ([dispatch](./dispatch.md#the-built-claim-measured)). The expedite signal reads every lever once per item, so its cost grows with the square of the item count.
 
@@ -52,9 +51,6 @@ Each row names the test that settles it, where one is known.
 
 | Point | The test |
 | --- | --- |
-| That the registrar's filter gives each MCP endpoint only its own tools. | List the tools of both endpoints. |
-| That a custom error code in the status map changes nothing on the MCP side. | Call a tool that throws one. |
-| That an input of unknown type, a custom output and a discriminated union each give a usable MCP tool schema. | List the tools and read the schemas. |
 | That the CLI's HTTP client works through the broker: `HTTPS_PROXY`, the broker's CA, HTTP/1.1. | One CLI call from an imp. |
 | That Claude Code can be given the session MCP endpoint in a session that atc starts. The CLI is the path a prompt names. | Start one session with the endpoint set. |
 | The form of the audience in the broker's identity token: the bare made-up host, or an origin with its scheme. The verifier compares it with the configured audience as an exact string. | Decode one token that the broker adds to a call from an imp. |

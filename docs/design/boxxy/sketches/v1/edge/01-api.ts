@@ -71,12 +71,12 @@ const router = implementContract().router(handlers); // handlers: apps/server/sr
 
 // In oRPC v2 a typed error's HTTP status comes from `errorStatusMap`: a `status` in the
 // contract's error has no effect. A code that is not in the map answers 400.
-// Not checked: that a custom code in `errorStatusMap` changes nothing on the MCP side. The map
-// ran on `RPCHandler` only. Over MCP a typed error is a tool error with no HTTP status.
+// Checked in the build: a custom code in `errorStatusMap` changes nothing on the MCP side. Over
+// MCP a typed error is a tool error, and the HTTP status stays 200.
 const rpc = new RPCHandler(router, { errorStatusMap: { ...COMMON_ERROR_STATUS_MAP, PEPYS_UNAVAILABLE: 503, PEPYS_NOT_CONFIGURED: 501, UNKNOWN_PHASE: 422 } });
 
 // Two registrars, built once at start. The filter reads section D.
-// Not checked: `filter` on `McpRegistrar`. The oRPC MCP documentation has it; no run exercised it.
+// Checked in the build: each endpoint's tool list holds only the tools the filter keeps.
 const ownerTools = new McpRegistrar(router, { filter: (_procedure, path) => access[toName(path)].tool === 'owner' });
 const sessionTools = new McpRegistrar(router, { filter: (_procedure, path) => access[toName(path)].tool === 'session' });
 
@@ -91,13 +91,16 @@ const serveTools = (registrar: McpRegistrar, name: string) =>
 const ownerMcp = serveTools(ownerTools, 'boxxy');
 const sessionMcp = serveTools(sessionTools, 'boxxy-session');
 
-// Mounted on Elysia:
+// Mounted on two Elysia apps, one per listener (Elysia 2 takes the options before the handler):
+//   owner listener, `api.listen`, on the private network:
+//   .get('/healthz', () => 'ok')
 //   .all('/rpc/*',        { parse: 'none' }, ({ request }) => rpc.handle(request, { prefix: '/rpc', context }))
 //   .all('/mcp',          { parse: 'none' }, ({ request }) => ownerMcp.fetch(request))     17 tools
+//   worker listener, `api.workerListen`, the broker's target; 401 on any path with no token:
+//   .all('/rpc/*',        { parse: 'none' }, ({ request }) => rpc.handle(request, { prefix: '/rpc', context }))
 //   .all('/mcp/session',  { parse: 'none' }, ({ request }) => sessionMcp.fetch(request))    3 tools
-// The server listens on one address of the private network, set in the configuration file
-// (`api.listen`). The build removes the slice 1 rule of docs/design/boxxy/slice-1.md that the
-// server binds to `127.0.0.1` only.
+// The build removes the slice 1 rule of docs/design/boxxy/slice-1.md that the server binds to
+// `127.0.0.1` only.
 // A worker session is in an imp and cannot reach the private network address. Its calls to
 // `/rpc` and `/mcp/session` come through the impd broker, with a bearer token (section E).
 
@@ -416,7 +419,7 @@ export const contract = {
           z.object({ kind: z.literal('linked'), repo: z.string(), number: z.number().int(), repeat: z.boolean() }),
           z.object({ kind: z.literal('retry') }),
           // `not-current` comes from core `findCallAttempt`.
-          z.object({ kind: z.literal('refused'), reason: z.enum(['no-attempt', 'not-current', 'not-a-pull-request-url']) }),
+          z.object({ kind: z.literal('refused'), reason: z.enum(['no-attempt', 'not-current', 'not-a-pull-request-url', 'linked-elsewhere']) }),
         ]),
       ),
   },
@@ -686,7 +689,7 @@ declare function toName(path: readonly string[]): keyof typeof access; // ['item
 //           `attempt.current` uses core `findCurrentAttempt`, with the same caller check.
 //      No branch skips a step. A check that cannot be made is a refusal.
 //
-//      The port (apps/server/src/caller-proof.ts, declared at the end of this file) and its
+//      The port (the ports of `@boxxy/model`, declared at the end of this file) and its
 //      adapters:
 //        `impIdentityCallerProof({ issuers, audience, clock })`  v1. Reads the `Imp-Identity` header
 //             and verifies the token with `verifyImpIdentity`: the trust documents, the
@@ -695,8 +698,8 @@ declare function toName(path: readonly string[]): keyof typeof access; // ['item
 //        `createFakeCallerProof()`                        tests: a test sets who the next
 //             request is from.
 //        `noCallerProof`                                  always null. The server uses it when
-//             its configuration names no trust document, so every session and hook call is
-//             refused.
+//             its configuration has no `trustedIssuers` section, so every session and hook
+//             call is refused.
 //   3. How a session learns its attempt ID: `attempt.current`, which takes no input and
 //      answers from step b alone (the latest attempt of the session). The CLI
 //      calls it at the start of each command and sends the ID it got with the command's own
@@ -757,8 +760,9 @@ declare function toName(path: readonly string[]): keyof typeof access; // ['item
 //     `impIdentityCallerProof` imports from that entry. The format of a trust document and the
 //     retire rules of a signing key are that package's. The adapter takes each trust document
 //     as parsed JSON and checks it with `loadIdentityIssuers`, so no other package names its type.
-//   - Not decided: the name of the configuration value of boxxy that holds the folders of the
-//     trust documents.
+//   - The configuration section `trustedIssuers { folders, audience }` holds the folders of the
+//     trust documents and the audience. The server parses every file in those folders as JSON
+//     and passes the values to the adapter.
 
 // The port. One method. The root middleware knows no header and no token. `CallerIdentity` and
 // `AtcSessionId` are core types (../core/02-types.ts).

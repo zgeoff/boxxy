@@ -39,6 +39,7 @@ folder holds what, and which package may import which.
 | Package               | Folder                  | Holds                                              |
 | --------------------- | ----------------------- | -------------------------------------------------- |
 | `@boxxy/cli`          | `apps/cli`              | the `boxxy` command line                           |
+| `@boxxy/server`       | `apps/server`           | the API on two listeners, and the runner tick      |
 | `@boxxy/dispatch`     | `modules/dispatch`      | claiming the next task, and settling each attempt  |
 | `@boxxy/rules`        | `modules/rules`         | the rules loader and the rules version             |
 | `@boxxy/closeout`     | `modules/closeout`      | the four phase kinds and the `openItems` dedupe    |
