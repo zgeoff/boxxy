@@ -94,6 +94,8 @@ const sessionMcp = serveTools(sessionTools, 'boxxy-session');
 // Mounted on two Elysia apps, one per listener (Elysia 2 takes the options before the handler):
 //   owner listener, `api.listen`, on the private network:
 //   .get('/healthz', () => 'ok')
+//   every route of both listeners: 403 for a request a browser page sent (`Origin`, or a
+//   `Sec-Fetch-Site` other than `none`), and 413 for a body over 256 KiB
 //   .all('/rpc/*',        { parse: 'none' }, ({ request }) => rpc.handle(request, { prefix: '/rpc', context }))
 //   .all('/mcp',          { parse: 'none' }, ({ request }) => ownerMcp.fetch(request))     17 tools
 //   worker listener, `api.workerListen`, the broker's target; 401 on any path with no token:

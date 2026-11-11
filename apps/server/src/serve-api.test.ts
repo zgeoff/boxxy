@@ -90,6 +90,79 @@ test('it answers 401 for an authorization header that is not a bearer token', as
   expect(response.status).toBe(401);
 });
 
+test.each([
+  [
+    'a cross-site text/plain POST',
+    '/rpc/runner/pause',
+    {
+      method: 'POST',
+      headers: { origin: 'https://stranger.example', 'content-type': 'text/plain' },
+      body: '{"json":{}}',
+    },
+  ],
+  [
+    'a POST from a page whose name points at the server',
+    '/rpc/runner/pause',
+    {
+      method: 'POST',
+      headers: {
+        origin: 'http://boxxy.test',
+        'sec-fetch-site': 'same-origin',
+        'content-type': 'text/plain',
+      },
+      body: '{"json":{}}',
+    },
+  ],
+  [
+    'a cross-site GET',
+    '/rpc/runner/pause?data=%7B%22json%22%3A%7B%7D%7D',
+    { headers: { 'sec-fetch-site': 'cross-site' } },
+  ],
+] as const)(
+  'it refuses %s on the owner listener and leaves the runner running',
+  async (_name, path, init) => {
+    const ctx = await setupTest();
+    const response = await ctx.owner(new Request(`http://boxxy.test${path}`, init));
+    const status = await ctx.owner(buildRPCRequest({ procedure: 'runner.status', input: {} }));
+    const statusJSON: unknown = await status.json();
+
+    const statusBody = z
+      .object({ json: z.object({ paused: z.boolean() }).loose() })
+      .parse(statusJSON);
+
+    expect([response.status, statusBody.json.paused]).toStrictEqual([403, false]);
+  },
+);
+
+test('it refuses an MCP call from a browser page on /mcp', async () => {
+  const ctx = await setupTest();
+
+  const request = buildMCPRequest({ path: '/mcp', method: 'tools/list', params: {} });
+
+  request.headers.set('origin', 'https://stranger.example');
+
+  const response = await ctx.owner(request);
+
+  expect(response.status).toBe(403);
+});
+
+test('it refuses a browser page on the worker listener even with the token', async () => {
+  const ctx = await setupTest();
+
+  const request = buildMCPRequest({
+    path: '/mcp/session',
+    method: 'tools/list',
+    params: {},
+    token: ctx.workerToken,
+  });
+
+  request.headers.set('sec-fetch-site', 'cross-site');
+
+  const response = await ctx.worker(request);
+
+  expect(response.status).toBe(403);
+});
+
 test('it serves the health check on the owner listener', async () => {
   const ctx = await setupTest();
   const response = await ctx.owner(new Request('http://boxxy.test/healthz'));
@@ -146,6 +219,24 @@ test('it answers 413 for a streamed body over 256 KiB that declares no length', 
   const response = await ctx.owner(
     new Request('http://boxxy.test/rpc/item/list', { method: 'POST', body }),
   );
+
+  expect(response.status).toBe(413);
+});
+
+test('it answers 413 for a streamed body over 256 KiB on the health check', async () => {
+  const ctx = await setupTest();
+
+  const body = new ReadableStream<Uint8Array>({
+    start: (controller) => {
+      controller.enqueue(new Uint8Array(256 * 1024 + 1));
+      controller.close();
+    },
+  });
+
+  // a GET with a body: no fetch client sends one, but a raw HTTP client can
+  const init: RequestInit = { body };
+
+  const response = await ctx.owner(new Request('http://boxxy.test/healthz', init));
 
   expect(response.status).toBe(413);
 });

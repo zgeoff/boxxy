@@ -6,6 +6,7 @@ import { COMMON_ERROR_STATUS_MAP } from '@orpc/server';
 import { RPCHandler } from '@orpc/server/fetch';
 import { Elysia } from 'elysia';
 import invariant from 'tiny-invariant';
+import { isBrowserRequest } from './auth/is-browser-request.ts';
 import { pickRequestScope } from './auth/pick-request-scope.ts';
 import { api } from './handlers/api.ts';
 import { attemptHandlers } from './handlers/attempt-handlers.ts';
@@ -63,7 +64,9 @@ export function serveApi(deps: ServerDeps) {
   const sessionMcp = makeMcpDoor(deps, 'worker', sessionTools, 'boxxy-session');
 
   const owner = new Elysia()
-    .get('/healthz', () => new Response('ok'))
+    .get('/healthz', { parse: 'none' }, (route) =>
+      handleDoor(deps, 'owner', route.request, () => Promise.resolve(new Response('ok'))),
+    )
     .all('/rpc/*', { parse: 'none' }, (route) =>
       handleDoor(deps, 'owner', route.request, (request) => handleRPC(deps, 'owner', request)),
     )
@@ -133,8 +136,8 @@ function isProcedureName(name: string): name is ProcedureName {
   return Object.hasOwn(access, name);
 }
 
-// The checks of the HTTP request itself: its bearer token, then its size. A refusal names nothing
-// of the token.
+// The checks of the HTTP request itself: its bearer token, that no browser page sent it, then its
+// size. A refusal names nothing of the token.
 async function handleDoor(
   deps: ServerDeps,
   listener: Listener,
@@ -149,6 +152,10 @@ async function handleDoor(
 
   if (scope === null) {
     return Response.json({ error: 'unauthorized' }, { status: 401 });
+  }
+
+  if (isBrowserRequest(request.headers)) {
+    return Response.json({ error: 'forbidden' }, { status: 403 });
   }
 
   const limited = await readLimitedRequest(request, maxRequestBytes);

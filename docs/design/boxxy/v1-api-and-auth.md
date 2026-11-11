@@ -21,7 +21,9 @@ The contract lives in the package `@boxxy/contract`, and the server builds one r
 - The owner listener sits on the owner's private network. It serves `/rpc`, `/mcp` and `/healthz`.
 - The worker listener is the broker's target. It serves `/rpc` and `/mcp/session`, and answers 401 on any path, unknown ones included, to a request without the worker token.
 
-Both listeners refuse a body over 256 KiB with 413. The server counts the bytes as it reads the body, so a streamed body with no length header gets the same limit.
+Both listeners refuse a body over 256 KiB with 413, on every path, `/healthz` included. The server counts the bytes as it reads the body, so a streamed body with no length header gets the same limit.
+
+Both listeners refuse with 403 a request that a browser page sent: one with an `Origin` header, or a `Sec-Fetch-Site` header other than `none`. No caller of the server is a page. The owner listener takes no token, so without this check a page on any site could send it a write: a browser sends a `text/plain` POST with no CORS preflight, and a site whose name resolves to the listener's address passes for the same origin.
 
 Section B holds the rules of the contract. Four of them shape every procedure:
 
