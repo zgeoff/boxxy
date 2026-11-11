@@ -23,5 +23,5 @@ export async function withBusyRetry(waitLimitMs: number, work: () => unknown): P
 }
 
 function isBusy(error: unknown): boolean {
-  return error instanceof SQLiteError && error.code === 'SQLITE_BUSY';
+  return error instanceof SQLiteError && error.code?.startsWith('SQLITE_BUSY') === true;
 }

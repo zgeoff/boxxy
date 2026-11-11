@@ -18,15 +18,20 @@ export interface SQLiteClaimStore extends ClaimStore {
 export async function createSQLiteClaimStore(path: string): Promise<SQLiteClaimStore> {
   await using opened = new AsyncDisposableStack();
 
-  const writer = openStoreHandle(path, { create: true, busyTimeoutMs: 0 });
+  const writer = new Database(path, { readwrite: true, create: true });
 
   opened.defer(() => {
     writer.close();
   });
 
-  // The file keeps its journal mode, so a read handle never sets it. SQLite fails the switch at
-  // once, whatever the busy timeout, while another handle holds a lock on a file not yet in WAL.
-  await withBusyRetry(lockWaitLimitMs, () => writer.run('PRAGMA journal_mode = WAL'));
+  writer.run('PRAGMA busy_timeout = 0');
+
+  // The file keeps its journal mode, so a read handle never sets it. SQLite fails these at once,
+  // whatever the busy timeout, while another handle switches the file to WAL or recovers it.
+  await withBusyRetry(lockWaitLimitMs, () => {
+    writer.run('PRAGMA journal_mode = WAL');
+    writer.run('PRAGMA synchronous = NORMAL');
+  });
 
   const writerDB = new Kysely<StoreDatabase>({ dialect: buildSQLiteDialect(writer) });
 
@@ -77,21 +82,6 @@ export async function createSQLiteClaimStore(path: string): Promise<SQLiteClaimS
   };
 }
 
-interface HandleOptions {
-  // false fails on a missing file, where true would make an empty one with no tables
-  readonly create: boolean;
-  readonly busyTimeoutMs: number;
-}
-
-function openStoreHandle(path: string, options: HandleOptions): Database {
-  const handle = new Database(path, { readwrite: true, create: options.create });
-
-  handle.run(`PRAGMA busy_timeout = ${options.busyTimeoutMs}`);
-  handle.run('PRAGMA synchronous = NORMAL');
-
-  return handle;
-}
-
 // A handle of its own per call, so a read sees the last commit and never a running exclusive
 // call's writes, and a read started inside another read never waits for the outer one's handle.
 async function withReadHandle<T>(
@@ -100,11 +90,15 @@ async function withReadHandle<T>(
 ): Promise<T> {
   await using opened = new AsyncDisposableStack();
 
-  const handle = openStoreHandle(path, { create: false, busyTimeoutMs: 5000 });
+  // without create, a missing file fails the open, where the default makes an empty file
+  const handle = new Database(path, { readwrite: true, create: false });
 
   opened.defer(() => {
     handle.close();
   });
+
+  handle.run(`PRAGMA busy_timeout = ${lockWaitLimitMs}`);
+  handle.run('PRAGMA synchronous = NORMAL');
 
   const readerDB = new Kysely<StoreDatabase>({ dialect: buildSQLiteDialect(handle) });
 
