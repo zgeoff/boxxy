@@ -1,13 +1,12 @@
 # Open for the builder
 
-No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc lists every point that the sketches leave open: what has no design, what is not decided, where the sketches disagree, what nobody checked, what the design assumes, and what must land in another repo first. Settle each point in the slice of the [work list](./v1-work-list.md) that meets it, and rewrite the sketch and the doc in the same commit. In a sketch, search for `Not checked:`, `Assumed:`, `Not decided:` and `TODO (not designed):` to find the point in its place.
+No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc lists every point that the sketches leave open: what has no design, what is not decided, where the sketches disagree, what nobody checked, what the design assumes, and what must land in another repo first. Settle each point in the slice of the [work list](./v1-work-list.md) that meets it, and rewrite the sketch and the doc in the same commit. In a sketch, search for `Not checked:`, `Assumed:`, `Not decided:`, `TODO (not designed):` and `KNOWN FAULT:` to find the point in its place.
 
 ## Not designed
 
 | Point | Where |
 | --- | --- |
 | How boxxy detects that a session hit the account's usage limit: from the reading, the close-out or telemetry. The answer decides which caller forces the `usage-limit` failure. | [`03-flow.ts`](./sketches/v1/core/03-flow.ts), section F |
-| The imp identity verifier: the format of a trust document, the rules for a retired signing key, and the name of the configuration value that holds the trust documents. | [`01-api.ts`](./sketches/v1/edge/01-api.ts), section F |
 | The shapes that the core sketch names and does not show: the take SQL of the claim, the sync of the limit seats, `decide` with its snapshot, wake and decision types, the outcome types of the worker port, the spawn request, the effects and their handlers, and the design and build close-outs. Slice 1 code holds an earlier form of several. | [`02-types.ts`](./sketches/v1/core/02-types.ts) |
 | The atc call behind each method of the worker port, and the crash windows of the three steps of a sleep. | [`02-types.ts`](./sketches/v1/core/02-types.ts), [`03-flow.ts`](./sketches/v1/core/03-flow.ts), section C |
 | Which outbox function lives in `modules/dispatch` and which in `apps/server`. | [folder layout](./layout-folders.md#open-questions) |
@@ -21,6 +20,7 @@ No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc list
 - Which rule wins for an agent-mode session that asks for input and then shows no activity. The idle sleep and the stall rule both fall due at 30 minutes, and the reconcile table gives no order for them.
 - Whether a review that settled `unsettleable` starts the merge step of the stage times. In the sketch it does not, so such an item has null merge minutes after its pull request merged.
 - Whether `runner.pause` breaks the rule that every store change writes an outbox row. The sketch writes the runner row and no fact.
+- The name of boxxy's configuration value that holds the folders of the trust documents. The verifier itself is not open: impz builds it ([`01-api.ts`](./sketches/v1/edge/01-api.ts), section F).
 - Four points of the [folder layout](./layout-folders.md#open-questions).
 
 ## Where the sketches disagree
@@ -28,10 +28,18 @@ No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc list
 | Point | What stands |
 | --- | --- |
 | The core's tests call `attempt.wake`, and the core's procedure map lists it. | The procedure is `item.wake`, as the API sketch has it. The runner calls the wake request directly. |
-| Section D of the fact catalog lists `slept_ms` and another key for `boxxy_attempt_session`. | The columns of the package sketch stand: a list of sleep stretches, and the key of attempt and session. |
-| The package sketch declares `caller_issuer` and `caller_subject` on `boxxy_attempt_session`, and the cost query joins on them. The consumer's entry file in the same sketch writes neither column. | The entry file must write both, from the caller on the attempt's session facts. Until it does, the cost query counts no row. |
-| No test in the package sketch covers the caller join of `boxxy_cost_to_land`: no fixture sets a telemetry row's origin or an attempt's caller. | Add the test with the entry file fix: a row with the attempt's caller counts, and a row with another origin under the same session ID does not. |
+| The `cli` strings of the access table lack flags that the inputs have: `--label` on `item.file` and `item.edit`, `--text` and `--label` on `item.list`, and `--of` on `item.close`. | The input schemas stand. Add the flags when you build the CLI. |
 | The test fixtures of the package sketch give review sessions the product `codex`. | v1 workers are Claude. The fixture keeps a second product so that the lines per product and the cost per turn stay tested. |
+
+## Known faults in the sketch code
+
+In three places the code of the package sketch does not do what its comment says. Each place has a `KNOWN FAULT:` comment. Build the intended rule.
+
+| Fault | Intended rule |
+| --- | --- |
+| [`01-package.ts`](./sketches/v1/pepys-package/01-package.ts) declares `caller_issuer` and `caller_subject` on `boxxy_attempt_session`, and both cost joins read them. The upsert writes neither, and `AttemptDraft.sessions` holds neither. No test covers the caller join. | The consumer `boxxy_work` writes both from the `caller` field of the `.started`, `.reconciled` and `.resumed` facts. Without the write the cost query counts nothing. Add the write, and a test: a telemetry row with the attempt's caller counts, and a row with another origin under the same session ID does not. |
+| Stage time, in [`02-queries.ts`](./sketches/v1/pepys-package/02-queries.ts): the comment says that the statement filters out a `no-capacity` attempt. The statement has no filter on `failure`. | A `no-capacity` attempt is left out of every measure. |
+| Cost, in the same file: the comment says that a `no-capacity` attempt counts in no total. `count(*)` counts it in `attempts`. | A `no-capacity` attempt counts in no total. An attempt that failed with `usage-limit` did run, so its cost and time count. |
 
 ## Lost on a restart
 
@@ -114,7 +122,7 @@ Each row names the test that settles it, where one is known.
 | `@pepys/kit`, with the fact batch sender, the plug-in client type and the definers | pepys | the sink, the reader and the package |
 | `@pepys/testing`, with the test store | pepys | the package's tests and the end-to-end test |
 | The GitHub and telemetry plug-ins, with the pull request entity ID built from GitHub's own ID, and a proven origin on each telemetry row | pepys | the `produced` link and the cost query |
-| The imp identity verifier, and a broker that signs each call | impz | the proven caller |
+| The imp identity verifier (`@impz/client/identity`: `verifyImpIdentity`, `checkSessionImp`, `loadIdentityIssuers`), and a broker that signs each call | impz | the proven caller |
 | A session that reports its caller identity | atc | the caller on the attempt row |
 | A broker rule for the boxxy host, one trust document per broker host, and the worker token | the cloud repo | the worker path |
 | The boxxy CLI and the hook plug-in in the agent image, and `BOXXY_URL` in an atc auth profile | the cloud repo | every session call |

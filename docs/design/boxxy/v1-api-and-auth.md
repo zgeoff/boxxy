@@ -98,7 +98,7 @@ The port has three adapters:
 
 | Adapter | Use |
 | --- | --- |
-| the imp identity verifier | v1. It reads the `Imp-Identity` header, a short-lived token that the broker signs, and gives the token's issuer and subject |
+| the imp identity verifier | v1. It reads the `Imp-Identity` header, a short-lived token that the broker signs, and gives the token's issuer and subject. It imports the verifier from `@impz/client/identity`, which impz builds |
 | a fake | tests set who the next request is from |
 | none | the server uses it when its configuration names no trust document, so every session and hook call is refused |
 

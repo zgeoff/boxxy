@@ -717,8 +717,9 @@ declare function toName(path: readonly string[]): keyof typeof access; // ['item
 // A review attempt is covered as every other attempt: the review session runs in its own imp.
 //
 // Assumed: three things that v1 depends on for this rule, and does not have yet:
-//   - the impz identity build (in progress): the broker strips and signs `Imp-Identity`, and
-//     `impz identity jwks` gives the trust document;
+//   - the impz identity build (its change is open in impz): the broker strips and signs
+//     `Imp-Identity`, `impz identity jwks` gives the trust document, and the package
+//     `@impz/client` gives the verifier (section F);
 //   - one atc change: a session reports its imp ID and its host's issuer (`host: { name, id,
 //     issuer }`), which is the caller identity of the session;
 //   - the broker rule of `boxxy.imp.example` has `identity: true`, and the server's
@@ -750,10 +751,14 @@ declare function toName(path: readonly string[]): keyof typeof access; // ['item
 //   - It is the second step of the same root middleware, after the bearer token. Because the
 //     caller says which session calls, `SessionRef` holds `attempt` and no session ID, and
 //     `attempt.current` takes no input.
-//   - TODO (not designed): this sketch does not show the verifier `verifyImpIdentity`, the
-//     format of a trust document (`IdentityTrustDocument`), the retire rules of a signing key,
-//     or the name of the configuration value that holds the trust documents. The build designs
-//     them with the impz identity build.
+//   - The verifier is not in this repo. impz builds it: the package `@impz/client`, entry
+//     `@impz/client/identity`, exports `verifyImpIdentity`, `checkSessionImp` and
+//     `loadIdentityIssuers` (one trust document per issuer). The adapter
+//     `impIdentityCallerProof` imports from that entry. The format of a trust document and the
+//     retire rules of a signing key are that package's. This sketch names the type of a trust
+//     document `IdentityTrustDocument` and does not declare it; take the type from that entry.
+//   - Not decided: the name of the configuration value of boxxy that holds the folders of the
+//     trust documents.
 
 // The port. One method. The root middleware knows no header and no token. `CallerIdentity` and
 // `AtcSessionId` are core types (../core/02-types.ts).

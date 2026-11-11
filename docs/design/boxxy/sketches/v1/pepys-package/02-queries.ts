@@ -162,6 +162,7 @@ export const boxxyCostToLandQuery = defineQuery({
     const item = call.input.item;
 
     // statement 1: the count of attempts
+    // KNOWN FAULT: `count(*)` counts a `no-capacity` attempt. Intended: it counts in no total.
     const attempts = await call.db
       .selectFrom('boxxy_attempt')
       .where('item_id', '=', item)
@@ -362,6 +363,7 @@ export const boxxyStageTimeQuery = defineQuery({
   reads: [boxxyWorkConsumer, ...githubDeliveryConsumers],
   handler: async (call) => {
     // statement 1: the attempts, oldest first
+    // KNOWN FAULT: no filter on `failure`. Intended: a `no-capacity` attempt is left out.
     const attempts = await call.db
       .selectFrom('boxxy_attempt')
       .where('item_id', '=', call.input.item)

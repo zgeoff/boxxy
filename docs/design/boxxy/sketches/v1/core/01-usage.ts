@@ -281,6 +281,9 @@ export async function runAttemptCloseOut(env: Record<string, string | undefined>
 //                                             build after a passed review whose pull request closed
 
 // ── 6. Tests ───────────────────────────────────────────────────────────────────────────────────
+//
+// These tests predate the procedure name `item.wake` (../edge/01-api.ts, which decides procedure
+// names). Where a test calls `rpc['attempt.wake']`, the procedure is `item.wake`.
 
 // libs/model/src/pipeline/find-position.test.ts. Pure: a pipeline and settled attempts. No store.
 test('it sends the item back to build with round 2 after a review that requests changes', () => {

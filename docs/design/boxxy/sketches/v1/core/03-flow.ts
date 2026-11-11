@@ -224,7 +224,7 @@ export function pickReadingAction(input: { attempt: AttemptRow; reading: Session
 // is source a again, not a fourth path.
 // "The owner returned". atc sends boxxy nothing, so boxxy has three sources, all of which end in
 // `requestWake` and the event `wake-requested`:
-//   a. `boxxy item wake <item>` (procedure `attempt.wake`).
+//   a. `boxxy item wake <item>` (procedure `item.wake`).
 //   b. A reading: the session runs while the attempt sleeps (cell (1) above).
 //   c. A reading: the host slept with no request (cell (4) above).
 // The order of a wake: `decide` puts the wake first, `claimNext` applies `woken` (holdGen + 1,

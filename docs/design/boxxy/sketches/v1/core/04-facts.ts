@@ -162,7 +162,7 @@ export interface WorkFacts {
   // `at` is when the seats were released. `asked: false`: the host slept with no request
   'boxxy.attempt.slept': OfAttempt & { readonly idleSince: Instant; readonly asked: boolean };
 
-  // written by: `attempt.wake` (`boxxy item wake`), and the runner (`session-ran`, `host-slept-unasked`)
+  // written by: `item.wake` (`boxxy item wake`), and the runner (`session-ran`, `host-slept-unasked`)
   'boxxy.attempt.wake_requested': OfAttempt & { readonly by: WakeSource };
 
   // written by: `claimNext`, for a wake pick. `at` is when the attempt holds its seats again.
@@ -282,19 +282,20 @@ export type FactType = keyof WorkFacts; // 27 types
 //
 //   boxxy_attempt           id (`boxxy:attempt:<id>`), item_id, phase, number, round, mode, pool,
 //                           recipe_hash, rules_version, atc_session, state, outcome, failure,
-//                           claimed_at, started_at, closed_out_at, ended_at, slept_ms, sleeps,
-//                           updated_at
-//                           from: attempt.claimed, .started, .reconciled, .closed_out, .slept,
-//                           .woken, .settled
+//                           claimed_at, started_at, closed_out_at, ended_at, sleeps, updated_at
+//                           `sleeps` is a list of sleep stretches ({ from, to }); the table
+//                           has no column of slept milliseconds
+//                           from: attempt.claimed, .started, .reconciled, .resumed, .closed_out,
+//                           .slept, .woken, .settled
 //
-//   boxxy_attempt_session   attempt_id, agent_session, atc_session, product, seen_at
-//                           primary key (attempt_id, agent_session)
-//                           from: attempt.session_bound
+//   boxxy_attempt_session   attempt_id, session_id, key, product, caller_issuer,
+//                           caller_subject, bound_at
+//                           primary key (attempt_id, session_id)
+//                           from: attempt.started, .reconciled, .resumed, .session_bound
 //
-// The package `@boxxy/pepys` owns the final columns of these three tables. Where a list above
-// differs from `../pepys-package/01-package.ts`, the package file stands. It differs in the key
-// and the columns of `boxxy_attempt_session`, and in a list of sleep stretches in place of
-// `slept_ms`.
+// The package `@boxxy/pepys` owns the columns of these three tables, and
+// `../pepys-package/01-package.ts` is the truth for them. The cost query joins through
+// `boxxy_attempt_session`, never on `boxxy_attempt.atc_session`.
 //
 // The telemetry join. The key is the atc session id:
 //   - boxxy knows the id from the spawn answer, with no race, and a wake keeps it. atc stamps
