@@ -1,5 +1,5 @@
 import { findPosition } from '../pipeline/find-position.ts';
-import type { Position, RetryLever, Settled } from '../pipeline/types.ts';
+import type { Position } from '../pipeline/types.ts';
 import type { ItemRules } from '../rules/types.ts';
 import type {
   AttemptId,
@@ -14,6 +14,8 @@ import type {
   PullRequestRow,
   RelationRow,
 } from '../types.ts';
+import { collectRetries } from './collect-retries.ts';
+import { collectSettled } from './collect-settled.ts';
 import { deriveItemState } from './derive-item-state.ts';
 import { liveLevers } from './live-levers.ts';
 import type { ItemSetRows, ItemWithLevers } from './types.ts';
@@ -110,34 +112,6 @@ function collectItemGroups(rows: ItemSetRows, rules: ItemRules): ItemGroup[] {
   }
 
   return [...groups.values()];
-}
-
-// the settled attempts, oldest end first
-function collectSettled(attempts: readonly AttemptRow[]): Settled[] {
-  const settled = attempts.flatMap((attempt) =>
-    attempt.endedAt === null || attempt.outcome === null
-      ? []
-      : [
-          {
-            phase: attempt.phase,
-            outcome: attempt.outcome,
-            endedAt: attempt.endedAt,
-            failure: attempt.failure,
-          },
-        ],
-  );
-
-  return settled.toSorted((first, second) => first.endedAt - second.endedAt);
-}
-
-const retryKind = 'item.retry';
-
-// every `item.retry` lever the item ever had, so the position never depends on the read's time
-function collectRetries(levers: readonly LeverRow[]): RetryLever[] {
-  return levers
-    .filter((lever) => lever.kind === retryKind)
-    .map((lever) => ({ at: lever.at, phase: lever.phase }))
-    .toSorted((first, second) => first.at - second.at);
 }
 
 interface Blocking {

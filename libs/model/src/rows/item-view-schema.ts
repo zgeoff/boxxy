@@ -24,7 +24,8 @@ const derivedSchema = z.discriminatedUnion('state', [
   z.object({ state: z.literal('waiting'), reason: holdReasonOrWaitingSchema }),
 ]);
 
-export const itemViewSchema = itemRowSchema.extend({
+// typed as the core type, so a handler returns the stored view with its read-only lists
+export const itemViewSchema: z.ZodType<ItemView> = itemRowSchema.extend({
   derived: derivedSchema,
   position: positionSchema,
-}) satisfies z.ZodType<ItemView>;
+});

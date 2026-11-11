@@ -6,6 +6,8 @@ export { attemptRowSchema } from './rows/attempt-row-schema.ts';
 export { attemptSessionRowSchema } from './rows/attempt-session-row-schema.ts';
 export { buildCloseOutSchema } from './closeouts/build-close-out-schema.ts';
 export { buildItemViews } from './items/build-item-views.ts';
+export { collectRetries } from './items/collect-retries.ts';
+export { collectSettled } from './items/collect-settled.ts';
 export { closeOutAnswerSchema } from './closeouts/close-out-answer-schema.ts';
 export { callerIdentitySchema } from './rows/caller-identity-schema.ts';
 export { closeOutSchema } from './closeouts/close-out-schema.ts';
@@ -214,6 +216,7 @@ export type {
 export type {
   ApplyResult,
   Attention,
+  CallerProof,
   CapacityBackoff,
   ClaimStore,
   Clock,

@@ -338,6 +338,13 @@ export type NoticeOutcome =
   | { readonly kind: 'sent' }
   | { readonly kind: 'failed'; readonly reason: string };
 
+// Proves who sent a request to the server. The server's root middleware calls it for every
+// session and hook procedure, and knows no header and no token itself. null: no proof, so the
+// call is refused.
+export interface CallerProof {
+  prove: (request: Request) => Promise<CallerIdentity | null>;
+}
+
 // The pools that the runner gives no pick in, after the worker refused a session for capacity.
 export interface CapacityBackoff {
   hold: (pool: PoolName, until: Instant) => void;
