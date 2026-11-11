@@ -1,0 +1,179 @@
+import { expect, test } from 'bun:test';
+import { closeOutAttempt } from '@boxxy/dispatch';
+import { createTestDispatch } from '@boxxy/dispatch/test-utils/create-test-dispatch';
+import type { AttemptId, SessionReading, WorkerKind } from '@boxxy/model';
+import { brandSchemas } from '@boxxy/model';
+import { createFakeNotifier } from '@boxxy/model/test-utils/create-fake-notifier';
+import invariant from 'tiny-invariant';
+import type { TickDeps } from './run-tick.ts';
+import { runTick } from './run-tick.ts';
+
+async function setupTest() {
+  const dispatch = await createTestDispatch();
+
+  const readings = new Map<AttemptId, SessionReading>();
+
+  const logged: string[] = [];
+
+  const buildDeps = (worker: WorkerKind = dispatch.worker): TickDeps => ({
+    store: dispatch.store,
+    runner: dispatch.runner,
+    worker,
+    rules: dispatch.rules(),
+    backoff: dispatch.backoff,
+    spawn: dispatch.spawn,
+    notifier: createFakeNotifier(),
+    now: dispatch.clock.now(),
+    newId: dispatch.newId,
+    readings,
+    log: {
+      warn: (message) => {
+        logged.push(message);
+      },
+    },
+  });
+
+  return {
+    dispatch,
+    readings,
+    logged,
+    buildDeps,
+    readRunner: () => dispatch.store.read((tx) => tx.readRunner(dispatch.runner)),
+  };
+}
+
+test('it writes the heartbeat of the runner', async () => {
+  const ctx = await setupTest();
+
+  await runTick(ctx.buildDeps());
+
+  const runner = await ctx.readRunner();
+
+  expect(runner).toStrictEqual({
+    id: ctx.dispatch.runner,
+    heartbeatAt: ctx.dispatch.clock.now(),
+    paused: false,
+  });
+});
+
+test('it claims a ready item and reads its session in the same tick', async () => {
+  const ctx = await setupTest();
+  const item = await ctx.dispatch.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+  const report = await runTick(ctx.buildDeps());
+
+  expect(report).toStrictEqual({
+    claimed: 1,
+    read: 1,
+    strays: 0,
+    forgotten: 0,
+    notices: { sent: 0, failed: 0, stuck: 0 },
+  });
+
+  const live = await ctx.dispatch.store.read((tx) => tx.listLiveAttempts());
+
+  expect(live.map((attempt) => attempt.item)).toStrictEqual([item]);
+});
+
+test('it keeps the reading of each live attempt for the runner status', async () => {
+  const ctx = await setupTest();
+
+  await ctx.dispatch.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+
+  await runTick(ctx.buildDeps());
+
+  const live = await ctx.dispatch.store.read((tx) => tx.listLiveAttempts());
+
+  expect([...ctx.readings.keys()]).toStrictEqual(live.map((attempt) => attempt.id));
+});
+
+test('it goes on to the next attempt when the reading of one throws', async () => {
+  const ctx = await setupTest();
+
+  await ctx.dispatch.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+  await ctx.dispatch.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+
+  await runTick(ctx.buildDeps());
+
+  const [first] = await ctx.dispatch.store.read((tx) => tx.listLiveAttempts());
+
+  const worker: WorkerKind = {
+    ...ctx.dispatch.worker,
+    reconcile: (attempt) =>
+      attempt.id === first?.id
+        ? Promise.reject(new Error('the host did not answer'))
+        : ctx.dispatch.worker.reconcile(attempt),
+  };
+
+  const report = await runTick(ctx.buildDeps(worker));
+
+  expect({ read: report.read, logged: ctx.logged }).toStrictEqual({
+    read: 1,
+    logged: ['the reading of an attempt failed'],
+  });
+});
+
+test('it ends the claim loop on an error and still reads the live attempts', async () => {
+  const ctx = await setupTest();
+
+  await ctx.dispatch.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+
+  await runTick(ctx.buildDeps());
+
+  await ctx.dispatch.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+
+  const worker: WorkerKind = {
+    ...ctx.dispatch.worker,
+    start: () => Promise.reject(new Error('the host did not answer')),
+  };
+
+  const report = await runTick(ctx.buildDeps(worker));
+
+  expect({ claimed: report.claimed, read: report.read, first: ctx.logged[0] }).toStrictEqual({
+    claimed: 0,
+    read: 2,
+    first: 'the claim loop ended',
+  });
+});
+
+test('it sends the stop of a stray session again and records it once the session stops', async () => {
+  const ctx = await setupTest();
+
+  await ctx.dispatch.seedItem({
+    phase: brandSchemas.phaseName.parse('design'),
+    designMode: 'attended',
+  });
+
+  const claim = await ctx.dispatch.claim();
+
+  invariant(claim !== null, 'the claim picks the seeded item');
+
+  const attempt = await ctx.dispatch.readAttempt(claim.attempt.id);
+
+  await closeOutAttempt({
+    store: ctx.dispatch.store,
+    call: ctx.dispatch.buildCallRef(attempt),
+    body: {
+      result: { kind: 'designed', design: { summary: 'Follow the theme.', location: null } },
+      friction: [],
+    },
+    rules: ctx.dispatch.rules(),
+    now: ctx.dispatch.clock.now(),
+    newId: ctx.dispatch.newId,
+  });
+
+  ctx.dispatch.worker.failAlways('stop', { kind: 'unknown', reason: 'host_leased' });
+  ctx.dispatch.clock.advance(10 * 60_000 + 1);
+
+  await ctx.dispatch.tick();
+
+  const stopping: WorkerKind = {
+    ...ctx.dispatch.worker,
+    stop: () => Promise.resolve({ kind: 'stopped' }),
+  };
+
+  const report = await runTick(ctx.buildDeps(stopping));
+  const after = await ctx.dispatch.readAttempt(attempt.id);
+
+  expect(report.strays).toBe(1);
+  expect(after.sessionStoppedAt).toBe(ctx.dispatch.clock.now());
+});

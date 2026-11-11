@@ -1,0 +1,462 @@
+import { endItemAttempts, requestWake } from '@boxxy/dispatch';
+import type {
+  Criterion,
+  ItemId,
+  ItemKindName,
+  ItemRow,
+  ItemView,
+  ItemWithLevers,
+  NoteRow,
+  RelationRow,
+  StoreReader,
+} from '@boxxy/model';
+import { brandSchemas } from '@boxxy/model';
+import { ORPCError } from '@orpc/server';
+import type { ServerDeps } from '../types.ts';
+import { api } from './api.ts';
+import { buildOwnerFact } from './build-owner-fact.ts';
+import { readItemIds } from './read-item-ids.ts';
+import { writeLevers } from './write-levers.ts';
+
+const owner = 'boxxy:owner:local';
+
+// the kind of an item filed with none; triage sets the real one
+const untriagedKind = 'core.idea';
+
+// The owner's commands and reads on one item. A command writes one store change with its facts,
+// or nothing; a read writes nothing.
+export const itemHandlers = {
+  file: api.item.file.handler((options) => {
+    const input = options.input;
+    const notFound = options.errors.NOT_FOUND;
+    const deps = options.context.deps;
+    const kind = parseKnownKind(deps, input.kind ?? untriagedKind);
+    const repo = brandSchemas.repoName.safeParse(input.repo);
+
+    if (kind === null || !repo.success) {
+      throw new ORPCError('BAD_REQUEST', { message: 'unknown item kind or repository name' });
+    }
+
+    return deps.store.exclusive(async (tx) => {
+      const now = deps.clock.now();
+
+      const blockers = await readItemIds(tx, deps, input.blockedBy);
+
+      if (blockers.kind === 'not-found') {
+        throw notFound({ data: { item: blockers.item } });
+      }
+
+      const row: ItemRow = {
+        id: brandSchemas.itemId.parse(deps.newId()),
+        kind,
+        repo: repo.data,
+        title: input.title,
+        outcome: input.outcome,
+        acceptance: input.acceptance.map((text, index) => buildCriterion(index + 1, text)),
+        fields: input.designMode === undefined ? {} : { designMode: input.designMode },
+        labels: input.labels,
+        foundInAttempt: null,
+        filedBy: owner,
+        filedAt: now,
+        closedAt: null,
+        closeReason: null,
+        keptSession: null,
+      };
+
+      const { keptSession: _keptSession, ...filed } = row;
+      const relations = blockers.items.map((source) => buildBlocksRow(source, row.id, now));
+
+      await tx.applyChange({
+        at: now,
+        writes: [
+          { op: 'insert', table: 'items', row },
+          ...relations.map(
+            (relation) => ({ op: 'insert', table: 'relations', row: relation }) as const,
+          ),
+        ],
+        facts: [
+          buildOwnerFact(deps, row.id, 'boxxy.item.filed', filed),
+          ...relations.map((relation) =>
+            buildOwnerFact(deps, relation.source, 'boxxy.relation.added', {
+              source: relation.source,
+              target: relation.target,
+              type: relation.type,
+            }),
+          ),
+        ],
+      });
+
+      return { item: row.id };
+    });
+  }),
+  edit: api.item.edit.handler((options) => {
+    const input = options.input;
+    const deps = options.context.deps;
+
+    return deps.store.exclusive(async (tx) => {
+      const item = await readItemOrThrow(tx, deps, input.item, options.errors.NOT_FOUND);
+
+      const acceptance =
+        input.acceptance === undefined ? undefined : buildAcceptance(item, input.acceptance);
+
+      if (acceptance === null) {
+        throw new ORPCError('BAD_REQUEST', { message: 'an acceptance entry names no criterion' });
+      }
+
+      const set = {
+        ...(input.title === undefined ? {} : { title: input.title }),
+        ...(input.outcome === undefined ? {} : { outcome: input.outcome }),
+        ...(acceptance === undefined ? {} : { acceptance }),
+        ...(input.designMode === undefined
+          ? {}
+          : { fields: { ...item.fields, designMode: input.designMode } }),
+        ...(input.labels === undefined ? {} : { labels: input.labels }),
+      };
+
+      const now = deps.clock.now();
+
+      await tx.applyChange({
+        at: now,
+        writes: [{ op: 'update', table: 'items', key: { id: item.id }, expect: {}, set }],
+        facts: [buildOwnerFact(deps, item.id, 'boxxy.item.edited', { ...set, byAttempt: null })],
+      });
+
+      return { item: item.id };
+    });
+  }),
+  close: api.item.close.handler((options) => {
+    const input = options.input;
+    const notFound = options.errors.NOT_FOUND;
+    const deps = options.context.deps;
+
+    return deps.store.exclusive(async (tx) => {
+      const item = await readItemOrThrow(tx, deps, input.item, notFound);
+
+      const of =
+        input.of === undefined ? null : await readItemOrThrow(tx, deps, input.of, notFound);
+
+      if (item.closedAt !== null) {
+        return { item: item.id, ended: [] };
+      }
+
+      const now = deps.clock.now();
+      const reason = of === null ? input.reason : 'duplicate';
+
+      const ended = endItemAttempts({
+        attempts: await tx.listItemAttempts(item.id),
+        actor: owner,
+        now,
+        newId: deps.newId,
+      });
+
+      const relation = of === null ? null : buildRelationRow(item.id, of.id, 'duplicate-of', now);
+
+      await tx.applyChange({
+        at: now,
+        under: ended.under,
+        writes: [
+          ...ended.writes,
+          {
+            op: 'update',
+            table: 'items',
+            key: { id: item.id },
+            expect: { closedAt: null },
+            set: { closedAt: now, closeReason: reason },
+          },
+          ...(relation === null
+            ? []
+            : [{ op: 'insert', table: 'relations', row: relation } as const]),
+        ],
+        facts: [
+          ...ended.facts,
+          buildOwnerFact(deps, item.id, 'boxxy.item.closed', {
+            reason,
+            byAttempt: null,
+            ended: ended.ended,
+          }),
+          ...(relation === null
+            ? []
+            : [
+                buildOwnerFact(deps, item.id, 'boxxy.relation.added', {
+                  source: relation.source,
+                  target: relation.target,
+                  type: relation.type,
+                }),
+              ]),
+        ],
+      });
+
+      return { item: item.id, ended: [...ended.ended] };
+    });
+  }),
+  retry: api.item.retry.handler(async (options) => {
+    const input = options.input;
+    const notFound = options.errors.NOT_FOUND;
+    const unknownPhase = options.errors.UNKNOWN_PHASE;
+    const deps = options.context.deps;
+    const rules = deps.rulesState().rules;
+
+    const item = await deps.store.read((tx) => readItemOrThrow(tx, deps, input.item, notFound));
+
+    const phase =
+      input.phase === undefined
+        ? null
+        : rules.kinds.get(item.kind)?.pipeline.steps.find((step) => step.phase === input.phase)
+            ?.phase;
+
+    if (phase === undefined) {
+      throw unknownPhase();
+    }
+
+    const answer = await writeLevers(deps, [item.id], {
+      kind: 'item.retry',
+      until: null,
+      expiresAt: null,
+      reason: null,
+      phase,
+    });
+
+    if (answer.kind === 'not-found') {
+      throw notFound({ data: { item: answer.item } });
+    }
+
+    return { lever: answer.levers[0] ?? 0 };
+  }),
+  wake: api.item.wake.handler(async (options) => {
+    const deps = options.context.deps;
+
+    const attempts = await deps.store.read(async (tx) => {
+      const item = await readItemOrThrow(tx, deps, options.input.item, options.errors.NOT_FOUND);
+
+      return tx.listItemAttempts(item.id);
+    });
+
+    const asleep = attempts.find((attempt) => attempt.state === 'sleeping');
+
+    if (asleep === undefined) {
+      return { kind: 'not-sleeping' } as const;
+    }
+
+    const result = await requestWake({
+      store: deps.store,
+      attempt: asleep.id,
+      by: 'command',
+      actor: owner,
+      now: deps.clock.now(),
+      newId: deps.newId,
+    });
+
+    return result.kind === 'applied'
+      ? ({ kind: 'requested', attempt: asleep.id, atcSession: asleep.atcSession } as const)
+      : ({ kind: 'not-sleeping' } as const);
+  }),
+  note: api.item.note.handler((options) => {
+    const input = options.input;
+    const deps = options.context.deps;
+
+    return deps.store.exclusive(async (tx) => {
+      const item = await readItemOrThrow(tx, deps, input.item, options.errors.NOT_FOUND);
+      const notes = await tx.listItemNotes(item.id);
+
+      const now = deps.clock.now();
+
+      const note: NoteRow = {
+        item: item.id,
+        seq: Math.max(0, ...notes.map((entry) => entry.seq)) + 1,
+        text: input.text,
+        by: owner,
+        at: now,
+      };
+
+      await tx.applyChange({
+        at: now,
+        writes: [{ op: 'insert', table: 'notes', row: note }],
+        facts: [
+          buildOwnerFact(deps, item.id, 'boxxy.item.noted', { seq: note.seq, text: note.text }),
+        ],
+      });
+
+      return { item: item.id, seq: note.seq };
+    });
+  }),
+  get: api.item.get.handler(async (options) => {
+    const input = options.input;
+    const notFound = options.errors.NOT_FOUND;
+    const deps = options.context.deps;
+    const item = brandSchemas.itemId.safeParse(input.item);
+
+    const detail = item.success
+      ? await deps.store.read((tx) =>
+          tx.readItemDetail(item.data, deps.clock.now(), deps.rulesState().rules),
+        )
+      : null;
+
+    if (detail === null) {
+      throw notFound({ data: { item: input.item } });
+    }
+
+    return {
+      item: toItemView(detail.item),
+      notes: [...detail.notes],
+      attempts: [...detail.attempts],
+      relations: [...detail.relations],
+      evidence: [...detail.evidence],
+      pullRequests: [...detail.pullRequests],
+    };
+  }),
+  list: api.item.list.handler(async (options) => {
+    const input = options.input;
+    const deps = options.context.deps;
+    const now = deps.clock.now();
+    const repo = input.repo === undefined ? undefined : brandSchemas.repoName.safeParse(input.repo);
+
+    if (repo?.success === false) {
+      return { items: [], next: null };
+    }
+
+    const listed = await deps.store.read(async (tx) => {
+      const items = await tx.listItems(
+        {
+          ...(input.state === undefined ? {} : { state: input.state }),
+          ...(repo === undefined ? {} : { repo: repo.data }),
+        },
+        now,
+        deps.rulesState().rules,
+      );
+
+      return Promise.all(
+        items.map(async (item) => ({ item, notes: await tx.listItemNotes(item.id) })),
+      );
+    });
+
+    const matched = listed
+      .filter((entry) => isListMatch(entry.item, entry.notes, input))
+      .map((entry) => entry.item)
+      .toSorted(
+        (first, second) => second.filedAt - first.filedAt || second.id.localeCompare(first.id),
+      );
+
+    const start =
+      input.after === undefined ? 0 : matched.findIndex((item) => item.id === input.after) + 1;
+
+    const page = matched.slice(start, start + input.limit);
+    const last = page.at(-1);
+
+    return {
+      items: page.map((item) => toItemView(item)),
+      next: last !== undefined && start + input.limit < matched.length ? last.id : null,
+    };
+  }),
+};
+
+function parseKnownKind(deps: ServerDeps, raw: string): ItemKindName | null {
+  const kind = brandSchemas.itemKindName.safeParse(raw);
+
+  return kind.success && deps.rulesState().rules.kinds.has(kind.data) ? kind.data : null;
+}
+
+function buildCriterion(index: number, text: string): Criterion {
+  return { id: brandSchemas.criterionId.parse(`a${index}`), text, evidence: [] };
+}
+
+function buildBlocksRow(source: ItemId, target: ItemId, at: ItemRow['filedAt']): RelationRow {
+  return buildRelationRow(source, target, 'blocks', at);
+}
+
+function buildRelationRow(
+  source: ItemId,
+  target: ItemId,
+  type: string,
+  at: ItemRow['filedAt'],
+): RelationRow {
+  return {
+    source,
+    target,
+    type: brandSchemas.relationTypeName.parse(type),
+    addedBy: owner,
+    addedAt: at,
+    removedAt: null,
+  };
+}
+
+interface NotFoundOptions {
+  readonly data: { readonly item: string };
+}
+
+type NotFound = (options: NotFoundOptions) => Error;
+
+async function readItemOrThrow(
+  tx: StoreReader,
+  deps: ServerDeps,
+  raw: string,
+  notFound: NotFound,
+): Promise<ItemView> {
+  const id = brandSchemas.itemId.safeParse(raw);
+
+  const item = id.success
+    ? await tx.readItem(id.data, deps.clock.now(), deps.rulesState().rules)
+    : null;
+
+  if (item === null) {
+    throw notFound({ data: { item: raw } });
+  }
+
+  return item;
+}
+
+// An entry with the ID of a criterion keeps that criterion's evidence; an entry with no ID is a
+// new criterion. null: an entry names a criterion the item does not have.
+function buildAcceptance(
+  item: ItemView,
+  entries: readonly { readonly id?: string | undefined; readonly text: string }[],
+): Criterion[] | null {
+  const known = new Map(item.acceptance.map((criterion) => [String(criterion.id), criterion]));
+
+  let next = Math.max(0, ...item.acceptance.map((criterion) => Number(criterion.id.slice(1))));
+  const built: Criterion[] = [];
+
+  for (const entry of entries) {
+    if (entry.id === undefined) {
+      next += 1;
+
+      built.push(buildCriterion(next, entry.text));
+      continue;
+    }
+
+    const kept = known.get(entry.id);
+
+    if (kept === undefined) {
+      return null;
+    }
+
+    built.push({ ...kept, text: entry.text });
+  }
+
+  return built;
+}
+
+function toItemView(item: ItemWithLevers): ItemView {
+  const { levers: _levers, ...view } = item;
+
+  return view;
+}
+
+interface ListFilter {
+  readonly phase?: string | undefined;
+  readonly text?: string | undefined;
+  readonly label?: string | undefined;
+}
+
+function isListMatch(item: ItemView, notes: readonly NoteRow[], filter: ListFilter): boolean {
+  const text = filter.text?.toLowerCase();
+
+  return (
+    (filter.phase === undefined ||
+      (item.position.kind === 'phase' && item.position.phase === filter.phase)) &&
+    (filter.label === undefined || item.labels.includes(filter.label)) &&
+    (text === undefined ||
+      [item.title, item.outcome, ...notes.map((note) => note.text)].some((value) =>
+        value.toLowerCase().includes(text),
+      ))
+  );
+}

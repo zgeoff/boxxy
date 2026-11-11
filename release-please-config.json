@@ -26,6 +26,7 @@
         "@boxxy/pepys",
         "@boxxy/planning",
         "@boxxy/rules",
+        "@boxxy/server",
         "@boxxy/store-sqlite",
         "@boxxy/worker-atc"
       ]
@@ -34,6 +35,10 @@
   "packages": {
     "apps/cli": {
       "component": "@boxxy/cli",
+      "initial-version": "0.1.0"
+    },
+    "apps/server": {
+      "component": "@boxxy/server",
       "initial-version": "0.1.0"
     },
     "modules/dispatch": {
