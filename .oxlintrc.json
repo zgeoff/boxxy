@@ -147,10 +147,10 @@
         ]
       }
     },
-    // repo-sync delivers these scripts from zgeoff/tools and overwrites a local edit, so their verbs
+    // repo-sync delivers this script from zgeoff/tools and overwrites a local edit, so its verbs
     // are fixed at that source
     {
-      "files": ["scripts/read-branch-files.ts", "scripts/run-related-tests.ts"],
+      "files": ["scripts/read-branch-files.ts"],
       "rules": {
         "zgeoff/verb-contract": "off"
       }

@@ -44,7 +44,7 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | Logging            | `@logtape/logtape` `2.4.2`                                                                                            | nixie, atc, noslop                      |
 | Control flow       | `ts-pattern` `5.9.2`, `tiny-invariant` `1.3.3`, `type-fest` `5.10.0`, `@zgeoff/std` `0.4.0`                           | atc, pepys                              |
 | State machines     | `xstate` `6.0.0-beta.2`, pinned exactly, for the attempt state table in `@boxxy/dispatch` only                        | boxxy's own choice                      |
-| Tests              | `bun test --randomize`, `@zgeoff/bun-test-extended` `0.2.3`, `@faker-js/faker` `10.6.0`                               | nixie                                   |
+| Tests              | `bun test` through `@zgeoff/rig` `0.2.3` (`rig unit`, `rig related`, `rig bench`), `@zgeoff/bun-test-extended` `0.2.3`, `@faker-js/faker` `10.6.0` | zgeoff/tools                            |
 | HTTP mocks         | `msw` `2.15.0`, `@msw/data` `1.1.8`                                                                                   | nixie, noslop                           |
 | Git hooks          | `lefthook` `2.2.2`, gitleaks                                                                                          | all five                                |
 | Commits            | `@commitlint/cli` `21.2.4`, `@zgeoff/commitlint-config` `0.1.0`                                                       | wringer, pepys, nixie                   |
@@ -71,6 +71,7 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | `oxfmt.config.ts`, `.formatignore`                                                | the formatter config, which spreads `@zgeoff/oxfmt-config`, and the files `format-codemod` skips                  | wringer        |
 | `lefthook.yml`                                                                    | pre-commit fixes staged files and runs gitleaks; commit-msg runs commitlint; extends the synced pre-push baseline | wringer        |
 | `commitlint.config.js`                                                            | extends `@zgeoff/commitlint-config`                                                                               | wringer        |
+| `rig.config.ts`                                                                   | the test lanes that `rig` runs; boxxy keeps the built-in lanes                                                    | zgeoff/tools   |
 | `knip.json`                                                                       | the dead-code check's entries per workspace                                                                       | wringer        |
 | `audit-ignores.json`                                                              | each ignored advisory with its package, reason and expiry                                                         | wringer        |
 | `renovate.json`                                                                   | extends the `github>zgeoff/tools` preset                                                                          | wringer, pepys |

@@ -16,7 +16,7 @@
   // types that only their own file uses
   // the test script names its roots, so knip reads no package's tests from it
   "workspaces": {
-    ".": { "entry": ["*.test.ts", "scripts/**/*.test.ts"] },
+    ".": { "entry": ["*.test.ts", "scripts/**/*.test.ts", "rig.config.ts"] },
     "system-tests": { "entry": ["src/**/*.test.ts", "e2e/**/*.test.ts"] },
     "{apps,modules,adapters,libs,packages}/*": {
       "entry": ["src/**/*.test.ts", "e2e/**/*.test.ts", "bench/*.bench.ts"]
