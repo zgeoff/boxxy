@@ -1,6 +1,7 @@
 import { brandSchemas } from '@boxxy/model';
 import type { StoreChange } from '@boxxy/model';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
+import { buildMockItemRules } from '@boxxy/model/test-utils/build-mock-item-rules';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import { buildMockV1ItemRow } from '@boxxy/model/test-utils/build-mock-v1-item-row';
 import { buildMockClaimChange } from './build-mock-claim-change.ts';
@@ -40,7 +41,7 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
         const view = await transaction.readItem(
           item.id,
           brandSchemas.instant.parse(5000),
-          new Map(),
+          buildMockItemRules(),
         );
 
         return {
@@ -159,7 +160,7 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
       );
 
       const read = await store.read((transaction) =>
-        transaction.readItem(later.id, brandSchemas.instant.parse(5000), new Map()),
+        transaction.readItem(later.id, brandSchemas.instant.parse(5000), buildMockItemRules()),
       );
 
       return {

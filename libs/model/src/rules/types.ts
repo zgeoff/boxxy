@@ -199,6 +199,12 @@ export type PluginRef = string | Readonly<Record<string, JsonValue>>;
 
 export type SignalRef = SignalName | Readonly<Record<string, JsonValue>>;
 
+// What an item's position and state read of the rules loaded now; a `LoadedRules` is one.
+export interface ItemRules {
+  readonly kinds: ReadonlyMap<ItemKindName, { readonly pipeline: Pipeline }>;
+  readonly phases: ReadonlyMap<PhaseName, { readonly needsAcceptance: boolean }>;
+}
+
 export interface LoadedRules {
   readonly version: RulesVersion;
   readonly commit: string;

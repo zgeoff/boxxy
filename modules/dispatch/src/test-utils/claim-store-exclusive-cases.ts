@@ -1,5 +1,6 @@
 import { setImmediate } from 'node:timers/promises';
 import { brandSchemas } from '@boxxy/model';
+import { buildMockItemRules } from '@boxxy/model/test-utils/build-mock-item-rules';
 import { buildMockV1ItemRow } from '@boxxy/model/test-utils/build-mock-v1-item-row';
 import { buildMockFileItemChange } from './build-mock-file-item-change.ts';
 import type { ClaimStoreCase } from './types.ts';
@@ -49,7 +50,7 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
       await writing.catch(() => null);
 
       const snapshot: unknown = await store.read((transaction) =>
-        transaction.readSnapshot(brandSchemas.instant.parse(5000), new Map()),
+        transaction.readSnapshot(brandSchemas.instant.parse(5000), buildMockItemRules()),
       );
 
       return {
@@ -96,7 +97,7 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
       );
 
       const read = await store.read((transaction) =>
-        transaction.readItem(item.id, brandSchemas.instant.parse(5000), new Map()),
+        transaction.readItem(item.id, brandSchemas.instant.parse(5000), buildMockItemRules()),
       );
 
       return { received: read?.id, expected: item.id };
@@ -125,7 +126,7 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
       await written.promise;
 
       const seen = await store.read((transaction) =>
-        transaction.listItems({}, brandSchemas.instant.parse(5000), new Map()),
+        transaction.listItems({}, brandSchemas.instant.parse(5000), buildMockItemRules()),
       );
 
       gate.resolve();
@@ -146,11 +147,19 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
       );
 
       const seen: unknown = await store.read(async (transaction) => {
-        const before = await transaction.listItems({}, brandSchemas.instant.parse(5000), new Map());
+        const before = await transaction.listItems(
+          {},
+          brandSchemas.instant.parse(5000),
+          buildMockItemRules(),
+        );
 
         await store.exclusive((writer) => writer.applyChange(buildMockFileItemChange(later)));
 
-        const after = await transaction.listItems({}, brandSchemas.instant.parse(5000), new Map());
+        const after = await transaction.listItems(
+          {},
+          brandSchemas.instant.parse(5000),
+          buildMockItemRules(),
+        );
 
         return { before: before.map((item) => item.id), after: after.map((item) => item.id) };
       });
@@ -184,7 +193,7 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
 
       const seen = await store.read(() =>
         store.read((transaction) =>
-          transaction.readItem(item.id, brandSchemas.instant.parse(5000), new Map()),
+          transaction.readItem(item.id, brandSchemas.instant.parse(5000), buildMockItemRules()),
         ),
       );
 

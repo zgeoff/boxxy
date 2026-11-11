@@ -1,5 +1,6 @@
 import { brandSchemas } from '@boxxy/model';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
+import { buildMockItemRules } from '@boxxy/model/test-utils/build-mock-item-rules';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import { buildMockV1ItemRow } from '@boxxy/model/test-utils/build-mock-v1-item-row';
 import { buildMockBindChange } from './build-mock-bind-change.ts';
@@ -75,7 +76,7 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
       );
 
       const snapshot = await store.read((transaction) =>
-        transaction.readSnapshot(brandSchemas.instant.parse(5000), new Map()),
+        transaction.readSnapshot(brandSchemas.instant.parse(5000), buildMockItemRules()),
       );
 
       return {
@@ -203,7 +204,7 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
         const read = await transaction.readItem(
           item.id,
           brandSchemas.instant.parse(5000),
-          new Map(),
+          buildMockItemRules(),
         );
 
         const facts = await transaction.readUnsentFacts(10);
@@ -215,7 +216,14 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
         received: { result, state },
         expected: {
           result: { kind: 'guard-mismatch', table: 'items', key: { id: item.id } },
-          state: { item: { ...item, derived: { state: 'ready' } }, facts: 1 },
+          state: {
+            item: {
+              ...item,
+              derived: { state: 'ready' },
+              position: { kind: 'phase', phase: 'build', round: 1 },
+            },
+            facts: 1,
+          },
         },
       };
     },

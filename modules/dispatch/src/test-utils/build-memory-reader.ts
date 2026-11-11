@@ -7,14 +7,13 @@ import type {
   Instant,
   ItemDetailRows,
   ItemRow,
-  LeverRow,
-  MaxAttemptsByKind,
+  ItemRules,
+  ItemSetRows,
+  ItemView,
+  ItemWithLevers,
   OutboxFact,
   PullRequestRow,
   RelationRow,
-  SliceOneItemSetRows,
-  StoreItemView,
-  StoreItemWithLevers,
   StoreReader,
   Wake,
 } from '@boxxy/model';
@@ -27,13 +26,13 @@ import type { MemoryTables } from './types.ts';
 export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReader {
   const getTables = () => structuredClone(getLiveTables());
 
-  const buildViews = (now: Instant, maxAttemptsByKind: MaxAttemptsByKind): StoreItemWithLevers[] =>
-    buildItemViews(toItemSetRows(getTables()), now, maxAttemptsByKind);
+  const buildViews = (now: Instant, rules: ItemRules): ItemWithLevers[] =>
+    buildItemViews(toItemSetRows(getTables()), now, rules);
 
   return {
-    readSnapshot: (now, maxAttemptsByKind) => {
+    readSnapshot: (now, rules) => {
       const tables = getTables();
-      const open = buildViews(now, maxAttemptsByKind).filter((item) => isOpen(item));
+      const open = buildViews(now, rules).filter((item) => isOpen(item));
 
       return Promise.resolve({
         storeVersion: tables.outbox.length,
@@ -46,15 +45,15 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
         wakes: collectWakes(tables.attempts),
       });
     },
-    readItem: (id, now, maxAttemptsByKind) => {
-      const item = buildViews(now, maxAttemptsByKind).find((view) => view.id === id);
+    readItem: (id, now, rules) => {
+      const item = buildViews(now, rules).find((view) => view.id === id);
       const view = item === undefined ? null : toItemView(item);
 
       return Promise.resolve(view);
     },
-    readItemDetail: (id, now, maxAttemptsByKind) => {
+    readItemDetail: (id, now, rules) => {
       const tables = getTables();
-      const item = buildViews(now, maxAttemptsByKind).find((view) => view.id === id);
+      const item = buildViews(now, rules).find((view) => view.id === id);
 
       if (item === undefined) {
         return Promise.resolve(null);
@@ -85,17 +84,17 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
 
       return Promise.resolve(detail);
     },
-    listItems: (filter, now, maxAttemptsByKind) =>
+    listItems: (filter, now, rules) =>
       Promise.resolve(
-        buildViews(now, maxAttemptsByKind).filter(
+        buildViews(now, rules).filter(
           (item) =>
             (filter.state === undefined || item.derived.state === filter.state) &&
             (filter.repo === undefined || item.repo === filter.repo),
         ),
       ),
-    listOpenIssues: (repo, now, maxAttemptsByKind) =>
+    listOpenIssues: (repo, now, rules) =>
       Promise.resolve(
-        buildViews(now, maxAttemptsByKind)
+        buildViews(now, rules)
           .filter((item) => item.kind === 'core.issue' && item.repo === repo && isOpen(item))
           .map((item) => toItemView(item)),
       ),
@@ -257,7 +256,7 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
   };
 }
 
-function toItemSetRows(tables: MemoryTables): SliceOneItemSetRows<ItemRow, LeverRow> {
+function toItemSetRows(tables: MemoryTables): ItemSetRows {
   return {
     items: sortItems(tables.items),
     relations: tables.relations.filter((relation) => relation.removedAt === null),
@@ -280,11 +279,11 @@ function sortAttempts(attempts: readonly AttemptRow[]): AttemptRow[] {
   );
 }
 
-function isOpen(item: StoreItemView): boolean {
+function isOpen(item: ItemView): boolean {
   return item.derived.state !== 'done' && item.derived.state !== 'archived';
 }
 
-function toItemView(item: StoreItemWithLevers): StoreItemView {
+function toItemView(item: ItemWithLevers): ItemView {
   const { levers: _levers, ...view } = item;
 
   return view;

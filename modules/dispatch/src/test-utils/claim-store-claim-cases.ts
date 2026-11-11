@@ -1,4 +1,5 @@
 import { brandSchemas } from '@boxxy/model';
+import { buildMockItemRules } from '@boxxy/model/test-utils/build-mock-item-rules';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import { buildMockV1ItemRow } from '@boxxy/model/test-utils/build-mock-v1-item-row';
 import { buildMockV1LeverRow } from '@boxxy/model/test-utils/build-mock-v1-lever-row';
@@ -63,7 +64,7 @@ export const claimStoreClaimCases: readonly ClaimStoreCase[] = [
       const state: unknown = await store.read(async (transaction) => {
         const snapshot = await transaction.readSnapshot(
           brandSchemas.instant.parse(5000),
-          new Map(),
+          buildMockItemRules(),
         );
 
         const seats = await transaction.listLimitSeats();
@@ -109,7 +110,7 @@ export const claimStoreClaimCases: readonly ClaimStoreCase[] = [
       const state: unknown = await store.read(async (transaction) => {
         const snapshot = await transaction.readSnapshot(
           brandSchemas.instant.parse(5000),
-          new Map(),
+          buildMockItemRules(),
         );
 
         return {
@@ -216,7 +217,12 @@ export const claimStoreClaimCases: readonly ClaimStoreCase[] = [
       });
 
       const state: unknown = await store.read(async (transaction) => {
-        const items = await transaction.listItems({}, brandSchemas.instant.parse(5000), new Map());
+        const items = await transaction.listItems(
+          {},
+          brandSchemas.instant.parse(5000),
+          buildMockItemRules(),
+        );
+
         const facts = await transaction.readUnsentFacts(10);
 
         return { levers: items[0]?.levers, payloads: facts.slice(1).map((fact) => fact.payload) };
@@ -290,7 +296,7 @@ export const claimStoreClaimCases: readonly ClaimStoreCase[] = [
       const state: unknown = await store.read(async (transaction) => {
         const snapshot = await transaction.readSnapshot(
           brandSchemas.instant.parse(5000),
-          new Map(),
+          buildMockItemRules(),
         );
 
         return { runner: await transaction.readRunner(runner), version: snapshot.storeVersion };

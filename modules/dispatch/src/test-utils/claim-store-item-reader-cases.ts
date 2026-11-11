@@ -1,5 +1,6 @@
 import { expect } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
+import { buildMockItemRules } from '@boxxy/model/test-utils/build-mock-item-rules';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import { buildMockV1ItemRow } from '@boxxy/model/test-utils/build-mock-v1-item-row';
 import { buildMockClaimChange } from './build-mock-claim-change.ts';
@@ -28,14 +29,20 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       });
 
       const snapshot: unknown = await store.read((transaction) =>
-        transaction.readSnapshot(brandSchemas.instant.parse(5000), new Map()),
+        transaction.readSnapshot(brandSchemas.instant.parse(5000), buildMockItemRules()),
       );
 
       return {
         received: snapshot,
         expected: {
           storeVersion: 2,
-          items: [{ ...open, derived: { state: 'ready' } }],
+          items: [
+            {
+              ...open,
+              derived: { state: 'ready' },
+              position: { kind: 'phase', phase: 'build', round: 1 },
+            },
+          ],
           relations: [],
           levers: [],
           limits: [{ name: 'workers', max: 2, counts: {}, held: 0 }],
@@ -71,7 +78,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       });
 
       const snapshot = await store.read((transaction) =>
-        transaction.readSnapshot(brandSchemas.instant.parse(5000), new Map()),
+        transaction.readSnapshot(brandSchemas.instant.parse(5000), buildMockItemRules()),
       );
 
       return {
@@ -111,7 +118,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       });
 
       const snapshot = await store.read((transaction) =>
-        transaction.readSnapshot(brandSchemas.instant.parse(5000), new Map()),
+        transaction.readSnapshot(brandSchemas.instant.parse(5000), buildMockItemRules()),
       );
 
       return { received: snapshot.items, expected: [] };
@@ -121,7 +128,11 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
     '#readItem returns null for an unknown item',
     async (store) => {
       const read = await store.read((transaction) =>
-        transaction.readItem(buildMockV1ItemRow().id, brandSchemas.instant.parse(5000), new Map()),
+        transaction.readItem(
+          buildMockV1ItemRow().id,
+          brandSchemas.instant.parse(5000),
+          buildMockItemRules(),
+        ),
       );
 
       return { received: read, expected: null };
@@ -143,7 +154,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       });
 
       const read = await store.read((transaction) =>
-        transaction.readItem(target.id, brandSchemas.instant.parse(5000), new Map()),
+        transaction.readItem(target.id, brandSchemas.instant.parse(5000), buildMockItemRules()),
       );
 
       return { received: read?.derived, expected: { state: 'blocked' } };
@@ -165,37 +176,66 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       });
 
       const read = await store.read((transaction) =>
-        transaction.readItem(target.id, brandSchemas.instant.parse(5000), new Map()),
+        transaction.readItem(target.id, brandSchemas.instant.parse(5000), buildMockItemRules()),
       );
 
       return { received: read?.derived, expected: { state: 'ready' } };
     },
   ],
   [
-    '#readItem derives attempts used up from the max attempts of the kind',
+    '#readItem holds an item whose phase lost its attempts in a row',
+    async (store) => {
+      const item = buildMockV1ItemRow();
+      const first = buildMockV1AttemptRow({ item: item.id, state: 'starting' });
+
+      const second = buildMockV1AttemptRow({
+        item: item.id,
+        state: 'starting',
+        number: 2,
+        leaseGen: 2,
+      });
+
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(buildMockFileItemChange(item));
+
+        for (const attempt of [first, second]) {
+          await transaction.applyChange(buildMockClaimChange(attempt));
+          await transaction.applyChange(buildMockSettleChange({ attempt, state: 'failed' }));
+        }
+      });
+
+      const read = await store.read((transaction) =>
+        transaction.readItem(item.id, brandSchemas.instant.parse(5000), buildMockItemRules()),
+      );
+
+      return {
+        received: { derived: read?.derived, position: read?.position.kind },
+        expected: { derived: { state: 'waiting', reason: 'attempts used up' }, position: 'hold' },
+      };
+    },
+  ],
+  [
+    '#readItem ends an item whose last phase of the pipeline succeeded',
     async (store) => {
       const item = buildMockV1ItemRow();
       const attempt = buildMockV1AttemptRow({ item: item.id, state: 'starting' });
 
-      const phases = new Map([[attempt.phase, 1]]);
-
       await store.exclusive(async (transaction) => {
         await transaction.applyChange(buildMockFileItemChange(item));
         await transaction.applyChange(buildMockClaimChange(attempt));
-        await transaction.applyChange(buildMockSettleChange({ attempt, state: 'failed' }));
+        await transaction.applyChange(buildMockSettleChange({ attempt, state: 'succeeded' }));
       });
 
       const read = await store.read((transaction) =>
-        transaction.readItem(
-          item.id,
-          brandSchemas.instant.parse(5000),
-          new Map([[item.kind, phases]]),
-        ),
+        transaction.readItem(item.id, brandSchemas.instant.parse(5000), buildMockItemRules()),
       );
 
       return {
-        received: read?.derived,
-        expected: { state: 'waiting', reason: 'attempts used up' },
+        received: { derived: read?.derived, position: read?.position },
+        expected: {
+          derived: { state: 'waiting', reason: 'no pull request linked' },
+          position: { kind: 'end', reason: 'pipeline-done' },
+        },
       };
     },
   ],
@@ -207,6 +247,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       const newer = buildMockV1ItemRow({ repo, filedAt: brandSchemas.instant.parse(2000) });
       const idea = buildMockV1ItemRow({ repo, acceptance: [] });
       const elsewhere = buildMockV1ItemRow({ repo: brandSchemas.repoName.parse('acme/fans') });
+      const build = brandSchemas.phaseName.parse('build');
 
       await store.exclusive(async (transaction) => {
         await transaction.applyChange(buildMockFileItemChange(newer));
@@ -219,7 +260,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
         transaction.listItems(
           { state: 'ready', repo },
           brandSchemas.instant.parse(5000),
-          new Map(),
+          buildMockItemRules({ phases: new Map([[build, { needsAcceptance: true }]]) }),
         ),
       );
 
@@ -243,10 +284,19 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       });
 
       const listed: unknown = await store.read((transaction) =>
-        transaction.listOpenIssues(repo, brandSchemas.instant.parse(5000), new Map()),
+        transaction.listOpenIssues(repo, brandSchemas.instant.parse(5000), buildMockItemRules()),
       );
 
-      return { received: listed, expected: [{ ...open, derived: { state: 'ready' } }] };
+      return {
+        received: listed,
+        expected: [
+          {
+            ...open,
+            derived: { state: 'ready' },
+            position: { kind: 'phase', phase: 'build', round: 1 },
+          },
+        ],
+      };
     },
   ],
   [
@@ -279,13 +329,18 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       });
 
       const detail: unknown = await store.read((transaction) =>
-        transaction.readItemDetail(item.id, brandSchemas.instant.parse(5000), new Map()),
+        transaction.readItemDetail(item.id, brandSchemas.instant.parse(5000), buildMockItemRules()),
       );
 
       return {
         received: detail,
         expected: {
-          item: { ...item, derived: { state: 'waiting', reason: 'pull request open' }, levers: [] },
+          item: {
+            ...item,
+            derived: { state: 'waiting', reason: 'pull request open' },
+            position: { kind: 'end', reason: 'pipeline-done' },
+            levers: [],
+          },
           attempts: [expect.objectContaining({ id: attempt.id, state: 'succeeded' })],
           relations: [expect.objectContaining({ source: blocker.id, target: item.id })],
           evidence: [expect.objectContaining({ attempt: attempt.id, kind: 'pull_request' })],
@@ -302,7 +357,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
         transaction.readItemDetail(
           buildMockV1ItemRow().id,
           brandSchemas.instant.parse(5000),
-          new Map(),
+          buildMockItemRules(),
         ),
       );
 

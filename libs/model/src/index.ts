@@ -246,10 +246,7 @@ export type {
   StartOutcome,
   StopOutcome,
   StoreChange,
-  StoreItemView,
-  StoreItemWithLevers,
   StoreReader,
-  StoreSnapshot,
   StoreTx,
   SuspendOutcome,
   TableName,
@@ -259,6 +256,7 @@ export type {
 } from './ports/types.ts';
 
 export type { CostToLand, StageTime } from './reports/types.ts';
+export type { ItemSetRows, ItemWithLevers } from './items/types.ts';
 
 export type {
   Concept,
@@ -266,6 +264,7 @@ export type {
   ConceptName,
   Edge,
   FilterField,
+  ItemRules,
   KindRules,
   LoadedRules,
   LoadRejection,
@@ -293,32 +292,24 @@ export type {
 } from './rules/types.ts';
 
 export type {
-  MaxAttemptsByKind,
-  PoolSlotRow,
   SliceOneAnyNewFact,
   SliceOneAttemptRow,
   SliceOneAttemptSessionRow,
   SliceOneAttemptState,
   SliceOneDecisionRow,
-  SliceOneDerivedAttempt,
-  SliceOneDerivedPullRequest,
   SliceOneDerivedState,
   SliceOneEntityRef,
   SliceOneFacts,
   SliceOneFactType,
   SliceOneForge,
   SliceOneItemRow,
-  SliceOneItemRows,
-  SliceOneItemSetRows,
   SliceOneItemView,
-  SliceOneItemWithLevers,
   SliceOneLeverRow,
   SliceOneLiveAttemptState,
   SliceOneNewFact,
   SliceOnePullRequestReading,
   SliceOnePullRequestRow,
   SliceOneSessionReading,
-  SliceOneSnapshot,
   SliceOneSpawnRequest,
   SliceOneStartOutcome,
   SliceOneWaitingReason,

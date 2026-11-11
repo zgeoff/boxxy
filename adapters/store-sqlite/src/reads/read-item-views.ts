@@ -1,5 +1,5 @@
 import { buildItemViews } from '@boxxy/model';
-import type { Instant, MaxAttemptsByKind, StoreItemWithLevers } from '@boxxy/model';
+import type { Instant, ItemRules, ItemWithLevers } from '@boxxy/model';
 import type { Expression, ExpressionBuilder, Kysely, SqlBool } from 'kysely';
 import { parseStoreRow } from '../codecs/parse-store-row.ts';
 import type { StoreDatabase } from '../types.ts';
@@ -11,8 +11,8 @@ export async function readItemViews(
   db: Kysely<StoreDatabase>,
   scope: ItemScope,
   now: Instant,
-  maxAttemptsByKind: MaxAttemptsByKind,
-): Promise<StoreItemWithLevers[]> {
+  rules: ItemRules,
+): Promise<ItemWithLevers[]> {
   const scoped = db.selectFrom('items').select('id').where(scope);
 
   const blockers = db
@@ -85,7 +85,7 @@ export async function readItemViews(
       pullRequests: pullRequests.map((row) => parseStoreRow('pull_requests', row)),
     },
     now,
-    maxAttemptsByKind,
+    rules,
   );
 
   return views.filter((view) => inScope.has(view.id));

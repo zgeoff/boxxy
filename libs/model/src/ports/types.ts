@@ -1,9 +1,10 @@
 import type { JsonValue } from '@boxxy/content-hash';
 import type { AnyNewFact, OutboxFact } from '../facts/types.ts';
+import type { ItemWithLevers } from '../items/types.ts';
 import type { HoldReason } from '../pipeline/types.ts';
 import type { Limit, LimitFill, SeatRelease, SeatTake, Snapshot } from '../planning/types.ts';
 import type { CostToLand, StageTime } from '../reports/types.ts';
-import type { MaxAttemptsByKind } from '../slice-one/types.ts';
+import type { ItemRules } from '../rules/types.ts';
 import type {
   AgentSessionId,
   AtcSessionId,
@@ -43,41 +44,13 @@ export interface ClaimStore {
   read: <T>(work: (tx: StoreReader) => Promise<T>) => Promise<T>;
 }
 
-// The item as the store reads it: the v1 row with the slice 1 derived state and no position. The
-// engine's slice adds the position, and the reads then take the rules in place of the maximum
-// attempts of each kind.
-export type StoreItemView = Omit<ItemView, 'position'>;
-
-export interface StoreItemWithLevers extends StoreItemView {
-  readonly levers: readonly LeverRow[];
-}
-
-export interface StoreSnapshot extends Omit<Snapshot, 'items'> {
-  readonly items: readonly StoreItemView[];
-}
-
+// The item reads derive each item's position and state at `now`, from its rows and the rules given.
 export interface StoreReader extends OutboxReader {
-  readSnapshot: (now: Instant, maxAttemptsByKind: MaxAttemptsByKind) => Promise<StoreSnapshot>;
-  readItem: (
-    id: ItemId,
-    now: Instant,
-    maxAttemptsByKind: MaxAttemptsByKind,
-  ) => Promise<StoreItemView | null>;
-  readItemDetail: (
-    id: ItemId,
-    now: Instant,
-    maxAttemptsByKind: MaxAttemptsByKind,
-  ) => Promise<ItemDetailRows | null>;
-  listItems: (
-    filter: ItemFilter,
-    now: Instant,
-    maxAttemptsByKind: MaxAttemptsByKind,
-  ) => Promise<StoreItemWithLevers[]>;
-  listOpenIssues: (
-    repo: RepoName,
-    now: Instant,
-    maxAttemptsByKind: MaxAttemptsByKind,
-  ) => Promise<StoreItemView[]>;
+  readSnapshot: (now: Instant, rules: ItemRules) => Promise<Snapshot>;
+  readItem: (id: ItemId, now: Instant, rules: ItemRules) => Promise<ItemView | null>;
+  readItemDetail: (id: ItemId, now: Instant, rules: ItemRules) => Promise<ItemDetailRows | null>;
+  listItems: (filter: ItemFilter, now: Instant, rules: ItemRules) => Promise<ItemWithLevers[]>;
+  listOpenIssues: (repo: RepoName, now: Instant, rules: ItemRules) => Promise<ItemView[]>;
 
   // 0 when the item phase has no lease
   readLastLeaseGen: (item: ItemId, phase: PhaseName) => Promise<number>;
@@ -148,7 +121,7 @@ export interface OutboxReader {
 }
 
 export interface ItemDetailRows {
-  readonly item: StoreItemWithLevers;
+  readonly item: ItemWithLevers;
   readonly attempts: readonly AttemptRow[];
   readonly relations: readonly RelationRow[];
   readonly evidence: readonly EvidenceRow[];

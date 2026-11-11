@@ -1,6 +1,6 @@
 import { formatCanonicalJson } from '@boxxy/content-hash';
 import { brandSchemas, limitSeatRowSchema, outboxFactSchema, toJSONValue } from '@boxxy/model';
-import type { StoreItemView, StoreItemWithLevers, StoreReader } from '@boxxy/model';
+import type { ItemView, ItemWithLevers, StoreReader } from '@boxxy/model';
 import type { Kysely } from 'kysely';
 import { parseJSONText } from '../codecs/parse-json-text.ts';
 import { parseStoreRow } from '../codecs/parse-store-row.ts';
@@ -12,12 +12,12 @@ import { readWakes } from './read-wakes.ts';
 
 export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
   return {
-    readSnapshot: async (now, maxAttemptsByKind) => {
+    readSnapshot: async (now, rules) => {
       const views = await readItemViews(
         db,
         (builder) => builder('closed_at', 'is', null),
         now,
-        maxAttemptsByKind,
+        rules,
       );
 
       const open = views.filter((item) => isOpen(item));
@@ -47,25 +47,15 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         wakes: await readWakes(db),
       };
     },
-    readItem: async (id, now, maxAttemptsByKind) => {
-      const views = await readItemViews(
-        db,
-        (builder) => builder('id', '=', id),
-        now,
-        maxAttemptsByKind,
-      );
+    readItem: async (id, now, rules) => {
+      const views = await readItemViews(db, (builder) => builder('id', '=', id), now, rules);
 
       const item = views.at(0);
 
       return item === undefined ? null : toItemView(item);
     },
-    readItemDetail: async (id, now, maxAttemptsByKind) => {
-      const views = await readItemViews(
-        db,
-        (builder) => builder('id', '=', id),
-        now,
-        maxAttemptsByKind,
-      );
+    readItemDetail: async (id, now, rules) => {
+      const views = await readItemViews(db, (builder) => builder('id', '=', id), now, rules);
 
       const item = views.at(0);
 
@@ -125,21 +115,21 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         notes: notes.map((row) => parseStoreRow('notes', row)),
       };
     },
-    listItems: async (filter, now, maxAttemptsByKind) => {
+    listItems: async (filter, now, rules) => {
       const repo = filter.repo;
 
       const views = await readItemViews(
         db,
         (builder) => (repo === undefined ? builder.lit(true) : builder('repo', '=', repo)),
         now,
-        maxAttemptsByKind,
+        rules,
       );
 
       return views.filter(
         (item) => filter.state === undefined || item.derived.state === filter.state,
       );
     },
-    listOpenIssues: async (repo, now, maxAttemptsByKind) => {
+    listOpenIssues: async (repo, now, rules) => {
       const views = await readItemViews(
         db,
         (builder) =>
@@ -149,7 +139,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
             builder('closed_at', 'is', null),
           ]),
         now,
-        maxAttemptsByKind,
+        rules,
       );
 
       return views.filter((item) => isOpen(item)).map((item) => toItemView(item));
@@ -473,11 +463,11 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
   };
 }
 
-function isOpen(item: StoreItemView): boolean {
+function isOpen(item: ItemView): boolean {
   return item.derived.state !== 'done' && item.derived.state !== 'archived';
 }
 
-function toItemView(item: StoreItemWithLevers): StoreItemView {
+function toItemView(item: ItemWithLevers): ItemView {
   const { levers: _levers, ...view } = item;
 
   return view;

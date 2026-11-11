@@ -1,6 +1,7 @@
 import { brandSchemas } from '@boxxy/model';
 import type { Criterion } from '@boxxy/model';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
+import { buildMockItemRules } from '@boxxy/model/test-utils/build-mock-item-rules';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import { buildMockV1ItemRow } from '@boxxy/model/test-utils/build-mock-v1-item-row';
 import { buildMockClaimChange } from './build-mock-claim-change.ts';
@@ -87,7 +88,7 @@ export const claimStoreCopyCases: readonly ClaimStoreCase[] = [
       });
 
       const reread = await store.read((transaction) =>
-        transaction.readItem(item.id, brandSchemas.instant.parse(5000), new Map()),
+        transaction.readItem(item.id, brandSchemas.instant.parse(5000), buildMockItemRules()),
       );
 
       return {

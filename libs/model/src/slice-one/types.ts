@@ -6,7 +6,6 @@ import type {
   AgentSessionId,
   AtcSessionId,
   AttemptId,
-  AttemptRow,
   CommitSha,
   Criterion,
   CriterionId,
@@ -19,22 +18,19 @@ import type {
   ItemId,
   ItemKindName,
   ItemState,
-  LeaseRow,
   LeverKind,
   ObservationBoundary,
   PhaseName,
   PoolName,
   PullRequestRef,
   RecipeHash,
-  RelationRow,
   RepoName,
   RulesVersion,
   RunnerId,
   SnapshotHash,
 } from '../types.ts';
 
-// The slice 1 forms of the shapes that v1 replaces. The store, the memory store and planning
-// still read and write these; each later slice moves its package to the v1
+// The slice 1 forms of the shapes that v1 replaces. Each later slice moves its package to the v1
 // shape and deletes the form it no longer needs.
 
 export interface SliceOneItemRow {
@@ -63,46 +59,6 @@ export type SliceOneDerivedState =
 export interface SliceOneItemView extends SliceOneItemRow {
   readonly derived: SliceOneDerivedState;
 }
-
-export interface SliceOneItemWithLevers extends SliceOneItemView {
-  readonly levers: readonly SliceOneLeverRow[];
-}
-
-// The fields of an attempt and of a pull request that the slice 1 item state reads, so that the
-// v1 rows of the store derive it too.
-export type SliceOneDerivedAttempt = Pick<AttemptRow, 'id' | 'item' | 'state' | 'endedAt'>;
-
-export type SliceOneDerivedPullRequest = Pick<SliceOnePullRequestRow, 'attempt' | 'state'>;
-
-export interface SliceOneItemRows {
-  // live relations whose target is the item
-  readonly relations: readonly RelationRow[];
-  readonly blockerStates: ReadonlyMap<ItemId, ItemState>;
-  readonly levers: readonly SliceOneLeverRow[];
-  readonly attempts: readonly SliceOneDerivedAttempt[];
-  readonly liveLease: LeaseRow | null;
-  readonly pullRequests: readonly SliceOneDerivedPullRequest[];
-
-  // the kind's `maxAttempts` for the item's current phase
-  readonly maxAttempts: number;
-}
-
-// the rows a store reads to derive the state of a set of items, with each blocking source item
-export interface SliceOneItemSetRows<
-  Item extends SliceOneItemRow = SliceOneItemRow,
-  Lever extends SliceOneLeverRow = SliceOneLeverRow,
-> {
-  readonly items: readonly Item[];
-
-  // live relations only
-  readonly relations: readonly RelationRow[];
-  readonly levers: readonly Lever[];
-  readonly attempts: readonly SliceOneDerivedAttempt[];
-  readonly liveLeases: readonly LeaseRow[];
-  readonly pullRequests: readonly SliceOneDerivedPullRequest[];
-}
-
-export type MaxAttemptsByKind = ReadonlyMap<ItemKindName, ReadonlyMap<PhaseName, number>>;
 
 export interface SliceOneLeverRow {
   readonly seq: number;
@@ -189,14 +145,6 @@ export interface SliceOneAttemptSessionRow {
   readonly seenAt: Instant;
 }
 
-export interface PoolSlotRow {
-  readonly pool: PoolName;
-  readonly slot: number;
-  readonly holder: AttemptId | null;
-  readonly gen: number;
-  readonly retired: boolean;
-}
-
 export interface SliceOneDecisionRow {
   readonly id: DecisionId;
   readonly attempt: AttemptId;
@@ -218,16 +166,6 @@ export interface SliceOnePullRequestRow {
   readonly mergedAt: Instant | null;
   readonly mergeCommit: CommitSha | null;
   readonly checkedAt: Instant;
-}
-
-export interface SliceOneSnapshot {
-  storeVersion: number;
-
-  // every item not yet done and not archived, with its state derived at the read's `now`
-  items: SliceOneItemView[];
-  relations: RelationRow[];
-  levers: SliceOneLeverRow[];
-  freeSlots: Record<PoolName, number>;
 }
 
 export type SliceOneEntityRef =
