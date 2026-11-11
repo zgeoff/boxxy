@@ -12,10 +12,15 @@
   },
   "dependencies": {
     "@boxxy/cli": "workspace:*",
+    "@boxxy/closeout": "workspace:*",
     "@boxxy/contract": "workspace:*",
+    "@boxxy/dispatch": "workspace:*",
     "@boxxy/model": "workspace:*",
+    "@boxxy/pepys": "workspace:*",
     "@boxxy/rules": "workspace:*",
     "@boxxy/server": "workspace:*",
+    "@boxxy/store-sqlite": "workspace:*",
+    "tiny-invariant": "catalog:",
     "zod": "catalog:"
   },
   "engines": {
