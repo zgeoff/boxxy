@@ -297,8 +297,9 @@ export async function runAttemptCloseOut(env: Record<string, string | undefined>
 
 // ── 6. Tests ───────────────────────────────────────────────────────────────────────────────────
 //
-// These tests predate the procedure name `item.wake` (../edge/01-api.ts, which decides procedure
-// names). Where a test calls `rpc['attempt.wake']`, the procedure is `item.wake`.
+// The built tests are in modules/dispatch/src, beside the code each one calls, on the memory
+// store, the fake worker and the fake clock (`createTestDispatch`). Clock moves below are in
+// minutes.
 
 // libs/model/src/pipeline/find-position.test.ts. Pure: a pipeline and settled attempts. No store.
 test('it sends the item back to build with round 2 after a review that requests changes', () => {
@@ -361,7 +362,7 @@ test('it settles a closing attempt whose session does not stop, and frees its se
 
   await rpc['attempt.closeOut']({ session: { attempt: attempt.id } /* the test client's fake `CallerProof` gives the attempt's caller */, closeOut: buildMockDesignCloseOut() });
   worker.failAlways('stop', { kind: 'unknown', reason: 'host_leased' });
-  clock.advance(timeouts.closingGiveUp + 1);
+  clock.advance(timeouts.closingGiveUpMinutes + 1);
   await tick();
 
   const settled = await readAttempt(attempt.id);
@@ -382,7 +383,7 @@ test('it sleeps a waiting attended session and wakes it with the same atc sessio
   expect((await readAttempt(attempt.id)).state).toBe('sleeping');
   expect(await heldSeats(attempt.id)).toEqual([]);
 
-  await rpc['attempt.wake']({ item: attempt.item });
+  await rpc['item.wake']({ item: attempt.item });
   await tick(); // the claim takes the seats, then the runner resumes the session
   await tick(); // the reading confirms it
 
@@ -471,7 +472,7 @@ test('it ends the tick and reads every live attempt when the host refuses a wake
 
   worker.setSession(other.id, { state: 'ended', agentSession: 'agent-session-2' });
   worker.failAlways('resume', { kind: 'refused', cause: 'capacity', reason: 'no free imp slot' });
-  await rpc['attempt.wake']({ item: asleep.item });
+  await rpc['item.wake']({ item: asleep.item });
   await tick(); // must return
 
   expect(worker.calls.filter((call) => call.method === 'resume')).toHaveLength(1); // one try in the tick

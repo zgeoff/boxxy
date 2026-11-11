@@ -42,6 +42,7 @@ import { hashCanonical } from '@boxxy/content-hash';
 //   item-closed        starting, reconciling, running, waking    closing      clears the mark and the wake request; the fact is `boxxy.item.closed`
 //   turn-ended         running, mode `agent`                     closing      `turn_ended`
 //   stalled            running, mode `agent`                     closing      no fact of its own; `settled` carries the cause
+//   usage-limited      running                                   closing      no fact of its own; `settled` carries the cause
 //   skill-missing      starting, reconciling, running            closing      no fact of its own; `settled` carries the cause
 //   suspend-asked      running, no mark                          (same)       the mark; no fact
 //   suspend-refused    running, mark                             (same)       clears the mark and any wake request; no fact
@@ -137,21 +138,28 @@ export function buildAttemptChange(input: { attempt: AttemptRow | null; event: A
   throw new Error('not implemented'); // the table above
 }
 
-// ── B. The reconcile table (modules/dispatch/src/pick-reading-action.ts) ───────────────────────
+// ── B. The reconcile table (modules/dispatch/src/readings/pick-reading-action.ts) ──────────────
 //
 // This is the only table for a reading. The build removes the runner table of
 // docs/design/boxxy/slice-1.md from the existing code and follows this one. `mark` is
-// `suspendRequestedAt !== null`. `waits` is `readWaitingSince(attempt, reading) !== null`.
+// `suspendRequestedAt !== null`. `waits` is `findWaitingSince(...) !== null`. The build holds
+// the table as data, `readingTable`: one function per cell, read cell by cell against this one.
+// `actOnReading` (readings/act-on-reading.ts) carries out the action the cell gives.
 //
 //   reading \ state   starting,       running                      sleeping            waking           closing
 //                     reconciling
 //   ────────────────  ──────────────  ───────────────────────────  ──────────────────  ───────────────  ─────────────────
-//   running           move-to-        mark: clear-mark             no request:         move-to-running  stop (2), or
-//                     running         agent mode, past the         request-wake        (resume)         give-up settle (3)
-//                                       timeout: close (timed-out) else, 2 ticks on:
-//                                     agent mode, turn-ended:      wake-over-cap (1)
+//   running           move-to-        the bounds, in this order:   no request:         move-to-running  stop (2), or
+//                     running         mark: clear-mark             request-wake        (resume)         give-up settle (3)
+//                                     usage limit: close (10)      else, 10 s on:
+//                                     agent mode, past the         wake-over-cap (1)
+//                                       timeout: close (timed-out)
+//                                     agent mode, turn-ended:
 //                                       close (turn-ended)
 //                                     waits: sleep-if-idle (8)
+//                                     agent mode, stall (9)
+//                                     attended, unattended:
+//                                       sleep-unattended
 //                                     else: bind-only
 //   suspended         sleep (4)       sleep (4)                    nothing             resume (5)       settle
 //   ended             settle          mark: sleep; else settle     nothing             resume (5)       settle
@@ -160,18 +168,20 @@ export function buildAttemptChange(input: { attempt: AttemptRow | null; event: A
 //
 //   (1) The session runs while its attempt holds no seat: the owner revived it in atc. The first
 //       such reading writes the wake request, and the next claim seats the attempt when a seat is
-//       free. When the attempt still sleeps `timeouts.seatlessTicks` later, no seat was free.
+//       free. When the attempt still sleeps `timeouts.seatlessSeconds` (10, two ticks of the
+//       runner's loop) after the request, no seat was free.
 //       boxxy does not stop the session. The attempt wakes over the cap (`woken` with
 //       `overCap: true`), the limit counts it, and `claimNext` starts no new work in that pool
 //       until the count is back at or under the max.
 //   (2) Not while the agent is inside a turn, until `timeouts.stopGraceSeconds` after `closingAt`,
 //       so the agent can tell the owner that the close-out went in.
-//   (3) `timeouts.closingGiveUp` after `closingAt`: section D.
+//   (3) `timeouts.closingGiveUpMinutes` after `closingAt`: section D.
 //   (4) Releases the seats. With `asked: false` and no mark, it also writes a wake request
 //       (`host-slept-unasked`), so a host that slept across a restart of atc comes back alone.
-//   (5) Calls `resumeClaim` again. `timeouts.resumeLost` after `wokenAt`: settle, `resume-lost`.
-//   (6) Sends the stored spawn request again. `timeouts.spawnLost` after the claim: settle,
-//       `spawn-lost`.
+//   (5) Calls `resumeClaim` again. `timeouts.resumeLostMinutes` after `wokenAt`: settle,
+//       `resume-lost`.
+//   (6) Sends the stored spawn request again. `timeouts.spawnLostMinutes` after the claim:
+//       settle, `spawn-lost`.
 //   (7) Not for an attempt that entered `closing` before any session was seen (cause
 //       `item-closed`, `atcSession` null): its spawn may still land. That attempt gives
 //       `await-spawn`: no respawn and no settle. See section D.
@@ -184,14 +194,30 @@ export function buildAttemptChange(input: { attempt: AttemptRow | null; event: A
 //   (9) The stall rule, a cell of `running` × `running`, agent mode only. The
 //       reading's `lastActivityAt` is `timeouts.stallMinutes` (30) old: close (stalled). The
 //       runner stops the session and the attempt settles as `failed`, `stalled`, which counts
-//       against `maxAttempts`. It is checked after the step timeout and before `bind-only`, and
-//       whatever the attention is. It does not apply to attended mode: such a session sleeps
-//       (the quiet rule). It is the floor under the step timeout, which can be hours.
+//       against `maxAttempts`. It is checked after `waits` and before `bind-only`, whatever the
+//       attention is. It does not apply to attended mode: such a session sleeps (the quiet
+//       rule). It is the floor under the step timeout, which can be hours.
+//       The tie: an agent-mode session that asks for input and then shows no activity meets
+//       the idle sleep and the stall at the same instant, 30 minutes after `lastActivityAt`.
+//       `waits` comes first, so the session sleeps. With the stall first, no agent-mode session
+//       could ever sleep idle. With no agent session ID (8), `waits` gives nothing and the
+//       stall rule stops the session.
+//   (10) The usage limit. The worker port reports it on the reading: `usageLimitResetsAt` is
+//       the time at which the account's limit resets, or null. A reading with a time gives
+//       close (usage-limit), in any mode, before every other bound: the session can do no more
+//       work. The attempt moves to `closing` (`usage-limited`), the runner stops the session,
+//       and it settles as `failed`, `usage-limit`, which does not count against
+//       `maxAttempts`. `actOnReading` holds the attempt's pool back until that time, or
+//       `timeouts.usageLimitBackoffHours` (24) when the reading has none. The reading decides
+//       because the runner reads every live session on every tick; a session at the limit sends
+//       no close-out, and telemetry reaches boxxy only through pepys. Not checked: what atc
+//       reports for a session that hit the limit (v1-open.md).
 //
 // A `running` attempt whose session reads `running` is
 // `bind-only` only inside a bound that the rules set. The bounds, by mode:
-//   agent     `step.timeoutMinutes`, which every step must set. Past it: close (timed-out), stop,
-//             settle as `failed`, `timed-out`. The settle frees the `workers` seat.
+//   agent     `step.timeoutMinutes`, which every step must set, counted from the later of
+//             `startedAt` and `wokenAt`. Past it: close (timed-out), stop, settle as `failed`,
+//             `timed-out`. The settle frees the `workers` seat.
 //   attended  `waits` is also true when the reading is `working` and `lastActivityAt` is
 //             `sleep.afterQuietMinutes` old. Then: sleep-if-idle, which sleeps at once, because the
 //             quiet time is at or above the idle time. The sleep frees the `workers` seat and the
@@ -251,6 +277,19 @@ export function pickReadingAction(input: { attempt: AttemptRow; reading: Session
 //   3. `suspended`: `slept` (release-seats). `refused`: `suspend-refused`. `unknown`: keep the
 //      mark; the next reading decides (`running` clears it, `suspended` or `ended` sleeps).
 //
+// The crash windows. Each step is its own store change or worker call, so a crash can land
+// between two of them. The next reading finishes the sleep, and no window loses a seat or
+// strands an attempt:
+//   after 1, before 2   the mark is set and the session still runs. The `running` reading gives
+//                       clear-mark (the first bound); the tick after that checks the bounds
+//                       again and may start a new sleep. The seats stay held throughout.
+//   inside 2            the suspend may or may not have reached atc; the same as `unknown`.
+//   after 2, before 3   the session is stopped and the mark is set. The `suspended` reading
+//                       gives `sleep` with no wake request (the mark says boxxy asked), and
+//                       `ended` on a running attempt with the mark gives `sleep` too.
+// A close-out in any window wins: `closed-out` clears the mark, and the `slept` of step 3 then
+// finds the attempt in `closing` and is refused as `not-allowed`.
+//
 // The wake is ONE mechanism. Every source below ends in `requestWake`; nothing
 // else wakes an attempt. An optional atc hook on the owner's attach that runs `boxxy item wake`
 // is source a again, not a fourth path.
@@ -263,18 +302,16 @@ export function pickReadingAction(input: { attempt: AttemptRow; reading: Session
 // take-seats), and only then `resumeClaim` calls `worker.resume`. The store section of
 // 02-types.ts says how the store takes the seats; planning.md holds the rules of `decide`.
 // One case leaves that order. The owner revived the session in atc and no seat
-// came free in `timeouts.seatlessTicks`: `actOnReading` applies `woken` with `overCap: true`
+// came free in `timeouts.seatlessSeconds`: `actOnReading` applies `woken` with `overCap: true`
 // (`wake-over-cap`). The session already runs, so no `worker.resume` call follows; the next
 // reading gives `move-to-running`. The limit counts the seat, so it can read `held` above `max`.
 // The `woken` fact then carries `overCap: true`, and the decision row records the limit's count
-// and `max` at that moment.
-//
-// This sketch does not list the crash windows of the sleep's three steps (a crash between the
-// mark, the worker call and `slept`). The build works them out.
+// and `max` at that moment. The limits the over-cap wake counts are those whose `counts` filter
+// matches the attempt's fields (`isFilterMatch` from @boxxy/model), the same match `decide` uses.
 
 // ── D. Close-out, closing, stop, give-up, settle ───────────────────────────────────────────────
 //
-// modules/dispatch/src/close-out-attempt.ts. One row per case:
+// modules/dispatch/src/closeouts/close-out-attempt.ts. One row per case:
 //
 //   case                                               answer                       writes
 //   any body, for an attempt that is not the CURRENT   refused: not-current         nothing   checked first
@@ -297,10 +334,10 @@ export function pickReadingAction(input: { attempt: AttemptRow; reading: Session
 //     text carries one. A kept session reads it again after its resume and gets the new ID.
 //   - The edge proves WHO calls (its `CallerProof` port, ../edge/01-api.ts) and passes the
 //     proven `CallerIdentity` and the atc session it found for it. No secret per attempt.
-//   - The core checks them in `findCallAttempt`, below. "Current" is: the attempt's
+//   - The core checks them in `pickCallAttempt`, below. "Current" is: the attempt's
 //     `atcSession` is the calling session, AND the attempt is the latest one that session carries.
 //   - AND the current attempt's OWN `caller` equals the proven caller. A null `caller` on the
-//     current attempt is a refusal, with no write (`findCallAttempt` answers `no-attempt` for
+//     current attempt is a refusal, with no write (`pickCallAttempt` answers `no-attempt` for
 //     a caller that does not match). A match against any attempt row of the session is not
 //     enough: a kept session whose first attempt holds a caller and whose second holds none
 //     would then get a write on the second.
@@ -313,7 +350,7 @@ export function pickReadingAction(input: { attempt: AttemptRow; reading: Session
 //     the current one. A settled attempt that is still the latest of its session keeps that
 //     repeat answer, and any other body gets `not-current`.
 //   - `closeOutAttempt`, `attempt.evidence`, the pull request link and `attempt.bindSession`
-//     (the session-start hook) all go through `findCallAttempt`. `attempt.current` does not: it
+//     (the session-start hook) all go through `pickCallAttempt`. `attempt.current` does not: it
 //     names no attempt and writes nothing. A session that still holds the ID of its first
 //     attempt (it did not read `attempt.current` again) gets `not-current` on every write.
 //   - Why the request names the attempt: `tx.findAttemptBySession` gives the LATEST attempt of
@@ -330,13 +367,12 @@ export function pickReadingAction(input: { attempt: AttemptRow; reading: Session
 // close-out always fits one outbox item (`factBytes`, 262,144; the numbers are in 02-types.ts,
 // `closeOutLimits`).
 
-// modules/dispatch/src/attempts/find-call-attempt.ts (a file the build adds). The one check of
-// every call from inside a session. It reads inside the caller's lock. `session` is what the
-// edge resolved from the caller's identity, never a value from the request body.
-export async function findCallAttempt(tx: StoreReader, call: CallRef): Promise<{ kind: 'attempt'; attempt: AttemptRow } | { kind: 'refused'; reason: 'no-attempt' | 'not-current' }> {
+// modules/dispatch/src/attempts/pick-call-attempt.ts. The one check of every call from inside a
+// session. It is pure: the caller reads `latest = tx.findAttemptBySession(call.session)` inside
+// its own lock and passes it in. `session` is what the edge resolved from the caller's identity,
+// never a value from the request body.
+export function pickCallAttempt(latest: AttemptRow | null, call: CallRef): { kind: 'attempt'; attempt: AttemptRow } | { kind: 'refused'; reason: 'no-attempt' | 'not-current' } {
   // the session carries no attempt at all: boxxy never started it, or the start is not recorded yet
-  const latest = await tx.findAttemptBySession(call.session);
-
   if (latest === null) {
     return { kind: 'refused', reason: 'no-attempt' };
   }
@@ -362,7 +398,7 @@ export async function findCallAttempt(tx: StoreReader, call: CallRef): Promise<{
 declare function isSameCaller(recorded: CallerIdentity | null, proven: CallerIdentity): boolean;
 
 // What `attempt.current` reads. It names no attempt, so it cannot use
-// `findCallAttempt`; it makes the same caller check on the latest attempt of the session.
+// `pickCallAttempt`; it makes the same caller check on the latest attempt of the session.
 export async function findCurrentAttempt(tx: StoreReader, call: Omit<CallRef, 'attempt'>): Promise<AttemptRow | null> {
   const latest = await tx.findAttemptBySession(call.session);
 
@@ -373,7 +409,7 @@ export function closeOutAttempt(input: CloseOutInput): Promise<CloseOutAnswer> {
   return input.store.exclusive(async (tx) => {
     // The named attempt, checked against the calling session, inside the lock. Never the latest
     // attempt of the session whatever the request is for.
-    const found = await findCallAttempt(tx, input.call);
+    const found = pickCallAttempt(await tx.findAttemptBySession(input.call.session), input.call);
 
     if (found.kind === 'refused') {
       return found;
@@ -381,7 +417,9 @@ export function closeOutAttempt(input: CloseOutInput): Promise<CloseOutAnswer> {
 
     const attempt = found.attempt;
 
-    const hash = hashCanonical(input.body); // the body only: the phase is the attempt's
+    // the body only: the phase is the attempt's. A body with no canonical JSON form (a lone
+    // surrogate in a string) has no hash, and is `rejected` with a `schema` problem.
+    const hash = hashCanonical(input.body);
 
     if (attempt.closeOutHash === hash && attempt.closeOutFact !== null) {
       return { kind: 'recorded', attempt: attempt.id, factId: attempt.closeOutFact, repeat: true };
@@ -426,7 +464,7 @@ export function closeOutAttempt(input: CloseOutInput): Promise<CloseOutAnswer> {
 // session and no host. After the settle, cleanup forgets the stopped session (section H).
 //
 // The give-up rule. A `closing` attempt whose session still reads `running`
-// `timeouts.closingGiveUp` (10 minutes) after `closingAt` settles anyway:
+// `timeouts.closingGiveUpMinutes` (10) after `closingAt` settles anyway:
 //   - by its cause, as any other closing attempt (a closed-out one by its close-out);
 //   - with `sessionStopped: false`, which sets `strayedAt` and is on the `settled` fact;
 //   - its seats and its lease are released, so the item and the limit are not held for ever.
@@ -437,7 +475,7 @@ export function closeOutAttempt(input: CloseOutInput): Promise<CloseOutAnswer> {
 //     spawn request.
 //   - the session appears (`running`, by its spawn name, or a late `started` answer): the event
 //     `started` records its id, and the `closing` column stops it, with no grace. Then settle.
-//   - still `absent` at `timeouts.spawnLost` after the claim: settle as `failed`, `item-closed`,
+//   - still `absent` at `timeouts.spawnLostMinutes` after the claim: settle as `failed`, `item-closed`,
 //     with `sessionStopped: false`. That sets `strayedAt`. The stray loop below then reads the
 //     session by its spawn name for `timeouts.strayHours`, stops one that appears late, and
 //     `runner.status` lists the attempt as a stray until then.
@@ -445,7 +483,8 @@ export function closeOutAttempt(input: CloseOutInput): Promise<CloseOutAnswer> {
 //
 // The session may still run. The runner keeps sending `stop` to each stray session every tick for
 // `timeouts.strayHours`, writes `stray-stopped` when a reading shows it stopped, and
-// `runner.status` lists every stray session. Until then one more session than `workers.max` can
+// `runner.status` lists every stray session. Not built in modules/dispatch: the stray loop
+// belongs to the runner's tick, which a later slice adds; the event `stray-stopped` is built. Until then one more session than `workers.max` can
 // run. The alternative holds the seat and the lease until someone stops the session by hand.
 
 // `item.close` ends the item's live attempts (modules/dispatch/src/attempts/end-item-attempts.ts).
@@ -476,10 +515,10 @@ export function closeOutAttempt(input: CloseOutInput): Promise<CloseOutAnswer> {
 //     The effect runs only under rules that map such an outcome to `{ end: … }`.
 //   - The item is archived, so the `lost` outcome moves nothing.
 //
-// modules/dispatch/src/settle-attempt.ts. One `exclusive` call, one change.
+// modules/dispatch/src/closeouts/settle-attempt.ts. One `exclusive` call, one change.
 // No step of it throws on stored data. Only a store error (such as SQLITE_BUSY) leaves
 // it, and the next tick tries again. The give-up rule calls this same function.
-export function settleAttempt(input: SettleAttemptInput): Promise<ApplyResult> {
+export function settleAttempt(input: SettleAttemptInput): Promise<MoveResult> {
   return input.store.exclusive(async (tx) => {
     const attempt = await tx.readAttempt(input.attempt);
     const snapshot = await tx.readSnapshot(input.now, input.rules);
@@ -503,15 +542,26 @@ export function settleAttempt(input: SettleAttemptInput): Promise<ApplyResult> {
         : trySettle(input.rules, { attempt, item, closeOut: attempt.closeOut, now: input.now });
     const returnedOutcome = readReturnedOutcome(settlement); // null unless `trySettle` set it
 
-    // 3. Plan each effect with its handler. This sketch does not show the effect handlers; the
-    //    build designs them. A refused effect is skipped and listed. So is one whose handler
-    //    throws.
+    // 3. Plan each effect with its handler (closeouts/effect-handlers.ts, `effectHandlers`: one
+    //    pure handler per effect kind). A handler takes the effect and an `EffectContext` (the
+    //    attempt, its item, the rules, the item's live relations, the actor, now and the id
+    //    source) and returns an `EffectPlan`: `apply` with its row writes and facts, or `skip`
+    //    with a reason. A handler that throws gives `skip` too. Every skip is listed in the
+    //    `settled` fact's `skippedEffects`.
+    //    `file-item` entries are first deduped (`dedupeOpenItems` from @boxxy/closeout) against
+    //    the item's repo's open issues: a matched title files nothing and is listed in
+    //    `matched`. `close-item` plans last, so the other effects see the item still open. A
+    //    `duplicate` close adds the `duplicate-of` relation in the same plan.
     //    When the rules map this outcome to a `{ hold: reason }` edge, the item holds for the
     //    owner, and the close-out is kept on the row. This is the one place where settle reads
     //    an edge; it stores no position.
-    //    The hold withholds every effect that CHANGES AN ITEM:
-    //    `close-item`, the relations, and `set` (kind, design mode, acceptance). Friction still
-    //    records (`record-proposal`), because it is a fact about the attempt only.
+    //    The hold withholds every effect that CHANGES AN ITEM, each listed as a skip with the
+    //    reason `the item holds for the owner`: `close-item`, `add-relation`, `set-kind`,
+    //    `set-field` and `set-acceptance`. `file-item` still files (a new item, not this one),
+    //    and friction still records (`record-proposal`), because it is a fact about the
+    //    attempt only.
+    //    The `settled` fact's `criteria` lists the evidence that an applied `set-acceptance`
+    //    added.
     const held = isHoldEdge(findEdge(input.rules, item, attempt.phase, settlement.outcome));
     const plans = settlement.effects
       .filter((effect) => !held || !changesItem(effect))
@@ -524,7 +574,10 @@ export function settleAttempt(input: SettleAttemptInput): Promise<ApplyResult> {
     //    and facts to the same change (section A).
     const built = buildAttemptChange({ attempt, event: { kind: 'settled', ...settlement, returnedOutcome, sessionStopped: input.sessionStopped, ...readSettledReport(plans) }, actor: input.actor, now: input.now, newId: input.newId });
 
-    return built.kind === 'change' ? tx.applyChange(built.change) : { kind: 'guard-mismatch', table: 'attempts', key: { id: attempt.id } };
+    // 5. When the item holds after the settle, a second change in the same lock writes the
+    //    hold's notice row (section H). The settle change applied first, so a refused settle
+    //    writes no notice.
+    return built.kind === 'change' ? toMoveResult(await tx.applyChange(built.change)) : { kind: 'not-allowed' };
   });
 }
 
@@ -682,7 +735,7 @@ export function findPosition(input: { pipeline: Pipeline | null; attempts: reado
 //   - The alternative stores the decision at each settle, so a rules change moves no old item
 //     and a mistake in the rules needs a retry lever per item to undo.
 
-// ── F. The claim (modules/dispatch/src/claim-next.ts) ──────────────────────────────────────────
+// ── F. The claim (modules/dispatch/src/claims/claim-next.ts) ───────────────────────────────────
 // `claimNext` picks with `decide` and writes the claim inside one lock. The store section of
 // 02-types.ts says how the store takes the seats; planning.md holds the rules of `decide`. Inside that lock
 // the claim also sets:
@@ -690,6 +743,12 @@ export function findPosition(input: { pipeline: Pipeline | null; attempts: reado
 //   input   `phase.input({ item, history, pullRequests })`: for a build of round 2, the findings
 //           of the review that sent the item back. Stored on the row and rendered into the prompt.
 //   mode    `phase.mode?.(item) ?? 'agent'`. Stored on the row. Picks the recipe `<phase>/attended`.
+//   spawn   the spawn request, named `boxxy/<attempt id>` with the attempt ID as its idempotency
+//           key, so the `claimed` event carries the new attempt's ID. Stored on the row as JSON;
+//           a respawn parses it back with `spawnRequestSchema` from @boxxy/model.
+//   hash    the decision's `snapshotHash` is the content hash of `{ snapshot, backoff }`: the
+//           pools in backoff are an input of `decide` that the store does not hold, so a replay
+//           needs them to give the same pick.
 //
 // No new work past the cap. A limit can read `held` above `max` after an over-cap
 // wake (section C). `decide` gives a start pick or a wake pick only when every limit that
@@ -711,13 +770,15 @@ export function findPosition(input: { pipeline: Pipeline | null; attempts: reado
 //                                 go back with the settle, and `boxxy.attempt.settled` follows
 //                                 the `claimed` fact. No count against `maxAttempts`; the item
 //                                 is ready again. The pool of the attempt backs off for
-//                                 `timeouts.capacityBackoff` (60 s).
+//                                 `timeouts.capacityBackoffSeconds` (60).
 //   refused, any other cause      settle, forced `spawn-refused` (bad request, unknown target,
 //                                 auth, worker folder not trusted). Counts against `maxAttempts`.
 //
 //   Before that table, the kept session. When the item has a `keptSession` and the
 //   claim came through an edge with `resume: true`, `startClaim` calls `worker.resumeKept`
-//   in place of `worker.start` (section H):
+//   in place of `worker.start` (section H). As built, the claim already copies the kept
+//   session's caller onto the new attempt (`pickKeptSession`), and `startClaim` calls
+//   `worker.start` only; the `resumeKept` branch is the seam that the kept-session slice fills:
 //   started                       event `started`, with the kept session's ID
 //   unknown                       event `spawn-unanswered`, as above
 //   refused, or the session gone  fall back: `worker.start`, and the table above. The `started`
@@ -728,7 +789,7 @@ export function findPosition(input: { pipeline: Pipeline | null; attempts: reado
 //     with its wake request. It is no failure and no settle.
 //   - The capacity backoff holds back START picks and WAKE picks. `resumeClaim` marks the pool
 //     of the refused attempt (`AttemptRow.pool`; a `WakePick` names no pool) for
-//     `timeouts.capacityBackoff`, and `claimNext` gives no wake pick of an attempt whose pool is
+//     `timeouts.capacityBackoffSeconds`, and `claimNext` gives no wake pick of an attempt whose pool is
 //     in backoff. The next claim that tries the wake is in a tick after the backoff ends.
 //     Why a wake pick too: `decide` puts the wake first. With start picks alone held back, the
 //     claim loop of ONE tick picks the same wake again for as long as the host refuses, writes
@@ -748,10 +809,10 @@ export function findPosition(input: { pipeline: Pipeline | null; attempts: reado
 //     the readings back: no item is claimed twice in one tick, and an error in the claim loop
 //     ends the loop, not the tick.
 //   - An attempt that hit the account's usage limit settles as `failed`, forced `usage-limit`.
-//     `findPosition` skips it, as `no-capacity`. The pool backs off in the runner's memory, for
-//     up to `timeouts.usageLimitBackoffHours` (24).
-//     TODO (not designed): how boxxy detects the usage limit (the reading, the close-out, or
-//     telemetry), and so which caller forces the failure.
+//     `findPosition` skips it, as `no-capacity`. The pool backs off in the runner's memory
+//     until the reading's reset time, or for `timeouts.usageLimitBackoffHours` (24) when the
+//     reading gives none. The reading detects the limit, and `actOnReading` forces the failure
+//     (section B, note 10).
 //   - The backoff. `claimNext` takes the pools in backoff as an input and gives no START pick
 //     and no WAKE pick in them until the time is over. Without it the claim loop of one tick
 //     would pick the same item again. The mark lives in the runner's memory, per pool, not in

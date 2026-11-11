@@ -75,14 +75,17 @@ v1 adds more than 8 modules to this package, so they start in folders:
 
 ```text
 index.ts
-timeouts          every time limit of dispatch that the rules do not hold
+timeouts  types  every time limit of dispatch that the rules do not hold
 attempts/         the attempt lifecycle and its one writer
                   attempt-moves  attempt-machine  build-attempt-change  build-attempt-fact
-                  end-item-attempts  find-call-attempt  types
-claims/           claim-next  start-claim  resume-claim  request-wake
+                  end-item-attempts  pick-call-attempt  write-attempt-move
+                  write-session-bind  types
+claims/           claim-next  start-claim  resume-claim  request-wake  pick-kept-session
+                  build-snapshot-hash  types
 readings/         what the runner does with a session reading
-                  pick-reading-action  read-waiting-since  act-on-reading
-closeouts/        close-out-attempt  settle-attempt
+                  pick-reading-action  find-waiting-since  act-on-reading  types
+closeouts/        close-out-attempt  settle-attempt  pick-settlement  build-settle-plans
+                  effect-handlers  types
 sessions/         resume-kept-session  forget-sessions
 notices/          create-null-notifier  send-notices
 outbox/           what the outbox sender decides, with no I/O
@@ -90,7 +93,8 @@ outbox/           what the outbox sender decides, with no I/O
                   run-sender-once  build-backoff-ms  build-initial-sender-state
                   build-outbox-status  types
 test-utils/       the store contract and its case files, the memory store, the change factories
-                  v1: create-fake-worker  worker-contract  create-fake-fact-sink
+                  v1: create-fake-worker  worker-contract  create-fake-clock
+                  create-fake-backoff  create-test-dispatch  create-fake-fact-sink
                   fact-sink-contract
 ```
 

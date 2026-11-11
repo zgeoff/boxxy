@@ -138,9 +138,10 @@ export type ClosingCause =
 // It does NOT count against `maxAttempts`.
 // `skill-missing` and `stalled`: both count against `maxAttempts`.
 // `usage-limit`: the session hit the account's usage limit. It does not count against
-// `maxAttempts`, like `no-capacity`, and the pool backs off for up to
-// `timeouts.usageLimitBackoffHours`.
-// TODO (not designed): how boxxy detects that a session hit the usage limit.
+// `maxAttempts`, like `no-capacity`, and the pool backs off until the limit resets, or for
+// `timeouts.usageLimitBackoffHours` when the reading gives no reset time. The reading reports
+// the limit (`usageLimitResetsAt` on a running `SessionReading`), and the reconcile table closes
+// the attempt with the cause `usage-limit` (03-flow.ts, section B, note 10).
 export type ForcedFailure =
   | 'spawn-refused' | 'no-capacity' | 'spawn-lost' | 'session-lost' | 'resume-lost' | 'timed-out' | 'item-closed'
   | 'skill-missing' | 'stalled' | 'usage-limit';
@@ -550,7 +551,11 @@ export type SessionReading =
   | { readonly kind: 'running'; readonly atcSession: AtcSessionId; readonly agentSession: AgentSessionId | null; readonly attention: Attention; readonly lastActivityAt: Instant;
       // atc's `lastAttachedAt` alone: the last time the owner attached to the session.
       // `lastActivityAt` holds the later of this and atc's last trail event.
-      readonly lastOwnerAt: Instant }
+      readonly lastOwnerAt: Instant;
+      // set when the session hit the account's usage limit: the time at which the limit
+      // resets, or the time the limit was seen when atc gives no reset time. The worker
+      // adapter maps it from atc's session (Not checked: what atc reports, v1-open.md).
+      readonly usageLimitResetsAt: Instant | null }
   | { readonly kind: 'suspended'; readonly atcSession: AtcSessionId; readonly agentSession: AgentSessionId | null; readonly asked: boolean }
   | { readonly kind: 'ended'; readonly atcSession: AtcSessionId; readonly agentSession: AgentSessionId | null }
   | { readonly kind: 'absent' };
@@ -567,9 +572,9 @@ export interface StoreReader {
   // gives the LATEST attempt that the session carries; the earlier one is settled.
   // It is NOT the way to pick the attempt of a session's call. On a kept session it gives the
   // second attempt for a request that the first attempt sent. A call names its attempt by ID
-  // (`CallRef`). Callers of this lookup: the runner, and `findCallAttempt` (03-flow.ts,
-  // section D), which uses it only to see that the named attempt is the current one of the
-  // calling session.
+  // (`CallRef`). Callers of this lookup: the runner, and every session call, which passes the
+  // row to `pickCallAttempt` (03-flow.ts, section D) only to see that the named attempt is the
+  // current one of the calling session.
   findAttemptBySession: (session: AtcSessionId) => Promise<AttemptRow | null>;
   // The edge's lookup for a session or hook call. The atc session whose LATEST attempt row
   // holds this caller. An older attempt's row never counts. `ambiguous`: two sessions' latest
@@ -693,7 +698,9 @@ export interface PullRequestReading {
 //     fact), the outcome's `caller`, and `resumeFallback`, always set. `resumed` carries `caller`.
 //   - `stalled` and `skill-missing` carry nothing: no fact of their own reads a field.
 //   - `settled` carries the fields of the `settled` fact in place of `plans` (03-flow.ts,
-//     section A): no effect plan type exists yet, and the effect writes are the caller's.
+//     section A): the effect writes are the caller's. `EffectPlan`, `EffectContext` and
+//     `EffectHandlers` are in modules/dispatch/src/closeouts/types.ts (03-flow.ts, section D).
+//   - `usage-limited` moves a running attempt to `closing` with the cause `usage-limit`.
 //   - `AttemptChange` is `{ kind: 'change', change }` or `not-allowed`, and `change` is the
 //     builder's own store change: `at`, `under` (with `holdGen`, or null), the writes (attempt
 //     row, attempt session, lease, decision, seat take and seat release) and the facts, which
@@ -708,16 +715,18 @@ export type WakeSource =
 // ── modules/dispatch/src: the callers ──────────────────────────────────────────────────────────
 
 export declare function claimNext(input: ClaimInput): Promise<Claim | null>; // events `claimed`, `woken`
-export declare function startClaim(input: StartClaimInput): Promise<void>; // `started`, `spawn-unanswered`, `settled` (spawn-refused, no-capacity)
+// `startClaim` and `resumeClaim` return the fault of an agent session that another attempt
+// holds, or null; the runner logs the fault.
+export declare function startClaim(input: StartClaimInput): Promise<SessionFault | null>; // `started`, `spawn-unanswered`, `settled` (spawn-refused, no-capacity)
 // A spawn that the worker refuses for capacity (no free imp slot on the host) does not count
-// against `maxAttempts`; the pool is marked full for `timeouts.capacityBackoff` and the item
+// against `maxAttempts`; the pool is marked full for `timeouts.capacityBackoffSeconds` and the item
 // is ready as it was.
 // The attempt is NOT deleted. It settles through the normal path as `failed`, forced
 // `no-capacity`, so its `claimed` fact has a `settled` fact.
 // Only a refusal for another cause (bad request, unknown target, auth) settles as `spawn-refused`.
 // The limit `workers` (max 7 in v1) is a ceiling; the host's real free slots can be lower.
 // The table is in 03-flow.ts, section F.
-export declare function resumeClaim(input: ResumeClaimInput): Promise<void>; // `resumed`
+export declare function resumeClaim(input: ResumeClaimInput): Promise<SessionFault | null>; // `resumed`
 export declare function closeOutAttempt(input: CloseOutInput): Promise<CloseOutAnswer>; // `closed-out`
 
 // What every call from inside a session gives the core.
@@ -726,7 +735,7 @@ export declare function closeOutAttempt(input: CloseOutInput): Promise<CloseOutA
 //   caller   from the EDGE: the proven identity itself, so that the core checks it against
 //            the CURRENT attempt's own `caller`, inside the lock.
 // The core answers `not-current`, with no write, unless `attempt` is the current attempt of
-// `session` (`findCallAttempt`, 03-flow.ts, section D).
+// `session` (`pickCallAttempt`, 03-flow.ts, section D).
 export interface CallRef {
   readonly attempt: AttemptId;
   readonly session: AtcSessionId;
@@ -743,14 +752,21 @@ export interface CloseOutInput {
   readonly now: Instant;
   readonly newId: NewId;
 }
-export declare function requestWake(input: { store: ClaimStore; attempt: AttemptId; by: WakeSource; now: Instant; newId: NewId }): Promise<ApplyResult>; // `wake-requested`
-export declare function settleAttempt(input: SettleAttemptInput): Promise<ApplyResult>; // `settled`
+// `applied`, or `not-allowed` when the attempt does not sleep or has its request already.
+export declare function requestWake(input: { store: ClaimStore; attempt: AttemptId; by: WakeSource; actor: ActorRef; now: Instant; newId: NewId }): Promise<MoveResult>; // `wake-requested`
+// `applied`, `not-allowed` for an attempt that the machine cannot settle, or `refused` with the
+// store's answer, as every move of a caller outside the builder.
+export declare function settleAttempt(input: SettleAttemptInput): Promise<MoveResult>; // `settled`
 
 // modules/dispatch/src/attempts/end-item-attempts.ts (the build adds this file). Pure. The writes and facts that end
 // every live attempt of an item that is about to close. `item.close` puts them in the SAME change
 // as the item's close, so an item never closes with an attempt that nothing will end.
-export declare function endItemAttempts(input: { attempts: readonly AttemptRow[]; now: Instant; newId: NewId }): { writes: readonly RowWrite[]; facts: readonly AnyNewFact[]; ended: readonly { attempt: AttemptId; how: 'settled' | 'closing' }[] };
-export declare function actOnReading(input: ActInput): Promise<void>; // the rest
+// As built it also takes the `actor`, and gives `under`: the lease of the one live attempt, for
+// the store change.
+export declare function endItemAttempts(input: { attempts: readonly AttemptRow[]; actor: ActorRef; now: Instant; newId: NewId }): { writes: readonly RowWrite[]; facts: readonly AnyNewFact[]; ended: readonly { attempt: AttemptId; how: 'settled' | 'closing' }[]; under: StoreChange['under'] | null };
+// The rest. It binds a new agent session that the reading shows first, and returns the fault
+// of one that another attempt holds, or null.
+export declare function actOnReading(input: ActOnReadingInput): Promise<SessionFault | null>;
 
 // Pure. The reconcile table (03-flow.ts, section B). The action type has one name,
 // `ReadingAction`. It takes the sleep times of the rules (`sleep`), not one number.
@@ -760,44 +776,50 @@ export type ReadingAction =
   | { readonly kind: 'nothing' }
   | { readonly kind: 'bind-only' }
   | { readonly kind: 'move-to-running'; readonly via: 'start' | 'reconcile' | 'resume' }
-  | { readonly kind: 'respawn' } // gives up with `spawn-lost` after `timeouts.spawnLost`
+  | { readonly kind: 'respawn' } // gives up with `spawn-lost` after `timeouts.spawnLostMinutes`
   | { readonly kind: 'clear-mark' }
   | { readonly kind: 'sleep-if-idle'; readonly waitingSince: Instant }
-  | { readonly kind: 'sleep-unattended' } // mark, `worker.suspend(attempt, null)`, then `slept`
+  | { readonly kind: 'sleep-unattended'; readonly since: Instant } // mark, `worker.suspend(attempt, null)`, then `slept`
   | { readonly kind: 'await-spawn' } // `closing` with no session seen; no respawn, no settle yet
   | { readonly kind: 'sleep'; readonly requestWake: boolean }
   | { readonly kind: 'request-wake'; readonly by: WakeSource }
   | { readonly kind: 'wake-over-cap' }
-  | { readonly kind: 'resume' } // gives up with `resume-lost` after `timeouts.resumeLost`
-  | { readonly kind: 'close'; readonly cause: Exclude<ClosingCause, 'closed-out'>; readonly afterMinutes?: Minutes }
+  | { readonly kind: 'resume' } // gives up with `resume-lost` after `timeouts.resumeLostMinutes`
+  | { readonly kind: 'close'; readonly cause: 'timed-out'; readonly afterMinutes: Minutes }
+  | { readonly kind: 'close'; readonly cause: 'usage-limit'; readonly resetsAt: Instant | null }
+  | { readonly kind: 'close'; readonly cause: 'turn-ended' | 'stalled' }
   | { readonly kind: 'stop' }
   | { readonly kind: 'settle'; readonly forced: ForcedFailure | null; readonly sessionStopped: boolean };
 
 // Since when the session has waited for the owner, or null. It reads the session mode from
 // `attempt.mode`. It takes `now` and the quiet time, for the attended session that reads
-// `working`. This sketch does not show its body; the build designs it from the rules of
-// 03-flow.ts (sections B and C).
-export declare function readWaitingSince(input: { attempt: AttemptRow; reading: SessionReading; quietAfter: Minutes; now: Instant }): Instant | null;
+// `working`. Built as modules/dispatch/src/readings/find-waiting-since.ts, from the rules of
+// 03-flow.ts (sections B and C); `find`, because it is pure and can give null.
+export declare function findWaitingSince(input: { attempt: AttemptRow; reading: SessionReading; quietAfterMinutes: Minutes; now: Instant }): Instant | null;
 
-// modules/dispatch/src/timeouts.ts (the build adds this file). Every time limit of dispatch that is not in the rules.
+// modules/dispatch/src/timeouts.ts, with the type in types.ts. Every time limit of dispatch
+// that is not in the rules. Each name ends with its unit.
 export interface DispatchTimeouts {
-  readonly spawnLost: Minutes; // 10: `starting` or `reconciling` with no session
-  readonly resumeLost: Minutes; // 10: `waking` with no running session
-  readonly closingGiveUp: Minutes; // 10: `closing` with a session that does not stop
+  readonly spawnLostMinutes: Minutes; // 10: `starting` or `reconciling` with no session
+  readonly resumeLostMinutes: Minutes; // 10: `waking` with no running session
+  readonly closingGiveUpMinutes: Minutes; // 10: `closing` with a session that does not stop
   readonly stopGraceSeconds: number; // 60: a `closing` session inside a turn is not stopped before this
-  readonly seatlessTicks: number; // 2: a session that runs on a `sleeping` attempt wakes over the cap after this
-  // 60, in seconds. After a spawn or a resume that the worker refused for capacity, `claimNext`
+  // 10, two ticks of the runner's 5-second loop: a session that runs on a `sleeping` attempt
+  // wakes over the cap this long after its wake request. The table reads the time, never a
+  // count of ticks.
+  readonly seatlessSeconds: number;
+  // 60. After a spawn or a resume that the worker refused for capacity, `claimNext`
   // gives no pick in that attempt's pool for this long.
   // The mark lives in the runner's memory, per pool, not in the store. A restart forgets it,
   // and the next claim finds out again.
   // It holds back START picks and WAKE picks. `resumeClaim` marks the pool of an attempt whose
   // wake the host refused for capacity. Without that the claim loop of one tick picks the
   // refused wake again and never ends.
-  readonly capacityBackoff: number;
+  readonly capacityBackoffSeconds: number;
   readonly stallMinutes: Minutes; // 30. Agent mode: a session with no activity for this long is stopped
   readonly keptSessionHours: number; // 24. A kept session is forgotten this long after `keptAt`
   readonly failedSessionHours: number; // 24. A failed attempt's stopped session is forgotten after this
-  readonly usageLimitBackoffHours: number; // 24, the most a pool waits after `usage-limit`
+  readonly usageLimitBackoffHours: number; // 24: how long a pool waits after `usage-limit` when the reading gives no reset time
   // 24: how long the runner keeps sending `stop` to a stray session. A stray attempt with no
   // atc session id is looked up by its spawn name, `boxxy/<attempt_id>`, for this long.
   readonly strayHours: number;
@@ -901,8 +923,10 @@ export interface Procedures {
   // The hook fetches the skills FIRST, then binds. `missingSkills` names each listed skill
   // that is not in the workspace after the fetch. When it is not empty the attempt moves to
   // `closing` (cause `skill-missing`) and the answer is `skill-missing`.
-  'attempt.bindSession': { input: { session: Required<SessionRef>; seenAt: Instant; missingSkills?: readonly string[] }; output: { kind: 'bound' | 'held' | 'no-attempt' | 'not-current' /* from `findCallAttempt` */ | 'skill-missing' } | SessionFault };
-  'attempt.wake': { input: { attempt: AttemptId } | { item: ItemId }; output: { kind: 'requested'; attempt: AttemptId; atcSession: AtcSessionId | null } | { kind: 'not-sleeping' } };
+  'attempt.bindSession': { input: { session: Required<SessionRef>; seenAt: Instant; missingSkills?: readonly string[] }; output: { kind: 'bound' | 'held' | 'no-attempt' | 'not-current' /* from `pickCallAttempt` */ | 'skill-missing' } | SessionFault };
+  // The owner's wake (../edge/01-api.ts names it `item.wake`). The runner's own wake sources
+  // call `requestWake` directly, never this procedure.
+  'item.wake': { input: { item: ItemId }; output: { kind: 'requested'; attempt: AttemptId; atcSession: AtcSessionId | null } | { kind: 'not-sleeping' } };
   'item.file': { input: { /* ...the input that the existing procedure has, and */ kind?: ItemKindName; designMode?: DesignMode; labels?: readonly string[] }; output: { item: ItemId } };
   'item.retry': { input: { item: ItemId; phase?: PhaseName }; output: { lever: number } };
 

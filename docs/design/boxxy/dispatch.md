@@ -4,8 +4,9 @@ A runner gets work by calling `claimNext`. The boxxy store runs the whole decisi
 `BEGIN IMMEDIATE` transaction: it reads its own observation boundary, builds the frame, runs
 `decide()`, and takes the item-phase lease and a seat in each limit that counts the attempt together. A pull that lands between
 deciding and claiming can't be missed, and two runners can never take the same item phase or a
-limit's last seat. A benchmark measured the lock at 14 ms p50 with 20,000 open items, far inside the
-budget the measured claim rate allows.
+limit's last seat. The built claim holds the lock for 418 ms at p50 with 20,000 open items
+([the built claim](#the-built-claim-measured)). At the measured claim rate that is about 1.5% of
+each minute.
 
 ## claimNext
 
@@ -62,9 +63,13 @@ had read in each pepys stream. `explain` and replay read facts up to those offse
 time. A CI fact can arrive after a dispatch with a source time before it, and pepys orders facts
 only within one stream, so a replay by source time would see facts the dispatcher never saw.
 
+The decision's snapshot hash covers the snapshot and the pools in capacity or usage-limit backoff.
+The store never holds the backoff: it lives in the runner's memory alone, and `decide()` gives no pick in a pool
+that it holds, so a replay needs it to give the same pick.
+
 ## The benchmark (measured)
 
-The benchmark ran a stub `claimNext` on Bun 1.4.3 with `bun:sqlite` in WAL mode, on a WSL2 dev
+This benchmark ran a stub `claimNext` on Bun 1.4.3 with `bun:sqlite` in WAL mode, on a WSL2 dev
 machine. Each claim ran inside `BEGIN IMMEDIATE`:
 
 1. Read the full snapshot: open items, links, planning facts, leases and slots.
@@ -92,6 +97,32 @@ fact lands. Two runs agreed within a few milliseconds.
 - **Limits of the stub.** Its frame has 4 plug-ins, not a full concept registry, and it ran one
   runner, so there was no real contention. A registry of ten plug-ins may cost 2 to 3 times more
   `decide()` time (modelled), still well inside the budget.
+
+## The built claim (measured)
+
+In `adapters/store-sqlite`, `bun run bench:claim <items> <claims> <lever every>` runs the built
+`claimNext` on the SQLite store (`src/create-sqlite-claim-store.bench.ts`). It seeds the open items through the test dispatch harness, then
+times each claim, closing and settling the claimed item between claims so a seat is free. A seeded
+item stands at its pipeline's first phase. The third argument puts every so many items at a later
+phase through an `item.retry` lever. It ran 50 claims per size on Bun 1.4.3, on a WSL2 dev machine:
+
+| Open items | Levers | Lock p50 (ms) | Lock p99 (ms) |
+| --- | --- | --- | --- |
+| 20,000 | none | 418 | 930 |
+| 20,000 | one per 20 items | 502 | 631 |
+| 20,000 | one per item | 2,445 | 2,766 |
+
+- **The stub's figures don't hold for the built claim (measured).** The stub read fewer rows and ran
+  4 plug-ins.
+- **Three steps take the time (measured, one item per lever).** At 20,000 items the snapshot read
+  took about 280 ms, the snapshot hash about 280 ms, and `buildFrame` about 2,000 ms. `decide()`
+  took 25 ms.
+- **The expedite signal grows with the square of the item count.** It filters and sorts every
+  lever once per item. With few levers the frame is cheap, and the snapshot read and the hash are
+  most of the lock.
+- **The lock still has headroom at the measured claim rate (modelled).** At 2 claims a minute and
+  418 ms per claim, the lock is held under 1 second a minute. Whether to make the claim cheaper is
+  [not decided](./v1-open.md#not-decided).
 
 ## Gates fail toward holding
 

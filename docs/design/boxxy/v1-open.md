@@ -6,24 +6,21 @@ No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc list
 
 | Point | Where |
 | --- | --- |
-| How boxxy detects that a session hit the account's usage limit: from the reading, the close-out or telemetry. The answer decides which caller forces the `usage-limit` failure. | [`03-flow.ts`](./sketches/v1/core/03-flow.ts), section F |
-| The parts that the core sketch names and does not show: the effect handlers and their plans. `@boxxy/model` holds the rows and ports they read and write. The effect plans have no type yet. | [`02-types.ts`](./sketches/v1/core/02-types.ts) |
-| The atc call behind each method of the worker port, and the crash windows of the three steps of a sleep. | [`02-types.ts`](./sketches/v1/core/02-types.ts), [`03-flow.ts`](./sketches/v1/core/03-flow.ts), section C |
+| The atc call behind each method of the worker port. | [`02-types.ts`](./sketches/v1/core/02-types.ts) |
 | A query for the measure "attempts lost". No query reads the failure of an attempt. | [`04-facts.ts`](./sketches/v1/core/04-facts.ts), section D |
 | A cause on the `slept` fact. Without one, no report can tell an unattended sleep from an idle sleep. | [`02-queries.ts`](./sketches/v1/pepys-package/02-queries.ts), section D |
 
 ## Not decided
 
-- Which rule wins for an agent-mode session that asks for input and then shows no activity. The idle sleep and the stall rule both fall due at 30 minutes, and the reconcile table gives no order for them.
 - Whether a review that settled `unsettleable` starts the merge step of the stage times. In the sketch it does not, so such an item has null merge minutes after its pull request merged.
 - The name of boxxy's configuration value that holds the folders of the trust documents. The verifier itself is not open: impz builds it ([`01-api.ts`](./sketches/v1/edge/01-api.ts), section F).
 - Three points of the [folder layout](./layout-folders.md#open-questions).
+- Whether to make the claim cheaper before the store holds thousands of open items. The built claim holds the lock for 418 ms at p50 with 20,000 open items, and for 2.4 s when every item has a lever ([dispatch](./dispatch.md#the-built-claim-measured)). The expedite signal reads every lever once per item, so its cost grows with the square of the item count.
 
 ## Where the sketches disagree
 
 | Point | What stands |
 | --- | --- |
-| The core's tests call `attempt.wake`, and the core's procedure map lists it. | The procedure is `item.wake`, as the API sketch has it. The runner calls the wake request directly. |
 | The test fixtures of the package sketch give review sessions the product `codex`. | v1 workers are Claude. The fixture keeps a second product so that the lines per product and the cost per turn stay tested. |
 
 ## Known faults in the sketch code
@@ -57,7 +54,7 @@ Each row names the test that settles it, where one is known.
 | Whether the owner's typing in an attached session moves any atc time. | The same attach. |
 | Whether an agent-mode session ever ends a turn on purpose before its close-out, such as to wait for a background task. boxxy closes such a session as `closeout-missing`. | Watch the first live attempts. |
 | Which error atc gives when the worker target has no free machine. The worker adapter must map it to the cause `capacity`. | Fill the target, then spawn. |
-| The cost of the position fold inside the claim's lock. | The dispatch benchmark with 20,000 items. |
+| What atc reports for a session that hit the account's usage limit. The worker adapter must map it to the reading's `usageLimitResetsAt`. | Run one session to the limit, then read it. |
 
 ### The API
 

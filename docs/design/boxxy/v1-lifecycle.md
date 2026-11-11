@@ -14,7 +14,7 @@ stateDiagram-v2
   sleeping --> waking: woken
   waking --> running: resumed
   waking --> sleeping: wake-refused
-  running --> closing: closed-out, timed-out, stalled, turn-ended, item-closed, skill-missing
+  running --> closing: closed-out, timed-out, stalled, turn-ended, usage-limited, item-closed, skill-missing
   closing --> succeeded: settled
   closing --> failed: settled
   starting --> failed: settled
@@ -35,21 +35,24 @@ Section B of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the table. The 
 
 | Reading | starting, reconciling | running | sleeping | waking | closing |
 | --- | --- | --- | --- | --- | --- |
-| running | move to running | see the bounds after this table | request the wake; 2 ticks later, wake over the cap | move to running | stop, or settle by the give-up rule |
+| running | move to running | see the bounds after this table | request the wake; 10 seconds later, wake over the cap | move to running | stop, or settle by the give-up rule |
 | suspended | sleep | sleep | nothing | resume | settle |
 | ended | settle | settle, or sleep when boxxy asked for the stop | nothing | resume | settle |
 | absent | send the spawn again | settle as `session-lost` | settle as `session-lost` | settle as `session-lost` | settle |
 
-A running attempt whose session runs stays as it is only inside a bound that the rules set:
+A running attempt whose session runs stays as it is only inside a bound that the rules set. boxxy checks the bounds in the order of this table and acts on the first one that is past:
 
 | Mode | Bound | Past the bound |
 | --- | --- | --- |
-| agent | the step's time limit, counted over one stretch of running | boxxy stops the session and settles the attempt as `timed-out` |
-| agent | 30 minutes with no activity | boxxy stops the session and settles the attempt as `stalled` |
+| both | the session reports that the account hit its usage limit | boxxy stops the session and settles the attempt as `usage-limit` |
+| agent | the step's time limit, counted from the start or the latest wake | boxxy stops the session and settles the attempt as `timed-out` |
 | agent | the turn ended with no close-out | boxxy stops the session and settles the attempt as `closeout-missing` |
 | both | the session waits for the owner for `afterIdleMinutes` (30): it asks for input, or an attended turn ended | sleep |
 | attended | the session shows no activity at all for `afterQuietMinutes` (60) | sleep |
+| agent | 30 minutes with no activity | boxxy stops the session and settles the attempt as `stalled` |
 | attended | the owner has not attached for `afterUnattendedMinutes` (240), while the agent stays active | sleep, with no idle check |
+
+An agent-mode session that asks for input and then shows no activity meets two bounds at once: the idle sleep and the stall both fall due 30 minutes after its last activity. The sleep wins, because with the stall first an agent-mode session could never sleep idle. A session with no agent session ID cannot sleep, so the stall rule stops it.
 
 One case has no bound, on purpose: an attended session that the owner attaches to again inside every 240 minutes.
 
@@ -60,7 +63,7 @@ Four rules decide the hard cells:
 - A close-out beats a sleep in progress. A close-out that lands between the sleep request and the stop moves the attempt to `closing`.
 - boxxy puts no attempt to sleep before atc reports an agent session ID for it, because atc cannot revive a session that stopped before atc captured the ID.
 
-The time limits that the rules file does not hold are in `DispatchTimeouts` in [`02-types.ts`](./sketches/v1/core/02-types.ts): 10 minutes for a lost spawn, a lost resume and a session that does not stop, 60 seconds of grace before a stop, 60 seconds of capacity backoff, and 24 hours for a stray session, a kept session and a failed attempt's session.
+The time limits that the rules file does not hold are in `timeouts`, in `modules/dispatch/src/timeouts.ts`: 10 minutes for a lost spawn, a lost resume and a session that does not stop, 60 seconds of grace before a stop, 10 seconds before a revived session wakes over the cap, 30 minutes for a stall, 60 seconds of capacity backoff, 24 hours of usage-limit backoff when the reading gives no reset time, and 24 hours for a stray session, a kept session and a failed attempt's session.
 
 ## Sleep and wake
 
@@ -72,13 +75,18 @@ boxxy learns that a session waits for the owner from the reading alone: the sess
 2. boxxy asks the worker to suspend the session. The adapter refuses when the session shows newer activity.
 3. boxxy records the sleep and releases the seats. A refusal clears the mark.
 
+A crash, or an unknown answer from the worker, can stop the sleep between two steps. The next reading finishes it:
+
+- **After step 1.** The attempt keeps the mark and its seats. A running reading clears the mark, and the next tick checks the bounds again. A suspended or ended reading records the sleep.
+- **After step 2.** The session reads as suspended or ended, and boxxy records the sleep and releases the seats.
+
 The wake is one mechanism. Every source ends in a wake request, and nothing else wakes an attempt:
 
 - the owner runs `boxxy item wake <item>`;
 - a reading shows the session running while the attempt sleeps, because the owner revived it in atc;
 - a reading shows that the host slept with no request.
 
-`decide` puts a wake before any new work. The claim takes the seats, and only then does boxxy resume the session. One case leaves that order: the owner revived the session and no seat came free in 2 ticks. The attempt then wakes over the cap, the limit counts the seat, and boxxy starts no new work under that limit until the count is at or under the maximum. boxxy stops no session that the owner revived.
+`decide` puts a wake before any new work. The claim takes the seats, and only then does boxxy resume the session. One case leaves that order: the owner revived the session and no seat came free in 10 seconds, two ticks of the runner. The attempt then wakes over the cap, the limit counts the seat, and boxxy starts no new work under that limit until the count is at or under the maximum. boxxy stops no session that the owner revived.
 
 ## Close-outs and their limits
 
@@ -111,6 +119,8 @@ Section D of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the stop, the g
 ## Settle
 
 Section D of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the settle function, step by step. Settle runs in one store change. It writes the state, the failure, the outcome, the end time, the seat release, the lease release, the rows and facts of the effects, and the `settled` fact. It stores no position.
+
+The phase kind returns every effect of the outcome, and settle builds one plan of rows and facts for each. When the item holds after the settle, settle withholds each effect that changes the item: the close, a relation, and a new kind, field or acceptance. It still files new items and records friction proposals. The `settled` fact lists each withheld effect with its reason, and settle writes the hold's notice row in the same lock, after the settle change.
 
 Settle never throws on stored data. The phase kind loaded now can differ from the one that accepted the close-out, so the settle rule of the phase kind runs inside a catch. When it throws, or returns an outcome that its kind does not list, the attempt settles as failed with `closeout-unsettleable` and the fixed outcome `unsettleable`. A name that the phase code returned goes to its own field, so that no rules file can give it an edge. The item then holds, and `boxxy item retry <item> --phase <phase>` moves it on.
 
@@ -159,5 +169,5 @@ Section F of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the tables for 
 - **A wake refused for capacity** is no failure. The attempt sleeps again and keeps its wake request, and the pool backs off for 60 seconds.
 - **The backoff holds back start picks and wake picks.** Without the hold on wake picks, the claim loop of one tick picks the refused wake again and never reaches the readings. The mark lives in the runner's memory, per pool. A restart forgets it, and the next claim finds out again.
 - **The claim loop has two more guards.** No item is claimed twice in one tick, and an error in the loop ends the loop and not the tick.
-- **The usage limit.** An attempt that hit the account's usage limit settles as failed with `usage-limit`, and its pool backs off for up to 24 hours. How boxxy detects the limit is [not designed](./v1-open.md#not-designed).
+- **The usage limit.** boxxy learns of the limit from the reading: the worker reports the time at which the account's limit resets. A running attempt with that reading moves to `closing` and settles as failed with `usage-limit`. Its pool backs off until the reset time, or for 24 hours when the reading gives none. The reading decides, because the runner reads every live session on every tick. A session at the limit sends no close-out, and telemetry reaches boxxy only through pepys. What atc reports for such a session is [not checked](./v1-open.md#the-lifecycle).
 - **Trusted folder.** The atc worker adapter checks, before each spawn, that the agent trusts the worker folder. It refuses the spawn otherwise, because a session in an untrusted folder waits at a dialog and runs no turn.
