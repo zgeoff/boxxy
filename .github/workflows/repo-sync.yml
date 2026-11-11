@@ -46,9 +46,12 @@ jobs:
     uses: zgeoff/tools/.github/workflows/repo-sync.yml@d8772d5cf2a7e6713f8067efc4432b37cd87e6ca # main
     with:
       ref: ${{ github.event.client_payload.sha }}
+      # hook-skill-gate left the manifest, and a name in skip keeps the copy that
+      # .claude/settings.json runs
+      skip: hook-skill-gate
       include:
-        workflow-bun-pr, workflow-audit-fix, pre-push-baseline, hook-skill-gate, skill-testing,
-        skill-code-style, skill-docs-writing, skill-skill-writing, skill-ci-design, knip-runner
+        workflow-bun-pr, workflow-audit-fix, pre-push-baseline, skill-testing, skill-code-style,
+        skill-docs-writing, skill-skill-writing, skill-ci-design, knip-runner
     secrets:
       REPO_SYNC_APP_CLIENT_ID: ${{ secrets.REPO_SYNC_APP_CLIENT_ID }}
       REPO_SYNC_APP_PRIVATE_KEY: ${{ secrets.REPO_SYNC_APP_PRIVATE_KEY }}
