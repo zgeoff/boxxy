@@ -394,12 +394,12 @@ export interface Recipe {
   readonly skills: readonly string[]; // such as ['bake-off']; empty: the phase needs none
 }
 
-// ── libs/model/src/closeouts/types.ts (the build adds this file) ───────────────────────────────
-// `CloseOut`, `DesignCloseOut`, `DesignRef`, `Finding`, `RelationDraft`, `BuildInput`, `Effect`,
-// `EffectHandlers`, `EffectPlan`, `CloseOutWorld`: this sketch names them and does not show
-// their shapes. The build designs them from the rules stated here and in 03-flow.ts.
-// This sketch shows three parts: the review close-out, the triage close-out, and the
-// `set-acceptance` effect.
+// ── libs/model/src/closeouts/types.ts ─────────────────────────────────────────────────────────
+// `CloseOut`, `DesignCloseOut`, `DesignRef`, `Finding`, `RelationDraft`, `BuildInput`, `Effect`
+// and `CloseOutWorld` are in that file, and docs/design/boxxy/close-outs.md, "The v1 phase
+// kinds", holds their rules. `EffectHandlers` and `EffectPlan` belong to dispatch, which
+// applies the effects. This sketch shows three parts: the review close-out, the triage
+// close-out, and the `set-acceptance` effect.
 
 // The review of v1. A review session in an imp runs `noslop review --report json` and sends
 // this close-out itself, with `boxxy attempt close-out`, as any other agent session does.
@@ -414,8 +414,9 @@ export interface ReviewCloseOut {
   readonly verdict: { readonly kind: 'passed' } | { readonly kind: 'changes-requested'; readonly findings: readonly Finding[] };
 
   // A summary of what `noslop review --report json` printed, not the whole result. The agent
-  // SENDS the whole result in `noslop`; the parser checks its SHAPE against noslop's review
-  // result schema, then stores `NoslopSummary` in its place. The verdict above is what counts,
+  // SENDS the whole result in `noslop`; the parser checks the fields that the summary reads,
+  // lets every other field through unread, then stores `NoslopSummary` in its place (the
+  // raw body schema is in modules/closeout/src/phases/review.ts). The verdict above is what counts,
   // and the findings are whole, as text, in the verdict.
   // The reason for the summary: the `closed_out` fact carries the close-out inside a wrapper.
   // A stored result with no bound but the 256 KiB of a request body makes a fact over
@@ -440,7 +441,7 @@ export interface NoslopSummary {
   readonly report: JsonValue | null;
 }
 
-// modules/closeout/src/close-out-limits.ts (the build adds this file). The numbers:
+// modules/closeout/src/close-out-limits.ts. The numbers:
 //   262,144  a request body at the API (../edge/01-api.ts, rule 5). A body over it never
 //            reaches the parser; the CLI prints the error and the agent sends a shorter one.
 //   262,144  `outboxLimits.factBytes`: one fact on the wire (../edge/02-outbox.ts).

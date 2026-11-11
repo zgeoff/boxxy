@@ -107,9 +107,12 @@ modules/planning/src
   generated/      concept-pins
 
 modules/closeout/src
-  build-close-out-parser  dedupe-open-items  missing-criteria  normalise-title
-  v1: close-out-limits
-  phases/         v1: one file per phase kind, named as a concept file is: review (exports `review`)
+  phase-kinds  build-schema-parser  close-out-limits  measure-json-bytes
+  dedupe-open-items  missing-criteria  normalise-title
+  phases/         one file per phase kind, named as a concept file is: review (exports `review`)
+  noslop/         noslop-report-schema  build-noslop-summary
+  utils/          the input helpers that two phase kinds share
+  test-utils/     build-mock-noslop-report
 
 modules/rules/src
   index  types  constants
@@ -118,6 +121,7 @@ modules/rules/src
   parse/          parse-rules-file  parse-concept-entry  rules-file-schema
   registry/       build-registry  resolve-plugin  resolve-signal-ref
   dry-run/        v1: dry-run-rules
+  test-utils/     load-mock-rules  build-example-load-input
 modules/rules/example           the v1 rules file and its prompts, which a loader test reads
 ```
 
@@ -174,5 +178,5 @@ Each of these is a guess that the v1 build confirms or changes:
 
 1. `libs/model/src/types.ts` holds the old `types/core.ts` whole. A split by subject, such as IDs, rows and recipes, is a later choice.
 2. `ports/` and `rows/` name a kind of file more than a subject. The alternative is to split `ports/types.ts` by port into the subject folders.
-3. A concept file and a phase file export under the bare name, such as `pool` and `review`. The other fix is a file name with a suffix, such as `review-phase.ts`, which breaks the pin script's `concepts/<name>.ts` path.
+3. A concept file exports under the bare name, such as `pool`, as a phase file does (`review`). The other fix is a file name with a suffix, such as `pool-concept.ts`, which breaks the pin script's `concepts/<name>.ts` path.
 4. No sketch says which outbox function lives in `modules/dispatch` and which in `apps/server`.

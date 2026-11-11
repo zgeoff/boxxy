@@ -13,7 +13,10 @@ test('it gives the registry a phase kind that settles the close-out it is given'
     outcomes: ['passed', 'failed'],
     needsAcceptance: false,
     input: (ctx) => ({ title: ctx.item.title }),
-    closeOut: { parse: (raw) => ({ kind: 'valid', closeOut: { passed: raw === true } }) },
+    closeOut: {
+      parse: (raw) => ({ kind: 'valid', closeOut: { passed: raw === true } }),
+      jsonSchema: { type: 'boolean' },
+    },
     settle: (input) => ({
       state: input.closeOut.passed ? 'succeeded' : 'failed',
       failure: input.closeOut.passed ? null : 'the check failed',
@@ -37,4 +40,27 @@ test('it gives the registry a phase kind that settles the close-out it is given'
     effects: [],
     frictionDropped: 0,
   });
+});
+
+test('it refuses at compile time a settle that answers with an outcome the kind does not list', () => {
+  const phase: PhaseKind = definePhase({
+    name: brandSchemas.phaseName.parse('check'),
+    version: 1,
+    worker: brandSchemas.workerKindName.parse('atc.session'),
+    outcomes: ['passed', 'failed'],
+    needsAcceptance: false,
+    input: () => ({}),
+    closeOut: { parse: (raw) => ({ kind: 'valid', closeOut: raw }), jsonSchema: {} },
+    settle: () => ({
+      state: 'succeeded',
+      failure: null,
+
+      // @ts-expect-error -- `approved` is not in the kind's outcome list
+      outcome: 'approved',
+      effects: [],
+      frictionDropped: 0,
+    }),
+  });
+
+  expect(phase.outcomes).toStrictEqual(['passed', 'failed']);
 });

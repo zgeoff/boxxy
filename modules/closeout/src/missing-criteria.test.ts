@@ -1,11 +1,11 @@
 import { expect, test } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockEvidenceRow } from '@boxxy/model/test-utils/build-mock-evidence-row';
-import { buildMockItemView } from '@boxxy/model/test-utils/build-mock-item-view';
+import { buildMockV1ItemView } from '@boxxy/model/test-utils/build-mock-v1-item-view';
 import { missingCriteria } from './missing-criteria.ts';
 
 test('it returns each criterion the close-out cites no evidence for', () => {
-  const item = buildMockItemView({
+  const item = buildMockV1ItemView({
     acceptance: [
       { id: brandSchemas.criterionId.parse('a1'), text: 'Retries once', evidence: [] },
       { id: brandSchemas.criterionId.parse('a2'), text: 'Logs the retry', evidence: [] },
@@ -24,7 +24,7 @@ test('it returns each criterion the close-out cites no evidence for', () => {
 });
 
 test('it counts a criterion as missing when its cited evidence is not among the rows', () => {
-  const item = buildMockItemView({
+  const item = buildMockV1ItemView({
     acceptance: [{ id: brandSchemas.criterionId.parse('a1'), text: 'Retries once', evidence: [] }],
   });
 

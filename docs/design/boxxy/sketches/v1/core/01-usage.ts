@@ -9,8 +9,11 @@
 //   6. Tests with no SQLite file and no atc.
 
 import { expect, test } from 'bun:test';
-import type { AttemptRow, ClaimStore, Instant, LoadedRules, Procedures, ReviewCloseOut, ReviewInput, RunnerId, WorkerKind } from '@boxxy/model';
-import { definePhase, findPosition, reviewCloseOutSchema } from '@boxxy/model';
+import type { ClaimStore, CloseOutContext, CloseOutParser, CloseOutProblem, Instant, LoadedRules, PhaseInputContext, Procedures, ReviewCloseOut, ReviewInput, RunnerId, WorkerKind } from '@boxxy/model';
+import { brandSchemas, definePhase, findPosition, reviewCloseOutSchema, toJSONValue } from '@boxxy/model';
+import type { z } from 'zod';
+import { buildNoslopSummary } from './noslop/build-noslop-summary.ts'; // modules/closeout/src
+import { noslopReportSchema } from './noslop/noslop-report-schema.ts';
 import { actOnReading, claimNext, closeOutAttempt, pickReadingAction, resumeClaim, startClaim, timeouts } from '@boxxy/dispatch';
 import type { CapacityBackoff, ItemId } from '@boxxy/model';
 import { createFakeFactSink, outboxLimits, runSenderOnce, toWireItem } from '@boxxy/outbox'; // for the size test
@@ -113,29 +116,35 @@ import { createFakeFactSink, outboxLimits, runSenderOnce, toWireItem } from '@bo
 // `hold` edge names an engine hold reason (`engine-hold-reason`). `lead` and `propagation` are
 // optional, and empty when the file leaves them out.
 
-// ── 2. modules/closeout/src/phases/review.ts (the build adds this file) ────────────────────────
+// ── 2. modules/closeout/src/phases/review.ts ───────────────────────────────────────────────────
 // `outcomes` is the one list. The loader checks `on` against it, and the compiler checks the
-// `outcome` that `settle` returns against it: `outcome: 'approved'` here is a type error.
+// `outcome` that `settle` returns against it: `outcome: 'approved'` here is a type error
+// (libs/model/src/rules/define-phase.test.ts proves it). `definePhase` infers the body, the input
+// and the outcomes. An input interface is not a `JsonValue` (it has no index signature), so
+// `input` returns `toJSONValue` of the typed value.
 
-declare const buildSchemaParser: (schema: unknown, check: (closeOut: ReviewCloseOut) => readonly { kind: 'phase-rule'; message: string }[]) => never;
-declare const findLatestCloseOut: (history: readonly AttemptRow[], phase: string) => { result: { design: unknown } } | undefined;
+declare const buildSchemaParser: <Raw, Body>(input: { schema: z.ZodType<Raw>; toBody: (raw: Raw, frictionDropped: number) => Body; check: (body: Body, ctx: CloseOutContext) => readonly CloseOutProblem[] }) => CloseOutParser<Body>;
+declare const buildReviewInput: (ctx: PhaseInputContext) => ReviewInput; // the acceptance list, the latest design, the latest pull request
 
-export const reviewPhase = definePhase<ReviewCloseOut, ReviewInput, readonly ['passed', 'changes-requested']>({
-  name: 'review',
+// The session sends noslop's whole result; the stored close-out holds `NoslopSummary`. Neither
+// schema has a zod transform: `toBody` builds the stored form.
+const reviewBodySchema = reviewCloseOutSchema.omit({ frictionDropped: true }).extend({ noslop: noslopReportSchema });
+
+export const review = definePhase({
+  name: brandSchemas.phaseName.parse('review'),
   version: 1,
-  worker: 'atc.session',
+  worker: brandSchemas.workerKindName.parse('atc.session'),
   outcomes: ['passed', 'changes-requested'],
   needsAcceptance: true,
-  input: ({ item, history, pullRequests }) => ({
-    acceptance: item.acceptance,
-    design: findLatestCloseOut(history, 'design')?.result.design ?? null,
-    pullRequest: pullRequests.at(-1) ?? null,
+  input: (ctx) => toJSONValue(buildReviewInput(ctx)),
+  closeOut: buildSchemaParser({
+    schema: reviewBodySchema,
+    toBody: (raw: z.output<typeof reviewBodySchema>, frictionDropped): ReviewCloseOut => ({ ...raw, noslop: buildNoslopSummary(raw.noslop), frictionDropped }),
+    check: (closeOut) =>
+      closeOut.verdict.kind === 'changes-requested' && closeOut.verdict.findings.length === 0
+        ? [{ kind: 'phase-rule', message: 'changes-requested needs at least one finding' }]
+        : [],
   }),
-  closeOut: buildSchemaParser(reviewCloseOutSchema, (closeOut) =>
-    closeOut.verdict.kind === 'changes-requested' && closeOut.verdict.findings.length === 0
-      ? [{ kind: 'phase-rule', message: 'changes-requested needs at least one finding' }]
-      : [],
-  ),
   settle: ({ closeOut }) => ({
     state: 'succeeded',
     failure: null,
@@ -145,7 +154,9 @@ export const reviewPhase = definePhase<ReviewCloseOut, ReviewInput, readonly ['p
   }),
 });
 
-// design.ts differs in one line: `mode: (item) => (item.fields.designMode === 'attended' ? 'attended' : 'agent')`.
+// design.ts adds `mode: (item) => (item.fields.designMode === 'attended' ? 'attended' : 'agent')`.
+// A design or build close-out that is `blocked` or `abandoned` settles `failed`, with the
+// agent's reason as the failure, so no session is kept for it (docs/design/boxxy/close-outs.md).
 
 // ── 3. apps/server/src/run-tick.ts (the build adds this file) ──────────────────────────────────
 

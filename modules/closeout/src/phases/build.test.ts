@@ -1,11 +1,14 @@
 import { expect, test } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockEvidenceRow } from '@boxxy/model/test-utils/build-mock-evidence-row';
-import { buildMockItemView } from '@boxxy/model/test-utils/build-mock-item-view';
-import { buildCloseOutParser } from './build-close-out-parser.ts';
+import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
+import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
+import { buildMockV1ItemView } from '@boxxy/model/test-utils/build-mock-v1-item-view';
+import { buildMockV1PullRequestRow } from '@boxxy/model/test-utils/build-mock-v1-pull-request-row';
+import { build } from './build.ts';
 
 test('it accepts a built close-out that cites the attempt evidence for every criterion', () => {
-  const item = buildMockItemView({
+  const item = buildMockV1ItemView({
     acceptance: [{ id: brandSchemas.criterionId.parse('a1'), text: 'Retries once', evidence: [] }],
   });
 
@@ -18,10 +21,11 @@ test('it accepts a built close-out that cites the attempt evidence for every cri
     friction: [{ target: { kind: 'lint', name: 'max-depth' }, change: 'Allow 5 in parsers' }],
   };
 
-  const parsed: unknown = buildCloseOutParser.parse(raw, {
+  const parsed: unknown = build.closeOut.parse(raw, {
     item,
     attempt: row.attempt,
     evidence: [row],
+    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
   });
 
   expect(parsed).toStrictEqual({
@@ -31,7 +35,7 @@ test('it accepts a built close-out that cites the attempt evidence for every cri
 });
 
 test('it accepts a blocked close-out that cites no evidence', () => {
-  const item = buildMockItemView({
+  const item = buildMockV1ItemView({
     acceptance: [{ id: brandSchemas.criterionId.parse('a1'), text: 'Retries once', evidence: [] }],
   });
 
@@ -44,10 +48,11 @@ test('it accepts a blocked close-out that cites no evidence', () => {
     friction: [],
   };
 
-  const parsed: unknown = buildCloseOutParser.parse(raw, {
+  const parsed: unknown = build.closeOut.parse(raw, {
     item,
     attempt: row.attempt,
     evidence: [row],
+    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
   });
 
   expect(parsed).toStrictEqual({
@@ -57,14 +62,15 @@ test('it accepts a blocked close-out that cites no evidence', () => {
 });
 
 test('it rejects a close-out that fails the schema, with the path of the bad field', () => {
-  const item = buildMockItemView();
+  const item = buildMockV1ItemView();
   const row = buildMockEvidenceRow();
   const raw = { result: { kind: 'shipped' }, criteria: [], openItems: [], friction: [] };
 
-  const parsed: unknown = buildCloseOutParser.parse(raw, {
+  const parsed: unknown = build.closeOut.parse(raw, {
     item,
     attempt: row.attempt,
     evidence: [row],
+    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
   });
 
   expect(parsed).toStrictEqual({
@@ -74,7 +80,7 @@ test('it rejects a close-out that fails the schema, with the path of the bad fie
 });
 
 test('it rejects a close-out that cites a criterion the item lacks', () => {
-  const item = buildMockItemView({
+  const item = buildMockV1ItemView({
     acceptance: [{ id: brandSchemas.criterionId.parse('a1'), text: 'Retries once', evidence: [] }],
   });
 
@@ -87,10 +93,11 @@ test('it rejects a close-out that cites a criterion the item lacks', () => {
     friction: [],
   };
 
-  const parsed: unknown = buildCloseOutParser.parse(raw, {
+  const parsed: unknown = build.closeOut.parse(raw, {
     item,
     attempt: row.attempt,
     evidence: [row],
+    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
   });
 
   expect(parsed).toStrictEqual({
@@ -100,7 +107,7 @@ test('it rejects a close-out that cites a criterion the item lacks', () => {
 });
 
 test('it rejects a close-out that cites evidence of another attempt', () => {
-  const item = buildMockItemView({
+  const item = buildMockV1ItemView({
     acceptance: [{ id: brandSchemas.criterionId.parse('a1'), text: 'Retries once', evidence: [] }],
   });
 
@@ -114,10 +121,11 @@ test('it rejects a close-out that cites evidence of another attempt', () => {
     friction: [],
   };
 
-  const parsed: unknown = buildCloseOutParser.parse(raw, {
+  const parsed: unknown = build.closeOut.parse(raw, {
     item,
     attempt: row.attempt,
     evidence: [row],
+    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
   });
 
   expect(parsed).toStrictEqual({
@@ -127,7 +135,7 @@ test('it rejects a close-out that cites evidence of another attempt', () => {
 });
 
 test('it rejects a built close-out with a criterion that has no evidence', () => {
-  const item = buildMockItemView({
+  const item = buildMockV1ItemView({
     acceptance: [
       { id: brandSchemas.criterionId.parse('a1'), text: 'Retries once', evidence: [] },
       { id: brandSchemas.criterionId.parse('a2'), text: 'Logs the retry', evidence: [] },
@@ -143,10 +151,11 @@ test('it rejects a built close-out with a criterion that has no evidence', () =>
     friction: [],
   };
 
-  const parsed: unknown = buildCloseOutParser.parse(raw, {
+  const parsed: unknown = build.closeOut.parse(raw, {
     item,
     attempt: row.attempt,
     evidence: [row],
+    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
   });
 
   expect(parsed).toStrictEqual({
@@ -156,7 +165,7 @@ test('it rejects a built close-out with a criterion that has no evidence', () =>
 });
 
 test('it returns all three problems of a close-out that has three', () => {
-  const item = buildMockItemView({
+  const item = buildMockV1ItemView({
     acceptance: [
       { id: brandSchemas.criterionId.parse('a1'), text: 'Retries once', evidence: [] },
       { id: brandSchemas.criterionId.parse('a2'), text: 'Logs the retry', evidence: [] },
@@ -176,10 +185,11 @@ test('it returns all three problems of a close-out that has three', () => {
     friction: [],
   };
 
-  const parsed: unknown = buildCloseOutParser.parse(raw, {
+  const parsed: unknown = build.closeOut.parse(raw, {
     item,
     attempt: row.attempt,
     evidence: [row],
+    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
   });
 
   expect(parsed).toStrictEqual({
@@ -193,7 +203,7 @@ test('it returns all three problems of a close-out that has three', () => {
 });
 
 test('it returns every schema problem of a close-out at once', () => {
-  const item = buildMockItemView();
+  const item = buildMockV1ItemView();
   const row = buildMockEvidenceRow();
 
   const raw = {
@@ -203,10 +213,11 @@ test('it returns every schema problem of a close-out at once', () => {
     friction: [],
   };
 
-  const parsed: unknown = buildCloseOutParser.parse(raw, {
+  const parsed: unknown = build.closeOut.parse(raw, {
     item,
     attempt: row.attempt,
     evidence: [row],
+    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
   });
 
   expect(parsed).toStrictEqual({
@@ -220,7 +231,7 @@ test('it returns every schema problem of a close-out at once', () => {
 });
 
 test('it rejects a friction entry whose target kind is outside the list, at its own index', () => {
-  const item = buildMockItemView({ acceptance: [] });
+  const item = buildMockV1ItemView({ acceptance: [] });
   const row = buildMockEvidenceRow();
 
   const raw = {
@@ -233,10 +244,11 @@ test('it rejects a friction entry whose target kind is outside the list, at its 
     ],
   };
 
-  const parsed: unknown = buildCloseOutParser.parse(raw, {
+  const parsed: unknown = build.closeOut.parse(raw, {
     item,
     attempt: row.attempt,
     evidence: [row],
+    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
   });
 
   expect(parsed).toStrictEqual({
@@ -246,7 +258,7 @@ test('it rejects a friction entry whose target kind is outside the list, at its 
 });
 
 test('it drops each friction entry with no target and counts it in frictionDropped', () => {
-  const item = buildMockItemView({ acceptance: [] });
+  const item = buildMockV1ItemView({ acceptance: [] });
   const row = buildMockEvidenceRow();
 
   const raw = {
@@ -260,10 +272,11 @@ test('it drops each friction entry with no target and counts it in frictionDropp
     ],
   };
 
-  const parsed: unknown = buildCloseOutParser.parse(raw, {
+  const parsed: unknown = build.closeOut.parse(raw, {
     item,
     attempt: row.attempt,
     evidence: [row],
+    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
   });
 
   expect(parsed).toStrictEqual({
@@ -279,7 +292,7 @@ test('it drops each friction entry with no target and counts it in frictionDropp
 });
 
 test('it sets frictionDropped itself and ignores a count the agent sends', () => {
-  const item = buildMockItemView({ acceptance: [] });
+  const item = buildMockV1ItemView({ acceptance: [] });
   const row = buildMockEvidenceRow();
 
   const raw = {
@@ -290,10 +303,11 @@ test('it sets frictionDropped itself and ignores a count the agent sends', () =>
     frictionDropped: 4,
   };
 
-  const parsed: unknown = buildCloseOutParser.parse(raw, {
+  const parsed: unknown = build.closeOut.parse(raw, {
     item,
     attempt: row.attempt,
     evidence: [row],
+    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
   });
 
   expect(parsed).toStrictEqual({
@@ -303,13 +317,14 @@ test('it sets frictionDropped itself and ignores a count the agent sends', () =>
 });
 
 test('it rejects a close-out that is not an object', () => {
-  const item = buildMockItemView();
+  const item = buildMockV1ItemView();
   const row = buildMockEvidenceRow();
 
-  const parsed: unknown = buildCloseOutParser.parse('built', {
+  const parsed: unknown = build.closeOut.parse('built', {
     item,
     attempt: row.attempt,
     evidence: [row],
+    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
   });
 
   expect(parsed).toStrictEqual({
@@ -319,18 +334,194 @@ test('it rejects a close-out that is not an object', () => {
 });
 
 test('it rejects a close-out whose friction is not a list', () => {
-  const item = buildMockItemView({ acceptance: [] });
+  const item = buildMockV1ItemView({ acceptance: [] });
   const row = buildMockEvidenceRow();
   const raw = { result: { kind: 'built' }, criteria: [], openItems: [], friction: 'too slow' };
 
-  const parsed: unknown = buildCloseOutParser.parse(raw, {
+  const parsed: unknown = build.closeOut.parse(raw, {
     item,
     attempt: row.attempt,
     evidence: [row],
+    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
   });
 
   expect(parsed).toStrictEqual({
     kind: 'invalid',
     problems: [{ kind: 'schema', path: 'friction', message: expect.any(String) }],
+  });
+});
+
+test('it rejects a close-out with a key that no build close-out has', () => {
+  const item = buildMockV1ItemView({ acceptance: [] });
+  const row = buildMockEvidenceRow();
+
+  const raw = {
+    result: { kind: 'built' },
+    criteria: [],
+    openItems: [],
+    friction: [],
+    learnings: 'Uploads are hard',
+  };
+
+  const parsed: unknown = build.closeOut.parse(raw, {
+    item,
+    attempt: row.attempt,
+    evidence: [row],
+    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+  });
+
+  expect(parsed).toStrictEqual({
+    kind: 'invalid',
+    problems: [{ kind: 'schema', path: '', message: expect.stringContaining('learnings') }],
+  });
+});
+
+test('it settles a built close-out with the open items to file and the cited evidence', () => {
+  const first = buildMockFactId();
+  const cited = buildMockFactId();
+
+  const item = buildMockV1ItemView({
+    acceptance: [
+      { id: brandSchemas.criterionId.parse('a1'), text: 'Retries once', evidence: [first] },
+      { id: brandSchemas.criterionId.parse('a2'), text: 'Logs the retry', evidence: [] },
+    ],
+  });
+
+  const openItem = {
+    kind: 'core.issue',
+    title: 'Show upload progress',
+    body: 'Uploads look stuck',
+  };
+
+  const settlement: unknown = build.settle({
+    attempt: buildMockV1AttemptRow(),
+    item,
+    closeOut: {
+      result: { kind: 'built' },
+      criteria: [
+        { criterion: 'a1', evidence: first },
+        { criterion: 'a2', evidence: cited },
+      ],
+      openItems: [openItem],
+      friction: [],
+      frictionDropped: 0,
+    },
+    now: brandSchemas.instant.parse(1000),
+  });
+
+  expect(settlement).toStrictEqual({
+    state: 'succeeded',
+    failure: null,
+    outcome: 'built',
+    effects: [
+      { kind: 'file-item', item: openItem },
+      {
+        kind: 'set-acceptance',
+        criteria: [
+          { id: 'a1', text: 'Retries once', evidence: [first] },
+          { id: 'a2', text: 'Logs the retry', evidence: [cited] },
+        ],
+      },
+    ],
+    frictionDropped: 0,
+  });
+});
+
+test('it settles an abandoned close-out as failed, and asks for no change to the acceptance list', () => {
+  const settlement: unknown = build.settle({
+    attempt: buildMockV1AttemptRow(),
+    item: buildMockV1ItemView(),
+    closeOut: {
+      result: { kind: 'abandoned', reason: 'The upload code moved to another repo' },
+      criteria: [],
+      openItems: [],
+      friction: [],
+      frictionDropped: 0,
+    },
+    now: brandSchemas.instant.parse(1000),
+  });
+
+  expect(settlement).toStrictEqual({
+    state: 'failed',
+    failure: 'The upload code moved to another repo',
+    outcome: 'abandoned',
+    effects: [],
+    frictionDropped: 0,
+  });
+});
+
+test('it gives a build of round 2 the design, the findings of the review and the pull request', () => {
+  const item = buildMockV1ItemView({
+    acceptance: [{ id: brandSchemas.criterionId.parse('a1'), text: 'Retries once', evidence: [] }],
+  });
+
+  const finding = { title: 'The retry runs twice', body: 'A second click sends a second upload' };
+  const pullRequest = buildMockV1PullRequestRow();
+
+  const history = [
+    buildMockV1AttemptRow({
+      phase: brandSchemas.phaseName.parse('design'),
+      state: 'succeeded',
+      closeOut: {
+        result: { kind: 'designed', design: { summary: 'Retry once', location: null } },
+        friction: [],
+        frictionDropped: 0,
+      },
+    }),
+    buildMockV1AttemptRow({
+      phase: brandSchemas.phaseName.parse('review'),
+      state: 'succeeded',
+      closeOut: {
+        verdict: { kind: 'changes-requested', findings: [finding] },
+        noslop: {
+          version: 7,
+          reviewID: 'review-3c9a',
+          head: brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290'),
+          counts: { findings: 1, failedCalls: 0, fixChecks: 0 },
+          reportBytes: 2048,
+          report: null,
+        },
+        friction: [],
+        frictionDropped: 0,
+      },
+    }),
+  ];
+
+  expect(build.input({ item, history, pullRequests: [pullRequest] })).toStrictEqual({
+    acceptance: [{ id: 'a1', text: 'Retries once' }],
+    design: { summary: 'Retry once', location: null },
+    findings: [finding],
+    pullRequest: { repo: pullRequest.repo, number: pullRequest.number, url: pullRequest.url },
+  });
+});
+
+test('it gives a build after a passed review no findings', () => {
+  const item = buildMockV1ItemView({ acceptance: [] });
+
+  const history = [
+    buildMockV1AttemptRow({
+      phase: brandSchemas.phaseName.parse('review'),
+      state: 'succeeded',
+      closeOut: {
+        verdict: { kind: 'passed' },
+        noslop: {
+          version: 7,
+          reviewID: 'review-3c9a',
+          head: brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290'),
+          counts: { findings: 0, failedCalls: 0, fixChecks: 0 },
+          reportBytes: 2048,
+          report: null,
+        },
+        friction: [],
+        frictionDropped: 0,
+      },
+    }),
+  ];
+
+  expect(build.input({ item, history, pullRequests: [] })).toStrictEqual({
+    acceptance: [],
+    design: null,
+    findings: [],
+    pullRequest: null,
   });
 });

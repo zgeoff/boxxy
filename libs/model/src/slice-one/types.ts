@@ -1,5 +1,5 @@
 import type { ContentHash, JsonValue } from '@boxxy/content-hash';
-import type { BuildCloseOut, CloseOutParse, Friction, OpenItem } from '../closeouts/types.ts';
+import type { BuildCloseOut, Friction } from '../closeouts/types.ts';
 import type { RelationPayload } from '../facts/types.ts';
 import type {
   ActorRef,
@@ -12,10 +12,8 @@ import type {
   DecisionId,
   Effort,
   EvidenceKind,
-  EvidenceRow,
   FactId,
   FaultRecord,
-  ForcedFailure,
   Instant,
   ItemId,
   ItemKindName,
@@ -136,44 +134,6 @@ export interface SliceOneSpawnRequest {
   readonly pluginDirs: readonly string[];
   readonly name: `boxxy/${string}`;
   readonly idempotencyKey: AttemptId;
-}
-
-export interface SliceOneSettlement {
-  readonly state: 'succeeded' | 'failed';
-  readonly failure: string | null;
-  readonly openItems: readonly OpenItem[];
-  readonly criteria: readonly {
-    readonly criterion: CriterionId;
-    readonly evidence: readonly FactId[];
-  }[];
-  readonly friction: readonly Friction[];
-  readonly frictionDropped: number;
-}
-
-export interface SliceOneSettleRule<Out = unknown> {
-  settle: (input: SliceOneSettleInput<Out>) => SliceOneSettlement;
-}
-
-export interface SliceOneSettleInput<Out> {
-  readonly attempt: SliceOneAttemptRow;
-  readonly item: SliceOneItemView;
-  readonly closeOut: CloseOutParse<Out> | null;
-
-  // a `forced` reason wins over the close-out's state
-  readonly forced: ForcedFailure | null;
-  readonly now: Instant;
-}
-
-export interface SliceOneCloseOutContext {
-  readonly item: SliceOneItemView;
-  readonly attempt: AttemptId;
-
-  // the attempt's own evidence rows
-  readonly evidence: readonly EvidenceRow[];
-}
-
-export interface SliceOneCloseOutParser<Out> {
-  parse: (raw: unknown, ctx: SliceOneCloseOutContext) => CloseOutParse<Out>;
 }
 
 export interface SliceOneForge {

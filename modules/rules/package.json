@@ -22,7 +22,8 @@
       "types": "./dist/index.d.ts",
       "default": "./src/index.ts"
     },
-    "./example/*": "./example/*"
+    "./example/*": "./example/*",
+    "./test-utils/*": "./src/test-utils/*.ts"
   },
   "publishConfig": {
     "access": "public"

@@ -19,7 +19,7 @@ boxxy/
 │   ├── rules/                   rules loader, plug-in kind registry, rules version hash
 │   ├── planning/                buildFrame, decide, explain + built-in concepts
 │   ├── dispatch/                claimNext over a ClaimStore port; leases, fencing
-│   ├── closeout/                close-out parse, criteria → evidence, openItems dedupe
+│   ├── closeout/                the phase kinds: close-out parse, settle, input; openItems dedupe
 │   ├── measurement/   (slice 2) experiments, assignment, verdict, metric + cohort plug-ins
 │   ├── capacity/      (slice 2) capacity sources, router, pacing gate
 │   └── train/         (later)   merge train rules

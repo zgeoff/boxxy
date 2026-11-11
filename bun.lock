@@ -89,6 +89,13 @@
       "dependencies": {
         "@boxxy/model": "workspace:*",
         "tiny-invariant": "catalog:",
+        "ts-pattern": "catalog:",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@boxxy/planning": "workspace:*",
+        "@boxxy/rules": "workspace:*",
+        "@faker-js/faker": "catalog:",
       },
     },
     "modules/dispatch": {

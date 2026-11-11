@@ -3,8 +3,8 @@
 A close-out is the typed outcome an agent writes when its attempt ends. The agent writes only what
 only it knows ([decision 0009](../../decisions/0009-close-outs-hold-what-only-the-agent-knows.md)).
 boxxy derives everything else, such as commits, PRs, CI results, findings, tokens and time, from
-facts. Each phase kind brings its own close-out type, and an attempt whose close-out doesn't parse
-fails. The close-out has no free-text `learnings` or `intent` field.
+facts. Each phase kind brings its own close-out type. boxxy rejects a close-out that doesn't parse,
+and the attempt stays open for the agent to send it again. The close-out has no free-text `learnings` or `intent` field.
 
 ## The build close-out
 
@@ -50,6 +50,32 @@ constraints apply to the kinds the design names:
 | contract | files a draft `core.decision` for the [sign-off gate](./core-model.md#gates-and-sign-offs) |
 | `plan.judge` | ends the strand with an override (pin, admit or lift) or a defer ([planning](./planning.md#the-judgement-pool)) |
 | review | the review worker's own check result is the outcome ([merge train](./merge-train.md)); in v1 the review session sends the verdict and the findings as text ([v1](./v1.md#the-review)) |
+
+## The v1 phase kinds
+
+`modules/closeout/src/phases/` holds the four phase kinds of [v1](./v1.md#the-pipeline): `triage`, `design`, `build` and `review`, and `phaseKinds` lists them for the rules loader. `libs/model/src/closeouts/types.ts` holds each close-out body and each input.
+
+Each parser runs these steps, and a failed step returns every problem it found and skips the steps after it:
+
+1. Drop each friction entry with no target, and count it in `frictionDropped`. boxxy ignores a count the agent sends.
+2. Check the body against the phase's schema. Every schema problem comes back, with its path in the body as sent.
+3. Build the stored body, and check the phase's rules, such as `no-acceptance`.
+4. Measure the stored body. One over 120,000 bytes is `too-large`, so the `closed_out` fact always fits one outbox item. `closeOutLimits` in `modules/closeout/src/close-out-limits.ts` holds both byte limits.
+
+The parser cuts no list. A cut finding or open item would be work lost with no count, and the byte limit already bounds the fact. Each parser also gives `jsonSchema`, the JSON Schema of the body the agent sends, which `attempt.current` passes to the session.
+
+| Phase | The parser refuses | The settle |
+| --- | --- | --- |
+| triage | `accepted` that leaves the item with no acceptance list; an unknown item, kind or relation type; a relation to the item itself | succeeded. Asks to set the kind, the design mode and the acceptance list, numbered from `a1`, to add each relation, and to close a `duplicate` or `declined` item |
+| design | nothing past the schema | `designed`: succeeded. `blocked`, `abandoned`: failed, with the agent's reason as the failure |
+| build | a criterion the item lacks; evidence of another attempt; `built` with a criterion that has no evidence | as design. Asks to file each open item, and to add the cited evidence to the acceptance list |
+| review | `changes-requested` with no finding | succeeded |
+
+A blocked or abandoned design or build fails, so it never reads as done work and no session is kept for it. Every settle also asks to record each friction entry as a proposal. The settle returns the effects and the outcome, and the caller applies the effects. When the rules map the outcome to a hold, the caller withholds each effect that changes an item ([v1](./v1.md#the-pipeline)).
+
+The review session sends noslop's whole result. The parser reads the version, the review ID, the head and the three lists it counts, and lets every other field through, so a newer noslop still parses. The stored close-out keeps `NoslopSummary`: the counts, the size of the result, and the result whole only when it is 32,768 bytes or smaller.
+
+Each phase's input is the item's acceptance list. A build also gets the latest design, the findings of the latest review when it asked for changes, and the item's latest pull request. A review gets the latest design and the latest pull request. The notes of the item reach the session through `attempt.current`, beside the input.
 
 ## Derived from facts
 

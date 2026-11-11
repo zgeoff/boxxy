@@ -5,56 +5,11 @@ import { defineGate, defineSignal, signalKey } from '@boxxy/model';
 import { buildMockPhaseKind } from '@boxxy/model/test-utils/build-mock-phase-kind';
 import invariant from 'tiny-invariant';
 import { z } from 'zod';
-import buildPrompt from '../../example/prompts/build-v1.md' with { type: 'text' };
-import designAttendedPrompt from '../../example/prompts/design-attended-v1.md' with { type: 'text' };
-import designPrompt from '../../example/prompts/design-v1.md' with { type: 'text' };
-import reviewPrompt from '../../example/prompts/review-v1.md' with { type: 'text' };
-import triagePrompt from '../../example/prompts/triage-v1.md' with { type: 'text' };
-import exampleRules from '../../example/rules.yaml' with { type: 'text' };
+import { buildExampleLoadInput } from '../test-utils/build-example-load-input.ts';
 import { loadRules } from './load-rules.ts';
 
 test('it loads the example rules file', () => {
-  const concepts: Concept[] = [
-    {
-      name: 'pool',
-      version: 2,
-      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
-      filterFields: [
-        { name: 'phase', value: () => null },
-        { name: 'kind', value: () => null },
-        { name: 'repo', value: () => null },
-        { name: 'designMode', value: () => null },
-      ],
-    },
-    {
-      name: 'defer',
-      version: 1,
-      gates: [
-        defineGate({ name: 'defer', liftable: true, params: z.object({}), hold: () => null }),
-      ],
-      waivers: [{ name: 'expedite-lifts-defer', lifts: 'defer', lift: () => null }],
-      levers: ['plan.defer', 'plan.undefer'],
-    },
-    {
-      name: 'expedite',
-      version: 1,
-      signals: [
-        defineSignal({
-          name: 'expedite',
-          params: z.object({}),
-          value: () => null,
-          combine: (left, right) => Math.min(left, right),
-        }),
-      ],
-      levers: ['plan.expedite', 'plan.unexpedite'],
-    },
-  ];
-
-  const pins = new Map<string, ConceptPin>([
-    ['pool', { ref: 'pool@2', sourceHash: contentHash('pool source') }],
-    ['defer', { ref: 'defer@1', sourceHash: contentHash('defer source') }],
-    ['expedite', { ref: 'expedite@1', sourceHash: contentHash('expedite source') }],
-  ]);
+  const input = buildExampleLoadInput();
 
   const phases = [
     buildMockPhaseKind({ name: 'triage', outcomes: ['accepted', 'duplicate', 'declined'] }),
@@ -63,30 +18,14 @@ test('it loads the example rules file', () => {
     buildMockPhaseKind({ name: 'review', outcomes: ['passed', 'changes-requested'] }),
   ];
 
-  const prompts = new Map([
-    ['triage-v1', z.string().parse(triagePrompt)],
-    ['design-v1', z.string().parse(designPrompt)],
-    ['design-attended-v1', z.string().parse(designAttendedPrompt)],
-    ['build-v1', z.string().parse(buildPrompt)],
-    ['review-v1', z.string().parse(reviewPrompt)],
-  ]);
+  const prompts = [...input.checkout.files]
+    .filter(([path]) => path.startsWith('prompts/'))
+    .map(([path, bytes]): [string, Uint8Array] => [
+      path.slice('prompts/'.length, -'.md'.length),
+      bytes,
+    ]);
 
-  const rulesBytes = new TextEncoder().encode(z.string().parse(exampleRules));
-
-  const promptFiles = [...prompts].map(([name, text]): [string, Uint8Array] => [
-    `prompts/${name}.md`,
-    new TextEncoder().encode(text),
-  ]);
-
-  const result: unknown = loadRules({
-    checkout: {
-      commit: '3f2a1c0',
-      files: new Map([['rules.yaml', rulesBytes], ...promptFiles]),
-    },
-    concepts,
-    pins,
-    phases,
-  });
+  const result: unknown = loadRules({ ...input, phases });
 
   const standard = {
     name: 'standard',
@@ -171,7 +110,7 @@ test('it loads the example rules file', () => {
       ],
       propagation: [],
       recipes: new Map(
-        [...prompts].map(([name, text]) => [
+        prompts.map(([name, bytes]) => [
           name,
           {
             name,
@@ -183,7 +122,7 @@ test('it loads the example rules file', () => {
               source: 'subscription',
               skills: skillsByRecipe.get(name),
             },
-            promptHash: hashBytes(new TextEncoder().encode(text)),
+            promptHash: hashBytes(bytes),
             rulesVersion: expect.stringMatching(/^[0-9a-f]{64}$/u),
           },
         ]),

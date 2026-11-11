@@ -13,8 +13,8 @@ const designedSchema = z.object({ kind: z.literal('designed'), design: designRef
 const blockedSchema = z.object({ kind: z.literal('blocked'), reason: reasonSchema });
 const abandonedSchema = z.object({ kind: z.literal('abandoned'), reason: reasonSchema });
 
-export const designCloseOutSchema: z.ZodType<DesignCloseOut> = z.strictObject({
+export const designCloseOutSchema = z.strictObject({
   result: z.discriminatedUnion('kind', [designedSchema, blockedSchema, abandonedSchema]),
   friction: z.array(frictionSchema),
   frictionDropped: z.number().int().nonnegative(),
-});
+}) satisfies z.ZodType<DesignCloseOut>;

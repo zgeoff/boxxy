@@ -1,9 +1,4 @@
-import type {
-  BuildCloseOut,
-  CriterionId,
-  EvidenceRow,
-  SliceOneItemView as ItemView,
-} from '@boxxy/model';
+import type { BuildCloseOut, CriterionId, EvidenceRow, ItemView } from '@boxxy/model';
 
 export function missingCriteria(
   item: ItemView,

@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
-import { buildMockItemView } from '@boxxy/model/test-utils/build-mock-item-view';
+import { buildMockV1ItemView } from '@boxxy/model/test-utils/build-mock-v1-item-view';
 import { dedupeOpenItems } from './dedupe-open-items.ts';
 
 test('it matches an entry to an open item whose title is equal after normalising', () => {
-  const open = buildMockItemView({ title: 'Retry a failed download' });
+  const open = buildMockV1ItemView({ title: 'Retry a failed download' });
 
   const entries = [
     { kind: 'core.issue', title: '  retry A   failed\tdownload ', body: 'Downloads fail too' },
@@ -17,7 +17,7 @@ test('it matches an entry to an open item whose title is equal after normalising
 });
 
 test('it files every entry when no open item matches', () => {
-  const open = buildMockItemView({ title: 'Retry a failed upload' });
+  const open = buildMockV1ItemView({ title: 'Retry a failed upload' });
 
   const entries = [
     { kind: 'core.issue', title: 'Retry a failed download', body: 'Downloads fail too' },
@@ -46,7 +46,7 @@ test('it files the first of two entries whose titles are equal after normalising
 });
 
 test('it lists a matched item once when two entries match it', () => {
-  const open = buildMockItemView({ title: 'Retry a failed download' });
+  const open = buildMockV1ItemView({ title: 'Retry a failed download' });
 
   const entries = [
     { kind: 'core.issue', title: 'Retry a failed download', body: 'Downloads fail too' },

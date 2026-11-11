@@ -98,12 +98,11 @@ await runSenderOnce({ store, sink: fake, clock, limits: outboxLimits }); // send
 //      That limit does NOT bound the close-out's fact. The body limit and `factBytes` are the
 //      same number (262,144), the fact adds a wrapper of 466 bytes, and the stored JSON can be
 //      longer than the sent JSON (`1e20` is stored as 21 bytes).
-//   2. At the parser. Each phase kind's close-out parser caps its lists: it keeps the first
-//      entries of `friction` and counts the rest in `frictionDropped`. The same rule goes for
-//      a review's findings and a build's open items.
-//      The parser also has two byte limits (core `closeOutLimits`). The review parser keeps
+//   2. At the parser. The close-out is `unknown` on the wire, so no list of it has a `max`, and
+//      the parser cuts no list: a cut finding or open item would be lost work with no count.
+//      The parser has two byte limits instead (core `closeOutLimits`). The review parser keeps
 //      the counts of noslop's raw result, and the result itself only when it is 32,768 bytes
-//      or under. `closeOutAttempt` then measures the close-out as stored, and one over 120,000
+//      or under. Each parser then measures the close-out as stored, and one over 120,000
 //      bytes is `rejected` as `too-large` with no write, so the agent sends a shorter one. A
 //      close-out fact is thus 120,000 + 466 bytes at most, under half of `factBytes`. It is a
 //      refusal of the COMMAND, before any change exists, so the rule holds that no store

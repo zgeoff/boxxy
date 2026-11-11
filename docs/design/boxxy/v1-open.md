@@ -7,7 +7,7 @@ No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc list
 | Point | Where |
 | --- | --- |
 | How boxxy detects that a session hit the account's usage limit: from the reading, the close-out or telemetry. The answer decides which caller forces the `usage-limit` failure. | [`03-flow.ts`](./sketches/v1/core/03-flow.ts), section F |
-| The parts that the core sketch names and does not show: the take SQL of the claim, the sync of the limit seats, the effect handlers and their plans, and the size limits of a close-out with the raw form of a review body. `@boxxy/model` holds the rows and ports they read and write. The effect plans and the size limits have no type yet. | [`02-types.ts`](./sketches/v1/core/02-types.ts) |
+| The parts that the core sketch names and does not show: the take SQL of the claim, the sync of the limit seats, and the effect handlers and their plans. `@boxxy/model` holds the rows and ports they read and write. The effect plans have no type yet. | [`02-types.ts`](./sketches/v1/core/02-types.ts) |
 | The atc call behind each method of the worker port, and the crash windows of the three steps of a sleep. | [`02-types.ts`](./sketches/v1/core/02-types.ts), [`03-flow.ts`](./sketches/v1/core/03-flow.ts), section C |
 | Which outbox function lives in `modules/dispatch` and which in `apps/server`. | [folder layout](./layout-folders.md#open-questions) |
 | A query for the measure "attempts lost". No query reads the failure of an attempt. | [`04-facts.ts`](./sketches/v1/core/04-facts.ts), section D |
@@ -59,7 +59,6 @@ Each row names the test that settles it, where one is known.
 | Whether the owner's typing in an attached session moves any atc time. | The same attach. |
 | Whether an agent-mode session ever ends a turn on purpose before its close-out, such as to wait for a background task. boxxy closes such a session as `closeout-missing`. | Watch the first live attempts. |
 | Which error atc gives when the worker target has no free machine. The worker adapter must map it to the cause `capacity`. | Fill the target, then spawn. |
-| That the generic on the phase definer gives a compile error for an outcome the phase kind does not list. | Compile one phase file with a wrong outcome. |
 | That the store applies the attempt change's race guard: `under` with its hold generation, the update's `expect` on every column the machine reads, and the seat take and release, a release with no seat held being no error. The machine and the builder are checked. | The store contract's cases for the v1 attempt change. |
 | The cost of the position fold inside the claim's lock. | The dispatch benchmark with 20,000 items. |
 

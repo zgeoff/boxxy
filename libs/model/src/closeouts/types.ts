@@ -94,8 +94,6 @@ export interface NoslopSummary {
   readonly report: JsonValue | null;
 }
 
-// A finding is a type alias, not an interface, so that a phase input that holds findings is a
-// `JsonValue`: an interface has no implicit index signature.
 export interface Finding {
   readonly title: string;
   readonly body: string;
@@ -160,6 +158,9 @@ export type CloseOutParse<Body> =
 
 export interface CloseOutParser<Body> {
   parse: (raw: unknown, ctx: CloseOutContext) => CloseOutParse<Body>;
+
+  // the JSON Schema of the body that the agent sends, which `attempt.current` gives the session
+  readonly jsonSchema: JsonValue;
 }
 
 export interface CloseOutContext {
@@ -184,22 +185,33 @@ export interface CriterionText {
   readonly text: string;
 }
 
+// The input of a triage or a design attempt: the item's acceptance list, which may be empty
+// before triage.
+export interface AcceptanceInput {
+  readonly acceptance: readonly CriterionText[];
+}
+
 // The input of a build attempt. In round 2 and later it holds the findings of the review that
 // sent the item back; in round 1 it holds none.
 export interface BuildInput {
   readonly acceptance: readonly CriterionText[];
-  readonly design: { readonly summary: string; readonly location: string | null } | null;
+  readonly design: DesignRef | null;
   readonly findings: readonly Finding[];
+
+  // the item's latest pull request, which a build of round 2 pushes to
+  readonly pullRequest: PullRequestLink | null;
 }
 
 export interface ReviewInput {
   readonly acceptance: readonly CriterionText[];
-  readonly design: { readonly summary: string; readonly location: string | null } | null;
-  readonly pullRequest: {
-    readonly repo: RepoName;
-    readonly number: number;
-    readonly url: string;
-  } | null;
+  readonly design: DesignRef | null;
+  readonly pullRequest: PullRequestLink | null;
+}
+
+export interface PullRequestLink {
+  readonly repo: RepoName;
+  readonly number: number;
+  readonly url: string;
 }
 
 // What `attempt.closeOut` answers. `recorded` carries `repeat`: true when the same close-out

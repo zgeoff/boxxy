@@ -30,9 +30,9 @@ const noslopSummarySchema = z.object({
 
 // The stored form. The parser of the review phase reads noslop's whole result and builds the
 // summary, so this schema never sees the raw result.
-export const reviewCloseOutSchema: z.ZodType<ReviewCloseOut> = z.strictObject({
+export const reviewCloseOutSchema = z.strictObject({
   verdict: z.discriminatedUnion('kind', [passedSchema, changesRequestedSchema]),
   noslop: noslopSummarySchema,
   friction: z.array(frictionSchema),
   frictionDropped: countSchema,
-});
+}) satisfies z.ZodType<ReviewCloseOut>;

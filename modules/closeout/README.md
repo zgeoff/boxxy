@@ -11,11 +11,11 @@
   </p>
 </div>
 
-boxxy's close-out parser. It checks the close-out an agent sends at the end of a build attempt, and
-splits the work the agent found into new items to file and matches of items already open.
+boxxy's phase kinds: triage, design, build and review. Each one gives the input of an attempt,
+checks the close-out the agent sends at the end of it, and settles the attempt from that close-out.
 
-The package does no I/O: the caller passes in the item, the attempt's evidence rows and the open
-items.
+The package does no I/O: the caller passes in the item, its attempts, the attempt's evidence rows
+and what a close-out may name.
 
 ## Install
 
@@ -29,13 +29,16 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Features
 
-- `buildCloseOutParser`, which returns the parsed close-out, or every problem with it in one pass
-  ([the build close-out](../../docs/design/boxxy/slice-1.md#the-build-close-out)).
-- `missingCriteria`, which lists the item's criteria that the close-out cites no evidence for.
-- `dedupeOpenItems` and `normaliseTitle`, which match each open item the agent reports to an open
-  item with the same title.
+- `triage`, `design`, `build` and `review`, the four phase kinds, and `phaseKinds`, which lists them
+  for the rules loader. Each parser returns the stored close-out, or every problem with it in one
+  pass.
+- `closeOutLimits`, the byte limits of a close-out, and `measureJsonBytes`, which measures a value
+  as stored.
+- `dedupeOpenItems`, which matches each open item the agent reports to an open item with the same
+  title.
 
 ## Documentation
 
-The [close-outs design](../../docs/design/boxxy/close-outs.md) says what a close-out holds and why,
-and [`06-closeouts.ts`](../../docs/design/boxxy/sketches/06-closeouts.ts) gives the shapes.
+The [close-outs design](../../docs/design/boxxy/close-outs.md#the-v1-phase-kinds) says what each
+phase kind checks and settles, and
+[`02-types.ts`](../../docs/design/boxxy/sketches/v1/core/02-types.ts) gives the shapes.

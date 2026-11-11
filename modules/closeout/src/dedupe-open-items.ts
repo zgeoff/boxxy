@@ -1,4 +1,4 @@
-import type { ItemId, SliceOneItemView as ItemView, OpenItem } from '@boxxy/model';
+import type { ItemId, ItemView, OpenItem } from '@boxxy/model';
 import { normaliseTitle } from './normalise-title.ts';
 
 export function dedupeOpenItems(

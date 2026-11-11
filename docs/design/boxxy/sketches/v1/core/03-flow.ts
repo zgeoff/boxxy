@@ -323,11 +323,12 @@ export function pickReadingAction(input: { attempt: AttemptRow; reading: Session
 //
 // The size rule. The limit is on the close-out AS STORED: the UTF-8 bytes of the JSON of
 // `parsed.closeOut`, which is what the `closed_out` fact carries. The bytes of the request do
-// not bound it: JSON.parse then JSON.stringify makes `1e20` 21 bytes long. A close-out over
-// `closeOutLimits.closeOutBytes` (120,000) is `rejected` with the problem `too-large`, as any
-// invalid close-out: nothing is written, the attempt is still open, and the agent sends a
-// shorter one. So an accepted close-out always fits one outbox item (`factBytes`, 262,144; the
-// numbers are in 02-types.ts, `closeOutLimits`).
+// not bound it: JSON.parse then JSON.stringify makes `1e20` 21 bytes long. The phase kind's
+// parser measures it, last of its checks. A close-out over `closeOutLimits.closeOutBytes`
+// (120,000) is `rejected` with the problem `too-large`, as any invalid close-out: nothing is
+// written, the attempt is still open, and the agent sends a shorter one. So an accepted
+// close-out always fits one outbox item (`factBytes`, 262,144; the numbers are in 02-types.ts,
+// `closeOutLimits`).
 
 // modules/dispatch/src/attempts/find-call-attempt.ts (a file the build adds). The one check of
 // every call from inside a session. It reads inside the caller's lock. `session` is what the
@@ -398,15 +399,11 @@ export function closeOutAttempt(input: CloseOutInput): Promise<CloseOutAnswer> {
       return { kind: 'rejected', problems: parsed.problems };
     }
 
-    // The close-out as the fact will carry it, after the parser cut the noslop report of a
-    // review close-out (02-types.ts, `NoslopSummary`). `hash` is the hash of the
-    // body as sent, so a repeat of a body that the parser cut is still a repeat.
-    const bytes = measureJsonBytes(parsed.closeOut);
-
-    if (bytes > closeOutLimits.closeOutBytes) {
-      return { kind: 'rejected', problems: [{ kind: 'too-large', bytes, max: closeOutLimits.closeOutBytes }] };
-    }
-
+    // `parsed.closeOut` is the close-out as the fact will carry it, after the parser cut the
+    // noslop report of a review close-out (02-types.ts, `NoslopSummary`). The parser of every
+    // phase kind also makes the size check, last, so a `too-large` close-out is `invalid` above.
+    // `hash` is the hash of the body as sent, so a repeat of a body that the parser cut is still
+    // a repeat.
     const built = buildAttemptChange({ attempt, event: { kind: 'closed-out', closeOut: parsed.closeOut, hash }, actor: `boxxy:attempt:${attempt.id}`, now: input.now, newId: input.newId });
 
     if (built.kind === 'not-allowed') {

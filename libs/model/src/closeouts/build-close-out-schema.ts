@@ -14,10 +14,10 @@ const citedEvidenceSchema = z.object({
   evidence: brandSchemas.factId,
 });
 
-export const buildCloseOutSchema: z.ZodType<BuildCloseOut> = z.object({
+export const buildCloseOutSchema = z.strictObject({
   result: z.discriminatedUnion('kind', [builtSchema, blockedSchema, abandonedSchema]),
   criteria: z.array(citedEvidenceSchema),
   openItems: z.array(openItemSchema),
   friction: z.array(frictionSchema),
   frictionDropped: z.number().int().nonnegative(),
-});
+}) satisfies z.ZodType<BuildCloseOut>;

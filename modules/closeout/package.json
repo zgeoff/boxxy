@@ -1,7 +1,7 @@
 {
   "name": "@boxxy/closeout",
   "version": "0.1.0",
-  "description": "boxxy's close-out parser: checks the close-out an agent sends at the end of an attempt",
+  "description": "boxxy's phase kinds: the input, the close-out parser and the settle rule of triage, design, build and review",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/modules/closeout#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",
   "license": "MIT",
@@ -20,7 +20,8 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./src/index.ts"
-    }
+    },
+    "./test-utils/*": "./src/test-utils/*.ts"
   },
   "publishConfig": {
     "access": "public"
@@ -31,7 +32,14 @@
   },
   "dependencies": {
     "@boxxy/model": "workspace:*",
-    "tiny-invariant": "catalog:"
+    "tiny-invariant": "catalog:",
+    "ts-pattern": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@boxxy/planning": "workspace:*",
+    "@boxxy/rules": "workspace:*",
+    "@faker-js/faker": "catalog:"
   },
   "engines": {
     "bun": ">=1.3",

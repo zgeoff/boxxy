@@ -20,10 +20,10 @@ const relationDraftSchema = z.object({
   target: brandSchemas.itemId,
 });
 
-export const triageCloseOutSchema: z.ZodType<TriageCloseOut> = z.strictObject({
+export const triageCloseOutSchema = z.strictObject({
   result: z.discriminatedUnion('kind', [acceptedSchema, duplicateSchema, declinedSchema]),
   set: setSchema.exactOptional(),
   relations: z.array(relationDraftSchema),
   friction: z.array(frictionSchema),
   frictionDropped: z.number().int().nonnegative(),
-});
+}) satisfies z.ZodType<TriageCloseOut>;

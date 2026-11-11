@@ -136,6 +136,7 @@ export type {
 } from './pipeline/types.ts';
 
 export type {
+  AcceptanceInput,
   BuildCloseOut,
   BuildInput,
   CloseOut,
@@ -154,6 +155,7 @@ export type {
   FrictionTargetKind,
   NoslopSummary,
   OpenItem,
+  PullRequestLink,
   RelationDraft,
   ReviewCloseOut,
   ReviewInput,
@@ -295,8 +297,6 @@ export type {
   SliceOneAttemptRow,
   SliceOneAttemptSessionRow,
   SliceOneAttemptState,
-  SliceOneCloseOutContext,
-  SliceOneCloseOutParser,
   SliceOneDecisionRow,
   SliceOneDerivedState,
   SliceOneEntityRef,
@@ -314,9 +314,6 @@ export type {
   SliceOnePullRequestReading,
   SliceOnePullRequestRow,
   SliceOneSessionReading,
-  SliceOneSettleInput,
-  SliceOneSettlement,
-  SliceOneSettleRule,
   SliceOneSnapshot,
   SliceOneSpawnRequest,
   SliceOneStartOutcome,

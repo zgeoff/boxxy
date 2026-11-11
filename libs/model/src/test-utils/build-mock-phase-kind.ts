@@ -17,7 +17,7 @@ export function buildMockPhaseKind(input: MockPhaseKindInput): PhaseKind {
     outcomes: input.outcomes,
     needsAcceptance: false,
     input: () => ({}),
-    closeOut: { parse: (raw) => ({ kind: 'valid', closeOut: raw }) },
+    closeOut: { parse: (raw) => ({ kind: 'valid', closeOut: raw }), jsonSchema: {} },
     settle: () => ({
       state: 'succeeded',
       failure: null,
