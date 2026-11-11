@@ -40,7 +40,7 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | Migrations         | Kysely's `Migrator` with an in-code migration provider                                                                | atc                                     |
 | Validation         | `zod` `4.6.7`                                                                                                         | all five                                |
 | Rules files        | `yaml` `2.9.1`                                                                                                        | boxxy's own choice                      |
-| CLI                | `gunshi` `1.0.0-rc.1`                                                                                                 | nixie, atc, noslop                      |
+| CLI                | `node:util` `parseArgs`, with the command table of `apps/cli`                                                         | boxxy's own choice                      |
 | Logging            | `@logtape/logtape` `2.4.2`                                                                                            | nixie, atc, noslop                      |
 | Control flow       | `ts-pattern` `5.9.2`, `tiny-invariant` `1.3.3`, `type-fest` `5.10.0`, `@zgeoff/std` `0.4.0`                           | atc, pepys                              |
 | State machines     | `xstate` `6.0.0-beta.2`, pinned exactly, for the attempt state table in `@boxxy/dispatch` only                        | boxxy's own choice                      |

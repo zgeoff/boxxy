@@ -90,6 +90,16 @@
     "apps/cli": {
       "name": "@boxxy/cli",
       "version": "0.1.0",
+      "bin": {
+        "boxxy": "./src/main.ts",
+      },
+      "dependencies": {
+        "@boxxy/contract": "workspace:*",
+        "@boxxy/model": "workspace:*",
+        "@orpc/client": "catalog:",
+        "ts-pattern": "catalog:",
+        "zod": "catalog:",
+      },
     },
     "apps/server": {
       "name": "@boxxy/server",
@@ -229,6 +239,17 @@
         "zod": "catalog:",
       },
     },
+    "system-tests": {
+      "name": "@boxxy/system-tests",
+      "dependencies": {
+        "@boxxy/cli": "workspace:*",
+        "@boxxy/contract": "workspace:*",
+        "@boxxy/model": "workspace:*",
+        "@boxxy/rules": "workspace:*",
+        "@boxxy/server": "workspace:*",
+        "zod": "catalog:",
+      },
+    },
   },
   "overrides": {
     "@pepys/cli": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-cli-0.0.1.tgz",
@@ -311,6 +332,8 @@
     "@boxxy/server": ["@boxxy/server@workspace:apps/server"],
 
     "@boxxy/store-sqlite": ["@boxxy/store-sqlite@workspace:adapters/store-sqlite"],
+
+    "@boxxy/system-tests": ["@boxxy/system-tests@workspace:system-tests"],
 
     "@boxxy/worker-atc": ["@boxxy/worker-atc@workspace:adapters/worker-atc"],
 

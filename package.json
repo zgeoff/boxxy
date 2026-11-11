@@ -13,7 +13,8 @@
       "modules/*",
       "adapters/*",
       "libs/*",
-      "packages/*"
+      "packages/*",
+      "system-tests"
     ],
     "catalog": {
       "@atcx/contract": "7.12.1",

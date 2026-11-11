@@ -34,6 +34,8 @@ experiments, so every part of the system can be compared and improved. Packages 
   wake, close-outs, settle, the kept session and cleanup.
 - [API and auth](./v1-api-and-auth.md): the v1 procedures and who may call each, the worker token
   and the proven caller.
+- [CLI and hooks](./v1-cli.md): the `boxxy` command, its environment, the two hooks and how a
+  scripted session runs them.
 - [Facts and pepys](./v1-facts-and-pepys.md): the outbox, the v1 fact catalog, the pepys package
   and its two queries.
 - [Open for the builder](./v1-open.md): what the v1 sketches leave unchecked, assumed or not

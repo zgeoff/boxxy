@@ -27,6 +27,10 @@
       // imports it
       "package": {
         "dependencies": { "allow": ["lib"] }
+      },
+      // a test of two apps together belongs to neither; nothing imports it
+      "system-test": {
+        "dependencies": { "allow": ["app", "module", "adapter", "lib", "package"] }
       }
     }
   }

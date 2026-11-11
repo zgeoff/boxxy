@@ -13,7 +13,7 @@ repo setup files are in [tech stack](./tech-stack.md).
 ```text
 boxxy/
 ├── apps/                        composition roots: build adapters, pass them to modules
-│   ├── cli/                     @boxxy/cli: gunshi commands
+│   ├── cli/                     @boxxy/cli: the boxxy command and the hooks
 │   └── server/                  @boxxy/server: Elysia + oRPC API, the runner loop
 ├── modules/                     the domain; no I/O, no adapter imports
 │   ├── rules/                   rules loader, plug-in kind registry, rules version hash
@@ -36,6 +36,7 @@ boxxy/
 │   └── content-hash/            the ContentHash type and hashes for recipes, rules versions, verdicts
 ├── packages/                    packages that another repo's deployment installs
 │   └── pepys/                   @boxxy/pepys: the pepys plug-in, the FactSink adapter and the pepys reader
+├── system-tests/                @boxxy/system-tests: tests that run more than one app together
 ├── docs/                        design/ and decisions/
 └── scripts/                     repo tooling; may do I/O and import any workspace package
 ```
@@ -64,6 +65,14 @@ doesn't allow:
 | adapter | module, lib                  |
 | lib     | lib                          |
 | package | lib                          |
+| system-test | app, module, adapter, lib, package |
+
+`system-tests` is the only package tagged `system-test`. A test of two apps together, such as the CLI
+against the real server, belongs to neither app, and an app may not import another app. So the test
+lives in `@boxxy/system-tests`, which is private and not published. It has no release entry, and no
+package imports it. Its tests import each app through the app's `index.ts` and its `./test-utils/*`
+entry. A test of one app alone stays beside that app's code and uses a fake `fetch`. An
+end-to-end test that starts two apps lives here too.
 
 A module never imports an adapter. A module that needs an outside system declares a port, such as
 `ClaimStore`; an adapter implements it; the app builds the adapter and passes it in. This keeps
@@ -149,7 +158,8 @@ modules/planning/
   which the package exports as `./test-utils/*` for other packages' tests. A helper that two or more
   packages' tests use lives in the package that owns what it starts, builds or fakes.
 - An end-to-end test lives in the `e2e/` folder of the package that builds the program it runs, such
-  as `apps/server/e2e/`. The repo root holds no `test-utils/` or `e2e/` folder, and
+  as `apps/server/e2e/`. A test that needs two apps lives in `system-tests`, as
+  [Dependency rules](#dependency-rules) says. The repo root holds no `test-utils/` or `e2e/` folder, and
   `bun run check:test-layout` fails a test or a helper outside this layout.
 
 The folders inside each package's `src/` are in [folder layout](./layout-folders.md).

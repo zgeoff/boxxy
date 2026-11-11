@@ -163,8 +163,18 @@ apps/server/src                 @boxxy/server
   test-utils/     create-test-server  create-fake-caller-proof  and the request builders
 
 apps/cli/src                    @boxxy/cli
-  index  create-client
-  commands/       one file per command, such as attempt-close-out
+  index  main  types  constants  create-client  run-git
+  cli/            run-cli  pick-command  parse-command-args  format-help  usage-error
+                  build-answer-result  make-answer-run
+  commands/       one file per procedure group, such as attempt-commands, with all-commands
+                  and the helpers they share
+  hooks/          run-session-start-hook  run-post-tool-use-hook  install-skills
+                  parse-hook-payload  pick-pull-request-url  wait-for-attempt
+  test-utils/     create-skills-repo  build-mock-cli-deps
+system-tests/src                @boxxy/system-tests: the CLI against the real server
+  test-utils/     create-test-cli  read-json-output
+system-tests/e2e                one cli- test file per command group and per hook
+apps/cli/hook-plugin            the Claude Code plug-in that the agent image installs
 
 adapters/notifier-atc/src       @boxxy/notifier-atc
   index  create-atc-notifier    sends a hold notice as an atc message to one named session

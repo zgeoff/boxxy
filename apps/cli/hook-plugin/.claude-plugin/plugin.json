@@ -1,0 +1,4 @@
+{
+  "name": "boxxy-hooks",
+  "description": "Binds a boxxy agent session to its attempt, and links the pull request that the agent opens"
+}

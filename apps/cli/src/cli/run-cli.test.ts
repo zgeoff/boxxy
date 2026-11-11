@@ -1,0 +1,161 @@
+import { expect, test } from 'bun:test';
+import { buildMockCLIDeps } from '../test-utils/build-mock-cli-deps.ts';
+import { runCLI } from './run-cli.ts';
+
+interface Reply {
+  // the `json` member of the RPC response
+  readonly json: unknown;
+  readonly status: number;
+}
+
+// The CLI with a fake `fetch`: every request is kept, and every one gets `reply`.
+function setupTest(reply: Reply, baseURL: string) {
+  const requests: { url: string; method: string; headers: string[]; body: unknown }[] = [];
+
+  const send = async (request: Request): Promise<Response> => {
+    requests.push({
+      url: request.url,
+      method: request.method,
+      headers: [...request.headers.keys()].filter((name) => name !== 'content-type'),
+      body: await request.json(),
+    });
+
+    return Response.json({ json: reply.json }, { status: reply.status });
+  };
+
+  return {
+    requests,
+    run: (argv: readonly string[]) =>
+      runCLI({ ...buildMockCLIDeps({ BOXXY_URL: baseURL }), send }, argv),
+  };
+}
+
+test('it prints the usage of every command and exits 0 for no arguments', async () => {
+  const result = await runCLI(buildMockCLIDeps({}), []);
+
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain('boxxy item file --repo --title --outcome');
+  expect(result.stdout).toContain('boxxy hook session-start');
+});
+
+test('it prints only the commands of a group for the group name', async () => {
+  const result = await runCLI(buildMockCLIDeps({}), ['relation']);
+
+  expect(result.stdout).toContain('boxxy relation add <source> <type> <target>');
+  expect(result.stdout).not.toContain('boxxy item file');
+});
+
+test('it prints the usage of one command for --help after its name', async () => {
+  const result = await runCLI(buildMockCLIDeps({}), ['item', 'close', '--help']);
+
+  expect(result.stdout).toContain('boxxy item close <item> --reason [--of]');
+});
+
+test('it exits 2 for a command it does not have', async () => {
+  const result = await runCLI(buildMockCLIDeps({}), ['explode']);
+
+  expect(result).toStrictEqual({ exitCode: 2, stdout: '', stderr: 'unknown command: explode\n' });
+});
+
+test('it exits 2 for a flag the command does not take', async () => {
+  const ctx = setupTest({ json: {}, status: 200 }, 'http://boxxy.test');
+
+  const result = await ctx.run(['item', 'show', 'i-1', '--verbose']);
+
+  expect({ exitCode: result.exitCode, stderr: result.stderr.startsWith('error: ') }).toStrictEqual({
+    exitCode: 2,
+    stderr: true,
+  });
+});
+
+test('it exits 2 and names BOXXY_URL when the server address is not set', async () => {
+  const result = await runCLI(buildMockCLIDeps({}), ['status']);
+
+  expect(result).toStrictEqual({
+    exitCode: 2,
+    stdout: '',
+    stderr: 'error: BOXXY_URL is not set\n',
+  });
+});
+
+test('it exits 2 when the server address is not an http address', async () => {
+  const result = await runCLI(buildMockCLIDeps({ BOXXY_URL: 'ftp://boxxy.test' }), ['status']);
+
+  expect(result).toStrictEqual({
+    exitCode: 2,
+    stdout: '',
+    stderr: 'error: BOXXY_URL is not an http or https address\n',
+  });
+});
+
+test('it exits 1 and prints the error when no server answers at the address', async () => {
+  const result = await runCLI(buildMockCLIDeps({ BOXXY_URL: 'http://127.0.0.1:1' }), ['status']);
+
+  expect({
+    exitCode: result.exitCode,
+    stdout: result.stdout,
+    failed: result.stderr.startsWith('error: '),
+  }).toStrictEqual({
+    exitCode: 1,
+    stdout: '',
+    failed: true,
+  });
+});
+
+test('it posts the command as a call to the RPC route and prints the answer as JSON', async () => {
+  const ctx = setupTest({ json: { id: 'i-1' }, status: 200 }, 'http://boxxy.test');
+
+  const result = await ctx.run(['item', 'show', 'i-1']);
+
+  expect({ result, requests: ctx.requests }).toStrictEqual({
+    result: { exitCode: 0, stdout: '{\n  "id": "i-1"\n}\n', stderr: '' },
+    requests: [
+      {
+        url: 'http://boxxy.test/rpc/item/get',
+        method: 'POST',
+        headers: [],
+        body: { json: { item: 'i-1' } },
+      },
+    ],
+  });
+});
+
+test('it keeps the path of the server address in front of the RPC route', async () => {
+  const ctx = setupTest({ json: {}, status: 200 }, 'http://boxxy.test/base/');
+
+  await ctx.run(['item', 'show', 'i-1']);
+
+  expect(ctx.requests.map((request) => request.url)).toStrictEqual([
+    'http://boxxy.test/base/rpc/item/get',
+  ]);
+});
+
+test('it exits 1 and prints the code and message of an error the server defines', async () => {
+  const ctx = setupTest(
+    {
+      json: { defined: true, code: 'NOT_FOUND', message: 'no item i-9', data: { item: 'i-9' } },
+      status: 404,
+    },
+    'http://boxxy.test',
+  );
+
+  const result = await ctx.run(['item', 'show', 'i-9']);
+
+  expect(result).toStrictEqual({
+    exitCode: 1,
+    stdout: '',
+    stderr: 'error: NOT_FOUND: no item i-9 {"item":"i-9"}\n',
+  });
+});
+
+test('it exits 1 for a refused answer and still prints it', async () => {
+  const ctx = setupTest(
+    { json: { kind: 'refused', reason: 'no' }, status: 200 },
+    'http://boxxy.test',
+  );
+
+  const result = await ctx.run(['item', 'show', 'i-1']);
+
+  expect(result.exitCode).toBe(1);
+  expect(JSON.parse(result.stdout)).toStrictEqual({ kind: 'refused', reason: 'no' });
+});

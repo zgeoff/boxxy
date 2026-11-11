@@ -18,9 +18,16 @@
     "zgeoff/import-zones": [
       "error",
       {
-        "workspaces": ["apps/*", "modules/*", "adapters/*", "libs/*", "packages/*"],
+        "workspaces": ["apps/*", "modules/*", "adapters/*", "libs/*", "packages/*", "system-tests"],
         "zones": {
-          "packages": ["apps/**", "modules/**", "adapters/**", "libs/**", "packages/**"],
+          "packages": [
+            "apps/**",
+            "modules/**",
+            "adapters/**",
+            "libs/**",
+            "packages/**",
+            "system-tests/**"
+          ],
           "adapters": ["adapters/**"],
           "deployed": ["packages/**"],
           "domain": ["modules/**", "libs/**"],

@@ -53,6 +53,8 @@ Each row names the test that settles it, where one is known.
 | --- | --- |
 | That the CLI's HTTP client works through the broker: `HTTPS_PROXY`, the broker's CA, HTTP/1.1. | One CLI call from an imp. |
 | That Claude Code can be given the session MCP endpoint in a session that atc starts. The CLI is the path a prompt names. | Start one session with the endpoint set. |
+| That `git fetch` of one commit by ID works from an imp through the broker's proxy and CA, and that the skills repository is public or the broker adds a credential for it. The session-start hook runs this fetch ([the CLI and the hooks](./v1-cli.md#installing-skills)). | Run the hook once in an imp. |
+| That the agent's first turn waits for the SessionStart hook, so the fetched skills are in place before the agent lists them, and that the Bash `tool_response` of a PostToolUse payload holds the output as `stdout`. The hooks read both from the Claude Code docs. | Run one session with the plug-in and print the payload. |
 | The form of the audience in the broker's identity token: the bare made-up host, or an origin with its scheme. The verifier compares it with the configured audience as an exact string. | Decode one token that the broker adds to a call from an imp. |
 
 ### The outbox

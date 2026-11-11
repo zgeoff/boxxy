@@ -236,7 +236,7 @@ declare const rpc: { [P in keyof Procedures]: (input: Procedures[P]['input']) =>
 export async function runAttemptCloseOut(env: Record<string, string | undefined>, stdin: string): Promise<number> {
   const current = await rpc['attempt.current']({});
 
-  if ('refused' in current) {
+  if (current.kind !== 'attempt') {
     console.error('no attempt for this session yet; try again in 5 seconds');
 
     return 2;
@@ -268,6 +268,10 @@ export async function runAttemptCloseOut(env: Record<string, string | undefined>
   }
 }
 
+// Built: apps/cli/src/commands/attempt-commands.ts. `evidence` and `close-out` both ask `attempt.current` first. A refused
+// answer exits 2 with the retry message. The hooks are in apps/cli/src/hooks/ and the plug-in is apps/cli/hook-plugin/;
+// docs/design/boxxy/v1-cli.md describes both.
+//
 // The `boxxy` CLI and the hook plugin are in the agent image; no `pluginDirs`.
 // The hook first fetches the recipe's skills at the rules' pin into the workspace skills folder
 // (`attempt.current` names them), then binds. A named skill that is missing after the fetch

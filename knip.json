@@ -17,7 +17,10 @@
   // the test script names its roots, so knip reads no package's tests from it
   "workspaces": {
     ".": { "entry": ["*.test.ts", "scripts/**/*.test.ts"] },
-    "{apps,modules,adapters,libs,packages}/*": { "entry": ["src/**/*.test.ts", "e2e/**/*.test.ts"] }
+    "system-tests": { "entry": ["src/**/*.test.ts", "e2e/**/*.test.ts"] },
+    "{apps,modules,adapters,libs,packages}/*": {
+      "entry": ["src/**/*.test.ts", "e2e/**/*.test.ts"]
+    }
   },
   "ignoreIssues": {
     // `pepys build` writes the glue whole: an ID helper or a row type of a table that the entry

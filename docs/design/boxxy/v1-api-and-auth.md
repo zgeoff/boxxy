@@ -16,7 +16,7 @@ flowchart LR
   smcp --> router
 ```
 
-The contract lives in the package `@boxxy/contract`, and the server builds one router from it on oRPC v2. Section A of [`01-api.ts`](./sketches/v1/edge/01-api.ts) shows the server, the CLI client and an MCP call. The server opens two listeners, each on an address that the configuration file sets:
+The contract lives in the package `@boxxy/contract`, and the server builds one router from it on oRPC v2. Section A of [`01-api.ts`](./sketches/v1/edge/01-api.ts) shows the server, the CLI client and an MCP call. [The CLI and the hooks](./v1-cli.md) covers the CLI. The server opens two listeners, each on an address that the configuration file sets:
 
 - The owner listener sits on the owner's private network. It serves `/rpc`, `/mcp` and `/healthz`.
 - The worker listener is the broker's target. It serves `/rpc` and `/mcp/session`, and answers 401 on any path, unknown ones included, to a request without the worker token.

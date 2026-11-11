@@ -105,13 +105,15 @@ const sessionMcp = serveTools(sessionTools, 'boxxy-session');
 // `/rpc` and `/mcp/session` come through the impd broker, with a bearer token (section E).
 
 // A2. apps/cli/src/create-client.ts. The CLI holds the typed client of the same contract.
-// `BOXXY_URL` is the server's origin; the CLI falls back to the configuration file.
+// `BOXXY_URL` is the server's origin. The CLI reads no configuration file, and refuses to run without it.
 // In a worker session `BOXXY_URL` is the made-up host of the broker
 // (`https://boxxy.imp.example`), set by an atc auth profile. The CLI's HTTP client must work
 // through `HTTPS_PROXY` over HTTP/1.1, because the broker ends the connection as HTTP/1.1. The
 // CLI sends no token: the broker adds it.
 // Not checked: Bun's fetch through `HTTPS_PROXY` with the broker's CA.
-const client: RouterContractClient<typeof contract> = createORPCClient(new RPCLink({ origin: process.env.BOXXY_URL ?? 'http://boxxy.internal.example:4400', url: '/rpc' }));
+const client: RouterContractClient<typeof contract> = createORPCClient(new RPCLink({ origin: process.env.BOXXY_URL, url: '/rpc' }));
+// Built: apps/cli/src/create-client.ts. `BoxxyClient` in `@boxxy/contract` is the client type. A test passes
+// the server's listener as `fetch`; the real CLI passes none, so the platform's `fetch` and `HTTPS_PROXY` apply.
 
 // One CLI command is one call. The command adds what a person or a session must not type:
 //   boxxy defer i-12 --until 2026-12-01T09:00:00Z --reason "waits for the schema freeze to lift"
@@ -121,7 +123,10 @@ await client.plan.defer({ item: 'i-12', until: '2026-12-01T09:00:00Z', reason: '
 // The CLI first asks `attempt.current`, which the server answers from the proven caller of the
 // request, and sends that attempt's ID with the close-out (section E).
 const current = await client.attempt.current({});
-await client.attempt.closeOut({ session: { attempt: current.kind === 'attempt' ? current.attempt.id : '' }, closeOut: JSON.parse(await Bun.stdin.text()) });
+
+if (current.kind === 'attempt') {
+  await client.attempt.closeOut({ session: { attempt: current.attempt.id }, closeOut: JSON.parse(await Bun.stdin.text()) });
+} // a `refused` answer means the server has no attempt for the session yet: exit 2, try again in 5 seconds
 
 // A3. An MCP client of the owner's agent: `tools/call` with name `item_file` and the same input
 // object as `client.item.file`. The answer is the output as `structuredContent`; a typed error is
@@ -612,11 +617,11 @@ declare function toName(path: readonly string[]): keyof typeof access; // ['item
 // Three tests keep this table and the rules of section E:
 //   1. A test in `@boxxy/contract` walks `contract` and fails when a procedure has no `access`
 //      entry, when an entry names no procedure, or when `tool` is not `none` and the procedure
-//      has no `mcp.tool` name. `boxxy hook pre-tool-use` calls `attempt.current` and has no
-//      procedure.
+//      has no `mcp.tool` name.
 //   2. A test walks `contract` with the worker bearer token: for every procedure the answer is
 //      `FORBIDDEN`, unless its `access.caller` is `session` or `hook`. It runs against `/rpc`
 //      and against both MCP endpoints.
+//   (Built: a fourth test, in apps/cli, walks `access` and fails when a procedure has no CLI command.)
 //   3. A test walks every procedure whose `access.caller` is `session` or `hook`, with the
 //      worker bearer token, and sends in turn: no `Imp-Identity`; a token with a wrong
 //      audience; an expired token; a token of an issuer that is not configured; a token of an
