@@ -83,12 +83,13 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | `.github/workflows/repo-sync.yml`                                                 | calls zgeoff/tools's repo-sync, pinned to the newest green tools commit                                           | zgeoff/tools   |
 | `scripts/publish/`, `scripts/release/`, `scripts/ci/`, `scripts/first-publish.sh` | the publish dispatch, the package publish and the one-time first publish; `scripts/test-utils/` holds their stubs | wringer        |
 
-The root `check` script runs audit, dead code, format check, type-aware lint, typecheck, prose and
-tests, as wringer's does, and adds `boundaries` (`turbo boundaries`), as noslop's does. It also adds
-`check:test-layout` (`chex test-layout`), which fails a test or a test helper outside the
-[test layout](./layout.md#inside-a-package). The `BUN_CHECK_SCRIPTS` repo variable gives CI the same
-list: `audit deadcode format:check lint:full typecheck boundaries check:test-layout prose test`.
-Change both together.
+The `BUN_CHECK_SCRIPTS` repo variable gives CI its list of root scripts:
+`audit deadcode format:check lint:full typecheck boundaries check:test-layout prose test`. The list
+is wringer's, with `boundaries` (`turbo boundaries`) added, as noslop's has, and `check:test-layout`
+(`chex test-layout`), which fails a test or a test helper outside the
+[test layout](./layout.md#inside-a-package). No root script runs the whole list: the type-aware lint
+(`lint:full`) and the dead-code check run in CI only, so an agent on a host with little memory
+never runs them. An agent runs `typecheck`, `lint` and `test` locally.
 lefthook's pre-push runs `prose` and `boundaries`, then the synced baseline.
 
 ### What repo-sync delivers
