@@ -29,7 +29,8 @@
     "./reader": {
       "types": "./dist/create-pepys-reader.d.ts",
       "default": "./src/create-pepys-reader.ts"
-    }
+    },
+    "./test-utils/*": "./src/test-utils/*.ts"
   },
   "publishConfig": {
     "access": "public"
