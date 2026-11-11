@@ -18,3 +18,12 @@ test('it gives each package in apps, modules, adapters, libs and packages the re
 
   expect(Object.fromEntries(components)).toStrictEqual(Object.fromEntries(listed.flat()));
 });
+
+test('it links every package into one version group after the workspace plugin, which skips its own merge', () => {
+  const components = Object.values(releaseConfig.packages).map((entry) => entry.component);
+
+  expect(releaseConfig.plugins).toStrictEqual([
+    { type: 'node-workspace', merge: false },
+    { type: 'linked-versions', groupName: 'boxxy', components: components.toSorted() },
+  ]);
+});
