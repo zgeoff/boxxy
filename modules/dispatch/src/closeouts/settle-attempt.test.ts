@@ -324,6 +324,30 @@ test('it files each new open item once and lists the open issue that a title mat
   ]);
 });
 
+test('it lists an open item whose title the close-out repeats as a skipped effect', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('build');
+
+  await ctx.closeOut(attempt, {
+    result: { kind: 'blocked', reason: 'The theme needs a decision.' },
+    criteria: [],
+    openItems: [
+      { kind: 'core.issue', title: 'Cache the theme', body: 'Found while building.' },
+      { kind: 'core.issue', title: 'cache the theme', body: 'Found again.' },
+    ],
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const [settled] = await ctx.listFacts('boxxy.attempt.settled');
+
+  expect(settled?.payload).toMatchObject({
+    matched: [],
+    skippedEffects: [{ effect: 'file-item', reason: 'the close-out names this title already' }],
+  });
+});
+
 test('it settles as unsettleable, and keeps the returned name apart, when the phase code answers an unlisted outcome', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.claimAt('triage');

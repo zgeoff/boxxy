@@ -79,7 +79,7 @@ index.ts
 timeouts  types  every time limit of dispatch that the rules do not hold
 attempts/         the attempt lifecycle and its one writer
                   attempt-moves  attempt-machine  build-attempt-change  build-attempt-fact
-                  end-item-attempts  pick-call-attempt  write-attempt-move
+                  end-item-attempts  is-same-guard  pick-call-attempt  write-attempt-move
                   write-session-bind  types
 claims/           claim-next  start-claim  resume-claim  request-wake  pick-kept-session
                   build-snapshot-hash  types

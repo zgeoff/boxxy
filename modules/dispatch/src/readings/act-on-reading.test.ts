@@ -463,3 +463,84 @@ test('it discards a settle that the table picked before the session resumed', as
 
   expect([action.kind, after.state]).toStrictEqual(['settle', 'running']);
 });
+
+test('it discards a sleep that the table picked before the attempt slept, woke and resumed', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAttended();
+
+  invariant(attempt.atcSession !== null, 'the claim started a session');
+
+  const reading = {
+    kind: 'suspended',
+    atcSession: attempt.atcSession,
+    agentSession: null,
+    asked: false,
+  } as const;
+
+  const action = pickReadingAction({
+    attempt,
+    reading,
+    step: null,
+    sleep: ctx.rules().sleep,
+    now: ctx.clock.now(),
+  });
+
+  ctx.worker.setSession(attempt.id, { state: 'suspended', asked: true });
+
+  await ctx.tick();
+  await ctx.wake(attempt.item);
+  await ctx.claim();
+
+  await actOnReading({
+    store: ctx.store,
+    worker: ctx.worker,
+    rules: ctx.rules(),
+    backoff: ctx.backoff,
+    attempt,
+    reading,
+    action,
+    now: ctx.clock.now(),
+    newId: ctx.newId,
+  });
+
+  const after = await ctx.readAttempt(attempt.id);
+
+  expect([action.kind, after.state]).toStrictEqual(['sleep', 'running']);
+});
+
+test('it sends no second spawn for a respawn that the table picked before the start landed', async () => {
+  const ctx = await setupTest();
+
+  await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+
+  const claim = await ctx.claim();
+
+  invariant(claim?.kind === 'start', 'the claim starts an attempt');
+
+  const reading = { kind: 'absent' } as const;
+  const now = ctx.clock.now();
+
+  const action = pickReadingAction({
+    attempt: claim.attempt,
+    reading,
+    step: null,
+    sleep: ctx.rules().sleep,
+    now,
+  });
+
+  await actOnReading({
+    store: ctx.store,
+    worker: ctx.worker,
+    rules: ctx.rules(),
+    backoff: ctx.backoff,
+    attempt: claim.attempt,
+    reading,
+    action,
+    now,
+    newId: ctx.newId,
+  });
+
+  const starts = ctx.worker.calls.filter((call) => call.method === 'start');
+
+  expect([action.kind, starts.length]).toStrictEqual(['respawn', 1]);
+});

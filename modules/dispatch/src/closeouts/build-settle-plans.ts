@@ -1,5 +1,5 @@
 import { dedupeOpenItems } from '@boxxy/closeout';
-import type { Effect, ItemId, ItemView, WorkFacts } from '@boxxy/model';
+import type { Effect, ItemId, ItemView, OpenItem, WorkFacts } from '@boxxy/model';
 import { match } from 'ts-pattern';
 import { effectHandlers } from './effect-handlers.ts';
 import type { EffectContext, EffectPlan } from './types.ts';
@@ -36,15 +36,22 @@ export function buildSettlePlans(input: SettlePlansInput): SettlePlans {
 
   const toFile = new Set(deduped.file);
 
+  // with no open issues to match, the dedupe keeps the first entry of each title
+  const firsts = new Set(dedupeOpenItems(fileItems, []).file);
+  const repeats = new Set(fileItems.filter((entry) => !firsts.has(entry)));
+
   const effects = input.effects
-    .filter((effect) => effect.kind !== 'file-item' || toFile.has(effect.item))
+    .filter(
+      (effect) =>
+        effect.kind !== 'file-item' || toFile.has(effect.item) || repeats.has(effect.item),
+    )
 
     // each item update expects the item open, so the close goes last
     .toSorted(
       (first, second) => Number(first.kind === 'close-item') - Number(second.kind === 'close-item'),
     );
 
-  const plans = collectPlans(effects, input);
+  const plans = collectPlans(effects, input, repeats);
 
   return {
     plans,
@@ -56,15 +63,19 @@ export function buildSettlePlans(input: SettlePlansInput): SettlePlans {
   };
 }
 
-function collectPlans(effects: readonly Effect[], input: SettlePlansInput): EffectPlan[] {
+function collectPlans(
+  effects: readonly Effect[],
+  input: SettlePlansInput,
+  repeats: ReadonlySet<OpenItem>,
+): EffectPlan[] {
   const plans: EffectPlan[] = [];
   let ctx = input.ctx;
 
   for (const effect of effects) {
+    const reason = findSkipReason(effect, input.held, repeats);
+
     const plan: EffectPlan =
-      input.held && isItemChange(effect)
-        ? { kind: 'skip', effect, reason: 'the item holds for the owner' }
-        : planEffect(effect, ctx);
+      reason === null ? planEffect(effect, ctx) : { kind: 'skip', effect, reason };
 
     plans.push(plan);
 
@@ -72,6 +83,18 @@ function collectPlans(effects: readonly Effect[], input: SettlePlansInput): Effe
   }
 
   return plans;
+}
+
+function findSkipReason(
+  effect: Effect,
+  held: boolean,
+  repeats: ReadonlySet<OpenItem>,
+): string | null {
+  if (effect.kind === 'file-item' && repeats.has(effect.item)) {
+    return 'the close-out names this title already';
+  }
+
+  return held && isItemChange(effect) ? 'the item holds for the owner' : null;
 }
 
 const itemChanges: ReadonlySet<Effect['kind']> = new Set([

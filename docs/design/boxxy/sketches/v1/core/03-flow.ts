@@ -570,7 +570,9 @@ export function settleAttempt(input: SettleAttemptInput): Promise<MoveResult> {
     //    `duplicate` close adds the `duplicate-of` relation in the same plan.
     //    Each plan sees the relations and the close that the plans before it write: a relation
     //    named twice skips with `the relation is live already`, a relation to the item itself
-    //    with `an item has no relation to itself`, a second close with `the item is closed`. A
+    //    with `an item has no relation to itself`, a second close with `the item is closed`, and
+    //    an open item whose title the close-out repeats with `the close-out names this title
+    //    already`. A
     //    second insert would break the live unique key of `relations`, and the store would
     //    refuse the whole settle on every tick.
     //    When the rules map this outcome to a `{ hold: reason }` edge, the item holds for the
