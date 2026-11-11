@@ -87,8 +87,8 @@ interface NullableColumn<Kind extends ColumnKind> {
 // columns fits. A table's columns take a type alias: an interface has no index signature.
 type TelemetryColumns = Readonly<{
   session_id: Column<'entityID'>;
-  origin_issuer: NullableColumn<'text'>;
-  origin_subject: NullableColumn<'text'>;
+  origin_issuer: Column<'text'>;
+  origin_subject: Column<'text'>;
   product: Column<'text'>;
   at: Column<'timestamp'>;
 }>;

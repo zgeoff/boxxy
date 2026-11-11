@@ -28,8 +28,8 @@ const pullRequestFamily = defineFactFamily({
 const telemetryColumns = {
   id: { kind: 'entityID' },
   session_id: { kind: 'entityID' },
-  origin_issuer: { kind: 'text', nullable: true },
-  origin_subject: { kind: 'text', nullable: true },
+  origin_issuer: { kind: 'text' },
+  origin_subject: { kind: 'text' },
   product: { kind: 'text' },
   at: { kind: 'timestamp' },
 } as const;
