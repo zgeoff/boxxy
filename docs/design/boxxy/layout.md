@@ -159,7 +159,10 @@ modules/planning/
   packages' tests use lives in the package that owns what it starts, builds or fakes.
 - An end-to-end test lives in the `e2e/` folder of the package that builds the program it runs, such
   as `apps/server/e2e/`. A test that needs two apps lives in `system-tests`, as
-  [Dependency rules](#dependency-rules) says. The repo root holds no `test-utils/` or `e2e/` folder, and
+  [Dependency rules](#dependency-rules) says, at `system-tests/e2e/<name>.system.test.ts`. It runs
+  both apps in the test process, so it takes the `.system` suffix of the `system` test lane in
+  `rig.config.ts`, which `bun run test:system` runs, and never the `e2e` lane, which needs a built
+  program. The repo root holds no `test-utils/` or `e2e/` folder, and
   `bun run check:test-layout` fails a test or a helper outside this layout.
 
 The folders inside each package's `src/` are in [folder layout](./layout-folders.md).

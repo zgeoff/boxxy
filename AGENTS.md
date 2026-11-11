@@ -98,7 +98,8 @@ When a check fails, move the code to the package the layout names. Never add an 
 
 - `bun run typecheck`, `bun run lint` and `bun run test` are the local checks. Run them before you
   push, and fix every failure. `bun run test` runs `rig unit`, which runs the tests in random order
-  with no isolation between the files of a worker.
+  with no isolation between the files of a worker. `bun run test:system` runs the tests of two apps
+  together, in `system-tests/e2e/`.
 - `bun run check:docs` runs the docs checks. `bun run bench` runs the benchmarks through
   `rig bench`. CI does not run the benchmarks.
 - `bun run lint:full` adds the type-aware pass and the type check. It runs in CI only, so never run

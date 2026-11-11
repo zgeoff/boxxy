@@ -86,7 +86,9 @@
     "check:uncommitted": "bun scripts/run-uncommitted-check.ts",
     "memory-capped": "bash scripts/run-memory-capped.sh \"$(bun scripts/read-memory-budget.ts)\"",
     "ci:dispatch-publish": "bun scripts/publish/dispatch-release-publish.ts",
-    "ci:publish-packages": "bun scripts/publish/publish-packages.ts"
+    "ci:publish-packages": "bun scripts/publish/publish-packages.ts",
+    "test:e2e": "rig e2e",
+    "test:system": "rig system"
   },
   "devDependencies": {
     "@boxxy/content-hash": "workspace:*",

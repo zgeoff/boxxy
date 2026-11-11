@@ -173,7 +173,7 @@ apps/cli/src                    @boxxy/cli
   test-utils/     create-skills-repo  build-mock-cli-deps
 system-tests/src                @boxxy/system-tests: the CLI against the real server
   test-utils/     create-test-cli  read-json-output
-system-tests/e2e                one cli- test file per command group and per hook
+system-tests/e2e                one cli-<group>.system.test.ts file per command group and per hook
 apps/cli/hook-plugin            the Claude Code plug-in that the agent image installs
 
 adapters/notifier-atc/src       @boxxy/notifier-atc

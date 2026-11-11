@@ -48,7 +48,7 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | HTTP mocks         | `msw` `2.15.0`, `@msw/data` `1.1.8`                                                                                   | nixie, noslop                           |
 | Git hooks          | `lefthook` `2.2.2`, gitleaks                                                                                          | all five                                |
 | Commits            | `@commitlint/cli` `21.2.4`, `@zgeoff/commitlint-config` `0.1.0`                                                       | wringer, pepys, nixie                   |
-| Repo checks        | `@zgeoff/chex` `0.3.3`, for the test layout and docs checks                                                           | zgeoff/tools                            |
+| Repo checks        | `@zgeoff/chex` `0.3.4`, for the test layout and docs checks                                                           | zgeoff/tools                            |
 | Dead code          | `knip` `6.44.1`                                                                                                       | the newest of the five                  |
 | Skill gate         | `@zgeoff/skill-gate` `0.2.27`                                                                                         | the newest of the five                  |
 
@@ -72,7 +72,7 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | `oxfmt.config.ts`, `.formatignore`                                                | the formatter config, which spreads `@zgeoff/oxfmt-config`, and the files `format-codemod` skips                  | wringer        |
 | `lefthook.yml`                                                                    | pre-commit fixes staged files and runs gitleaks; commit-msg runs commitlint; extends the synced pre-push baseline | wringer        |
 | `commitlint.config.js`                                                            | extends `@zgeoff/commitlint-config`                                                                               | wringer        |
-| `rig.config.ts`                                                                   | the test lanes that `rig` runs; boxxy keeps the built-in lanes                                                    | zgeoff/tools   |
+| `rig.config.ts`                                                                   | the test lanes that `rig` runs: the built-in lanes, and `system` for the tests in `system-tests/e2e/`             | zgeoff/tools   |
 | `knip.json`                                                                       | the dead-code check's entries per workspace                                                                       | wringer        |
 | `audit-ignores.json`                                                              | each ignored advisory with its package, reason and expiry                                                         | wringer        |
 | `renovate.json`                                                                   | extends the `github>zgeoff/tools` preset                                                                          | wringer, pepys |
@@ -88,10 +88,12 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | `scripts/publish/`, `scripts/release/`, `scripts/ci/` | the publish dispatch and the package publish; `scripts/test-utils/` holds their stubs | wringer        |
 
 The `BUN_CHECK_SCRIPTS` repo variable gives CI its list of root scripts:
-`audit deadcode format:check lint:full typecheck boundaries check:test-layout prose test`. The list
-is wringer's, with `boundaries` (`turbo boundaries`) added, as noslop's has, and `check:test-layout`
-(`chex test-layout`), which fails a test or a test helper outside the
-[test layout](./layout.md#inside-a-package). No root script runs the whole list: the type-aware lint
+`audit deadcode format:check lint:full typecheck boundaries check:test-layout prose test test:system`.
+The list is wringer's, with `boundaries` (`turbo boundaries`) added, as noslop's has,
+`check:test-layout` (`chex test-layout`), which fails a test or a test helper outside the
+[test layout](./layout.md#inside-a-package), and `test:system` (`rig system`), which runs the tests
+of two apps together. `test` stays `rig unit`, because `rig init` resets it to that on each rig
+update. No root script runs the whole list: the type-aware lint
 (`lint:full`) and the dead-code check run in CI only, so an agent on a host with little memory
 never runs them. An agent runs `typecheck`, `lint` and `test` locally. CI also runs each docs check
 that the `check:docs` script names, and `prose` adds the prose check of `AGENTS.md`. lefthook's
