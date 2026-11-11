@@ -17,7 +17,7 @@ The mistakes that cost most here:
   your work needs.
 - [Layout](#layout): follow the layout doc. Code under `modules/` and `libs/` does no I/O.
 - [Docs and decisions](#docs-and-decisions): a design doc changes in the same PR as the code.
-- [Checks](#checks): run the pre-push hook and `bun run check` before you push.
+- [Checks](#checks): run the local checks before you push. The type-aware lint runs in CI only.
 - [Commits and pull requests](#commits-and-pull-requests): Conventional Commits, one PR per
   change, no attribution lines.
 - [Public repo](#public-repo): nothing from your machine or anyone's private setup.
@@ -80,21 +80,20 @@ When a check fails, move the code to the package the layout names. Never add an 
 
 ## Checks
 
-Before you push, run the lefthook pre-push hook, which runs lint, the format check, type checks,
-tests and `turbo boundaries`:
+- `bun run typecheck`, `bun run lint` and `bun run test` are the local checks. Run them before you
+  push, and fix every failure.
+- `bun run lint:full` adds the type-aware pass and the type check. It runs in CI only, so never run
+  it locally.
+- lefthook runs the light checks before a commit and a push: lint on the files your branch changes,
+  the format check, the type check, the tests beside the changed files, and `turbo boundaries`. To
+  run the pre-push jobs before you push:
 
-```bash
-bun x lefthook run pre-push
-```
+  ```bash
+  bun x lefthook run pre-push
+  ```
 
-Then run `bun run check`. It runs every check that CI runs, with the type-aware lint and the knip
-dead-code check that the hook skips:
-
-```bash
-bun run check
-```
-
-Fix every failure before you push.
+- Leave the larger checks to CI, because the host may have little memory. CI runs the audit, the
+  knip dead-code check, the type-aware lint and the full test suite on every pull request.
 
 ## Commits and pull requests
 

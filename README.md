@@ -50,11 +50,11 @@ folder holds what, and which package may import which.
 Every package publishes to npm. The [releasing runbook](./docs/runbooks/releasing.md) covers a
 release.
 
-Run the checks that CI runs:
+Run the local checks. CI runs the rest, with the type-aware lint, on every pull request:
 
 ```bash
 bun install
-bun run check
+bun run typecheck && bun run lint && bun run test
 ```
 
 ## Docs
