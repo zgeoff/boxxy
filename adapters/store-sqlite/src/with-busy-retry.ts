@@ -13,12 +13,17 @@ export async function withBusyRetry(waitLimitMs: number, work: () => unknown): P
 
       return;
     } catch (error) {
-      if (!isBusy(error) || performance.now() - startMs >= waitLimitMs) {
+      if (!isBusy(error)) {
+        throw error;
+      }
+
+      await Bun.sleep(retryDelayMs);
+
+      // checked after the sleep, so no try starts once the limit has passed
+      if (performance.now() - startMs >= waitLimitMs) {
         throw error;
       }
     }
-
-    await Bun.sleep(retryDelayMs);
   }
 }
 

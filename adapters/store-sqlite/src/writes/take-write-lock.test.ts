@@ -40,15 +40,20 @@ async function setupTest() {
   };
 }
 
-test('it rejects with a busy error when another handle holds the lock past the wait limit', async () => {
+test('it rejects with a busy error once another handle holds the lock for the wait limit', async () => {
   const ctx = await setupTest();
 
   await ctx.holdLock();
+
+  const startMs = performance.now();
 
   const refusal: unknown = await ctx.takeLock(50).then(
     () => null,
     (error: unknown) => error,
   );
 
+  const waitedMs = performance.now() - startMs;
+
   expect(refusal).toMatchObject({ code: 'SQLITE_BUSY' });
+  expect(waitedMs).toBeGreaterThanOrEqual(50);
 });

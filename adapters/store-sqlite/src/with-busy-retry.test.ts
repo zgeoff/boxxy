@@ -39,6 +39,15 @@ async function setupTest() {
       reader.query('SELECT body FROM notes').all();
       writer.run("INSERT INTO notes VALUES ('Mend the gate')");
     },
+    holdWriteLock: () => {
+      writer.run('BEGIN IMMEDIATE');
+    },
+    releaseWriteLock: () => {
+      writer.run('ROLLBACK');
+    },
+    takeWriteLock: () => {
+      reader.run('BEGIN IMMEDIATE');
+    },
     writeFromStaleRead: () => {
       reader.run("INSERT INTO notes VALUES ('Oil the hinge')");
     },
@@ -62,4 +71,21 @@ test('it retries work that fails with an extended busy code until the wait limit
 
   expect(refusal).toMatchObject({ code: 'SQLITE_BUSY_SNAPSHOT' });
   expect(tries.length).toBeGreaterThan(1);
+});
+
+test('it rejects when the lock comes free only after the wait limit', async () => {
+  const ctx = await setupTest();
+
+  ctx.holdWriteLock();
+
+  const taking = withBusyRetry(5, ctx.takeWriteLock);
+
+  ctx.releaseWriteLock();
+
+  const outcome = await taking.then(
+    () => 'taken',
+    () => 'refused',
+  );
+
+  expect(outcome).toBe('refused');
 });
