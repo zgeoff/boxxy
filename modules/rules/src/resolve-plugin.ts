@@ -1,8 +1,8 @@
 import type { JsonValue } from '@boxxy/content-hash';
 import type { ParamKindName, Registered, Resolved } from '@boxxy/model';
+import { formatKeyPath } from '@boxxy/model';
 import type { z } from 'zod';
 import { buildRejection } from './build-rejection.ts';
-import { formatRulesPath } from './format-rules-path.ts';
 import type { Checked } from './types.ts';
 
 export function resolvePlugin<K extends ParamKindName>(
@@ -45,7 +45,7 @@ export function resolvePlugin<K extends ParamKindName>(
 function formatIssues(issues: readonly z.core.$ZodIssue[]): string {
   return issues
     .map((issue) =>
-      issue.path.length > 0 ? `${formatRulesPath(issue.path)}: ${issue.message}` : issue.message,
+      issue.path.length > 0 ? `${formatKeyPath(issue.path)}: ${issue.message}` : issue.message,
     )
     .join('; ');
 }

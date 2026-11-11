@@ -1,4 +1,4 @@
-export function formatRulesPath(segments: readonly PropertyKey[]): string {
+export function formatKeyPath(segments: readonly PropertyKey[]): string {
   return segments.map((segment, index) => formatSegment(segment, index === 0)).join('');
 }
 

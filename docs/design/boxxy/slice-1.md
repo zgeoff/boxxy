@@ -679,10 +679,11 @@ the example uses bare names.
   `name@version` with the content hash of the concept's TypeScript source: its module file and every
   file inside `@boxxy/planning` that it imports, transitively.
 - **The build computes the pins, and the server passes them in.** `@boxxy/planning`'s build step runs
-  the repo tool `scripts/concept-pins.ts`, which hashes each concept's source and writes the module
-  `src/generated/concept-pins.ts`. The module is committed, and the root check fails when it is
-  stale. The server imports `concepts` and `conceptPins` from `@boxxy/planning`, and passes both to
-  `loadRules`. `@boxxy/rules` never imports `@boxxy/planning`. The pins are keyed by concept name,
+  the repo tool `scripts/write-concept-pins.ts`, which hashes each concept's source and writes the
+  module `src/generated/concept-pins.ts`. A concept's source is `src/concepts/<name>.ts` and each
+  file it imports by a relative path, type-only imports included. The module is committed, and a
+  test in `bun run test` fails when it is stale. The server imports `concepts` and `conceptPins`
+  from `@boxxy/planning`, and passes both to `loadRules`. `@boxxy/rules` never imports `@boxxy/planning`. The pins are keyed by concept name,
   so the server compiles in one version of each concept, and passes a pin for each one. The loader
   throws when a pinned concept has no matching pin, because only a server bug reaches that.
 - **The server checks the checkout for a new commit each tick**, and reloads the rules by
@@ -724,16 +725,19 @@ concept by name: it reads the frame and the pools ([planning](./planning.md#buil
 reads, `buildFrame` returns a `Frame`, and `decide` returns a `Decision` of `Pick`s. The loader
 builds each `Pool` with the `lead` signals at the front of its `order`.
 
-`buildFrame` reads every open item in the snapshot. Its candidates are the open items in state
-`ready`. It runs these steps in order:
+`buildFrame` reads every open item in the snapshot. Each item's phase is the first phase of its
+kind's pipeline, and `buildFrame` leaves out an item whose kind the loaded rules don't name. Its
+candidates are the open items in state `ready`. It runs these steps in order:
 
 1. Each signal that a propagation line carries, such as `expedite`, computes its value for every
    open item, from the item and its live levers.
 2. `buildFrame` runs each propagation line over the open items
    ([the slice 1 concepts](#the-slice-1-concepts)).
-3. Each gate decides whether it holds each candidate.
-4. Each waiver may lift one gate's hold on a candidate, reading the propagated values.
-5. Each other signal, such as `oldest`, computes its value for each candidate.
+3. Each other signal, such as `oldest`, computes its value for each candidate.
+4. Each gate decides whether it holds each candidate.
+5. Each waiver may lift the hold of a liftable gate on a candidate, reading every signal value, so a
+   waiver sees `expedite` whether or not a propagation line carries it. The first waiver that lifts
+   a hold wins.
 6. Each filter field that a concept's `filterFields` declares gives its value for each candidate,
    and `buildFrame` puts the values in the frame's `fields`.
 
@@ -757,8 +761,14 @@ an empty object.
 
 A plug-in that throws is a fault. `buildFrame` records it in `faults` and fails toward holding
 ([dispatch](./dispatch.md#gates-fail-toward-holding)): a failed gate holds with the fault as its
-reason, a failed waiver lifts nothing, and a failed signal gives no opinion. A propagation line that
-throws carries nothing.
+reason, a failed waiver lifts nothing, and a failed signal gives no opinion. A failed filter field
+gives the item no value for that field, so no pool that filters on the field takes the item, and
+its fault has the kind `filter-field`. No waiver lifts the hold of a failed gate. A propagation line that throws carries nothing: its signal keeps the values
+it had before the line ran.
+
+`decide.ts`, `build-frame.ts` and `propagate.ts` never import a concept. An oxlint
+`no-restricted-imports` override in `.oxlintrc.json` fails an import of `src/concepts/` or
+`src/concepts.ts` from them.
 
 ### The slice 1 concepts
 
@@ -778,9 +788,9 @@ concept by name and version.
   `plan.undefer`. Its hold is liftable.
 - `expedite-lifts-defer` lifts a `defer` hold on any candidate with an `expedite` value, propagated
   values included.
-- `expedite` gives the item's position among the live `plan.expedite` levers, oldest first, so the
-  first expedite sorts first. An item with two live expedites takes the position of its oldest one.
-  Its `combine` is `min`.
+- `expedite` gives the item's position among the live `plan.expedite` levers, in `seq` order, so
+  the first expedite sorts first. An item with two live expedites takes the position of its oldest
+  one. Its `combine` is `min`.
 
 The `pool` concept declares the pool filter fields `phase`, `kind` and `repo` in its
 `filterFields`. The `defer` concept registers the levers `plan.defer` and `plan.undefer`. The
@@ -922,9 +932,10 @@ proposed.
 dedupe.
 
 - **A friction entry's target kind** is one of `skill`, `rule`, `lint`, `agents-md` and `tool`. A
-  target of any other kind fails the parse. An entry with no target is dropped, as
-  [decision 0009](../../decisions/0009-close-outs-hold-what-only-the-agent-knows.md) says, and the
-  parser counts it in `frictionDropped`.
+  target of any other kind fails the parse. An entry whose `target` is missing or `null` is dropped,
+  as [decision 0009](../../decisions/0009-close-outs-hold-what-only-the-agent-knows.md) says, and
+  the parser counts it in `frictionDropped`. The agent never sends `frictionDropped`: the parser sets
+  it, and ignores a count the agent sends.
 
 - **Evidence ids** are the `fact_id`s of the attempt's `evidence` rows. The PR hook and the PR watch
   write PR and commit evidence. The agent writes test, CI run and live check evidence with
@@ -932,14 +943,20 @@ dedupe.
 - **The parser rejects** a close-out that fails the schema, cites a criterion the item lacks, cites
   an evidence id that belongs to another attempt, or has result `built` while a criterion has no
   evidence. The parser returns every problem at once, and the CLI prints them all, so the agent can
-  fix the close-out and send it again.
+  fix the close-out and send it again. When the close-out fails the schema, the parser returns only
+  the schema problems, because the other checks read the parsed fields. A schema problem's path
+  points into the close-out the agent sent, such as `friction[2].target.kind`, even when the parser
+  dropped an entry before it.
 - **The latest valid close-out wins.** Each valid one writes `boxxy.attempt.closed_out`.
 - **Dedupe matches an `openItems` entry** to an open `core.issue` in the same repo whose title is
-  equal after lowercasing, trimming, and collapsing each run of whitespace to one space. A match
-  files no new item. It links the existing item to the attempt: the attempt's
+  equal after lowercasing, trimming, and collapsing each run of whitespace to one space. Settle reads
+  the open `core.issue` items of the attempt's repo with `listOpenIssues` and passes them to
+  `dedupeOpenItems`, which compares titles only. A match files no new item. It links the existing item to the attempt: the attempt's
   `boxxy.attempt.settled` fact lists it in `matched`. With no match, settle files a new item with
   the entry's `body` as its outcome, the repo of the attempt's item, and an empty acceptance list,
-  so it starts as an `idea`, with `found_in_attempt` set.
+  so it starts as an `idea`, with `found_in_attempt` set. When two entries of one close-out have
+  titles that are equal after the same normalising, settle files only the first, so it files each new
+  item once.
 - **Friction** becomes a `boxxy.proposal.recorded` fact. Slice 1 acts on it no further.
 
 ## Links to commits and PRs

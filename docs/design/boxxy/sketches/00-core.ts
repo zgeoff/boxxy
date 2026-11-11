@@ -333,8 +333,8 @@ export type DecisionRow = {
 
 /** A plug-in call or a propagation line that threw. 04-planning.ts's `Fault` is this shape. */
 export type FaultRecord = {
-  readonly plugin: string; // signal, gate or waiver name, or `propagation:<signal>:<link>`
-  readonly kind: "signal" | "gate" | "waiver" | "admission" | "propagation" | "pool-gate";
+  readonly plugin: string; // signal, gate, waiver or filter field name, or `propagation:<signal>:<link>`
+  readonly kind: "signal" | "gate" | "waiver" | "admission" | "propagation" | "filter-field" | "pool-gate";
   readonly item: ItemId | null;
   readonly error: string;
 };
