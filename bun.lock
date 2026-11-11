@@ -31,7 +31,7 @@
     },
     "adapters/caller-proof-imp": {
       "name": "@boxxy/caller-proof-imp",
-      "version": "0.1.0",
+      "version": "0.1.3",
       "dependencies": {
         "@boxxy/model": "workspace:*",
         "@impz/client": "catalog:",
@@ -43,7 +43,7 @@
     },
     "adapters/forge-github": {
       "name": "@boxxy/forge-github",
-      "version": "0.1.0",
+      "version": "0.1.3",
       "dependencies": {
         "@boxxy/model": "workspace:*",
         "zod": "catalog:",
@@ -54,14 +54,14 @@
     },
     "adapters/notifier-atc": {
       "name": "@boxxy/notifier-atc",
-      "version": "0.1.0",
+      "version": "0.1.3",
       "dependencies": {
         "@boxxy/model": "workspace:*",
       },
     },
     "adapters/store-sqlite": {
       "name": "@boxxy/store-sqlite",
-      "version": "0.1.1",
+      "version": "0.1.3",
       "dependencies": {
         "@boxxy/content-hash": "workspace:*",
         "@boxxy/model": "workspace:*",
@@ -78,7 +78,7 @@
     },
     "adapters/worker-atc": {
       "name": "@boxxy/worker-atc",
-      "version": "0.1.0",
+      "version": "0.1.3",
       "dependencies": {
         "@atcx/contract": "catalog:",
         "@boxxy/model": "workspace:*",
@@ -91,7 +91,7 @@
     },
     "apps/cli": {
       "name": "@boxxy/cli",
-      "version": "0.1.0",
+      "version": "0.1.3",
       "bin": {
         "boxxy": "./src/main.ts",
       },
@@ -105,7 +105,7 @@
     },
     "apps/server": {
       "name": "@boxxy/server",
-      "version": "0.1.0",
+      "version": "0.1.3",
       "dependencies": {
         "@boxxy/caller-proof-imp": "workspace:*",
         "@boxxy/closeout": "workspace:*",
@@ -135,14 +135,14 @@
     },
     "libs/content-hash": {
       "name": "@boxxy/content-hash",
-      "version": "0.1.0",
+      "version": "0.1.3",
       "dependencies": {
         "zod": "catalog:",
       },
     },
     "libs/contract": {
       "name": "@boxxy/contract",
-      "version": "0.1.0",
+      "version": "0.1.3",
       "dependencies": {
         "@boxxy/model": "workspace:*",
         "@orpc/contract": "catalog:",
@@ -152,7 +152,7 @@
     },
     "libs/model": {
       "name": "@boxxy/model",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "dependencies": {
         "@boxxy/content-hash": "workspace:*",
         "tiny-invariant": "catalog:",
@@ -170,7 +170,7 @@
     },
     "modules/closeout": {
       "name": "@boxxy/closeout",
-      "version": "0.1.0",
+      "version": "0.1.3",
       "dependencies": {
         "@boxxy/model": "workspace:*",
         "tiny-invariant": "catalog:",
@@ -185,7 +185,7 @@
     },
     "modules/dispatch": {
       "name": "@boxxy/dispatch",
-      "version": "0.1.1",
+      "version": "0.1.3",
       "dependencies": {
         "@boxxy/closeout": "workspace:*",
         "@boxxy/content-hash": "workspace:*",
@@ -201,7 +201,7 @@
     },
     "modules/planning": {
       "name": "@boxxy/planning",
-      "version": "0.1.0",
+      "version": "0.1.3",
       "dependencies": {
         "@boxxy/content-hash": "workspace:*",
         "@boxxy/model": "workspace:*",
@@ -212,7 +212,7 @@
     },
     "modules/rules": {
       "name": "@boxxy/rules",
-      "version": "0.1.0",
+      "version": "0.1.3",
       "dependencies": {
         "@boxxy/content-hash": "workspace:*",
         "@boxxy/model": "workspace:*",
@@ -224,7 +224,7 @@
     },
     "packages/pepys": {
       "name": "@boxxy/pepys",
-      "version": "0.0.0",
+      "version": "0.1.3",
       "dependencies": {
         "@boxxy/model": "workspace:*",
       },
