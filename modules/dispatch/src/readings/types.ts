@@ -47,7 +47,7 @@ export type ReadingAction =
   | {
       readonly kind: 'close';
       readonly cause: 'usage-limit';
-      readonly resetsAt: Instant | null;
+      readonly resetsAt: Instant;
     }
   | { readonly kind: 'stop' }
   | {

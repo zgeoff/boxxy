@@ -46,8 +46,9 @@ import { createMemoryClaimStore } from './create-memory-claim-store.ts';
 import type { ClosableClaimStore } from './types.ts';
 
 export interface SeedItemInput {
-  // the phase the item stands at, through an `item.retry --phase` lever
-  readonly phase: PhaseName;
+  // the phase the item stands at, through an `item.retry --phase` lever; with none, the item
+  // stands at its pipeline's first phase and has no lever
+  readonly phase?: PhaseName;
   readonly designMode?: DesignMode;
 }
 
@@ -104,10 +105,15 @@ export interface TestDispatch {
 
 const repo = brandSchemas.repoName.parse('example/app');
 
-// The example rules with the four phase kinds, the memory store with its limits synced, the
-// fake worker, and a clock that moves only when the test moves it.
-export async function createTestDispatch(): Promise<TestDispatch> {
-  const store = createMemoryClaimStore();
+export interface TestDispatchOptions {
+  // the memory store when left out
+  readonly store?: ClosableClaimStore;
+}
+
+// The example rules with the four phase kinds, the store with its limits synced, the fake
+// worker, and a clock that moves only when the test moves it.
+export async function createTestDispatch(options: TestDispatchOptions = {}): Promise<TestDispatch> {
+  const store = options.store ?? createMemoryClaimStore();
   const clock = createFakeClock();
   const worker = createFakeWorker({ clock });
   const backoff = createFakeBackoff();
@@ -482,8 +488,28 @@ function buildSeedItemRow(
   };
 }
 
-function buildSeedItemChange(newId: NewId, row: ItemRow, phase: PhaseName): StoreChange {
+function buildSeedItemChange(
+  newId: NewId,
+  row: ItemRow,
+  phase: PhaseName | undefined,
+): StoreChange {
   const { keptSession: _keptSession, ...filed } = row;
+
+  const fileFact = {
+    id: brandSchemas.factId.parse(newId()),
+    type: 'boxxy.item.filed',
+    entity: `boxxy:item:${row.id}`,
+    actor: 'boxxy:owner:local',
+    payload: filed,
+  } as const;
+
+  if (phase === undefined) {
+    return {
+      at: row.filedAt,
+      writes: [{ op: 'insert', table: 'items', row }],
+      facts: [fileFact],
+    };
+  }
 
   const lever = {
     seq: 1,
@@ -504,13 +530,7 @@ function buildSeedItemChange(newId: NewId, row: ItemRow, phase: PhaseName): Stor
       { op: 'insert', table: 'levers', row: lever },
     ],
     facts: [
-      {
-        id: brandSchemas.factId.parse(newId()),
-        type: 'boxxy.item.filed',
-        entity: `boxxy:item:${row.id}`,
-        actor: 'boxxy:owner:local',
-        payload: filed,
-      },
+      fileFact,
       {
         id: brandSchemas.factId.parse(newId()),
         type: 'boxxy.lever.recorded',

@@ -67,6 +67,41 @@ async function setupTest() {
   };
 }
 
+test.each([
+  ['1 hour away, until the reset', 60, 60],
+  ['48 hours away, for 24 hours at most', 48 * 60, 24 * 60],
+])(
+  'it closes a session at the usage limit and holds its pool back, with a reset %s',
+  async (_title, resetMinutes, heldMinutes) => {
+    const ctx = await setupTest();
+    const attempt = await ctx.claimAgent();
+
+    const now = ctx.clock.now();
+
+    ctx.worker.setSession(attempt.id, {
+      state: 'running',
+      attention: 'working',
+      lastActivityAt: now,
+      usageLimitResetsAt: brandSchemas.instant.parse(now + resetMinutes * 60_000),
+    });
+
+    await ctx.tick();
+
+    const after = await ctx.readAttempt(attempt.id);
+
+    const before = brandSchemas.instant.parse(now + heldMinutes * 60_000 - 1);
+    const atEnd = brandSchemas.instant.parse(now + heldMinutes * 60_000);
+
+    const held = [
+      ctx.backoff.listHeld(before).includes(attempt.pool),
+      ctx.backoff.listHeld(atEnd).includes(attempt.pool),
+    ];
+
+    expect([after.state, after.closing]).toStrictEqual(['closing', 'usage-limit']);
+    expect(held).toStrictEqual([true, false]);
+  },
+);
+
 test('it does not settle an attended session whose turn ended with no close-out', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.claimAttended();

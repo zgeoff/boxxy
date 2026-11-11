@@ -145,10 +145,11 @@ function runAction(input: ActOnReadingInput, action: ReadingAction, base: MoveBa
       await writeMove({ kind: 'stalled' });
     })
     .with({ kind: 'close', cause: 'usage-limit' }, async (close) => {
+      const latest = input.now + timeouts.usageLimitBackoffHours * hourMs;
+
       input.backoff.hold(
         input.attempt.pool,
-        close.resetsAt ??
-          brandSchemas.instant.parse(input.now + timeouts.usageLimitBackoffHours * hourMs),
+        brandSchemas.instant.parse(Math.min(close.resetsAt, latest)),
       );
 
       await writeMove({ kind: 'usage-limited' });

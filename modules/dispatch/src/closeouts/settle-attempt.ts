@@ -1,5 +1,4 @@
 import type {
-  ApplyResult,
   AttemptRow,
   EngineOutcome,
   Instant,
@@ -11,6 +10,7 @@ import type {
 } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { buildAttemptChange } from '../attempts/build-attempt-change.ts';
+import type { MoveResult } from '../attempts/types.ts';
 import { buildSettlePlans } from './build-settle-plans.ts';
 import { pickSettlement } from './pick-settlement.ts';
 import type { SettleAttemptInput } from './types.ts';
@@ -18,7 +18,7 @@ import type { SettleAttemptInput } from './types.ts';
 // Settles one attempt, with the writes of its effects, in one change and one lock. No step
 // throws on stored data, so only a store error leaves it. When the item holds after the settle,
 // the same lock writes the notice row.
-export function settleAttempt(input: SettleAttemptInput): Promise<ApplyResult> {
+export function settleAttempt(input: SettleAttemptInput): Promise<MoveResult> {
   return input.store.exclusive(async (tx) => {
     const attempt = await tx.readAttempt(input.attempt);
 
@@ -75,7 +75,7 @@ export function settleAttempt(input: SettleAttemptInput): Promise<ApplyResult> {
     });
 
     if (built.kind === 'not-allowed') {
-      return { kind: 'guard-mismatch', table: 'attempts', key: { id: attempt.id } };
+      return { kind: 'not-allowed' };
     }
 
     const change: StoreChange = {
@@ -92,9 +92,11 @@ export function settleAttempt(input: SettleAttemptInput): Promise<ApplyResult> {
 
     const result = await tx.applyChange(change);
 
-    if (result.kind === 'applied') {
-      await writeHoldNotice(tx, attempt, input.rules, input.now);
+    if (result.kind !== 'applied') {
+      return { kind: 'refused', reason: result.kind };
     }
+
+    await writeHoldNotice(tx, attempt, input.rules, input.now);
 
     return result;
   });

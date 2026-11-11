@@ -13,6 +13,7 @@
   "files": [
     "src",
     "!src/**/*.test.ts",
+    "!src/**/*.bench.ts",
     "dist"
   ],
   "type": "module",
@@ -26,6 +27,7 @@
     "access": "public"
   },
   "scripts": {
+    "bench:claim": "bun src/create-sqlite-claim-store.bench.ts",
     "build": "rm -rf dist && tsrs -p tsconfig.build.json",
     "typecheck": "tsrs --noEmit"
   },
