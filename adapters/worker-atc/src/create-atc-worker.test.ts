@@ -133,6 +133,62 @@ test('#start answers unknown when the call fails with no atc answer', async () =
   expect(outcome).toStrictEqual({ kind: 'unknown', reason: 'socket closed' });
 });
 
+test('#start answers unknown for a keyed spawn that ran before its session is listed again', async () => {
+  const ctx = setupTest();
+  const attempt = buildMockV1AttemptRow().id;
+
+  ctx.atc.failNext('spawn', new FakeAtcError('no_such_session', { effectRef: 's9-fake' }));
+
+  const outcome = await ctx.worker.start(ctx.buildSpawnRequest(attempt, 'box'));
+
+  expect(outcome).toMatchObject({ kind: 'unknown' });
+});
+
+test('#start answers refused with the cause other for any other atc refusal', async () => {
+  const ctx = setupTest();
+  const attempt = buildMockV1AttemptRow().id;
+
+  ctx.atc.failNext('spawn', new FakeAtcError('auth_signin_needed'));
+
+  const outcome = await ctx.worker.start(ctx.buildSpawnRequest(attempt, 'box'));
+
+  expect(outcome).toStrictEqual({
+    kind: 'refused',
+    cause: 'other',
+    reason: expect.stringContaining('auth_signin_needed'),
+  });
+});
+
+test('#stop answers absent for an attempt whose session never appeared', async () => {
+  const ctx = setupTest();
+  const attempt = buildMockV1AttemptRow({ atcSession: null });
+
+  const outcome = await ctx.worker.stop(attempt);
+
+  expect(outcome).toStrictEqual({ kind: 'absent' });
+});
+
+test('#stop answers unknown when the call fails with no atc answer', async () => {
+  const ctx = setupTest();
+  const attempt = buildMockV1AttemptRow({ atcSession: brandSchemas.atcSessionId.parse('s1-fake') });
+
+  ctx.atc.failNext('kill', new Error('socket closed'));
+
+  const outcome = await ctx.worker.stop(attempt);
+
+  expect(outcome).toStrictEqual({ kind: 'unknown', reason: 'socket closed' });
+});
+
+test('#forget answers unknown when the call fails with no atc answer', async () => {
+  const ctx = setupTest();
+
+  ctx.atc.failNext('forget', new Error('socket closed'));
+
+  const outcome = await ctx.worker.forget(brandSchemas.atcSessionId.parse('s1-fake'));
+
+  expect(outcome).toStrictEqual({ kind: 'unknown', reason: 'socket closed' });
+});
+
 test('#reconcile finds a session by its spawn name when the attempt holds no session', async () => {
   const ctx = setupTest();
   const attempt = buildMockV1AttemptRow({ atcSession: null });

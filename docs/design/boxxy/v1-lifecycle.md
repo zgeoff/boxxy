@@ -194,7 +194,7 @@ A reading comes from `get`, by the session's `lifecycle.harness`, because atc li
 | `suspended` | `suspended`. `asked` is true unless `lifecycle.desired` is `run`, which means the host slept by itself. |
 | `exited` | `ended` |
 
-A `no_such_session` refusal reads as `absent`, and `stop` and `forget` answer it as `absent`. A `reconcile` that gets no answer from atc throws, so that a lost connection never settles a running attempt as `session-lost`.
+A `no_such_session` refusal reads as `absent`, and `stop` and `forget` answer it as `absent`. On `spawn` it answers `unknown`, because after a daemon restart atc gives it to a keyed spawn that ran, until the fleet restore lists the session. A `reconcile` that gets no answer from atc throws, so that a lost connection never settles a running attempt as `session-lost`.
 
 Every other refusal that carries an atc error code answers `refused`. A call that gets no atc code, or `outcome_unknown` or `idempotency_key_unknown`, answers `unknown`, because atc may have run it. A refused `spawn` or `adopt` has the cause `capacity` when atc answers `host_unavailable` with the problem `ram_budget_exceeded`, impd's code for a host with no memory left for another machine. Every other refusal has the cause `other`.
 

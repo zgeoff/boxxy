@@ -89,6 +89,12 @@ export function createAtcWorker(input: AtcWorkerInput): WorkerKind {
 
         return toStarted(answer.session);
       } catch (error) {
+        // after a daemon restart, a keyed spawn that ran answers this until the fleet restore
+        // lists its session
+        if (parseAtcError(error)?.code === 'no_such_session') {
+          return { kind: 'unknown', reason: 'the spawn ran, and its session is not listed yet' };
+        }
+
         return toStartFailure(error);
       }
     },

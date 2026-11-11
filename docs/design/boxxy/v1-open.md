@@ -45,6 +45,8 @@ Each row names the test that settles it, where one is known.
 | What atc reports for a session that hit the account's usage limit. atc reports nothing today; the adapter reads `session.usageLimit` (`seenAt`, `resetsAt`) of `session.get`, which atc must add. | Run one session to the limit, then read it. |
 | Whether a rework prompt sent with `session.message` lets the agent push. Claude Code shows a relayed message as one a plug-in sent, and its auto-mode classifier reads only the owner's prompts. | The forced rework round of the live proof. |
 | That an attempt's spawn name stays the session's name until the session appears in `session.list`. The agent's own `/rename` replaces it. | Spawn, drop the answer, then list. |
+| That each folder in the worker adapter's trusted folders exists and is trusted in a fresh machine of its target. The list is the deployment's statement, and the spawn sends the folder alone, with no workspace source and no `trustClonedWorkspace`. | Spawn once in each listed folder on a new machine. |
+| What `lifecycle.harness` reads between a daemon restart and the fleet restore. If it reads `exited`, the runner settles a running attempt. | Restart the daemon with one session running, then read it before the restore. |
 
 ### The API
 
