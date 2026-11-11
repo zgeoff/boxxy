@@ -62,4 +62,34 @@ export const claimStoreCloseCases: readonly ClaimStoreCase[] = [
       return { received: events, expected: ['read end', 'close end'] };
     },
   ],
+  [
+    '#close waits for an exclusive call that is running',
+    async (store) => {
+      const events: string[] = [];
+      const gate = Promise.withResolvers<void>();
+
+      const writing = store.exclusive(async () => {
+        await gate.promise;
+
+        events.push('exclusive end');
+      });
+
+      const close = async () => {
+        await store.close();
+
+        events.push('close end');
+      };
+
+      const closing = close();
+
+      // one turn of the event loop lets a store that doesn't wait finish the close
+      await setImmediate();
+
+      gate.resolve();
+
+      await Promise.all([writing, closing]);
+
+      return { received: events, expected: ['exclusive end', 'close end'] };
+    },
+  ],
 ];

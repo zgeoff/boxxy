@@ -75,7 +75,7 @@ export function createMemoryClaimStore(): ClosableClaimStore {
     close: async () => {
       isClosed = true;
 
-      await reads;
+      await Promise.all([reads, turn]);
     },
   };
 }
