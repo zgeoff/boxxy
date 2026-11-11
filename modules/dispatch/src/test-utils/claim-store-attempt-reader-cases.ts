@@ -156,7 +156,7 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
-    '#listWatchedPullRequests skips a merged PR',
+    '#listWatchedPullRequests returns an open PR and skips a merged one',
     async (store) => {
       const item = buildMockItemRow();
       const attempt = buildMockAttemptRow({ item: item.id, state: 'starting' });
@@ -166,11 +166,15 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
         await transaction.applyChange(buildMockFileItemChange(item));
         await transaction.applyChange(buildMockClaimChange(attempt));
         await transaction.applyChange(buildMockPullRequestChange({ attempt, state: 'merged' }));
+
+        await transaction.applyChange(
+          buildMockPullRequestChange({ attempt, state: 'open', number: 8 }),
+        );
       });
 
       const watched = await store.read((transaction) => transaction.listWatchedPullRequests());
 
-      return { received: watched, expected: [] };
+      return { received: watched.map((pullRequest) => pullRequest.number), expected: [8] };
     },
   ],
   [

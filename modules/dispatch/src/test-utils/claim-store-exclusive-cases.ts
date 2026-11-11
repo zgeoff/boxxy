@@ -158,6 +158,39 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
+    '#read rejects with the error work throws',
+    async (store) => {
+      const reading = store.read(() => {
+        throw new Error('the read failed');
+      });
+
+      const settled = await reading.then(
+        () => 'resolved',
+        (error: unknown) => error,
+      );
+
+      return { received: settled, expected: new Error('the read failed') };
+    },
+  ],
+  [
+    '#read runs a read started inside another read',
+    async (store) => {
+      const item = buildMockItemRow();
+
+      await store.exclusive((transaction) =>
+        transaction.applyChange(buildMockFileItemChange(item)),
+      );
+
+      const seen = await store.read(() =>
+        store.read((transaction) =>
+          transaction.readItem(item.id, brandSchemas.instant.parse(5000), new Map()),
+        ),
+      );
+
+      return { received: seen?.id, expected: item.id };
+    },
+  ],
+  [
     '#applyChange writes the rows and the outbox facts of a change',
     async (store) => {
       const item = buildMockItemRow({ filedAt: brandSchemas.instant.parse(1000) });

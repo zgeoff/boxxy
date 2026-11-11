@@ -8,7 +8,7 @@ function setupTest() {
     listStoreFolders: async () => {
       const names = await readdir(tmpdir());
 
-      return names.filter((name) => name.startsWith('boxxy-store-'));
+      return names.filter((name) => name.startsWith(`boxxy-store-${process.pid}-`));
     },
   };
 }

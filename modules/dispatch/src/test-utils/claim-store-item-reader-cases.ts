@@ -186,11 +186,13 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       const open = buildMockItemRow({ repo });
       const closed = buildMockItemRow({ repo, closedAt: brandSchemas.instant.parse(1500) });
       const elsewhere = buildMockItemRow({ repo: brandSchemas.repoName.parse('acme/fans') });
+      const task = buildMockItemRow({ repo, kind: brandSchemas.itemKindName.parse('core.task') });
 
       await store.exclusive(async (transaction) => {
         await transaction.applyChange(buildMockFileItemChange(open));
         await transaction.applyChange(buildMockFileItemChange(closed));
         await transaction.applyChange(buildMockFileItemChange(elsewhere));
+        await transaction.applyChange(buildMockFileItemChange(task));
       });
 
       const listed: unknown = await store.read((transaction) =>
