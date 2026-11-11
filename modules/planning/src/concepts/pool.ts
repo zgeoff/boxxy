@@ -2,7 +2,7 @@ import type { Concept } from '@boxxy/model';
 import { defineSignal } from '@boxxy/model';
 import { z } from 'zod';
 
-export const poolConcept: Concept = {
+export const pool: Concept = {
   name: 'pool',
   version: 1,
   signals: [

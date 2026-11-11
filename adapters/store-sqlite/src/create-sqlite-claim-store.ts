@@ -3,10 +3,10 @@ import type { ClaimStore } from '@boxxy/model';
 import { buildSQLiteDialect } from '@zgeoff/kysely-bun-sqlite';
 import { Kysely, sql } from 'kysely';
 import type { RawBuilder } from 'kysely';
-import { buildSQLiteReader } from './build-sqlite-reader.ts';
-import { createSQLiteTx } from './create-sqlite-tx.ts';
-import { runStoreMigrations } from './run-store-migrations.ts';
+import { runStoreMigrations } from './migrations/run-store-migrations.ts';
+import { buildSQLiteReader } from './reads/build-sqlite-reader.ts';
 import type { StoreDatabase } from './types.ts';
+import { createSQLiteTx } from './writes/create-sqlite-tx.ts';
 
 export interface SQLiteClaimStore extends ClaimStore {
   close: () => Promise<void>;

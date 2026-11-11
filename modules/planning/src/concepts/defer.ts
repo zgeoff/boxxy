@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 const expediteKey = signalKey('expedite', {});
 
-export const deferConcept: Concept = {
+export const defer: Concept = {
   name: 'defer',
   version: 1,
   gates: [

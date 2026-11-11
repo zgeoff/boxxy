@@ -6,8 +6,8 @@ import { buildMockLinkRow } from '@boxxy/model/test-utils/build-mock-link-row';
 import { buildMockSnapshot } from '@boxxy/model/test-utils/build-mock-snapshot';
 import { z } from 'zod';
 import { buildFrame } from './build-frame.ts';
-import { expediteConcept } from './concepts/expedite.ts';
-import { poolConcept } from './concepts/pool.ts';
+import { expedite as expediteConcept } from './concepts/expedite.ts';
+import { pool as poolConcept } from './concepts/pool.ts';
 import { buildMockLoadedRules } from './test-utils/build-mock-loaded-rules.ts';
 
 test('it makes candidates of the ready items only', () => {

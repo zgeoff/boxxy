@@ -22,7 +22,7 @@ async function setupTest() {
     store: await createTestClaimStore(),
     createStore: () => createSQLiteClaimStore(path),
     listFiles: () => readdir(folder),
-    seedForeignItemsTable: () => {
+    createForeignItemsTable: () => {
       const sqlite = new Database(path, { create: true });
 
       sqlite.run('CREATE TABLE items (id TEXT)');
@@ -41,7 +41,7 @@ test.each(claimStoreContract)('it keeps the ClaimStore contract: %s', async (_ti
 test('it closes the file when the migrations fail', async () => {
   const ctx = await setupTest();
 
-  ctx.seedForeignItemsTable();
+  ctx.createForeignItemsTable();
 
   const created = await ctx.createStore().then(
     () => 'created',

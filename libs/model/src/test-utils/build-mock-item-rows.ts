@@ -1,4 +1,4 @@
-import type { ItemRows } from '../types/core.ts';
+import type { ItemRows } from '../types.ts';
 
 export function buildMockItemRows(overrides: Partial<ItemRows> = {}): ItemRows {
   return {
