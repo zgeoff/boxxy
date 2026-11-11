@@ -36,10 +36,11 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 - The four close-outs of the v1 phases, each with its schema, and `closeOutSchema` for any of them.
 - The output schemas of the two pepys reports, `costToLandSchema` and `stageTimeSchema`.
 - `definePhase`, which registers a phase kind with its close-out type hidden.
-- The slice 1 forms that the store, planning and the rules loader still use, named `SliceOne…`, with
-  their schemas `sliceOneFactSchemas` and `sliceOneRowSchemas`.
-- `deriveItemState`, which derives an item's state from its rows
-  ([derived item state](../../docs/design/boxxy/slice-1.md#derived-item-state)).
+- The slice 1 forms that the reconcile table still uses, named `SliceOne…`, with the fact schemas
+  `sliceOneFactSchemas`.
+- `buildItemViews`, which derives each item's position and state from its rows and the rules, with
+  `findPosition` and `deriveItemState`.
+- `pickSeatTake` and `collectSeatSync`, which give a store's seat take and seat sync.
 - `liveLevers`, which drops the levers a later undo lever cancels and those past their expiry.
 - `signalKey`, which builds a signal's key from its name and the content hash of its parameters.
 - `defineSignal`, `defineGate` and `defineAdmission`, which register a plug-in with its parameter

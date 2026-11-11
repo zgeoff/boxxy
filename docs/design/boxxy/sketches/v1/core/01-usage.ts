@@ -174,7 +174,7 @@ interface TickDeps {
 export async function runTick(deps: TickDeps): Promise<void> {
   await deps.store.exclusive(async (tx) => {
     await tx.writeHeartbeat(deps.runner, deps.now);
-    await tx.syncLimits(deps.rules.limits); // writes only when the limits changed
+    await tx.syncLimits(deps.rules.limits, deps.now); // seats move only when the limits changed
   });
 
   // A claim is a new attempt or a woken one. Both hold their seats before a worker call runs.

@@ -22,9 +22,10 @@ rows/             the zod schema of each ID and each stored row, one file per ro
                   item-row-schema  attempt-row-schema  attempt-session-row-schema
                   lever-row-schema  relation-row-schema  decision-row-schema
                   pull-request-row-schema  note-row-schema  notice-row-schema
-                  limit-seat-row-schema
-items/            what an item's rows derive to
-                  build-item-views  derive-item-state  live-levers
+                  limit-seat-row-schema  limit-schema  lease-row-schema  runner-row-schema
+                  row-schemas (every stored row's schema, by table)
+items/            what an item's rows derive to: its position, its state and its live levers
+                  types  build-item-views  derive-item-state  live-levers
 planning/         the planning types and the definers of its plug-ins
                   types  define-signal  define-gate  define-admission  signal-key
 rules/            the loaded rules, the plug-in registries, pipelines and phases
@@ -34,20 +35,20 @@ pipeline/         the engine that moves an item through its pipeline
                   find-step  count-trailing  merge-by-time
                   constants (the engine's outcomes and hold reasons)
 dispatch/         claims, settlement and the parts of a store change
-                  types  build-applied-change  find-slot-take
+                  types  build-applied-change  pick-seat-take  collect-seat-sync
 closeouts/        the close-out types and schemas
                   types  close-out-schema  triage-close-out-schema  design-close-out-schema
                   build-close-out-schema  review-close-out-schema  friction-schema
                   open-item-schema
 facts/            the fact catalog and the outbox row
-                  types  work-fact-schemas  outbox-fact-schema
+                  types  work-fact-schemas  outbox-fact-schema  parse-new-fact
 ports/            the interfaces that an adapter implements
                   types: the store, the worker, the notifier, the pepys reader, the forge
 reports/          the output schemas of the pepys queries
                   cost-to-land-schema  stage-time-schema  types  constants (the step and basis lists)
-slice-one/        the slice 1 shapes that the store and planning still use;
-                  each slice that moves a package to v1 deletes what it no longer needs
-                  types  slice-one-fact-schemas  slice-one-row-schemas  derive-slice-one-item-state
+slice-one/        the slice 1 shapes that the reconcile table and the slice 1 claim in
+                  `dispatch/types` still use; the slice that moves them to v1 deletes the folder
+                  types  slice-one-fact-schemas
 utils/            format-key-path  to-json-value
 test-utils/       the factories    v1: create-fake-pepys-reader  pepys-reader-contract
                   build-mock-work-fact  build-mock-cost-to-land  create-fake-notifier
@@ -60,11 +61,12 @@ test-utils/       the factories    v1: create-fake-pepys-reader  pepys-reader-co
 index.ts  types.ts
 create-sqlite-claim-store      opens the file and builds the store
 with-transaction  with-busy-retry
-migrations/       run-store-migrations  create-tables-migration
-                  v1: one file per later migration, such as the outbox columns
+migrations/       run-store-migrations  create-tables-migration  v1-tables-migration
+                  one file per later migration
 codecs/           how a row maps to its columns
-                  table-codecs  parse-store-row  to-store-columns  to-column-name
-reads/            build-sqlite-reader  read-item-views        v1: the outbox reads
+                  table-codecs  parse-store-row  parse-json-text  to-store-columns  to-column-name
+reads/            build-sqlite-reader  read-item-views  read-limit-fills  read-wakes
+                  is-latest-of-session
 writes/           create-sqlite-tx  apply-sqlite-change  take-write-lock
 test-utils/       create-test-claim-store
 ```
@@ -95,7 +97,7 @@ A new case file of the store contract goes in `test-utils/`, beside `claim-store
 
 The attempt state machine is `attempts/attempt-machine`, with its test beside it. It is an XState machine built from the table of moves in `attempts/attempt-moves`, and `build-attempt-change` in the same folder is its only caller. `@boxxy/dispatch` has one dependency for it, `xstate`, pinned exactly at `6.0.0-beta.2` with no version range. No other package imports `xstate`.
 
-`build-attempt-change` is the only file of the package that writes the attempts table, the attempt sessions table or a limit seat. The test of `scripts/collect-attempt-writes` reads the package's source and fails on such a write in any other file. It leaves out the tests and the store fixtures in `test-utils/`, which seed those tables.
+`build-attempt-change` is the only file of the package that writes the attempts table, the attempt sessions table or a limit seat. The store's `syncLimits` also writes seats, outside any store change, when the loaded limits change which attempts they count. The test of `scripts/collect-attempt-writes` reads the package's source and fails on such a write in any other file. It leaves out the tests and the store fixtures in `test-utils/`, which seed those tables.
 
 ## `modules/planning/src`, `modules/closeout/src`, `modules/rules/src`
 

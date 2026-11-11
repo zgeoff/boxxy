@@ -17,7 +17,7 @@ sequenceDiagram
   Note over S: BEGIN IMMEDIATE
   S->>S: read observation boundary and snapshot
   S->>S: buildFrame, then decide
-  S->>S: insert item-phase lease and take a slot lease
+  S->>S: insert item-phase lease and take the limit seats
   S->>S: write decision row and outbox facts
   Note over S: COMMIT
   S-->>R: attempt, lease generation, spawn request
@@ -28,8 +28,11 @@ sequenceDiagram
 3. The store reads its observation boundary and the snapshot: open items, links, the latest planning
    facts, leases, the seats held in each limit, and the wakes asked for.
 4. `buildFrame()` and `decide()` run over that snapshot ([planning](./planning.md)).
-5. The store takes the item-phase lease and a slot lease for the first pick. A unique index on the
-   live item-phase lease, and a slot row with no holder, make both takes compare-and-set.
+5. The store takes the item-phase lease and a seat in each limit that the first pick names, all in
+   one change. A unique index on the live item-phase lease makes the lease take compare-and-set. The
+   seat take is all or none: the store counts each limit's held seats under the write lock, and
+   refuses the whole change when one limit is full or unknown. The store section of the
+   [core types sketch](./sketches/v1/core/02-types.ts) gives the rules of the take.
 6. The store writes the decision row (rules version, input snapshot hash, observation boundary), the
    exposure fact for any live experiment ([measurement](./measurement.md)), the exact spawn request,
    and the outbox facts. Then it commits.
@@ -80,7 +83,7 @@ fact lands. Two runs agreed within a few milliseconds.
 | 20,000 | 14.4 | 23.5 | 5.9 / 10.9 |
 
 - **The claim rate is low (measured).** The busiest 10 minutes of a busy day had 19 session starts,
-  about 2 claims a minute. A claim runs only when a slot frees.
+  about 2 claims a minute. A claim runs only when a seat frees.
 - **The lock has headroom (modelled from the measured numbers).** At 20,000 open items and 60 claims
   a minute, 30 times the measured peak, the lock is held about 1.4 seconds a minute, or 2%.
 - **The snapshot read costs more than `decide()` (measured).** At 20,000 items, about 60% of lock
@@ -114,7 +117,7 @@ item, which the [judgement pool](./planning.md#the-judgement-pool) picks up.
 No matched rule never leaves work stuck. A ready item that no pool takes for a set time goes to the
 one-slot judgement pool as a `plan.judge` phase, and a second strand goes to the owner.
 [Planning](./planning.md#the-judgement-pool) owns the rule. The judgement pool is an ordinary pool
-to `claimNext`: its slot is a lease row, and an owner pull ranks ahead of a judgement phase's pull.
+to `claimNext`, and an owner pull ranks ahead of a judgement phase's pull.
 
 ## Unknown outcomes
 

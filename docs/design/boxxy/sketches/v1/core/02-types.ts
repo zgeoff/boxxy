@@ -5,9 +5,10 @@
 // It covers the pipeline engine and the close-outs, the store with named limits and `decide`,
 // and the worker port with the atc adapter. Each section header names the file of the existing
 // boxxy repo that the section changes or adds.
-// This sketch does not show the take SQL, `syncLimits`, the atc calls of each worker port method,
-// or the effect handlers. The build designs them from the rules stated here and in 03-flow.ts.
+// This sketch does not show the atc calls of each worker port method, or the effect handlers.
+// The build designs them from the rules stated here and in 03-flow.ts.
 // `decide` is built: libs/model/src/planning/types.ts holds its types, and planning.md its rules.
+// The seat take and `syncLimits` are built: the store section below says how.
 
 import type { ContentHash, JsonValue } from '@boxxy/content-hash';
 
@@ -267,9 +268,10 @@ export interface Wait { readonly subject: { readonly kind: 'item'; readonly item
 export interface Decision { readonly picks: readonly Pick[]; readonly waits: readonly Wait[] } // wakes first, then pool by pool
 // modules/planning/src/decide.ts. Pure: the claim passes the pools in backoff, which the store never sees.
 export declare function decide(input: { frame: Frame; pools: readonly Pool[]; snapshot: { limits: Snapshot['limits']; wakes: Snapshot['wakes'] }; backoff: readonly PoolName[] }): Decision;
-// `SeatTake`, `SeatRelease`, `LimitSeatRow`, `ApplyResult`: this sketch names them and does not
-// show their shapes. The build designs them from the rules stated here and in 03-flow.ts. The
-// match of a limit to a pick's fields is a helper inside `decide`; no `findLimits` exists.
+// The match of a limit to a pick's fields is a helper inside `decide`; no `findLimits` exists.
+// `SeatTake` and `SeatRelease` are built in libs/model/src/planning/types.ts, `LimitSeatRow` in
+// libs/model/src/types.ts, and `ApplyResult` in libs/model/src/ports/types.ts. The store section
+// below says how the store takes and syncs the seats.
 
 // ── libs/model/src/rules/types.ts: phases and the pipeline ────────────────────────────────
 
@@ -556,8 +558,7 @@ export type SessionReading =
 export type Attention = 'working' | 'needs-input' | 'turn-ended';
 
 export interface StoreReader {
-  // The reader derives each item's position and state from the rules. The existing signature
-  // is `(now, maxAttemptsByKind)`: the build changes it.
+  // The reader derives each item's position and state from the rules.
   readSnapshot: (now: Instant, rules: Pick<LoadedRules, 'kinds' | 'phases'>) => Promise<Snapshot>;
 
   // The attempt the session carried, live or settled. It matches settled attempts too, so that
@@ -584,6 +585,45 @@ export interface StoreReader {
   listKeptSessions: () => Promise<readonly { item: ItemId; kept: KeptSession }[]>; // for cleanup of kept sessions
   listSessionsToForget: (now: Instant) => Promise<readonly AttemptRow[]>; // for cleanup: the sessions that `forget` is due for
 }
+
+// Built: the store port family is in libs/model/src/ports/types.ts, with SQLite and the memory
+// store held to one contract (modules/dispatch/src/test-utils/claim-store-contract.ts). Where
+// the build differs from this sketch:
+//   - The item reads (`readSnapshot`, `readItem`, `readItemDetail`, `listItems`,
+//     `listOpenIssues`) take `ItemRules`, the part of `LoadedRules` they read: each kind's
+//     pipeline and each phase's `needsAcceptance`. One pure function, `buildItemViews`, folds
+//     each item's settled attempts and `item.retry` levers with `findPosition`, then derives
+//     its state with `deriveItemState`.
+//   - `listSessionsToForget(failedEndedBefore)`: cleanup passes the cutoff of a failed attempt,
+//     not the time now. A succeeded attempt is due at once. Only the latest attempt of a
+//     session counts, and a kept session or a stray session not yet stopped is left out.
+//   - `findAttemptByAgentSession` gives the latest attempt bound to the agent session, and
+//     `findSessionByCaller` matches on each session's latest attempt alone.
+//   - `StoreReader` also has the outbox reads (../edge/02-outbox.ts, section B).
+//
+// The seat take. `RowWrite` has `{ op: 'take-seats', take: SeatTake }` and
+// `{ op: 'release-seats', release: SeatRelease }`; no plain write names the seats table.
+//   - All or none. The pure `pickSeatTake` reads the limits with their held counts, under the
+//     write lock that `exclusive` holds, and answers a seat per named limit, `limit-full` or
+//     `unknown-limit`. A refusal rolls the whole change back.
+//   - `overCap: true` takes a seat past `max`, for a wake over the cap. A limit that the last
+//     sync did not store is refused even then.
+//   - A release with no seat held is no refusal.
+//   - The partial unique index `limit_seats_held` (limit, attempt, hold_gen WHERE released_at
+//     IS NULL) refuses a second held seat of one hold generation.
+// `under` is optional or null for a change made under no lease. With `holdGen`, the store also
+// checks the hold generation of the lease's attempt, so a change built before a wake fails.
+//
+// `syncLimits(limits, at)` writes outside `StoreChange`, like the outbox bookkeeping and
+// `markNoticeTried`: no fact, no store version. It is the one seat writer besides the attempt
+// change builder. The pure `collectSeatSync` gives its writes:
+//   - the stored limits become the loaded ones;
+//   - a held seat of a limit that went, or whose `counts` no longer match the attempt's stored
+//     fields, is released;
+//   - an attempt in a seated state (starting, reconciling, running, waking, closing) gets a
+//     seat in each limit that newly counts it, past `max` when the limit is full.
+// It writes seats outside the builder because a rules change is no attempt move: the attempt's
+// state does not change, only which limits count it.
 
 // The notice port. One method. boxxy calls it AFTER the store change that puts an
 // item on hold, never inside it, and a failed notice never fails that change.
@@ -614,7 +654,8 @@ export interface NoticeRow {
 }
 
 // `StoreTx` has no method that sets the suspend mark. The mark is attempt state, so it is a
-// `StoreChange` from the one module that writes attempt state (below). It writes no fact.
+// `StoreChange` from the one module that writes attempt state (below). It writes no fact. The
+// store applies a change with no fact, and the change moves no store version.
 
 export interface Forge {
   readPullRequest: (ref: PullRequestRef) => Promise<PullRequestReading | 'not-found'>;
@@ -629,8 +670,8 @@ export interface PullRequestReading {
 // ── modules/dispatch/src/attempts/build-attempt-change.ts (the build adds this file): the ONE writer of attempt state
 // The attempt code lives in `modules/dispatch/src/attempts/`.
 //
-// Every write to the `attempts` and `attempt_sessions` tables, and every seat write, is built
-// here. No other file of the package names `table: 'attempts'`; the test of
+// Every write to the `attempts` and `attempt_sessions` tables, and every seat write of an attempt
+// move, is built here; `syncLimits` (the store section above) is the one other seat writer. No other file of the package names `table: 'attempts'`; the test of
 // scripts/collect-attempt-writes.ts fails when one does (tests and test-utils fixtures aside).
 // Callers decide WHEN (they hold the reading, the claim or the procedure input); this module
 // decides WHETHER the move is allowed and WHAT is written. A caller applies the change with
@@ -655,8 +696,8 @@ export interface PullRequestReading {
 //   - `AttemptChange` is `{ kind: 'change', change }` or `not-allowed`, and `change` is the
 //     builder's own store change: `at`, `under` (with `holdGen`, or null), the writes (attempt
 //     row, attempt session, lease, decision, seat take and seat release) and the facts, which
-//     can be empty. The dispatch slice hands it to the store, whose port takes slice 1 rows
-//     until the store slice moves it to v1.
+//     can be empty. The store's `StoreChange` takes it as it is: the builder's change is one
+//     of its forms, and a contract case proves the race guard on both stores.
 
 export type WakeSource =
   | 'command' // `boxxy item wake`

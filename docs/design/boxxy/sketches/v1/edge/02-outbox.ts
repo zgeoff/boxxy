@@ -87,7 +87,9 @@ await runSenderOnce({ store, sink: fake, clock, limits: outboxLimits }); // send
 // of that change in one transaction, or none. The caller that built the change made each
 // `fact_id` (`newId()`) and the `at`; the store makes no ID and reads no clock. No code path
 // writes a fact row later, from a state row, or from the sender. So a state that exists in the
-// store has its fact in the outbox, and a fact in the outbox has its state.
+// store has its fact in the outbox, and a fact in the outbox has its state. A change with no
+// fact, such as the suspend mark or `runner.pause`, is valid: it writes no outbox row and moves
+// no store version.
 //
 // The sender writes bookkeeping only, outside `StoreChange`, with no fact and no store version:
 // `markFactsSent`, `parkFacts`, `unparkFacts`.
@@ -171,6 +173,13 @@ export interface OutboxBookkeeping {
   parkFacts: (ids: readonly FactId[], reason: string, at: Instant) => Promise<void>; // the build adds it
   unparkFacts: () => Promise<number>; // the build adds it; `outbox.retry` calls it
 }
+// Built: the store slice built the columns, both indexes, `OutboxFact` and these methods. Where
+// the build differs from this sketch:
+//   - The bookkeeping methods are on `StoreTx`; no `OutboxBookkeeping` type exists.
+//   - `readItemBehind` counts the item's unsent rows by `entity`, parked rows included.
+//   - `markFactsSent` leaves a parked row as it is, and `parkFacts` a sent one.
+//   - Migration 0003 of adapters/store-sqlite creates the table; the create-tables migration
+//     keeps the slice 1 form.
 
 // ── C. The port and its adapters ───────────────────────────────────────────────────────────────
 //

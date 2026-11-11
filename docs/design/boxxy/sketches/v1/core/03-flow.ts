@@ -260,8 +260,8 @@ export function pickReadingAction(input: { attempt: AttemptRow; reading: Session
 //   b. A reading: the session runs while the attempt sleeps (cell (1) above).
 //   c. A reading: the host slept with no request (cell (4) above).
 // The order of a wake: `decide` puts the wake first, `claimNext` applies `woken` (holdGen + 1,
-// take-seats), and only then `resumeClaim` calls `worker.resume`. This sketch does not show the
-// take SQL of `claimNext`; the build designs it. planning.md holds the rules of `decide`.
+// take-seats), and only then `resumeClaim` calls `worker.resume`. The store section of
+// 02-types.ts says how the store takes the seats; planning.md holds the rules of `decide`.
 // One case leaves that order. The owner revived the session in atc and no seat
 // came free in `timeouts.seatlessTicks`: `actOnReading` applies `woken` with `overCap: true`
 // (`wake-over-cap`). The session already runs, so no `worker.resume` call follows; the next
@@ -683,8 +683,8 @@ export function findPosition(input: { pipeline: Pipeline | null; attempts: reado
 //     and a mistake in the rules needs a retry lever per item to undo.
 
 // ── F. The claim (modules/dispatch/src/claim-next.ts) ──────────────────────────────────────────
-// `claimNext` picks with `decide` and writes the claim inside one lock. This sketch does not show
-// the take SQL; the build designs it. planning.md holds the rules of `decide`. Inside that lock
+// `claimNext` picks with `decide` and writes the claim inside one lock. The store section of
+// 02-types.ts says how the store takes the seats; planning.md holds the rules of `decide`. Inside that lock
 // the claim also sets:
 //   round   `item.position.round`, the item's round, which `buildFrame` puts on the pick. Stored on the row.
 //   input   `phase.input({ item, history, pullRequests })`: for a build of round 2, the findings

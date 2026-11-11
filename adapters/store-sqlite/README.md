@@ -29,12 +29,13 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Features
 
-- Items, levers, attempts, leases, pool slots and the outbox in one file, with each change applied
-  whole or not at all ([one write path](../../docs/design/boxxy/slice-1.md#one-write-path)).
+- Items, levers, attempts, leases, limit seats, notes, notices and the outbox in one file, with each
+  change applied whole or not at all
+  ([one write path](../../docs/design/boxxy/slice-1.md#one-write-path)).
 - `exclusive` calls that run one at a time in a `BEGIN IMMEDIATE` transaction, and `read` calls that
   see the last commit ([store rules](../../docs/design/boxxy/slice-1.md#store-rules)).
-- Item state derived on each read, from the rows and the loaded rules
-  ([derived item state](../../docs/design/boxxy/slice-1.md#derived-item-state)).
+- Each item's position and state derived on each read, from the rows and the loaded rules
+  ([v1](../../docs/design/boxxy/v1.md)).
 
 ## Documentation
 
