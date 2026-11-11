@@ -78,7 +78,7 @@ test('it reads the session a test set for an attempt with no atc session yet', a
     kind: 'running',
     atcSession: brandSchemas.atcSessionId.parse('atc-1'),
     agentSession: null,
-    caller: { issuer: 'https://fake-worker.test', subject: 'atc-1' },
+    caller: { issuer: 'fake-worker', subject: 'atc-1' },
     attention: 'needs-input',
     lastActivityAt: brandSchemas.instant.parse(400),
     lastOwnerAt: brandSchemas.instant.parse(1_000_000),

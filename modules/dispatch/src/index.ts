@@ -1,5 +1,11 @@
+export { bindAttemptSession } from './attempts/bind-attempt-session.ts';
+export type { BindAnswer, BindAttemptSessionInput } from './attempts/bind-attempt-session.ts';
+export { endItemAttempts } from './attempts/end-item-attempts.ts';
+export type { EndedAttempts } from './attempts/end-item-attempts.ts';
 export { pickCallAttempt } from './attempts/pick-call-attempt.ts';
 export type { CallAttempt } from './attempts/pick-call-attempt.ts';
+export { stopStraySession } from './attempts/stop-stray-session.ts';
+export type { StopStraySessionInput } from './attempts/stop-stray-session.ts';
 export type { MoveResult } from './attempts/types.ts';
 export { ClaimRaceError, claimNext } from './claims/claim-next.ts';
 export { requestWake } from './claims/request-wake.ts';

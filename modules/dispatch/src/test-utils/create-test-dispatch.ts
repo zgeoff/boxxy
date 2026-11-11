@@ -282,7 +282,7 @@ export async function createTestDispatch(options: TestDispatchOptions = {}): Pro
       invariant(attempt.atcSession !== null, 'a call comes from a started session');
 
       const caller: CallerIdentity = {
-        issuer: 'https://fake-worker.test',
+        issuer: 'fake-worker',
         subject: attempt.atcSession,
       };
 

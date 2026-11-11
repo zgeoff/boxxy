@@ -54,7 +54,7 @@ test('it records the started session, its caller and its agent session', async (
   expect(received).toStrictEqual([
     'running',
     'atc-1',
-    { issuer: 'https://fake-worker.test', subject: 'atc-1' },
+    { issuer: 'fake-worker', subject: 'atc-1' },
     1,
   ]);
 });

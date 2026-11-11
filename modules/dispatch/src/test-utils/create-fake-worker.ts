@@ -65,7 +65,8 @@ interface Session {
 }
 
 // A worker host in memory. A started session runs and works, a stop suspends it as an imp
-// target does, and every session gives the caller `https://fake-worker.test` with its own ID.
+// target does, and every session gives the caller `fake-worker` with its own ID, as a host's
+// issuer name and a machine ID.
 interface FakeWorkerInput {
   readonly clock: Clock;
 }
@@ -125,7 +126,7 @@ export function createFakeWorker(input: FakeWorkerInput): FakeWorker {
       kind: 'started',
       atcSession: session.id,
       agentSession: session.agentSession,
-      caller: { issuer: 'https://fake-worker.test', subject: session.id },
+      caller: { issuer: 'fake-worker', subject: session.id },
     };
   };
 
@@ -281,7 +282,7 @@ function toReading(session: Session | null): SessionReading {
       kind: 'running',
       atcSession: session.id,
       agentSession: session.agentSession,
-      caller: { issuer: 'https://fake-worker.test', subject: session.id },
+      caller: { issuer: 'fake-worker', subject: session.id },
       attention: session.attention,
       lastActivityAt: session.lastActivityAt,
       lastOwnerAt: session.lastOwnerAt,

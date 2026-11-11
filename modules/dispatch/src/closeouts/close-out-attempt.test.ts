@@ -182,7 +182,7 @@ test('it refuses a call from a session that boxxy never started as no attempt', 
     {
       attempt: attempt.id,
       session: brandSchemas.atcSessionId.parse('atc-unknown'),
-      caller: { issuer: 'https://fake-worker.test', subject: 'atc-unknown' },
+      caller: { issuer: 'fake-worker', subject: 'atc-unknown' },
     },
     { result: { kind: 'abandoned', reason: 'Another item covers it.' }, friction: [] },
   );
