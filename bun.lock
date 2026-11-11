@@ -259,7 +259,7 @@
     "@pepys/testing": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-testing-0.0.1.tgz",
   },
   "catalog": {
-    "@atcx/contract": "7.12.1",
+    "@atcx/contract": "7.13.0",
     "@commitlint/cli": "21.2.4",
     "@faker-js/faker": "10.6.0",
     "@impz/client": "6.12.0",
@@ -299,7 +299,7 @@
     "zod": "4.6.7",
   },
   "packages": {
-    "@atcx/contract": ["@atcx/contract@7.12.1", "", { "dependencies": { "@orpc/contract": "1.16.1", "zod": "4.6.7" } }, "sha512-DLelqZnEMct1c9///1Xkx1umu6moQsbUPQax7vaR+jqJ6VejU3vEEPIJsG3foaPcpIXnBK70XP7fGPPzH2Rysg=="],
+    "@atcx/contract": ["@atcx/contract@7.13.0", "", { "dependencies": { "@orpc/contract": "1.16.1", "zod": "4.6.7" } }, "sha512-DAAknzC2vhZHHz2OXLIdDuPELYTXloK+FOcjv+UmNeq/fJPwPoGenrOjGmfdeXG7vIf4vatH6PeTAyvnR40EUg=="],
 
     "@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],
 

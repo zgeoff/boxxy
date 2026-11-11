@@ -725,14 +725,14 @@ declare function toName(path: readonly string[]): keyof typeof access; // ['item
 // who sent it, and rule 2 maps the caller to one session and to that session's current attempt.
 // A review attempt is covered as every other attempt: the review session runs in its own imp.
 //
-// Assumed: three things that v1 depends on for this rule, and does not have yet:
+// Assumed: two things that v1 depends on for this rule, and does not have yet, and one it has:
 //   - the impz broker that strips and signs `Imp-Identity`, and `impz identity jwks`, which
 //     gives the trust document. The verifier is published: `@impz/client` 6.12.0 (section F);
-//   - one atc change: a session reports its imp ID and its host's issuer (`host: { name, id,
-//     issuer }`), which is the caller identity of the session;
+//   - built: atc 7.13.0 reports a session's imp ID and its host's issuer (`host: { name, id?,
+//     issuer? }`), which is the caller identity of the session;
 //   - the broker rule of `boxxy.imp.example` has `identity: true`, and the server's
 //     configuration holds one trust document per impd host.
-// Until all three are in place, every session and hook call is refused.
+// Until the broker and the rule are in place, every session and hook call is refused.
 //
 // Sessions that share an imp: atc runs a sub-session in its parent's imp. boxxy starts no
 // sub-session, so step b finds one session per imp. A sub-session that a worker starts itself

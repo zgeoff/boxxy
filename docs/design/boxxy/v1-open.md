@@ -101,6 +101,5 @@ Each row names the test that settles it, where one is known.
 | The telemetry plug-in, with `origin_issuer` and `origin_subject` on each row | pepys | the cost query |
 | An export of the ingest receive route's handler from `@pepys/kit` | pepys | the sink contract run against real ingest |
 | A broker that signs each call with the identity token. The verifier is `@impz/client` 6.12.0, which `@boxxy/caller-proof-imp` uses. | impz | the proven caller |
-| A session that reports its VM host: an optional `host: { name, id?, issuer? }` on the session descriptor of `session.get`, `session.spawn` and `session.list`, with no `host` key for a session with no VM host, and the same `host` for every session on one machine | atc | the caller on the attempt row |
 | A broker rule for the boxxy host, one trust document per broker host, and the worker token | the cloud repo | the worker path |
 | The boxxy CLI and the hook plug-in in the agent image, and `BOXXY_URL` in an atc auth profile | the cloud repo | every session call |

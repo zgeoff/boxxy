@@ -13,23 +13,13 @@ type OutputOf<Procedure> = Procedure extends { '~orpc': { outputSchema?: infer S
 
 type CallOf<Procedure> = (input: InputOf<Procedure>) => Promise<OutputOf<Procedure>>;
 
-// The field atc does not report yet: the imp that runs the session. Sub-sessions on one machine
-// share the same `host`; a session with no VM host has none. atc reports no usage limit.
-export interface AtcSessionAdditions {
-  readonly host?: {
-    readonly name: string;
-    readonly id?: string;
-    readonly issuer?: string;
-  };
-}
-
-export type AtcSession = OutputOf<SessionProcedures['get']>['session'] & AtcSessionAdditions;
+// `host` is the VM host that runs the session: sub-sessions on one machine share it, and a session
+// with no VM host has none. atc reports no usage limit.
+export type AtcSession = OutputOf<SessionProcedures['get']>['session'];
 
 // `session.get`'s answer. `lastActivityAt` is the time of the session's last trail event, in
 // milliseconds, or its creation time when it has none.
-export type AtcSessionRead = Omit<OutputOf<SessionProcedures['get']>, 'session'> & {
-  readonly session: AtcSession;
-};
+export type AtcSessionRead = OutputOf<SessionProcedures['get']>;
 
 // The atc calls that the adapter makes, with atc's own inputs and answers. A call that atc refuses
 // rejects with an error that carries atc's `code` and `data`.
