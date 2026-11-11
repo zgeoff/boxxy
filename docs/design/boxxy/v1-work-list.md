@@ -101,7 +101,7 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 
 - **Outcome:** one command per procedure; the close-out command that reads its attempt first; the session-start hook that fetches the pinned skills and then binds; the hook that links a pull request.
 - **Follows:** `core/01-usage.ts`, parts 4 and 5; `edge/01-api.ts`, section D.
-- **Needs:** slice 12.
+- **Needs:** slices 12 and 13.
 - **Check:** each command against a server on the memory store; the hook test with a missing skill settles the attempt as `skill-missing`.
 
 ## With other repos

@@ -78,7 +78,7 @@ A worker session runs in an imp, which reaches the public internet only. The ses
 
 ## The scope of the worker token
 
-A request with the worker bearer token may call only the procedures whose caller is `session` or `hook`. Every owner procedure answers `FORBIDDEN`. A wrong token gets 401 on every procedure.
+The security rule at the top of section E of [`01-api.ts`](./sketches/v1/edge/01-api.ts) sets the scope. A request with the worker bearer token may call only the procedures whose caller is `session` or `hook`. Every owner procedure answers `FORBIDDEN`. A wrong token gets 401 on every procedure.
 
 One root middleware does this from the access table, for the RPC route and both MCP endpoints, and no handler repeats the check. A session therefore cannot close an item, retry one or pause the runner, although the broker carries any path.
 
