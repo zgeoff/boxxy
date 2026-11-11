@@ -5,15 +5,15 @@ import { buildMockLeaseRow } from '../test-utils/build-mock-lease-row.ts';
 import { buildMockLeverRow } from '../test-utils/build-mock-lever-row.ts';
 import { buildMockPullRequestRow } from '../test-utils/build-mock-pull-request-row.ts';
 import { buildMockRelationRow } from '../test-utils/build-mock-relation-row.ts';
-import { rowSchemas } from './row-schemas.ts';
+import { sliceOneRowSchemas } from './slice-one-row-schemas.ts';
 
 test.each([
-  ['items', () => rowSchemas.items.parse(buildMockItemRow())],
-  ['relations', () => rowSchemas.relations.parse(buildMockRelationRow())],
-  ['levers', () => rowSchemas.levers.parse(buildMockLeverRow())],
-  ['attempts', () => rowSchemas.attempts.parse(buildMockAttemptRow())],
-  ['leases', () => rowSchemas.leases.parse(buildMockLeaseRow())],
-  ['pull_requests', () => rowSchemas.pull_requests.parse(buildMockPullRequestRow())],
+  ['items', () => sliceOneRowSchemas.items.parse(buildMockItemRow())],
+  ['relations', () => sliceOneRowSchemas.relations.parse(buildMockRelationRow())],
+  ['levers', () => sliceOneRowSchemas.levers.parse(buildMockLeverRow())],
+  ['attempts', () => sliceOneRowSchemas.attempts.parse(buildMockAttemptRow())],
+  ['leases', () => sliceOneRowSchemas.leases.parse(buildMockLeaseRow())],
+  ['pull_requests', () => sliceOneRowSchemas.pull_requests.parse(buildMockPullRequestRow())],
 ])('it parses a %s row that its factory builds', (_table, parse) => {
   expect(parse).not.toThrow();
 });
@@ -27,14 +27,14 @@ test('it parses a pool slot row', () => {
     retired: false,
   };
 
-  const parsed: unknown = rowSchemas.pool_slots.parse(row);
+  const parsed: unknown = sliceOneRowSchemas.pool_slots.parse(row);
 
   expect(parsed).toStrictEqual(row);
 });
 
 test('it parses a runner row', () => {
   const row = { id: 'runner-1', heartbeatAt: 1000, paused: true };
-  const parsed: unknown = rowSchemas.runners.parse(row);
+  const parsed: unknown = sliceOneRowSchemas.runners.parse(row);
 
   expect(parsed).toStrictEqual(row);
 });
@@ -42,13 +42,13 @@ test('it parses a runner row', () => {
 test('it rejects an attempt row in a state the store never writes', () => {
   const row = { ...buildMockAttemptRow(), state: 'paused' };
 
-  expect(() => rowSchemas.attempts.parse(row)).toThrow();
+  expect(() => sliceOneRowSchemas.attempts.parse(row)).toThrow();
 });
 
 test('it rejects a pool slot row with a negative gen', () => {
   const row = { pool: 'build', slot: 1, holder: null, gen: -1, retired: false };
 
-  expect(() => rowSchemas.pool_slots.parse(row)).toThrow();
+  expect(() => sliceOneRowSchemas.pool_slots.parse(row)).toThrow();
 });
 
 test('it parses an attempt session row', () => {
@@ -59,7 +59,7 @@ test('it parses an attempt session row', () => {
     seenAt: 2500,
   };
 
-  const parsed: unknown = rowSchemas.attempt_sessions.parse(row);
+  const parsed: unknown = sliceOneRowSchemas.attempt_sessions.parse(row);
 
   expect(parsed).toStrictEqual(row);
 });

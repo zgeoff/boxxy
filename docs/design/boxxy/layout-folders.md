@@ -17,28 +17,36 @@ So each package groups its modules by subject. A folder's types live in its own 
 ```text
 index.ts          the public API: re-exports only
 types.ts          the shared vocabulary: IDs, stored rows, item state, recipes
-rows/             the zod schema of each ID and each stored row
-                  brand-schemas  actor-ref-schema  row-schemas
+rows/             the zod schema of each ID and each stored row, one file per row
+                  brand-schemas  actor-ref-schema  criterion-schema  caller-identity-schema
+                  item-row-schema  attempt-row-schema  attempt-session-row-schema
+                  lever-row-schema  relation-row-schema  decision-row-schema
+                  pull-request-row-schema  note-row-schema  notice-row-schema
+                  limit-seat-row-schema
 items/            what an item's rows derive to
                   build-item-views  derive-item-state  live-levers
 planning/         the planning types and the definers of its plug-ins
                   types  define-signal  define-gate  define-admission  signal-key
 rules/            the loaded rules, the plug-in registries, pipelines and phases
-                  types                                  v1: define-phase
-pipeline/         v1: the engine that moves an item through its pipeline
-                  v1: advance  find-position  types (Settled, Position, RetryLever)
+                  types  define-phase
+pipeline/         the engine that moves an item through its pipeline
+                  types (Settled, Position, RetryLever)   v1: advance  find-position
 dispatch/         claims, settlement and the parts of a store change
                   types  build-applied-change  find-slot-take
-closeouts/        the close-out schemas
-                  build-close-out-schema  friction-schema
-                  v1: types  review-close-out-schema
+closeouts/        the close-out types and schemas
+                  types  close-out-schema  triage-close-out-schema  design-close-out-schema
+                  build-close-out-schema  review-close-out-schema  friction-schema
+                  open-item-schema
 facts/            the fact catalog and the outbox row
-                  types  fact-schemas  outbox-fact-schema
-                  v1: the work fact schemas go in fact-schemas, in place of the slice 1 catalog
+                  types  work-fact-schemas  outbox-fact-schema
 ports/            the interfaces that an adapter implements
-                  types                                  v1: the worker port, the pepys reader, the notifier
-reports/          v1: the output schemas of the pepys queries
-                  v1: cost-to-land-schema  stage-time-schema  constants (the step and basis lists)
+                  types: the store, the worker, the notifier, the pepys reader, the forge
+reports/          the output schemas of the pepys queries
+                  cost-to-land-schema  stage-time-schema  types  constants (the step and basis lists)
+slice-one/        the slice 1 shapes that the store, planning, the rules loader and the close-out
+                  parser still use; each slice that moves a package to v1 deletes what it no
+                  longer needs
+                  types  slice-one-fact-schemas  slice-one-row-schemas
 utils/            format-key-path  to-json-value
 test-utils/       the factories    v1: create-fake-pepys-reader  pepys-reader-contract
                   build-mock-work-fact  build-mock-cost-to-land  create-fake-notifier

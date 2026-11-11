@@ -1,8 +1,8 @@
 import type {
   BuildCloseOut,
-  CloseOutContext,
+  SliceOneCloseOutContext as CloseOutContext,
   CloseOutParse,
-  CloseOutParser,
+  SliceOneCloseOutParser as CloseOutParser,
   CloseOutProblem,
 } from '@boxxy/model';
 import { buildCloseOutSchema, formatKeyPath } from '@boxxy/model';

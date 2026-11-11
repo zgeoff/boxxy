@@ -23,7 +23,9 @@ export type SessionMode = 'agent' | 'attended';
 
 export interface ItemRow {
   // ...the fields that `libs/model` has on this row, and:
-  readonly fields: { readonly designMode?: DesignMode; readonly [field: string]: JsonValue | undefined };
+  // `designMode` is the one field of v1, and `boxxy.item.edited` names no other, so the type has
+  // no index signature: an open record would let a fact carry a field that no schema checks.
+  readonly fields: { readonly designMode?: DesignMode };
 
   // boxxy is the ledger. Free labels, set by `item.file` and replaced by `item.edit`. No
   // registry: a label is any short string.

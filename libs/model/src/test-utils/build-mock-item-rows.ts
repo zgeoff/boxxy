@@ -1,4 +1,4 @@
-import type { ItemRows } from '../types.ts';
+import type { SliceOneItemRows as ItemRows } from '../slice-one/types.ts';
 
 export function buildMockItemRows(overrides: Partial<ItemRows> = {}): ItemRows {
   return {

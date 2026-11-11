@@ -1,4 +1,5 @@
-import type { AnyNewFact, RowWrite, StoreChange } from '../ports/types.ts';
+import type { RowWrite, StoreChange } from '../ports/types.ts';
+import type { SliceOneAnyNewFact as AnyNewFact } from '../slice-one/types.ts';
 import type { AttemptId, PoolName } from '../types.ts';
 
 export interface TakenSlot {

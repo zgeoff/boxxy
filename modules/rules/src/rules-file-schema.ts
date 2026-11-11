@@ -1,4 +1,8 @@
-import type { Effort, PipelineStep, RulesFile } from '@boxxy/model';
+import type {
+  Effort,
+  SliceOnePipelineStep as PipelineStep,
+  SliceOneRulesFile as RulesFile,
+} from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { z } from 'zod';
 import { parseConceptEntry } from './parse-concept-entry.ts';

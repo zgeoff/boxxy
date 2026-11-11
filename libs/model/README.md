@@ -31,10 +31,13 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 - The branded ids and names, with a zod schema for each in `brandSchemas`.
 - The store rows, the port interfaces, the plug-in interfaces and the loaded rules.
-- The fact catalog, with a zod schema for each fact type's payload in `factSchemas`
-  ([facts and the outbox](../../docs/design/boxxy/slice-1.md#facts-and-the-outbox)).
-- `BuildCloseOut` and its schema, `buildCloseOutSchema`
-  ([the build close-out](../../docs/design/boxxy/slice-1.md#the-build-close-out)).
+- The fact catalog `WorkFacts`, with a zod schema for each fact type's payload in `workFactSchemas`
+  ([v1 facts](../../docs/design/boxxy/v1-facts-and-pepys.md)).
+- The four close-outs of the v1 phases, each with its schema, and `closeOutSchema` for any of them.
+- The output schemas of the two pepys reports, `costToLandSchema` and `stageTimeSchema`.
+- `definePhase`, which registers a phase kind with its close-out type hidden.
+- The slice 1 forms that the store, planning and the rules loader still use, named `SliceOne…`, with
+  their schemas `sliceOneFactSchemas` and `sliceOneRowSchemas`.
 - `deriveItemState`, which derives an item's state from its rows
   ([derived item state](../../docs/design/boxxy/slice-1.md#derived-item-state)).
 - `liveLevers`, which drops the levers a later undo lever cancels and those past their expiry.

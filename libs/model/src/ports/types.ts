@@ -1,49 +1,58 @@
 import type { JsonValue } from '@boxxy/content-hash';
-import type { FactType, NewFact, OutboxFact } from '../facts/types.ts';
-import type { Snapshot } from '../planning/types.ts';
+import type { OutboxFact } from '../facts/types.ts';
+import type { HoldReason } from '../pipeline/types.ts';
+import type { CostToLand, StageTime } from '../reports/types.ts';
+import type {
+  MaxAttemptsByKind,
+  PoolSlotRow,
+  SliceOneAnyNewFact,
+  SliceOneAttemptRow,
+  SliceOneAttemptSessionRow,
+  SliceOneDecisionRow,
+  SliceOneItemRow,
+  SliceOneItemView,
+  SliceOneItemWithLevers,
+  SliceOneLeverRow,
+  SliceOnePullRequestRow,
+  SliceOneSnapshot,
+} from '../slice-one/types.ts';
 import type {
   AgentSessionId,
   AtcSessionId,
   AttemptId,
   AttemptRow,
-  AttemptSessionRow,
+  CallerIdentity,
   CommitSha,
-  DecisionRow,
   Effort,
   EvidenceRow,
   FactId,
   Instant,
   ItemId,
-  ItemRow,
   ItemState,
-  ItemView,
-  ItemWithLevers,
+  KeptSession,
   LeaseRow,
-  LeverRow,
-  MaxAttemptsByKind,
   PhaseName,
   PoolName,
-  PoolSlotRow,
   PullRequestRef,
-  PullRequestRow,
   RelationRow,
   RepoName,
   RunnerId,
   RunnerRow,
 } from '../types.ts';
 
+// The store ports still read and write the slice 1 rows. The store slice moves them to v1.
 export interface ClaimStore {
   exclusive: <T>(work: (tx: StoreTx) => Promise<T>) => Promise<T>;
   read: <T>(work: (tx: StoreReader) => Promise<T>) => Promise<T>;
 }
 
 export interface StoreReader {
-  readSnapshot: (now: Instant, maxAttemptsByKind: MaxAttemptsByKind) => Promise<Snapshot>;
+  readSnapshot: (now: Instant, maxAttemptsByKind: MaxAttemptsByKind) => Promise<SliceOneSnapshot>;
   readItem: (
     id: ItemId,
     now: Instant,
     maxAttemptsByKind: MaxAttemptsByKind,
-  ) => Promise<ItemView | null>;
+  ) => Promise<SliceOneItemView | null>;
   readItemDetail: (
     id: ItemId,
     now: Instant,
@@ -53,24 +62,24 @@ export interface StoreReader {
     filter: ItemFilter,
     now: Instant,
     maxAttemptsByKind: MaxAttemptsByKind,
-  ) => Promise<ItemWithLevers[]>;
+  ) => Promise<SliceOneItemWithLevers[]>;
   listOpenIssues: (
     repo: RepoName,
     now: Instant,
     maxAttemptsByKind: MaxAttemptsByKind,
-  ) => Promise<ItemView[]>;
+  ) => Promise<SliceOneItemView[]>;
 
   // 0 when the item phase has no lease
   readLastLeaseGen: (item: ItemId, phase: PhaseName) => Promise<number>;
-  readAttempt: (id: AttemptId) => Promise<AttemptRow | null>;
+  readAttempt: (id: AttemptId) => Promise<SliceOneAttemptRow | null>;
   listEvidence: (attempt: AttemptId) => Promise<EvidenceRow[]>;
-  listLiveAttempts: () => Promise<AttemptRow[]>;
-  listSucceededAttemptsWithoutPullRequest: () => Promise<AttemptRow[]>;
-  findAttemptBySession: (session: AtcSessionId) => Promise<AttemptRow | null>;
+  listLiveAttempts: () => Promise<SliceOneAttemptRow[]>;
+  listSucceededAttemptsWithoutPullRequest: () => Promise<SliceOneAttemptRow[]>;
+  findAttemptBySession: (session: AtcSessionId) => Promise<SliceOneAttemptRow | null>;
   findAttemptByAgentSession: (session: AgentSessionId) => Promise<AttemptId | null>;
 
   // the rows in state `open`
-  listWatchedPullRequests: () => Promise<PullRequestRow[]>;
+  listWatchedPullRequests: () => Promise<SliceOnePullRequestRow[]>;
 
   // retired rows included
   listPoolSlots: () => Promise<PoolSlotRow[]>;
@@ -87,11 +96,11 @@ export interface StoreReader {
 }
 
 export interface ItemDetailRows {
-  readonly item: ItemWithLevers;
-  readonly attempts: readonly AttemptRow[];
+  readonly item: SliceOneItemWithLevers;
+  readonly attempts: readonly SliceOneAttemptRow[];
   readonly relations: readonly RelationRow[];
   readonly evidence: readonly EvidenceRow[];
-  readonly pullRequests: readonly PullRequestRow[];
+  readonly pullRequests: readonly SliceOnePullRequestRow[];
 }
 
 export interface StoreTx extends StoreReader {
@@ -113,7 +122,7 @@ export interface StoreChange {
     slot?: { pool: PoolName; slot: number; gen: number };
   };
   writes: RowWrite[];
-  facts: AnyNewFact[];
+  facts: SliceOneAnyNewFact[];
 }
 
 export type ApplyResult =
@@ -129,16 +138,16 @@ export interface ItemFilter {
 }
 
 export interface Tables {
-  items: ItemRow;
+  items: SliceOneItemRow;
   relations: RelationRow;
-  levers: LeverRow;
-  attempts: AttemptRow;
-  attempt_sessions: AttemptSessionRow;
+  levers: SliceOneLeverRow;
+  attempts: SliceOneAttemptRow;
+  attempt_sessions: SliceOneAttemptSessionRow;
   leases: LeaseRow;
   pool_slots: PoolSlotRow;
-  decisions: DecisionRow;
+  decisions: SliceOneDecisionRow;
   evidence: EvidenceRow;
-  pull_requests: PullRequestRow;
+  pull_requests: SliceOnePullRequestRow;
   runners: RunnerRow;
 }
 
@@ -165,33 +174,119 @@ export type RowWrite =
       readonly holder: AttemptId;
     };
 
-export type AnyNewFact = { [T in FactType]: NewFact<T> }[FactType];
-
+// The worker port: one adapter per kind of worker host, such as atc.
 export interface WorkerKind {
   start: (request: SpawnRequest) => Promise<StartOutcome>;
   reconcile: (attempt: AttemptRow) => Promise<SessionReading>;
+
+  // `active` only when the session shows activity after `ifIdleSince`
+  suspend: (attempt: AttemptRow, ifIdleSince: Instant | null) => Promise<SuspendOutcome>;
+  resume: (attempt: AttemptRow) => Promise<StartOutcome>;
+
+  // stops the session and keeps it listed; safe to send twice
+  stop: (attempt: AttemptRow) => Promise<StopOutcome>;
+
+  // removes a stopped session; safe to send twice
+  forget: (session: AtcSessionId) => Promise<ForgetOutcome>;
+
+  // wakes a kept session and sends the request's prompt as a message, in place of a spawn
+  resumeKept: (kept: KeptSession, request: SpawnRequest) => Promise<StartOutcome>;
 }
 
 export type StartOutcome =
-  | { kind: 'started'; atcSession: AtcSessionId; agentSession: AgentSessionId | null }
-  | { kind: 'refused'; reason: string }
-  | { kind: 'unknown'; reason: string };
+  | {
+      readonly kind: 'started';
+      readonly atcSession: AtcSessionId;
+      readonly agentSession: AgentSessionId | null;
+      readonly caller: CallerIdentity | null;
+    }
 
+  // `capacity`: the target has no free slot for a session
+  | { readonly kind: 'refused'; readonly cause: 'capacity' | 'other'; readonly reason: string }
+  | { readonly kind: 'unknown'; readonly reason: string };
+
+export type SuspendOutcome =
+  | { readonly kind: 'suspended' }
+  | { readonly kind: 'active' }
+  | { readonly kind: 'refused' | 'unknown'; readonly reason: string };
+
+export type StopOutcome =
+  | { readonly kind: 'stopped' | 'absent' }
+  | { readonly kind: 'refused' | 'unknown'; readonly reason: string };
+
+export type ForgetOutcome =
+  | { readonly kind: 'forgotten' | 'absent' }
+  | { readonly kind: 'refused' | 'unknown'; readonly reason: string };
+
+// `running` is a live agent process, whether it works, waits for input or ended its turn.
 export type SessionReading =
-  | { kind: 'running'; atcSession: AtcSessionId; agentSession: AgentSessionId | null }
-  | { kind: 'ended'; atcSession: AtcSessionId; agentSession: AgentSessionId | null }
-  | { kind: 'absent' };
+  | {
+      readonly kind: 'running';
+      readonly atcSession: AtcSessionId;
+      readonly agentSession: AgentSessionId | null;
+      readonly caller: CallerIdentity | null;
+      readonly attention: Attention;
+
+      // the later of `lastOwnerAt` and the host's last trail event
+      readonly lastActivityAt: Instant;
+
+      // the last time the owner attached to the session
+      readonly lastOwnerAt: Instant;
+    }
+  | {
+      readonly kind: 'suspended';
+      readonly atcSession: AtcSessionId;
+      readonly agentSession: AgentSessionId | null;
+      readonly asked: boolean;
+    }
+  | {
+      readonly kind: 'ended';
+      readonly atcSession: AtcSessionId;
+      readonly agentSession: AgentSessionId | null;
+    }
+  | { readonly kind: 'absent' };
+
+export type Attention = 'working' | 'needs-input' | 'turn-ended';
 
 export interface SpawnRequest {
-  // the repo's configured local path
+  // the worker target, such as a host name of the worker kind
+  readonly target: string;
+
+  // the repo's configured path on the target
   readonly cwd: string;
   readonly prompt: string;
   readonly agent: string;
   readonly model: string;
   readonly effort: Effort;
-  readonly pluginDirs: readonly string[];
   readonly name: `boxxy/${string}`;
   readonly idempotencyKey: AttemptId;
+}
+
+// `command`: `boxxy item wake`. `session-ran`: a reading shows the session running while the
+// attempt sleeps. `host-slept-unasked`: the host slept with no request, so the attempt wakes.
+export type WakeSource = 'command' | 'session-ran' | 'host-slept-unasked';
+
+// Called after the store change that puts an item on hold, never inside it.
+export interface Notifier {
+  tellHold: (notice: HoldNotice) => Promise<NoticeOutcome>;
+}
+
+export interface HoldNotice {
+  readonly item: ItemId;
+  readonly reason: HoldReason;
+  readonly at: Instant;
+}
+
+export type NoticeOutcome =
+  | { readonly kind: 'sent' }
+  | { readonly kind: 'failed'; readonly reason: string };
+
+// The pools that the runner gives no pick in, after the worker refused a session for capacity.
+export interface CapacityBackoff {
+  hold: (pool: PoolName, until: Instant) => void;
+
+  // each pool whose `until` is after `now`
+  listHeld: (now: Instant) => readonly PoolName[];
 }
 
 export interface SessionFault {
@@ -242,17 +337,32 @@ export interface CostReader {
   costToLand: (input: CostToLandInput) => Promise<CostToLandRow[]>;
 }
 
+// The reports of pepys about one item.
+export interface PepysReader {
+  readCostToLand: (item: ItemId) => Promise<PepysAnswer<CostToLand>>;
+
+  // the environment is the adapter's own
+  readStageTime: (item: ItemId) => Promise<PepysAnswer<StageTime>>;
+}
+
+export type PepysAnswer<Value> =
+  | { readonly kind: 'value'; readonly value: Value }
+  | { readonly kind: 'unavailable'; readonly reason: string };
+
 export interface Forge {
   readPullRequest: (ref: PullRequestRef) => Promise<PullRequestReading | 'not-found'>;
   listOpenPullRequests: (repo: RepoName) => Promise<PullRequestRef[]>;
 }
 
 export interface PullRequestReading {
-  url: string;
-  state: 'open' | 'closed' | 'merged';
-  mergedAt: Instant | null;
-  mergeCommit: CommitSha | null;
-  commits: { sha: CommitSha; message: string }[];
+  readonly url: string;
+
+  // GitHub's own `id` of the pull request
+  readonly githubId: number;
+  readonly state: 'open' | 'closed' | 'merged';
+  readonly mergedAt: Instant | null;
+  readonly mergeCommit: CommitSha | null;
+  readonly commits: readonly { readonly sha: CommitSha; readonly message: string }[];
 }
 
 export interface Clock {

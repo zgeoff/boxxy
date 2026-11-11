@@ -1,4 +1,4 @@
-import { rowSchemas } from '@boxxy/model';
+import { sliceOneRowSchemas as rowSchemas } from '@boxxy/model';
 import type { TableName, Tables } from '@boxxy/model';
 import { tableCodecs } from './table-codecs.ts';
 import { toColumnName } from './to-column-name.ts';

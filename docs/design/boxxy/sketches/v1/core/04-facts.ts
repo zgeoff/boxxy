@@ -1,9 +1,9 @@
 // 04-facts.ts: the fact catalog of boxxy v1, on the stream `facts.boxxy.work`.
 // Design sketch. It is not compiled.
 //
-// The build puts this catalog in place of `SliceOneFacts` in libs/model/src/facts/types.ts, of
-// the schemas in libs/model/src/facts/fact-schemas.ts, and of the two tables of
-// docs/design/boxxy/slice-1.md "Facts and the outbox".
+// `@boxxy/model` holds this catalog as `WorkFacts` (libs/model/src/facts/types.ts) and its
+// schemas as `workFactSchemas` (libs/model/src/facts/work-fact-schemas.ts). It replaces
+// `SliceOneFacts` and the two tables of docs/design/boxxy/slice-1.md "Facts and the outbox".
 // The boxxy pepys package (`@boxxy/pepys`) builds its fact family from this catalog: one zod
 // schema per type, generated from these payload types, so the sender and the consumer share them.
 //
@@ -17,7 +17,8 @@
 //   C. What the build changes in the existing code.
 //   D. What pepys builds from it: tables, the `produced` link, and each measure.
 
-import type { AgentSessionId, AtcSessionId, AttemptId, ClosingCause, CloseOut, CommitSha, ContentHash, Criterion, CriterionId, DecisionRow, DesignMode, Effect, EvidenceKind, FactId, FieldValues, Friction, Instant, ItemId, ItemKindName, ItemRow, LeverRow, RelationTypeName, Minutes, PhaseName, PoolName, Product, RecipeHash, RepoName, RulesVersion, SeatRef, SessionMode, WakeSource } from './02-types.ts';
+// `SeatRef` is `{ limit: LimitName }`: one seat of one limit (libs/model/src/planning/types.ts).
+import type { AgentSessionId, AtcSessionId, AttemptId, CallerIdentity, ClosingCause, CloseOut, CommitSha, ContentHash, Criterion, CriterionId, DecisionRow, DesignMode, Effect, EvidenceKind, FactId, FieldValues, Friction, Instant, ItemId, ItemKindName, ItemRow, LeverRow, RelationTypeName, Minutes, PhaseName, PoolName, Product, RecipeHash, RepoName, RulesVersion, SeatRef, SessionMode, WakeSource } from './02-types.ts';
 
 // ── A. The envelope ────────────────────────────────────────────────────────────────────────────
 //
@@ -35,7 +36,7 @@ import type { AgentSessionId, AtcSessionId, AttemptId, ClosingCause, CloseOut, C
 //   payload   the type's payload, and `storeVersion` (the outbox row's `seq`), which the sink adds
 //
 // `storeVersion` is a field of the WIRE schema only. Each type has two schemas, in two places:
-//   the model's schema   `workFactSchemas` in `@boxxy/model` (libs/model/src/facts/fact-schemas.ts): one
+//   the model's schema   `workFactSchemas` in `@boxxy/model` (libs/model/src/facts/work-fact-schemas.ts): one
 //                        zod schema per type of `WorkFacts` below, with no `storeVersion`. The
 //                        store checks each fact against it in `applyChange`, and the outbox row
 //                        holds that payload.
@@ -71,7 +72,8 @@ export interface WorkFacts {
   // ── items ──
 
   // written by: `item.file`; settle, for each `file-item` effect (through dedupe)
-  'boxxy.item.filed': ItemRow; // id, kind, repo, title, outcome, acceptance, fields (designMode), labels, foundInAttempt, filedBy, filedAt
+  // The row without `keptSession`: that is state between two attempts, and no fact carries it.
+  'boxxy.item.filed': Omit<ItemRow, 'keptSession'>; // id, kind, repo, title, outcome, acceptance, fields (designMode), labels, foundInAttempt, filedBy, filedAt
 
   // written by: `item.note`. The FULL text of one note; notes are append-only.
   'boxxy.item.noted': { readonly seq: number; readonly text: string };
@@ -104,7 +106,8 @@ export interface WorkFacts {
   'boxxy.relation.removed': { readonly source: ItemId; readonly target: ItemId; readonly type: RelationTypeName };
 
   // written by: `plan.*`, and `item.retry` (which may carry `phase`)
-  'boxxy.lever.recorded': LeverRow & { readonly phase?: PhaseName };
+  // `LeverRow.phase` is null on every lever but `item.retry --phase`
+  'boxxy.lever.recorded': LeverRow;
 
   // ── the claim ──
 

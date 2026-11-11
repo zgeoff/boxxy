@@ -1,18 +1,20 @@
 import type {
+  SliceOneAttemptRow as AttemptRow,
+  SliceOneItemRow as ItemRow,
+  SliceOneItemRows as ItemRows,
+  SliceOneItemSetRows as ItemSetRows,
+  SliceOneItemWithLevers as ItemWithLevers,
+  SliceOneLeverRow as LeverRow,
+  MaxAttemptsByKind,
+  SliceOnePullRequestRow as PullRequestRow,
+} from '../slice-one/types.ts';
+import type {
   AttemptId,
-  AttemptRow,
   Instant,
   ItemId,
   ItemKindName,
-  ItemRow,
-  ItemRows,
-  ItemSetRows,
   ItemState,
-  ItemWithLevers,
   LeaseRow,
-  LeverRow,
-  MaxAttemptsByKind,
-  PullRequestRow,
   RelationRow,
 } from '../types.ts';
 import { deriveItemState } from './derive-item-state.ts';

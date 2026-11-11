@@ -1,4 +1,12 @@
-import type { Decision, Frame, FrameItem, ItemId, Pick, Pool, PoolName } from '@boxxy/model';
+import type {
+  SliceOneDecision as Decision,
+  Frame,
+  FrameItem,
+  ItemId,
+  SliceOnePick as Pick,
+  SliceOnePool as Pool,
+  PoolName,
+} from '@boxxy/model';
 import { compareItemIDs } from './compare-item-ids.ts';
 
 interface DecideInput {

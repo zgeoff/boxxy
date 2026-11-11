@@ -1,4 +1,5 @@
-import type { Instant, LeverKind, LeverRow } from '../types.ts';
+import type { SliceOneLeverRow as LeverRow } from '../slice-one/types.ts';
+import type { Instant, LeverKind } from '../types.ts';
 
 export function liveLevers(levers: readonly LeverRow[], now: Instant): LeverRow[] {
   return levers.filter((lever) => !isExpired(lever, now) && !isUndone(lever, levers));

@@ -1,7 +1,8 @@
 import { z } from 'zod';
-import type { BuildCloseOut } from '../facts/types.ts';
 import { brandSchemas } from '../rows/brand-schemas.ts';
 import { frictionSchema } from './friction-schema.ts';
+import { openItemSchema } from './open-item-schema.ts';
+import type { BuildCloseOut } from './types.ts';
 
 const reasonSchema = z.string().min(1);
 const builtSchema = z.object({ kind: z.literal('built') });
@@ -11,12 +12,6 @@ const abandonedSchema = z.object({ kind: z.literal('abandoned'), reason: reasonS
 const citedEvidenceSchema = z.object({
   criterion: brandSchemas.criterionId,
   evidence: brandSchemas.factId,
-});
-
-const openItemSchema = z.object({
-  kind: z.literal('core.issue'),
-  title: z.string().min(1),
-  body: z.string(),
 });
 
 export const buildCloseOutSchema: z.ZodType<BuildCloseOut> = z.object({

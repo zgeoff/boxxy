@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
-import { factSchemas } from './fact-schemas.ts';
-import type { FactType } from './types.ts';
+import { sliceOneFactSchemas } from './slice-one-fact-schemas.ts';
+import type { SliceOneFactType } from './types.ts';
 
 test.each([
   [
@@ -147,10 +147,10 @@ test.each([
   ],
   ['boxxy.runner.paused', { runner: 'runner-1' }],
   ['boxxy.runner.resumed', { runner: 'runner-1' }],
-] satisfies readonly (readonly [FactType, Readonly<Record<string, unknown>>])[])(
+] satisfies readonly (readonly [SliceOneFactType, Readonly<Record<string, unknown>>])[])(
   'it accepts an example %s payload',
   (type, payload) => {
-    const built: unknown = factSchemas[type].safeParse(payload).data;
+    const built: unknown = sliceOneFactSchemas[type].safeParse(payload).data;
 
     expect(built).toStrictEqual(payload);
   },
@@ -272,16 +272,16 @@ test.each([
   ['boxxy.runner.paused', 'runner', ['runner'], {}],
   ['boxxy.runner.resumed', 'runner', ['runner'], {}],
 ] satisfies readonly (readonly [
-  FactType,
+  SliceOneFactType,
   string,
   readonly string[],
   Readonly<Record<string, unknown>>,
 ])[])('it rejects a %s payload with no %s', (type, _field, path, payload) => {
-  expect(factSchemas[type].safeParse(payload).error?.issues).toPartiallyContain({ path });
+  expect(sliceOneFactSchemas[type].safeParse(payload).error?.issues).toPartiallyContain({ path });
 });
 
 test('it accepts a decision fault from a filter field', () => {
-  const fault: unknown = factSchemas['boxxy.decision.recorded'].safeParse({
+  const fault: unknown = sliceOneFactSchemas['boxxy.decision.recorded'].safeParse({
     id: '0192f0c5-2b3c-7d4e-9f50-6a7b8c9d0e1f',
     attempt: '0192f0c5-1a2b-7c3d-8e4f-5a6b7c8d9e0f',
     item: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77',

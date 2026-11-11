@@ -1,5 +1,10 @@
 import { contentHash } from '@boxxy/content-hash';
-import type { Concept, ConceptPin, JsonValue, LoadedRules } from '@boxxy/model';
+import type {
+  Concept,
+  ConceptPin,
+  JsonValue,
+  SliceOneLoadedRules as LoadedRules,
+} from '@boxxy/model';
 import { loadRules } from '@boxxy/rules';
 import invariant from 'tiny-invariant';
 import { concepts as builtInConcepts } from '../concepts.ts';

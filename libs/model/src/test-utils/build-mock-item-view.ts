@@ -1,4 +1,4 @@
-import type { ItemView } from '../types.ts';
+import type { SliceOneItemView as ItemView } from '../slice-one/types.ts';
 import { buildMockItemRow } from './build-mock-item-row.ts';
 
 export function buildMockItemView(overrides: Partial<ItemView> = {}): ItemView {

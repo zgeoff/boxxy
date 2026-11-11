@@ -1,5 +1,5 @@
 import { brandSchemas } from '@boxxy/model';
-import type { AgentSessionId, AttemptRow, StoreChange } from '@boxxy/model';
+import type { AgentSessionId, SliceOneAttemptRow as AttemptRow, StoreChange } from '@boxxy/model';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
 
 interface BindInput {

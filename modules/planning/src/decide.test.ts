@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { Pool } from '@boxxy/model';
+import type { SliceOnePool as Pool } from '@boxxy/model';
 import { brandSchemas, signalKey } from '@boxxy/model';
 import { buildMockFrameItem } from '@boxxy/model/test-utils/build-mock-frame-item';
 import { decide } from './decide.ts';

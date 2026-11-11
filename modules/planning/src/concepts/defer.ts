@@ -1,4 +1,4 @@
-import type { Concept, LeverRow } from '@boxxy/model';
+import type { Concept, SliceOneLeverRow as LeverRow } from '@boxxy/model';
 import { defineGate, signalKey } from '@boxxy/model';
 import { z } from 'zod';
 

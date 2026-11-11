@@ -1,4 +1,9 @@
-import type { AttemptRow, DerivedState, ItemRow, ItemRows } from '../types.ts';
+import type {
+  SliceOneAttemptRow as AttemptRow,
+  SliceOneDerivedState as DerivedState,
+  SliceOneItemRow as ItemRow,
+  SliceOneItemRows as ItemRows,
+} from '../slice-one/types.ts';
 
 interface StateInput {
   readonly item: ItemRow;

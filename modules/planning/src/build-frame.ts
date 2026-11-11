@@ -8,13 +8,13 @@ import type {
   Instant,
   ItemId,
   ItemKindName,
-  KindRules,
+  SliceOneKindRules as KindRules,
   Lift,
-  LoadedRules,
+  SliceOneLoadedRules as LoadedRules,
   PlanContext,
   Resolved,
   SignalKey,
-  Snapshot,
+  SliceOneSnapshot as Snapshot,
   Waiver,
 } from '@boxxy/model';
 import { signalKey } from '@boxxy/model';

@@ -1,5 +1,9 @@
 import { buildItemViews } from '@boxxy/model';
-import type { Instant, ItemWithLevers, MaxAttemptsByKind } from '@boxxy/model';
+import type {
+  Instant,
+  SliceOneItemWithLevers as ItemWithLevers,
+  MaxAttemptsByKind,
+} from '@boxxy/model';
 import type { Expression, ExpressionBuilder, Kysely, SqlBool } from 'kysely';
 import { parseStoreRow } from '../codecs/parse-store-row.ts';
 import type { StoreDatabase } from '../types.ts';

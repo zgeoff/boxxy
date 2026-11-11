@@ -1,31 +1,28 @@
 import type { ContentHash } from '@boxxy/content-hash';
-import type { Friction, OpenItem } from '../facts/types.ts';
-import type { SessionReading, SpawnRequest } from '../ports/types.ts';
+import type { SpawnRequest } from '../ports/types.ts';
 import type {
-  AttemptId,
-  AttemptRow,
-  CriterionId,
-  EvidenceRow,
-  FactId,
-  ForcedFailure,
-  Instant,
-  ItemView,
-  KnownFailure,
-  LiveAttemptState,
-  Minutes,
-  RecipeName,
-  RepoName,
-} from '../types.ts';
+  SliceOneAttemptRow,
+  SliceOneLiveAttemptState,
+  SliceOneSessionReading,
+  SliceOneSpawnRequest,
+} from '../slice-one/types.ts';
+import type { AttemptRow, KnownFailure, Minutes, RecipeName, RepoName } from '../types.ts';
+
+// The second kind is `wake`: the claim of a sleeping attempt, which the worker resumes.
+export type Claim =
+  | { readonly kind: 'start'; readonly attempt: AttemptRow; readonly spawn: SpawnRequest }
+  | { readonly kind: 'wake'; readonly attempt: AttemptRow };
+
+// The claim of slice 1, which the runner still makes.
+export interface SliceOneClaim {
+  readonly attempt: SliceOneAttemptRow;
+  readonly spawn: SliceOneSpawnRequest;
+}
 
 export interface SpawnContext {
   readonly repoPaths: ReadonlyMap<RepoName, string>;
   readonly pluginFolder: { readonly path: string; readonly hash: ContentHash };
   readonly promptTemplates: ReadonlyMap<RecipeName, string>;
-}
-
-export interface Claim {
-  readonly attempt: AttemptRow;
-  readonly spawn: SpawnRequest;
 }
 
 export type ReconcileAction =
@@ -43,53 +40,8 @@ export type ReconcileAction =
     };
 
 export type ReconcileTable = Readonly<
-  Record<SessionReading['kind'], Readonly<Record<LiveAttemptState, ReconcileAction>>>
+  Record<
+    SliceOneSessionReading['kind'],
+    Readonly<Record<SliceOneLiveAttemptState, ReconcileAction>>
+  >
 >;
-
-export interface Settlement {
-  readonly state: 'succeeded' | 'failed';
-  readonly failure: string | null;
-  readonly openItems: readonly OpenItem[];
-  readonly criteria: readonly {
-    readonly criterion: CriterionId;
-    readonly evidence: readonly FactId[];
-  }[];
-  readonly friction: readonly Friction[];
-  readonly frictionDropped: number;
-}
-
-export interface SettleRule<Out = unknown> {
-  settle: (input: SettleInput<Out>) => Settlement;
-}
-
-export interface SettleInput<Out> {
-  readonly attempt: AttemptRow;
-  readonly item: ItemView;
-  readonly closeOut: CloseOutParse<Out> | null;
-
-  // a `forced` reason wins over the close-out's state
-  readonly forced: ForcedFailure | null;
-  readonly now: Instant;
-}
-
-export interface CloseOutContext {
-  readonly item: ItemView;
-  readonly attempt: AttemptId;
-
-  // the attempt's own evidence rows
-  readonly evidence: readonly EvidenceRow[];
-}
-
-export type CloseOutProblem =
-  | { readonly kind: 'schema'; readonly path: string; readonly message: string }
-  | { readonly kind: 'unknown-criterion'; readonly criterion: CriterionId }
-  | { readonly kind: 'foreign-evidence'; readonly evidence: FactId }
-  | { readonly kind: 'built-without-evidence'; readonly criteria: readonly CriterionId[] };
-
-export type CloseOutParse<Out> =
-  | { readonly kind: 'valid'; readonly closeOut: Out }
-  | { readonly kind: 'invalid'; readonly problems: readonly CloseOutProblem[] };
-
-export interface CloseOutParser<Out> {
-  parse: (raw: unknown, ctx: CloseOutContext) => CloseOutParse<Out>;
-}

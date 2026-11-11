@@ -1,5 +1,9 @@
 import { brandSchemas } from '@boxxy/model';
-import type { AttemptRow, PullRequestRow, StoreChange } from '@boxxy/model';
+import type {
+  SliceOneAttemptRow as AttemptRow,
+  SliceOnePullRequestRow as PullRequestRow,
+  StoreChange,
+} from '@boxxy/model';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
 import { buildMockPullRequestRow } from '@boxxy/model/test-utils/build-mock-pull-request-row';
 

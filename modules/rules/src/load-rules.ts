@@ -5,11 +5,11 @@ import type {
   ConceptName,
   ConceptPin,
   ItemKindName,
-  KindRules,
+  SliceOneKindRules as KindRules,
   LoadRejection,
-  LoadResult,
+  SliceOneLoadResult as LoadResult,
   LoadedRecipe,
-  Pool,
+  SliceOnePool as Pool,
   RecipeName,
   RulesVersion,
 } from '@boxxy/model';
@@ -146,7 +146,7 @@ function buildLoadResult(
           prompt.name,
           {
             name: prompt.name,
-            recipe: prompt.recipe,
+            recipe: { ...prompt.recipe, skills: [] },
             promptHash: hashBytes(prompt.bytes),
             rulesVersion: version,
           },

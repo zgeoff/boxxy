@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { brandSchemas } from '../rows/brand-schemas.ts';
-import type { PullRequestRow } from '../types.ts';
+import type { SliceOnePullRequestRow as PullRequestRow } from '../slice-one/types.ts';
 
 export function buildMockPullRequestRow(overrides: Partial<PullRequestRow> = {}): PullRequestRow {
   return {

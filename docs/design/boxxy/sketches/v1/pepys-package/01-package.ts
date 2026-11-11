@@ -46,12 +46,12 @@ export const deployment = defineDeployment({ name: 'harbour', plugins: [githubPl
 // B. The fact types are declared ONCE, in `@boxxy/model`
 // ═════════════════════════════════════════════════════════════════════════════════════════════
 //
-// boxxy repo, libs/model/src/facts/fact-schemas.ts. The build changes this file: put `workFactSchemas`
-// in the place of `factSchemas`, which the existing code declares for `SliceOneFacts`. One zod
-// schema per type of `WorkFacts` (../core/04-facts.ts), checked against the type:
+// boxxy repo, libs/model/src/facts/work-fact-schemas.ts. The slice 1 schemas of `SliceOneFacts`
+// are `sliceOneFactSchemas`, in libs/model/src/slice-one/. One zod schema per type of `WorkFacts`
+// (../core/04-facts.ts), checked against the type both ways:
 //
 //   export const workFactSchemas = {
-//     'boxxy.item.filed': itemRowSchema,
+//     'boxxy.item.filed': itemRowSchema.omit({ keptSession: true }),
 //     'boxxy.attempt.claimed': z.object({ attempt: brandSchemas.attemptId, phase: brandSchemas.phaseName, … }),
 //     … 27 entries …
 //   } satisfies { readonly [Type in FactType]: z.ZodType<WorkFacts[Type]> };

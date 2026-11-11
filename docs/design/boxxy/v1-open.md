@@ -7,7 +7,7 @@ No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc list
 | Point | Where |
 | --- | --- |
 | How boxxy detects that a session hit the account's usage limit: from the reading, the close-out or telemetry. The answer decides which caller forces the `usage-limit` failure. | [`03-flow.ts`](./sketches/v1/core/03-flow.ts), section F |
-| The shapes that the core sketch names and does not show: the take SQL of the claim, the sync of the limit seats, `decide` with its snapshot, wake and decision types, the outcome types of the worker port, the spawn request, the effects and their handlers, and the design and build close-outs. Slice 1 code holds an earlier form of several. | [`02-types.ts`](./sketches/v1/core/02-types.ts) |
+| The parts that the core sketch names and does not show: the take SQL of the claim, the sync of the limit seats, `decide` itself, the effect handlers and their plans, and the size limits of a close-out with the raw form of a review body. `@boxxy/model` holds the types they read and write. | [`02-types.ts`](./sketches/v1/core/02-types.ts) |
 | The atc call behind each method of the worker port, and the crash windows of the three steps of a sleep. | [`02-types.ts`](./sketches/v1/core/02-types.ts), [`03-flow.ts`](./sketches/v1/core/03-flow.ts), section C |
 | Which outbox function lives in `modules/dispatch` and which in `apps/server`. | [folder layout](./layout-folders.md#open-questions) |
 | A query for the measure "attempts lost". No query reads the failure of an attempt. | [`04-facts.ts`](./sketches/v1/core/04-facts.ts), section D |
@@ -109,10 +109,8 @@ Each row names the test that settles it, where one is known.
 - An agent session ID never equals the atc session ID of another session.
 - The pepys test store returns rows and links in primary key order.
 - Ingest does not check the kind of a fact's actor. boxxy's actors are kinds that no plug-in brings.
-- Every catalog payload is a zod object, so the wire schema can extend it with the store version.
 - The GitHub and telemetry plug-ins export the consumers, the delivery module and the row builders that the package sketch imports.
 - The pepys API serves each plug-in query on its RPC route under its snake case name.
-- `@boxxy/model` exports a zod schema for each core row.
 
 ## Needs work outside this repo
 

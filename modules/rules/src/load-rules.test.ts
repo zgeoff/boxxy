@@ -137,6 +137,7 @@ recipes:
               effort: 'high',
               prompt: 'prompts/build-v1.md',
               source: 'subscription',
+              skills: [],
             },
             promptHash: hashBytes(prompt),
             rulesVersion: expect.stringMatching(/^[0-9a-f]{64}$/u),

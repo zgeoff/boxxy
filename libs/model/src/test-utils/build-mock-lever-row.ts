@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { brandSchemas } from '../rows/brand-schemas.ts';
-import type { LeverRow } from '../types.ts';
+import type { SliceOneLeverRow as LeverRow } from '../slice-one/types.ts';
 
 export function buildMockLeverRow(overrides: Partial<LeverRow> = {}): LeverRow {
   return {

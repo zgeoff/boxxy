@@ -1,5 +1,10 @@
 import { brandSchemas, outboxFactSchema } from '@boxxy/model';
-import type { ItemView, ItemWithLevers, PoolName, StoreReader } from '@boxxy/model';
+import type {
+  SliceOneItemView as ItemView,
+  SliceOneItemWithLevers as ItemWithLevers,
+  PoolName,
+  StoreReader,
+} from '@boxxy/model';
 import type { Kysely } from 'kysely';
 import { parseStoreRow } from '../codecs/parse-store-row.ts';
 import type { StoreDatabase } from '../types.ts';

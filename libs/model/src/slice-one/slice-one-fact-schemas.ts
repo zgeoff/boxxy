@@ -3,7 +3,7 @@ import { buildCloseOutSchema } from '../closeouts/build-close-out-schema.ts';
 import { frictionSchema } from '../closeouts/friction-schema.ts';
 import { actorRefSchema } from '../rows/actor-ref-schema.ts';
 import { brandSchemas } from '../rows/brand-schemas.ts';
-import type { FactType, SliceOneFacts } from './types.ts';
+import type { SliceOneFactType, SliceOneFacts } from './types.ts';
 
 const criterionSchema = z.object({
   id: brandSchemas.criterionId,
@@ -31,7 +31,9 @@ const copiedEvidenceSchema = z.object({
 
 const pullRequestNumberSchema = z.number().int().positive();
 
-export const factSchemas: { readonly [T in FactType]: z.ZodType<SliceOneFacts[T]> } = {
+export const sliceOneFactSchemas: {
+  readonly [T in SliceOneFactType]: z.ZodType<SliceOneFacts[T]>;
+} = {
   'boxxy.item.filed': z.object({
     id: brandSchemas.itemId,
     kind: brandSchemas.itemKindName,
