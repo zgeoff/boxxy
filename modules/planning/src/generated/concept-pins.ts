@@ -8,7 +8,7 @@ export const conceptPins: ReadonlyMap<ConceptName, ConceptPin> = new Map([
     {
       ref: 'defer@1',
       sourceHash: contentHashSchema.parse(
-        '465c5e5376b2de6814f08888cd479249e494d1986802aa6293e2495b88e846d9',
+        'cbe173e108ca3b290f7f48ea3a4145b28f44611ae7f4a43d29430f08b88f46df',
       ),
     },
   ],
@@ -17,7 +17,7 @@ export const conceptPins: ReadonlyMap<ConceptName, ConceptPin> = new Map([
     {
       ref: 'expedite@1',
       sourceHash: contentHashSchema.parse(
-        '672b566d996e4b8d1aeb6e9e768460726473d6f0181a0eedcf09494687679882',
+        'f75e37b479e49da4e68aab6f3d8e9960b04608eb7a9fdd53d4349578e1c213d3',
       ),
     },
   ],
@@ -26,7 +26,7 @@ export const conceptPins: ReadonlyMap<ConceptName, ConceptPin> = new Map([
     {
       ref: 'pool@1',
       sourceHash: contentHashSchema.parse(
-        '93bb6fefe3cf95fc8a15bbe9381733427ba34c2118626449c7828929f895b984',
+        '38ef5559dbd0f53e92a73eb49ee8a930de81f5588b70be3ac10074ed4ae2ab7f',
       ),
     },
   ],

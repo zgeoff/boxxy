@@ -1,7 +1,7 @@
 import { contentHash } from '@boxxy/content-hash';
 import { faker } from '@faker-js/faker';
-import { brandSchemas } from '../brand-schemas.ts';
-import type { AttemptRow } from '../types/core.ts';
+import { brandSchemas } from '../rows/brand-schemas.ts';
+import type { AttemptRow } from '../types.ts';
 
 const hashOptions = { length: 64, casing: 'lower', prefix: '' } as const;
 

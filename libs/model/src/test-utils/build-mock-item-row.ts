@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
-import { brandSchemas } from '../brand-schemas.ts';
-import type { ItemRow } from '../types/core.ts';
+import { brandSchemas } from '../rows/brand-schemas.ts';
+import type { ItemRow } from '../types.ts';
 
 export function buildMockItemRow(overrides: Partial<ItemRow> = {}): ItemRow {
   return {

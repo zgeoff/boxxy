@@ -1,5 +1,5 @@
-import { brandSchemas } from '../brand-schemas.ts';
-import type { FrameItem } from '../types/planning.ts';
+import type { FrameItem } from '../planning/types.ts';
+import { brandSchemas } from '../rows/brand-schemas.ts';
 import { buildMockItemView } from './build-mock-item-view.ts';
 
 export function buildMockFrameItem(overrides: Partial<FrameItem> = {}): FrameItem {

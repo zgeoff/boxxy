@@ -1,0 +1,33 @@
+import type { Kysely } from 'kysely';
+import { Migrator } from 'kysely/migration';
+import type { StoreDatabase } from '../types.ts';
+import { withTransaction } from '../with-transaction.ts';
+import { takeWriteLock } from '../writes/take-write-lock.ts';
+import { createTablesMigration } from './create-tables-migration.ts';
+
+// Kysely's SQLite migration lock does nothing, so two openers of a new file would both find nothing
+// run; the write lock makes the second one wait and then find the file migrated.
+export async function runStoreMigrations(db: Kysely<StoreDatabase>): Promise<void> {
+  await db
+    .connection()
+    .execute((connection) =>
+      withTransaction(connection, takeWriteLock, () => runMigrator(connection)),
+    );
+}
+
+// Kysely runs the migrations in the order of their names, and skips each one the file has run.
+const migrations = { '0001-create-tables': createTablesMigration };
+
+async function runMigrator(db: Kysely<StoreDatabase>): Promise<void> {
+  const migrator = new Migrator({
+    db,
+    provider: { getMigrations: () => Promise.resolve(migrations) },
+    disableTransactions: true,
+  });
+
+  const outcome = await migrator.migrateToLatest();
+
+  if (outcome.error !== undefined) {
+    throw new Error('the store migrations failed', { cause: outcome.error });
+  }
+}

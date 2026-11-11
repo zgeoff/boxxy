@@ -2,7 +2,7 @@ import type { Concept } from '@boxxy/model';
 import { defineSignal } from '@boxxy/model';
 import { z } from 'zod';
 
-export const expediteConcept: Concept = {
+export const expedite: Concept = {
   name: 'expedite',
   version: 1,
   signals: [

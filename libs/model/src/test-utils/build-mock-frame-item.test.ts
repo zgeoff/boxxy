@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { brandSchemas } from '../brand-schemas.ts';
+import { brandSchemas } from '../rows/brand-schemas.ts';
 import { buildMockFrameItem } from './build-mock-frame-item.ts';
 
 test('it builds a ready item view in the build phase', () => {

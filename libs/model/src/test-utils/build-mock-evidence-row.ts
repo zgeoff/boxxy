@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
-import { brandSchemas } from '../brand-schemas.ts';
-import type { EvidenceRow } from '../types/core.ts';
+import { brandSchemas } from '../rows/brand-schemas.ts';
+import type { EvidenceRow } from '../types.ts';
 import { buildMockFactId } from './build-mock-fact-id.ts';
 
 export function buildMockEvidenceRow(overrides: Partial<EvidenceRow> = {}): EvidenceRow {
