@@ -1,26 +1,21 @@
+import type { AnyNewFact } from '../facts/types.ts';
 import type { RowWrite, StoreChange } from '../ports/types.ts';
-import type { SliceOneAnyNewFact as AnyNewFact } from '../slice-one/types.ts';
-import type { AttemptId, PoolName } from '../types.ts';
-
-export interface TakenSlot {
-  readonly holder: AttemptId;
-  readonly pool: PoolName;
-  readonly slot: number;
-  readonly gen: number;
-}
 
 export interface ChangeAssignments {
-  readonly taken: TakenSlot | null;
-
   // 0 when the store holds no lever
   readonly lastLeverSeq: number;
+
+  // 0 when the store holds no notice
+  readonly lastNoticeId: number;
 }
 
+// The store numbers each lever and each notice, so the caller's `seq` and `id` are replaced.
 export function buildAppliedChange(
   change: StoreChange,
   assignments: ChangeAssignments,
 ): Pick<StoreChange, 'writes' | 'facts'> {
   const leverSeqs: number[] = [];
+  let notices = 0;
 
   const writes = change.writes.map((write): RowWrite => {
     if (write.op !== 'insert') {
@@ -35,10 +30,10 @@ export function buildAppliedChange(
       return { ...write, row: { ...write.row, seq } };
     }
 
-    if (write.table === 'attempts' && write.row.id === assignments.taken?.holder) {
-      const taken = assignments.taken;
+    if (write.table === 'notices') {
+      notices += 1;
 
-      return { ...write, row: { ...write.row, slot: taken.slot, slotGen: taken.gen } };
+      return { ...write, row: { ...write.row, id: assignments.lastNoticeId + notices } };
     }
 
     return write;
@@ -47,25 +42,15 @@ export function buildAppliedChange(
   let leverFacts = 0;
 
   const facts = change.facts.map((fact): AnyNewFact => {
-    if (fact.type === 'boxxy.lever.recorded') {
-      const seq = leverSeqs[leverFacts];
-
-      leverFacts += 1;
-
-      return seq === undefined ? fact : { ...fact, payload: { ...fact.payload, seq } };
+    if (fact.type !== 'boxxy.lever.recorded') {
+      return fact;
     }
 
-    if (
-      fact.type === 'boxxy.attempt.claimed' &&
-      assignments.taken !== null &&
-      fact.entity === `boxxy:attempt:${assignments.taken.holder}`
-    ) {
-      const taken = assignments.taken;
+    const seq = leverSeqs[leverFacts];
 
-      return { ...fact, payload: { ...fact.payload, slot: taken.slot, gen: taken.gen } };
-    }
+    leverFacts += 1;
 
-    return fact;
+    return seq === undefined ? fact : { ...fact, payload: { ...fact.payload, seq } };
   });
 
   return { writes, facts };

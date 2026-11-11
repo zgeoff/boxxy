@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockPauseChange } from './build-mock-pause-change.ts';
 
-test('it builds a change that pauses a running runner', () => {
+test('it builds a change that pauses a running runner and writes no fact', () => {
   const runner = brandSchemas.runnerId.parse('runner-1');
   const change: unknown = buildMockPauseChange(runner);
 
@@ -17,14 +17,6 @@ test('it builds a change that pauses a running runner', () => {
         set: { paused: true },
       },
     ],
-    facts: [
-      {
-        id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-7/u),
-        type: 'boxxy.runner.paused',
-        entity: 'boxxy:runner:runner-1',
-        actor: 'boxxy:owner:local',
-        payload: { runner: 'runner-1' },
-      },
-    ],
+    facts: [],
   });
 });

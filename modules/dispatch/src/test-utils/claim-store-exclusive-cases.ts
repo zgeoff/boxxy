@@ -1,6 +1,6 @@
 import { setImmediate } from 'node:timers/promises';
 import { brandSchemas } from '@boxxy/model';
-import { buildMockItemRow } from '@boxxy/model/test-utils/build-mock-item-row';
+import { buildMockV1ItemRow } from '@boxxy/model/test-utils/build-mock-v1-item-row';
 import { buildMockFileItemChange } from './build-mock-file-item-change.ts';
 import type { ClaimStoreCase } from './types.ts';
 
@@ -38,7 +38,7 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
   [
     '#exclusive leaves the state as it was when work throws',
     async (store) => {
-      const item = buildMockItemRow();
+      const item = buildMockV1ItemRow();
 
       const writing = store.exclusive(async (transaction) => {
         await transaction.applyChange(buildMockFileItemChange(item));
@@ -59,7 +59,8 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
           items: [],
           relations: [],
           levers: [],
-          freeSlots: {},
+          limits: [],
+          wakes: [],
         },
       };
     },
@@ -82,7 +83,7 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
   [
     '#exclusive runs a later call after an earlier call throws',
     async (store) => {
-      const item = buildMockItemRow();
+      const item = buildMockV1ItemRow();
 
       const failing = store.exclusive(() => {
         throw new Error('the work failed');
@@ -104,8 +105,8 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
   [
     '#read during a running exclusive call sees the last committed state',
     async (store) => {
-      const committed = buildMockItemRow({ filedAt: brandSchemas.instant.parse(1000) });
-      const pending = buildMockItemRow({ filedAt: brandSchemas.instant.parse(2000) });
+      const committed = buildMockV1ItemRow({ filedAt: brandSchemas.instant.parse(1000) });
+      const pending = buildMockV1ItemRow({ filedAt: brandSchemas.instant.parse(2000) });
       const gate = Promise.withResolvers<void>();
       const written = Promise.withResolvers<void>();
 
@@ -137,8 +138,8 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
   [
     '#read keeps one snapshot across a commit made during the call',
     async (store) => {
-      const committed = buildMockItemRow({ filedAt: brandSchemas.instant.parse(1000) });
-      const later = buildMockItemRow({ filedAt: brandSchemas.instant.parse(2000) });
+      const committed = buildMockV1ItemRow({ filedAt: brandSchemas.instant.parse(1000) });
+      const later = buildMockV1ItemRow({ filedAt: brandSchemas.instant.parse(2000) });
 
       await store.exclusive((transaction) =>
         transaction.applyChange(buildMockFileItemChange(committed)),
@@ -175,7 +176,7 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
   [
     '#read runs a read started inside another read',
     async (store) => {
-      const item = buildMockItemRow();
+      const item = buildMockV1ItemRow();
 
       await store.exclusive((transaction) =>
         transaction.applyChange(buildMockFileItemChange(item)),
@@ -193,7 +194,8 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
   [
     '#applyChange writes the rows and the outbox facts of a change',
     async (store) => {
-      const item = buildMockItemRow({ filedAt: brandSchemas.instant.parse(1000) });
+      const item = buildMockV1ItemRow({ filedAt: brandSchemas.instant.parse(1000) });
+      const { keptSession: _keptSession, ...filed } = item;
       const change = buildMockFileItemChange(item);
 
       await store.exclusive((transaction) => transaction.applyChange(change));
@@ -210,21 +212,23 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
             entity: `boxxy:item:${item.id}`,
             actor: 'boxxy:owner:local',
             at: 1000,
-            payload: { ...item },
+            payload: filed,
             sentAt: null,
+            parkedAt: null,
+            parkedReason: null,
           },
         ],
       };
     },
   ],
   [
-    '#applyChange returns applied with no slot for a change that takes none',
+    '#applyChange returns applied for a change that it writes',
     async (store) => {
-      const change = buildMockFileItemChange(buildMockItemRow());
+      const change = buildMockFileItemChange(buildMockV1ItemRow());
 
       const result = await store.exclusive((transaction) => transaction.applyChange(change));
 
-      return { received: result, expected: { kind: 'applied', slot: null } };
+      return { received: result, expected: { kind: 'applied' } };
     },
   ],
 ];

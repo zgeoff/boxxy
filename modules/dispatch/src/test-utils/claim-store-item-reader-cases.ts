@@ -1,9 +1,10 @@
 import { expect } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
-import { buildMockAttemptRow } from '@boxxy/model/test-utils/build-mock-attempt-row';
-import { buildMockItemRow } from '@boxxy/model/test-utils/build-mock-item-row';
+import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
+import { buildMockV1ItemRow } from '@boxxy/model/test-utils/build-mock-v1-item-row';
 import { buildMockClaimChange } from './build-mock-claim-change.ts';
 import { buildMockFileItemChange } from './build-mock-file-item-change.ts';
+import { buildMockNoteChange } from './build-mock-note-change.ts';
 import { buildMockPullRequestChange } from './build-mock-pull-request-change.ts';
 import { buildMockRelationChange } from './build-mock-relation-change.ts';
 import { buildMockSettleChange } from './build-mock-settle-change.ts';
@@ -11,13 +12,17 @@ import type { ClaimStoreCase } from './types.ts';
 
 export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
   [
-    '#readSnapshot holds the open items, the store version and the free slots',
+    '#readSnapshot holds the open items, the store version and the limits',
     async (store) => {
-      const open = buildMockItemRow();
-      const archived = buildMockItemRow({ closedAt: brandSchemas.instant.parse(1500) });
+      const open = buildMockV1ItemRow();
+      const archived = buildMockV1ItemRow({ closedAt: brandSchemas.instant.parse(1500) });
 
       await store.exclusive(async (transaction) => {
-        await transaction.syncPoolSlots([{ name: brandSchemas.poolName.parse('build'), slots: 2 }]);
+        await transaction.syncLimits(
+          [{ name: brandSchemas.limitName.parse('workers'), max: 2, counts: {} }],
+          brandSchemas.instant.parse(500),
+        );
+
         await transaction.applyChange(buildMockFileItemChange(open));
         await transaction.applyChange(buildMockFileItemChange(archived));
       });
@@ -33,29 +38,75 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
           items: [{ ...open, derived: { state: 'ready' } }],
           relations: [],
           levers: [],
-          freeSlots: { build: 2 },
+          limits: [{ name: 'workers', max: 2, counts: {}, held: 0 }],
+          wakes: [],
         },
+      };
+    },
+  ],
+  [
+    '#readSnapshot lists the sleeping attempts asked to wake, oldest request first',
+    async (store) => {
+      const later = buildMockV1AttemptRow({
+        state: 'sleeping',
+        wakeRequestedAt: brandSchemas.instant.parse(4000),
+        fields: { designMode: ['attended'] },
+      });
+
+      const earlier = buildMockV1AttemptRow({
+        state: 'sleeping',
+        wakeRequestedAt: brandSchemas.instant.parse(3000),
+      });
+
+      const unasked = buildMockV1AttemptRow({ state: 'sleeping' });
+
+      await store.exclusive(async (transaction) => {
+        for (const attempt of [later, earlier, unasked]) {
+          await transaction.applyChange(
+            buildMockFileItemChange(buildMockV1ItemRow({ id: attempt.item })),
+          );
+
+          await transaction.applyChange(buildMockClaimChange(attempt));
+        }
+      });
+
+      const snapshot = await store.read((transaction) =>
+        transaction.readSnapshot(brandSchemas.instant.parse(5000), new Map()),
+      );
+
+      return {
+        received: snapshot.wakes,
+        expected: [
+          {
+            attempt: earlier.id,
+            item: earlier.item,
+            phase: 'build',
+            pool: 'main',
+            fields: {},
+            requestedAt: 3000,
+          },
+          {
+            attempt: later.id,
+            item: later.item,
+            phase: 'build',
+            pool: 'main',
+            fields: { designMode: ['attended'] },
+            requestedAt: 4000,
+          },
+        ],
       };
     },
   ],
   [
     '#readSnapshot drops a done item',
     async (store) => {
-      const item = buildMockItemRow();
-      const attempt = buildMockAttemptRow({ item: item.id, state: 'starting' });
+      const item = buildMockV1ItemRow();
+      const attempt = buildMockV1AttemptRow({ item: item.id, state: 'starting' });
 
       await store.exclusive(async (transaction) => {
-        await transaction.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
         await transaction.applyChange(buildMockFileItemChange(item));
         await transaction.applyChange(buildMockClaimChange(attempt));
-
-        await transaction.applyChange(
-          buildMockSettleChange({
-            attempt: { ...attempt, slot: 1, slotGen: 1 },
-            state: 'succeeded',
-          }),
-        );
-
+        await transaction.applyChange(buildMockSettleChange({ attempt, state: 'succeeded' }));
         await transaction.applyChange(buildMockPullRequestChange({ attempt, state: 'merged' }));
       });
 
@@ -70,7 +121,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
     '#readItem returns null for an unknown item',
     async (store) => {
       const read = await store.read((transaction) =>
-        transaction.readItem(buildMockItemRow().id, brandSchemas.instant.parse(5000), new Map()),
+        transaction.readItem(buildMockV1ItemRow().id, brandSchemas.instant.parse(5000), new Map()),
       );
 
       return { received: read, expected: null };
@@ -79,8 +130,8 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
   [
     '#readItem derives blocked for the target of a live relation from a ready item',
     async (store) => {
-      const source = buildMockItemRow();
-      const target = buildMockItemRow();
+      const source = buildMockV1ItemRow();
+      const target = buildMockV1ItemRow();
 
       await store.exclusive(async (transaction) => {
         await transaction.applyChange(buildMockFileItemChange(source));
@@ -101,8 +152,8 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
   [
     '#readItem derives ready for the target of a relation from an archived item',
     async (store) => {
-      const source = buildMockItemRow({ closedAt: brandSchemas.instant.parse(1500) });
-      const target = buildMockItemRow();
+      const source = buildMockV1ItemRow({ closedAt: brandSchemas.instant.parse(1500) });
+      const target = buildMockV1ItemRow();
 
       await store.exclusive(async (transaction) => {
         await transaction.applyChange(buildMockFileItemChange(source));
@@ -123,19 +174,15 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
   [
     '#readItem derives attempts used up from the max attempts of the kind',
     async (store) => {
-      const item = buildMockItemRow();
-      const attempt = buildMockAttemptRow({ item: item.id, state: 'starting' });
+      const item = buildMockV1ItemRow();
+      const attempt = buildMockV1AttemptRow({ item: item.id, state: 'starting' });
 
       const phases = new Map([[attempt.phase, 1]]);
 
       await store.exclusive(async (transaction) => {
-        await transaction.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
         await transaction.applyChange(buildMockFileItemChange(item));
         await transaction.applyChange(buildMockClaimChange(attempt));
-
-        await transaction.applyChange(
-          buildMockSettleChange({ attempt: { ...attempt, slot: 1, slotGen: 1 }, state: 'failed' }),
-        );
+        await transaction.applyChange(buildMockSettleChange({ attempt, state: 'failed' }));
       });
 
       const read = await store.read((transaction) =>
@@ -156,10 +203,10 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
     '#listItems keeps the items of one state and repo, oldest first',
     async (store) => {
       const repo = brandSchemas.repoName.parse('acme/lamps');
-      const older = buildMockItemRow({ repo, filedAt: brandSchemas.instant.parse(1000) });
-      const newer = buildMockItemRow({ repo, filedAt: brandSchemas.instant.parse(2000) });
-      const idea = buildMockItemRow({ repo, acceptance: [] });
-      const elsewhere = buildMockItemRow({ repo: brandSchemas.repoName.parse('acme/fans') });
+      const older = buildMockV1ItemRow({ repo, filedAt: brandSchemas.instant.parse(1000) });
+      const newer = buildMockV1ItemRow({ repo, filedAt: brandSchemas.instant.parse(2000) });
+      const idea = buildMockV1ItemRow({ repo, acceptance: [] });
+      const elsewhere = buildMockV1ItemRow({ repo: brandSchemas.repoName.parse('acme/fans') });
 
       await store.exclusive(async (transaction) => {
         await transaction.applyChange(buildMockFileItemChange(newer));
@@ -183,10 +230,10 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
     '#listOpenIssues returns the open core.issue items of one repo',
     async (store) => {
       const repo = brandSchemas.repoName.parse('acme/lamps');
-      const open = buildMockItemRow({ repo });
-      const closed = buildMockItemRow({ repo, closedAt: brandSchemas.instant.parse(1500) });
-      const elsewhere = buildMockItemRow({ repo: brandSchemas.repoName.parse('acme/fans') });
-      const task = buildMockItemRow({ repo, kind: brandSchemas.itemKindName.parse('core.task') });
+      const open = buildMockV1ItemRow({ repo });
+      const closed = buildMockV1ItemRow({ repo, closedAt: brandSchemas.instant.parse(1500) });
+      const elsewhere = buildMockV1ItemRow({ repo: brandSchemas.repoName.parse('acme/fans') });
+      const task = buildMockV1ItemRow({ repo, kind: brandSchemas.itemKindName.parse('core.task') });
 
       await store.exclusive(async (transaction) => {
         await transaction.applyChange(buildMockFileItemChange(open));
@@ -203,30 +250,32 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
-    '#readItemDetail returns the item with its attempts, relations, evidence and pull requests',
+    '#readItemDetail returns the item with its attempts, relations, evidence, pull requests and notes',
     async (store) => {
-      const item = buildMockItemRow();
-      const blocker = buildMockItemRow();
-      const attempt = buildMockAttemptRow({ item: item.id, state: 'starting' });
+      const item = buildMockV1ItemRow();
+      const blocker = buildMockV1ItemRow();
+      const attempt = buildMockV1AttemptRow({ item: item.id, state: 'starting' });
+
+      const note = {
+        item: item.id,
+        seq: 1,
+        text: 'The lamp hums when dimmed.',
+        by: 'boxxy:owner:local',
+        at: brandSchemas.instant.parse(4500),
+      } as const;
 
       await store.exclusive(async (transaction) => {
-        await transaction.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
         await transaction.applyChange(buildMockFileItemChange(item));
         await transaction.applyChange(buildMockFileItemChange(blocker));
         await transaction.applyChange(buildMockClaimChange(attempt));
-
-        await transaction.applyChange(
-          buildMockSettleChange({
-            attempt: { ...attempt, slot: 1, slotGen: 1 },
-            state: 'succeeded',
-          }),
-        );
-
+        await transaction.applyChange(buildMockSettleChange({ attempt, state: 'succeeded' }));
         await transaction.applyChange(buildMockPullRequestChange({ attempt, state: 'open' }));
 
         await transaction.applyChange(
           buildMockRelationChange({ source: blocker.id, target: item.id }),
         );
+
+        await transaction.applyChange(buildMockNoteChange(note));
       });
 
       const detail: unknown = await store.read((transaction) =>
@@ -241,6 +290,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
           relations: [expect.objectContaining({ source: blocker.id, target: item.id })],
           evidence: [expect.objectContaining({ attempt: attempt.id, kind: 'pull_request' })],
           pullRequests: [expect.objectContaining({ attempt: attempt.id, state: 'open' })],
+          notes: [note],
         },
       };
     },
@@ -250,13 +300,72 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
     async (store) => {
       const detail = await store.read((transaction) =>
         transaction.readItemDetail(
-          buildMockItemRow().id,
+          buildMockV1ItemRow().id,
           brandSchemas.instant.parse(5000),
           new Map(),
         ),
       );
 
       return { received: detail, expected: null };
+    },
+  ],
+  [
+    '#listItemNotes returns the notes of one item by seq',
+    async (store) => {
+      const item = buildMockV1ItemRow();
+      const other = buildMockV1ItemRow();
+
+      const note = (id: typeof item.id, seq: number, text: string) =>
+        buildMockNoteChange({
+          item: id,
+          seq,
+          text,
+          by: 'boxxy:owner:local',
+          at: brandSchemas.instant.parse(4000 + seq),
+        });
+
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(buildMockFileItemChange(item));
+        await transaction.applyChange(buildMockFileItemChange(other));
+        await transaction.applyChange(note(item.id, 2, 'The switch sticks.'));
+        await transaction.applyChange(note(other.id, 1, 'The cord frays.'));
+        await transaction.applyChange(note(item.id, 1, 'The bulb flickers.'));
+      });
+
+      const notes = await store.read((transaction) => transaction.listItemNotes(item.id));
+
+      return {
+        received: notes.map((row) => row.text),
+        expected: ['The bulb flickers.', 'The switch sticks.'],
+      };
+    },
+  ],
+  [
+    '#applyChange throws on a second note with the same seq on one item',
+    async (store) => {
+      const item = buildMockV1ItemRow();
+
+      const note = {
+        item: item.id,
+        seq: 1,
+        text: 'The bulb flickers.',
+        by: 'boxxy:owner:local',
+        at: brandSchemas.instant.parse(4500),
+      } as const;
+
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(buildMockFileItemChange(item));
+        await transaction.applyChange(buildMockNoteChange(note));
+      });
+
+      const settled = await store
+        .exclusive((transaction) => transaction.applyChange(buildMockNoteChange(note)))
+        .then(
+          () => 'applied',
+          () => 'thrown',
+        );
+
+      return { received: settled, expected: 'thrown' };
     },
   ],
 ];

@@ -2,7 +2,6 @@ import type { ContentHash, JsonValue } from '@boxxy/content-hash';
 import type { CloseOut, Effect, Friction } from '../closeouts/types.ts';
 import type { SeatRef } from '../planning/types.ts';
 import type { WakeSource } from '../ports/types.ts';
-import type { SliceOneEntityRef } from '../slice-one/types.ts';
 import type {
   ActorRef,
   AgentSessionId,
@@ -45,7 +44,7 @@ export interface FactEnvelope<M extends object, T extends keyof M & string = key
   // oxlint-disable-next-line id-length -- pepys's fact envelope names this field
   readonly v: 1;
   readonly api: 'boxxy/1';
-  readonly entity: EntityRef | SliceOneEntityRef;
+  readonly entity: EntityRef;
   readonly actor: ActorRef;
   readonly at: Instant;
   readonly payload: M[T] & { readonly storeVersion: number };
@@ -64,14 +63,16 @@ export type AnyNewFact = { [T in FactType]: NewFact<T> }[FactType];
 export interface OutboxFact {
   readonly seq: number;
   readonly factId: FactId;
-  readonly type: string;
-
-  // the slice 1 outbox still holds facts about relations, attempts, decisions and runners
-  readonly entity: SliceOneEntityRef;
+  readonly type: FactType;
+  readonly entity: EntityRef;
   readonly actor: ActorRef;
   readonly at: Instant;
   readonly payload: JsonValue;
   readonly sentAt: Instant | null;
+
+  // when the sender gave the row up, and why: `too-large`, `unknown-type` or the sink's refusal
+  readonly parkedAt: Instant | null;
+  readonly parkedReason: string | null;
 }
 
 export type FactType = keyof WorkFacts;

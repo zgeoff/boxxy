@@ -1,11 +1,7 @@
 import { brandSchemas } from '@boxxy/model';
-import type {
-  SliceOneAttemptRow as AttemptRow,
-  SliceOnePullRequestRow as PullRequestRow,
-  StoreChange,
-} from '@boxxy/model';
+import type { AttemptRow, PullRequestRow, StoreChange } from '@boxxy/model';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
-import { buildMockPullRequestRow } from '@boxxy/model/test-utils/build-mock-pull-request-row';
+import { buildMockV1PullRequestRow } from '@boxxy/model/test-utils/build-mock-v1-pull-request-row';
 
 interface PullRequestInput {
   readonly attempt: AttemptRow;
@@ -13,17 +9,18 @@ interface PullRequestInput {
   readonly number?: number;
 }
 
+// The hook links a pull request of `acme/lamps` to the attempt, with its evidence row.
 export function buildMockPullRequestChange(input: PullRequestInput): StoreChange {
   const attempt = input.attempt;
   const linkedAt = brandSchemas.instant.parse(4000);
   const factId = buildMockFactId();
   const number = input.number ?? 7;
-  const url = `https://github.com/acme/lamps/pull/${number}`;
 
-  const pullRequest = buildMockPullRequestRow({
+  const pullRequest = buildMockV1PullRequestRow({
     repo: brandSchemas.repoName.parse('acme/lamps'),
     number,
     attempt: attempt.id,
+    githubId: 2_000_000 + number,
     state: input.state,
     checkedAt: linkedAt,
   });
@@ -39,7 +36,7 @@ export function buildMockPullRequestChange(input: PullRequestInput): StoreChange
           factId,
           attempt: attempt.id,
           kind: 'pull_request',
-          ref: url,
+          ref: pullRequest.url,
           observed: null,
           source: 'hook',
           at: linkedAt,
@@ -50,9 +47,16 @@ export function buildMockPullRequestChange(input: PullRequestInput): StoreChange
       {
         id: factId,
         type: 'boxxy.pull_request.linked',
-        entity: `boxxy:attempt:${attempt.id}`,
+        entity: `boxxy:item:${attempt.item}`,
         actor: `boxxy:hook:${attempt.id}`,
-        payload: { repo: pullRequest.repo, number, url },
+        payload: {
+          attempt: attempt.id,
+          repo: pullRequest.repo,
+          number,
+          url: pullRequest.url,
+          pullRequestId: String(pullRequest.githubId),
+          source: 'hook',
+        },
       },
     ],
   };

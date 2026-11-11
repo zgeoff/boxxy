@@ -31,7 +31,7 @@ export function buildMockRelationChange(input: RelationInput): StoreChange {
       {
         id: buildMockFactId(),
         type: 'boxxy.relation.added',
-        entity: `boxxy:relation:${input.source}:${type}:${input.target}`,
+        entity: `boxxy:item:${input.source}`,
         actor: 'boxxy:owner:local',
         payload: { source: input.source, target: input.target, type },
       },

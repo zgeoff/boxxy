@@ -10,6 +10,7 @@ import type { StoreDatabase } from '../types.ts';
 import { createTablesMigration } from './create-tables-migration.ts';
 import { renameRelationsMigration } from './rename-relations-migration.ts';
 import { runStoreMigrations } from './run-store-migrations.ts';
+import { v1TablesMigration } from './v1-tables-migration.ts';
 
 async function setupTest() {
   const cleanup = new AsyncDisposableStack();
@@ -34,6 +35,7 @@ async function setupTest() {
     migrate: () => runStoreMigrations(db),
     createTables: () => createTablesMigration.up(db),
     renameRelations: () => renameRelationsMigration.up(db),
+    migrateV1Tables: () => v1TablesMigration.up(db),
     writeRaw: (statement: string, ...values: number[]) => {
       sqlite.query(statement).run(...values);
     },
@@ -75,12 +77,52 @@ test('it creates every table of the store schema in an empty file', async () => 
     'kysely_migration_lock',
     'leases',
     'levers',
+    'limit_seats',
+    'limits',
+    'notes',
+    'notices',
     'outbox',
-    'pool_slots',
     'pull_requests',
     'relations',
     'runners',
   ]);
+});
+
+test('it refuses to rebuild the v1 tables over a file that holds a slice 1 fact', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createTables();
+  await ctx.renameRelations();
+
+  ctx.writeRaw(
+    "INSERT INTO outbox (fact_id, type, entity, actor, at, payload, sent_at) VALUES ('0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b70', 'boxxy.item.filed', 'boxxy:item:item-a', 'boxxy:owner:local', ?, '{}', NULL)",
+    1000,
+  );
+
+  const migrated = await ctx.migrateV1Tables().then(
+    () => 'migrated',
+    () => 'refused',
+  );
+
+  expect({ migrated, outbox: ctx.readRaw('SELECT seq FROM outbox') }).toStrictEqual({
+    migrated: 'refused',
+    outbox: [{ seq: 1 }],
+  });
+});
+
+test('it refuses a second held seat of one limit, attempt and hold gen', async () => {
+  const ctx = await setupTest();
+
+  const insert =
+    "INSERT INTO limit_seats (\"limit\", attempt, hold_gen, over_cap, taken_at, released_at) VALUES ('workers', 'attempt-a', 1, 0, ?, NULL)";
+
+  await ctx.migrate();
+
+  ctx.writeRaw(insert, 1000);
+
+  expect(() => {
+    ctx.writeRaw(insert, 2000);
+  }).toThrow(/UNIQUE constraint failed/u);
 });
 
 test('it keeps the rows of the links table when it renames the table to relations', async () => {

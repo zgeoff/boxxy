@@ -1,8 +1,8 @@
 import { brandSchemas } from '@boxxy/model';
 import type { Criterion } from '@boxxy/model';
-import { buildMockAttemptRow } from '@boxxy/model/test-utils/build-mock-attempt-row';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
-import { buildMockItemRow } from '@boxxy/model/test-utils/build-mock-item-row';
+import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
+import { buildMockV1ItemRow } from '@boxxy/model/test-utils/build-mock-v1-item-row';
 import { buildMockClaimChange } from './build-mock-claim-change.ts';
 import { buildMockFileItemChange } from './build-mock-file-item-change.ts';
 import { buildMockStartChange } from './build-mock-start-change.ts';
@@ -12,11 +12,10 @@ export const claimStoreCopyCases: readonly ClaimStoreCase[] = [
   [
     '#readAttempt returns a row that a later change in the same call leaves as it was',
     async (store) => {
-      const item = buildMockItemRow();
-      const attempt = buildMockAttemptRow({ item: item.id, state: 'starting' });
+      const item = buildMockV1ItemRow();
+      const attempt = buildMockV1AttemptRow({ item: item.id, state: 'starting' });
 
       await store.exclusive(async (transaction) => {
-        await transaction.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
         await transaction.applyChange(buildMockFileItemChange(item));
         await transaction.applyChange(buildMockClaimChange(attempt));
       });
@@ -35,11 +34,10 @@ export const claimStoreCopyCases: readonly ClaimStoreCase[] = [
   [
     '#read returns rows whose edits by the caller leave the store as it was',
     async (store) => {
-      const item = buildMockItemRow();
-      const attempt = buildMockAttemptRow({ item: item.id, state: 'starting' });
+      const item = buildMockV1ItemRow();
+      const attempt = buildMockV1AttemptRow({ item: item.id, state: 'starting' });
 
       await store.exclusive(async (transaction) => {
-        await transaction.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
         await transaction.applyChange(buildMockFileItemChange(item));
         await transaction.applyChange(buildMockClaimChange(attempt));
       });
@@ -56,7 +54,7 @@ export const claimStoreCopyCases: readonly ClaimStoreCase[] = [
   [
     '#applyChange stores a copy of a list that an update sets',
     async (store) => {
-      const item = buildMockItemRow();
+      const item = buildMockV1ItemRow();
 
       const acceptance: Criterion[] = [
         { id: brandSchemas.criterionId.parse('a1'), text: 'The gate latches', evidence: [] },
@@ -76,7 +74,7 @@ export const claimStoreCopyCases: readonly ClaimStoreCase[] = [
               type: 'boxxy.item.edited',
               entity: `boxxy:item:${item.id}`,
               actor: 'boxxy:owner:local',
-              payload: { acceptance: [...acceptance] },
+              payload: { acceptance: [...acceptance], byAttempt: null },
             },
           ],
         });

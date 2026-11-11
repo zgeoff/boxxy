@@ -1,15 +1,20 @@
 import { expect, test } from 'bun:test';
-import { buildMockAttemptRow } from '@boxxy/model/test-utils/build-mock-attempt-row';
+import { brandSchemas } from '@boxxy/model';
+import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import { buildMockClaimChange } from './build-mock-claim-change.ts';
 
-test('it builds a claim that takes a slot and a lease, with slot and gen left at 0', () => {
-  const attempt = buildMockAttemptRow({ state: 'starting' });
-  const change: unknown = buildMockClaimChange(attempt);
+test('it builds a claim that takes the lease and a seat in each named limit', () => {
+  const attempt = buildMockV1AttemptRow({ state: 'starting', holdGen: 1 });
+  const workers = brandSchemas.limitName.parse('workers');
+  const change: unknown = buildMockClaimChange(attempt, [workers]);
 
   expect(change).toStrictEqual({
     at: attempt.claimedAt,
     writes: [
-      { op: 'take-slot', pool: attempt.pool, holder: attempt.id },
+      {
+        op: 'take-seats',
+        take: { limits: ['workers'], attempt: attempt.id, holdGen: 1, overCap: false },
+      },
       {
         op: 'insert',
         table: 'leases',
@@ -22,25 +27,38 @@ test('it builds a claim that takes a slot and a lease, with slot and gen left at
           releasedAt: null,
         },
       },
-      { op: 'insert', table: 'attempts', row: { ...attempt, slot: 0, slotGen: 0 } },
+      { op: 'insert', table: 'attempts', row: attempt },
     ],
     facts: [
       {
         id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-7/u),
         type: 'boxxy.attempt.claimed',
-        entity: `boxxy:attempt:${attempt.id}`,
+        entity: `boxxy:item:${attempt.item}`,
         actor: `boxxy:runner:${attempt.runner}`,
         payload: {
-          item: attempt.item,
+          attempt: attempt.id,
           phase: attempt.phase,
           number: attempt.number,
+          round: 1,
+          mode: 'agent',
           pool: attempt.pool,
-          slot: 0,
-          gen: 0,
+          fields: {},
+          seats: [{ limit: 'workers' }],
           recipeHash: attempt.recipeHash,
+          skillsRef: null,
           rulesVersion: attempt.rulesVersion,
         },
       },
     ],
+  });
+});
+
+test('it takes no seat when it names no limit', () => {
+  const attempt = buildMockV1AttemptRow({ state: 'starting' });
+  const change = buildMockClaimChange(attempt);
+
+  expect(change.writes[0]).toStrictEqual({
+    op: 'take-seats',
+    take: { limits: [], attempt: attempt.id, holdGen: attempt.holdGen, overCap: false },
   });
 });

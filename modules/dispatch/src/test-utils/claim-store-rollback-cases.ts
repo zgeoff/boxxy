@@ -1,8 +1,8 @@
 import { brandSchemas } from '@boxxy/model';
 import type { StoreChange } from '@boxxy/model';
-import { buildMockAttemptRow } from '@boxxy/model/test-utils/build-mock-attempt-row';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
-import { buildMockItemRow } from '@boxxy/model/test-utils/build-mock-item-row';
+import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
+import { buildMockV1ItemRow } from '@boxxy/model/test-utils/build-mock-v1-item-row';
 import { buildMockClaimChange } from './build-mock-claim-change.ts';
 import { buildMockFileItemChange } from './build-mock-file-item-change.ts';
 import { buildMockSettleChange } from './build-mock-settle-change.ts';
@@ -10,36 +10,32 @@ import type { ClaimStoreCase } from './types.ts';
 
 export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
   [
-    '#applyChange refuses a settle whose slot release names another holder whole',
+    '#applyChange takes back the lease and seat releases of a settle whose guard fails',
     async (store) => {
-      const item = buildMockItemRow();
-      const attempt = buildMockAttemptRow({ item: item.id, state: 'starting' });
-      const other = buildMockAttemptRow();
+      const workers = brandSchemas.limitName.parse('workers');
+      const item = buildMockV1ItemRow();
+      const attempt = buildMockV1AttemptRow({ item: item.id, state: 'starting' });
 
       await store.exclusive(async (transaction) => {
-        await transaction.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
+        await transaction.syncLimits(
+          [{ name: workers, max: 1, counts: {} }],
+          brandSchemas.instant.parse(500),
+        );
+
         await transaction.applyChange(buildMockFileItemChange(item));
-        await transaction.applyChange(buildMockClaimChange(attempt));
+        await transaction.applyChange(buildMockClaimChange(attempt, [workers]));
       });
 
-      const settle = buildMockSettleChange({
-        attempt: { ...attempt, slot: 1, slotGen: 1 },
-        state: 'succeeded',
-      });
-
-      const misnamed: StoreChange = {
-        ...settle,
-        writes: [
-          ...settle.writes.filter((write) => write.op !== 'release-slot'),
-          { op: 'release-slot', pool: attempt.pool, slot: 1, holder: other.id },
-        ],
-      };
-
-      const result = await store.exclusive((transaction) => transaction.applyChange(misnamed));
+      const result = await store.exclusive((transaction) =>
+        transaction.applyChange(
+          buildMockSettleChange({ attempt: { ...attempt, state: 'running' }, state: 'failed' }),
+        ),
+      );
 
       const state: unknown = await store.read(async (transaction) => {
         const read = await transaction.readAttempt(attempt.id);
         const facts = await transaction.readUnsentFacts(10);
+        const limits = await transaction.listLimits();
 
         const view = await transaction.readItem(
           item.id,
@@ -47,14 +43,19 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
           new Map(),
         );
 
-        return { attempt: read?.state, facts: facts.length, item: view?.derived };
+        return {
+          attempt: read?.state,
+          facts: facts.length,
+          held: limits.map((limit) => limit.held),
+          item: view?.derived,
+        };
       });
 
       return {
         received: { result, state },
         expected: {
-          result: { kind: 'stale-generation' },
-          state: { attempt: 'starting', facts: 2, item: { state: 'running' } },
+          result: { kind: 'guard-mismatch', table: 'attempts', key: { id: attempt.id } },
+          state: { attempt: 'starting', facts: 2, held: [1], item: { state: 'running' } },
         },
       };
     },
@@ -62,15 +63,20 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
   [
     '#applyChange takes back every write of a change that throws',
     async (store) => {
-      const filed = buildMockItemRow();
-      const claimed = buildMockItemRow();
-      const attempt = buildMockAttemptRow({ item: claimed.id, state: 'starting' });
+      const workers = brandSchemas.limitName.parse('workers');
+      const filed = buildMockV1ItemRow();
+      const claimed = buildMockV1ItemRow();
+      const attempt = buildMockV1AttemptRow({ item: claimed.id, state: 'starting' });
       const fileChange = buildMockFileItemChange(filed);
-      const claim = buildMockClaimChange(attempt);
+      const claim = buildMockClaimChange(attempt, [workers]);
       const reusedFactId: StoreChange = { ...claim, facts: [...claim.facts, ...fileChange.facts] };
 
       await store.exclusive(async (transaction) => {
-        await transaction.syncPoolSlots([{ name: attempt.pool, slots: 1 }]);
+        await transaction.syncLimits(
+          [{ name: workers, max: 1, counts: {} }],
+          brandSchemas.instant.parse(500),
+        );
+
         await transaction.applyChange(fileChange);
         await transaction.applyChange(buildMockFileItemChange(claimed));
         await transaction.applyChange(reusedFactId).catch(() => null);
@@ -78,23 +84,17 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
 
       const state: unknown = await store.read(async (transaction) => ({
         attempt: await transaction.readAttempt(attempt.id),
-        slots: await transaction.listPoolSlots(),
+        seats: await transaction.listLimitSeats(),
       }));
 
-      return {
-        received: state,
-        expected: {
-          attempt: null,
-          slots: [{ pool: attempt.pool, slot: 1, holder: null, gen: 0, retired: false }],
-        },
-      };
+      return { received: state, expected: { attempt: null, seats: [] } };
     },
   ],
   [
     '#applyChange keeps a heartbeat started beside a change it refuses',
     async (store) => {
-      const filed = buildMockItemRow();
-      const missing = buildMockItemRow();
+      const filed = buildMockV1ItemRow();
+      const missing = buildMockV1ItemRow();
       const runner = brandSchemas.runnerId.parse('runner-1');
 
       await store.exclusive((transaction) =>
@@ -117,12 +117,12 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
                 type: 'boxxy.item.edited',
                 entity: `boxxy:item:${missing.id}`,
                 actor: 'boxxy:owner:local',
-                payload: { title: 'Mend the gate' },
+                payload: { title: 'Mend the gate', byAttempt: null },
               },
             ],
           }),
           transaction
-            .listPoolSlots()
+            .listLimits()
             .then(() => transaction.writeHeartbeat(runner, brandSchemas.instant.parse(1000))),
         ]),
       );
@@ -135,11 +135,11 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
   [
     '#applyChange runs two changes started together on one call one at a time',
     async (store) => {
-      const claimed = buildMockItemRow();
-      const later = buildMockItemRow();
-      const first = buildMockAttemptRow({ item: claimed.id, state: 'starting', leaseGen: 1 });
+      const claimed = buildMockV1ItemRow();
+      const later = buildMockV1ItemRow();
+      const first = buildMockV1AttemptRow({ item: claimed.id, state: 'starting', leaseGen: 1 });
 
-      const second = buildMockAttemptRow({
+      const second = buildMockV1AttemptRow({
         item: claimed.id,
         state: 'starting',
         leaseGen: 2,
@@ -147,7 +147,6 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
       });
 
       await store.exclusive(async (transaction) => {
-        await transaction.syncPoolSlots([{ name: first.pool, slots: 2 }]);
         await transaction.applyChange(buildMockFileItemChange(claimed));
         await transaction.applyChange(buildMockClaimChange(first));
       });
@@ -166,7 +165,7 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
       return {
         received: { results, item: read?.id },
         expected: {
-          results: [{ kind: 'lease-held' }, { kind: 'applied', slot: null }],
+          results: [{ kind: 'lease-held' }, { kind: 'applied' }],
           item: later.id,
         },
       };

@@ -1,12 +1,6 @@
 export type { ContentHash, JsonValue } from '@boxxy/content-hash';
 export { brandSchemas } from './rows/brand-schemas.ts';
-
-export {
-  buildAppliedChange,
-  type ChangeAssignments,
-  type TakenSlot,
-} from './dispatch/build-applied-change.ts';
-
+export { buildAppliedChange, type ChangeAssignments } from './dispatch/build-applied-change.ts';
 export { advance } from './pipeline/advance.ts';
 export { attemptRowSchema } from './rows/attempt-row-schema.ts';
 export { attemptSessionRowSchema } from './rows/attempt-session-row-schema.ts';
@@ -15,6 +9,7 @@ export { buildItemViews } from './items/build-item-views.ts';
 export { closeOutAnswerSchema } from './closeouts/close-out-answer-schema.ts';
 export { callerIdentitySchema } from './rows/caller-identity-schema.ts';
 export { closeOutSchema } from './closeouts/close-out-schema.ts';
+export { collectSeatSync, type SeatSync } from './dispatch/collect-seat-sync.ts';
 export { costToLandSchema } from './reports/cost-to-land-schema.ts';
 export { criterionSchema } from './rows/criterion-schema.ts';
 export { decisionRowSchema } from './rows/decision-row-schema.ts';
@@ -26,13 +21,14 @@ export { deriveItemState } from './items/derive-item-state.ts';
 export { designCloseOutSchema } from './closeouts/design-close-out-schema.ts';
 export { evidenceRowSchema } from './rows/evidence-row-schema.ts';
 export { findPosition } from './pipeline/find-position.ts';
-export { findSlotTake, type SlotTake } from './dispatch/find-slot-take.ts';
 export { formatKeyPath } from './utils/format-key-path.ts';
 export { frictionSchema } from './closeouts/friction-schema.ts';
+export { isFilterMatch } from './planning/is-filter-match.ts';
 export { itemRowSchema } from './rows/item-row-schema.ts';
 export { itemViewSchema } from './rows/item-view-schema.ts';
 export { leverRowSchema } from './rows/lever-row-schema.ts';
 export { limitFillSchema } from './planning/limit-fill-schema.ts';
+export { limitSchema } from './rows/limit-schema.ts';
 export { limitSeatRowSchema } from './rows/limit-seat-row-schema.ts';
 export { loadRejectionSchema } from './rules/load-rejection-schema.ts';
 export { liveLevers } from './items/live-levers.ts';
@@ -40,12 +36,14 @@ export { noteRowSchema } from './rows/note-row-schema.ts';
 export { noticeRowSchema } from './rows/notice-row-schema.ts';
 export { outboxFactSchema } from './facts/outbox-fact-schema.ts';
 export { positionSchema } from './pipeline/position-schema.ts';
+export { parseNewFact } from './facts/parse-new-fact.ts';
+export { pickSeatTake, type SeatTakeAnswer } from './dispatch/pick-seat-take.ts';
 export { pullRequestRowSchema } from './rows/pull-request-row-schema.ts';
 export { relationRowSchema } from './rows/relation-row-schema.ts';
 export { reviewCloseOutSchema } from './closeouts/review-close-out-schema.ts';
+export { rowSchemas } from './rows/row-schemas.ts';
 export { signalKey } from './planning/signal-key.ts';
 export { sliceOneFactSchemas } from './slice-one/slice-one-fact-schemas.ts';
-export { sliceOneRowSchemas } from './slice-one/slice-one-row-schemas.ts';
 export { stageTimeSchema } from './reports/stage-time-schema.ts';
 export { toJSONValue } from './utils/to-json-value.ts';
 export { triageCloseOutSchema } from './closeouts/triage-close-out-schema.ts';
@@ -237,6 +235,7 @@ export type {
   NewId,
   NoticeOutcome,
   Notifier,
+  OutboxReader,
   PepysAnswer,
   PepysReader,
   PullRequestReading,
@@ -247,7 +246,10 @@ export type {
   StartOutcome,
   StopOutcome,
   StoreChange,
+  StoreItemView,
+  StoreItemWithLevers,
   StoreReader,
+  StoreSnapshot,
   StoreTx,
   SuspendOutcome,
   TableName,
@@ -298,6 +300,8 @@ export type {
   SliceOneAttemptSessionRow,
   SliceOneAttemptState,
   SliceOneDecisionRow,
+  SliceOneDerivedAttempt,
+  SliceOneDerivedPullRequest,
   SliceOneDerivedState,
   SliceOneEntityRef,
   SliceOneFacts,

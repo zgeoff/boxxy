@@ -1,58 +1,68 @@
 import type { JsonValue } from '@boxxy/content-hash';
-import type { OutboxFact } from '../facts/types.ts';
+import type { AnyNewFact, OutboxFact } from '../facts/types.ts';
 import type { HoldReason } from '../pipeline/types.ts';
+import type { Limit, LimitFill, SeatRelease, SeatTake, Snapshot } from '../planning/types.ts';
 import type { CostToLand, StageTime } from '../reports/types.ts';
-import type {
-  MaxAttemptsByKind,
-  PoolSlotRow,
-  SliceOneAnyNewFact,
-  SliceOneAttemptRow,
-  SliceOneAttemptSessionRow,
-  SliceOneDecisionRow,
-  SliceOneItemRow,
-  SliceOneItemView,
-  SliceOneItemWithLevers,
-  SliceOneLeverRow,
-  SliceOnePullRequestRow,
-  SliceOneSnapshot,
-} from '../slice-one/types.ts';
+import type { MaxAttemptsByKind } from '../slice-one/types.ts';
 import type {
   AgentSessionId,
   AtcSessionId,
   AttemptId,
   AttemptRow,
+  AttemptSessionRow,
   CallerIdentity,
   CommitSha,
+  DecisionRow,
   Effort,
   EvidenceRow,
   FactId,
   Instant,
   ItemId,
+  ItemRow,
   ItemState,
+  ItemView,
   KeptSession,
   LeaseRow,
+  LeverRow,
+  LimitName,
+  LimitSeatRow,
+  NoteRow,
+  NoticeRow,
   PhaseName,
   PoolName,
   PullRequestRef,
+  PullRequestRow,
   RelationRow,
   RepoName,
   RunnerId,
   RunnerRow,
 } from '../types.ts';
 
-// The store ports still read and write the slice 1 rows. The store slice moves them to v1.
 export interface ClaimStore {
   exclusive: <T>(work: (tx: StoreTx) => Promise<T>) => Promise<T>;
   read: <T>(work: (tx: StoreReader) => Promise<T>) => Promise<T>;
 }
 
-export interface StoreReader {
-  readSnapshot: (now: Instant, maxAttemptsByKind: MaxAttemptsByKind) => Promise<SliceOneSnapshot>;
+// The item as the store reads it: the v1 row with the slice 1 derived state and no position. The
+// engine's slice adds the position, and the reads then take the rules in place of the maximum
+// attempts of each kind.
+export type StoreItemView = Omit<ItemView, 'position'>;
+
+export interface StoreItemWithLevers extends StoreItemView {
+  readonly levers: readonly LeverRow[];
+}
+
+export interface StoreSnapshot extends Omit<Snapshot, 'items'> {
+  readonly items: readonly StoreItemView[];
+}
+
+export interface StoreReader extends OutboxReader {
+  readSnapshot: (now: Instant, maxAttemptsByKind: MaxAttemptsByKind) => Promise<StoreSnapshot>;
   readItem: (
     id: ItemId,
     now: Instant,
     maxAttemptsByKind: MaxAttemptsByKind,
-  ) => Promise<SliceOneItemView | null>;
+  ) => Promise<StoreItemView | null>;
   readItemDetail: (
     id: ItemId,
     now: Instant,
@@ -62,93 +72,161 @@ export interface StoreReader {
     filter: ItemFilter,
     now: Instant,
     maxAttemptsByKind: MaxAttemptsByKind,
-  ) => Promise<SliceOneItemWithLevers[]>;
+  ) => Promise<StoreItemWithLevers[]>;
   listOpenIssues: (
     repo: RepoName,
     now: Instant,
     maxAttemptsByKind: MaxAttemptsByKind,
-  ) => Promise<SliceOneItemView[]>;
+  ) => Promise<StoreItemView[]>;
 
   // 0 when the item phase has no lease
   readLastLeaseGen: (item: ItemId, phase: PhaseName) => Promise<number>;
-  readAttempt: (id: AttemptId) => Promise<SliceOneAttemptRow | null>;
+  readAttempt: (id: AttemptId) => Promise<AttemptRow | null>;
   listEvidence: (attempt: AttemptId) => Promise<EvidenceRow[]>;
-  listLiveAttempts: () => Promise<SliceOneAttemptRow[]>;
-  listSucceededAttemptsWithoutPullRequest: () => Promise<SliceOneAttemptRow[]>;
-  findAttemptBySession: (session: AtcSessionId) => Promise<SliceOneAttemptRow | null>;
-  findAttemptByAgentSession: (session: AgentSessionId) => Promise<AttemptId | null>;
-
-  // the rows in state `open`
-  listWatchedPullRequests: () => Promise<SliceOnePullRequestRow[]>;
-
-  // retired rows included
-  listPoolSlots: () => Promise<PoolSlotRow[]>;
 
   // oldest first
-  readUnsentFacts: (limit: number) => Promise<OutboxFact[]>;
-  readOutboxLag: () => Promise<{
-    readonly unsent: number;
-    readonly oldestUnsentAt: Instant | null;
-  }>;
+  listItemAttempts: (item: ItemId) => Promise<AttemptRow[]>;
+
+  // every attempt that has not settled, oldest first
+  listLiveAttempts: () => Promise<AttemptRow[]>;
+
+  // settled by the give-up rule at `since` or later, with the session not yet seen stopped
+  listStrayAttempts: (since: Instant) => Promise<AttemptRow[]>;
+  listSucceededAttemptsWithoutPullRequest: () => Promise<AttemptRow[]>;
+
+  // the latest attempt that the session carries, live or settled
+  findAttemptBySession: (session: AtcSessionId) => Promise<AttemptRow | null>;
+
+  // the latest attempt bound to the agent session
+  findAttemptByAgentSession: (session: AgentSessionId) => Promise<AttemptId | null>;
+
+  // The session whose latest attempt holds the caller; an older attempt of a session never
+  // counts. `ambiguous`: the latest attempts of two sessions hold it.
+  findSessionByCaller: (caller: CallerIdentity) => Promise<AtcSessionId | 'ambiguous' | null>;
+
+  // the rows in state `open`
+  listWatchedPullRequests: () => Promise<PullRequestRow[]>;
+
+  // the limits of the last sync, by name, each with its held seats counted
+  listLimits: () => Promise<LimitFill[]>;
+
+  // the held seats, by limit and then by attempt
+  listLimitSeats: () => Promise<LimitSeatRow[]>;
+
+  // oldest first
+  listItemNotes: (item: ItemId) => Promise<NoteRow[]>;
+
+  // the rows not yet sent, whatever their tries, oldest first
+  listUnsentNotices: (limit: number) => Promise<NoticeRow[]>;
+
+  // oldest kept first
+  listKeptSessions: () => Promise<{ readonly item: ItemId; readonly kept: KeptSession }[]>;
+
+  // The settled attempts whose atc session cleanup forgets now: a succeeded attempt at once, a
+  // failed one that ended at `failedEndedBefore` or earlier. Only the latest attempt of a session
+  // counts; a kept session and a stray session that has not stopped are left out.
+  listSessionsToForget: (failedEndedBefore: Instant) => Promise<AttemptRow[]>;
 
   // null before the runner's first heartbeat, which reads as not paused
   readRunner: (id: RunnerId) => Promise<RunnerRow | null>;
 }
 
+// The outbox part of the store, for the outbox sender. "Unsent" leaves out a parked row.
+export interface OutboxReader {
+  // oldest first
+  readUnsentFacts: (limit: number) => Promise<OutboxFact[]>;
+  readOutboxCounts: () => Promise<{
+    readonly unsent: number;
+    readonly parked: number;
+    readonly oldestUnsentAt: Instant | null;
+  }>;
+
+  // the rows of the item not yet sent, parked rows included
+  readItemBehind: (
+    item: ItemId,
+  ) => Promise<{ readonly facts: number; readonly oldestAt: Instant | null }>;
+}
+
 export interface ItemDetailRows {
-  readonly item: SliceOneItemWithLevers;
-  readonly attempts: readonly SliceOneAttemptRow[];
+  readonly item: StoreItemWithLevers;
+  readonly attempts: readonly AttemptRow[];
   readonly relations: readonly RelationRow[];
   readonly evidence: readonly EvidenceRow[];
-  readonly pullRequests: readonly SliceOnePullRequestRow[];
+  readonly pullRequests: readonly PullRequestRow[];
+  readonly notes: readonly NoteRow[];
 }
 
+// The bookkeeping writes run outside `StoreChange`: they write no fact and move no store version.
 export interface StoreTx extends StoreReader {
   applyChange: (change: StoreChange) => Promise<ApplyResult>;
-  markFactsSent: (ids: FactId[], at: Instant) => Promise<void>;
+
+  // a row already sent, or parked, stays as it is
+  markFactsSent: (ids: readonly FactId[], at: Instant) => Promise<void>;
+
+  // a row already sent stays as it is
+  parkFacts: (ids: readonly FactId[], reason: string, at: Instant) => Promise<void>;
+
+  // clears every park mark of a row not sent, and returns how many it cleared
+  unparkFacts: () => Promise<number>;
   writeHeartbeat: (runner: RunnerId, at: Instant) => Promise<void>;
-  syncPoolSlots: (
-    pools: readonly { readonly name: PoolName; readonly slots: number }[],
-  ) => Promise<void>;
+
+  // Makes the stored limits the loaded ones, and the held seats follow: a seat of a limit that
+  // went, or that no longer counts its attempt's stored fields, is released; an attempt that holds
+  // seats gets one in each limit that newly counts it, past `max` when the limit is full.
+  syncLimits: (limits: readonly Limit[], at: Instant) => Promise<void>;
   markPullRequestChecked: (ref: PullRequestRef, at: Instant) => Promise<void>;
+
+  // one more try of the notice; `sent` also sets its `sentAt`
+  markNoticeTried: (id: number, at: Instant, sent: boolean) => Promise<void>;
 }
 
+// A change may write no fact, such as the suspend mark; such a change moves no store version. The
+// attempt builder's change is one of these.
 export interface StoreChange {
-  at: Instant;
-  under?: {
-    item: ItemId;
-    phase: PhaseName;
-    gen: number;
-    slot?: { pool: PoolName; slot: number; gen: number };
-  };
-  writes: RowWrite[];
-  facts: SliceOneAnyNewFact[];
+  readonly at: Instant;
+
+  // the live lease the change was built under; none or null applies under no lease. `holdGen`:
+  // the hold generation of the lease's attempt, checked too when it is given.
+  readonly under?: {
+    readonly item: ItemId;
+    readonly phase: PhaseName;
+    readonly gen: number;
+    readonly holdGen?: number;
+  } | null;
+  readonly writes: readonly RowWrite[];
+  readonly facts: readonly AnyNewFact[];
 }
 
 export type ApplyResult =
-  | { kind: 'applied'; slot: { pool: PoolName; slot: number; gen: number } | null }
-  | { kind: 'stale-generation' }
-  | { kind: 'lease-held' }
-  | { kind: 'no-free-slot' }
-  | { kind: 'guard-mismatch'; table: TableName; key: JsonValue };
+  | { readonly kind: 'applied' }
+  | { readonly kind: 'stale-generation' }
+  | { readonly kind: 'lease-held' }
+  | { readonly kind: 'limit-full'; readonly limit: LimitName }
+
+  // the take names a limit that the last sync did not store
+  | { readonly kind: 'unknown-limit'; readonly limit: LimitName }
+  | { readonly kind: 'guard-mismatch'; readonly table: TableName; readonly key: JsonValue };
 
 export interface ItemFilter {
   readonly state?: ItemState;
   readonly repo?: RepoName;
 }
 
+// The tables a plain row write may name. The seats are written only through `take-seats` and
+// `release-seats`, so no write skips the all-or-none take.
 export interface Tables {
-  items: SliceOneItemRow;
+  items: ItemRow;
   relations: RelationRow;
-  levers: SliceOneLeverRow;
-  attempts: SliceOneAttemptRow;
-  attempt_sessions: SliceOneAttemptSessionRow;
+  levers: LeverRow;
+  attempts: AttemptRow;
+  attempt_sessions: AttemptSessionRow;
   leases: LeaseRow;
-  pool_slots: PoolSlotRow;
-  decisions: SliceOneDecisionRow;
+  decisions: DecisionRow;
   evidence: EvidenceRow;
-  pull_requests: SliceOnePullRequestRow;
+  pull_requests: PullRequestRow;
   runners: RunnerRow;
+  notes: NoteRow;
+  notices: NoticeRow;
 }
 
 export type TableName = keyof Tables;
@@ -166,13 +244,12 @@ export type RowWrite =
         readonly set: Partial<Tables[T]>;
       };
     }[TableName]
-  | { readonly op: 'take-slot'; readonly pool: PoolName; readonly holder: AttemptId }
-  | {
-      readonly op: 'release-slot';
-      readonly pool: PoolName;
-      readonly slot: number;
-      readonly holder: AttemptId;
-    };
+
+  // a seat in every named limit, or the change is refused
+  | { readonly op: 'take-seats'; readonly take: SeatTake }
+
+  // the attempt's held seats of that hold generation; none held is no refusal
+  | { readonly op: 'release-seats'; readonly release: SeatRelease };
 
 // The worker port: one adapter per kind of worker host, such as atc.
 export interface WorkerKind {

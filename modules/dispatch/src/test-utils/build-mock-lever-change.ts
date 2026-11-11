@@ -1,4 +1,4 @@
-import type { SliceOneLeverRow as LeverRow, StoreChange } from '@boxxy/model';
+import type { LeverRow, StoreChange } from '@boxxy/model';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
 
 export function buildMockLeverChange(lever: LeverRow): StoreChange {

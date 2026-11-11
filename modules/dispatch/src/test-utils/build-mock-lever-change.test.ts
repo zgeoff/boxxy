@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
-import { buildMockLeverRow } from '@boxxy/model/test-utils/build-mock-lever-row';
+import { buildMockV1LeverRow } from '@boxxy/model/test-utils/build-mock-v1-lever-row';
 import { buildMockLeverChange } from './build-mock-lever-change.ts';
 
 test('it builds a change that inserts the lever with its recorded fact', () => {
-  const lever = buildMockLeverRow({ seq: 0 });
+  const lever = buildMockV1LeverRow({ seq: 0 });
   const change: unknown = buildMockLeverChange(lever);
 
   expect(change).toStrictEqual({

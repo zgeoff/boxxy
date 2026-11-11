@@ -97,8 +97,8 @@ test('it runs the exclusive calls of two stores on one file one after the other'
       ),
     );
 
-    await transaction.listPoolSlots();
-    await transaction.listPoolSlots();
+    await transaction.listLimits();
+    await transaction.listLimits();
   });
 
   await secondCall.promise;
@@ -127,7 +127,7 @@ test('it creates no file for a read after the file of the store is removed', asy
   await ctx.removeFiles();
 
   const read = await store
-    .read((transaction) => transaction.listPoolSlots())
+    .read((transaction) => transaction.listLimits())
     .then(
       () => 'resolved',
       () => 'rejected',

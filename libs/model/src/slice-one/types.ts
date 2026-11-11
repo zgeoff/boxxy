@@ -6,6 +6,7 @@ import type {
   AgentSessionId,
   AtcSessionId,
   AttemptId,
+  AttemptRow,
   CommitSha,
   Criterion,
   CriterionId,
@@ -67,29 +68,38 @@ export interface SliceOneItemWithLevers extends SliceOneItemView {
   readonly levers: readonly SliceOneLeverRow[];
 }
 
+// The fields of an attempt and of a pull request that the slice 1 item state reads, so that the
+// v1 rows of the store derive it too.
+export type SliceOneDerivedAttempt = Pick<AttemptRow, 'id' | 'item' | 'state' | 'endedAt'>;
+
+export type SliceOneDerivedPullRequest = Pick<SliceOnePullRequestRow, 'attempt' | 'state'>;
+
 export interface SliceOneItemRows {
   // live relations whose target is the item
   readonly relations: readonly RelationRow[];
   readonly blockerStates: ReadonlyMap<ItemId, ItemState>;
   readonly levers: readonly SliceOneLeverRow[];
-  readonly attempts: readonly SliceOneAttemptRow[];
+  readonly attempts: readonly SliceOneDerivedAttempt[];
   readonly liveLease: LeaseRow | null;
-  readonly pullRequests: readonly SliceOnePullRequestRow[];
+  readonly pullRequests: readonly SliceOneDerivedPullRequest[];
 
   // the kind's `maxAttempts` for the item's current phase
   readonly maxAttempts: number;
 }
 
 // the rows a store reads to derive the state of a set of items, with each blocking source item
-export interface SliceOneItemSetRows {
-  readonly items: readonly SliceOneItemRow[];
+export interface SliceOneItemSetRows<
+  Item extends SliceOneItemRow = SliceOneItemRow,
+  Lever extends SliceOneLeverRow = SliceOneLeverRow,
+> {
+  readonly items: readonly Item[];
 
   // live relations only
   readonly relations: readonly RelationRow[];
-  readonly levers: readonly SliceOneLeverRow[];
-  readonly attempts: readonly SliceOneAttemptRow[];
+  readonly levers: readonly Lever[];
+  readonly attempts: readonly SliceOneDerivedAttempt[];
   readonly liveLeases: readonly LeaseRow[];
-  readonly pullRequests: readonly SliceOnePullRequestRow[];
+  readonly pullRequests: readonly SliceOneDerivedPullRequest[];
 }
 
 export type MaxAttemptsByKind = ReadonlyMap<ItemKindName, ReadonlyMap<PhaseName, number>>;

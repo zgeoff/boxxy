@@ -2,7 +2,7 @@ import { faker } from '@faker-js/faker';
 import { brandSchemas } from '../rows/brand-schemas.ts';
 import type { LeverRow } from '../types.ts';
 
-// `buildMockLeverRow` still builds the slice 1 row that the store reads.
+// A defer lever with no phase.
 export function buildMockV1LeverRow(overrides: Partial<LeverRow> = {}): LeverRow {
   return {
     seq: faker.number.int({ min: 1, max: 10_000 }),

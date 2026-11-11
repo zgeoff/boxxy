@@ -15,9 +15,9 @@ function setupTest() {
 
 test('it opens an empty migrated store', async () => {
   const store = await createTestClaimStore();
-  const lag = await store.read((transaction) => transaction.readOutboxLag());
+  const counts = await store.read((transaction) => transaction.readOutboxCounts());
 
-  expect(lag).toStrictEqual({ unsent: 0, oldestUnsentAt: null });
+  expect(counts).toStrictEqual({ unsent: 0, parked: 0, oldestUnsentAt: null });
 });
 
 test('it closes the store and removes its folder when the test finishes', async () => {
@@ -28,7 +28,7 @@ test('it closes the store and removes its folder when the test finishes', async 
 
   onTestFinished(async () => {
     const read = await store
-      .read((transaction) => transaction.readOutboxLag())
+      .read((transaction) => transaction.readOutboxCounts())
       .then(
         () => 'read',
         () => 'refused',

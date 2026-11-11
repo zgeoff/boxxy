@@ -1,11 +1,12 @@
-import { buildAppliedChange, findSlotTake, toJSONValue } from '@boxxy/model';
-import type { ApplyResult, RowWrite, SlotTake, StoreChange, TakenSlot } from '@boxxy/model';
+import { buildAppliedChange, parseNewFact, pickSeatTake, toJSONValue } from '@boxxy/model';
+import type { ApplyResult, Instant, RowWrite, SeatTake, StoreChange } from '@boxxy/model';
 import { sql } from 'kysely';
 import type { Kysely, RawBuilder } from 'kysely';
 import invariant from 'tiny-invariant';
 import { match } from 'ts-pattern';
 import { toStoreColumns } from '../codecs/to-store-columns.ts';
 import type { StoreValue } from '../codecs/to-store-columns.ts';
+import { buildSQLiteReader } from '../reads/build-sqlite-reader.ts';
 import type { StoreDatabase } from '../types.ts';
 
 // A savepoint, not the transaction, so a refusal keeps the caller's earlier changes in the same
@@ -14,12 +15,12 @@ export async function applySQLiteChange(
   db: Kysely<StoreDatabase>,
   change: StoreChange,
 ): Promise<ApplyResult> {
-  invariant(change.facts.length > 0, 'a change writes at least one fact');
+  const facts = change.facts.map((fact) => parseNewFact(fact));
 
   await sql`SAVEPOINT apply_change`.execute(db);
 
   try {
-    const result = await writeSQLiteChange(db, change);
+    const result = await writeSQLiteChange(db, { ...change, facts });
 
     if (result.kind !== 'applied') {
       await sql`ROLLBACK TO apply_change`.execute(db);
@@ -43,22 +44,23 @@ async function writeSQLiteChange(
     return { kind: 'stale-generation' };
   }
 
-  const take = findSlotTake(change.writes);
-  const taken = take === null ? null : await writeSlotTake(db, take);
-
-  if (take !== null && taken === null) {
-    return { kind: 'no-free-slot' };
-  }
-
   const lastLever = await db
     .selectFrom('levers')
     .select((builder) => builder.fn.max('seq').as('seq'))
     .executeTakeFirst();
 
-  const applied = buildAppliedChange(change, { taken, lastLeverSeq: lastLever?.seq ?? 0 });
+  const lastNotice = await db
+    .selectFrom('notices')
+    .select((builder) => builder.fn.max('id').as('id'))
+    .executeTakeFirst();
+
+  const applied = buildAppliedChange(change, {
+    lastLeverSeq: lastLever?.seq ?? 0,
+    lastNoticeId: lastNotice?.id ?? 0,
+  });
 
   for (const write of applied.writes) {
-    const refusal = await writeSQLiteRow(db, write);
+    const refusal = await writeSQLiteRow(db, write, change.at);
 
     if (refusal !== null) {
       return refusal;
@@ -76,84 +78,53 @@ async function writeSQLiteChange(
         at: change.at,
         payload: JSON.stringify(toJSONValue(fact.payload)),
         sent_at: null,
+        parked_at: null,
+        parked_reason: null,
       })
       .execute();
   }
 
-  const slot = taken === null ? null : { pool: taken.pool, slot: taken.slot, gen: taken.gen };
-
-  return { kind: 'applied', slot };
+  return { kind: 'applied' };
 }
 
 async function probeLiveUnder(
   db: Kysely<StoreDatabase>,
   under: StoreChange['under'],
 ): Promise<boolean> {
-  if (under === undefined) {
+  if (under === undefined || under === null) {
     return true;
   }
 
   const lease = await db
     .selectFrom('leases')
-    .select('gen')
-    .where('item', '=', under.item)
-    .where('phase', '=', under.phase)
-    .where('gen', '=', under.gen)
-    .where('released_at', 'is', null)
+    .innerJoin('attempts', 'attempts.id', 'leases.attempt')
+    .select('attempts.hold_gen')
+    .where('leases.item', '=', under.item)
+    .where('leases.phase', '=', under.phase)
+    .where('leases.gen', '=', under.gen)
+    .where('leases.released_at', 'is', null)
     .executeTakeFirst();
 
-  if (lease === undefined || under.slot === undefined) {
-    return lease !== undefined;
-  }
-
-  const slot = await db
-    .selectFrom('pool_slots')
-    .select('gen')
-    .where('pool', '=', under.slot.pool)
-    .where('slot', '=', under.slot.slot)
-    .where('gen', '=', under.slot.gen)
-    .where('holder', 'is not', null)
-    .executeTakeFirst();
-
-  return slot !== undefined;
+  return lease !== undefined && (under.holdGen === undefined || lease.hold_gen === under.holdGen);
 }
 
-async function writeSlotTake(db: Kysely<StoreDatabase>, take: SlotTake): Promise<TakenSlot | null> {
-  const lowest = db
-    .selectFrom('pool_slots')
-    .select((builder) => builder.fn.min('slot').as('slot'))
-    .where('pool', '=', take.pool)
-    .where('holder', 'is', null)
-    .where('retired', '=', 0);
-
-  const row = await db
-    .updateTable('pool_slots')
-    .set((builder) => ({ holder: take.holder, gen: builder('gen', '+', 1) }))
-    .where('pool', '=', take.pool)
-    .where('slot', '=', lowest)
-    .where('holder', 'is', null)
-    .where('retired', '=', 0)
-    .returning(['slot', 'gen'])
-    .executeTakeFirst();
-
-  return row === undefined
-    ? null
-    : { holder: take.holder, pool: take.pool, slot: row.slot, gen: row.gen };
-}
-
-function writeSQLiteRow(db: Kysely<StoreDatabase>, write: RowWrite): Promise<ApplyResult | null> {
+function writeSQLiteRow(
+  db: Kysely<StoreDatabase>,
+  write: RowWrite,
+  at: Instant,
+): Promise<ApplyResult | null> {
   return match(write)
-    .with({ op: 'take-slot' }, () => Promise.resolve(null))
-    .with({ op: 'release-slot' }, async (release) => {
-      const result = await db
-        .updateTable('pool_slots')
-        .set({ holder: null })
-        .where('pool', '=', release.pool)
-        .where('slot', '=', release.slot)
-        .where('holder', '=', release.holder)
-        .executeTakeFirst();
+    .with({ op: 'take-seats' }, (seats) => writeSeatTake(db, seats.take, at))
+    .with({ op: 'release-seats' }, async (seats) => {
+      await db
+        .updateTable('limit_seats')
+        .set({ released_at: at })
+        .where('attempt', '=', seats.release.attempt)
+        .where('hold_gen', '=', seats.release.holdGen)
+        .where('released_at', 'is', null)
+        .execute();
 
-      return result.numUpdatedRows === 0n ? ({ kind: 'stale-generation' } as const) : null;
+      return null;
     })
     .with({ op: 'insert', table: 'leases' }, async (insert) => {
       const columns = toStoreColumns(insert.table, insert.row);
@@ -188,6 +159,38 @@ function writeSQLiteRow(db: Kysely<StoreDatabase>, write: RowWrite): Promise<App
         : null;
     })
     .exhaustive();
+}
+
+// The write lock is held for the whole transaction, so the counts read here stay true until the
+// seats are inserted.
+async function writeSeatTake(
+  db: Kysely<StoreDatabase>,
+  take: SeatTake,
+  at: Instant,
+): Promise<ApplyResult | null> {
+  const limits = await buildSQLiteReader(db).listLimits();
+
+  const answer = pickSeatTake(take, limits, at);
+
+  if (answer.kind !== 'take') {
+    return { kind: answer.kind, limit: answer.limit };
+  }
+
+  for (const seat of answer.seats) {
+    await db
+      .insertInto('limit_seats')
+      .values({
+        limit: seat.limit,
+        attempt: seat.attempt,
+        hold_gen: seat.holdGen,
+        over_cap: seat.overCap ? 1 : 0,
+        taken_at: seat.takenAt,
+        released_at: seat.releasedAt,
+      })
+      .execute();
+  }
+
+  return null;
 }
 
 function buildInsert(table: string, columns: [string, StoreValue][]): RawBuilder<unknown> {

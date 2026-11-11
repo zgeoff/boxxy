@@ -1,74 +1,12 @@
 import { expect, test } from 'bun:test';
 import { brandSchemas } from '../rows/brand-schemas.ts';
-import { buildMockAttemptRow } from '../test-utils/build-mock-attempt-row.ts';
-import { buildMockLeverRow } from '../test-utils/build-mock-lever-row.ts';
+import { buildMockV1ItemRow } from '../test-utils/build-mock-v1-item-row.ts';
+import { buildMockV1LeverRow } from '../test-utils/build-mock-v1-lever-row.ts';
 import { buildAppliedChange } from './build-applied-change.ts';
 
-test('it writes the taken slot into the attempt row and its claimed fact', () => {
-  const attempt = buildMockAttemptRow({ slot: 0, slotGen: 0 });
-
-  const applied = buildAppliedChange(
-    {
-      at: brandSchemas.instant.parse(5000),
-      writes: [
-        { op: 'take-slot', pool: attempt.pool, holder: attempt.id },
-        { op: 'insert', table: 'attempts', row: attempt },
-      ],
-      facts: [
-        {
-          id: brandSchemas.factId.parse('0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77'),
-          type: 'boxxy.attempt.claimed',
-          entity: `boxxy:attempt:${attempt.id}`,
-          actor: 'boxxy:runner:runner-1',
-          payload: {
-            item: attempt.item,
-            phase: attempt.phase,
-            number: 1,
-            pool: attempt.pool,
-            slot: 0,
-            gen: 0,
-            recipeHash: attempt.recipeHash,
-            rulesVersion: attempt.rulesVersion,
-          },
-        },
-      ],
-    },
-    { taken: { holder: attempt.id, pool: attempt.pool, slot: 2, gen: 7 }, lastLeverSeq: 0 },
-  );
-
-  expect(applied).toStrictEqual({
-    writes: [
-      { op: 'take-slot', pool: attempt.pool, holder: attempt.id },
-      { op: 'insert', table: 'attempts', row: { ...attempt, slot: 2, slotGen: 7 } },
-    ],
-    facts: [
-      expect.objectContaining({
-        type: 'boxxy.attempt.claimed',
-        payload: expect.objectContaining({ slot: 2, gen: 7 }),
-      }),
-    ],
-  });
-});
-
-test('it leaves the attempt row of another holder as it was', () => {
-  const attempt = buildMockAttemptRow({ slot: 0, slotGen: 0 });
-  const other = buildMockAttemptRow();
-
-  const applied = buildAppliedChange(
-    {
-      at: brandSchemas.instant.parse(5000),
-      writes: [{ op: 'insert', table: 'attempts', row: attempt }],
-      facts: [],
-    },
-    { taken: { holder: other.id, pool: other.pool, slot: 2, gen: 7 }, lastLeverSeq: 0 },
-  );
-
-  expect(applied.writes).toStrictEqual([{ op: 'insert', table: 'attempts', row: attempt }]);
-});
-
 test('it numbers each lever insert after the last seq, in order, with its fact', () => {
-  const first = buildMockLeverRow({ seq: 0, kind: 'plan.defer' });
-  const second = buildMockLeverRow({ seq: 0, kind: 'plan.expedite' });
+  const first = buildMockV1LeverRow({ seq: 0, kind: 'plan.defer' });
+  const second = buildMockV1LeverRow({ seq: 0, kind: 'plan.expedite' });
 
   const applied = buildAppliedChange(
     {
@@ -94,7 +32,7 @@ test('it numbers each lever insert after the last seq, in order, with its fact',
         },
       ],
     },
-    { taken: null, lastLeverSeq: 41 },
+    { lastLeverSeq: 41, lastNoticeId: 0 },
   );
 
   expect(applied).toStrictEqual({
@@ -107,4 +45,49 @@ test('it numbers each lever insert after the last seq, in order, with its fact',
       expect.objectContaining({ payload: { ...second, seq: 43 } }),
     ],
   });
+});
+
+test('it numbers each notice insert after the last id', () => {
+  const item = buildMockV1ItemRow();
+
+  const notice = {
+    id: 0,
+    item: item.id,
+    reason: 'attempts used up',
+    at: brandSchemas.instant.parse(5000),
+    tries: 0,
+    sentAt: null,
+  } as const;
+
+  const applied = buildAppliedChange(
+    {
+      at: brandSchemas.instant.parse(5000),
+      writes: [
+        { op: 'insert', table: 'notices', row: notice },
+        { op: 'insert', table: 'notices', row: notice },
+      ],
+      facts: [],
+    },
+    { lastLeverSeq: 0, lastNoticeId: 6 },
+  );
+
+  expect(applied.writes).toStrictEqual([
+    { op: 'insert', table: 'notices', row: { ...notice, id: 7 } },
+    { op: 'insert', table: 'notices', row: { ...notice, id: 8 } },
+  ]);
+});
+
+test('it leaves every other write as it was', () => {
+  const item = buildMockV1ItemRow();
+
+  const applied = buildAppliedChange(
+    {
+      at: brandSchemas.instant.parse(5000),
+      writes: [{ op: 'insert', table: 'items', row: item }],
+      facts: [],
+    },
+    { lastLeverSeq: 3, lastNoticeId: 3 },
+  );
+
+  expect(applied.writes).toStrictEqual([{ op: 'insert', table: 'items', row: item }]);
 });

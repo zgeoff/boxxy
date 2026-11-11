@@ -1,13 +1,13 @@
 import { deriveSliceOneItemState } from '../slice-one/derive-slice-one-item-state.ts';
 import type {
-  SliceOneAttemptRow as AttemptRow,
+  SliceOneDerivedAttempt as DerivedAttempt,
+  SliceOneDerivedPullRequest as DerivedPullRequest,
+  SliceOneDerivedState as DerivedState,
   SliceOneItemRow as ItemRow,
   SliceOneItemRows as ItemRows,
   SliceOneItemSetRows as ItemSetRows,
-  SliceOneItemWithLevers as ItemWithLevers,
   SliceOneLeverRow as LeverRow,
   MaxAttemptsByKind,
-  SliceOnePullRequestRow as PullRequestRow,
 } from '../slice-one/types.ts';
 import type {
   AttemptId,
@@ -20,11 +20,12 @@ import type {
 } from '../types.ts';
 import { liveLevers } from './live-levers.ts';
 
-export function buildItemViews(
-  rows: ItemSetRows,
+// Generic, so that the store's v1 rows come back as v1 rows with the slice 1 derived state.
+export function buildItemViews<Item extends ItemRow, Lever extends LeverRow>(
+  rows: ItemSetRows<Item, Lever>,
   now: Instant,
   maxAttemptsByKind: MaxAttemptsByKind,
-): ItemWithLevers[] {
+): (Item & { readonly derived: DerivedState; readonly levers: readonly Lever[] })[] {
   const groups = collectItemGroups(rows, now);
 
   // A blocking source counts only when it is done or archived, and no relation makes an item either,
@@ -58,16 +59,19 @@ export function buildItemViews(
   });
 }
 
-interface ItemGroup {
+interface ItemGroup<Lever extends LeverRow> {
   readonly relations: RelationRow[];
-  readonly attempts: AttemptRow[];
-  readonly pullRequests: PullRequestRow[];
-  levers: LeverRow[];
+  readonly attempts: DerivedAttempt[];
+  readonly pullRequests: DerivedPullRequest[];
+  levers: Lever[];
   liveLease: LeaseRow | null;
 }
 
-function collectItemGroups(rows: ItemSetRows, now: Instant): Map<ItemId, ItemGroup> {
-  const groups = new Map<ItemId, ItemGroup>(
+function collectItemGroups<Item extends ItemRow, Lever extends LeverRow>(
+  rows: ItemSetRows<Item, Lever>,
+  now: Instant,
+): Map<ItemId, ItemGroup<Lever>> {
+  const groups = new Map<ItemId, ItemGroup<Lever>>(
     rows.items.map((item) => [
       item.id,
       { relations: [], attempts: [], pullRequests: [], levers: [], liveLease: null },
@@ -111,9 +115,9 @@ function collectItemGroups(rows: ItemSetRows, now: Instant): Map<ItemId, ItemGro
   return groups;
 }
 
-function buildItemRows(
+function buildItemRows<Lever extends LeverRow>(
   item: ItemRow,
-  group: ItemGroup | undefined,
+  group: ItemGroup<Lever> | undefined,
   maxAttemptsByKind: MaxAttemptsByKind,
   blocking: Pick<ItemRows, 'relations' | 'blockerStates'>,
 ): ItemRows {

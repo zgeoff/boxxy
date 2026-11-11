@@ -8,11 +8,14 @@ export interface StoreDatabase {
     title: string;
     outcome: string;
     acceptance: string;
+    fields: string;
+    labels: string;
     found_in_attempt: string | null;
     filed_by: string;
     filed_at: number;
     closed_at: number | null;
     close_reason: string | null;
+    kept_session: string | null;
   };
   relations: {
     source: string;
@@ -29,6 +32,7 @@ export interface StoreDatabase {
     until: number | null;
     expires_at: number | null;
     reason: string | null;
+    phase: string | null;
     actor: string;
     at: number;
   };
@@ -41,23 +45,42 @@ export interface StoreDatabase {
     recipe_hash: string;
     rules_version: string;
     pool: string;
-    slot: number;
-    slot_gen: number;
     lease_gen: number;
     spawn_request: string;
     spawn_request_hash: string;
     state: string;
     failure: string | null;
     atc_session: string | null;
-    close_out: string | null;
+    caller: string | null;
     claimed_at: number;
     started_at: number | null;
     ended_at: number | null;
+    fields: string;
+    mode: string;
+    round: number;
+    input: string | null;
+    hold_gen: number;
+    close_out: string | null;
+    close_out_hash: string | null;
+    close_out_fact: string | null;
+    closing: string | null;
+    closing_at: number | null;
+    suspend_requested_at: number | null;
+    slept_at: number | null;
+    wake_requested_at: number | null;
+    woken_at: number | null;
+    outcome: string | null;
+    returned_outcome: string | null;
+    strayed_at: number | null;
+    session_stopped_at: number | null;
+    session_forgotten_at: number | null;
   };
   attempt_sessions: {
     attempt: string;
     agent_session: string;
     atc_session: string;
+    product: string;
+    source: string;
     seen_at: number;
   };
   leases: {
@@ -68,23 +91,31 @@ export interface StoreDatabase {
     taken_at: number;
     released_at: number | null;
   };
-  pool_slots: {
-    pool: string;
-    slot: number;
-    holder: string | null;
-    gen: number;
-    retired: number;
+  limits: {
+    name: string;
+    max: number;
+    counts: string;
+  };
+  limit_seats: {
+    limit: string;
+    attempt: string;
+    hold_gen: number;
+    over_cap: number;
+    taken_at: number;
+    released_at: number | null;
   };
   decisions: {
     id: string;
     attempt: string;
     item: string;
+    kind: string;
     pool: string;
     rules_version: string;
     snapshot_hash: string;
     store_version: number;
     pepys_offsets: string;
     faults: string;
+    limits: string;
     at: number;
   };
   evidence: {
@@ -100,6 +131,8 @@ export interface StoreDatabase {
     repo: string;
     number: number;
     attempt: string;
+    github_id: number;
+    url: string;
     state: string;
     merged_at: number | null;
     merge_commit: string | null;
@@ -110,6 +143,21 @@ export interface StoreDatabase {
     heartbeat_at: number;
     paused: number;
   };
+  notes: {
+    item: string;
+    seq: number;
+    text: string;
+    by: string;
+    at: number;
+  };
+  notices: {
+    id: Generated<number>;
+    item: string;
+    reason: string;
+    at: number;
+    tries: number;
+    sent_at: number | null;
+  };
   outbox: {
     seq: Generated<number>;
     fact_id: string;
@@ -119,5 +167,7 @@ export interface StoreDatabase {
     at: number;
     payload: string;
     sent_at: number | null;
+    parked_at: number | null;
+    parked_reason: string | null;
   };
 }

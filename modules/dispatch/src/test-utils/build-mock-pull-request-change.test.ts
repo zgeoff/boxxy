@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
-import { buildMockAttemptRow } from '@boxxy/model/test-utils/build-mock-attempt-row';
+import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import { buildMockPullRequestChange } from './build-mock-pull-request-change.ts';
 
-test('it builds a change that relations pull request 7 with its evidence row and fact', () => {
-  const attempt = buildMockAttemptRow();
+test('it builds a change that links pull request 7 with its evidence row and fact', () => {
+  const attempt = buildMockV1AttemptRow();
   const change: unknown = buildMockPullRequestChange({ attempt, state: 'merged' });
 
   expect(change).toStrictEqual({
@@ -16,6 +16,8 @@ test('it builds a change that relations pull request 7 with its evidence row and
           repo: 'acme/lamps',
           number: 7,
           attempt: attempt.id,
+          githubId: 2_000_007,
+          url: 'https://github.com/acme/lamps/pull/7',
           state: 'merged',
           mergedAt: null,
           mergeCommit: null,
@@ -40,16 +42,23 @@ test('it builds a change that relations pull request 7 with its evidence row and
       {
         id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-7/u),
         type: 'boxxy.pull_request.linked',
-        entity: `boxxy:attempt:${attempt.id}`,
+        entity: `boxxy:item:${attempt.item}`,
         actor: `boxxy:hook:${attempt.id}`,
-        payload: { repo: 'acme/lamps', number: 7, url: 'https://github.com/acme/lamps/pull/7' },
+        payload: {
+          attempt: attempt.id,
+          repo: 'acme/lamps',
+          number: 7,
+          url: 'https://github.com/acme/lamps/pull/7',
+          pullRequestId: '2000007',
+          source: 'hook',
+        },
       },
     ],
   });
 });
 
-test('it relations the pull request number it is given in the row, the evidence and the fact', () => {
-  const attempt = buildMockAttemptRow();
+test('it links the pull request number it is given in the row, the evidence and the fact', () => {
+  const attempt = buildMockV1AttemptRow();
   const change = buildMockPullRequestChange({ attempt, state: 'open', number: 8 });
   const linked: unknown = { writes: change.writes, payload: change.facts[0]?.payload };
 
@@ -60,6 +69,10 @@ test('it relations the pull request number it is given in the row, the evidence 
         row: expect.objectContaining({ ref: 'https://github.com/acme/lamps/pull/8' }),
       }),
     ],
-    payload: { repo: 'acme/lamps', number: 8, url: 'https://github.com/acme/lamps/pull/8' },
+    payload: expect.objectContaining({
+      number: 8,
+      url: 'https://github.com/acme/lamps/pull/8',
+      pullRequestId: '2000008',
+    }),
   });
 });

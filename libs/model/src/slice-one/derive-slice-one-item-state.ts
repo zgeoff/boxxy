@@ -1,5 +1,5 @@
 import type {
-  SliceOneAttemptRow as AttemptRow,
+  SliceOneDerivedAttempt as AttemptRow,
   SliceOneDerivedState as DerivedState,
   SliceOneItemRow as ItemRow,
   SliceOneItemRows as ItemRows,

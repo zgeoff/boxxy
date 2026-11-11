@@ -1,9 +1,10 @@
 import { expect, test } from 'bun:test';
-import { buildMockItemRow } from '@boxxy/model/test-utils/build-mock-item-row';
+import { buildMockV1ItemRow } from '@boxxy/model/test-utils/build-mock-v1-item-row';
 import { buildMockFileItemChange } from './build-mock-file-item-change.ts';
 
-test('it builds a change that inserts the item with its filed fact', () => {
-  const item = buildMockItemRow();
+test('it builds a change that inserts the item and files it with no kept session', () => {
+  const item = buildMockV1ItemRow();
+  const { keptSession: _keptSession, ...filed } = item;
   const change: unknown = buildMockFileItemChange(item);
 
   expect(change).toStrictEqual({
@@ -15,7 +16,7 @@ test('it builds a change that inserts the item with its filed fact', () => {
         type: 'boxxy.item.filed',
         entity: `boxxy:item:${item.id}`,
         actor: 'boxxy:owner:local',
-        payload: item,
+        payload: filed,
       },
     ],
   });

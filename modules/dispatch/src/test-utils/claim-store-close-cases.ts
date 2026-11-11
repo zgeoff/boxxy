@@ -8,7 +8,7 @@ export const claimStoreCloseCases: readonly ClaimStoreCase[] = [
       await store.close();
 
       const settled = await store
-        .read((transaction) => transaction.listPoolSlots())
+        .read((transaction) => transaction.listLimits())
         .then(
           () => 'resolved',
           () => 'rejected',
@@ -23,7 +23,7 @@ export const claimStoreCloseCases: readonly ClaimStoreCase[] = [
       await store.close();
 
       const settled = await store
-        .exclusive((transaction) => transaction.listPoolSlots())
+        .exclusive((transaction) => transaction.listLimits())
         .then(
           () => 'resolved',
           () => 'rejected',
