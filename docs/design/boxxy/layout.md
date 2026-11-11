@@ -97,6 +97,8 @@ Each outside system has one package that may talk to it:
 | GitHub         | `adapters/forge-github` | only an adapter or a package calls `fetch`                            |
 | pepys          | `packages/pepys`        | no module and no lib imports `@boxxy/pepys`                           |
 
+oRPC has an owner and no lint pin. Only `libs/contract` calls `oc` and `mcp.tool` to define a procedure. `apps/server` imports `@orpc/server`, `@orpc/mcp` and `@modelcontextprotocol/server` to serve the contract, and `apps/cli` imports `@orpc/client`. All oRPC packages sit at one exact version, `2.0.0-beta.50`, in the root catalog.
+
 Two libraries have a pin of their own. Only `modules/rules` imports `yaml`, so every rules file
 reaches the other packages through `loadRules`. Only `modules/dispatch` imports `xstate`, for the
 attempt state table.

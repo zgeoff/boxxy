@@ -19,6 +19,8 @@
       "@commitlint/cli": "21.2.4",
       "@faker-js/faker": "10.6.0",
       "@maschwenk/tsrslint": "0.1.6",
+      "@orpc/contract": "2.0.0-beta.50",
+      "@orpc/mcp": "2.0.0-beta.50",
       "@stylistic/eslint-plugin": "5.10.0",
       "@tsconfig/strictest": "2.0.8",
       "@types/bun": "1.4.4",

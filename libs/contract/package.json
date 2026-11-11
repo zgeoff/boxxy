@@ -1,0 +1,42 @@
+{
+  "name": "@boxxy/contract",
+  "version": "0.1.0",
+  "description": "The oRPC contract of the boxxy API and the table of who may call each procedure",
+  "homepage": "https://github.com/zgeoff/boxxy/tree/main/libs/contract#readme",
+  "bugs": "https://github.com/zgeoff/boxxy/issues",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zgeoff/boxxy.git",
+    "directory": "libs/contract"
+  },
+  "files": [
+    "src",
+    "!src/**/*.test.ts",
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsrs -p tsconfig.build.json",
+    "typecheck": "tsrs --noEmit"
+  },
+  "dependencies": {
+    "@boxxy/model": "workspace:*",
+    "@orpc/contract": "catalog:",
+    "@orpc/mcp": "catalog:",
+    "zod": "catalog:"
+  },
+  "engines": {
+    "bun": ">=1.3",
+    "node": ">=24"
+  }
+}

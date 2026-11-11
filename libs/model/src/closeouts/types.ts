@@ -201,3 +201,18 @@ export interface ReviewInput {
     readonly url: string;
   } | null;
 }
+
+// What `attempt.closeOut` answers. `recorded` carries `repeat`: true when the same close-out
+// arrived again. `rejected` carries every problem at once.
+export type CloseOutAnswer =
+  | {
+      readonly kind: 'recorded';
+      readonly attempt: AttemptId;
+      readonly factId: FactId;
+      readonly repeat: boolean;
+    }
+  | { readonly kind: 'rejected'; readonly problems: readonly CloseOutProblem[] }
+  | {
+      readonly kind: 'refused';
+      readonly reason: 'no-attempt' | 'already-closed-out' | 'not-current';
+    };

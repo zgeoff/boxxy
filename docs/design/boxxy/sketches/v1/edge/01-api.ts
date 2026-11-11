@@ -10,8 +10,8 @@
 //   E. The session rule: how a call is tied to its attempt, and the bearer token of v1.
 //   F. Imp identity, behind the `CallerProof` port.
 //
-// The package is `@boxxy/contract` (libs/contract/src/contract.ts). The repo holds no contract
-// package and no server package: the build adds both. For v1 this contract is the list of
+// The package is `@boxxy/contract` (libs/contract/src/contract.ts, built: sections B to D are
+// its code). The repo holds no server package yet: the build adds it. For v1 this contract is the list of
 // procedures, in place of the type map `Procedures` and `procedurePolicy` of ../../03-commands.ts
 // and of the table in docs/design/boxxy/slice-1.md, "Commands and API".
 //
@@ -31,9 +31,10 @@ import { COMMON_ERROR_STATUS_MAP, implement } from '@orpc/server';
 import { RPCHandler } from '@orpc/server/fetch';
 import * as z from 'zod';
 
-// libs/model/src/rows/row-schemas.ts and build-close-out-schema.ts: the zod schema of each core type.
-// `closeOutAnswerSchema` is core `CloseOutAnswer`; `itemDetailSchema` is `ItemDetailRows` with
-// `ItemView`; `limitFillSchema` is core `LimitFill`.
+// libs/model: the zod schema of each core type. `closeOutAnswerSchema` is core `CloseOutAnswer`;
+// `limitFillSchema` is core `LimitFill`. `criterionInputSchema` and `itemDetailSchema` (the item
+// view with its notes, attempts, relations, evidence and pull requests) live in
+// libs/contract/src/contract.ts, because only the contract uses them.
 import {
   attemptRowSchema,
   closeOutAnswerSchema,
@@ -562,9 +563,9 @@ export const access = {
   // The owner's agent files and steers work on the owner's behalf, so it gets every command on an
   // item and every read: 17 tools. One read is not among them, `rules.dryRun` (below), which is
   // CLI only.
-  'item.file': ownerWrite('boxxy item file --repo --title --outcome [--acceptance]… [--kind] [--design-mode] [--blocked-by]…'),
-  'item.edit': ownerWrite('boxxy item edit <item> [--title] [--outcome] [--acceptance]… [--design-mode]'),
-  'item.close': ownerWrite('boxxy item close <item> --reason'),
+  'item.file': ownerWrite('boxxy item file --repo --title --outcome [--acceptance]… [--kind] [--design-mode] [--blocked-by]… [--label]…'),
+  'item.edit': ownerWrite('boxxy item edit <item> [--title] [--outcome] [--acceptance]… [--design-mode] [--label]…'),
+  'item.close': ownerWrite('boxxy item close <item> --reason [--of]'),
   'item.retry': ownerWrite('boxxy item retry <item> [--phase]'),
   'item.wake': ownerWrite('boxxy item wake <item>'),
   'item.note': ownerWrite('boxxy item note <item> --text'),
@@ -575,7 +576,7 @@ export const access = {
   'plan.expedite': ownerWrite('boxxy expedite <item>… --reason [--expires]'),
   'plan.unexpedite': ownerWrite('boxxy unexpedite <item>'),
   'item.get': ownerRead('boxxy item show <item>'),
-  'item.list': ownerRead('boxxy item list [--state] [--repo] [--phase]'),
+  'item.list': ownerRead('boxxy item list [--state] [--repo] [--phase] [--text] [--label]'),
   'runner.status': ownerRead('boxxy status'),
   'report.cost': ownerRead('boxxy cost <item>'),
   'report.stageTimes': ownerRead('boxxy times <item>'),

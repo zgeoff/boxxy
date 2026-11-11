@@ -27,7 +27,6 @@ No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc list
 | Point | What stands |
 | --- | --- |
 | The core's tests call `attempt.wake`, and the core's procedure map lists it. | The procedure is `item.wake`, as the API sketch has it. The runner calls the wake request directly. |
-| The `cli` strings of the access table lack flags that the inputs have: `--label` on `item.file` and `item.edit`, `--text` and `--label` on `item.list`, and `--of` on `item.close`. | The input schemas stand. Add the flags when you build the CLI. |
 | The test fixtures of the package sketch give review sessions the product `codex`. | v1 workers are Claude. The fixture keeps a second product so that the lines per product and the cost per turn stay tested. |
 
 ## Known faults in the sketch code
@@ -72,7 +71,6 @@ Each row names the test that settles it, where one is known.
 | That the registrar's filter gives each MCP endpoint only its own tools. | List the tools of both endpoints. |
 | That a custom error code in the status map changes nothing on the MCP side. | Call a tool that throws one. |
 | That an input of unknown type, a custom output and a discriminated union each give a usable MCP tool schema. | List the tools and read the schemas. |
-| A zod transform in an MCP input schema. The contract uses none. | None needed while the rule holds. |
 | That the CLI's HTTP client works through the broker: `HTTPS_PROXY`, the broker's CA, HTTP/1.1. | One CLI call from an imp. |
 | That Claude Code can be given the session MCP endpoint in a session that atc starts. The CLI is the path a prompt names. | Start one session with the endpoint set. |
 
