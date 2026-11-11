@@ -33,6 +33,8 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 - A missing, expired or forged token, a wrong audience or an unknown issuer proves no caller. With
   no trust document, the proof proves no request.
 - A bad trust document throws when the app builds the proof, so the server does not start.
+- `./test-utils/create-test-issuer`, an issuer with a key made at run time that signs tokens as the
+  broker does, for tests.
 
 ## Documentation
 
