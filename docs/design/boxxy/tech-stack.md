@@ -117,7 +117,7 @@ does. One workflow, `main.yml`, publishes. `npm-packages.yml` only rehearses the
 2. A maintainer merges the release PR by hand. The push run of that merge tags each release as
    `@boxxy/<package>@<version>`.
 3. The push run dispatches a publish run at the tag, so npm provenance records the tagged commit.
-4. The publish run waits for the tagged commit's checks, then runs `npm publish` from Node 24's
+4. The publish run waits for the tagged commit's checks, then runs `npm publish` from Node 26's
    bundled npm with the job's OIDC token. No npm token exists in the repo. `bun publish` has no OIDC
    support, so npm publishes.
 
