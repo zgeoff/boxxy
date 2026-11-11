@@ -66,7 +66,7 @@ The parser cuts no list. A cut finding or open item would be work lost with no c
 
 | Phase | The parser refuses | The settle |
 | --- | --- | --- |
-| triage | `accepted` that leaves the item with no acceptance list; an unknown item, kind or relation type; a relation to the item itself | succeeded. Asks to set the kind, the design mode and the acceptance list, numbered from `a1`, to add each relation, and to close a `duplicate` or `declined` item |
+| triage | `accepted` that leaves the item with no acceptance list; an unknown item, kind or relation type; a relation to the item itself; a relation named twice, counting the `duplicate-of` relation of a `duplicate` | succeeded. Asks to set the kind, the design mode and the acceptance list, numbered from `a1`, to add each relation, and to close a `duplicate` or `declined` item |
 | design | nothing past the schema | `designed`: succeeded. `blocked`, `abandoned`: failed, with the outcome as the failure |
 | build | a criterion the item lacks; evidence of another attempt; `built` with a criterion that has no evidence | as design. Asks to file each open item, and, when `built`, to add the cited evidence to the acceptance list |
 | review | `changes-requested` with no finding | succeeded |

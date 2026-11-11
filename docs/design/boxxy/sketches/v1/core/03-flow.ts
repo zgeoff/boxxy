@@ -75,8 +75,9 @@ import { hashCanonical } from '@boxxy/content-hash';
 //
 // The race guard. Each change of a live attempt carries `under: { item, phase, gen: leaseGen,
 // holdGen }`. Its update of the attempt row `expect`s every column the machine's context reads
-// (`AttemptGuard`: state, holdGen, the suspend mark, the wake request, closing, atcSession,
-// strayedAt, sessionStoppedAt), as the builder read them. Once the first of two moves built from
+// (`AttemptGuard` in attempts/is-same-guard.ts: state, holdGen, the suspend mark, the wake
+// request, closing, atcSession, strayedAt, sessionStoppedAt, sessionForgottenAt), as the builder
+// read them. Once the first of two moves built from
 // one read applies, the second no longer matches, also for two moves that keep the state (two
 // `suspend-asked`, two `wake-requested`, two `stray-stopped`); the builder's tests show it. A
 // store that checks `under` and `expect` then answers one `applied` and one `stale-generation`
@@ -85,6 +86,17 @@ import { hashCanonical } from '@boxxy/content-hash';
 // claim, which takes the lease (`lease-held` guards it), and a move of a settled attempt
 // (`session-seen`, `stray-stopped`), whose lease is released. `session-seen` writes no attempt
 // column, so it carries no `expect`; the unique key of `attempt_sessions` guards it.
+//
+// The builder reads the row inside the lock, so `expect` alone never sees that the row moved
+// after a caller DECIDED on an older read. Such a caller passes `seen` (the guard columns of the
+// row it decided on) to `writeAttemptMove` or `settleAttempt`, and a row in the lock that differs
+// on one of them refuses the move with `{ kind: 'refused', reason: 'guard-mismatch' }` and no
+// write. `actOnReading` passes the listed row for the first move of every action; the second
+// step of a sleep passes the row read after the mark. `resumeClaim` guards `wake-refused` with
+// the woken row. `startClaim` guards its `no-capacity`/`spawn-refused` settle on `atcSession`
+// only, so an item closed meanwhile still settles at once. A move that records a worker's answer
+// (`started`, `resumed`, `spawn-unanswered`, `session-forgotten`) passes no `seen`: the machine
+// decides whether the answer still applies.
 //
 // The table above is an XState machine, `xstate@6.0.0-beta.2`, pinned exactly (no version
 // range). modules/dispatch/src/attempts/attempt-machine.ts builds it from the table of moves,
@@ -144,7 +156,9 @@ export function buildAttemptChange(input: { attempt: AttemptRow | null; event: A
 // docs/design/boxxy/slice-1.md from the existing code and follows this one. `mark` is
 // `suspendRequestedAt !== null`. `waits` is `findWaitingSince(...) !== null`. The build holds
 // the table as data, `readingTable`: one function per cell, read cell by cell against this one.
-// `actOnReading` (readings/act-on-reading.ts) carries out the action the cell gives.
+// `actOnReading` (readings/act-on-reading.ts) carries out the action the cell gives, refused
+// when the row moved on since the listing (section A, the race guard). A respawn, a resume and a
+// stop read the row again before they call the worker, which narrows that race.
 //
 //   reading \ state   starting,       running                      sleeping            waking           closing
 //                     reconciling
@@ -554,6 +568,11 @@ export function settleAttempt(input: SettleAttemptInput): Promise<MoveResult> {
     //    the item's repo's open issues: a matched title files nothing and is listed in
     //    `matched`. `close-item` plans last, so the other effects see the item still open. A
     //    `duplicate` close adds the `duplicate-of` relation in the same plan.
+    //    Each plan sees the relations and the close that the plans before it write: a relation
+    //    named twice skips with `the relation is live already`, a relation to the item itself
+    //    with `an item has no relation to itself`, a second close with `the item is closed`. A
+    //    second insert would break the live unique key of `relations`, and the store would
+    //    refuse the whole settle on every tick.
     //    When the rules map this outcome to a `{ hold: reason }` edge, the item holds for the
     //    owner, and the close-out is kept on the row. This is the one place where settle reads
     //    an edge; it stores no position.
