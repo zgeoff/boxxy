@@ -144,8 +144,8 @@ export interface StoreTx extends StoreReader {
   writeHeartbeat: (runner: RunnerId, at: Instant) => Promise<void>;
 
   // Makes the stored limits the loaded ones, and the held seats follow: a seat of a limit that
-  // went, or that no longer counts its attempt's stored fields, is released; an attempt that holds
-  // seats gets one in each limit that newly counts it, past `max` when the limit is full.
+  // went, or that no longer counts its attempt's stored fields, is released; a live attempt that is
+  // not asleep gets one in each limit that newly counts it, past `max` when the limit is full.
   syncLimits: (limits: readonly Limit[], at: Instant) => Promise<void>;
   markPullRequestChecked: (ref: PullRequestRef, at: Instant) => Promise<void>;
 

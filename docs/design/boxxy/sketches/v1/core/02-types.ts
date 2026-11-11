@@ -621,7 +621,8 @@ export interface StoreReader {
 //   - a held seat of a limit that went, or whose `counts` no longer match the attempt's stored
 //     fields, is released;
 //   - an attempt in a seated state (starting, reconciling, running, waking, closing) gets a
-//     seat in each limit that newly counts it, past `max` when the limit is full.
+//     seat in each limit that newly counts it, past `max` when the limit is full. An attempt
+//     that closed out while asleep is left out: its last `sleptAt` is later than its `wokenAt`.
 // It writes seats outside the builder because a rules change is no attempt move: the attempt's
 // state does not change, only which limits count it.
 

@@ -3,8 +3,10 @@ import { brandSchemas } from '@boxxy/model';
 import { buildMockItemRules } from '@boxxy/model/test-utils/build-mock-item-rules';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import { buildMockV1ItemRow } from '@boxxy/model/test-utils/build-mock-v1-item-row';
+import { buildMockV1LeverRow } from '@boxxy/model/test-utils/build-mock-v1-lever-row';
 import { buildMockClaimChange } from './build-mock-claim-change.ts';
 import { buildMockFileItemChange } from './build-mock-file-item-change.ts';
+import { buildMockLeverChange } from './build-mock-lever-change.ts';
 import { buildMockNoteChange } from './build-mock-note-change.ts';
 import { buildMockPullRequestChange } from './build-mock-pull-request-change.ts';
 import { buildMockRelationChange } from './build-mock-relation-change.ts';
@@ -211,6 +213,49 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       return {
         received: { derived: read?.derived, position: read?.position.kind },
         expected: { derived: { state: 'waiting', reason: 'attempts used up' }, position: 'hold' },
+      };
+    },
+  ],
+  [
+    '#readItem returns a held item to its phase after a retry lever',
+    async (store) => {
+      const item = buildMockV1ItemRow();
+      const first = buildMockV1AttemptRow({ item: item.id, state: 'starting' });
+
+      const second = buildMockV1AttemptRow({
+        item: item.id,
+        state: 'starting',
+        number: 2,
+        leaseGen: 2,
+      });
+
+      const retry = buildMockV1LeverRow({
+        item: item.id,
+        kind: 'item.retry',
+        at: brandSchemas.instant.parse(4000),
+      });
+
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(buildMockFileItemChange(item));
+
+        for (const attempt of [first, second]) {
+          await transaction.applyChange(buildMockClaimChange(attempt));
+          await transaction.applyChange(buildMockSettleChange({ attempt, state: 'failed' }));
+        }
+
+        await transaction.applyChange(buildMockLeverChange(retry));
+      });
+
+      const read = await store.read((transaction) =>
+        transaction.readItem(item.id, brandSchemas.instant.parse(5000), buildMockItemRules()),
+      );
+
+      return {
+        received: { derived: read?.derived, position: read?.position },
+        expected: {
+          derived: { state: 'ready' },
+          position: { kind: 'phase', phase: 'build', round: 1 },
+        },
       };
     },
   ],

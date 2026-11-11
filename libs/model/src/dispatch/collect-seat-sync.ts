@@ -18,23 +18,12 @@ interface SeatSyncInput {
   readonly at: Instant;
 }
 
-// A sleeping attempt holds no seat, and a settled one has released its seats.
-const seatedStates: ReadonlySet<AttemptState> = new Set([
-  'starting',
-  'reconciling',
-  'running',
-  'waking',
-  'closing',
-]);
-
 // The seats follow the loaded limits, matched against each attempt's stored fields: a seat of a
 // limit that went, or that no longer counts its attempt, is released; a seated attempt gets a seat
 // in each limit that now counts it, past `max` when the limit is full.
 export function collectSeatSync(input: SeatSyncInput): SeatSync {
   const seated = new Map(
-    input.attempts
-      .filter((attempt) => seatedStates.has(attempt.state))
-      .map((attempt) => [attempt.id, attempt]),
+    input.attempts.filter((attempt) => isSeated(attempt)).map((attempt) => [attempt.id, attempt]),
   );
 
   const release = input.held.filter((seat) => {
@@ -76,4 +65,22 @@ export function collectSeatSync(input: SeatSyncInput): SeatSync {
   }
 
   return { release, take };
+}
+
+// A sleeping attempt holds no seat, and a settled one has released its seats.
+const seatedStates: ReadonlySet<AttemptState> = new Set([
+  'starting',
+  'reconciling',
+  'running',
+  'waking',
+  'closing',
+]);
+
+// A sleeping attempt that closes out moves to `closing` and takes no seat, so its last sleep,
+// later than its last wake, keeps it out.
+function isSeated(attempt: AttemptRow): boolean {
+  const isAsleep =
+    attempt.sleptAt !== null && (attempt.wokenAt === null || attempt.wokenAt < attempt.sleptAt);
+
+  return seatedStates.has(attempt.state) && !isAsleep;
 }

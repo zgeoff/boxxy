@@ -23,7 +23,7 @@ export function buildItemViews(
   now: Instant,
   rules: ItemRules,
 ): ItemWithLevers[] {
-  const groups = collectItemGroups(rows, now, rules);
+  const groups = collectItemGroups(rows, rules);
 
   // A blocking source counts only when it is done or archived, and no relation makes an item either,
   // so each source's state derived without its relations settles its targets.
@@ -54,7 +54,7 @@ interface ItemGroup {
 }
 
 // in the order of `rows.items`
-function collectItemGroups(rows: ItemSetRows, now: Instant, rules: ItemRules): ItemGroup[] {
+function collectItemGroups(rows: ItemSetRows, rules: ItemRules): ItemGroup[] {
   const groups = new Map<ItemId, ItemGroup>(
     rows.items.map((item) => [
       item.id,
@@ -105,7 +105,7 @@ function collectItemGroups(rows: ItemSetRows, now: Instant, rules: ItemRules): I
     group.position = findPosition({
       pipeline: rules.kinds.get(group.item.kind)?.pipeline ?? null,
       attempts: collectSettled(group.attempts),
-      retries: collectRetries(group.levers, now),
+      retries: collectRetries(group.levers),
     });
   }
 
@@ -132,9 +132,9 @@ function collectSettled(attempts: readonly AttemptRow[]): Settled[] {
 
 const retryKind = 'item.retry';
 
-// No lever undoes `item.retry` and none sets its expiry, so the live levers hold every one.
-function collectRetries(levers: readonly LeverRow[], now: Instant): RetryLever[] {
-  return liveLevers(levers, now)
+// every `item.retry` lever the item ever had, so the position never depends on the read's time
+function collectRetries(levers: readonly LeverRow[]): RetryLever[] {
+  return levers
     .filter((lever) => lever.kind === retryKind)
     .map((lever) => ({ at: lever.at, phase: lever.phase }))
     .toSorted((first, second) => first.at - second.at);

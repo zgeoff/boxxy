@@ -123,6 +123,56 @@ test('it seats each seated attempt in a new limit, past max once the limit is fu
   });
 });
 
+test('it seats no attempt that closed out while asleep', () => {
+  const sync = collectSeatSync({
+    limits: [{ name: brandSchemas.limitName.parse('workers'), max: 7, counts: {} }],
+    held: [],
+    attempts: [
+      buildMockV1AttemptRow({
+        state: 'closing',
+        sleptAt: brandSchemas.instant.parse(3000),
+        wokenAt: null,
+      }),
+    ],
+    at: brandSchemas.instant.parse(5000),
+  });
+
+  expect(sync).toStrictEqual({ release: [], take: [] });
+});
+
+test('it seats a closing attempt that woke after its last sleep', () => {
+  const workers = brandSchemas.limitName.parse('workers');
+  const at = brandSchemas.instant.parse(5000);
+
+  const attempt = buildMockV1AttemptRow({
+    state: 'closing',
+    holdGen: 2,
+    sleptAt: brandSchemas.instant.parse(3000),
+    wokenAt: brandSchemas.instant.parse(4000),
+  });
+
+  const sync = collectSeatSync({
+    limits: [{ name: workers, max: 7, counts: {} }],
+    held: [],
+    attempts: [attempt],
+    at,
+  });
+
+  expect(sync).toStrictEqual({
+    release: [],
+    take: [
+      {
+        limit: workers,
+        attempt: attempt.id,
+        holdGen: 2,
+        overCap: false,
+        takenAt: at,
+        releasedAt: null,
+      },
+    ],
+  });
+});
+
 test.each(['sleeping', 'succeeded', 'failed'] as const)(
   'it seats no %s attempt in a new limit',
   (state) => {

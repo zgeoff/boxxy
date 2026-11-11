@@ -39,5 +39,6 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-[The store schema](../../docs/design/boxxy/slice-1.md#the-store-schema) lists each table, and
-[`02-ports.ts`](../../docs/design/boxxy/sketches/02-ports.ts) gives the shape of the port.
+The [v1 tables migration](./src/migrations/v1-tables-migration.ts) creates each table, and the store
+section of [`02-types.ts`](../../docs/design/boxxy/sketches/v1/core/02-types.ts) gives the port, the
+seat take and the seat sync.
