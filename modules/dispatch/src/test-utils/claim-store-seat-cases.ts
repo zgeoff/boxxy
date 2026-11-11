@@ -162,7 +162,7 @@ export const claimStoreSeatCases: readonly ClaimStoreCase[] = [
           overCap: seats
             .filter((seat) => seat.limit === 'builds')
             .map((seat) => seat.overCap)
-            .toSorted(),
+            .toSorted((left, right) => Number(left) - Number(right)),
         };
       });
 
