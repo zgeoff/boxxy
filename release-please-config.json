@@ -14,6 +14,7 @@
       "type": "linked-versions",
       "groupName": "boxxy",
       "components": [
+        "@boxxy/caller-proof-imp",
         "@boxxy/cli",
         "@boxxy/closeout",
         "@boxxy/content-hash",
@@ -69,6 +70,10 @@
     },
     "adapters/forge-github": {
       "component": "@boxxy/forge-github",
+      "initial-version": "0.1.0"
+    },
+    "adapters/caller-proof-imp": {
+      "component": "@boxxy/caller-proof-imp",
       "initial-version": "0.1.0"
     },
     "libs/contract": {

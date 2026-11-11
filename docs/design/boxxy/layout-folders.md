@@ -167,6 +167,10 @@ adapters/forge-github/src       @boxxy/forge-github
   github-forge-error
   test-utils/     create-fake-github-fetch
 
+adapters/caller-proof-imp/src   @boxxy/caller-proof-imp
+  index  types  imp-identity-caller-proof
+  test-utils/     create-test-issuer
+
 adapters/worker-atc/src         @boxxy/worker-atc
   index  types  create-atc-worker  to-session-reading  parse-atc-error
   is-capacity-refusal  find-caller-identity  is-folder-trusted

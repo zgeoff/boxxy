@@ -57,6 +57,7 @@ Each row names the test that settles it, where one is known.
 | That an input of unknown type, a custom output and a discriminated union each give a usable MCP tool schema. | List the tools and read the schemas. |
 | That the CLI's HTTP client works through the broker: `HTTPS_PROXY`, the broker's CA, HTTP/1.1. | One CLI call from an imp. |
 | That Claude Code can be given the session MCP endpoint in a session that atc starts. The CLI is the path a prompt names. | Start one session with the endpoint set. |
+| The form of the audience in the broker's identity token: the bare made-up host, or an origin with its scheme. The verifier compares it with the configured audience as an exact string. | Decode one token that the broker adds to a call from an imp. |
 
 ### The outbox
 
@@ -101,7 +102,7 @@ Each row names the test that settles it, where one is known.
 | A delivery module in the GitHub plug-in that gives the merge, release and deploy times of a pull request | pepys | the stage-time query |
 | The telemetry plug-in, with `origin_issuer` and `origin_subject` on each row | pepys | the cost query |
 | An export of the ingest receive route's handler from `@pepys/kit` | pepys | the sink contract run against real ingest |
-| The imp identity verifier (`@impz/client/identity`: `verifyImpIdentity`, `checkSessionImp`, `loadIdentityIssuers`), and a broker that signs each call | impz | the proven caller |
+| A broker that signs each call with the identity token. The verifier is `@impz/client` 6.12.0, which `@boxxy/caller-proof-imp` uses. | impz | the proven caller |
 | A session that reports its VM host: an optional `host: { name, id?, issuer? }` on the session descriptor of `session.get`, `session.spawn` and `session.list`, with no `host` key for a session with no VM host, and the same `host` for every session on one machine | atc | the caller on the attempt row |
 | A broker rule for the boxxy host, one trust document per broker host, and the worker token | the cloud repo | the worker path |
 | The boxxy CLI and the hook plug-in in the agent image, and `BOXXY_URL` in an atc auth profile | the cloud repo | every session call |

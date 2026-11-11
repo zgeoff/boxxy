@@ -688,7 +688,7 @@ declare function toName(path: readonly string[]): keyof typeof access; // ['item
 //
 //      The port (apps/server/src/caller-proof.ts, declared at the end of this file) and its
 //      adapters:
-//        `impIdentityCallerProof({ issuers, audience })`  v1. Reads the `Imp-Identity` header
+//        `impIdentityCallerProof({ issuers, audience, clock })`  v1. Reads the `Imp-Identity` header
 //             and verifies the token with `verifyImpIdentity`: the trust documents, the
 //             audience `boxxy.imp.example`, the life of 60 seconds (checked as 55 s plus 5 s
 //             of leeway), the retire rules (section F). `issuer` is the token's `iss`; `subject` is its `sub`.
@@ -718,9 +718,8 @@ declare function toName(path: readonly string[]): keyof typeof access; // ['item
 // A review attempt is covered as every other attempt: the review session runs in its own imp.
 //
 // Assumed: three things that v1 depends on for this rule, and does not have yet:
-//   - the impz identity build (its change is open in impz): the broker strips and signs
-//     `Imp-Identity`, `impz identity jwks` gives the trust document, and the package
-//     `@impz/client` gives the verifier (section F);
+//   - the impz broker that strips and signs `Imp-Identity`, and `impz identity jwks`, which
+//     gives the trust document. The verifier is published: `@impz/client` 6.12.0 (section F);
 //   - one atc change: a session reports its imp ID and its host's issuer (`host: { name, id,
 //     issuer }`), which is the caller identity of the session;
 //   - the broker rule of `boxxy.imp.example` has `identity: true`, and the server's
@@ -756,8 +755,8 @@ declare function toName(path: readonly string[]): keyof typeof access; // ['item
 //     `@impz/client/identity`, exports `verifyImpIdentity`, `checkSessionImp` and
 //     `loadIdentityIssuers` (one trust document per issuer). The adapter
 //     `impIdentityCallerProof` imports from that entry. The format of a trust document and the
-//     retire rules of a signing key are that package's. This sketch names the type of a trust
-//     document `IdentityTrustDocument` and does not declare it; take the type from that entry.
+//     retire rules of a signing key are that package's. The adapter takes each trust document
+//     as parsed JSON and checks it with `loadIdentityIssuers`, so no other package names its type.
 //   - Not decided: the name of the configuration value of boxxy that holds the folders of the
 //     trust documents.
 
@@ -766,7 +765,16 @@ declare function toName(path: readonly string[]): keyof typeof access; // ['item
 export interface CallerProof {
   prove: (request: Request) => Promise<CallerIdentity | null>;
 }
-export declare function impIdentityCallerProof(options: { issuers: readonly IdentityTrustDocument[]; audience: string }): CallerProof;
+export declare function impIdentityCallerProof(options: { issuers: readonly unknown[]; audience: string; clock: Clock }): CallerProof;
+// Built: adapters/caller-proof-imp (`@boxxy/caller-proof-imp`). `issuers` holds the trust
+// documents as parsed JSON, so no package but the adapter names `IdentityTrustDocument`; the app
+// reads the files of `trustedIssuers.folders`. The factory checks them with `loadIdentityIssuers`
+// and throws on a bad document or two documents of one issuer, so the server does not start. With
+// no document or an empty audience, `prove` answers null for every request. `prove` reads the
+// header `imp-identity` (a compact JWT, no scheme), passes `clock.now()` in whole seconds, and
+// maps `VerifiedImp` to `{ issuer: issuer, subject: id }`; the imp name is never the subject.
+// `checkSessionImp` is not called: the server's `findSessionByCaller` and the core's attempt
+// check compare issuer and subject already (v1-api-and-auth.md, "The proven caller").
 export declare function createFakeCallerProof(): CallerProof & { setCaller: (caller: CallerIdentity | null) => void };
 export declare const noCallerProof: CallerProof;
 

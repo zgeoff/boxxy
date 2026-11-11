@@ -28,6 +28,7 @@ boxxy/
 │   ├── worker-atc/              spawns attempts through atc, reads back their session ids
 │   ├── notifier-atc/            sends a hold notice as an atc message
 │   ├── forge-github/            PR and commit links, later the train's merges
+│   ├── caller-proof-imp/        proves a session's caller from the broker's identity token
 │   └── capacity-<provider>/   (slice 2) one per capacity source
 ├── libs/                        shared types, schemas and pure helpers; no I/O
 │   ├── model/                   every type 2+ packages share, the fact catalog, schemas, derived state
@@ -94,6 +95,7 @@ Each outside system has one package that may talk to it:
 | -------------- | ----------------------- | --------------------------------------------------------------------- |
 | the store      | `adapters/store-sqlite` | only it imports `bun:sqlite`, `kysely` or `@zgeoff/kysely-bun-sqlite` |
 | atc            | `adapters/worker-atc`   | only it imports `@atcx/contract`                                      |
+| imp identity   | `adapters/caller-proof-imp` | only it imports `@impz/client` or `@impz/client/identity`         |
 | GitHub         | `adapters/forge-github` | only an adapter or a package calls `fetch`                            |
 | pepys          | `packages/pepys`        | only it imports `@pepys/kit` or `@pepys/testing`; no module and no lib imports `@boxxy/pepys` |
 

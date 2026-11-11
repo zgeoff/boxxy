@@ -28,6 +28,7 @@
           "dispatch": ["modules/dispatch/**"],
           "store-sqlite": ["adapters/store-sqlite/**"],
           "worker-atc": ["adapters/worker-atc/**"],
+          "caller-proof-imp": ["adapters/caller-proof-imp/**"],
           "pepys-package": ["packages/pepys/**"]
         },
         "edges": [
@@ -50,6 +51,12 @@
             "modules": ["@atcx/contract"],
             "allow": ["worker-atc"],
             "reason": "only adapters/worker-atc talks to atc; use its WorkerKind"
+          },
+          {
+            "name": "imp-identity",
+            "modules": ["@impz/client", "@impz/client/identity"],
+            "allow": ["caller-proof-imp"],
+            "reason": "only adapters/caller-proof-imp verifies the imp identity token; take its CallerProof"
           },
           {
             "name": "pepys-kit",

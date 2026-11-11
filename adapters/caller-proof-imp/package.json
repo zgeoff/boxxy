@@ -1,0 +1,44 @@
+{
+  "name": "@boxxy/caller-proof-imp",
+  "version": "0.1.0",
+  "description": "boxxy's caller proof port on the broker's identity token",
+  "homepage": "https://github.com/zgeoff/boxxy/tree/main/adapters/caller-proof-imp#readme",
+  "bugs": "https://github.com/zgeoff/boxxy/issues",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zgeoff/boxxy.git",
+    "directory": "adapters/caller-proof-imp"
+  },
+  "files": [
+    "src",
+    "!src/**/*.test.ts",
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsrs -p tsconfig.build.json",
+    "typecheck": "tsrs --noEmit"
+  },
+  "dependencies": {
+    "@boxxy/model": "workspace:*",
+    "@impz/client": "catalog:"
+  },
+  "devDependencies": {
+    "@boxxy/dispatch": "workspace:*",
+    "tiny-invariant": "catalog:"
+  },
+  "engines": {
+    "bun": ">=1.3",
+    "node": ">=24"
+  }
+}
