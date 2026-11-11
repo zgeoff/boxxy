@@ -58,6 +58,20 @@ Read the files in this order.
 | `08-capacity.ts` | none | capacity sources, the router, the pacing gate |
 | `09-merge-train.ts` | none | the merge gate and the merge train |
 
+## v1
+
+The folder [`v1/`](./v1/) holds the sketches of [v1](../v1.md): `core/`, `edge/` and
+`pepys-package/`. They show shapes, tables and call sites, as the files above do, and they differ in
+three ways:
+
+- They are not compiled. The typecheck in the next section does not read them, and no lint, format
+  or dead-code check does.
+- A comment in them states a rule and its reason. Where a v1 sketch and a v1 design doc differ, the
+  sketch stands. Fix the doc in the same commit.
+- Where a v1 sketch and a file above differ, the v1 sketch stands.
+
+[v1](../v1.md#the-sketches-and-which-one-stands) says which v1 folder owns each subject.
+
 ## Typecheck
 
 The folder typechecks on its own, with no dependencies. `Schema` and `z` in `01-registries.ts`
