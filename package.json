@@ -16,6 +16,7 @@
       "packages/*"
     ],
     "catalog": {
+      "@atcx/contract": "7.12.1",
       "@commitlint/cli": "21.2.4",
       "@faker-js/faker": "10.6.0",
       "@maschwenk/tsrslint": "0.1.6",

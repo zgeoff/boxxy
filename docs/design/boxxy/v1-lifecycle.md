@@ -171,3 +171,33 @@ Section F of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the tables for 
 - **The claim loop has two more guards.** No item is claimed twice in one tick, and an error in the loop ends the loop and not the tick.
 - **The usage limit.** boxxy learns of the limit from the reading: the worker reports the time at which the account's limit resets. A running attempt with that reading moves to `closing` and settles as failed with `usage-limit`. Its pool backs off until the reset time, for 24 hours at most. When atc gives no reset time, the worker adapter reports the time it saw the limit, and a reset time that is not in the future holds the pool for the whole 24 hours. The reading decides, because the runner reads every live session on every tick. A session at the limit sends no close-out, and telemetry reaches boxxy only through pepys. What atc reports for such a session is [not checked](./v1-open.md#the-lifecycle).
 - **Trusted folder.** The atc worker adapter checks, before each spawn, that the agent trusts the worker folder. It refuses the spawn otherwise, because a session in an untrusted folder waits at a dialog and runs no turn.
+
+## The atc worker
+
+`@boxxy/worker-atc` implements the worker port on atc's `session.*` calls, through a client that the app builds and passes to `createAtcWorker`. Every kill it sends is stop-only, because atc forgets a session that a plain kill finds already exited.
+
+| Port method | atc calls |
+| --- | --- |
+| `start` | the trusted-folder check, then `spawn` with the target, folder, name, prompt, agent, model, effort, and the attempt ID as the idempotency key |
+| `reconcile` | `get`; for an attempt with no atc session, first `list`, to find the latest session with the attempt's spawn name |
+| `suspend` | `get`, then `kill` unless the session shows activity after the idle time |
+| `resume` | `get`, then `adopt` unless the agent process runs, then `get` |
+| `stop` | `kill` |
+| `forget` | `forget` with `refuseLive`; a target that destroys its hosts answers a confirm token, and a second `forget` sends it |
+| `resumeKept` | the calls of `resume`, then `message` with the prompt, keyed by the new attempt's ID; a refused message stops the session again, so the claim's fresh spawn does not run beside it |
+
+A reading comes from `get`, by the session's `lifecycle.harness`, because atc lists a process asleep inside its host as `exited` too:
+
+| Harness | Reading |
+| --- | --- |
+| `running` | `running`. The atc state gives the attention: `running` is working, `needs_you` needs input, `done` ended its turn. `lastActivityAt` is the later of atc's `lastActivityAt` (the last trail event) and `lastAttachedAt`. |
+| `suspended` | `suspended`. `asked` is true unless `lifecycle.desired` is `run`, which means the host slept by itself. |
+| `exited` | `ended` |
+
+A `no_such_session` refusal reads as `absent`, and `stop` and `forget` answer it as `absent`. A `reconcile` that gets no answer from atc throws, so that a lost connection never settles a running attempt as `session-lost`.
+
+Every other refusal that carries an atc error code answers `refused`. A call that gets no atc code, or `outcome_unknown` or `idempotency_key_unknown`, answers `unknown`, because atc may have run it. A refused `spawn` or `adopt` has the cause `capacity` when atc answers `host_unavailable` with the problem `ram_budget_exceeded`, impd's code for a host with no memory left for another machine. Every other refusal has the cause `other`.
+
+The trusted folders come from the app's configuration, by worker target: a folder is trusted when it is a listed folder or lies inside one. atc has no call that reads which folders an agent trusts.
+
+The caller identity and the usage limit wait on atc ([needs work outside this repo](./v1-open.md#needs-work-outside-this-repo)). The adapter reads `caller` (`issuer` and `subject`) and `usageLimit` (`seenAt`, and `resetsAt` or null) from the session, and atc reports neither yet, so every session has no caller and no usage limit until atc adds the two fields.

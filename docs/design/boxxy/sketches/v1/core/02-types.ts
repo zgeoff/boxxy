@@ -5,8 +5,9 @@
 // It covers the pipeline engine and the close-outs, the store with named limits and `decide`,
 // and the worker port with the atc adapter. Each section header names the file of the existing
 // boxxy repo that the section changes or adds.
-// This sketch does not show the atc calls of each worker port method, or the effect handlers.
-// The build designs them from the rules stated here and in 03-flow.ts.
+// This sketch does not show the effect handlers. The build designs them from the rules stated
+// here and in 03-flow.ts. The atc calls of each worker port method are built: v1-lifecycle.md,
+// "The atc worker", holds them.
 // `decide` is built: libs/model/src/planning/types.ts holds its types, and planning.md its rules.
 // The seat take and `syncLimits` are built: the store section below says how.
 
@@ -545,6 +546,20 @@ export interface WorkerKind {
 // request is a folder the agent trusts. A session that atc starts in an untrusted folder waits
 // at the trust dialog (atc `needs_you`, no turn runs). When the folder is not trusted, `start`
 // spawns nothing and answers `refused`, cause `other`, reason `worker folder not trusted`.
+//
+// Built: adapters/worker-atc. `createAtcWorker({ client, trustedFolders })`: `client` is
+// `AtcClient`, the seven `session.*` calls of `@atcx/contract` that the adapter makes (spawn, get,
+// list, kill, adopt, forget, message), built and connected by the app; `trustedFolders` maps each
+// worker target to the folders the agent trusts there, from the app's configuration (atc has no
+// call that reads trust). The atc call behind each method and the map of each atc answer to an
+// outcome are in v1-lifecycle.md, "The atc worker". `capacity` is `host_unavailable` with the
+// problem `ram_budget_exceeded` (`isCapacityRefusal`, the one place). The caller comes from
+// `findCallerIdentity`, which reads a `caller` field that atc does not report yet; the usage limit
+// comes from a `usageLimit` field that atc does not report yet (v1-open.md).
+// `StartOutcome`, `SuspendOutcome`, `StopOutcome`, `ForgetOutcome` are in
+// libs/model/src/ports/types.ts. The fake atc client is
+// `@boxxy/worker-atc/test-utils/create-fake-atc-client`; the worker contract runs against the
+// adapter on a local target and on a target that sleeps its hosts.
 
 export type SessionReading =
   // a live agent process. atc's `running`, `needs_you` and `done` all map here: `done` is

@@ -6,7 +6,6 @@ No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc list
 
 | Point | Where |
 | --- | --- |
-| The atc call behind each method of the worker port. | [`02-types.ts`](./sketches/v1/core/02-types.ts) |
 | A query for the measure "attempts lost". No query reads the failure of an attempt. | [`04-facts.ts`](./sketches/v1/core/04-facts.ts), section D |
 | A cause on the `slept` fact. Without one, no report can tell an unattended sleep from an idle sleep. | [`02-queries.ts`](./sketches/v1/pepys-package/02-queries.ts), section D |
 
@@ -38,12 +37,14 @@ Each row names the test that settles it, where one is known.
 
 | Point | The test |
 | --- | --- |
-| That an owner's attach moves atc's last-attached time for a stopped session, and that atc flags a session as waiting again after an attach while the prompt is still open. | Attach once to a scratch session, then read the session. |
-| Whether atc records a trail event during one long tool call. Without one, the quiet rule puts a working attended session to sleep. | Run one tool call longer than the quiet time. |
-| Whether the owner's typing in an attached session moves any atc time. | The same attach. |
-| Whether an agent-mode session ever ends a turn on purpose before its close-out, such as to wait for a background task. boxxy closes such a session as `closeout-missing`. | Watch the first live attempts. |
-| Which error atc gives when the worker target has no free machine. The worker adapter must map it to the cause `capacity`. | Fill the target, then spawn. |
-| What atc reports for a session that hit the account's usage limit. The worker adapter must map it to the reading's `usageLimitResetsAt`. | Run one session to the limit, then read it. |
+| That an owner's attach moves atc's last-attached time for a stopped session, and that atc flags a session as waiting again after an attach while the prompt is still open. The adapter reads `session.lastAttachedAt` and `session.state` (`needs_you`) of `session.get`. | Attach once to a scratch session, then read the session. |
+| Whether atc records a trail event during one long tool call. Without one, the quiet rule puts a working attended session to sleep. The adapter reads `lastActivityAt` of `session.get`. | Run one tool call longer than the quiet time. |
+| Whether the owner's typing in an attached session moves any atc time: `lastActivityAt` or `session.lastAttachedAt` of `session.get`. | The same attach. |
+| Whether an agent-mode session ever ends a turn on purpose before its close-out, such as to wait for a background task. boxxy closes such a session as `closeout-missing`. The adapter reads the turn end from `session.state` `done` of `session.get`. | Watch the first live attempts. |
+| Which error atc gives when the worker target has no free machine. The adapter's `isCapacityRefusal` maps `host_unavailable` with `data.problem` `ram_budget_exceeded` to the cause `capacity`. atc's imp provider source wraps impd's `RAM_BUDGET_EXCEEDED` that way; no live run showed it. | Fill the target, then spawn. |
+| What atc reports for a session that hit the account's usage limit. atc reports nothing today; the adapter reads `session.usageLimit` (`seenAt`, `resetsAt`) of `session.get`, which atc must add. | Run one session to the limit, then read it. |
+| Whether a rework prompt sent with `session.message` lets the agent push. Claude Code shows a relayed message as one a plug-in sent, and its auto-mode classifier reads only the owner's prompts. | The forced rework round of the live proof. |
+| That an attempt's spawn name stays the session's name until the session appears in `session.list`. The agent's own `/rename` replaces it. | Spawn, drop the answer, then list. |
 
 ### The API
 
@@ -99,6 +100,7 @@ Each row names the test that settles it, where one is known.
 | The telemetry plug-in, with `origin_issuer` and `origin_subject` on each row | pepys | the cost query |
 | An export of the ingest receive route's handler from `@pepys/kit` | pepys | the sink contract run against real ingest |
 | The imp identity verifier (`@impz/client/identity`: `verifyImpIdentity`, `checkSessionImp`, `loadIdentityIssuers`), and a broker that signs each call | impz | the proven caller |
-| A session that reports its caller identity | atc | the caller on the attempt row |
+| A session that reports its caller identity: `caller: { issuer, subject } \| null` on the session descriptor of `session.get`, `session.spawn` and `session.list`, equal to the issuer and subject of the identity token that the broker signs for each call from the session's host | atc | the caller on the attempt row |
+| A session that reports the usage limit: `usageLimit: { seenAt, resetsAt } \| null` on the session descriptor, in milliseconds, with `resetsAt` null when the agent showed no reset time | atc | the usage-limit backoff |
 | A broker rule for the boxxy host, one trust document per broker host, and the worker token | the cloud repo | the worker path |
 | The boxxy CLI and the hook plug-in in the agent image, and `BOXXY_URL` in an atc auth profile | the cloud repo | every session call |

@@ -1,0 +1,46 @@
+{
+  "name": "@boxxy/worker-atc",
+  "version": "0.1.0",
+  "description": "boxxy's worker port on atc: starts, reads, sleeps, wakes, stops and forgets agent sessions",
+  "homepage": "https://github.com/zgeoff/boxxy/tree/main/adapters/worker-atc#readme",
+  "bugs": "https://github.com/zgeoff/boxxy/issues",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zgeoff/boxxy.git",
+    "directory": "adapters/worker-atc"
+  },
+  "files": [
+    "src",
+    "!src/**/*.test.ts",
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    },
+    "./test-utils/*": "./src/test-utils/*.ts"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsrs -p tsconfig.build.json",
+    "typecheck": "tsrs --noEmit"
+  },
+  "dependencies": {
+    "@atcx/contract": "catalog:",
+    "@boxxy/model": "workspace:*",
+    "ts-pattern": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@boxxy/dispatch": "workspace:*"
+  },
+  "engines": {
+    "bun": ">=1.3",
+    "node": ">=24"
+  }
+}

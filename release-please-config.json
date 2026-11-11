@@ -34,6 +34,10 @@
       "component": "@boxxy/store-sqlite",
       "initial-version": "0.1.0"
     },
+    "adapters/worker-atc": {
+      "component": "@boxxy/worker-atc",
+      "initial-version": "0.1.0"
+    },
     "libs/content-hash": {
       "component": "@boxxy/content-hash",
       "initial-version": "0.1.0"

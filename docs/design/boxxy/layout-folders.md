@@ -159,7 +159,9 @@ adapters/notifier-atc/src       @boxxy/notifier-atc
   index  create-atc-notifier    sends a hold notice as an atc message to one named session
 
 adapters/worker-atc/src         @boxxy/worker-atc
-  index  create-atc-worker  to-session-reading
+  index  types  create-atc-worker  to-session-reading  parse-atc-error
+  is-capacity-refusal  find-caller-identity  is-folder-trusted
+  test-utils/     create-fake-atc-client  build-mock-atc-session-read
 
 packages/pepys/src              @boxxy/pepys
   index  build-boxxy-plugin     the `.` entry: the plug-in, given the GitHub and telemetry consumers
