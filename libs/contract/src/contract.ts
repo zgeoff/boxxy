@@ -239,7 +239,7 @@ const recordPullRequestOutput = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('retry') }),
   z.object({
     kind: z.literal('refused'),
-    reason: z.enum(['no-attempt', 'not-current', 'not-a-pull-request-url']),
+    reason: z.enum(['no-attempt', 'not-current', 'not-a-pull-request-url', 'linked-elsewhere']),
   }),
 ]);
 
