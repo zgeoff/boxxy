@@ -138,8 +138,9 @@ export type ClosingCause =
 // It does NOT count against `maxAttempts`.
 // `skill-missing` and `stalled`: both count against `maxAttempts`.
 // `usage-limit`: the session hit the account's usage limit. It does not count against
-// `maxAttempts`, like `no-capacity`, and the pool backs off until the limit resets, or for
-// `timeouts.usageLimitBackoffHours` when the reading gives no reset time. The reading reports
+// `maxAttempts`, like `no-capacity`, and the pool backs off until the limit resets, for
+// `timeouts.usageLimitBackoffHours` at most. A reset time that is not in the future means the
+// reset is unknown, and the pool backs off for the whole `usageLimitBackoffHours`. The reading reports
 // the limit (`usageLimitResetsAt` on a running `SessionReading`), and the reconcile table closes
 // the attempt with the cause `usage-limit` (03-flow.ts, section B, note 10).
 export type ForcedFailure =
@@ -786,7 +787,7 @@ export type ReadingAction =
   | { readonly kind: 'wake-over-cap' }
   | { readonly kind: 'resume' } // gives up with `resume-lost` after `timeouts.resumeLostMinutes`
   | { readonly kind: 'close'; readonly cause: 'timed-out'; readonly afterMinutes: Minutes }
-  | { readonly kind: 'close'; readonly cause: 'usage-limit'; readonly resetsAt: Instant | null }
+  | { readonly kind: 'close'; readonly cause: 'usage-limit'; readonly resetsAt: Instant }
   | { readonly kind: 'close'; readonly cause: 'turn-ended' | 'stalled' }
   | { readonly kind: 'stop' }
   | { readonly kind: 'settle'; readonly forced: ForcedFailure | null; readonly sessionStopped: boolean };
@@ -819,7 +820,7 @@ export interface DispatchTimeouts {
   readonly stallMinutes: Minutes; // 30. Agent mode: a session with no activity for this long is stopped
   readonly keptSessionHours: number; // 24. A kept session is forgotten this long after `keptAt`
   readonly failedSessionHours: number; // 24. A failed attempt's stopped session is forgotten after this
-  readonly usageLimitBackoffHours: number; // 24: how long a pool waits after `usage-limit` when the reading gives no reset time
+  readonly usageLimitBackoffHours: number; // 24: the most a pool waits after `usage-limit`, and the wait when the reset time is not in the future
   // 24: how long the runner keeps sending `stop` to a stray session. A stray attempt with no
   // atc session id is looked up by its spawn name, `boxxy/<attempt_id>`, for this long.
   readonly strayHours: number;

@@ -283,7 +283,8 @@ export type SessionReading =
       // the last time the owner attached to the session
       readonly lastOwnerAt: Instant;
 
-      // set when the session stopped at the account's usage limit: when the limit resets
+      // set when the session stopped at the account's usage limit: when the limit resets, or the
+      // time the limit was seen when the reset time is unknown
       readonly usageLimitResetsAt: Instant | null;
     }
   | {

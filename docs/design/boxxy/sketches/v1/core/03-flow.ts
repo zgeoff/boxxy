@@ -207,8 +207,10 @@ export function buildAttemptChange(input: { attempt: AttemptRow | null; event: A
 //       close (usage-limit), in any mode, before every other bound: the session can do no more
 //       work. The attempt moves to `closing` (`usage-limited`), the runner stops the session,
 //       and it settles as `failed`, `usage-limit`, which does not count against
-//       `maxAttempts`. `actOnReading` holds the attempt's pool back until that time, or
-//       `timeouts.usageLimitBackoffHours` (24) when the reading has none. The reading decides
+//       `maxAttempts`. `actOnReading` holds the attempt's pool back until that time, for
+//       `timeouts.usageLimitBackoffHours` (24) at most. The adapter sends the time it saw the
+//       limit when atc gives no reset time, and a time that is not in the future holds the pool
+//       for the whole 24 hours. The reading decides
 //       because the runner reads every live session on every tick; a session at the limit sends
 //       no close-out, and telemetry reaches boxxy only through pepys. Not checked: what atc
 //       reports for a session that hit the limit (v1-open.md).
@@ -810,8 +812,8 @@ export function findPosition(input: { pipeline: Pipeline | null; attempts: reado
 //     ends the loop, not the tick.
 //   - An attempt that hit the account's usage limit settles as `failed`, forced `usage-limit`.
 //     `findPosition` skips it, as `no-capacity`. The pool backs off in the runner's memory
-//     until the reading's reset time, or for `timeouts.usageLimitBackoffHours` (24) when the
-//     reading gives none. The reading detects the limit, and `actOnReading` forces the failure
+//     until the reading's reset time, for `timeouts.usageLimitBackoffHours` (24) at most, and
+//     for the whole 24 hours when the reset time is not in the future. The reading detects the limit, and `actOnReading` forces the failure
 //     (section B, note 10).
 //   - The backoff. `claimNext` takes the pools in backoff as an input and gives no START pick
 //     and no WAKE pick in them until the time is over. Without it the claim loop of one tick

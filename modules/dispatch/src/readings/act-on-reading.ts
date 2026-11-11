@@ -147,10 +147,10 @@ function runAction(input: ActOnReadingInput, action: ReadingAction, base: MoveBa
     .with({ kind: 'close', cause: 'usage-limit' }, async (close) => {
       const latest = input.now + timeouts.usageLimitBackoffHours * hourMs;
 
-      input.backoff.hold(
-        input.attempt.pool,
-        brandSchemas.instant.parse(Math.min(close.resetsAt, latest)),
-      );
+      // the worker adapter sends the time it saw the limit when atc gives no reset time
+      const until = close.resetsAt > input.now ? Math.min(close.resetsAt, latest) : latest;
+
+      input.backoff.hold(input.attempt.pool, brandSchemas.instant.parse(until));
 
       await writeMove({ kind: 'usage-limited' });
     })

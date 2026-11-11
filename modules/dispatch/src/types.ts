@@ -23,7 +23,8 @@ export interface DispatchTimeouts {
   readonly keptSessionHours: number;
   readonly failedSessionHours: number;
 
-  // the most a pool waits after `usage-limit`, however far away the reading's reset time is
+  // the most a pool waits after `usage-limit`, and the wait when the reading's reset time is not
+  // in the future
   readonly usageLimitBackoffHours: number;
 
   // how long the runner keeps stopping a stray session

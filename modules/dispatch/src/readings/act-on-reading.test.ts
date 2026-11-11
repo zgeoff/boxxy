@@ -70,6 +70,7 @@ async function setupTest() {
 test.each([
   ['1 hour away, until the reset', 60, 60],
   ['48 hours away, for 24 hours at most', 48 * 60, 24 * 60],
+  ['that is unknown, for 24 hours', 0, 24 * 60],
 ])(
   'it closes a session at the usage limit and holds its pool back, with a reset %s',
   async (_title, resetMinutes, heldMinutes) => {
