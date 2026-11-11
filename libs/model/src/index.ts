@@ -7,6 +7,7 @@ export {
   type TakenSlot,
 } from './dispatch/build-applied-change.ts';
 
+export { advance } from './pipeline/advance.ts';
 export { attemptRowSchema } from './rows/attempt-row-schema.ts';
 export { attemptSessionRowSchema } from './rows/attempt-session-row-schema.ts';
 export { buildCloseOutSchema } from './closeouts/build-close-out-schema.ts';
@@ -24,6 +25,7 @@ export { defineSignal } from './planning/define-signal.ts';
 export { deriveItemState } from './items/derive-item-state.ts';
 export { designCloseOutSchema } from './closeouts/design-close-out-schema.ts';
 export { evidenceRowSchema } from './rows/evidence-row-schema.ts';
+export { findPosition } from './pipeline/find-position.ts';
 export { findSlotTake, type SlotTake } from './dispatch/find-slot-take.ts';
 export { formatKeyPath } from './utils/format-key-path.ts';
 export { frictionSchema } from './closeouts/friction-schema.ts';

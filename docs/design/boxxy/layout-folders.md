@@ -30,7 +30,8 @@ planning/         the planning types and the definers of its plug-ins
 rules/            the loaded rules, the plug-in registries, pipelines and phases
                   types  define-phase
 pipeline/         the engine that moves an item through its pipeline
-                  types (Settled, Position, RetryLever)   v1: advance  find-position
+                  types (Settled, Position, RetryLever)  advance  find-position
+                  find-step  count-trailing  merge-by-time
                   constants (the engine's outcomes and hold reasons)
 dispatch/         claims, settlement and the parts of a store change
                   types  build-applied-change  find-slot-take
@@ -46,7 +47,7 @@ reports/          the output schemas of the pepys queries
                   cost-to-land-schema  stage-time-schema  types  constants (the step and basis lists)
 slice-one/        the slice 1 shapes that the store, planning and the close-out parser still use;
                   each slice that moves a package to v1 deletes what it no longer needs
-                  types  slice-one-fact-schemas  slice-one-row-schemas
+                  types  slice-one-fact-schemas  slice-one-row-schemas  derive-slice-one-item-state
 utils/            format-key-path  to-json-value
 test-utils/       the factories    v1: create-fake-pepys-reader  pepys-reader-contract
                   build-mock-work-fact  build-mock-cost-to-land  create-fake-notifier

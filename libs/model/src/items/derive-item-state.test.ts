@@ -1,346 +1,270 @@
 import { expect, test } from 'bun:test';
+import type { Position } from '../pipeline/types.ts';
 import { brandSchemas } from '../rows/brand-schemas.ts';
-import { buildMockAttemptRow } from '../test-utils/build-mock-attempt-row.ts';
-import { buildMockItemRow } from '../test-utils/build-mock-item-row.ts';
-import { buildMockItemRows } from '../test-utils/build-mock-item-rows.ts';
 import { buildMockLeaseRow } from '../test-utils/build-mock-lease-row.ts';
-import { buildMockLeverRow } from '../test-utils/build-mock-lever-row.ts';
-import { buildMockPullRequestRow } from '../test-utils/build-mock-pull-request-row.ts';
 import { buildMockRelationRow } from '../test-utils/build-mock-relation-row.ts';
+import { buildMockV1AttemptRow } from '../test-utils/build-mock-v1-attempt-row.ts';
+import { buildMockV1ItemView } from '../test-utils/build-mock-v1-item-view.ts';
+import { buildMockV1PullRequestRow } from '../test-utils/build-mock-v1-pull-request-row.ts';
 import { deriveItemState } from './derive-item-state.ts';
 
-test('it derives archived for a closed item, ahead of every later row', () => {
-  const item = buildMockItemRow({ closedAt: brandSchemas.instant.parse(9000), acceptance: [] });
-  const succeeded = buildMockAttemptRow({ item: item.id, state: 'succeeded' });
-  const blocker = buildMockItemRow();
+function setupTest() {
+  const phases = new Map([
+    [brandSchemas.phaseName.parse('design'), { needsAcceptance: false }],
+    [brandSchemas.phaseName.parse('build'), { needsAcceptance: true }],
+  ]);
 
-  const rows = buildMockItemRows({
-    attempts: [succeeded],
-    pullRequests: [buildMockPullRequestRow({ attempt: succeeded.id, state: 'merged' })],
+  const buildPosition: Position = {
+    kind: 'phase',
+    phase: brandSchemas.phaseName.parse('build'),
+    round: 1,
+  };
+
+  return {
+    buildPosition,
+    endPosition: { kind: 'end', reason: 'reviewed' } satisfies Position,
+    base: {
+      liveLease: null,
+      phases,
+      attempts: [],
+      pullRequests: [],
+      relations: [],
+      blockerStates: new Map(),
+    },
+  };
+}
+
+test('it derives archived for a closed item, ahead of a live lease', () => {
+  const ctx = setupTest();
+  const item = buildMockV1ItemView({ closedAt: brandSchemas.instant.parse(9000) });
+
+  const state = deriveItemState({
+    ...ctx.base,
+    item,
+    position: ctx.buildPosition,
     liveLease: buildMockLeaseRow({ item: item.id }),
-    relations: [buildMockRelationRow({ source: blocker.id, target: item.id })],
-    blockerStates: new Map([[blocker.id, 'ready']]),
   });
 
-  expect(deriveItemState(item, rows)).toStrictEqual({ state: 'archived' });
+  expect(state).toStrictEqual({ state: 'archived' });
 });
 
-test('it derives done when a pull request of a succeeded attempt merged, ahead of every later row', () => {
-  const item = buildMockItemRow({ acceptance: [] });
-  const merged = buildMockAttemptRow({ item: item.id, state: 'succeeded' });
-  const open = buildMockAttemptRow({ item: item.id, state: 'succeeded' });
-  const unlinked = buildMockAttemptRow({ item: item.id, state: 'succeeded' });
-  const blocker = buildMockItemRow();
+test('it derives running for an item with a live lease, ahead of a hold', () => {
+  const ctx = setupTest();
+  const item = buildMockV1ItemView();
 
-  const rows = buildMockItemRows({
-    attempts: [
-      merged,
-      open,
-      unlinked,
-      buildMockAttemptRow({ item: item.id, state: 'failed' }),
-      buildMockAttemptRow({ item: item.id, state: 'failed' }),
-    ],
+  const state = deriveItemState({
+    ...ctx.base,
+    item,
+    position: {
+      kind: 'hold',
+      reason: 'attempts used up',
+      // oxlint-disable-next-line unicorn/no-thenable -- `then` names the phase a hold resumes; the object is never awaited
+      then: brandSchemas.phaseName.parse('build'),
+      round: 1,
+    },
+    liveLease: buildMockLeaseRow({ item: item.id }),
+  });
+
+  expect(state).toStrictEqual({ state: 'running' });
+});
+
+test.each(['attempts used up', 'rounds used up', 'outcome not in rules'] as const)(
+  'it derives waiting with the engine hold %s',
+  (reason) => {
+    const ctx = setupTest();
+
+    const state = deriveItemState({
+      ...ctx.base,
+      item: buildMockV1ItemView(),
+      // oxlint-disable-next-line unicorn/no-thenable -- `then` names the phase a hold resumes; the object is never awaited
+      position: { kind: 'hold', reason, then: brandSchemas.phaseName.parse('build'), round: 1 },
+    });
+
+    expect(state).toStrictEqual({ state: 'waiting', reason });
+  },
+);
+
+test('it derives waiting with the reason of a hold edge', () => {
+  const ctx = setupTest();
+  const reason = brandSchemas.rulesHoldReason.parse('declined');
+
+  const state = deriveItemState({
+    ...ctx.base,
+    item: buildMockV1ItemView(),
+    // oxlint-disable-next-line unicorn/no-thenable -- `then` names the phase a hold resumes; the object is never awaited
+    position: { kind: 'hold', reason, then: brandSchemas.phaseName.parse('triage'), round: 1 },
+  });
+
+  expect(state).toStrictEqual({ state: 'waiting', reason });
+});
+
+test('it derives done at an end when a pull request of a succeeded build attempt merged', () => {
+  const ctx = setupTest();
+  const item = buildMockV1ItemView();
+  const attempt = buildMockV1AttemptRow({ item: item.id, state: 'succeeded' });
+
+  const state = deriveItemState({
+    ...ctx.base,
+    item,
+    position: ctx.endPosition,
+    attempts: [attempt],
     pullRequests: [
-      buildMockPullRequestRow({ attempt: merged.id, state: 'merged' }),
-      buildMockPullRequestRow({ attempt: open.id, state: 'open' }),
+      buildMockV1PullRequestRow({ attempt: attempt.id, state: 'closed' }),
+      buildMockV1PullRequestRow({ attempt: attempt.id, state: 'merged' }),
     ],
-    liveLease: buildMockLeaseRow({ item: item.id }),
-    relations: [buildMockRelationRow({ source: blocker.id, target: item.id })],
-    blockerStates: new Map([[blocker.id, 'ready']]),
-    maxAttempts: 2,
   });
 
-  expect(deriveItemState(item, rows)).toStrictEqual({ state: 'done' });
+  expect(state).toStrictEqual({ state: 'done' });
 });
 
-test('it derives running for an item with a live lease, ahead of every later row', () => {
-  const item = buildMockItemRow({ acceptance: [] });
-  const open = buildMockAttemptRow({ item: item.id, state: 'succeeded' });
-  const blocker = buildMockItemRow();
+test('it derives waiting on pull request open at an end with an open pull request', () => {
+  const ctx = setupTest();
+  const item = buildMockV1ItemView();
+  const attempt = buildMockV1AttemptRow({ item: item.id, state: 'succeeded' });
 
-  const rows = buildMockItemRows({
-    attempts: [
-      open,
-      buildMockAttemptRow({ item: item.id, state: 'succeeded' }),
-      buildMockAttemptRow({ item: item.id, state: 'failed' }),
-      buildMockAttemptRow({ item: item.id, state: 'failed' }),
-    ],
-    pullRequests: [buildMockPullRequestRow({ attempt: open.id, state: 'open' })],
-    liveLease: buildMockLeaseRow({ item: item.id }),
-    relations: [buildMockRelationRow({ source: blocker.id, target: item.id })],
-    blockerStates: new Map([[blocker.id, 'ready']]),
-    maxAttempts: 2,
+  const state = deriveItemState({
+    ...ctx.base,
+    item,
+    position: ctx.endPosition,
+    attempts: [attempt],
+    pullRequests: [buildMockV1PullRequestRow({ attempt: attempt.id, state: 'open' })],
   });
 
-  expect(deriveItemState(item, rows)).toStrictEqual({ state: 'running' });
+  expect(state).toStrictEqual({ state: 'waiting', reason: 'pull request open' });
 });
 
-test('it derives waiting on pull request open when a succeeded attempt has an open pull request, ahead of every later row', () => {
-  const item = buildMockItemRow({ acceptance: [] });
-  const open = buildMockAttemptRow({ item: item.id, state: 'succeeded' });
-  const blocker = buildMockItemRow();
+test('it derives waiting on pull request closed unmerged when every linked pull request closed unmerged', () => {
+  const ctx = setupTest();
+  const item = buildMockV1ItemView();
+  const attempt = buildMockV1AttemptRow({ item: item.id, state: 'succeeded' });
 
-  const rows = buildMockItemRows({
-    attempts: [
-      open,
-      buildMockAttemptRow({ item: item.id, state: 'succeeded' }),
-      buildMockAttemptRow({ item: item.id, state: 'failed' }),
-      buildMockAttemptRow({ item: item.id, state: 'failed' }),
-    ],
-    pullRequests: [buildMockPullRequestRow({ attempt: open.id, state: 'open' })],
-    relations: [buildMockRelationRow({ source: blocker.id, target: item.id })],
-    blockerStates: new Map([[blocker.id, 'ready']]),
-    maxAttempts: 2,
+  const state = deriveItemState({
+    ...ctx.base,
+    item,
+    position: ctx.endPosition,
+    attempts: [attempt],
+    pullRequests: [buildMockV1PullRequestRow({ attempt: attempt.id, state: 'closed' })],
   });
 
-  expect(deriveItemState(item, rows)).toStrictEqual({
-    state: 'waiting',
-    reason: 'pull request open',
-  });
+  expect(state).toStrictEqual({ state: 'waiting', reason: 'pull request closed unmerged' });
 });
 
-test('it derives waiting on no pull request linked for a succeeded attempt with no pull request, ahead of every later row', () => {
-  const item = buildMockItemRow({ acceptance: [] });
-  const blocker = buildMockItemRow();
+test('it derives waiting on no pull request linked at an end with none', () => {
+  const ctx = setupTest();
 
-  const rows = buildMockItemRows({
-    attempts: [
-      buildMockAttemptRow({ item: item.id, state: 'succeeded' }),
-      buildMockAttemptRow({ item: item.id, state: 'failed' }),
-      buildMockAttemptRow({ item: item.id, state: 'failed' }),
-    ],
-    relations: [buildMockRelationRow({ source: blocker.id, target: item.id })],
-    blockerStates: new Map([[blocker.id, 'ready']]),
-    maxAttempts: 2,
+  const state = deriveItemState({
+    ...ctx.base,
+    item: buildMockV1ItemView(),
+    position: ctx.endPosition,
   });
 
-  expect(deriveItemState(item, rows)).toStrictEqual({
-    state: 'waiting',
-    reason: 'no pull request linked',
-  });
+  expect(state).toStrictEqual({ state: 'waiting', reason: 'no pull request linked' });
 });
 
-test('it derives waiting on attempts used up when the failed attempts reach maxAttempts, ahead of every later row', () => {
-  const item = buildMockItemRow({ acceptance: [] });
-  const blocker = buildMockItemRow();
+test('it ignores a merged pull request of a failed build attempt', () => {
+  const ctx = setupTest();
+  const item = buildMockV1ItemView();
+  const attempt = buildMockV1AttemptRow({ item: item.id, state: 'failed' });
 
-  const rows = buildMockItemRows({
-    attempts: [
-      buildMockAttemptRow({ item: item.id, state: 'failed' }),
-      buildMockAttemptRow({ item: item.id, state: 'failed' }),
-    ],
-    relations: [buildMockRelationRow({ source: blocker.id, target: item.id })],
-    blockerStates: new Map([[blocker.id, 'ready']]),
-    maxAttempts: 2,
+  const state = deriveItemState({
+    ...ctx.base,
+    item,
+    position: ctx.endPosition,
+    attempts: [attempt],
+    pullRequests: [buildMockV1PullRequestRow({ attempt: attempt.id, state: 'merged' })],
   });
 
-  expect(deriveItemState(item, rows)).toStrictEqual({
-    state: 'waiting',
-    reason: 'attempts used up',
-  });
+  expect(state).toStrictEqual({ state: 'waiting', reason: 'no pull request linked' });
 });
 
-test('it derives idea for an item with an empty acceptance list, ahead of blocked', () => {
-  const item = buildMockItemRow({ acceptance: [] });
-  const blocker = buildMockItemRow();
+test('it ignores a merged pull request of a succeeded attempt of another phase', () => {
+  const ctx = setupTest();
+  const item = buildMockV1ItemView();
 
-  const rows = buildMockItemRows({
-    relations: [buildMockRelationRow({ source: blocker.id, target: item.id })],
-    blockerStates: new Map([[blocker.id, 'ready']]),
+  const attempt = buildMockV1AttemptRow({
+    item: item.id,
+    state: 'succeeded',
+    phase: brandSchemas.phaseName.parse('design'),
   });
 
-  expect(deriveItemState(item, rows)).toStrictEqual({ state: 'idea' });
+  const state = deriveItemState({
+    ...ctx.base,
+    item,
+    position: ctx.endPosition,
+    attempts: [attempt],
+    pullRequests: [buildMockV1PullRequestRow({ attempt: attempt.id, state: 'merged' })],
+  });
+
+  expect(state).toStrictEqual({ state: 'waiting', reason: 'no pull request linked' });
+});
+
+test('it derives idea at a phase that needs acceptance when the acceptance list is empty', () => {
+  const ctx = setupTest();
+
+  const state = deriveItemState({
+    ...ctx.base,
+    item: buildMockV1ItemView({ acceptance: [] }),
+    position: ctx.buildPosition,
+  });
+
+  expect(state).toStrictEqual({ state: 'idea' });
+});
+
+test('it derives ready at a phase that needs no acceptance when the acceptance list is empty', () => {
+  const ctx = setupTest();
+
+  const state = deriveItemState({
+    ...ctx.base,
+    item: buildMockV1ItemView({ acceptance: [] }),
+    position: { kind: 'phase', phase: brandSchemas.phaseName.parse('design'), round: 1 },
+  });
+
+  expect(state).toStrictEqual({ state: 'ready' });
 });
 
 test('it derives blocked for the target of a blocks relation whose source is not done', () => {
-  const item = buildMockItemRow();
-  const blocker = buildMockItemRow();
+  const ctx = setupTest();
+  const item = buildMockV1ItemView();
+  const blocker = buildMockV1ItemView();
 
-  const rows = buildMockItemRows({
+  const state = deriveItemState({
+    ...ctx.base,
+    item,
+    position: ctx.buildPosition,
     relations: [buildMockRelationRow({ source: blocker.id, target: item.id })],
     blockerStates: new Map([[blocker.id, 'running']]),
   });
 
-  expect(deriveItemState(item, rows)).toStrictEqual({ state: 'blocked' });
-});
-
-test('it derives ready for an item that no other row matches', () => {
-  const item = buildMockItemRow();
-
-  expect(deriveItemState(item, buildMockItemRows())).toStrictEqual({ state: 'ready' });
-});
-
-test('it derives ready for a waiting item after an item.retry lever', () => {
-  const item = buildMockItemRow();
-
-  const rows = buildMockItemRows({
-    attempts: [
-      buildMockAttemptRow({
-        item: item.id,
-        state: 'failed',
-        endedAt: brandSchemas.instant.parse(1000),
-      }),
-      buildMockAttemptRow({
-        item: item.id,
-        state: 'failed',
-        endedAt: brandSchemas.instant.parse(2000),
-      }),
-    ],
-    levers: [
-      buildMockLeverRow({
-        item: item.id,
-        kind: 'item.retry',
-        at: brandSchemas.instant.parse(3000),
-      }),
-    ],
-    maxAttempts: 2,
-  });
-
-  expect(deriveItemState(item, rows)).toStrictEqual({ state: 'ready' });
-});
-
-test('it derives ready after an item.retry lever for a succeeded attempt with an open pull request', () => {
-  const item = buildMockItemRow();
-
-  const succeeded = buildMockAttemptRow({
-    item: item.id,
-    state: 'succeeded',
-    endedAt: brandSchemas.instant.parse(1000),
-  });
-
-  const rows = buildMockItemRows({
-    attempts: [succeeded],
-    pullRequests: [buildMockPullRequestRow({ attempt: succeeded.id, state: 'open' })],
-    levers: [
-      buildMockLeverRow({
-        item: item.id,
-        kind: 'item.retry',
-        at: brandSchemas.instant.parse(3000),
-      }),
-    ],
-  });
-
-  expect(deriveItemState(item, rows)).toStrictEqual({ state: 'ready' });
-});
-
-test('it derives ready after an item.retry lever for a succeeded attempt with no pull request', () => {
-  const item = buildMockItemRow();
-
-  const rows = buildMockItemRows({
-    attempts: [
-      buildMockAttemptRow({
-        item: item.id,
-        state: 'succeeded',
-        endedAt: brandSchemas.instant.parse(1000),
-      }),
-    ],
-    levers: [
-      buildMockLeverRow({
-        item: item.id,
-        kind: 'item.retry',
-        at: brandSchemas.instant.parse(3000),
-      }),
-    ],
-  });
-
-  expect(deriveItemState(item, rows)).toStrictEqual({ state: 'ready' });
-});
-
-test('it counts only the attempts that ended after the latest of two item.retry levers', () => {
-  const item = buildMockItemRow();
-
-  const rows = buildMockItemRows({
-    attempts: [
-      buildMockAttemptRow({
-        item: item.id,
-        state: 'failed',
-        endedAt: brandSchemas.instant.parse(2000),
-      }),
-    ],
-    levers: [
-      buildMockLeverRow({
-        item: item.id,
-        kind: 'item.retry',
-        at: brandSchemas.instant.parse(1000),
-      }),
-      buildMockLeverRow({
-        item: item.id,
-        kind: 'item.retry',
-        at: brandSchemas.instant.parse(3000),
-      }),
-    ],
-    maxAttempts: 1,
-  });
-
-  expect(deriveItemState(item, rows)).toStrictEqual({ state: 'ready' });
-});
-
-test('it counts a failed attempt that ended after the latest item.retry lever', () => {
-  const item = buildMockItemRow();
-
-  const rows = buildMockItemRows({
-    attempts: [
-      buildMockAttemptRow({
-        item: item.id,
-        state: 'failed',
-        endedAt: brandSchemas.instant.parse(1000),
-      }),
-      buildMockAttemptRow({
-        item: item.id,
-        state: 'failed',
-        endedAt: brandSchemas.instant.parse(4000),
-      }),
-    ],
-    levers: [
-      buildMockLeverRow({
-        item: item.id,
-        kind: 'item.retry',
-        at: brandSchemas.instant.parse(3000),
-      }),
-    ],
-    maxAttempts: 1,
-  });
-
-  expect(deriveItemState(item, rows)).toStrictEqual({
-    state: 'waiting',
-    reason: 'attempts used up',
-  });
-});
-
-test('it derives ready when the only succeeded attempt has a pull request that closed unmerged', () => {
-  const item = buildMockItemRow();
-  const succeeded = buildMockAttemptRow({ item: item.id, state: 'succeeded' });
-
-  const rows = buildMockItemRows({
-    attempts: [succeeded],
-    pullRequests: [buildMockPullRequestRow({ attempt: succeeded.id, state: 'closed' })],
-  });
-
-  expect(deriveItemState(item, rows)).toStrictEqual({ state: 'ready' });
-});
-
-test('it derives ready while the failed attempts stay below maxAttempts', () => {
-  const item = buildMockItemRow();
-
-  const rows = buildMockItemRows({
-    attempts: [buildMockAttemptRow({ item: item.id, state: 'failed' })],
-    maxAttempts: 2,
-  });
-
-  expect(deriveItemState(item, rows)).toStrictEqual({ state: 'ready' });
+  expect(state).toStrictEqual({ state: 'blocked' });
 });
 
 test.each(['done', 'archived'] as const)(
   'it derives ready for the target of a blocks relation whose source is %s',
   (blockerState) => {
-    const item = buildMockItemRow();
-    const blocker = buildMockItemRow();
+    const ctx = setupTest();
+    const item = buildMockV1ItemView();
+    const blocker = buildMockV1ItemView();
 
-    const rows = buildMockItemRows({
+    const state = deriveItemState({
+      ...ctx.base,
+      item,
+      position: ctx.buildPosition,
       relations: [buildMockRelationRow({ source: blocker.id, target: item.id })],
       blockerStates: new Map([[blocker.id, blockerState]]),
     });
 
-    expect(deriveItemState(item, rows)).toStrictEqual({ state: 'ready' });
+    expect(state).toStrictEqual({ state: 'ready' });
   },
 );
+
+test('it derives ready for an item that no other row matches', () => {
+  const ctx = setupTest();
+
+  const state = deriveItemState({
+    ...ctx.base,
+    item: buildMockV1ItemView(),
+    position: ctx.buildPosition,
+  });
+
+  expect(state).toStrictEqual({ state: 'ready' });
+});

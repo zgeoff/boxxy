@@ -772,6 +772,9 @@ export function findPosition(input: { pipeline: Pipeline | null; attempts: reado
 //   question, waits `sleep.afterIdleMinutes`, sleeps, and frees both seats for the next one.
 
 // ── G. Derived item state (libs/model/src/items/derive-item-state.ts) ──────────────────────────
+// The function takes the item, its position, its live lease, the loaded phase kinds (for
+// `needsAcceptance`), its attempts and pull requests, and the live relations with the blockers' states.
+// A pull request counts when it links to a succeeded attempt of the phase `build`.
 // The table reads `position` (section E). First match wins:
 //
 //   archived   `closed_at` is set
@@ -850,6 +853,7 @@ declare function findEdge(rules: LoadedRules, item: ItemView, phase: PhaseName, 
 declare function isHoldEdge(edge: Edge | undefined): boolean; // true for a `{ hold: reason }` edge
 declare function changesItem(effect: Effect): boolean; // true for `close-item`, a relation, `set-kind`, `set-acceptance` and the design mode; false for `record-proposal`
 declare function countTrailing(list: readonly Settled[], test: (settled: Settled) => boolean): number;
+// at equal times a settled attempt comes before a retry lever, so a lever filed at the instant an attempt ended acts on the position that attempt gave
 declare function mergeByTime(attempts: readonly Settled[], retries: readonly RetryLever[]): ({ kind: 'settled'; settled: Settled } | { kind: 'retry'; lever: RetryLever })[];
 declare function readReturnedOutcome(settlement: Settlement & { returned?: string }): string | null;
 declare function tryPlanEffect(effect: Effect, ctx: EffectContext): EffectPlan; // a handler that throws gives `skip`

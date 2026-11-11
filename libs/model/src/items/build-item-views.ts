@@ -1,3 +1,4 @@
+import { deriveSliceOneItemState } from '../slice-one/derive-slice-one-item-state.ts';
 import type {
   SliceOneAttemptRow as AttemptRow,
   SliceOneItemRow as ItemRow,
@@ -17,7 +18,6 @@ import type {
   LeaseRow,
   RelationRow,
 } from '../types.ts';
-import { deriveItemState } from './derive-item-state.ts';
 import { liveLevers } from './live-levers.ts';
 
 export function buildItemViews(
@@ -32,7 +32,7 @@ export function buildItemViews(
   const ownStates = new Map<ItemId, ItemState>(
     rows.items.map((item) => [
       item.id,
-      deriveItemState(
+      deriveSliceOneItemState(
         item,
         buildItemRows(item, groups.get(item.id), maxAttemptsByKind, {
           relations: [],
@@ -50,7 +50,11 @@ export function buildItemViews(
       blockerStates: ownStates,
     });
 
-    return { ...item, derived: deriveItemState(item, itemRows), levers: group?.levers ?? [] };
+    return {
+      ...item,
+      derived: deriveSliceOneItemState(item, itemRows),
+      levers: group?.levers ?? [],
+    };
   });
 }
 
