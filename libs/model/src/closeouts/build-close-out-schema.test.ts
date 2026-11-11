@@ -4,7 +4,7 @@ import { buildCloseOutSchema } from './build-close-out-schema.ts';
 test('it accepts a built close-out with cited evidence, an open item and friction', () => {
   const closeOut = {
     result: { kind: 'built' },
-    criteria: [{ criterion: 'a1', evidence: 'manual:0192f0c5-3c4d-7e5f-a061-7b8c9d0e1f2a' }],
+    criteria: [{ criterion: 'a1', evidence: '0192f0c5-3c4d-7e5f-a061-7b8c9d0e1f2a' }],
     openItems: [
       { kind: 'core.issue', title: 'Retry a failed download', body: 'Downloads fail too' },
     ],

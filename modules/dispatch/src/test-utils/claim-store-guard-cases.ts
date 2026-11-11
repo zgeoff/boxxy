@@ -85,7 +85,7 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
         expected: {
           result: { kind: 'applied', slot: null },
           freeSlots: { [attempt.pool]: 1 },
-          derived: { state: 'waiting', reason: 'no PR linked' },
+          derived: { state: 'waiting', reason: 'no pull request linked' },
         },
       };
     },

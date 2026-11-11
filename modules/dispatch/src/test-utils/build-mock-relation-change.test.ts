@@ -1,18 +1,18 @@
 import { expect, test } from 'bun:test';
 import { buildMockItemRow } from '@boxxy/model/test-utils/build-mock-item-row';
-import { buildMockLinkChange } from './build-mock-link-change.ts';
+import { buildMockRelationChange } from './build-mock-relation-change.ts';
 
-test('it builds a change that adds a live blocks link', () => {
+test('it builds a change that adds a live blocks relation', () => {
   const source = buildMockItemRow().id;
   const target = buildMockItemRow().id;
-  const change: unknown = buildMockLinkChange({ source, target });
+  const change: unknown = buildMockRelationChange({ source, target });
 
   expect(change).toStrictEqual({
     at: 3500,
     writes: [
       {
         op: 'insert',
-        table: 'links',
+        table: 'relations',
         row: {
           source,
           target,
@@ -25,9 +25,9 @@ test('it builds a change that adds a live blocks link', () => {
     ],
     facts: [
       {
-        id: expect.stringMatching(/^manual:/u),
-        type: 'boxxy.link.added',
-        entity: `boxxy:link:${source}:blocks:${target}`,
+        id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-7/u),
+        type: 'boxxy.relation.added',
+        entity: `boxxy:relation:${source}:blocks:${target}`,
         actor: 'boxxy:owner:local',
         payload: { source, target, type: 'blocks' },
       },

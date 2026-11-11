@@ -25,7 +25,7 @@ test('it builds a change that binds an agent session to the attempt', () => {
     ],
     facts: [
       {
-        id: expect.stringMatching(/^manual:/u),
+        id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-7/u),
         type: 'boxxy.attempt.session_bound',
         entity: `boxxy:attempt:${attempt.id}`,
         actor: `boxxy:runner:${attempt.runner}`,

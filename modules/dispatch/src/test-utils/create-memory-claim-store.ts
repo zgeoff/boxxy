@@ -8,11 +8,11 @@ import type {
   ItemSetRows,
   ItemView,
   ItemWithLevers,
-  LinkRow,
   MaxAttemptsByKind,
   OutboxFact,
   PoolName,
   PullRequestRow,
+  RelationRow,
   RowWrite,
   SlotTake,
   StoreChange,
@@ -85,7 +85,7 @@ type MemoryTables = { [T in TableName]: Tables[T][] } & { outbox: OutboxFact[] }
 function buildEmptyTables(): MemoryTables {
   return {
     items: [],
-    links: [],
+    relations: [],
     levers: [],
     attempts: [],
     attempt_sessions: [],
@@ -167,7 +167,7 @@ function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReader {
       return Promise.resolve({
         storeVersion: getTables().outbox.length,
         items: open.map((item) => toItemView(item)),
-        links: sortLinks(getTables().links.filter((link) => link.removedAt === null)),
+        relations: sortRelations(getTables().relations.filter((row) => row.removedAt === null)),
         levers: open
           .flatMap((item) => item.levers)
           .toSorted((first, second) => first.seq - second.seq),
@@ -192,16 +192,16 @@ function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReader {
 
       const attemptIds = new Set(attempts.map((attempt) => attempt.id));
 
-      const links = sortLinks(
-        tables.links.filter(
-          (link) => link.removedAt === null && (link.source === id || link.target === id),
+      const relations = sortRelations(
+        tables.relations.filter(
+          (row) => row.removedAt === null && (row.source === id || row.target === id),
         ),
       );
 
       return Promise.resolve({
         item,
         attempts,
-        links,
+        relations,
         evidence: sortEvidence(tables.evidence.filter((row) => attemptIds.has(row.attempt))),
         pullRequests: sortPullRequests(
           tables.pull_requests.filter((row) => attemptIds.has(row.attempt)),
@@ -241,7 +241,7 @@ function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReader {
           ),
         ),
       ),
-    listSucceededAttemptsWithoutPr: () => {
+    listSucceededAttemptsWithoutPullRequest: () => {
       const tables = getTables();
 
       const linked = new Set(tables.pull_requests.map((row) => row.attempt));
@@ -294,7 +294,7 @@ function toItemSetRows(tables: MemoryTables): ItemSetRows {
     items: tables.items.toSorted(
       (first, second) => first.filedAt - second.filedAt || compareText(first.id, second.id),
     ),
-    links: tables.links.filter((link) => link.removedAt === null),
+    relations: tables.relations.filter((relation) => relation.removedAt === null),
     levers: tables.levers.toSorted((first, second) => first.seq - second.seq),
     attempts: sortAttempts(tables.attempts),
     liveLeases: tables.leases.filter((lease) => lease.releasedAt === null),
@@ -327,8 +327,8 @@ function toItemView(item: ItemWithLevers): ItemView {
   return view;
 }
 
-function sortLinks(links: readonly LinkRow[]): LinkRow[] {
-  return links.toSorted(
+function sortRelations(relations: readonly RelationRow[]): RelationRow[] {
+  return relations.toSorted(
     (first, second) =>
       first.addedAt - second.addedAt ||
       compareText(first.source, second.source) ||
@@ -546,7 +546,7 @@ interface UniqueKey {
 
 const uniqueKeys: Readonly<Record<TableName, readonly UniqueKey[]>> = {
   items: [{ fields: ['id'] }],
-  links: [
+  relations: [
     { fields: ['source', 'target', 'type', 'addedAt'] },
     { fields: ['source', 'target', 'type'], live: 'removedAt' },
   ],

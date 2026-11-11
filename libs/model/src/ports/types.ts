@@ -20,13 +20,13 @@ import type {
   ItemWithLevers,
   LeaseRow,
   LeverRow,
-  LinkRow,
   MaxAttemptsByKind,
   PhaseName,
   PoolName,
   PoolSlotRow,
   PullRequestRef,
   PullRequestRow,
+  RelationRow,
   RepoName,
   RunnerId,
   RunnerRow,
@@ -65,7 +65,7 @@ export interface StoreReader {
   readAttempt: (id: AttemptId) => Promise<AttemptRow | null>;
   listEvidence: (attempt: AttemptId) => Promise<EvidenceRow[]>;
   listLiveAttempts: () => Promise<AttemptRow[]>;
-  listSucceededAttemptsWithoutPr: () => Promise<AttemptRow[]>;
+  listSucceededAttemptsWithoutPullRequest: () => Promise<AttemptRow[]>;
   findAttemptBySession: (session: AtcSessionId) => Promise<AttemptRow | null>;
   findAttemptByAgentSession: (session: AgentSessionId) => Promise<AttemptId | null>;
 
@@ -89,7 +89,7 @@ export interface StoreReader {
 export interface ItemDetailRows {
   readonly item: ItemWithLevers;
   readonly attempts: readonly AttemptRow[];
-  readonly links: readonly LinkRow[];
+  readonly relations: readonly RelationRow[];
   readonly evidence: readonly EvidenceRow[];
   readonly pullRequests: readonly PullRequestRow[];
 }
@@ -130,7 +130,7 @@ export interface ItemFilter {
 
 export interface Tables {
   items: ItemRow;
-  links: LinkRow;
+  relations: RelationRow;
   levers: LeverRow;
   attempts: AttemptRow;
   attempt_sessions: AttemptSessionRow;

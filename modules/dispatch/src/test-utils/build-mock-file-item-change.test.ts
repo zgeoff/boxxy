@@ -11,7 +11,7 @@ test('it builds a change that inserts the item with its filed fact', () => {
     writes: [{ op: 'insert', table: 'items', row: item }],
     facts: [
       {
-        id: expect.stringMatching(/^manual:/u),
+        id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-7/u),
         type: 'boxxy.item.filed',
         entity: `boxxy:item:${item.id}`,
         actor: 'boxxy:owner:local',

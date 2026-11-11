@@ -223,7 +223,7 @@ function collectPrompts(
   return { value: prompts, rejections };
 }
 
-const knownLinkTypes: ReadonlySet<string> = new Set(['blocks']);
+const knownRelationTypes: ReadonlySet<string> = new Set(['blocks']);
 
 function collectPropagationRejections(
   file: ParsedRulesFile,
@@ -233,11 +233,11 @@ function collectPropagationRejections(
     const rejections: LoadRejection[] = [];
     const signal = signals[index]?.value ?? null;
 
-    if (!knownLinkTypes.has(line.over)) {
+    if (!knownRelationTypes.has(line.over)) {
       rejections.push(
         buildRejection(['propagation', index, 'over'], {
-          kind: 'unknown-link-type',
-          link: line.over,
+          kind: 'unknown-relation-type',
+          relation: line.over,
         }),
       );
     }

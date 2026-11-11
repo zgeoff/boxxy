@@ -57,7 +57,7 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
         expected: {
           storeVersion: 0,
           items: [],
-          links: [],
+          relations: [],
           levers: [],
           freeSlots: {},
         },

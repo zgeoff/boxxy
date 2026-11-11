@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { buildMockAttemptRow } from '@boxxy/model/test-utils/build-mock-attempt-row';
 import { buildMockPullRequestChange } from './build-mock-pull-request-change.ts';
 
-test('it builds a change that links PR 7 with its evidence row and fact', () => {
+test('it builds a change that relations pull request 7 with its evidence row and fact', () => {
   const attempt = buildMockAttemptRow();
   const change: unknown = buildMockPullRequestChange({ attempt, state: 'merged' });
 
@@ -26,9 +26,9 @@ test('it builds a change that links PR 7 with its evidence row and fact', () => 
         op: 'insert',
         table: 'evidence',
         row: {
-          factId: expect.stringMatching(/^manual:/u),
+          factId: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-7/u),
           attempt: attempt.id,
-          kind: 'pr',
+          kind: 'pull_request',
           ref: 'https://github.com/acme/lamps/pull/7',
           observed: null,
           source: 'hook',
@@ -38,8 +38,8 @@ test('it builds a change that links PR 7 with its evidence row and fact', () => 
     ],
     facts: [
       {
-        id: expect.stringMatching(/^manual:/u),
-        type: 'boxxy.evidence.pr_linked',
+        id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-7/u),
+        type: 'boxxy.pull_request.linked',
         entity: `boxxy:attempt:${attempt.id}`,
         actor: `boxxy:hook:${attempt.id}`,
         payload: { repo: 'acme/lamps', number: 7, url: 'https://github.com/acme/lamps/pull/7' },
@@ -48,7 +48,7 @@ test('it builds a change that links PR 7 with its evidence row and fact', () => 
   });
 });
 
-test('it links the PR number it is given in the row, the evidence and the fact', () => {
+test('it relations the pull request number it is given in the row, the evidence and the fact', () => {
   const attempt = buildMockAttemptRow();
   const change = buildMockPullRequestChange({ attempt, state: 'open', number: 8 });
   const linked: unknown = { writes: change.writes, payload: change.facts[0]?.payload };

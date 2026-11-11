@@ -11,7 +11,7 @@ test('it builds a change that inserts the lever with its recorded fact', () => {
     writes: [{ op: 'insert', table: 'levers', row: lever }],
     facts: [
       {
-        id: expect.stringMatching(/^manual:/u),
+        id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-7/u),
         type: 'boxxy.lever.recorded',
         entity: `boxxy:item:${lever.item}`,
         actor: lever.actor,

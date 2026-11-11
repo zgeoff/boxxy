@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { brandSchemas, liveLevers, signalKey } from '@boxxy/model';
 import { buildMockItemView } from '@boxxy/model/test-utils/build-mock-item-view';
 import { buildMockLeverRow } from '@boxxy/model/test-utils/build-mock-lever-row';
-import { buildMockLinkRow } from '@boxxy/model/test-utils/build-mock-link-row';
+import { buildMockRelationRow } from '@boxxy/model/test-utils/build-mock-relation-row';
 import { buildMockSnapshot } from '@boxxy/model/test-utils/build-mock-snapshot';
 import { buildFrame } from '../build-frame.ts';
 import { decide } from '../decide.ts';
@@ -18,7 +18,7 @@ test("it gives an expedited blocked item's blocker the expedite value", () => {
   const frame = buildFrame({
     snapshot: buildMockSnapshot({
       items: [blocked, blocker],
-      links: [buildMockLinkRow({ source: blocker.id, target: blocked.id })],
+      relations: [buildMockRelationRow({ source: blocker.id, target: blocked.id })],
       levers: liveLevers(levers, now),
     }),
     rules,
@@ -49,7 +49,7 @@ test("it picks an expedited blocked item's blocker before an older item", () => 
   const frame = buildFrame({
     snapshot: buildMockSnapshot({
       items: [older, blocked, blocker],
-      links: [buildMockLinkRow({ source: blocker.id, target: blocked.id })],
+      relations: [buildMockRelationRow({ source: blocker.id, target: blocked.id })],
       levers: liveLevers(levers, now),
     }),
     rules,

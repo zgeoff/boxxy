@@ -6,7 +6,7 @@ test('it builds an empty snapshot', () => {
   expect(buildMockSnapshot()).toStrictEqual({
     storeVersion: 1,
     items: [],
-    links: [],
+    relations: [],
     levers: [],
     freeSlots: {},
   });
@@ -18,7 +18,7 @@ test('it applies overrides on top of the defaults', () => {
   expect(buildMockSnapshot({ storeVersion: 7, items: [item] })).toStrictEqual({
     storeVersion: 7,
     items: [item],
-    links: [],
+    relations: [],
     levers: [],
     freeSlots: {},
   });

@@ -26,7 +26,7 @@ export const tableCodecs: { readonly [T in TableName]: TableCodec<Tables[T]> } =
     json: ['acceptance'],
     flags: [],
   },
-  links: {
+  relations: {
     fields: ['source', 'target', 'type', 'addedBy', 'addedAt', 'removedAt'],
     json: [],
     flags: [],

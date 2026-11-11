@@ -7,6 +7,8 @@ import { buildSQLiteDialect } from '@zgeoff/kysely-bun-sqlite';
 import { Kysely } from 'kysely';
 import { z } from 'zod';
 import type { StoreDatabase } from '../types.ts';
+import { createTablesMigration } from './create-tables-migration.ts';
+import { renameRelationsMigration } from './rename-relations-migration.ts';
 import { runStoreMigrations } from './run-store-migrations.ts';
 
 async function setupTest() {
@@ -30,6 +32,12 @@ async function setupTest() {
 
   return {
     migrate: () => runStoreMigrations(db),
+    createTables: () => createTablesMigration.up(db),
+    renameRelations: () => renameRelationsMigration.up(db),
+    writeRaw: (statement: string, ...values: number[]) => {
+      sqlite.query(statement).run(...values);
+    },
+    readRaw: (statement: string) => sqlite.query(statement).all(),
     readSchema: () =>
       z
         .array(z.object({ type: z.string(), name: z.string(), sql: z.string().nullable() }))
@@ -67,12 +75,42 @@ test('it creates every table of the store schema in an empty file', async () => 
     'kysely_migration_lock',
     'leases',
     'levers',
-    'links',
     'outbox',
     'pool_slots',
     'pull_requests',
+    'relations',
     'runners',
   ]);
+});
+
+test('it keeps the rows of the links table when it renames the table to relations', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createTables();
+
+  ctx.writeRaw(
+    "INSERT INTO links (source, target, type, added_by, added_at, removed_at) VALUES ('item-a', 'item-b', 'blocks', 'boxxy:owner:local', ?, NULL)",
+    1000,
+  );
+
+  await ctx.renameRelations();
+
+  expect(ctx.readRaw('SELECT source, target, type FROM relations')).toStrictEqual([
+    { source: 'item-a', target: 'item-b', type: 'blocks' },
+  ]);
+});
+
+test('it refuses a second live relation of one source, target and type after the rename', async () => {
+  const ctx = await setupTest();
+
+  const insert =
+    "INSERT INTO relations (source, target, type, added_by, added_at, removed_at) VALUES ('item-a', 'item-b', 'blocks', 'boxxy:owner:local', ?, NULL)";
+
+  await ctx.migrate();
+
+  ctx.writeRaw(insert, 1000);
+
+  expect(() => ctx.writeRaw(insert, 2000)).toThrow(/UNIQUE constraint failed/u);
 });
 
 test('it changes nothing when it runs again on a migrated file', async () => {

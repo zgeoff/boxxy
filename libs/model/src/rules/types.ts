@@ -174,7 +174,7 @@ export type LoadRejectionReason =
       readonly name: string;
       readonly message: string;
     }
-  | { readonly kind: 'unknown-link-type'; readonly link: string }
+  | { readonly kind: 'unknown-relation-type'; readonly relation: string }
   | { readonly kind: 'signal-without-combine'; readonly signal: string }
   | { readonly kind: 'missing-recipe'; readonly itemKind: string; readonly phase: string }
   | { readonly kind: 'missing-prompt'; readonly path: string }

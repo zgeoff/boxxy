@@ -31,7 +31,7 @@ test('it counts a criterion as missing when its cited evidence is not among the 
   const cited = [
     {
       criterion: brandSchemas.criterionId.parse('a1'),
-      evidence: brandSchemas.factId.parse('manual:0192f0c5-3c4d-7e5f-a061-7b8c9d0e1f2a'),
+      evidence: brandSchemas.factId.parse('0192f0c5-3c4d-7e5f-a061-7b8c9d0e1f2a'),
     },
   ];
 

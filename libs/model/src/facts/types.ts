@@ -13,10 +13,10 @@ import type {
   ItemId,
   ItemRow,
   LeverRow,
-  LinkTypeName,
   PhaseName,
   PoolName,
   RecipeHash,
+  RelationTypeName,
   RepoName,
   RulesVersion,
   RunnerId,
@@ -48,7 +48,7 @@ export interface Friction {
 
 export type EntityRef =
   | `boxxy:item:${string}`
-  | `boxxy:link:${string}:${string}:${string}`
+  | `boxxy:relation:${string}:${string}:${string}`
   | `boxxy:attempt:${string}`
   | `boxxy:decision:${string}`
   | `boxxy:runner:${string}`;
@@ -90,10 +90,10 @@ export interface OutboxFact {
 
 export type FactType = keyof SliceOneFacts;
 
-export interface LinkPayload {
+export interface RelationPayload {
   readonly source: ItemId;
   readonly target: ItemId;
-  readonly type: LinkTypeName;
+  readonly type: RelationTypeName;
 }
 
 export interface SliceOneFacts {
@@ -104,8 +104,8 @@ export interface SliceOneFacts {
     readonly acceptance?: readonly Criterion[];
   };
   'boxxy.item.closed': { readonly reason: string };
-  'boxxy.link.added': LinkPayload;
-  'boxxy.link.removed': LinkPayload;
+  'boxxy.relation.added': RelationPayload;
+  'boxxy.relation.removed': RelationPayload;
   'boxxy.lever.recorded': LeverRow;
   'boxxy.attempt.claimed': {
     readonly item: ItemId;
@@ -143,23 +143,23 @@ export interface SliceOneFacts {
     readonly ref: string;
     readonly observed: string | null;
   };
-  'boxxy.evidence.pr_linked': {
+  'boxxy.pull_request.linked': {
     readonly repo: RepoName;
     readonly number: number;
     readonly url: string;
   };
-  'boxxy.evidence.commit_linked': {
+  'boxxy.commit.linked': {
     readonly repo: RepoName;
     readonly sha: CommitSha;
-    readonly pr: number;
+    readonly pullRequestNumber: number;
   };
-  'boxxy.pr.merged': {
+  'boxxy.pull_request.merged': {
     readonly repo: RepoName;
     readonly number: number;
     readonly mergedAt: Instant;
     readonly mergeCommit: CommitSha;
   };
-  'boxxy.pr.closed': { readonly repo: RepoName; readonly number: number };
+  'boxxy.pull_request.closed': { readonly repo: RepoName; readonly number: number };
   'boxxy.proposal.recorded': Friction;
   'boxxy.runner.paused': { readonly runner: RunnerId };
   'boxxy.runner.resumed': { readonly runner: RunnerId };

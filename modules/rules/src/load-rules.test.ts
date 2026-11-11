@@ -1130,7 +1130,7 @@ recipes:
   });
 });
 
-test('it rejects a propagation line over an unknown link type', () => {
+test('it rejects a propagation line over an unknown relation type', () => {
   const concepts: Concept[] = [
     {
       name: 'pool',
@@ -1189,7 +1189,7 @@ recipes:
       {
         file: 'rules.yaml',
         path: 'propagation[0].over',
-        reason: { kind: 'unknown-link-type', link: 'parent' },
+        reason: { kind: 'unknown-relation-type', relation: 'parent' },
       },
     ],
   });

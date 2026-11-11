@@ -17,8 +17,8 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
 
       const open = views.filter((item) => isOpen(item));
 
-      const links = await db
-        .selectFrom('links')
+      const relations = await db
+        .selectFrom('relations')
         .selectAll()
         .where('removed_at', 'is', null)
         .orderBy('added_at')
@@ -34,7 +34,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
       return {
         storeVersion: version?.seq ?? 0,
         items: open.map((item) => toItemView(item)),
-        links: links.map((row) => parseStoreRow('links', row)),
+        relations: relations.map((row) => parseStoreRow('relations', row)),
         levers: open
           .flatMap((item) => item.levers)
           .toSorted((first, second) => first.seq - second.seq),
@@ -77,8 +77,8 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         .orderBy('id')
         .execute();
 
-      const links = await db
-        .selectFrom('links')
+      const relations = await db
+        .selectFrom('relations')
         .selectAll()
         .where('removed_at', 'is', null)
         .where((builder) => builder.or([builder('source', '=', id), builder('target', '=', id)]))
@@ -106,7 +106,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
       return {
         item,
         attempts: attempts.map((row) => parseStoreRow('attempts', row)),
-        links: links.map((row) => parseStoreRow('links', row)),
+        relations: relations.map((row) => parseStoreRow('relations', row)),
         evidence: evidence.map((row) => parseStoreRow('evidence', row)),
         pullRequests: pullRequests.map((row) => parseStoreRow('pull_requests', row)),
       };
@@ -181,7 +181,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
 
       return rows.map((row) => parseStoreRow('attempts', row));
     },
-    listSucceededAttemptsWithoutPr: async () => {
+    listSucceededAttemptsWithoutPullRequest: async () => {
       const linked = db.selectFrom('pull_requests').select('attempt');
 
       const rows = await db

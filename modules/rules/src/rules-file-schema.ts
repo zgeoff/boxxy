@@ -66,7 +66,7 @@ const conceptEntrySchema = z.templateLiteral([nameSchema, '@', z.int().positive(
 
 const propagationLineSchema = z.strictObject({
   value: nameSchema,
-  over: brandSchemas.linkTypeName,
+  over: brandSchemas.relationTypeName,
   toward: z.enum(['source', 'target']),
 });
 

@@ -11,10 +11,10 @@ const criterionSchema = z.object({
   evidence: z.array(brandSchemas.factId),
 });
 
-const linkPayloadSchema = z.object({
+const relationPayloadSchema = z.object({
   source: brandSchemas.itemId,
   target: brandSchemas.itemId,
-  type: brandSchemas.linkTypeName,
+  type: brandSchemas.relationTypeName,
 });
 
 const faultSchema = z.object({
@@ -53,8 +53,8 @@ export const factSchemas: { readonly [T in FactType]: z.ZodType<SliceOneFacts[T]
     })
     .refine((fields) => Object.keys(fields).length > 0, 'an edit changes at least one field'),
   'boxxy.item.closed': z.object({ reason: z.string().min(1) }),
-  'boxxy.link.added': linkPayloadSchema,
-  'boxxy.link.removed': linkPayloadSchema,
+  'boxxy.relation.added': relationPayloadSchema,
+  'boxxy.relation.removed': relationPayloadSchema,
   'boxxy.lever.recorded': z.object({
     seq: z.number().int().nonnegative(),
     kind: z.templateLiteral([z.string().min(1), '.', z.string().min(1)]),
@@ -105,27 +105,30 @@ export const factSchemas: { readonly [T in FactType]: z.ZodType<SliceOneFacts[T]
     frictionDropped: z.number().int().nonnegative(),
   }),
   'boxxy.evidence.recorded': z.object({
-    kind: z.enum(['pr', 'commit', 'test', 'ci-run', 'live-check']),
+    kind: z.enum(['pull_request', 'commit', 'test', 'ci-run', 'live-check']),
     ref: z.string().min(1),
     observed: z.string().nullable(),
   }),
-  'boxxy.evidence.pr_linked': z.object({
+  'boxxy.pull_request.linked': z.object({
     repo: brandSchemas.repoName,
     number: pullRequestNumberSchema,
     url: z.url(),
   }),
-  'boxxy.evidence.commit_linked': z.object({
+  'boxxy.commit.linked': z.object({
     repo: brandSchemas.repoName,
     sha: brandSchemas.commitSha,
-    pr: pullRequestNumberSchema,
+    pullRequestNumber: pullRequestNumberSchema,
   }),
-  'boxxy.pr.merged': z.object({
+  'boxxy.pull_request.merged': z.object({
     repo: brandSchemas.repoName,
     number: pullRequestNumberSchema,
     mergedAt: brandSchemas.instant,
     mergeCommit: brandSchemas.commitSha,
   }),
-  'boxxy.pr.closed': z.object({ repo: brandSchemas.repoName, number: pullRequestNumberSchema }),
+  'boxxy.pull_request.closed': z.object({
+    repo: brandSchemas.repoName,
+    number: pullRequestNumberSchema,
+  }),
   'boxxy.proposal.recorded': frictionSchema,
   'boxxy.runner.paused': z.object({ runner: brandSchemas.runnerId }),
   'boxxy.runner.resumed': z.object({ runner: brandSchemas.runnerId }),

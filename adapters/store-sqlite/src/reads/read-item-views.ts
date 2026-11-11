@@ -16,7 +16,7 @@ export async function readItemViews(
   const scoped = db.selectFrom('items').select('id').where(scope);
 
   const blockers = db
-    .selectFrom('links')
+    .selectFrom('relations')
     .select('source')
     .where('removed_at', 'is', null)
     .where('target', 'in', scoped);
@@ -40,8 +40,8 @@ export async function readItemViews(
 
   const inScope = new Set(scopedRows.map((row) => row.id));
 
-  const links = await db
-    .selectFrom('links')
+  const relations = await db
+    .selectFrom('relations')
     .selectAll()
     .where('removed_at', 'is', null)
     .where('target', 'in', loaded)
@@ -78,7 +78,7 @@ export async function readItemViews(
   const views = buildItemViews(
     {
       items: items.map((row) => parseStoreRow('items', row)),
-      links: links.map((row) => parseStoreRow('links', row)),
+      relations: relations.map((row) => parseStoreRow('relations', row)),
       levers: levers.map((row) => parseStoreRow('levers', row)),
       attempts: attempts.map((row) => parseStoreRow('attempts', row)),
       liveLeases: leases.map((row) => parseStoreRow('leases', row)),

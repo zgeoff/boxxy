@@ -4,8 +4,8 @@ import { buildMockAttemptRow } from '@boxxy/model/test-utils/build-mock-attempt-
 import { buildMockItemRow } from '@boxxy/model/test-utils/build-mock-item-row';
 import { buildMockClaimChange } from './build-mock-claim-change.ts';
 import { buildMockFileItemChange } from './build-mock-file-item-change.ts';
-import { buildMockLinkChange } from './build-mock-link-change.ts';
 import { buildMockPullRequestChange } from './build-mock-pull-request-change.ts';
+import { buildMockRelationChange } from './build-mock-relation-change.ts';
 import { buildMockSettleChange } from './build-mock-settle-change.ts';
 import type { ClaimStoreCase } from './types.ts';
 
@@ -31,7 +31,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
         expected: {
           storeVersion: 2,
           items: [{ ...open, derived: { state: 'ready' } }],
-          links: [],
+          relations: [],
           levers: [],
           freeSlots: { build: 2 },
         },
@@ -77,7 +77,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
-    '#readItem derives blocked for the target of a live link from a ready item',
+    '#readItem derives blocked for the target of a live relation from a ready item',
     async (store) => {
       const source = buildMockItemRow();
       const target = buildMockItemRow();
@@ -87,7 +87,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
         await transaction.applyChange(buildMockFileItemChange(target));
 
         await transaction.applyChange(
-          buildMockLinkChange({ source: source.id, target: target.id }),
+          buildMockRelationChange({ source: source.id, target: target.id }),
         );
       });
 
@@ -99,7 +99,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
-    '#readItem derives ready for the target of a link from an archived item',
+    '#readItem derives ready for the target of a relation from an archived item',
     async (store) => {
       const source = buildMockItemRow({ closedAt: brandSchemas.instant.parse(1500) });
       const target = buildMockItemRow();
@@ -109,7 +109,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
         await transaction.applyChange(buildMockFileItemChange(target));
 
         await transaction.applyChange(
-          buildMockLinkChange({ source: source.id, target: target.id }),
+          buildMockRelationChange({ source: source.id, target: target.id }),
         );
       });
 
@@ -203,7 +203,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
-    '#readItemDetail returns the item with its attempts, links, evidence and PRs',
+    '#readItemDetail returns the item with its attempts, relations, evidence and pull requests',
     async (store) => {
       const item = buildMockItemRow();
       const blocker = buildMockItemRow();
@@ -223,7 +223,10 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
         );
 
         await transaction.applyChange(buildMockPullRequestChange({ attempt, state: 'open' }));
-        await transaction.applyChange(buildMockLinkChange({ source: blocker.id, target: item.id }));
+
+        await transaction.applyChange(
+          buildMockRelationChange({ source: blocker.id, target: item.id }),
+        );
       });
 
       const detail: unknown = await store.read((transaction) =>
@@ -233,10 +236,10 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       return {
         received: detail,
         expected: {
-          item: { ...item, derived: { state: 'waiting', reason: 'PR open' }, levers: [] },
+          item: { ...item, derived: { state: 'waiting', reason: 'pull request open' }, levers: [] },
           attempts: [expect.objectContaining({ id: attempt.id, state: 'succeeded' })],
-          links: [expect.objectContaining({ source: blocker.id, target: item.id })],
-          evidence: [expect.objectContaining({ attempt: attempt.id, kind: 'pr' })],
+          relations: [expect.objectContaining({ source: blocker.id, target: item.id })],
+          evidence: [expect.objectContaining({ attempt: attempt.id, kind: 'pull_request' })],
           pullRequests: [expect.objectContaining({ attempt: attempt.id, state: 'open' })],
         },
       };

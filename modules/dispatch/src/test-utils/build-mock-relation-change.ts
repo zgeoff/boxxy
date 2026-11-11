@@ -2,13 +2,13 @@ import { brandSchemas } from '@boxxy/model';
 import type { ItemId, StoreChange } from '@boxxy/model';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
 
-interface LinkInput {
+interface RelationInput {
   readonly source: ItemId;
   readonly target: ItemId;
 }
 
-export function buildMockLinkChange(input: LinkInput): StoreChange {
-  const type = brandSchemas.linkTypeName.parse('blocks');
+export function buildMockRelationChange(input: RelationInput): StoreChange {
+  const type = brandSchemas.relationTypeName.parse('blocks');
   const addedAt = brandSchemas.instant.parse(3500);
 
   return {
@@ -16,7 +16,7 @@ export function buildMockLinkChange(input: LinkInput): StoreChange {
     writes: [
       {
         op: 'insert',
-        table: 'links',
+        table: 'relations',
         row: {
           source: input.source,
           target: input.target,
@@ -30,8 +30,8 @@ export function buildMockLinkChange(input: LinkInput): StoreChange {
     facts: [
       {
         id: buildMockFactId(),
-        type: 'boxxy.link.added',
-        entity: `boxxy:link:${input.source}:${type}:${input.target}`,
+        type: 'boxxy.relation.added',
+        entity: `boxxy:relation:${input.source}:${type}:${input.target}`,
         actor: 'boxxy:owner:local',
         payload: { source: input.source, target: input.target, type },
       },

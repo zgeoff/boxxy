@@ -5,7 +5,7 @@ test('it builds default item rows', () => {
   const built: unknown = buildMockItemRows();
 
   expect(built).toStrictEqual({
-    links: [],
+    relations: [],
     blockerStates: new Map(),
     levers: [],
     attempts: [],

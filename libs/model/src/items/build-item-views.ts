@@ -11,9 +11,9 @@ import type {
   ItemWithLevers,
   LeaseRow,
   LeverRow,
-  LinkRow,
   MaxAttemptsByKind,
   PullRequestRow,
+  RelationRow,
 } from '../types.ts';
 import { deriveItemState } from './derive-item-state.ts';
 import { liveLevers } from './live-levers.ts';
@@ -25,15 +25,15 @@ export function buildItemViews(
 ): ItemWithLevers[] {
   const groups = collectItemGroups(rows, now);
 
-  // A blocking source counts only when it is done or archived, and no link makes an item either,
-  // so each source's state derived without its links settles its targets.
+  // A blocking source counts only when it is done or archived, and no relation makes an item either,
+  // so each source's state derived without its relations settles its targets.
   const ownStates = new Map<ItemId, ItemState>(
     rows.items.map((item) => [
       item.id,
       deriveItemState(
         item,
         buildItemRows(item, groups.get(item.id), maxAttemptsByKind, {
-          links: [],
+          relations: [],
           blockerStates: new Map(),
         }),
       ).state,
@@ -44,7 +44,7 @@ export function buildItemViews(
     const group = groups.get(item.id);
 
     const itemRows = buildItemRows(item, group, maxAttemptsByKind, {
-      links: group?.links ?? [],
+      relations: group?.relations ?? [],
       blockerStates: ownStates,
     });
 
@@ -53,7 +53,7 @@ export function buildItemViews(
 }
 
 interface ItemGroup {
-  readonly links: LinkRow[];
+  readonly relations: RelationRow[];
   readonly attempts: AttemptRow[];
   readonly pullRequests: PullRequestRow[];
   levers: LeverRow[];
@@ -64,14 +64,14 @@ function collectItemGroups(rows: ItemSetRows, now: Instant): Map<ItemId, ItemGro
   const groups = new Map<ItemId, ItemGroup>(
     rows.items.map((item) => [
       item.id,
-      { links: [], attempts: [], pullRequests: [], levers: [], liveLease: null },
+      { relations: [], attempts: [], pullRequests: [], levers: [], liveLease: null },
     ]),
   );
 
   const attemptItems = new Map<AttemptId, ItemId>();
 
-  for (const link of rows.links) {
-    groups.get(link.target)?.links.push(link);
+  for (const relation of rows.relations) {
+    groups.get(relation.target)?.relations.push(relation);
   }
 
   for (const attempt of rows.attempts) {
@@ -109,7 +109,7 @@ function buildItemRows(
   item: ItemRow,
   group: ItemGroup | undefined,
   maxAttemptsByKind: MaxAttemptsByKind,
-  blocking: Pick<ItemRows, 'links' | 'blockerStates'>,
+  blocking: Pick<ItemRows, 'relations' | 'blockerStates'>,
 ): ItemRows {
   return {
     ...blocking,

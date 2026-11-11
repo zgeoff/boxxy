@@ -20,7 +20,7 @@ test('it builds a start under the attempt lease gen that moves it to running', (
     ],
     facts: [
       {
-        id: expect.stringMatching(/^manual:/u),
+        id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-7/u),
         type: 'boxxy.attempt.started',
         entity: `boxxy:attempt:${attempt.id}`,
         actor: `boxxy:runner:${attempt.runner}`,

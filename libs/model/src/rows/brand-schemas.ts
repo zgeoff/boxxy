@@ -12,7 +12,7 @@ export const brandSchemas = {
   itemId: uuidV7Schema.brand<'ItemId'>(),
   attemptId: uuidV7Schema.brand<'AttemptId'>(),
   decisionId: uuidV7Schema.brand<'DecisionId'>(),
-  factId: z.templateLiteral(['manual:', uuidV7Schema]).brand<'FactId'>(),
+  factId: uuidV7Schema.brand<'FactId'>(),
   runnerId: z
     .string()
     .regex(/^[a-z0-9-]+$/u)
@@ -32,7 +32,7 @@ export const brandSchemas = {
     .regex(/^a[1-9]\d*$/u)
     .brand<'CriterionId'>(),
   itemKindName: nameSchema.brand<'ItemKindName'>(),
-  linkTypeName: nameSchema.brand<'LinkTypeName'>(),
+  relationTypeName: nameSchema.brand<'RelationTypeName'>(),
   phaseName: nameSchema.brand<'PhaseName'>(),
   pipelineName: nameSchema.brand<'PipelineName'>(),
   poolName: nameSchema.brand<'PoolName'>(),

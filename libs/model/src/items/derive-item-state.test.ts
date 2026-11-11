@@ -5,8 +5,8 @@ import { buildMockItemRow } from '../test-utils/build-mock-item-row.ts';
 import { buildMockItemRows } from '../test-utils/build-mock-item-rows.ts';
 import { buildMockLeaseRow } from '../test-utils/build-mock-lease-row.ts';
 import { buildMockLeverRow } from '../test-utils/build-mock-lever-row.ts';
-import { buildMockLinkRow } from '../test-utils/build-mock-link-row.ts';
 import { buildMockPullRequestRow } from '../test-utils/build-mock-pull-request-row.ts';
+import { buildMockRelationRow } from '../test-utils/build-mock-relation-row.ts';
 import { deriveItemState } from './derive-item-state.ts';
 
 test('it derives archived for a closed item, ahead of every later row', () => {
@@ -18,14 +18,14 @@ test('it derives archived for a closed item, ahead of every later row', () => {
     attempts: [succeeded],
     pullRequests: [buildMockPullRequestRow({ attempt: succeeded.id, state: 'merged' })],
     liveLease: buildMockLeaseRow({ item: item.id }),
-    links: [buildMockLinkRow({ source: blocker.id, target: item.id })],
+    relations: [buildMockRelationRow({ source: blocker.id, target: item.id })],
     blockerStates: new Map([[blocker.id, 'ready']]),
   });
 
   expect(deriveItemState(item, rows)).toStrictEqual({ state: 'archived' });
 });
 
-test('it derives done when a PR of a succeeded attempt merged, ahead of every later row', () => {
+test('it derives done when a pull request of a succeeded attempt merged, ahead of every later row', () => {
   const item = buildMockItemRow({ acceptance: [] });
   const merged = buildMockAttemptRow({ item: item.id, state: 'succeeded' });
   const open = buildMockAttemptRow({ item: item.id, state: 'succeeded' });
@@ -45,7 +45,7 @@ test('it derives done when a PR of a succeeded attempt merged, ahead of every la
       buildMockPullRequestRow({ attempt: open.id, state: 'open' }),
     ],
     liveLease: buildMockLeaseRow({ item: item.id }),
-    links: [buildMockLinkRow({ source: blocker.id, target: item.id })],
+    relations: [buildMockRelationRow({ source: blocker.id, target: item.id })],
     blockerStates: new Map([[blocker.id, 'ready']]),
     maxAttempts: 2,
   });
@@ -67,7 +67,7 @@ test('it derives running for an item with a live lease, ahead of every later row
     ],
     pullRequests: [buildMockPullRequestRow({ attempt: open.id, state: 'open' })],
     liveLease: buildMockLeaseRow({ item: item.id }),
-    links: [buildMockLinkRow({ source: blocker.id, target: item.id })],
+    relations: [buildMockRelationRow({ source: blocker.id, target: item.id })],
     blockerStates: new Map([[blocker.id, 'ready']]),
     maxAttempts: 2,
   });
@@ -75,7 +75,7 @@ test('it derives running for an item with a live lease, ahead of every later row
   expect(deriveItemState(item, rows)).toStrictEqual({ state: 'running' });
 });
 
-test('it derives waiting on PR open when a succeeded attempt has an open PR, ahead of every later row', () => {
+test('it derives waiting on pull request open when a succeeded attempt has an open pull request, ahead of every later row', () => {
   const item = buildMockItemRow({ acceptance: [] });
   const open = buildMockAttemptRow({ item: item.id, state: 'succeeded' });
   const blocker = buildMockItemRow();
@@ -88,15 +88,18 @@ test('it derives waiting on PR open when a succeeded attempt has an open PR, ahe
       buildMockAttemptRow({ item: item.id, state: 'failed' }),
     ],
     pullRequests: [buildMockPullRequestRow({ attempt: open.id, state: 'open' })],
-    links: [buildMockLinkRow({ source: blocker.id, target: item.id })],
+    relations: [buildMockRelationRow({ source: blocker.id, target: item.id })],
     blockerStates: new Map([[blocker.id, 'ready']]),
     maxAttempts: 2,
   });
 
-  expect(deriveItemState(item, rows)).toStrictEqual({ state: 'waiting', reason: 'PR open' });
+  expect(deriveItemState(item, rows)).toStrictEqual({
+    state: 'waiting',
+    reason: 'pull request open',
+  });
 });
 
-test('it derives waiting on no PR linked for a succeeded attempt with no PR, ahead of every later row', () => {
+test('it derives waiting on no pull request linked for a succeeded attempt with no pull request, ahead of every later row', () => {
   const item = buildMockItemRow({ acceptance: [] });
   const blocker = buildMockItemRow();
 
@@ -106,14 +109,14 @@ test('it derives waiting on no PR linked for a succeeded attempt with no PR, ahe
       buildMockAttemptRow({ item: item.id, state: 'failed' }),
       buildMockAttemptRow({ item: item.id, state: 'failed' }),
     ],
-    links: [buildMockLinkRow({ source: blocker.id, target: item.id })],
+    relations: [buildMockRelationRow({ source: blocker.id, target: item.id })],
     blockerStates: new Map([[blocker.id, 'ready']]),
     maxAttempts: 2,
   });
 
   expect(deriveItemState(item, rows)).toStrictEqual({
     state: 'waiting',
-    reason: 'no PR linked',
+    reason: 'no pull request linked',
   });
 });
 
@@ -126,7 +129,7 @@ test('it derives waiting on attempts used up when the failed attempts reach maxA
       buildMockAttemptRow({ item: item.id, state: 'failed' }),
       buildMockAttemptRow({ item: item.id, state: 'failed' }),
     ],
-    links: [buildMockLinkRow({ source: blocker.id, target: item.id })],
+    relations: [buildMockRelationRow({ source: blocker.id, target: item.id })],
     blockerStates: new Map([[blocker.id, 'ready']]),
     maxAttempts: 2,
   });
@@ -142,19 +145,19 @@ test('it derives idea for an item with an empty acceptance list, ahead of blocke
   const blocker = buildMockItemRow();
 
   const rows = buildMockItemRows({
-    links: [buildMockLinkRow({ source: blocker.id, target: item.id })],
+    relations: [buildMockRelationRow({ source: blocker.id, target: item.id })],
     blockerStates: new Map([[blocker.id, 'ready']]),
   });
 
   expect(deriveItemState(item, rows)).toStrictEqual({ state: 'idea' });
 });
 
-test('it derives blocked for the target of a blocks link whose source is not done', () => {
+test('it derives blocked for the target of a blocks relation whose source is not done', () => {
   const item = buildMockItemRow();
   const blocker = buildMockItemRow();
 
   const rows = buildMockItemRows({
-    links: [buildMockLinkRow({ source: blocker.id, target: item.id })],
+    relations: [buildMockRelationRow({ source: blocker.id, target: item.id })],
     blockerStates: new Map([[blocker.id, 'running']]),
   });
 
@@ -196,7 +199,7 @@ test('it derives ready for a waiting item after an item.retry lever', () => {
   expect(deriveItemState(item, rows)).toStrictEqual({ state: 'ready' });
 });
 
-test('it derives ready after an item.retry lever for a succeeded attempt with an open PR', () => {
+test('it derives ready after an item.retry lever for a succeeded attempt with an open pull request', () => {
   const item = buildMockItemRow();
 
   const succeeded = buildMockAttemptRow({
@@ -220,7 +223,7 @@ test('it derives ready after an item.retry lever for a succeeded attempt with an
   expect(deriveItemState(item, rows)).toStrictEqual({ state: 'ready' });
 });
 
-test('it derives ready after an item.retry lever for a succeeded attempt with no PR', () => {
+test('it derives ready after an item.retry lever for a succeeded attempt with no pull request', () => {
   const item = buildMockItemRow();
 
   const rows = buildMockItemRows({
@@ -304,7 +307,7 @@ test('it counts a failed attempt that ended after the latest item.retry lever', 
   });
 });
 
-test('it derives ready when the only succeeded attempt has a PR that closed unmerged', () => {
+test('it derives ready when the only succeeded attempt has a pull request that closed unmerged', () => {
   const item = buildMockItemRow();
   const succeeded = buildMockAttemptRow({ item: item.id, state: 'succeeded' });
 
@@ -328,13 +331,13 @@ test('it derives ready while the failed attempts stay below maxAttempts', () => 
 });
 
 test.each(['done', 'archived'] as const)(
-  'it derives ready for the target of a blocks link whose source is %s',
+  'it derives ready for the target of a blocks relation whose source is %s',
   (blockerState) => {
     const item = buildMockItemRow();
     const blocker = buildMockItemRow();
 
     const rows = buildMockItemRows({
-      links: [buildMockLinkRow({ source: blocker.id, target: item.id })],
+      relations: [buildMockRelationRow({ source: blocker.id, target: item.id })],
       blockerStates: new Map([[blocker.id, blockerState]]),
     });
 

@@ -33,7 +33,7 @@ test('it builds a settle under both leases that releases them', () => {
     ],
     facts: [
       {
-        id: expect.stringMatching(/^manual:/u),
+        id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-7/u),
         type: 'boxxy.attempt.settled',
         entity: `boxxy:attempt:${attempt.id}`,
         actor: `boxxy:runner:${attempt.runner}`,

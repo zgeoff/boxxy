@@ -14,7 +14,7 @@ export interface StoreDatabase {
     closed_at: number | null;
     close_reason: string | null;
   };
-  links: {
+  relations: {
     source: string;
     target: string;
     type: string;

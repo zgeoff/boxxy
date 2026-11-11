@@ -19,7 +19,7 @@ test('it builds a change that pauses a running runner', () => {
     ],
     facts: [
       {
-        id: expect.stringMatching(/^manual:/u),
+        id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-7/u),
         type: 'boxxy.runner.paused',
         entity: 'boxxy:runner:runner-1',
         actor: 'boxxy:owner:local',

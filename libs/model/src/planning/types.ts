@@ -5,10 +5,10 @@ import type {
   ItemId,
   ItemView,
   LeverRow,
-  LinkRow,
-  LinkTypeName,
   PhaseName,
   PoolName,
+  RelationRow,
+  RelationTypeName,
 } from '../types.ts';
 
 export type SignalName = string;
@@ -28,7 +28,7 @@ export interface Snapshot {
 
   // every item not yet done and not archived, with its state derived at the read's `now`
   items: ItemView[];
-  links: LinkRow[];
+  relations: RelationRow[];
   levers: LeverRow[];
   freeSlots: Record<PoolName, number>;
 }
@@ -86,7 +86,7 @@ export interface Pool {
 export interface PlanContext {
   now: Instant;
   levers: LeverRow[];
-  links: LinkRow[];
+  relations: RelationRow[];
   values: FrameValues;
 }
 
@@ -131,6 +131,6 @@ export interface View<I = unknown, O = unknown> {
 
 export interface PropagationLine {
   readonly value: SignalName;
-  readonly over: LinkTypeName;
+  readonly over: RelationTypeName;
   readonly toward: 'source' | 'target';
 }

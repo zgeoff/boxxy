@@ -70,7 +70,7 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
-    '#listSucceededAttemptsWithoutPr skips an attempt with a linked PR',
+    '#listSucceededAttemptsWithoutPullRequest skips an attempt with a linked pull request',
     async (store) => {
       const first = buildMockItemRow();
       const second = buildMockItemRow();
@@ -104,7 +104,7 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
       });
 
       const listed = await store.read((transaction) =>
-        transaction.listSucceededAttemptsWithoutPr(),
+        transaction.listSucceededAttemptsWithoutPullRequest(),
       );
 
       return { received: listed.map((attempt) => attempt.id), expected: [unlinked.id] };
@@ -131,7 +131,7 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
-    '#markPullRequestChecked sets the checked time of a watched PR',
+    '#markPullRequestChecked sets the checked time of a watched pull request',
     async (store) => {
       const item = buildMockItemRow();
       const attempt = buildMockAttemptRow({ item: item.id, state: 'starting' });
@@ -156,7 +156,7 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
-    '#listWatchedPullRequests returns an open PR and skips a merged one',
+    '#listWatchedPullRequests returns an open pull request and skips a merged one',
     async (store) => {
       const item = buildMockItemRow();
       const attempt = buildMockAttemptRow({ item: item.id, state: 'starting' });
@@ -198,9 +198,9 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
         received: evidence,
         expected: [
           {
-            factId: expect.stringMatching(/^manual:/u),
+            factId: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-7/u),
             attempt: attempt.id,
-            kind: 'pr',
+            kind: 'pull_request',
             ref: 'https://github.com/acme/lamps/pull/7',
             observed: null,
             source: 'hook',

@@ -10,10 +10,10 @@ const countSchema = z.number().int().nonnegative();
 
 export const rowSchemas: { readonly [T in TableName]: z.ZodType<Tables[T]> } = {
   items: factSchemas['boxxy.item.filed'],
-  links: z.object({
+  relations: z.object({
     source: brandSchemas.itemId,
     target: brandSchemas.itemId,
-    type: brandSchemas.linkTypeName,
+    type: brandSchemas.relationTypeName,
     addedBy: actorRefSchema,
     addedAt: brandSchemas.instant,
     removedAt: brandSchemas.instant.nullable(),
@@ -66,7 +66,7 @@ export const rowSchemas: { readonly [T in TableName]: z.ZodType<Tables[T]> } = {
   evidence: z.object({
     factId: brandSchemas.factId,
     attempt: brandSchemas.attemptId,
-    kind: z.enum(['pr', 'commit', 'test', 'ci-run', 'live-check']),
+    kind: z.enum(['pull_request', 'commit', 'test', 'ci-run', 'live-check']),
     ref: z.string().min(1),
     observed: z.string().nullable(),
     source: z.enum(['hook', 'trailer', 'agent', 'watch']),

@@ -26,7 +26,7 @@ test('it builds a claim that takes a slot and a lease, with slot and gen left at
     ],
     facts: [
       {
-        id: expect.stringMatching(/^manual:/u),
+        id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-7/u),
         type: 'boxxy.attempt.claimed',
         entity: `boxxy:attempt:${attempt.id}`,
         actor: `boxxy:runner:${attempt.runner}`,

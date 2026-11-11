@@ -35,7 +35,7 @@ export function buildFrame(input: BuildFrameInput): Frame {
   const buildContext = (values: FrameValues): PlanContext => ({
     now: input.now,
     levers: input.snapshot.levers,
-    links: input.snapshot.links,
+    relations: input.snapshot.relations,
     values,
   });
 
@@ -48,7 +48,7 @@ export function buildFrame(input: BuildFrameInput): Frame {
   const propagated = propagate({
     lines: input.rules.propagation,
     items,
-    links: input.snapshot.links,
+    relations: input.snapshot.relations,
     signals: input.rules.signals,
     values: new Map(carried.map((entry) => [entry.key, entry.values])),
   });

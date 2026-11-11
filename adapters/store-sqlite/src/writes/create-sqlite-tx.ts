@@ -22,7 +22,7 @@ export function createSQLiteTx(db: Kysely<StoreDatabase>): StoreTx {
     readAttempt: inTurn(reader.readAttempt),
     listEvidence: inTurn(reader.listEvidence),
     listLiveAttempts: inTurn(reader.listLiveAttempts),
-    listSucceededAttemptsWithoutPr: inTurn(reader.listSucceededAttemptsWithoutPr),
+    listSucceededAttemptsWithoutPullRequest: inTurn(reader.listSucceededAttemptsWithoutPullRequest),
     findAttemptBySession: inTurn(reader.findAttemptBySession),
     findAttemptByAgentSession: inTurn(reader.findAttemptByAgentSession),
     listWatchedPullRequests: inTurn(reader.listWatchedPullRequests),

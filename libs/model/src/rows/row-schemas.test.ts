@@ -3,13 +3,13 @@ import { buildMockAttemptRow } from '../test-utils/build-mock-attempt-row.ts';
 import { buildMockItemRow } from '../test-utils/build-mock-item-row.ts';
 import { buildMockLeaseRow } from '../test-utils/build-mock-lease-row.ts';
 import { buildMockLeverRow } from '../test-utils/build-mock-lever-row.ts';
-import { buildMockLinkRow } from '../test-utils/build-mock-link-row.ts';
 import { buildMockPullRequestRow } from '../test-utils/build-mock-pull-request-row.ts';
+import { buildMockRelationRow } from '../test-utils/build-mock-relation-row.ts';
 import { rowSchemas } from './row-schemas.ts';
 
 test.each([
   ['items', () => rowSchemas.items.parse(buildMockItemRow())],
-  ['links', () => rowSchemas.links.parse(buildMockLinkRow())],
+  ['relations', () => rowSchemas.relations.parse(buildMockRelationRow())],
   ['levers', () => rowSchemas.levers.parse(buildMockLeverRow())],
   ['attempts', () => rowSchemas.attempts.parse(buildMockAttemptRow())],
   ['leases', () => rowSchemas.leases.parse(buildMockLeaseRow())],

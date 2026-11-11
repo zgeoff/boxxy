@@ -34,7 +34,7 @@ export function buildMockPullRequestChange(input: PullRequestInput): StoreChange
         row: {
           factId,
           attempt: attempt.id,
-          kind: 'pr',
+          kind: 'pull_request',
           ref: url,
           observed: null,
           source: 'hook',
@@ -45,7 +45,7 @@ export function buildMockPullRequestChange(input: PullRequestInput): StoreChange
     facts: [
       {
         id: factId,
-        type: 'boxxy.evidence.pr_linked',
+        type: 'boxxy.pull_request.linked',
         entity: `boxxy:attempt:${attempt.id}`,
         actor: `boxxy:hook:${attempt.id}`,
         payload: { repo: pullRequest.repo, number, url },

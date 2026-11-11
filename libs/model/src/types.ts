@@ -36,7 +36,7 @@ export interface PullRequestRef {
 
 export type ItemKindName = BrandOf<'itemKindName'>;
 
-export type LinkTypeName = BrandOf<'linkTypeName'>;
+export type RelationTypeName = BrandOf<'relationTypeName'>;
 
 export type PhaseName = BrandOf<'phaseName'>;
 
@@ -77,7 +77,7 @@ export type ActorRef =
   | `boxxy:attempt:${string}`
   | `boxxy:hook:${string}`;
 
-export type EvidenceKind = 'pr' | 'commit' | 'test' | 'ci-run' | 'live-check';
+export type EvidenceKind = 'pull_request' | 'commit' | 'test' | 'ci-run' | 'live-check';
 
 export interface Criterion {
   readonly id: CriterionId;
@@ -101,7 +101,7 @@ export interface ItemRow {
 
 export type ItemState = 'idea' | 'ready' | 'running' | 'blocked' | 'waiting' | 'done' | 'archived';
 
-export type WaitingReason = 'PR open' | 'no PR linked' | 'attempts used up';
+export type WaitingReason = 'pull request open' | 'no pull request linked' | 'attempts used up';
 
 export type DerivedState =
   | { readonly state: Exclude<ItemState, 'waiting'> }
@@ -112,8 +112,8 @@ export interface ItemView extends ItemRow {
 }
 
 export interface ItemRows {
-  // live links whose target is the item
-  readonly links: readonly LinkRow[];
+  // live relations whose target is the item
+  readonly relations: readonly RelationRow[];
   readonly blockerStates: ReadonlyMap<ItemId, ItemState>;
   readonly levers: readonly LeverRow[];
   readonly attempts: readonly AttemptRow[];
@@ -128,8 +128,8 @@ export interface ItemRows {
 export interface ItemSetRows {
   readonly items: readonly ItemRow[];
 
-  // live links only
-  readonly links: readonly LinkRow[];
+  // live relations only
+  readonly relations: readonly RelationRow[];
   readonly levers: readonly LeverRow[];
   readonly attempts: readonly AttemptRow[];
   readonly liveLeases: readonly LeaseRow[];
@@ -142,10 +142,10 @@ export interface ItemWithLevers extends ItemView {
   readonly levers: readonly LeverRow[];
 }
 
-export interface LinkRow {
+export interface RelationRow {
   readonly source: ItemId;
   readonly target: ItemId;
-  readonly type: LinkTypeName;
+  readonly type: RelationTypeName;
   readonly addedBy: ActorRef;
   readonly addedAt: Instant;
   readonly removedAt: Instant | null;
@@ -236,7 +236,7 @@ export interface DecisionRow {
 }
 
 export interface FaultRecord {
-  // the signal, gate, waiver or filter field name, or `propagation:<signal>:<link>`
+  // the signal, gate, waiver or filter field name, or `propagation:<signal>:<relation>`
   readonly plugin: string;
   readonly kind: 'signal' | 'gate' | 'waiver' | 'admission' | 'propagation' | 'filter-field';
   readonly item: ItemId | null;

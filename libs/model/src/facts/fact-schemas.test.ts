@@ -22,7 +22,7 @@ test.each([
   ['boxxy.item.edited', { title: 'Add a retry button to uploads' }],
   ['boxxy.item.closed', { reason: 'Duplicate of an older item' }],
   [
-    'boxxy.link.added',
+    'boxxy.relation.added',
     {
       source: '0192f0c4-7b1f-7c22-8e01-6a4b2d9f1c30',
       target: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77',
@@ -30,7 +30,7 @@ test.each([
     },
   ],
   [
-    'boxxy.link.removed',
+    'boxxy.relation.removed',
     {
       source: '0192f0c4-7b1f-7c22-8e01-6a4b2d9f1c30',
       target: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77',
@@ -97,7 +97,7 @@ test.each([
     {
       closeOut: {
         result: { kind: 'built' },
-        criteria: [{ criterion: 'a1', evidence: 'manual:0192f0c5-3c4d-7e5f-a061-7b8c9d0e1f2a' }],
+        criteria: [{ criterion: 'a1', evidence: '0192f0c5-3c4d-7e5f-a061-7b8c9d0e1f2a' }],
         openItems: [],
         friction: [],
         frictionDropped: 0,
@@ -120,15 +120,19 @@ test.each([
     { kind: 'test', ref: 'src/upload.test.ts it retries an upload', observed: '12 pass' },
   ],
   [
-    'boxxy.evidence.pr_linked',
+    'boxxy.pull_request.linked',
     { repo: 'acme/widgets', number: 41, url: 'https://github.com/acme/widgets/pull/41' },
   ],
   [
-    'boxxy.evidence.commit_linked',
-    { repo: 'acme/widgets', sha: 'e83c5163316f89bfbde7d9ab23ca2e25604af290', pr: 41 },
+    'boxxy.commit.linked',
+    {
+      repo: 'acme/widgets',
+      sha: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+      pullRequestNumber: 41,
+    },
   ],
   [
-    'boxxy.pr.merged',
+    'boxxy.pull_request.merged',
     {
       repo: 'acme/widgets',
       number: 41,
@@ -136,7 +140,7 @@ test.each([
       mergeCommit: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
     },
   ],
-  ['boxxy.pr.closed', { repo: 'acme/widgets', number: 41 }],
+  ['boxxy.pull_request.closed', { repo: 'acme/widgets', number: 41 }],
   [
     'boxxy.proposal.recorded',
     { target: { kind: 'skill', name: 'testing' }, change: 'Say where to seed faker' },
@@ -173,13 +177,13 @@ test.each([
   ['boxxy.item.edited', 'title', [], {}],
   ['boxxy.item.closed', 'reason', ['reason'], {}],
   [
-    'boxxy.link.added',
+    'boxxy.relation.added',
     'target',
     ['target'],
     { source: '0192f0c4-7b1f-7c22-8e01-6a4b2d9f1c30', type: 'blocks' },
   ],
   [
-    'boxxy.link.removed',
+    'boxxy.relation.removed',
     'source',
     ['source'],
     { target: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77', type: 'blocks' },
@@ -251,10 +255,10 @@ test.each([
     },
   ],
   ['boxxy.evidence.recorded', 'ref', ['ref'], { kind: 'test', observed: '12 pass' }],
-  ['boxxy.evidence.pr_linked', 'url', ['url'], { repo: 'acme/widgets', number: 41 }],
-  ['boxxy.evidence.commit_linked', 'sha', ['sha'], { repo: 'acme/widgets', pr: 41 }],
+  ['boxxy.pull_request.linked', 'url', ['url'], { repo: 'acme/widgets', number: 41 }],
+  ['boxxy.commit.linked', 'sha', ['sha'], { repo: 'acme/widgets', pullRequestNumber: 41 }],
   [
-    'boxxy.pr.merged',
+    'boxxy.pull_request.merged',
     'mergedAt',
     ['mergedAt'],
     {
@@ -263,7 +267,7 @@ test.each([
       mergeCommit: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
     },
   ],
-  ['boxxy.pr.closed', 'number', ['number'], { repo: 'acme/widgets' }],
+  ['boxxy.pull_request.closed', 'number', ['number'], { repo: 'acme/widgets' }],
   ['boxxy.proposal.recorded', 'change', ['change'], { target: { kind: 'skill', name: 'testing' } }],
   ['boxxy.runner.paused', 'runner', ['runner'], {}],
   ['boxxy.runner.resumed', 'runner', ['runner'], {}],

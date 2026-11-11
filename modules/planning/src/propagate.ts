@@ -2,8 +2,8 @@ import type {
   Fault,
   FrameItem,
   ItemId,
-  LinkRow,
   PropagationLine,
+  RelationRow,
   Resolved,
   SignalKey,
 } from '@boxxy/model';
@@ -15,7 +15,7 @@ import { formatFault } from './format-fault.ts';
 interface PropagateInput {
   readonly lines: readonly PropagationLine[];
   readonly items: readonly FrameItem[];
-  readonly links: readonly LinkRow[];
+  readonly relations: readonly RelationRow[];
   readonly signals: ReadonlyMap<SignalKey, Resolved<'signal'>>;
   readonly values: ReadonlyMap<SignalKey, ReadonlyMap<ItemId, number>>;
 }
@@ -44,7 +44,7 @@ export function propagate(input: PropagateInput): Propagated {
     try {
       const start = values.get(key) ?? new Map<ItemId, number>();
 
-      values.set(key, carryLine(line, combine, start, { open, links: input.links }));
+      values.set(key, carryLine(line, combine, start, { open, relations: input.relations }));
     } catch (error) {
       faults.push({
         plugin: `propagation:${line.value}:${line.over}`,
@@ -70,7 +70,7 @@ function getCombine(signals: PropagateInput['signals'], key: SignalKey): Combine
 
 interface LineGraph {
   readonly open: ReadonlySet<ItemId>;
-  readonly links: readonly LinkRow[];
+  readonly relations: readonly RelationRow[];
 }
 
 function carryLine(
@@ -79,7 +79,7 @@ function carryLine(
   start: ReadonlyMap<ItemId, number>,
   graph: LineGraph,
 ): Map<ItemId, number> {
-  const next = collectNeighbours(line, graph.links);
+  const next = collectNeighbours(line, graph.relations);
 
   const carried = new Map(start);
 
@@ -112,13 +112,15 @@ function carryLine(
 
 function collectNeighbours(
   line: PropagationLine,
-  links: readonly LinkRow[],
+  relations: readonly RelationRow[],
 ): Map<ItemId, ItemId[]> {
   const next = new Map<ItemId, ItemId[]>();
 
-  for (const link of links.filter((candidate) => candidate.type === line.over)) {
+  for (const relation of relations.filter((candidate) => candidate.type === line.over)) {
     const [from, to] =
-      line.toward === 'source' ? [link.target, link.source] : [link.source, link.target];
+      line.toward === 'source'
+        ? [relation.target, relation.source]
+        : [relation.source, relation.target];
 
     const neighbours = next.get(from) ?? [];
 

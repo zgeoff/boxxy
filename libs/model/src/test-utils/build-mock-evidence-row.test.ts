@@ -5,7 +5,7 @@ test('it builds a default evidence row', () => {
   const built: unknown = buildMockEvidenceRow();
 
   expect(built).toStrictEqual({
-    factId: expect.stringMatching(/^manual:[0-9a-f-]{36}$/u),
+    factId: expect.stringMatching(/^[0-9a-f-]{36}$/u),
     attempt: expect.stringMatching(/^[0-9a-f-]{36}$/u),
     kind: 'test',
     ref: expect.any(String),

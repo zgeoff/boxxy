@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { brandSchemas, defineGate, defineSignal, signalKey } from '@boxxy/model';
 import { buildMockItemView } from '@boxxy/model/test-utils/build-mock-item-view';
 import { buildMockLeverRow } from '@boxxy/model/test-utils/build-mock-lever-row';
-import { buildMockLinkRow } from '@boxxy/model/test-utils/build-mock-link-row';
+import { buildMockRelationRow } from '@boxxy/model/test-utils/build-mock-relation-row';
 import { buildMockSnapshot } from '@boxxy/model/test-utils/build-mock-snapshot';
 import { z } from 'zod';
 import { buildFrame } from './build-frame.ts';
@@ -348,7 +348,7 @@ test('it carries nothing and records a fault when a propagation line throws', ()
   const frame = buildFrame({
     snapshot: buildMockSnapshot({
       items: [blocked, blocker],
-      links: [buildMockLinkRow({ source: blocker.id, target: blocked.id })],
+      relations: [buildMockRelationRow({ source: blocker.id, target: blocked.id })],
     }),
     rules,
     now,
@@ -380,9 +380,9 @@ test("it combines carried values with the blocker's own value by the signal's co
   const frame = buildFrame({
     snapshot: buildMockSnapshot({
       items: [first, blocker, last],
-      links: [
-        buildMockLinkRow({ source: blocker.id, target: first.id }),
-        buildMockLinkRow({ source: blocker.id, target: last.id }),
+      relations: [
+        buildMockRelationRow({ source: blocker.id, target: first.id }),
+        buildMockRelationRow({ source: blocker.id, target: last.id }),
       ],
       levers: [
         buildMockLeverRow({ seq: 1, kind: 'plan.expedite', item: first.id }),
@@ -413,10 +413,10 @@ test('it carries a value through a chain of blockers and stops on a cycle', () =
   const frame = buildFrame({
     snapshot: buildMockSnapshot({
       items: [blocked, middle, root],
-      links: [
-        buildMockLinkRow({ source: middle.id, target: blocked.id }),
-        buildMockLinkRow({ source: root.id, target: middle.id }),
-        buildMockLinkRow({ source: blocked.id, target: root.id }),
+      relations: [
+        buildMockRelationRow({ source: middle.id, target: blocked.id }),
+        buildMockRelationRow({ source: root.id, target: middle.id }),
+        buildMockRelationRow({ source: blocked.id, target: root.id }),
       ],
       levers: [buildMockLeverRow({ seq: 1, kind: 'plan.expedite', item: blocked.id })],
     }),

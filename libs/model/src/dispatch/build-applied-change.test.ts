@@ -16,7 +16,7 @@ test('it writes the taken slot into the attempt row and its claimed fact', () =>
       ],
       facts: [
         {
-          id: brandSchemas.factId.parse('manual:0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77'),
+          id: brandSchemas.factId.parse('0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77'),
           type: 'boxxy.attempt.claimed',
           entity: `boxxy:attempt:${attempt.id}`,
           actor: 'boxxy:runner:runner-1',
@@ -79,14 +79,14 @@ test('it numbers each lever insert after the last seq, in order, with its fact',
       ],
       facts: [
         {
-          id: brandSchemas.factId.parse('manual:0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77'),
+          id: brandSchemas.factId.parse('0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77'),
           type: 'boxxy.lever.recorded',
           entity: `boxxy:item:${first.item}`,
           actor: 'boxxy:owner:local',
           payload: first,
         },
         {
-          id: brandSchemas.factId.parse('manual:0192f0c4-7b1f-7c22-8e01-6a4b2d9f1c30'),
+          id: brandSchemas.factId.parse('0192f0c4-7b1f-7c22-8e01-6a4b2d9f1c30'),
           type: 'boxxy.lever.recorded',
           entity: `boxxy:item:${second.item}`,
           actor: 'boxxy:owner:local',

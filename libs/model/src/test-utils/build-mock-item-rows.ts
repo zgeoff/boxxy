@@ -2,7 +2,7 @@ import type { ItemRows } from '../types.ts';
 
 export function buildMockItemRows(overrides: Partial<ItemRows> = {}): ItemRows {
   return {
-    links: [],
+    relations: [],
     blockerStates: new Map(),
     levers: [],
     attempts: [],
