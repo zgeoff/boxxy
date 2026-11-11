@@ -62,17 +62,16 @@ flowchart LR
 
 ## Pools
 
-A pool is a filter, a sort, a slot count and an empty policy. A pool's name carries no meaning: any
-ordering is configuration.
+A pool is a filter, a sort and an empty policy. A pool's name carries no meaning: any ordering is
+configuration. Named limits cap the running attempts, and a pool has no slot count of its own
+([v1](./v1.md#limits-and-pools)).
 
 ```yaml
 pools:
   - name: maintenance
-    slots: 5
     takes: { phase: build, kind: [chore, improvement, bug] }
     order: [kind: [chore, improvement, bug], oldest]
   - name: nixie
-    slots: 1
     takes: { phase: build, project: nixie }
     when_empty: idle
 ```
@@ -81,7 +80,7 @@ pools:
   the loader should warn about overlapping filters at load time (proposed).
 - Signal values must be cached by signal name and parameters, so two pools can use one signal with
   different parameters.
-- A pool's slots are lease rows ([dispatch](./dispatch.md)).
+- A limit's seats are rows in the store, and a claim takes all of an attempt's seats or none ([dispatch](./dispatch.md)).
 
 ### The judgement pool
 

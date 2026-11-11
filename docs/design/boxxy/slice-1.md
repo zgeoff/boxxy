@@ -25,6 +25,19 @@ Each section below links the design doc that owns the general rule, and this doc
 builds. The [interface sketches](./sketches/README.md) own the shape of every type, port and
 function. This doc owns the behaviour, and links each shape to the sketch file that holds it.
 
+## Where v1 stands
+
+[v1](./v1.md) builds on slice 1 and changes it. Where a v1 doc and this doc differ, the v1 doc
+stands. A v1 doc owns each of these subjects:
+
+| Subject in this doc | The v1 doc that stands |
+| --- | --- |
+| the pipeline, the pools and their slots, `maxAttempts` per kind | [v1](./v1.md#the-pipeline), [limits and pools](./v1.md#limits-and-pools) |
+| the attempt states, the runner loop's table, settle, close-outs | [attempt lifecycle](./v1-lifecycle.md) |
+| the commands, the API's address and the caller check | [API and auth](./v1-api-and-auth.md) |
+| the fact catalog, the outbox sender, the pepys adapter and its package `@boxxy/facts-pepys`, the consumer and the query | [facts and pepys](./v1-facts-and-pepys.md) |
+| the packages and their folders | [folder layout](./layout-folders.md) |
+
 ## Terms
 
 Where another design doc owns a term, the link goes to that doc.
@@ -114,8 +127,8 @@ does it.
   ([planning](./planning.md#the-judgement-pool)). In slice 1, an item that uses up its attempts
   waits until the owner runs `boxxy item retry`, which calls `item.retry`.
 - A confirmation that only the owner can give before an expedite takes effect, such as a passkey
-  approval ([core model](./core-model.md#entry-points)). In slice 1, the API listens on `127.0.0.1`
-  only, and any program on the machine may expedite.
+  approval ([core model](./core-model.md#entry-points)). Any caller on the owner's path may
+  expedite ([API and auth](./v1-api-and-auth.md#the-two-paths)).
 - `explain` and replay. Each decision row records their inputs: the rules version, the snapshot
   hash, the store version, `pepys_offsets` and the plug-in faults. Slice 1 writes decision rows and
   never reads them.
@@ -896,15 +909,15 @@ attempt's generation and its slot lease. It returns the store's answer, and the 
 refusal and moves on. Build the change with these steps:
 
 1. Set the attempt's state. A forced reason (`spawn-refused`, `session-lost` or `spawn-lost`) gives
-   `failed` with that reason, whatever the close-out says. With no forced reason, the latest valid
+   `failed` with that reason, whatever the close-out says. With no forced reason, the attempt's
    close-out decides: `built` gives `succeeded`, and `blocked` or `abandoned` gives `failed` with
    the close-out's reason. With no valid close-out, the state is `failed` with reason
    `closeout-missing`.
 2. Release the item-phase lease and the slot lease. Set the attempt's `ended_at` to the tick's
    `now`.
-3. Copy the evidence ids that the latest valid close-out cites for each criterion into the item's
+3. Copy the evidence ids that the attempt's close-out cites for each criterion into the item's
    `acceptance`.
-4. File each entry in the latest valid close-out's `openItems` through dedupe, and record each
+4. File each entry in the close-out's `openItems` through dedupe, and record each
    friction entry. Do this whatever the attempt's state, a forced reason included.
 5. Write `boxxy.attempt.settled`, with the copied evidence ids, the items that dedupe matched, and
    the count of friction entries the parser dropped. Write the facts for step 4 in the same change.
@@ -956,7 +969,9 @@ dedupe.
   the schema problems, because the other checks read the parsed fields. A schema problem's path
   points into the close-out the agent sent, such as `friction[2].target.kind`, even when the parser
   dropped an entry before it.
-- **The latest valid close-out wins.** Each valid one writes `boxxy.attempt.closed_out`.
+- **The first valid close-out is final.** It writes `boxxy.attempt.closed_out`, and the attempt
+  moves to `closing`. The same body again answers as a repeat and writes nothing, and another body
+  is refused ([close-outs and their limits](./v1-lifecycle.md#close-outs-and-their-limits)).
 - **Dedupe matches an `openItems` entry** to an open `core.issue` in the same repo whose title is
   equal after lowercasing, trimming, and collapsing each run of whitespace to one space. Settle reads
   the open `core.issue` items of the attempt's repo with `listOpenIssues` and passes them to
@@ -1163,9 +1178,10 @@ allows for a query across consumer files.
 
 ## Commands and API
 
-The server serves one oRPC router on Elysia, on `127.0.0.1` only, under `/rpc`. `@boxxy/contract`
-holds its contract, and the CLI calls it through an oRPC client. In slice 1 the API checks no
-caller identity. The actor recorded on a fact is `boxxy:owner:local` for CLI commands,
+The server serves one oRPC router on Elysia, under `/rpc` and two MCP endpoints, on one address of
+the owner's private network. `@boxxy/contract` holds its contract, and the CLI calls it through an
+oRPC client. A call from a session or a hook needs the worker token and a proven caller
+([API and auth](./v1-api-and-auth.md#the-proven-caller)). The actor recorded on a fact is `boxxy:owner:local` for CLI commands,
 `boxxy:attempt:<attempt_id>` for the attempt procedures, and `boxxy:hook:<attempt_id>` for the hook
 procedures ([facts and the outbox](#facts-and-the-outbox)).
 
@@ -1488,7 +1504,6 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
     back with `boxxy item list` (end-to-end test).
   - `item.file` with three criteria and one `--blocked-by` gives the ids `a1`, `a2` and `a3`, and
     writes one `boxxy.link.added` in the same change as the item (test).
-  - The server refuses to bind to an address other than `127.0.0.1` (test).
   - A rules commit that fails to load leaves the previous rules version live, and `boxxy status`
     shows the rejection (test).
 

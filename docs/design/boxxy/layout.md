@@ -1,6 +1,6 @@
 # Layout
 
-boxxy is one Bun workspace split into apps, modules, adapters and libs. Modules hold the domain and
+boxxy is one Bun workspace split into apps, modules, adapters, libs and packages. Modules hold the domain and
 do no I/O; adapters talk to one outside system each; apps build the adapters and pass them to the
 modules. Two lint checks enforce the split: turbo boundaries tags between packages, and
 `zgeoff/import-zones` pins for libraries that only one package may import.
@@ -26,13 +26,15 @@ boxxy/
 ├── adapters/                    one package per outside system, named <port>-<system>
 │   ├── store-sqlite/            the only bun:sqlite + Kysely user; migrations
 │   ├── worker-atc/              spawns attempts through atc, reads back their session ids
-│   ├── facts-pepys/             the FactSink append client and the cost reader for pepys (the consumer lives in pepys)
+│   ├── notifier-atc/            sends a hold notice as an atc message
 │   ├── forge-github/            PR and commit links, later the train's merges
 │   └── capacity-<provider>/   (slice 2) one per capacity source
 ├── libs/                        shared types, schemas and pure helpers; no I/O
 │   ├── model/                   every type 2+ packages share, the fact catalog, schemas, derived state
 │   ├── contract/                the oRPC contract the server serves and the CLI calls
 │   └── content-hash/            the ContentHash type and hashes for recipes, rules versions, verdicts
+├── packages/                    packages that another repo's deployment installs
+│   └── pepys/                   @boxxy/pepys: the pepys plug-in, the FactSink adapter and the pepys reader
 ├── docs/                        design/ and decisions/
 └── scripts/                     repo tooling; may do I/O and import any workspace package
 ```
@@ -80,14 +82,15 @@ Each outside system has one package that may talk to it:
 | the store      | `adapters/store-sqlite` | only it imports `bun:sqlite`, `kysely` or `@zgeoff/kysely-bun-sqlite` |
 | atc            | `adapters/worker-atc`   | only it imports `@atcx/contract`                                      |
 | GitHub         | `adapters/forge-github` | only an adapter calls `fetch`                                         |
-| pepys          | `adapters/facts-pepys`  | only an adapter calls `fetch`                                         |
+| pepys          | `packages/pepys`        | no module and no lib imports `@boxxy/pepys`                           |
 
-One library has a pin of its own: only `modules/rules` imports `yaml`, so every rules file reaches
-the other packages through `loadRules`.
+Two libraries have a pin of their own. Only `modules/rules` imports `yaml`, so every rules file
+reaches the other packages through `loadRules`. Only `modules/dispatch` imports `xstate`, for the
+attempt state table.
 
-The `zgeoff/import-zones` rule in `.oxlintrc.json` holds these pins. Lint can't tell which adapter a
+The `zgeoff/import-zones` rule in `.oxlintrc.json` holds these pins. The v1 build adds the pins for `xstate` and `@boxxy/pepys` ([work list](./v1-work-list.md)). Lint can't tell which adapter a
 `fetch` reaches, so review checks that GitHub calls stay in `forge-github` and pepys calls in
-`facts-pepys`.
+`packages/pepys`.
 
 `modules/**` and `libs/**` do no I/O. The import zones fail an import of `node:fs`,
 `node:child_process`, `node:net`, `node:http` or `node:https` there, and oxlint's
@@ -131,6 +134,8 @@ modules/planning/
 - An end-to-end test lives in the `e2e/` folder of the package that builds the program it runs, such
   as `apps/server/e2e/`. The repo root holds no `test-utils/` or `e2e/` folder, and
   `bun run check:test-layout` fails a test or a helper outside this layout.
+
+The folders inside each package's `src/` are in [folder layout](./layout-folders.md).
 
 ## Where a helper goes
 

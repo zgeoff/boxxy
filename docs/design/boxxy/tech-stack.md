@@ -10,8 +10,10 @@ are in [the layout](./layout.md).
 
 ## The owner's calls
 
-- **Elysia 2.0 rc.** boxxy serves its oRPC API on Elysia `2.0.0-rc.0`, as pepys does with oRPC
-  `1.16.1`. pepys's spike shows oRPC `1.16.1` runs on it. The other repos stay on Elysia `1.4.30`.
+- **Elysia 2.0 rc.** boxxy serves its oRPC API on Elysia `2.0.0-rc.0`, as pepys does. The other
+  repos stay on Elysia `1.4.30`.
+- **oRPC v2 beta.** The API and its two MCP endpoints run on oRPC `2.0.0-beta.50`, pinned exactly,
+  because v2 has the MCP integration ([API and auth](./v1-api-and-auth.md#the-three-doors)).
 - **Shared files through repo-sync.** boxxy takes its shared files from zgeoff/tools through the
   repo-sync workflow, like every other repo. repo-sync delivers the chex checks with them.
 - **The four-folder split.** boxxy uses noslop's and nixie's `apps/ modules/ adapters/ libs/` split,
@@ -32,7 +34,7 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | Type-aware lint    | `@maschwenk/tsrslint` `0.1.6`                                                                                         | wringer, nixie, atc, noslop             |
 | Format             | `oxfmt` `0.75.0`, `@zgeoff/oxfmt-config` `0.1.0`, `@zgeoff/format-codemod` `0.3.5`                                    | atc (oxfmt); zgeoff/tools (the configs) |
 | Package boundaries | `turbo` `2.11.10`                                                                                                     | noslop, nixie                           |
-| Typed API          | `@orpc/contract`, `@orpc/server`, `@orpc/client` `1.16.1`                                                             | nixie, atc, pepys                       |
+| Typed API          | `@orpc/contract`, `@orpc/server`, `@orpc/client`, `@orpc/mcp` `2.0.0-beta.50`, `@modelcontextprotocol/server` `2.4.0` | boxxy's own choice                      |
 | HTTP server        | `elysia` `2.0.0-rc.0`, with `typebox` `1.4.3`, `exact-mirror` `1.2.6` and `openapi-types` `12.1.3` as pepys pins them | pepys                                   |
 | Database           | `kysely` `0.29.7` on `bun:sqlite` through `@zgeoff/kysely-bun-sqlite` `0.3.0`                                         | nixie, atc                              |
 | Migrations         | Kysely's `Migrator` with an in-code migration provider                                                                | atc                                     |
@@ -41,7 +43,7 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | CLI                | `gunshi` `1.0.0-rc.1`                                                                                                 | nixie, atc, noslop                      |
 | Logging            | `@logtape/logtape` `2.4.2`                                                                                            | nixie, atc, noslop                      |
 | Control flow       | `ts-pattern` `5.9.2`, `tiny-invariant` `1.3.3`, `type-fest` `5.10.0`, `@zgeoff/std` `0.4.0`                           | atc, pepys                              |
-| State machines     | `xstate` `5.33.3`, for in-memory state only                                                                           | nixie, atc                              |
+| State machines     | `xstate` `6.0.0-beta.2`, pinned exactly, for the attempt state table in `@boxxy/dispatch` only                        | boxxy's own choice                      |
 | Tests              | `bun test --randomize`, `@zgeoff/bun-test-extended` `0.2.3`, `@faker-js/faker` `10.6.0`                               | nixie                                   |
 | HTTP mocks         | `msw` `2.15.0`, `@msw/data` `1.1.8`                                                                                   | nixie, noslop                           |
 | Git hooks          | `lefthook` `2.2.2`, gitleaks                                                                                          | all five                                |

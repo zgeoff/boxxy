@@ -49,7 +49,7 @@ constraints apply to the kinds the design names:
 | triage | carries a typed `size`, which cohort keys and the [forecast](./planning.md#forecast-proposed) read |
 | contract | files a draft `core.decision` for the [sign-off gate](./core-model.md#gates-and-sign-offs) |
 | `plan.judge` | ends the strand with an override (pin, admit or lift) or a defer ([planning](./planning.md#the-judgement-pool)) |
-| review | the review worker's own check result is the outcome ([merge train](./merge-train.md)) |
+| review | the review worker's own check result is the outcome ([merge train](./merge-train.md)); in v1 the review session sends the verdict and the findings as text ([v1](./v1.md#the-review)) |
 
 ## Derived from facts
 
@@ -59,7 +59,7 @@ boxxy never asks the agent for these, because a fact records each one:
 | --- | --- |
 | commits and PRs | the trailer and the PR hook ([below](#linking-attempts-to-commits-and-prs)) |
 | CI results | GitHub check runs |
-| review findings | noslop's review facts |
+| review findings | noslop's review facts; in v1, the review close-out |
 | tokens, cost and time | OTel request records, joined to the attempt by the agent session id ([measurement](./measurement.md)) |
 | changes the attempt saw | the notify, restart, cancel and ignore facts ([core model](./core-model.md#changes-while-an-attempt-runs)) |
 | owner attention | atc's event trail |

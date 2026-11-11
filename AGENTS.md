@@ -27,6 +27,9 @@ The mistakes that cost most here:
 - Find your task's build unit in the [first build spec](docs/design/boxxy/slice-1.md). Read the
   unit, and each design doc it links. The [core model](docs/design/boxxy/core-model.md) defines the
   terms.
+- For v1 work, find your slice in the [v1 work list](docs/design/boxxy/v1-work-list.md), and read
+  the [v1 design](docs/design/boxxy/v1.md) and the sketch files the slice names. Where a v1 doc and
+  the first build spec differ, the v1 doc stands.
 - Check the unit's "Depends on" list. When a unit it names hasn't merged, stop, and report the task
   as blocked by that unit. The repo-setup unit creates the root `package.json`, and every other unit
   depends on it.

@@ -2,9 +2,9 @@
 
 A runner gets work by calling `claimNext`. The boxxy store runs the whole decision inside one
 `BEGIN IMMEDIATE` transaction: it reads its own observation boundary, builds the frame, runs
-`decide()`, and takes the item-phase lease and a pool slot lease together. A pull that lands between
+`decide()`, and takes the item-phase lease and a seat in each limit that counts the attempt together. A pull that lands between
 deciding and claiming can't be missed, and two runners can never take the same item phase or a
-pool's last slot. A benchmark measured the lock at 14 ms p50 with 20,000 open items, far inside the
+limit's last seat. A benchmark measured the lock at 14 ms p50 with 20,000 open items, far inside the
 budget the measured claim rate allows.
 
 ## claimNext
@@ -40,9 +40,9 @@ the lock ([measurement](./measurement.md)).
 
 ## Leases and generations
 
-- **Each claim holds two leases:** one on the item phase and one on a pool slot. A pool's slots are
-  lease rows, so a slot count is atomic. Two runners can't each see the last free slot and claim
-  different items.
+- **Each claim holds the item-phase lease and its seats:** one seat in every limit whose filter the
+  attempt matches ([v1](./v1.md#limits-and-pools)). A limit's seats are rows, so a seat count is
+  atomic. Two runners can't each see the last free seat and claim different items.
 - **Each lease has a generation number.** Every write made under a lease carries its generation, and
   the store refuses a write whose generation is not the live one. A runner that lost its lease, for
   example after a pause, can't overwrite the attempt that replaced it.

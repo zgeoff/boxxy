@@ -153,7 +153,7 @@ Two interface layers sit under a runner, and neither reaches through the other:
 
 ## Entry points
 
-Every entry point is a client of one command API: `item.file`, `item.edit`, `link.add`,
+Every entry point is a client of one command API: `item.file`, `item.edit`, `relation.add`,
 `item.close`, `steer`, `ask.answer` and the others. Entry points include the owner's own Claude Code
 session through a mod, the CLI, agents filing work, and later nixie.
 

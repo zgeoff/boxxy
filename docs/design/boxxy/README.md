@@ -27,6 +27,18 @@ experiments, so every part of the system can be compared and improved. Packages 
 - [Layout](./layout.md): the workspace, package tags and import rules, and where a helper goes.
 - [Tech stack](./tech-stack.md): the runtime, libraries and repo tooling.
 - [Slice 1](./slice-1.md): what the first build includes and leaves out.
+- [v1](./v1.md): the four-phase pipeline and its rules, limits, recipes, the ledger and notices.
+- [Attempt lifecycle](./v1-lifecycle.md): the attempt states in v1, the reconcile table, sleep and
+  wake, close-outs, settle, the kept session and cleanup.
+- [API and auth](./v1-api-and-auth.md): the v1 procedures and who may call each, the worker token
+  and the proven caller.
+- [Facts and pepys](./v1-facts-and-pepys.md): the outbox, the v1 fact catalog, the pepys package
+  and its two queries.
+- [Open for the builder](./v1-open.md): what the v1 sketches leave unchecked, assumed or not
+  designed.
+- [Work list](./v1-work-list.md): the v1 build as numbered slices, in dependency order.
+- [Folder layout](./layout-folders.md): the folders inside each package.
+- [Interface sketches](./sketches/README.md): the shape of each interface, as TypeScript files.
 
 ## Reading order
 
@@ -34,8 +46,9 @@ experiments, so every part of the system can be compared and improved. Packages 
    the nouns.
 2. Read [planning](./planning.md), then [dispatch](./dispatch.md), for how work gets picked and
    claimed.
-3. Read [slice 1](./slice-1.md) before you build, then [layout](./layout.md) and
-   [tech stack](./tech-stack.md) for where the code goes.
+3. Read [v1](./v1.md) and the [work list](./v1-work-list.md) before you build, then
+   [layout](./layout.md), [folder layout](./layout-folders.md) and [tech stack](./tech-stack.md)
+   for where the code goes. [Slice 1](./slice-1.md) specifies the code that v1 builds on.
 4. Read the other docs when your work touches them.
 
 The decisions behind the design are in [docs/decisions](../../decisions/).
