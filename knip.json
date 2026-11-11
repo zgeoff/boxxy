@@ -4,7 +4,14 @@
   "ignore": [".claude/**", "docs/design/boxxy/sketches/**"],
   // the shared oxlint config loads the plugin, and the synced skill-gate hook in .claude/ imports
   // the package, so knip sees neither
-  "ignoreDependencies": ["@stylistic/eslint-plugin", "@zgeoff/skill-gate"],
+  // the pepys kit tarballs depend on these two by version, so the pepys package names their
+  // tarball URLs; no boxxy file imports them
+  "ignoreDependencies": [
+    "@stylistic/eslint-plugin",
+    "@zgeoff/skill-gate",
+    "@pepys/kysely-turso",
+    "@pepys/schema"
+  ],
   // repo-sync delivers these scripts from zgeoff/tools and overwrites a local edit, and they export
   // types that only their own file uses
   // the test script names its roots, so knip reads no package's tests from it
