@@ -214,7 +214,8 @@ export type ClosingCause =
   | 'item-closed'
   | 'stalled'
   | 'skill-missing'
-  | 'turn-ended';
+  | 'turn-ended'
+  | 'usage-limit';
 
 export type ForcedFailure =
   | 'spawn-refused'

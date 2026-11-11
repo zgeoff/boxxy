@@ -110,6 +110,14 @@ export const attemptMoves: readonly AttemptMove[] = [
     context: () => ({ closing: 'skill-missing' }),
   },
   {
+    // `boxxy.attempt.settled` carries the cause
+    event: 'usage-limited',
+    from: ['running'],
+    to: 'closing',
+    effects: [],
+    context: () => ({ closing: 'usage-limit' }),
+  },
+  {
     event: 'suspend-asked',
     from: ['running'],
     when: (context) => !context.mark,

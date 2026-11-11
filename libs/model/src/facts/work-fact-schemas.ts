@@ -38,6 +38,7 @@ const closingCauseSchema = z.enum([
   'stalled',
   'skill-missing',
   'turn-ended',
+  'usage-limit',
 ]);
 
 const copiedEvidenceSchema = z.object({

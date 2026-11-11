@@ -121,7 +121,7 @@ function buildClaimedChange(base: BuildAttemptChangeBase, event: ClaimedEvent): 
   const [snapshot, effects] = initialTransition(attemptMachine, { mode: event.mode });
 
   const row: AttemptRow = {
-    id: brandSchemas.attemptId.parse(base.newId()),
+    id: event.attempt,
     item: event.pick.item,
     phase: event.pick.phase,
     number: event.number,
@@ -431,6 +431,7 @@ function toMachineEvent(event: MoveEvent): AttemptMachineEvent {
           'turn-ended',
           'stalled',
           'skill-missing',
+          'usage-limited',
           'suspend-asked',
           'suspend-refused',
           'slept',
@@ -505,6 +506,7 @@ function buildEventColumns(
           'turn-ended',
           'stalled',
           'skill-missing',
+          'usage-limited',
           'suspend-asked',
           'suspend-refused',
           'wake-requested',

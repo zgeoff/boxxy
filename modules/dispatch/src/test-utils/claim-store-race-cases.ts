@@ -26,6 +26,7 @@ export const claimStoreRaceCases: readonly ClaimStoreCase[] = [
         attempt: null,
         event: {
           kind: 'claimed',
+          attempt: buildMockV1AttemptRow().id,
           pick: {
             kind: 'start',
             item: item.id,

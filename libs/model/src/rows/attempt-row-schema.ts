@@ -46,7 +46,15 @@ export const attemptRowSchema: z.ZodType<AttemptRow> = z.object({
   closeOutHash: contentHashSchema.nullable(),
   closeOutFact: brandSchemas.factId.nullable(),
   closing: z
-    .enum(['closed-out', 'timed-out', 'item-closed', 'stalled', 'skill-missing', 'turn-ended'])
+    .enum([
+      'closed-out',
+      'timed-out',
+      'item-closed',
+      'stalled',
+      'skill-missing',
+      'turn-ended',
+      'usage-limit',
+    ])
     .nullable(),
   closingAt: instantOrNullSchema,
   suspendRequestedAt: instantOrNullSchema,

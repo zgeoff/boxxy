@@ -43,6 +43,7 @@ export { relationRowSchema } from './rows/relation-row-schema.ts';
 export { reviewCloseOutSchema } from './closeouts/review-close-out-schema.ts';
 export { rowSchemas } from './rows/row-schemas.ts';
 export { signalKey } from './planning/signal-key.ts';
+export { spawnRequestSchema } from './rows/spawn-request-schema.ts';
 export { sliceOneFactSchemas } from './slice-one/slice-one-fact-schemas.ts';
 export { stageTimeSchema } from './reports/stage-time-schema.ts';
 export { toJSONValue } from './utils/to-json-value.ts';

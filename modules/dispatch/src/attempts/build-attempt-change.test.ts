@@ -247,6 +247,20 @@ test.each<MoveCase>([
     [],
   ]),
   [
+    'usage-limited from running',
+    'running',
+    {},
+    { kind: 'usage-limited' },
+    [
+      {
+        op: 'update',
+        table: 'attempts',
+        set: { state: 'closing', closing: 'usage-limit', closingAt: 5000 },
+      },
+    ],
+    [],
+  ],
+  [
     'suspend-asked from running with no mark',
     'running',
     { suspendRequestedAt: null },
@@ -575,6 +589,7 @@ test('#buildAttemptChange claims a new attempt with its lease, seats and decisio
     attempt: null,
     event: {
       kind: 'claimed',
+      attempt: brandSchemas.attemptId.parse('0190a6f4-0000-7000-8000-0000000000aa'),
       pick: {
         kind: 'start',
         item,
@@ -598,7 +613,7 @@ test('#buildAttemptChange claims a new attempt with its lease, seats and decisio
     },
   });
 
-  const attempt = '0190a6f4-0000-7000-8000-000000000001';
+  const attempt = '0190a6f4-0000-7000-8000-0000000000aa';
 
   const row = {
     id: attempt,
@@ -642,7 +657,7 @@ test('#buildAttemptChange claims a new attempt with its lease, seats and decisio
 
   const decisionRow = {
     ...decision,
-    id: '0190a6f4-0000-7000-8000-000000000002',
+    id: '0190a6f4-0000-7000-8000-000000000001',
     attempt,
     at: 5000,
   };
@@ -664,7 +679,7 @@ test('#buildAttemptChange claims a new attempt with its lease, seats and decisio
       ],
       facts: [
         {
-          id: '0190a6f4-0000-7000-8000-000000000003',
+          id: '0190a6f4-0000-7000-8000-000000000002',
           type: 'boxxy.attempt.claimed',
           entity: `boxxy:item:${item}`,
           actor: 'boxxy:runner:runner-1',
@@ -683,7 +698,7 @@ test('#buildAttemptChange claims a new attempt with its lease, seats and decisio
           },
         },
         {
-          id: '0190a6f4-0000-7000-8000-000000000004',
+          id: '0190a6f4-0000-7000-8000-000000000003',
           type: 'boxxy.decision.recorded',
           entity: `boxxy:item:${item}`,
           actor: 'boxxy:runner:runner-1',

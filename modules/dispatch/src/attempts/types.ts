@@ -1,6 +1,8 @@
 import type {
   ActorRef,
+  AgentSessionId,
   AtcSessionId,
+  AttemptId,
   AttemptRow,
   AttemptSessionRow,
   AttemptState,
@@ -13,6 +15,7 @@ import type {
   FactType,
   Instant,
   Minutes,
+  NewId,
   ResolvedRecipe,
   RunnerId,
   SessionMode,
@@ -64,6 +67,7 @@ export type AttemptMachineEvent =
         | 'turn-ended'
         | 'stalled'
         | 'skill-missing'
+        | 'usage-limited'
         | 'suspend-asked'
         | 'suspend-refused'
         | 'slept'
@@ -106,6 +110,9 @@ export type DecisionDraft = Omit<DecisionRow, 'id' | 'attempt' | 'at'>;
 
 export interface ClaimedEvent {
   readonly kind: 'claimed';
+
+  // made before the change, because the spawn request names it
+  readonly attempt: AttemptId;
   readonly pick: StartPick;
   readonly number: number;
   readonly runner: RunnerId;
@@ -146,6 +153,7 @@ export type MoveEvent =
   | { readonly kind: 'turn-ended' }
   | { readonly kind: 'stalled' }
   | { readonly kind: 'skill-missing' }
+  | { readonly kind: 'usage-limited' }
   | { readonly kind: 'suspend-asked' }
   | { readonly kind: 'suspend-refused' }
   | { readonly kind: 'slept'; readonly idleSince: Instant; readonly asked: boolean }
@@ -187,6 +195,25 @@ export interface MoveParts {
   readonly after: AttemptRow;
   readonly event: AttemptEvent;
   readonly decision: DecisionRow | null;
+}
+
+// What every move of a caller outside the builder passes on.
+export interface MoveBase {
+  readonly actor: ActorRef;
+  readonly now: Instant;
+  readonly newId: NewId;
+}
+
+export type MoveResult =
+  | { readonly kind: 'applied' }
+  | { readonly kind: 'not-allowed' }
+
+  // the store refused the change: a race the next tick reads again
+  | { readonly kind: 'refused'; readonly reason: string };
+
+export interface SeenSession {
+  readonly atcSession: AtcSessionId;
+  readonly agentSession: AgentSessionId;
 }
 
 export interface FactEnvelopeParts {
