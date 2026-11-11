@@ -3,7 +3,6 @@ import { buildAppliedChange, buildItemViews, findSlotTake, toJSONValue } from '@
 import type {
   ApplyResult,
   AttemptRow,
-  ClaimStore,
   EvidenceRow,
   Instant,
   ItemSetRows,
@@ -25,13 +24,20 @@ import type {
 } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { match } from 'ts-pattern';
+import type { ClosableClaimStore } from './types.ts';
 
-export function createMemoryClaimStore(): ClaimStore {
+export function createMemoryClaimStore(): ClosableClaimStore {
   let committed = buildEmptyTables();
   let turn: Promise<void> = Promise.resolve();
+  let isClosed = false;
+  let reads: Promise<unknown> = Promise.resolve();
 
   return {
     exclusive: async (work) => {
+      if (isClosed) {
+        throw new Error('the store is closed');
+      }
+
       const previous = turn;
       const next = Promise.withResolvers<void>();
 
@@ -54,7 +60,22 @@ export function createMemoryClaimStore(): ClaimStore {
     read: (work) => {
       const snapshot = committed;
 
-      return Promise.try(() => work(buildMemoryReader(() => snapshot)));
+      const reading = Promise.try(() => {
+        if (isClosed) {
+          throw new Error('the store is closed');
+        }
+
+        return work(buildMemoryReader(() => snapshot));
+      });
+
+      reads = Promise.allSettled([reads, reading]);
+
+      return reading;
+    },
+    close: async () => {
+      isClosed = true;
+
+      await reads;
     },
   };
 }

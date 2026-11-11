@@ -16,7 +16,7 @@ export interface SQLiteClaimStore extends ClaimStore {
 export async function createSQLiteClaimStore(path: string): Promise<SQLiteClaimStore> {
   await using opened = new AsyncDisposableStack();
 
-  const writer = openStoreHandle(path, 0);
+  const writer = openStoreHandle(path, { create: true, busyTimeoutMs: 0 });
 
   opened.defer(() => {
     writer.close();
@@ -30,6 +30,10 @@ export async function createSQLiteClaimStore(path: string): Promise<SQLiteClaimS
 
   const handles = opened.move();
 
+  const reads = new Set<Promise<unknown>>();
+
+  let isClosed = false;
+
   return {
     // Kysely holds the one connection of a handle from acquire to release, so two calls on this
     // store run one at a time, and the write lock makes another store's writer wait.
@@ -38,18 +42,43 @@ export async function createSQLiteClaimStore(path: string): Promise<SQLiteClaimS
         .connection()
         .execute((db) => withTransaction(db, takeWriteLock, () => work(createSQLiteTx(db)))),
 
-    read: (work) => withReadHandle(path, work),
+    read: async (work) => {
+      if (isClosed) {
+        throw new Error('the store is closed');
+      }
 
-    close: () => handles.disposeAsync(),
+      const reading = withReadHandle(path, work);
+
+      reads.add(reading);
+
+      try {
+        return await reading;
+      } finally {
+        reads.delete(reading);
+      }
+    },
+
+    close: async () => {
+      isClosed = true;
+
+      await Promise.allSettled(reads);
+      await handles.disposeAsync();
+    },
   };
 }
 
-function openStoreHandle(path: string, busyTimeoutMs: number): Database {
-  const handle = new Database(path, { create: true });
+interface HandleOptions {
+  // false fails on a missing file, where true would make an empty one with no tables
+  readonly create: boolean;
+  readonly busyTimeoutMs: number;
+}
+
+function openStoreHandle(path: string, options: HandleOptions): Database {
+  const handle = new Database(path, { readwrite: true, create: options.create });
 
   handle.run('PRAGMA journal_mode = WAL');
   handle.run('PRAGMA synchronous = NORMAL');
-  handle.run(`PRAGMA busy_timeout = ${busyTimeoutMs}`);
+  handle.run(`PRAGMA busy_timeout = ${options.busyTimeoutMs}`);
 
   return handle;
 }
@@ -62,7 +91,7 @@ async function withReadHandle<T>(
 ): Promise<T> {
   await using opened = new AsyncDisposableStack();
 
-  const handle = openStoreHandle(path, 5000);
+  const handle = openStoreHandle(path, { create: false, busyTimeoutMs: 5000 });
 
   opened.defer(() => {
     handle.close();

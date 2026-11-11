@@ -29,6 +29,11 @@ async function setupTest() {
       return store;
     },
     listFiles: () => readdir(folder),
+    removeFiles: async () => {
+      const files = await readdir(folder);
+
+      await Promise.all(files.map((file) => rm(join(folder, file))));
+    },
     seedForeignItemsTable: () => {
       const sqlite = new Database(path, { create: true });
 
@@ -103,4 +108,22 @@ test('it opens one new file from two stores started together', async () => {
   const opened = await Promise.allSettled([ctx.createStore(), ctx.createStore()]);
 
   expect(opened.map((result) => result.status)).toStrictEqual(['fulfilled', 'fulfilled']);
+});
+
+test('it creates no file for a read after the file of the store is removed', async () => {
+  const ctx = await setupTest();
+  const store = await ctx.createStore();
+
+  await ctx.removeFiles();
+
+  const read = await store
+    .read((transaction) => transaction.listPoolSlots())
+    .then(
+      () => 'resolved',
+      () => 'rejected',
+    );
+
+  const files = await ctx.listFiles();
+
+  expect({ read, files }).toStrictEqual({ read: 'rejected', files: [] });
 });

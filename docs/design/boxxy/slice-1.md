@@ -237,6 +237,8 @@ The memory fake `createMemoryClaimStore()` keeps the [store rules](#store-rules)
 - Each call works on a copy of the fake's state. The fake swaps the copy in when `work` resolves,
   and discards it when `work` throws, as ROLLBACK does.
 - `read` sees the last committed state, never the copy of a running `exclusive` call.
+- `close` waits for each running `read`, and a later `read` or `exclusive` call rejects, as on the
+  SQLite store.
 
 ### One write path
 
@@ -331,7 +333,9 @@ and `kysely`.
 `exclusive` runs on one handle that the store holds open, and each `read` call opens a handle of its
 own. A read sees the last commit and never the writes of a running `exclusive` call, and a `read`
 started inside another `read` runs at once. One `read` call
-keeps the snapshot of its first query, even when a commit lands before it ends. Each table is
+keeps the snapshot of its first query, even when a commit lands before it ends. A `read` handle
+never creates the file, so a `read` on a missing file fails. `close` waits for each running `read`
+to end, and a `read` or an `exclusive` call made after `close` rejects. Each table is
 `STRICT`. A time is an integer of milliseconds, a flag is `0` or `1`, and a list or an object is
 canonical JSON text, so a guard on a JSON column matches whatever the key order of its value. The store parses each row it reads with the row's zod schema from `@boxxy/model`.
 
