@@ -38,3 +38,13 @@ test('it seeds an item with no phase at the first phase of its pipeline', async 
 
   expect(phase).toBe('triage');
 });
+
+test('#seedReworkAfter starts the second build on the first build session', async () => {
+  const dispatch = await createTestDispatch();
+  const first = await dispatch.seedBuild();
+  const second = await dispatch.seedReworkAfter(first);
+
+  const received: unknown = [second.phase, second.state, second.atcSession, second.caller];
+
+  expect(received).toStrictEqual(['build', 'running', first.atcSession, first.caller]);
+});

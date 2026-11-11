@@ -38,7 +38,7 @@ async function setupTest() {
         store: dispatch.store,
         forge,
         rules: dispatch.rules(),
-        attempt,
+        call: dispatch.buildCallRef(attempt),
         url,
         now: dispatch.clock.now(),
         newId: dispatch.newId,
@@ -124,6 +124,42 @@ test('it writes nothing and answers retry while the forge is down, and the watch
     afterWatch.evidence.filter((row) => row.kind === 'pull_request').map((row) => row.source),
     factsAfterWatch.length,
   ]).toStrictEqual([[[7, 9_000_007]], ['watch'], 1]);
+});
+
+test('it refuses and writes nothing when a newer attempt takes the session during the forge read', async () => {
+  const ctx = await setupTest();
+
+  ctx.addOpenPullRequest(7);
+
+  const hold = ctx.forge.holdNextRead();
+  const pending = ctx.link('https://github.com/example/app/pull/7');
+
+  await hold.entered;
+
+  await ctx.seedReworkAfter(ctx.attempt);
+
+  hold.release();
+
+  const answer = await pending;
+  const facts = await ctx.listFacts('boxxy.pull_request.linked');
+
+  expect(answer).toStrictEqual({ kind: 'refused', reason: 'not-current' });
+  expect(facts).toStrictEqual([]);
+});
+
+test('it refuses a call from an older attempt of the session and never reads the forge', async () => {
+  const ctx = await setupTest();
+
+  ctx.addOpenPullRequest(7);
+
+  await ctx.seedReworkAfter(ctx.attempt);
+
+  const answer = await ctx.link('https://github.com/example/app/pull/7');
+
+  expect({ answer, calls: ctx.forge.calls }).toStrictEqual({
+    answer: { kind: 'refused', reason: 'not-current' },
+    calls: [],
+  });
 });
 
 test('it answers retry for a pull request the forge does not know yet', async () => {

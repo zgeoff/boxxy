@@ -1,5 +1,4 @@
 import type {
-  AttemptRow,
   ClaimStore,
   Forge,
   Instant,
@@ -8,14 +7,15 @@ import type {
   RepoName,
   RunnerId,
 } from '@boxxy/model';
+import type { CallRef } from '../closeouts/types.ts';
 
 export interface LinkPullRequestInput {
   readonly store: ClaimStore;
   readonly forge: Forge;
   readonly rules: ItemRules;
 
-  // the attempt of the session that made the call, as `pickCallAttempt` gave it
-  readonly attempt: AttemptRow;
+  // the call from the hook; the link reaches only the current attempt of the call's session
+  readonly call: CallRef;
 
   // the URL the hook read from the output of `gh pr create`
   readonly url: string;
@@ -36,10 +36,11 @@ export type LinkPullRequestResult =
   // the forge did not answer, or does not know the pull request yet; nothing was written
   | { readonly kind: 'retry' }
 
-  // `not-a-pull-request-url`: no pull request URL, or one of a repo other than the item's
+  // `not-a-pull-request-url`: no pull request URL, or one of a repo other than the item's;
+  // `no-attempt` and `not-current`: the call names no current attempt of its session
   | {
       readonly kind: 'refused';
-      readonly reason: 'not-a-pull-request-url' | 'linked-elsewhere';
+      readonly reason: 'not-a-pull-request-url' | 'linked-elsewhere' | 'no-attempt' | 'not-current';
     };
 
 export interface WatchPullRequestsInput {

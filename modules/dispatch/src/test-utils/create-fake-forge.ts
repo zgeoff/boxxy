@@ -7,6 +7,11 @@ export interface SeededPullRequest {
   readonly reading: Omit<PullRequestReading, 'githubId' | 'url'>;
 }
 
+export interface ReadHold {
+  readonly entered: Promise<void>;
+  readonly release: () => void;
+}
+
 export interface FakeForge extends Forge {
   // every call, in order
   readonly calls: readonly string[];
@@ -14,6 +19,10 @@ export interface FakeForge extends Forge {
 
   // while down, every call rejects, as a forge that does not answer
   setDown: (isDown: boolean) => void;
+
+  // the next `readPullRequest` waits until the test calls `release`; `entered` resolves once that
+  // read has started, so a test can change the store while the read is in flight
+  holdNextRead: () => ReadHold;
 }
 
 // A forge that keeps the pull requests a test seeds and answers as the `Forge` contract says.
@@ -22,6 +31,25 @@ export function createFakeForge(): FakeForge {
 
   const calls: string[] = [];
   let isDown = false;
+  let hold: { readonly entered: () => void; readonly released: Promise<void> } | null = null;
+
+  const answerRead = (ref: PullRequestRef): Promise<PullRequestReading | 'not-found'> => {
+    if (isDown) {
+      return Promise.reject(new Error('the fake forge is down'));
+    }
+
+    const found = pullRequests.get(toKey(ref));
+
+    if (found === undefined) {
+      return Promise.resolve('not-found');
+    }
+
+    return Promise.resolve({
+      ...found.reading,
+      githubId: found.githubId,
+      url: `https://github.com/${ref.repo}/pull/${ref.number}`,
+    });
+  };
 
   return {
     calls,
@@ -31,24 +59,38 @@ export function createFakeForge(): FakeForge {
     setDown: (down) => {
       isDown = down;
     },
-    readPullRequest: (ref) => {
+    holdNextRead: () => {
+      const entered = Promise.withResolvers<undefined>();
+      const released = Promise.withResolvers<undefined>();
+
+      hold = {
+        entered: () => {
+          entered.resolve(undefined);
+        },
+        released: released.promise,
+      };
+
+      return {
+        entered: entered.promise,
+        release: () => {
+          released.resolve(undefined);
+        },
+      };
+    },
+    readPullRequest: async (ref) => {
       calls.push(`readPullRequest ${toKey(ref)}`);
 
-      if (isDown) {
-        return Promise.reject(new Error('the fake forge is down'));
+      const held = hold;
+
+      hold = null;
+
+      if (held !== null) {
+        held.entered();
+
+        await held.released;
       }
 
-      const found = pullRequests.get(toKey(ref));
-
-      if (found === undefined) {
-        return Promise.resolve('not-found');
-      }
-
-      return Promise.resolve({
-        ...found.reading,
-        githubId: found.githubId,
-        url: `https://github.com/${ref.repo}/pull/${ref.number}`,
-      });
+      return answerRead(ref);
     },
     listOpenPullRequests: (repo: RepoName) => {
       calls.push(`listOpenPullRequests ${repo}`);

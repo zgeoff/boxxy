@@ -108,21 +108,13 @@ export const attemptHandlers = {
 
     return { kind: 'fault', fault: answer.fault, holder: answer.holder } as const;
   }),
-  recordPullRequest: api.attempt.recordPullRequest.handler(async (options) => {
+  recordPullRequest: api.attempt.recordPullRequest.handler((options) => {
     const input = options.input;
     const deps = options.context.deps;
     const call = buildCallRef(options.context.call, input.session.attempt);
 
     if (call === null) {
       return noAttempt;
-    }
-
-    const latest = await deps.store.read((tx) => tx.findAttemptBySession(call.session));
-
-    const picked = pickCallAttempt(latest, call);
-
-    if (picked.kind === 'refused') {
-      return picked;
     }
 
     if (deps.forge === null) {
@@ -133,7 +125,7 @@ export const attemptHandlers = {
       store: deps.store,
       forge: deps.forge,
       rules: deps.rulesState().rules,
-      attempt: picked.attempt,
+      call,
       url: input.url,
       now: deps.clock.now(),
       newId: deps.newId,

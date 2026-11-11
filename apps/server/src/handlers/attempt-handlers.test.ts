@@ -90,6 +90,38 @@ test('#recordPullRequest answers retry and writes nothing while the forge is dow
   expect(watched).toStrictEqual([]);
 });
 
+test('#recordPullRequest refuses a link when a newer attempt takes the session during the forge read', async () => {
+  const ctx = await setupTest();
+  const first = await ctx.dispatch.seedBuild();
+
+  ctx.callerProof.setCaller(first.caller);
+
+  ctx.forge.seed({
+    ref: { repo: brandSchemas.repoName.parse('example/app'), number: 7 },
+    githubId: 9_000_007,
+    reading: { state: 'open', mergedAt: null, mergeCommit: null, commits: [] },
+  });
+
+  const hold = ctx.forge.holdNextRead();
+  const pending = ctx.recordPullRequest(first.id, 'https://github.com/example/app/pull/7');
+
+  await hold.entered;
+
+  await ctx.dispatch.seedReworkAfter(first);
+
+  hold.release();
+
+  const answer = await pending;
+  const watched = await ctx.readWatched();
+
+  expect(answer).toStrictEqual({
+    status: 200,
+    body: { json: { kind: 'refused', reason: 'not-current' } },
+  });
+
+  expect(watched).toStrictEqual([]);
+});
+
 test('#recordPullRequest refuses another attempt and never reads the forge', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.seedStartedAttempt(brandSchemas.phaseName.parse('build'));

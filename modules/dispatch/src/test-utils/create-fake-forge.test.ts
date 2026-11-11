@@ -29,3 +29,18 @@ test('it rejects every call while it is down and answers again after', async () 
     await forge.listOpenPullRequests(repo),
   ]).toStrictEqual([['rejected', 'rejected'], []]);
 });
+
+test('it holds the next read until the test releases it', async () => {
+  const forge = createFakeForge();
+  const repo = brandSchemas.repoName.parse('acme/lamps');
+  const hold = forge.holdNextRead();
+  const read = forge.readPullRequest({ repo, number: 1 });
+
+  await hold.entered;
+
+  const whileHeld = await Promise.race([read, Promise.resolve('held')]);
+
+  hold.release();
+
+  expect([whileHeld, await read]).toStrictEqual(['held', 'not-found']);
+});

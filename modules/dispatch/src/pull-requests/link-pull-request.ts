@@ -1,12 +1,12 @@
 import type { ItemId, PullRequestReading, PullRequestRef, StoreReader } from '@boxxy/model';
 import invariant from 'tiny-invariant';
+import { pickCallAttempt } from '../attempts/pick-call-attempt.ts';
 import { buildLinkChange } from './build-link-change.ts';
 import { parsePullRequestUrl } from './parse-pull-request-url.ts';
 import type { LinkPullRequestInput, LinkPullRequestResult } from './types.ts';
 
-// The hook's link of a pull request to its attempt. It reads the forge before it writes: when the
-// forge does not answer, it writes nothing and answers `retry`, and the watch links it later.
-// A pull request already linked to an attempt of the same item is a repeat and writes nothing.
+// It checks the call before the forge read and again in the write's lock, because a newer attempt
+// can take the session while the forge answers.
 export async function linkPullRequest(input: LinkPullRequestInput): Promise<LinkPullRequestResult> {
   const ref = parsePullRequestUrl(input.url);
 
@@ -14,8 +14,20 @@ export async function linkPullRequest(input: LinkPullRequestInput): Promise<Link
     return { kind: 'refused', reason: 'not-a-pull-request-url' };
   }
 
+  const latest = await input.store.read((reader) =>
+    reader.findAttemptBySession(input.call.session),
+  );
+
+  const picked = pickCallAttempt(latest, input.call);
+
+  if (picked.kind === 'refused') {
+    return picked;
+  }
+
+  const attempt = picked.attempt;
+
   const item = await input.store.read((reader) =>
-    reader.readItem(input.attempt.item, input.now, input.rules),
+    reader.readItem(attempt.item, input.now, input.rules),
   );
 
   invariant(item !== null, 'the attempt of a call has its item');
@@ -37,6 +49,14 @@ export async function linkPullRequest(input: LinkPullRequestInput): Promise<Link
   }
 
   return input.store.exclusive(async (tx) => {
+    const latestInLock = await tx.findAttemptBySession(input.call.session);
+
+    const current = pickCallAttempt(latestInLock, input.call);
+
+    if (current.kind === 'refused') {
+      return current;
+    }
+
     const raced = await readExisting(tx, ref, item.id);
 
     if (raced !== 'none') {
@@ -45,11 +65,11 @@ export async function linkPullRequest(input: LinkPullRequestInput): Promise<Link
 
     const applied = await tx.applyChange(
       buildLinkChange({
-        attempt: input.attempt,
+        attempt: current.attempt,
         ref,
         reading,
         source: 'hook',
-        actor: `boxxy:hook:${input.attempt.id}`,
+        actor: `boxxy:hook:${current.attempt.id}`,
         now: input.now,
         newId: input.newId,
       }),

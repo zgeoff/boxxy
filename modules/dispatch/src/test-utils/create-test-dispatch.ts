@@ -98,6 +98,9 @@ export interface TestDispatch {
   // as the resume of the kept session starts it.
   readonly seedRework: (input: ReworkInput) => Promise<Rework>;
 
+  // after `seedBuild`: a review asks for changes, and the worker starts the rework on the kept session
+  readonly seedReworkAfter: (first: AttemptRow) => Promise<AttemptRow>;
+
   // the change of `item.close`: the item's close and the ends of its live attempts
   readonly closeItem: (item: ItemId, reason: string) => Promise<ApplyResult>;
   readonly readAttempt: (id: AttemptId) => Promise<AttemptRow>;
@@ -182,6 +185,13 @@ export async function createTestDispatch(options: TestDispatchOptions = {}): Pro
       return dispatch.readAttempt(built.first.id);
     },
     seedRework: (input) => seedReworkAttempts(dispatch, input),
+    seedReworkAfter: async (first) => {
+      await requestChanges(dispatch, first.item);
+
+      const resumed = await claimResumed(dispatch, first, { startByWorker: true });
+
+      return resumed.second;
+    },
     rules: () => rules,
     setRules: (next) => {
       rules = next;
@@ -414,6 +424,17 @@ async function seedReworkAttempts(dispatch: TestDispatch, input: ReworkInput): P
     });
   }
 
+  await requestChanges(dispatch, item);
+
+  return {
+    first: await dispatch.readAttempt(first.id),
+    firstBody,
+    ...(await claimResumed(dispatch, first, input)),
+  };
+}
+
+// The review of the item claims, asks for changes and settles.
+async function requestChanges(dispatch: TestDispatch, item: ItemId): Promise<void> {
   const review = await claimStarted(dispatch, item);
 
   await closeAndSettle(dispatch, review, {
@@ -424,12 +445,6 @@ async function seedReworkAttempts(dispatch: TestDispatch, input: ReworkInput): P
     noslop: buildMockNoslopReport(),
     friction: [],
   });
-
-  return {
-    first: await dispatch.readAttempt(first.id),
-    firstBody,
-    ...(await claimResumed(dispatch, first, input)),
-  };
 }
 
 // The claim only, then the `started` that the resume of the kept session records.
