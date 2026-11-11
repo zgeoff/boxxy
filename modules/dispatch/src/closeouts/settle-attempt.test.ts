@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { AttemptRow, Edge, ForcedFailure, ItemId, LoadedRules } from '@boxxy/model';
+import type { AttemptRow, Edge, Effect, ForcedFailure, ItemId, LoadedRules } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockPhaseKind } from '@boxxy/model/test-utils/build-mock-phase-kind';
 import { createFakeNotifier } from '@boxxy/model/test-utils/create-fake-notifier';
@@ -231,6 +231,66 @@ test('it closes a duplicate and adds the relation when the rules end the outcome
   ];
 
   expect(received).toStrictEqual(['duplicate', [[other, 'duplicate-of']], []]);
+});
+
+test('it settles a stored close-out whose effects repeat a relation and a close, and lists each skip', async () => {
+  const ctx = await setupTest();
+  const other = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+  const attempt = await ctx.claimAt('triage');
+
+  const rules = ctx.rules();
+  const relatesTo = brandSchemas.relationTypeName.parse('relates-to');
+  const duplicateOf = brandSchemas.relationTypeName.parse('duplicate-of');
+
+  const effects: Effect[] = [
+    { kind: 'add-relation', relation: { type: relatesTo, target: other } },
+    { kind: 'add-relation', relation: { type: relatesTo, target: other } },
+    { kind: 'add-relation', relation: { type: duplicateOf, target: other } },
+    { kind: 'add-relation', relation: { type: relatesTo, target: attempt.item } },
+    { kind: 'close-item', reason: 'duplicate', of: other },
+    { kind: 'close-item', reason: 'Not wanted', of: null },
+  ];
+
+  await ctx.closeOut(attempt, { result: { kind: 'accepted' }, relations: [], friction: [] });
+
+  ctx.setRules({
+    ...rules,
+    phases: new Map([
+      ...rules.phases,
+      [
+        brandSchemas.phaseName.parse('triage'),
+        {
+          ...buildMockPhaseKind({ name: 'triage', outcomes: ['accepted'] }),
+          settle: () => ({
+            state: 'succeeded',
+            failure: null,
+            outcome: 'accepted',
+            effects,
+            frictionDropped: 0,
+          }),
+        },
+      ],
+    ]),
+  });
+
+  const result = await ctx.settle(attempt);
+  const detail = await ctx.readItem(attempt.item);
+  const [settled] = await ctx.listFacts('boxxy.attempt.settled');
+
+  expect(result).toStrictEqual({ kind: 'applied' });
+
+  expect(detail.relations.map((relation) => [relation.type, relation.target])).toStrictEqual([
+    [relatesTo, other],
+    [duplicateOf, other],
+  ]);
+
+  expect(settled?.payload).toMatchObject({
+    skippedEffects: [
+      { effect: 'add-relation', reason: 'the relation is live already' },
+      { effect: 'add-relation', reason: 'an item has no relation to itself' },
+      { effect: 'close-item', reason: 'the item is closed' },
+    ],
+  });
 });
 
 test('it files each new open item once and lists the open issue that a title matches', async () => {

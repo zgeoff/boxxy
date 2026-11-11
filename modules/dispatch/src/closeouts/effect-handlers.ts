@@ -52,8 +52,9 @@ export const effectHandlers: EffectHandlers = {
       return { kind: 'skip', effect, reason: closed };
     }
 
-    const duplicateOf =
-      effect.of === null ? null : buildRelationPlan(ctx, 'duplicate-of', effect.of);
+    // a relation that is live already, such as one an earlier effect adds, is not added again
+    const relation = effect.of === null ? null : buildRelationPlan(ctx, 'duplicate-of', effect.of);
+    const duplicateOf = typeof relation === 'string' ? null : relation;
 
     return {
       kind: 'apply',
@@ -80,8 +81,8 @@ export const effectHandlers: EffectHandlers = {
 
     const plan = buildRelationPlan(ctx, effect.relation.type, effect.relation.target);
 
-    return plan === null
-      ? { kind: 'skip', effect, reason: 'the relation is live already, or its type is unknown' }
+    return typeof plan === 'string'
+      ? { kind: 'skip', effect, reason: plan }
       : { kind: 'apply', effect, ...plan };
   },
   'set-kind': (effect, ctx) => {
@@ -155,11 +156,19 @@ function buildRelationPlan(
   ctx: EffectContext,
   typeName: string,
   target: ItemId,
-): Pick<Extract<EffectPlan, { kind: 'apply' }>, 'writes' | 'facts'> | null {
+): Pick<Extract<EffectPlan, { kind: 'apply' }>, 'writes' | 'facts'> | string {
   const type = ctx.rules.relationTypes.get(brandSchemas.relationTypeName.parse(typeName))?.name;
 
-  if (type === undefined || target === ctx.item.id || isLive(ctx.relations, target, type)) {
-    return null;
+  if (type === undefined) {
+    return `the rules have no relation type ${typeName}`;
+  }
+
+  if (target === ctx.item.id) {
+    return 'an item has no relation to itself';
+  }
+
+  if (isLive(ctx.relations, target, type)) {
+    return 'the relation is live already';
   }
 
   const row: RelationRow = {

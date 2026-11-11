@@ -128,6 +128,42 @@ test('it refuses a duplicate of an item the store does not have, and of the item
   });
 });
 
+test('it refuses each repeat of a relation, the duplicate-of relation of a duplicate among them', () => {
+  const item = buildMockV1ItemView();
+  const other = brandSchemas.itemId.parse('0192f0c5-3c4d-7e5f-a061-7b8c9d0e1f2a');
+
+  const raw = {
+    result: { kind: 'duplicate', of: other },
+    relations: [
+      { type: 'relates-to', target: other },
+      { type: 'relates-to', target: other },
+      { type: 'duplicate-of', target: other },
+    ],
+    friction: [],
+  };
+
+  const parsed: unknown = triage.closeOut.parse(raw, {
+    item,
+    attempt: buildMockV1AttemptRow().id,
+    evidence: [],
+    world: {
+      items: new Set([item.id, other]),
+      kinds: new Set(),
+      relationTypes: new Set(
+        ['relates-to', 'duplicate-of'].map((type) => brandSchemas.relationTypeName.parse(type)),
+      ),
+    },
+  });
+
+  expect(parsed).toStrictEqual({
+    kind: 'invalid',
+    problems: [
+      { kind: 'phase-rule', message: `the close-out names relates-to ${other} more than once` },
+      { kind: 'phase-rule', message: `the close-out names duplicate-of ${other} more than once` },
+    ],
+  });
+});
+
 test('it settles an accepted close-out with an effect for each change it asks for', () => {
   const item = buildMockV1ItemView({ acceptance: [] });
   const other = brandSchemas.itemId.parse('0192f0c5-3c4d-7e5f-a061-7b8c9d0e1f2a');

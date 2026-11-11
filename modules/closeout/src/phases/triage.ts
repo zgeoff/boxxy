@@ -65,6 +65,7 @@ function collectTriageProblems(closeOut: TriageCloseOut, ctx: CloseOutContext): 
         message: 'an item is not a duplicate of itself',
       })),
     ...closeOut.relations.flatMap((relation) => collectRelationProblems(relation, ctx)),
+    ...collectRepeatedRelations(closeOut, duplicateOf),
   ];
 }
 
@@ -83,6 +84,31 @@ function collectRelationProblems(
     ...(ctx.world.relationTypes.has(relation.type) ? [] : [refused('unknown-type')]),
     ...(relation.target === ctx.item.id ? [refused('self')] : []),
   ];
+}
+
+// Each relation is one row of the store, so a close-out names each pair of type and target once.
+// A duplicate's `of` names the `duplicate-of` relation already.
+function collectRepeatedRelations(
+  closeOut: TriageCloseOut,
+  duplicateOf: readonly TriageCloseOut['relations'][number]['target'][],
+): CloseOutProblem[] {
+  const named = [
+    ...duplicateOf.map((target) => ({ type: 'duplicate-of', target })),
+    ...closeOut.relations,
+  ];
+
+  return named.flatMap((relation, index) =>
+    named
+      .slice(0, index)
+      .some((earlier) => earlier.type === relation.type && earlier.target === relation.target)
+      ? [
+          {
+            kind: 'phase-rule' as const,
+            message: `the close-out names ${relation.type} ${relation.target} more than once`,
+          },
+        ]
+      : [],
+  );
 }
 
 // A duplicate closes with `of`, which adds the `duplicate-of` relation in the same change.

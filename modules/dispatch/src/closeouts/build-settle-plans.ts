@@ -25,8 +25,8 @@ export interface SettlePlans {
 }
 
 // The plan of each effect of a settle, and the `settled` fact's fields that the plans decide.
-// A hold withholds each effect that changes an existing item; a filed item and friction change
-// none. A `file-item` that matches an open issue files nothing and lists it in `matched`.
+// A hold withholds each effect that changes an existing item. Each plan sees what the plans
+// before it write, so a repeated effect skips instead of breaking a key of the store.
 export function buildSettlePlans(input: SettlePlansInput): SettlePlans {
   const fileItems = input.effects.flatMap((effect) =>
     effect.kind === 'file-item' ? [effect.item] : [],
@@ -36,18 +36,15 @@ export function buildSettlePlans(input: SettlePlansInput): SettlePlans {
 
   const toFile = new Set(deduped.file);
 
-  const plans = input.effects
+  const effects = input.effects
     .filter((effect) => effect.kind !== 'file-item' || toFile.has(effect.item))
 
     // each item update expects the item open, so the close goes last
     .toSorted(
       (first, second) => Number(first.kind === 'close-item') - Number(second.kind === 'close-item'),
-    )
-    .map((effect): EffectPlan =>
-      input.held && isItemChange(effect)
-        ? { kind: 'skip', effect, reason: 'the item holds for the owner' }
-        : planEffect(effect, input.ctx),
     );
+
+  const plans = collectPlans(effects, input);
 
   return {
     plans,
@@ -57,6 +54,24 @@ export function buildSettlePlans(input: SettlePlansInput): SettlePlans {
       plan.kind === 'skip' ? [{ effect: plan.effect.kind, reason: plan.reason }] : [],
     ),
   };
+}
+
+function collectPlans(effects: readonly Effect[], input: SettlePlansInput): EffectPlan[] {
+  const plans: EffectPlan[] = [];
+  let ctx = input.ctx;
+
+  for (const effect of effects) {
+    const plan: EffectPlan =
+      input.held && isItemChange(effect)
+        ? { kind: 'skip', effect, reason: 'the item holds for the owner' }
+        : planEffect(effect, ctx);
+
+    plans.push(plan);
+
+    ctx = buildPlannedContext(ctx, plan);
+  }
+
+  return plans;
 }
 
 const itemChanges: ReadonlySet<Effect['kind']> = new Set([
@@ -95,6 +110,23 @@ function pickHandler(effect: Effect): (ctx: EffectContext) => EffectPlan {
       (record) => (ctx) => effectHandlers['record-proposal'](record, ctx),
     )
     .exhaustive();
+}
+
+// The context as the store will hold it after the plan's writes.
+function buildPlannedContext(ctx: EffectContext, plan: EffectPlan): EffectContext {
+  if (plan.kind === 'skip') {
+    return ctx;
+  }
+
+  const added = plan.writes.flatMap((write) =>
+    write.op === 'insert' && write.table === 'relations' ? [write.row] : [],
+  );
+
+  return {
+    ...ctx,
+    item: plan.effect.kind === 'close-item' ? { ...ctx.item, closedAt: ctx.now } : ctx.item,
+    relations: [...ctx.relations, ...added],
+  };
 }
 
 // The evidence ids that an applied `set-acceptance` added to each criterion.
