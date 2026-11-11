@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/server",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "description": "The boxxy server: the API behind its three doors, and the runner loop",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/apps/server#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",
