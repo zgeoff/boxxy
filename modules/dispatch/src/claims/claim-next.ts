@@ -7,6 +7,7 @@ import type {
   ItemDetailRows,
   ItemView,
   JsonValue,
+  KeptSession,
   LimitCount,
   LimitName,
   LoadedRules,
@@ -108,7 +109,7 @@ async function writeStartClaim(
 
   const attempt = await writeClaimChange(tx, built, event.claimed.attempt);
 
-  return { kind: 'start', attempt, spawn: event.spawn };
+  return { kind: 'start', attempt, spawn: event.spawn, kept: event.kept };
 }
 
 interface ClaimedParts {
@@ -126,6 +127,7 @@ interface ClaimedParts {
 function buildClaimedEvent(parts: ClaimedParts): {
   readonly claimed: ClaimedEvent;
   readonly spawn: SpawnRequest;
+  readonly kept: KeptSession | null;
 } {
   const item = parts.detail.item;
   const phase = parts.rules.phases.get(parts.pick.phase);
@@ -170,6 +172,7 @@ function buildClaimedEvent(parts: ClaimedParts): {
 
   return {
     spawn,
+    kept,
     claimed: {
       kind: 'claimed',
       attempt: parts.attempt,

@@ -55,6 +55,10 @@ export interface SeedItemInput {
 export interface ReworkInput {
   // the caller that the item's kept session holds; the first build's caller when left out
   readonly keptCaller?: CallerIdentity | null;
+
+  // the second build starts through the worker's wake of the kept session; when left out, the
+  // test writes the start itself
+  readonly startByWorker?: boolean;
 }
 
 export interface Rework {
@@ -327,29 +331,32 @@ async function seedReworkAttempts(dispatch: TestDispatch, input: ReworkInput): P
 
   await closeAndSettle(dispatch, first, firstBody);
 
-  await dispatch.store.exclusive((tx) =>
-    tx.applyChange({
-      at: now,
-      writes: [
-        {
-          op: 'update',
-          table: 'items',
-          key: { id: item },
-          expect: { keptSession: null },
-          set: {
-            keptSession: {
-              atcSession: getSession(first),
-              target: dispatch.spawn.target,
-              attempt: first.id,
-              keptAt: now,
-              caller: input.keptCaller === undefined ? first.caller : input.keptCaller,
-            },
+  if (input.keptCaller !== undefined) {
+    await dispatch.store.exclusive(async (tx) => {
+      const view = await tx.readItem(item, dispatch.clock.now(), dispatch.rules());
+
+      const kept = view?.keptSession;
+
+      invariant(
+        kept !== null && kept !== undefined,
+        'the settle of the first build keeps its session',
+      );
+
+      return tx.applyChange({
+        at: dispatch.clock.now(),
+        writes: [
+          {
+            op: 'update',
+            table: 'items',
+            key: { id: item },
+            expect: { keptSession: kept },
+            set: { keptSession: { ...kept, caller: input.keptCaller ?? null } },
           },
-        },
-      ],
-      facts: [],
-    }),
-  );
+        ],
+        facts: [],
+      });
+    });
+  }
 
   const review = await claimStarted(dispatch, item);
 
@@ -365,7 +372,7 @@ async function seedReworkAttempts(dispatch: TestDispatch, input: ReworkInput): P
   return {
     first: await dispatch.readAttempt(first.id),
     firstBody,
-    ...(await claimResumed(dispatch, first)),
+    ...(await claimResumed(dispatch, first, input)),
   };
 }
 
@@ -404,17 +411,22 @@ async function closeAndSettle(dispatch: TestDispatch, attempt: AttemptRow, body:
   dispatch.clock.advance(1000);
 }
 
-function getSession(attempt: AttemptRow): AtcSessionId {
-  invariant(attempt.atcSession !== null, 'a started attempt has a session');
-
-  return attempt.atcSession;
-}
-
 // The claim only, then the `started` that the resume of the kept session records.
 async function claimResumed(
   dispatch: TestDispatch,
   first: AttemptRow,
+  input: ReworkInput,
 ): Promise<Pick<Rework, 'claimed' | 'second'>> {
+  if (input.startByWorker === true) {
+    const started = await dispatch.claim();
+
+    invariant(started?.kind === 'start', 'the rework claims');
+
+    const attempt = await dispatch.readAttempt(started.attempt.id);
+
+    return { claimed: started.attempt, second: attempt };
+  }
+
   const now = dispatch.clock.now();
 
   const claim = await claimNext({
@@ -445,6 +457,12 @@ async function claimResumed(
   );
 
   return { claimed: claim.attempt, second: await dispatch.readAttempt(claim.attempt.id) };
+}
+
+function getSession(attempt: AttemptRow): AtcSessionId {
+  invariant(attempt.atcSession !== null, 'a started attempt has a session');
+
+  return attempt.atcSession;
 }
 
 async function readAttemptStep(

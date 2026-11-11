@@ -146,9 +146,9 @@ Section H of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the table. One 
 1. A build attempt settles `built`. boxxy stops its session and keeps it, and records the kept session on the item.
 2. The review runs in its own session.
 3. When the review asks for changes, the claim of the next build attempt wakes the kept session and sends the review's findings as a message. The new attempt binds to the same atc session.
-4. When the wake fails or the session is gone, boxxy spawns a fresh session, and the `started` fact says so.
+4. When the wake fails or the session is gone, boxxy spawns a fresh session, and the `started` fact says so. Either way the item's kept session is cleared when the new attempt starts. A wake refused for capacity settles the attempt as `no-capacity`, and a wake with no answer goes to the reconcile table; both keep the kept session.
 
-A kept session holds no seat while it sleeps. It is state of the item, outside the attempt machine: the first attempt has succeeded, and the second starts with the plain claim and start events. One atc session then carries two attempts, so the session ID alone does not say which attempt a call is for. The resumed session reads `attempt.current` again and gets the new attempt's ID. boxxy forgets a kept session when the item is done or closed, and 24 hours after it was kept.
+A kept session holds no seat while it sleeps. It is state of the item, outside the attempt machine: the first attempt has succeeded, and the second starts with the plain claim and start events. One atc session then carries two attempts, so the session ID alone does not say which attempt a call is for. The resumed session reads `attempt.current` again and gets the new attempt's ID. boxxy forgets a kept session when the item is done or closed, and 24 hours after it was kept, unless a live attempt runs on it.
 
 ## Cleanup
 
@@ -159,7 +159,7 @@ Section H of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the cleanup rul
 | succeeded | forgets the stopped session at once; on an imp target the machine is destroyed |
 | failed | keeps the stopped session for 24 hours, for diagnosis, then forgets it |
 
-boxxy tries a failed forget again on the next tick, and never forgets a stray session before it has stopped. The attempt row records the forget. No fact does, because no fact type for cleanup exists.
+boxxy tries a failed forget again on the next tick, and never forgets a stray session before it has stopped. The attempt row records the forget, through the attempt move `session-forgotten`. No fact does, because no fact type for cleanup exists.
 
 ## Capacity and the usage limit
 

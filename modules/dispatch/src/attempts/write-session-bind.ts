@@ -16,7 +16,7 @@ export async function writeSessionBind(
     return null;
   }
 
-  if (holder !== null) {
+  if (holder !== null && holder !== session.keptFrom) {
     return {
       kind: 'fault',
       fault: 'agent-session-owned',

@@ -49,6 +49,7 @@ test('it marks the session of a stray failed attempt stopped', () => {
       hasSession: true,
       strayed: true,
       sessionStopped: false,
+      sessionForgotten: false,
     },
   });
 
@@ -73,6 +74,7 @@ test('it leaves stray-stopped unhandled on a settled attempt that never strayed'
       hasSession: true,
       strayed: false,
       sessionStopped: false,
+      sessionForgotten: false,
     },
   });
 
@@ -93,6 +95,7 @@ test('it leaves a same-state move unhandled when its guard fails', () => {
       hasSession: true,
       strayed: false,
       sessionStopped: false,
+      sessionForgotten: false,
     },
   });
 
@@ -113,6 +116,7 @@ test('it handles a same-state move that changes only the context', () => {
       hasSession: true,
       strayed: false,
       sessionStopped: false,
+      sessionForgotten: false,
     },
   });
 

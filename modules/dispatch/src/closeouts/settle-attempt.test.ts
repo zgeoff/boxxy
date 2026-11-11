@@ -2,7 +2,9 @@ import { expect, test } from 'bun:test';
 import type { AttemptRow, Edge, ForcedFailure, ItemId, LoadedRules } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockPhaseKind } from '@boxxy/model/test-utils/build-mock-phase-kind';
+import { createFakeNotifier } from '@boxxy/model/test-utils/create-fake-notifier';
 import invariant from 'tiny-invariant';
+import { sendNotices } from '../notices/send-notices.ts';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
 import { closeOutAttempt } from './close-out-attempt.ts';
 import { settleAttempt } from './settle-attempt.ts';
@@ -172,6 +174,36 @@ test('it withholds the close of a declined triage, holds the item, and writes th
   });
 
   expect(notices).toMatchObject([{ item: attempt.item, reason: 'declined', tries: 0 }]);
+});
+
+test('it leaves the attempt and the item as they were when the notice of its hold fails 5 times', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('triage');
+
+  const notifier = createFakeNotifier();
+
+  await ctx.closeOut(attempt, {
+    result: { kind: 'declined', reason: 'Out of scope.' },
+    relations: [],
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const before = [await ctx.readAttempt(attempt.id), await ctx.readItem(attempt.item)];
+
+  notifier.failAlways('session offline');
+
+  for (let tick = 0; tick < 6; tick += 1) {
+    await sendNotices({ store: ctx.store, notifier, now: ctx.clock.now() });
+  }
+
+  const after = [await ctx.readAttempt(attempt.id), await ctx.readItem(attempt.item)];
+
+  const notices = await ctx.listNotices();
+
+  expect(after).toStrictEqual(before);
+  expect(notices).toMatchObject([{ item: attempt.item, tries: 5, sentAt: null }]);
 });
 
 test('it closes a duplicate and adds the relation when the rules end the outcome', async () => {

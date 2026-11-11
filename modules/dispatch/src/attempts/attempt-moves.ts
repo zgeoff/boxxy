@@ -206,4 +206,13 @@ export const attemptMoves: readonly AttemptMove[] = [
     effects: [],
     context: () => ({ sessionStopped: true }),
   },
+  {
+    // a stray session is forgotten only after it has stopped
+    event: 'session-forgotten',
+    from: ['succeeded', 'failed'],
+    when: (context) => !context.sessionForgotten && (!context.strayed || context.sessionStopped),
+    to: 'same',
+    effects: [],
+    context: () => ({ sessionForgotten: true }),
+  },
 ];

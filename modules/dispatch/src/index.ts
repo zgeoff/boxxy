@@ -17,6 +17,10 @@ export type {
 export { closeOutAttempt } from './closeouts/close-out-attempt.ts';
 export { settleAttempt } from './closeouts/settle-attempt.ts';
 export type { CallRef, CloseOutInput, EffectPlan, SettleAttemptInput } from './closeouts/types.ts';
+export { noticeLimits } from './notices/constants.ts';
+export { createNullNotifier } from './notices/create-null-notifier.ts';
+export { sendNotices } from './notices/send-notices.ts';
+export type { NoticeReport, SendNoticesInput } from './notices/types.ts';
 export { packageName } from './package-name.ts';
 export { buildInitialSenderState } from './outbox/build-initial-sender-state.ts';
 export { buildOutboxStatus } from './outbox/build-outbox-status.ts';
@@ -35,5 +39,7 @@ export { actOnReading } from './readings/act-on-reading.ts';
 export { findWaitingSince } from './readings/find-waiting-since.ts';
 export { pickReadingAction } from './readings/pick-reading-action.ts';
 export type { ActOnReadingInput, ReadingAction, ReadingInput } from './readings/types.ts';
+export { forgetSessions } from './sessions/forget-sessions.ts';
+export type { ForgetReport, ForgetSessionsInput } from './sessions/types.ts';
 export { timeouts } from './timeouts.ts';
 export type { DispatchTimeouts } from './types.ts';

@@ -45,6 +45,9 @@ export interface AttemptContext {
 
   // `sessionStoppedAt` is set
   readonly sessionStopped: boolean;
+
+  // `sessionForgottenAt` is set
+  readonly sessionForgotten: boolean;
 }
 
 // The machine's events. XState names the kind `type`; `claimed` is the initial transition and
@@ -74,7 +77,8 @@ export type AttemptMachineEvent =
         | 'wake-requested'
         | 'resumed'
         | 'wake-refused'
-        | 'stray-stopped';
+        | 'stray-stopped'
+        | 'session-forgotten';
     };
 
 // A write that a move makes besides the attempt row, or a fact it records.
@@ -184,7 +188,8 @@ export type MoveEvent =
       readonly kind: 'settled';
       readonly outcome: NonNullable<AttemptRow['outcome']>;
     })
-  | { readonly kind: 'stray-stopped' };
+  | { readonly kind: 'stray-stopped' }
+  | { readonly kind: 'session-forgotten' };
 
 export type AttemptEvent = ClaimedEvent | MoveEvent;
 
@@ -214,6 +219,9 @@ export type MoveResult =
 export interface SeenSession {
   readonly atcSession: AtcSessionId;
   readonly agentSession: AgentSessionId;
+
+  // the attempt whose kept session this one resumed; it holds the same agent session
+  readonly keptFrom?: AttemptId | null;
 }
 
 export interface FactEnvelopeParts {

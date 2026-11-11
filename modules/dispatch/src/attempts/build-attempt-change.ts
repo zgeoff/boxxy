@@ -45,6 +45,7 @@ type AttemptGuard = Pick<
   | 'atcSession'
   | 'strayedAt'
   | 'sessionStoppedAt'
+  | 'sessionForgottenAt'
 >;
 
 type AttemptWrite =
@@ -404,6 +405,7 @@ function toAttemptContext(attempt: AttemptRow): AttemptContext {
     hasSession: attempt.atcSession !== null,
     strayed: attempt.strayedAt !== null,
     sessionStopped: attempt.sessionStoppedAt !== null,
+    sessionForgotten: attempt.sessionForgottenAt !== null,
   };
 }
 
@@ -439,6 +441,7 @@ function toMachineEvent(event: MoveEvent): AttemptMachineEvent {
           'resumed',
           'wake-refused',
           'stray-stopped',
+          'session-forgotten',
         ),
       },
       (other) => ({ type: other.kind }),
@@ -463,6 +466,7 @@ function buildContextColumns(
     ...(before.sessionStopped === after.sessionStopped
       ? {}
       : { sessionStoppedAt: after.sessionStopped ? now : null }),
+    ...(before.sessionForgotten === after.sessionForgotten ? {} : { sessionForgottenAt: now }),
   };
 }
 
@@ -512,6 +516,7 @@ function buildEventColumns(
           'wake-requested',
           'wake-refused',
           'stray-stopped',
+          'session-forgotten',
         ),
       },
       () => ({}),
@@ -537,6 +542,7 @@ function toAttemptGuard(attempt: AttemptRow): AttemptGuard {
     atcSession: attempt.atcSession,
     strayedAt: attempt.strayedAt,
     sessionStoppedAt: attempt.sessionStoppedAt,
+    sessionForgottenAt: attempt.sessionForgottenAt,
   };
 }
 

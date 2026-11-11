@@ -4,6 +4,8 @@ import { match } from 'ts-pattern';
 import { writeAttemptMove } from '../attempts/write-attempt-move.ts';
 import { writeSessionBind } from '../attempts/write-session-bind.ts';
 import { settleAttempt } from '../closeouts/settle-attempt.ts';
+import { buildKeptClear } from '../sessions/build-kept-clear.ts';
+import { resumeKeptSession } from '../sessions/resume-kept-session.ts';
 import { timeouts } from '../timeouts.ts';
 import type { StartClaimInput } from './types.ts';
 
@@ -16,8 +18,16 @@ export async function startClaim(input: StartClaimInput): Promise<SessionFault |
   const attempt = input.claim.attempt;
   const actor: ActorRef = `boxxy:runner:${attempt.runner}`;
   const base = { actor, now: input.now, newId: input.newId };
+  const kept = input.claim.kept;
 
-  const outcome = await input.worker.start(input.claim.spawn);
+  const woken =
+    kept === null
+      ? { outcome: await input.worker.start(input.claim.spawn), resumeFallback: false }
+      : await resumeKeptSession(input.worker, kept, input.claim.spawn);
+
+  const outcome = woken.outcome;
+  const resumeFallback = woken.resumeFallback;
+  const keptClear = kept === null ? [] : [buildKeptClear(attempt.item, kept)];
 
   return match<StartOutcome, Promise<SessionFault | null>>(outcome)
     .with({ kind: 'started' }, (started) =>
@@ -30,9 +40,9 @@ export async function startClaim(input: StartClaimInput): Promise<SessionFault |
             via: 'start',
             atcSession: started.atcSession,
             caller: started.caller,
-            resumeFallback: false,
+            resumeFallback,
           },
-          base,
+          { ...base, also: keptClear },
         );
 
         const row = await tx.readAttempt(attempt.id);
@@ -41,7 +51,11 @@ export async function startClaim(input: StartClaimInput): Promise<SessionFault |
           ? writeSessionBind(
               tx,
               row,
-              { atcSession: started.atcSession, agentSession: started.agentSession },
+              {
+                atcSession: started.atcSession,
+                agentSession: started.agentSession,
+                keptFrom: resumeFallback || kept === null ? null : kept.attempt,
+              },
               base,
             )
           : null;

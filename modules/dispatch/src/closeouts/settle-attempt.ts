@@ -11,6 +11,7 @@ import type {
 import invariant from 'tiny-invariant';
 import { buildAttemptChange } from '../attempts/build-attempt-change.ts';
 import type { MoveResult } from '../attempts/types.ts';
+import { buildKeepWrites } from '../sessions/build-keep-writes.ts';
 import { buildSettlePlans } from './build-settle-plans.ts';
 import { pickSettlement } from './pick-settlement.ts';
 import type { SettleAttemptInput } from './types.ts';
@@ -82,6 +83,9 @@ export function settleAttempt(input: SettleAttemptInput): Promise<MoveResult> {
       ...built.change,
       writes: [
         ...built.change.writes,
+        ...(settlement.state === 'succeeded' && input.sessionStopped
+          ? buildKeepWrites({ attempt, item, rules: input.rules, now: input.now })
+          : []),
         ...settled.plans.flatMap((plan) => (plan.kind === 'apply' ? plan.writes : [])),
       ],
       facts: [

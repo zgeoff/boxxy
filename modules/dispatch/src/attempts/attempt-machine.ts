@@ -31,6 +31,7 @@ export const attemptMachine = createMachine({
       'wake-refused': types<void>(),
       settled: types<{ state: 'succeeded' | 'failed'; sessionStopped: boolean }>(),
       'stray-stopped': types<void>(),
+      'session-forgotten': types<void>(),
     },
     emitted: { effect: types<{ effect: MoveEffect }>() },
   },
@@ -43,6 +44,7 @@ export const attemptMachine = createMachine({
     hasSession: false,
     strayed: false,
     sessionStopped: false,
+    sessionForgotten: false,
   }),
   entry: (_args, enq) => {
     for (const effect of getClaimedMove().effects) {
@@ -121,6 +123,7 @@ function buildStateHandlers(state: AttemptState): Record<AttemptMachineEvent['ty
     'wake-refused': build('wake-refused'),
     settled: build('settled'),
     'stray-stopped': build('stray-stopped'),
+    'session-forgotten': build('session-forgotten'),
   };
 }
 

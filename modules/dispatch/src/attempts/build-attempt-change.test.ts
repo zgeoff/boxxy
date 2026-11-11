@@ -418,6 +418,14 @@ test.each<MoveCase>([
     [{ op: 'update', table: 'attempts', set: { state: from, sessionStoppedAt: 5000 } }],
     [],
   ]),
+  ...(['succeeded', 'failed'] as const).map((from): MoveCase => [
+    `session-forgotten from ${from}`,
+    from,
+    { sessionForgottenAt: null },
+    { kind: 'session-forgotten' },
+    [{ op: 'update', table: 'attempts', set: { state: from, sessionForgottenAt: 5000 } }],
+    [],
+  ]),
 ])('#buildAttemptChange allows %s', (...testCase) => {
   const [, from, overrides, event, writes, facts] = testCase;
   const ctx = setupTest();
@@ -553,6 +561,19 @@ test.each<[title: string, from: AttemptState, overrides: Partial<AttemptRow>, ev
     },
     { kind: 'stray-stopped' },
   ],
+  [
+    'session-forgotten twice',
+    'succeeded',
+    { sessionForgottenAt: brandSchemas.instant.parse(4000) },
+    { kind: 'session-forgotten' },
+  ],
+  [
+    'session-forgotten for a stray session that has not stopped',
+    'failed',
+    { strayedAt: brandSchemas.instant.parse(3000), sessionStoppedAt: null },
+    { kind: 'session-forgotten' },
+  ],
+  ['session-forgotten for a live attempt', 'running', {}, { kind: 'session-forgotten' }],
 ])('#buildAttemptChange refuses %s', (...testCase) => {
   const [, from, overrides, event] = testCase;
   const ctx = setupTest();
@@ -755,6 +776,7 @@ test('#buildAttemptChange settles a stray attempt under its live lease and marks
             atcSession: attempt.atcSession,
             strayedAt: null,
             sessionStoppedAt: null,
+            sessionForgottenAt: null,
           },
           set: {
             state: 'succeeded',

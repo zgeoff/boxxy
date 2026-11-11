@@ -87,6 +87,7 @@ function runAction(input: ActOnReadingInput, action: ReadingAction, base: MoveBa
           kind: 'start',
           attempt: input.attempt,
           spawn: spawnRequestSchema.parse(input.attempt.spawnRequest),
+          kept: null,
         },
       });
     })

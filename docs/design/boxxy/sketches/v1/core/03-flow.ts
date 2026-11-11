@@ -906,6 +906,23 @@ export function findPosition(input: { pipeline: Pipeline | null; attempts: reado
 // Notices. The change that settles an attempt writes one `notices` row when the
 // item's position after it is a hold (02-types.ts, `Notifier`). The tick sends unsent rows
 // after the readings. A failed notice changes no attempt and no item.
+//
+// Built (modules/dispatch/src/sessions/ and notices/). Where the build differs from the text above:
+//   - The settle writes `keptSession` in its own change when the attempt succeeded with its session
+//     stopped and an edge of the pipeline goes back to the attempt's phase with `resume: true`.
+//     `keptAt` is the settle's time.
+//   - The start `Claim` carries `kept`. `startClaim` wakes it with `worker.resumeKept`; a refusal
+//     with cause `other` falls back to `worker.start` and the `started` fact says `resumeFallback`.
+//     A refusal for capacity settles `no-capacity` as any spawn does, and an unanswered wake goes
+//     to the reconcile table, with `keptSession` kept.
+//   - `started` clears `keptSession` in the same change, for a wake and for a fallback. The agent
+//     session bind accepts the agent session that the kept attempt holds.
+//   - `forgetSessions` forgets the kept session of an item that is done, archived or closed, or
+//     kept 24 hours ago, unless a live later attempt runs on it. It forgets the sessions of
+//     settled attempts from `listSessionsToForget`. A new attempt move, `session-forgotten`,
+//     writes `sessionForgottenAt`, so the builder stays the one writer of the attempts table.
+//   - `sendNotices` reads up to 200 unsent rows, skips those with 5 tries, and counts a throwing
+//     notifier as a failed try. It waits between tries only as long as the tick does.
 
 // ── stubs ──────────────────────────────────────────────────────────────────────────────────────
 
