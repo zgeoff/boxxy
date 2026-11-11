@@ -107,6 +107,9 @@
         "ts-pattern": "catalog:",
         "xstate": "catalog:",
       },
+      "devDependencies": {
+        "@boxxy/closeout": "workspace:*",
+      },
     },
     "modules/planning": {
       "name": "@boxxy/planning",

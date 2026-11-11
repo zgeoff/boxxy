@@ -238,6 +238,7 @@ export type {
   OutboxReader,
   PepysAnswer,
   PepysReader,
+  SinkAnswer,
   PullRequestReading,
   RowWrite,
   SessionFault,
@@ -256,6 +257,7 @@ export type {
 } from './ports/types.ts';
 
 export type { CostToLand, StageTime } from './reports/types.ts';
+export type { OutboxStatus } from './reports/outbox-status.ts';
 export type { ItemSetRows, ItemWithLevers } from './items/types.ts';
 
 export type {

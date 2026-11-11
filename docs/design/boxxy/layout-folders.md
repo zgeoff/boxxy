@@ -46,13 +46,14 @@ ports/            the interfaces that an adapter implements
                   types: the store, the worker, the notifier, the pepys reader, the forge
 reports/          the output schemas of the pepys queries
                   cost-to-land-schema  stage-time-schema  types  constants (the step and basis lists)
+                  outbox-status (the `runner.status` outbox type)
 slice-one/        the slice 1 shapes that the reconcile table and the slice 1 claim in
                   `dispatch/types` still use; the slice that moves them to v1 deletes the folder
                   types  slice-one-fact-schemas
 utils/            format-key-path  to-json-value
 test-utils/       the factories    v1: create-fake-pepys-reader  pepys-reader-contract
                   build-mock-work-fact  build-mock-cost-to-land  create-fake-notifier
-                  build-mock-phase-kind
+                  build-mock-phase-kind  build-mock-outbox-fact
 ```
 
 ## `adapters/store-sqlite/src`
@@ -87,7 +88,10 @@ readings/         what the runner does with a session reading
 closeouts/        close-out-attempt  settle-attempt
 sessions/         resume-kept-session  forget-sessions
 notices/          create-null-notifier  send-notices
-outbox/           take-batch  constants (the outbox limits)
+outbox/           what the outbox sender decides, with no I/O
+                  take-batch  constants (the outbox limits)  measure-wire-bytes  pick-sender-move
+                  run-sender-once  build-backoff-ms  build-initial-sender-state
+                  build-outbox-status  types
 test-utils/       the store contract and its case files, the memory store, the change factories
                   v1: create-fake-worker  worker-contract  create-fake-fact-sink
                   fact-sink-contract
@@ -144,7 +148,7 @@ apps/server/src                 @boxxy/server
                   item-handlers  relation-handlers  attempt-handlers  plan-handlers
                   runner-handlers  outbox-handlers  report-cost  find-session-attempt
   tick/           run-tick
-  outbox/         start-outbox-sender  run-sender-once
+  outbox/         start-outbox-sender
 
 apps/cli/src                    @boxxy/cli
   index  create-client
@@ -172,6 +176,7 @@ The `Notifier` port is in `libs/model/src/ports/`, and its fake is in `libs/mode
 A name in the trees above differs from the v1 sketches where a lint rule needs it:
 
 - A file's name is its main export: a sketch's `handlers/item.ts` is `handlers/item-handlers.ts`, and `run-outbox-sender.ts` and `report-schemas.ts` each split into one file per export.
+- The sender's decisions live in `modules/dispatch/src/outbox/`, and the app owns the timer only. `run-sender-once` does no I/O of its own: it takes the store's outbox port, the `FactSink` port, the clock and a random source as arguments, and it does one turn. `start-outbox-sender` in `apps/server/outbox/` builds those arguments, calls the turn, waits for `nextTryAt` or a nudge between turns, and holds the sender state.
 - A test sits beside its module: a sketch's `outbox.test.ts` is `outbox/take-batch.test.ts`.
 
 ## Open questions
@@ -181,4 +186,3 @@ Each of these is a guess that the v1 build confirms or changes:
 1. `libs/model/src/types.ts` holds the old `types/core.ts` whole. A split by subject, such as IDs, rows and recipes, is a later choice.
 2. `ports/` and `rows/` name a kind of file more than a subject. The alternative is to split `ports/types.ts` by port into the subject folders.
 3. A concept file exports under the bare name, such as `pool`, as a phase file does (`review`). The other fix is a file name with a suffix, such as `pool-concept.ts`, which breaks the pin script's `concepts/<name>.ts` path.
-4. No sketch says which outbox function lives in `modules/dispatch` and which in `apps/server`.

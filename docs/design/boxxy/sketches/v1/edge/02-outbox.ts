@@ -181,6 +181,23 @@ export interface OutboxBookkeeping {
 //   - Migration 0003 of adapters/store-sqlite creates the table; the create-tables migration
 //     keeps the slice 1 form.
 
+// Built (slice 11): `FactSink` and `SinkAnswer` are in `@boxxy/model` `ports/`, and `OutboxStatus` in
+// `reports/`, as plain mutable numbers so that it equals the contract's output type. Where the build
+// differs from sections A, C and D:
+//   - Everything that decides lives in `modules/dispatch/src/outbox/`, not in `apps/server`: `takeBatch`,
+//     `outboxLimits`, `pickSenderMove` (the table of answers) and `runSenderOnce`. The app owns the
+//     timer loop `startOutboxSender` only.
+//   - `runSenderOnce(deps, state)` returns `{ step, state }`. The sender's memory is the `SenderState`
+//     that the caller passes back: the queue of batches (the held batch, or the halves of a split),
+//     the retry count, the run of parked rows, and the fields of the status. `deps` also takes
+//     `random` for the jitter. `SenderStep` has `split` as a sixth step: a split sends no wait.
+//   - `buildOutboxStatus` makes the status from the state, the store's counts, the clock and a flag for
+//     "a send is in flight". With no sink the state is `off`.
+//   - `lag` is whole minutes. A row parked as `too-large` by the sender, or by a 413 on one row, has
+//     that reason; any other refusal parks with pepys's reason.
+//   - The fake and the contract suite are in `test-utils/`. The suite is a list of cases, and a
+//     harness gives each adapter a way to read the log and to corrupt a fact.
+
 // ── C. The port and its adapters ───────────────────────────────────────────────────────────────
 //
 // A port, because a second adapter exists (the fake) and every sender test needs it.

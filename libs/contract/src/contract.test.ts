@@ -1,4 +1,6 @@
-import { expect, test } from 'bun:test';
+import { expect, expectTypeOf, test } from 'bun:test';
+import type { OutboxStatus } from '@boxxy/model';
+import type { InferContractRouterOutputs } from '@orpc/contract';
 import { z } from 'zod';
 import { access } from './access.ts';
 import { contract } from './contract.ts';
@@ -171,4 +173,10 @@ test('it gives the CLI strings the flags that the inputs have', () => {
     expect.stringContaining('[--text] [--label]'),
     expect.stringContaining('[--of]'),
   ]);
+});
+
+test('it gives runner.status an outbox output that equals the model status type', () => {
+  type WireOutbox = InferContractRouterOutputs<typeof contract>['runner']['status']['outbox'];
+
+  expectTypeOf<WireOutbox>().toEqualTypeOf<OutboxStatus>();
 });

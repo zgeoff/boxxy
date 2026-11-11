@@ -9,7 +9,6 @@ No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc list
 | How boxxy detects that a session hit the account's usage limit: from the reading, the close-out or telemetry. The answer decides which caller forces the `usage-limit` failure. | [`03-flow.ts`](./sketches/v1/core/03-flow.ts), section F |
 | The parts that the core sketch names and does not show: the effect handlers and their plans. `@boxxy/model` holds the rows and ports they read and write. The effect plans have no type yet. | [`02-types.ts`](./sketches/v1/core/02-types.ts) |
 | The atc call behind each method of the worker port, and the crash windows of the three steps of a sleep. | [`02-types.ts`](./sketches/v1/core/02-types.ts), [`03-flow.ts`](./sketches/v1/core/03-flow.ts), section C |
-| Which outbox function lives in `modules/dispatch` and which in `apps/server`. | [folder layout](./layout-folders.md#open-questions) |
 | A query for the measure "attempts lost". No query reads the failure of an attempt. | [`04-facts.ts`](./sketches/v1/core/04-facts.ts), section D |
 | A cause on the `slept` fact. Without one, no report can tell an unattended sleep from an idle sleep. | [`02-queries.ts`](./sketches/v1/pepys-package/02-queries.ts), section D |
 
@@ -74,7 +73,7 @@ Each row names the test that settles it, where one is known.
 
 | Point | The test |
 | --- | --- |
-| The 512 bytes that the stored envelope adds to a wire item. It is an allowance. | Store one fact and compare the sizes. |
+| The 512 bytes that the stored envelope adds to a wire item. It is an allowance. The `id` field takes 56 of them, and a test in `modules/dispatch` checks that over 400 are left; `v` and `api` need the kit's stored form, which the repo does not hold. | Store one fact in the kit's test store and compare the sizes. |
 | The size of the largest real fact. A decision fact has no bound of its own, and the sender parks a fact over the limit. | Measure a decision fact with 5,000 open items. |
 | That ingest names the bad fact of a refused batch in a stable form. The sender does not rely on it and splits the batch. | None needed. |
 

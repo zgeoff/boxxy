@@ -36,6 +36,9 @@
     "ts-pattern": "catalog:",
     "xstate": "catalog:"
   },
+  "devDependencies": {
+    "@boxxy/closeout": "workspace:*"
+  },
   "engines": {
     "bun": ">=1.3",
     "node": ">=24"

@@ -347,12 +347,20 @@ export interface SessionFault {
   readonly holder: AttemptId;
 }
 
+// What one batch sent to the sink got back. `retry` may or may not have stored the batch.
+export type SinkAnswer =
+  | { readonly kind: 'stored' }
+  | { readonly kind: 'retry'; readonly reason: string }
+  | {
+      readonly kind: 'refused-batch';
+      readonly status: 400 | 413 | 422;
+      readonly reason: string;
+    }
+  | { readonly kind: 'refused-sink'; readonly status: number; readonly reason: string };
+
 export interface FactSink {
-  append: (
-    facts: OutboxFact[],
-  ) => Promise<
-    'accepted' | { kind: 'unknown'; reason: string } | { kind: 'rejected'; error: string }
-  >;
+  // Sends the rows as one batch, in the order given. It never splits and never reorders.
+  send: (facts: readonly OutboxFact[]) => Promise<SinkAnswer>;
 }
 
 export interface CostToLandRow {
