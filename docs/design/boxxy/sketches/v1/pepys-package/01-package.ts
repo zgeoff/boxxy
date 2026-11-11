@@ -89,7 +89,8 @@ import { boxxyCostToLandQuery, boxxyStageTimeQuery } from './02-queries.ts';
 // ../edge/02-outbox.ts), and no catalog payload type holds it. A strict schema without the field
 // would refuse every fact. So the family's schema is the model's schema plus that one field, and
 // the model's schema holds no `storeVersion`.
-// Assumed: every catalog payload is a zod object, so `extend` fits each of the 27.
+// Every catalog payload is a zod object, so `extend` fits each of the 27. The model's test of
+// `workFactSchemas` extends each one.
 type WithStoreVersion<Schemas extends Readonly<Record<string, z.ZodObject>>> = {
   readonly [Type in keyof Schemas]: z.ZodObject<Schemas[Type]['shape'] & { storeVersion: z.ZodNumber }>;
 };
