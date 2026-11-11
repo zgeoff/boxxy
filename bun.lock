@@ -28,6 +28,13 @@
         "typescript": "catalog:",
       },
     },
+    "adapters/notifier-atc": {
+      "name": "@boxxy/notifier-atc",
+      "version": "0.1.0",
+      "dependencies": {
+        "@boxxy/model": "workspace:*",
+      },
+    },
     "adapters/store-sqlite": {
       "name": "@boxxy/store-sqlite",
       "version": "0.1.1",
@@ -211,6 +218,8 @@
     "@boxxy/dispatch": ["@boxxy/dispatch@workspace:modules/dispatch"],
 
     "@boxxy/model": ["@boxxy/model@workspace:libs/model"],
+
+    "@boxxy/notifier-atc": ["@boxxy/notifier-atc@workspace:adapters/notifier-atc"],
 
     "@boxxy/pepys": ["@boxxy/pepys@workspace:packages/pepys"],
 

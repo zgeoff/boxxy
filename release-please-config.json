@@ -38,6 +38,10 @@
       "component": "@boxxy/content-hash",
       "initial-version": "0.1.0"
     },
+    "adapters/notifier-atc": {
+      "component": "@boxxy/notifier-atc",
+      "initial-version": "0.1.0"
+    },
     "libs/contract": {
       "component": "@boxxy/contract",
       "initial-version": "0.1.0"

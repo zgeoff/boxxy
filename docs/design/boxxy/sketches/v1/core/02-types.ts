@@ -641,7 +641,7 @@ export interface StoreReader {
 //   - The rows are in a small table, not in the fact outbox. The outbox sends facts to pepys in order and
 //     parks on a failure; a notice has another target and must not hold facts back.
 //   - A hold that a rules change makes (no settle) gets no notice.
-// Adapters: `createAtcNotifier({ session })`, which sends an atc message to ONE named session
+// Adapters: `createAtcNotifier({ client, session })`, which sends an atc message to ONE named session
 // (the name is in boxxy's configuration, `notices.session`); `createFakeNotifier`, for tests;
 // `createNullNotifier`, when the configuration names no session.
 // An agent's question takes the same path: the agent closes out `blocked` with the question in
@@ -650,6 +650,12 @@ export interface StoreReader {
 export interface Notifier {
   tellHold: (notice: { readonly item: ItemId; readonly reason: HoldReason; readonly at: Instant }) => Promise<{ kind: 'sent' } | { kind: 'failed'; reason: string }>;
 }
+// Built: adapters/notifier-atc. The client is one structural call, `sendMessage({ session, text,
+// idempotencyKey })`, that resolves when atc takes the message and rejects when atc refuses it. A
+// rejection becomes `failed`, with the error's string `code` as the reason (`no_such_session`) or
+// `atc send failed`; the error text is never copied. The port's notice holds no row id or try
+// count, so the key is built from the item, the reason and the time: a later try of the same
+// notice repeats the key.
 
 export interface NoticeRow {
   readonly id: number;
