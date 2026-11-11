@@ -7,9 +7,9 @@ import type { ResumeClaimInput } from './types.ts';
 
 const secondMs = 1000;
 
-// Resumes a woken attempt's session outside the store lock. A refusal for capacity sleeps it
-// again with its request and holds its pool back, so no claim of the tick picks it again; any
-// other answer but `started` leaves it `waking` for the reading to retry.
+// Resumes a woken attempt's session outside the store lock. A refusal for capacity sleeps the
+// row the claim woke again and holds its pool back; any other answer but `started` leaves it
+// `waking` for the reading to retry.
 export async function resumeClaim(input: ResumeClaimInput): Promise<SessionFault | null> {
   const attempt = input.claim.attempt;
   const actor: ActorRef = `boxxy:runner:${attempt.runner}`;
@@ -24,7 +24,7 @@ export async function resumeClaim(input: ResumeClaimInput): Promise<SessionFault
     );
 
     await input.store.exclusive((tx) =>
-      writeAttemptMove(tx, attempt.id, { kind: 'wake-refused' }, base),
+      writeAttemptMove(tx, attempt.id, { kind: 'wake-refused' }, { ...base, seen: attempt }),
     );
 
     return null;

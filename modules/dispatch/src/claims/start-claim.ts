@@ -87,6 +87,9 @@ export async function startClaim(input: StartClaimInput): Promise<SessionFault |
         attempt: attempt.id,
         forced: refused.cause === 'capacity' ? 'no-capacity' : 'spawn-refused',
         sessionStopped: true,
+
+        // a session recorded since, by another start of the same attempt, keeps it alive
+        seen: { atcSession: attempt.atcSession },
         rules: input.rules,
       });
 

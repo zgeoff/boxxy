@@ -22,6 +22,7 @@ import { P, match } from 'ts-pattern';
 import { initialTransition, isUnhandled, transition } from 'xstate';
 import { attemptMachine } from './attempt-machine.ts';
 import { buildAttemptFact } from './build-attempt-fact.ts';
+import type { AttemptGuard } from './is-same-guard.ts';
 import type {
   AttemptContext,
   AttemptEvent,
@@ -33,27 +34,15 @@ import type {
   MoveParts,
 } from './types.ts';
 
-// The columns the machine's guards read. A change expects each of them as the builder read it,
-// so a move that another caller applied first makes this change a `guard-mismatch`.
-type AttemptGuard = Pick<
-  AttemptRow,
-  | 'state'
-  | 'holdGen'
-  | 'suspendRequestedAt'
-  | 'wakeRequestedAt'
-  | 'closing'
-  | 'atcSession'
-  | 'strayedAt'
-  | 'sessionStoppedAt'
-  | 'sessionForgottenAt'
->;
-
 type AttemptWrite =
   | { readonly op: 'insert'; readonly table: 'attempts'; readonly row: AttemptRow }
   | {
       readonly op: 'update';
       readonly table: 'attempts';
       readonly key: { readonly id: AttemptRow['id'] };
+
+      // each guard column as the builder read it, so a move that another caller applied first
+      // makes this change a `guard-mismatch`
       readonly expect: AttemptGuard;
       readonly set: Partial<AttemptRow>;
     }

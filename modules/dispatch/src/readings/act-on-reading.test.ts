@@ -4,9 +4,13 @@ import type { AttemptRow, ItemId } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockPhaseKind } from '@boxxy/model/test-utils/build-mock-phase-kind';
 import invariant from 'tiny-invariant';
+import { claimNext } from '../claims/claim-next.ts';
 import { requestWake } from '../claims/request-wake.ts';
+import { resumeClaim } from '../claims/resume-claim.ts';
 import { closeOutAttempt } from '../closeouts/close-out-attempt.ts';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
+import { actOnReading } from './act-on-reading.ts';
+import { pickReadingAction } from './pick-reading-action.ts';
 
 async function setupTest() {
   const dispatch = await createTestDispatch();
@@ -414,4 +418,48 @@ test('it ends the tick and reads every live attempt when the host refuses a wake
     woken.length,
     secondTries,
   ]).toStrictEqual([1, 'sleeping', true, 'failed', 1, 1]);
+});
+
+test('it discards a settle that the table picked before the session resumed', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAttended();
+
+  ctx.worker.setSession(attempt.id, { state: 'suspended', asked: true });
+
+  await ctx.tick();
+  await ctx.wake(attempt.item);
+
+  const claim = await claimNext({
+    store: ctx.store,
+    runner: ctx.runner,
+    rules: ctx.rules(),
+    now: ctx.clock.now(),
+    newId: ctx.newId,
+    backoff: ctx.backoff,
+    spawn: ctx.spawn,
+  });
+
+  invariant(claim?.kind === 'wake', 'the claim wakes the attempt');
+
+  ctx.clock.advance(10 * 60_000);
+
+  const input = {
+    store: ctx.store,
+    worker: ctx.worker,
+    rules: ctx.rules(),
+    backoff: ctx.backoff,
+    attempt: claim.attempt,
+    reading: await ctx.worker.reconcile(claim.attempt),
+    now: ctx.clock.now(),
+    newId: ctx.newId,
+  };
+
+  const action = pickReadingAction({ ...input, step: null, sleep: ctx.rules().sleep });
+
+  await resumeClaim({ ...input, claim });
+  await actOnReading({ ...input, action });
+
+  const after = await ctx.readAttempt(attempt.id);
+
+  expect([action.kind, after.state]).toStrictEqual(['settle', 'running']);
 });

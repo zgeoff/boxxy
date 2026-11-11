@@ -10,6 +10,7 @@ import type {
 } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { buildAttemptChange } from '../attempts/build-attempt-change.ts';
+import { isSameGuard } from '../attempts/is-same-guard.ts';
 import type { MoveResult } from '../attempts/types.ts';
 import { buildKeepWrites } from '../sessions/build-keep-writes.ts';
 import { buildSettlePlans } from './build-settle-plans.ts';
@@ -18,12 +19,16 @@ import type { SettleAttemptInput } from './types.ts';
 
 // Settles one attempt, with the writes of its effects, in one change and one lock. No step
 // throws on stored data, so only a store error leaves it. When the item holds after the settle,
-// the same lock writes the notice row.
+// the same lock writes the notice row. A settle decided on an older row refuses, with no write.
 export function settleAttempt(input: SettleAttemptInput): Promise<MoveResult> {
   return input.store.exclusive(async (tx) => {
     const attempt = await tx.readAttempt(input.attempt);
 
     invariant(attempt !== null, `the settle names a stored attempt: ${input.attempt}`);
+
+    if (input.seen !== undefined && !isSameGuard(input.seen, attempt)) {
+      return { kind: 'refused', reason: 'guard-mismatch' };
+    }
 
     const detail = await tx.readItemDetail(attempt.item, input.now, input.rules);
 

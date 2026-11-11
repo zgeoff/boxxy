@@ -9,6 +9,7 @@ import type {
 import { brandSchemas, isFilterMatch, spawnRequestSchema } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { match } from 'ts-pattern';
+import { isSameGuard } from '../attempts/is-same-guard.ts';
 import type { MoveBase, MoveEvent } from '../attempts/types.ts';
 import { writeAttemptMove } from '../attempts/write-attempt-move.ts';
 import { writeSessionBind } from '../attempts/write-session-bind.ts';
@@ -20,8 +21,8 @@ import { timeouts } from '../timeouts.ts';
 import type { ActOnReadingInput, ReadingAction } from './types.ts';
 
 // Carries out the reconcile table's action for one reading, after it binds a new agent session
-// that the reading shows. Each move is built from the row read inside its own lock. Returns the
-// fault of an agent session that another attempt holds, or null.
+// that the reading shows. An action whose row moved on since the runner read it does nothing.
+// Returns the fault of an agent session that another attempt holds, or null.
 export async function actOnReading(input: ActOnReadingInput): Promise<SessionFault | null> {
   const base: MoveBase = {
     actor: `boxxy:runner:${input.attempt.runner}` satisfies ActorRef,
@@ -58,9 +59,10 @@ const hourMs = 3_600_000;
 
 function runAction(input: ActOnReadingInput, action: ReadingAction, base: MoveBase) {
   const id = input.attempt.id;
+  const seen = { ...base, seen: input.attempt };
 
   const writeMove = (event: MoveEvent) =>
-    input.store.exclusive((tx) => writeAttemptMove(tx, id, event, base));
+    input.store.exclusive((tx) => writeAttemptMove(tx, id, event, seen));
 
   return match(action)
     .with({ kind: 'nothing' }, { kind: 'bind-only' }, { kind: 'await-spawn' }, async () => {})
@@ -81,6 +83,10 @@ function runAction(input: ActOnReadingInput, action: ReadingAction, base: MoveBa
       await writeMove({ kind: 'resumed', atcSession: running.atcSession, caller: running.caller });
     })
     .with({ kind: 'respawn' }, async () => {
+      if (!(await probeSeenRow(input))) {
+        return;
+      }
+
       await startClaim({
         ...input,
         claim: {
@@ -113,7 +119,7 @@ function runAction(input: ActOnReadingInput, action: ReadingAction, base: MoveBa
             idleSince: input.attempt.suspendRequestedAt ?? input.now,
             asked: !sleep.requestWake,
           },
-          base,
+          seen,
         );
 
         // the host slept with no request, so the attempt wakes by itself
@@ -134,6 +140,10 @@ function runAction(input: ActOnReadingInput, action: ReadingAction, base: MoveBa
       input.store.exclusive((tx) => writeWakeOverCap(tx, input, base)),
     )
     .with({ kind: 'resume' }, async () => {
+      if (!(await probeSeenRow(input))) {
+        return;
+      }
+
       await resumeClaim({ ...input, claim: { kind: 'wake', attempt: input.attempt } });
     })
     .with({ kind: 'close', cause: 'timed-out' }, async (close) => {
@@ -151,9 +161,11 @@ function runAction(input: ActOnReadingInput, action: ReadingAction, base: MoveBa
       // the worker adapter sends the time it saw the limit when atc gives no reset time
       const until = close.resetsAt > input.now ? Math.min(close.resetsAt, latest) : latest;
 
-      input.backoff.hold(input.attempt.pool, brandSchemas.instant.parse(until));
+      const moved = await writeMove({ kind: 'usage-limited' });
 
-      await writeMove({ kind: 'usage-limited' });
+      if (moved.kind === 'applied') {
+        input.backoff.hold(input.attempt.pool, brandSchemas.instant.parse(until));
+      }
     })
     .with({ kind: 'stop' }, () => runStop(input, base))
     .with({ kind: 'settle' }, async (settle) => {
@@ -163,6 +175,7 @@ function runAction(input: ActOnReadingInput, action: ReadingAction, base: MoveBa
         attempt: id,
         forced: settle.forced,
         sessionStopped: settle.sessionStopped,
+        seen: input.attempt,
         rules: input.rules,
       });
     })
@@ -176,6 +189,24 @@ function getRunningReading(reading: SessionReading) {
   );
 
   return reading;
+}
+
+// The worker call of a respawn or a resume runs outside the lock, so it checks the row first: a
+// row that moved since the reading makes the call wait for the next tick.
+async function probeSeenRow(input: ActOnReadingInput): Promise<boolean> {
+  const row = await readRow(input);
+
+  return isSameGuard(input.attempt, row);
+}
+
+function readRow(input: ActOnReadingInput): Promise<AttemptRow> {
+  return input.store.read(async (tx) => {
+    const row = await tx.readAttempt(input.attempt.id);
+
+    invariant(row !== null, `the runner read a stored attempt: ${input.attempt.id}`);
+
+    return row;
+  });
 }
 
 interface SleepTimes {
@@ -194,7 +225,7 @@ async function runSleepSteps(
   const id = input.attempt.id;
 
   const marked = await input.store.exclusive((tx) =>
-    writeAttemptMove(tx, id, { kind: 'suspend-asked' }, base),
+    writeAttemptMove(tx, id, { kind: 'suspend-asked' }, { ...base, seen: input.attempt }),
   );
 
   if (marked.kind !== 'applied') {
@@ -213,17 +244,7 @@ async function runSleepSteps(
       ? { kind: 'slept', idleSince: times.idleSince, asked: true }
       : { kind: 'suspend-refused' };
 
-  await input.store.exclusive((tx) => writeAttemptMove(tx, id, event, base));
-}
-
-function readRow(input: ActOnReadingInput): Promise<AttemptRow> {
-  return input.store.read(async (tx) => {
-    const row = await tx.readAttempt(input.attempt.id);
-
-    invariant(row !== null, `the runner read a stored attempt: ${input.attempt.id}`);
-
-    return row;
-  });
+  await input.store.exclusive((tx) => writeAttemptMove(tx, id, event, { ...base, seen: row }));
 }
 
 // The owner revived the session and no seat came free in time: the attempt takes its seats past
@@ -259,7 +280,7 @@ async function writeWakeOverCap(tx: StoreTx, input: ActOnReadingInput, base: Mov
       },
       overCap: true,
     },
-    base,
+    { ...base, seen: input.attempt },
   );
 }
 
@@ -269,7 +290,7 @@ async function runStop(input: ActOnReadingInput, base: MoveBase): Promise<void> 
   const reading = input.reading;
 
   if (input.attempt.atcSession === null && reading.kind === 'running') {
-    await input.store.exclusive((tx) =>
+    const moved = await input.store.exclusive((tx) =>
       writeAttemptMove(
         tx,
         input.attempt.id,
@@ -280,9 +301,15 @@ async function runStop(input: ActOnReadingInput, base: MoveBase): Promise<void> 
           caller: reading.caller,
           resumeFallback: false,
         },
-        base,
+        { ...base, seen: input.attempt },
       ),
     );
+
+    if (moved.kind !== 'applied') {
+      return;
+    }
+  } else if (!(await probeSeenRow(input))) {
+    return;
   }
 
   const row = await readRow(input);

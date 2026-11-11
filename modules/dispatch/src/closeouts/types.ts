@@ -15,6 +15,7 @@ import type {
   RelationRow,
   RowWrite,
 } from '@boxxy/model';
+import type { AttemptGuard } from '../attempts/is-same-guard.ts';
 
 // What one effect of a settle writes, or why it writes nothing.
 export type EffectPlan =
@@ -58,6 +59,9 @@ export interface SettleAttemptInput {
 
   // false: settled by the give-up rule while the session still ran
   readonly sessionStopped: boolean;
+
+  // the guard columns of the row the caller decided on, when it read the row before the lock
+  readonly seen?: Partial<AttemptGuard>;
   readonly rules: LoadedRules;
   readonly actor: ActorRef;
   readonly now: Instant;

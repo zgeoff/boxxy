@@ -31,8 +31,8 @@ export interface EndedAttempts {
 }
 
 // The writes that the close of an item makes to its live attempts. A sleeping attempt settles
-// at once, with no wake; a closing one settles by its own cause; any other moves to `closing`
-// and keeps its seats until the runner stops its session.
+// at once, with no wake; a closing one is left as it is, for the runner to settle; any other
+// moves to `closing` and keeps its seats until the runner stops its session.
 export function endItemAttempts(input: EndItemAttemptsInput): EndedAttempts {
   const moves = input.attempts.flatMap((attempt) => {
     const event = pickEndEvent(attempt);
