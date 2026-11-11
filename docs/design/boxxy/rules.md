@@ -30,14 +30,15 @@ merges it. Every decision records the rules version in force.
 
 ## The rules version
 
-boxxy hashes three inputs into one rules version:
+boxxy hashes four inputs into one rules version:
 
 - the config repo's commit hash;
 - the bytes of every file the loader read;
 - each concept pin: `name@version` and the content hash of the concept's source, meaning its module
-  file and every file inside `@boxxy/planning` that it imports, transitively.
+  file and every file inside `@boxxy/planning` that it imports, transitively;
+- each phase kind the server registers, as `name@version`.
 
-A replay needs the exact plug-in code, so the pins are part of the version. When the checkout moves
+A replay needs the exact plug-in code, so the pins and the phase kinds are part of the version. When the checkout moves
 to a new commit, the loader builds a new version. When the loader rejects the commit, the previous
 version stays live and the rejection shows in the runner status.
 

@@ -264,7 +264,7 @@ test('it gives no value and records a fault when a signal throws for an item', (
         ],
       },
     ],
-    pools: [{ name: 'build', slots: 2, takes: { phase: 'build' }, order: ['size'] }],
+    pools: [{ name: 'build', takes: { phase: 'build' }, order: ['size'] }],
   });
 
   const now = brandSchemas.instant.parse(50_000);

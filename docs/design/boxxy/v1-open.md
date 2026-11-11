@@ -15,12 +15,11 @@ No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc list
 
 ## Not decided
 
-- Whether the loader refuses a hold reason in the rules file that equals one of the engine's three hold reasons.
 - Which rule wins for an agent-mode session that asks for input and then shows no activity. The idle sleep and the stall rule both fall due at 30 minutes, and the reconcile table gives no order for them.
 - Whether a review that settled `unsettleable` starts the merge step of the stage times. In the sketch it does not, so such an item has null merge minutes after its pull request merged.
 - Whether `runner.pause` breaks the rule that every store change writes an outbox row. The sketch writes the runner row and no fact.
 - The name of boxxy's configuration value that holds the folders of the trust documents. The verifier itself is not open: impz builds it ([`01-api.ts`](./sketches/v1/edge/01-api.ts), section F).
-- Four points of the [folder layout](./layout-folders.md#open-questions).
+- Three points of the [folder layout](./layout-folders.md#open-questions).
 
 ## Where the sketches disagree
 

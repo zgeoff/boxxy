@@ -1,8 +1,6 @@
 import type { ContentHash, JsonValue } from '@boxxy/content-hash';
 import type { BuildCloseOut, CloseOutParse, Friction, OpenItem } from '../closeouts/types.ts';
 import type { RelationPayload } from '../facts/types.ts';
-import type { PropagationLine, SignalKey } from '../planning/types.ts';
-import type { ConceptEntry, LoadRejection, Registry, Resolved, SignalRef } from '../rules/types.ts';
 import type {
   ActorRef,
   AgentSessionId,
@@ -24,14 +22,11 @@ import type {
   ItemState,
   LeaseRow,
   LeverKind,
-  LoadedRecipe,
   ObservationBoundary,
   PhaseName,
-  PipelineName,
   PoolName,
   PullRequestRef,
   RecipeHash,
-  RecipeName,
   RelationRow,
   RepoName,
   RulesVersion,
@@ -39,8 +34,8 @@ import type {
   SnapshotHash,
 } from '../types.ts';
 
-// The slice 1 forms of the shapes that v1 replaces. The store, the memory store, planning and
-// the rules loader still read and write these; each later slice moves its package to the v1
+// The slice 1 forms of the shapes that v1 replaces. The store, the memory store and planning
+// still read and write these; each later slice moves its package to the v1
 // shape and deletes the form it no longer needs.
 
 export interface SliceOneItemRow {
@@ -275,94 +270,6 @@ export interface SliceOnePick {
   phase: PhaseName;
   pool: PoolName;
 }
-
-export interface SliceOnePool {
-  readonly name: PoolName;
-  readonly slots: number;
-  readonly takes: Readonly<Record<string, readonly string[]>>;
-
-  // `lead`, then the pool's own `order`: lower first, no value last, then item id
-  readonly order: readonly SignalKey[];
-}
-
-export interface SliceOneKindRules {
-  readonly pipeline: SliceOnePipeline;
-  readonly recipes: Readonly<Record<PhaseName, RecipeName>>;
-}
-
-export interface SliceOnePipeline {
-  readonly name: PipelineName;
-  readonly steps: readonly SliceOnePipelineStep[];
-}
-
-export interface SliceOnePipelineStep {
-  readonly phase: PhaseName;
-
-  // failed attempts before the item waits on "attempts used up"
-  readonly maxAttempts: number;
-}
-
-export interface SliceOneLoadedRules {
-  readonly version: RulesVersion;
-  readonly commit: string;
-  readonly registry: Registry;
-  readonly signals: ReadonlyMap<SignalKey, Resolved<'signal'>>;
-  readonly gates: readonly Resolved<'gate'>[];
-  readonly kinds: ReadonlyMap<ItemKindName, SliceOneKindRules>;
-  readonly maxAttemptsByKind: MaxAttemptsByKind;
-
-  // in declared order, each pool's `order` starting with `lead`
-  readonly pools: readonly SliceOnePool[];
-  readonly propagation: readonly PropagationLine[];
-  readonly recipes: ReadonlyMap<RecipeName, LoadedRecipe>;
-}
-
-export interface SliceOneRulesFile {
-  readonly version: 1;
-  readonly concepts: readonly ConceptEntry[];
-  readonly kinds: Readonly<
-    Record<
-      string,
-      {
-        readonly pipeline: readonly string[] | PipelineName;
-        readonly maxAttempts: Readonly<Record<string, number>>;
-        readonly recipes: Readonly<Record<string, string>>;
-      }
-    >
-  >;
-  readonly pools: readonly {
-    readonly name: string;
-    readonly slots: number;
-    readonly takes: Readonly<Record<string, JsonValue>>;
-    readonly order: readonly SignalRef[];
-  }[];
-  readonly lead: readonly SignalRef[];
-  readonly propagation: readonly {
-    readonly value: string;
-    readonly over: string;
-    readonly toward: 'source' | 'target';
-  }[];
-  readonly recipes: Readonly<
-    Record<
-      string,
-      {
-        readonly agent: string;
-        readonly model: string;
-        readonly effort: string;
-        readonly prompt: string;
-        readonly source: string;
-      }
-    >
-  >;
-}
-
-export type SliceOneLoadResult =
-  | {
-      readonly kind: 'loaded';
-      readonly rules: SliceOneLoadedRules;
-      readonly warnings: readonly string[];
-    }
-  | { readonly kind: 'rejected'; readonly rejections: readonly LoadRejection[] };
 
 export type SliceOneEntityRef =
   | `boxxy:item:${string}`

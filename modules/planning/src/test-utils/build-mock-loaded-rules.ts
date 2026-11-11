@@ -1,10 +1,6 @@
 import { contentHash } from '@boxxy/content-hash';
-import type {
-  Concept,
-  ConceptPin,
-  JsonValue,
-  SliceOneLoadedRules as LoadedRules,
-} from '@boxxy/model';
+import type { Concept, ConceptPin, JsonValue, LoadedRules } from '@boxxy/model';
+import { buildMockPhaseKind } from '@boxxy/model/test-utils/build-mock-phase-kind';
 import { loadRules } from '@boxxy/rules';
 import invariant from 'tiny-invariant';
 import { concepts as builtInConcepts } from '../concepts.ts';
@@ -22,20 +18,14 @@ export function buildMockLoadedRules(input: MockRulesInput = {}): LoadedRules {
   const file = {
     version: 1,
     concepts: concepts.map((concept) => `${concept.name}@${concept.version}`),
-    kinds: {
-      'core.issue': {
-        pipeline: ['build'],
-        maxAttempts: { build: 2 },
-        recipes: { build: 'build-v1' },
-      },
+    pipelines: {
+      standard: [{ phase: 'build', maxAttempts: 2, timeoutMinutes: 180, on: { built: 'next' } }],
     },
+    kinds: { 'core.issue': { pipeline: 'standard', recipes: { build: 'build-v1' } } },
+    relationTypes: ['blocks'],
+    limits: [{ name: 'workers', max: 7, counts: {} }],
     pools: input.pools ?? [
-      {
-        name: 'build',
-        slots: 2,
-        takes: { phase: 'build', kind: ['core.issue'] },
-        order: ['oldest'],
-      },
+      { name: 'build', takes: { phase: 'build', kind: ['core.issue'] }, order: ['oldest'] },
     ],
     lead: input.lead ?? ['expedite'],
     propagation: input.propagation ?? [{ value: 'expedite', over: 'blocks', toward: 'source' }],
@@ -46,8 +36,10 @@ export function buildMockLoadedRules(input: MockRulesInput = {}): LoadedRules {
         effort: 'high',
         prompt: 'prompts/build-v1.md',
         source: 'subscription',
+        skills: [],
       },
     },
+    sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 },
   };
 
   const encoder = new TextEncoder();
@@ -73,6 +65,7 @@ export function buildMockLoadedRules(input: MockRulesInput = {}): LoadedRules {
     },
     concepts,
     pins: new Map(pins),
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
   });
 
   invariant(

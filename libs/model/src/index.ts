@@ -49,6 +49,7 @@ export { toJSONValue } from './utils/to-json-value.ts';
 export { triageCloseOutSchema } from './closeouts/triage-close-out-schema.ts';
 export { workFactSchemas } from './facts/work-fact-schemas.ts';
 export { costBases, phaseSteps, stageSteps } from './reports/constants.ts';
+export { engineHoldReasons, engineOutcomes } from './pipeline/constants.ts';
 
 export type {
   Actor,
@@ -94,7 +95,6 @@ export type {
   LimitName,
   LimitSeatRow,
   LiveAttemptState,
-  LoadedRecipe,
   Minutes,
   NoteRow,
   NoticeRow,
@@ -307,19 +307,12 @@ export type {
   SliceOneItemSetRows,
   SliceOneItemView,
   SliceOneItemWithLevers,
-  SliceOneKindRules,
   SliceOneLeverRow,
   SliceOneLiveAttemptState,
-  SliceOneLoadedRules,
-  SliceOneLoadResult,
   SliceOneNewFact,
   SliceOnePick,
-  SliceOnePipeline,
-  SliceOnePipelineStep,
-  SliceOnePool,
   SliceOnePullRequestReading,
   SliceOnePullRequestRow,
-  SliceOneRulesFile,
   SliceOneSessionReading,
   SliceOneSettleInput,
   SliceOneSettlement,

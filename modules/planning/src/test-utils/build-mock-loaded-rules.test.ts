@@ -15,7 +15,6 @@ test('it loads one build pool over the built-in concepts, led by expedite', () =
     pools: [
       {
         name: 'build',
-        slots: 2,
         takes: { phase: ['build'], kind: ['core.issue'] },
         order: [signalKey('expedite', {}), signalKey('oldest', {})],
       },
@@ -27,7 +26,7 @@ test('it loads one build pool over the built-in concepts, led by expedite', () =
 
 test('it applies the pools, lead and propagation overrides', () => {
   const rules = buildMockLoadedRules({
-    pools: [{ name: 'docs', slots: 1, takes: { repo: 'acme/docs' }, order: [] }],
+    pools: [{ name: 'docs', takes: { repo: 'acme/docs' }, order: [] }],
     lead: [],
     propagation: [],
   });
@@ -35,7 +34,7 @@ test('it applies the pools, lead and propagation overrides', () => {
   const loaded: unknown = { pools: rules.pools, propagation: rules.propagation };
 
   expect(loaded).toStrictEqual({
-    pools: [{ name: 'docs', slots: 1, takes: { repo: ['acme/docs'] }, order: [] }],
+    pools: [{ name: 'docs', takes: { repo: ['acme/docs'] }, order: [] }],
     propagation: [],
   });
 });

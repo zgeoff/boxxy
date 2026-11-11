@@ -2,20 +2,28 @@ import { expect, test } from 'bun:test';
 import { contentHash, hashBytes } from '@boxxy/content-hash';
 import type { Concept, ConceptPin } from '@boxxy/model';
 import { defineGate, defineSignal, signalKey } from '@boxxy/model';
+import { buildMockPhaseKind } from '@boxxy/model/test-utils/build-mock-phase-kind';
 import invariant from 'tiny-invariant';
 import { z } from 'zod';
+import buildPrompt from '../../example/prompts/build-v1.md' with { type: 'text' };
+import designAttendedPrompt from '../../example/prompts/design-attended-v1.md' with { type: 'text' };
+import designPrompt from '../../example/prompts/design-v1.md' with { type: 'text' };
+import reviewPrompt from '../../example/prompts/review-v1.md' with { type: 'text' };
+import triagePrompt from '../../example/prompts/triage-v1.md' with { type: 'text' };
+import exampleRules from '../../example/rules.yaml' with { type: 'text' };
 import { loadRules } from './load-rules.ts';
 
 test('it loads the example rules file', () => {
   const concepts: Concept[] = [
     {
       name: 'pool',
-      version: 1,
+      version: 2,
       signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
       filterFields: [
         { name: 'phase', value: () => null },
         { name: 'kind', value: () => null },
         { name: 'repo', value: () => null },
+        { name: 'designMode', value: () => null },
       ],
     },
     {
@@ -43,61 +51,91 @@ test('it loads the example rules file', () => {
   ];
 
   const pins = new Map<string, ConceptPin>([
-    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+    ['pool', { ref: 'pool@2', sourceHash: contentHash('pool source') }],
     ['defer', { ref: 'defer@1', sourceHash: contentHash('defer source') }],
     ['expedite', { ref: 'expedite@1', sourceHash: contentHash('expedite source') }],
   ]);
 
-  const prompt = new TextEncoder().encode('Build {{title}} in {{repo}}.\n');
+  const phases = [
+    buildMockPhaseKind({ name: 'triage', outcomes: ['accepted', 'duplicate', 'declined'] }),
+    buildMockPhaseKind({ name: 'design', outcomes: ['designed', 'blocked', 'abandoned'] }),
+    buildMockPhaseKind({ name: 'build', outcomes: ['built', 'blocked', 'abandoned'] }),
+    buildMockPhaseKind({ name: 'review', outcomes: ['passed', 'changes-requested'] }),
+  ];
+
+  const prompts = new Map([
+    ['triage-v1', z.string().parse(triagePrompt)],
+    ['design-v1', z.string().parse(designPrompt)],
+    ['design-attended-v1', z.string().parse(designAttendedPrompt)],
+    ['build-v1', z.string().parse(buildPrompt)],
+    ['review-v1', z.string().parse(reviewPrompt)],
+  ]);
+
+  const rulesBytes = new TextEncoder().encode(z.string().parse(exampleRules));
+
+  const promptFiles = [...prompts].map(([name, text]): [string, Uint8Array] => [
+    `prompts/${name}.md`,
+    new TextEncoder().encode(text),
+  ]);
 
   const result: unknown = loadRules({
     checkout: {
       commit: '3f2a1c0',
-      files: new Map([
-        [
-          'rules.yaml',
-          new TextEncoder().encode(`# rules.yaml
-version: 1
-
-concepts: # name@version; each concept's pin ships with its package
-  - pool@1
-  - defer@1
-  - expedite@1
-
-kinds:
-  core.issue:
-    pipeline: [build]
-    maxAttempts: { build: 2 }
-    recipes: { build: build-v1 }
-
-pools:
-  - name: pepys-build
-    slots: 2
-    takes: { phase: build, kind: [core.issue], repo: [zgeoff/pepys] }
-    order: [oldest] # plug-in references: a bare name, or { name: { parameters } }
-
-lead: [expedite] # signals every pool sorts by before its own order
-
-propagation:
-  - value: expedite
-    over: blocks
-    toward: source # an expedited blocked item pulls its blockers forward
-
-recipes:
-  build-v1:
-    agent: claude
-    model: example-model
-    effort: high
-    prompt: prompts/build-v1.md
-    source: subscription # the capacity source name; slice 1 has no router
-`),
-        ],
-        ['prompts/build-v1.md', prompt],
-      ]),
+      files: new Map([['rules.yaml', rulesBytes], ...promptFiles]),
     },
     concepts,
     pins,
+    phases,
   });
+
+  const standard = {
+    name: 'standard',
+    steps: [
+      {
+        phase: 'triage',
+        maxAttempts: 2,
+        timeoutMinutes: 20,
+        on: { accepted: 'next', duplicate: { hold: 'duplicate' }, declined: { hold: 'declined' } },
+      },
+      {
+        phase: 'design',
+        maxAttempts: 2,
+        timeoutMinutes: 90,
+        on: { designed: 'next', blocked: { hold: 'blocked' }, abandoned: 'again' },
+      },
+      {
+        phase: 'build',
+        maxAttempts: 2,
+        timeoutMinutes: 180,
+        on: { built: 'next', blocked: { hold: 'blocked' }, abandoned: 'again' },
+      },
+      {
+        phase: 'review',
+        maxAttempts: 2,
+        timeoutMinutes: 45,
+        on: {
+          passed: { end: 'reviewed' },
+          'changes-requested': { to: 'build', max: 3, resume: true },
+        },
+      },
+    ],
+  };
+
+  const recipes = {
+    triage: 'triage-v1',
+    design: 'design-v1',
+    'design/attended': 'design-attended-v1',
+    build: 'build-v1',
+    review: 'review-v1',
+  };
+
+  const skillsByRecipe = new Map([
+    ['triage-v1', []],
+    ['design-v1', ['bake-off']],
+    ['design-attended-v1', ['bake-off']],
+    ['build-v1', []],
+    ['review-v1', []],
+  ]);
 
   expect(result).toStrictEqual({
     kind: 'loaded',
@@ -105,44 +143,57 @@ recipes:
       version: expect.stringMatching(/^[0-9a-f]{64}$/u),
       commit: '3f2a1c0',
       registry: expect.any(Object),
-      signals: expect.any(Map),
+      signals: new Map([[signalKey('oldest', {}), expect.any(Object)]]),
       gates: [{ kind: 'gate', name: 'defer', key: 'defer', open: expect.any(Function) }],
       kinds: new Map([
-        [
-          'core.issue',
-          {
-            pipeline: { name: 'core.issue', steps: [{ phase: 'build', maxAttempts: 2 }] },
-            recipes: { build: 'build-v1' },
-          },
-        ],
+        ['core.idea', { pipeline: standard, recipes }],
+        ['core.issue', { pipeline: standard, recipes }],
       ]),
-      maxAttemptsByKind: new Map([['core.issue', new Map([['build', 2]])]]),
-      pools: [
-        {
-          name: 'pepys-build',
-          slots: 2,
-          takes: { phase: ['build'], kind: ['core.issue'], repo: ['zgeoff/pepys'] },
-          order: [signalKey('expedite', {}), signalKey('oldest', {})],
-        },
+      phases: new Map(phases.map((phase) => [phase.name, phase])),
+      limits: [
+        { name: 'workers', max: 7, counts: {} },
+        { name: 'owner-design', max: 1, counts: { phase: ['design'], designMode: ['attended'] } },
       ],
-      propagation: [{ value: 'expedite', over: 'blocks', toward: 'source' }],
-      recipes: new Map([
-        [
-          'build-v1',
+      pools: [
+        { name: 'triage', takes: { phase: ['triage'] }, order: [signalKey('oldest', {})] },
+        {
+          name: 'design-with-owner',
+          takes: { phase: ['design'], designMode: ['attended'] },
+          order: [signalKey('oldest', {})],
+        },
+        {
+          name: 'design',
+          takes: { phase: ['design'], designMode: ['agent'] },
+          order: [signalKey('oldest', {})],
+        },
+        { name: 'review', takes: { phase: ['review'] }, order: [signalKey('oldest', {})] },
+        { name: 'build', takes: { phase: ['build'] }, order: [signalKey('oldest', {})] },
+      ],
+      propagation: [],
+      recipes: new Map(
+        [...prompts].map(([name, text]) => [
+          name,
           {
-            name: 'build-v1',
+            name,
             recipe: {
               agent: 'claude',
-              model: 'example-model',
-              effort: 'high',
-              prompt: 'prompts/build-v1.md',
+              model: 'claude-opus-5-5',
+              effort: 'medium',
+              prompt: `prompts/${name}.md`,
               source: 'subscription',
-              skills: [],
+              skills: skillsByRecipe.get(name),
             },
-            promptHash: hashBytes(prompt),
+            promptHash: hashBytes(new TextEncoder().encode(text)),
             rulesVersion: expect.stringMatching(/^[0-9a-f]{64}$/u),
           },
-        ],
+        ]),
+      ),
+      sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 },
+      skills: { source: 'example/skills', ref: '4f1c9e07a2b35d68c0e1f7a9b3d5c2e8f6a4b1d0' },
+      relationTypes: new Map([
+        ['blocks', { name: 'blocks' }],
+        ['duplicate-of', { name: 'duplicate-of' }],
+        ['relates-to', { name: 'relates-to' }],
       ]),
     },
     warnings: [],
@@ -208,21 +259,29 @@ test('it builds the registry from the pinned concepts only', () => {
           new TextEncoder().encode(`
 version: 1
 concepts: [pool@1, defer@1, expedite@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+  - { name: docs-build, takes: {}, order: [oldest] }
 lead: [expedite]
 propagation:
   - { value: expedite, over: blocks, toward: source }
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
         ],
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -279,20 +338,28 @@ test('it hands a signal the parameters its plug-in reference gives', () => {
           new TextEncoder().encode(`
 version: 1
 concepts: [pool@1, rank@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest, { rank: { boost: 3 } }] }
+  - { name: docs-build, takes: {}, order: [oldest, { rank: { boost: 3 } }] }
 lead: []
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
         ],
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -346,6 +413,7 @@ concepts: [pool@1, expedite@1
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -371,6 +439,7 @@ test('it rejects a rules file whose aliases expand past the alias limit', () => 
       ]),
     },
     concepts: [],
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins: new Map(),
   });
 
@@ -392,6 +461,7 @@ test('it rejects a rules file saved in Latin-1 as invalid', () => {
   const result: unknown = loadRules({
     checkout: { commit: '3f2a1c0', files: new Map([['rules.yaml', latin1]]) },
     concepts: [],
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins: new Map(),
   });
 
@@ -414,6 +484,7 @@ test('it rejects a checkout with no rules file', () => {
       files: new Map([['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')]]),
     },
     concepts: [],
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins: new Map(),
   });
 
@@ -431,23 +502,23 @@ test('it rejects a checkout with no rules file', () => {
 
 test.each([
   [
-    'a pool with a slot count that is not a number',
-    '  - { name: docs-build, slots: two, takes: { phase: build }, order: [oldest] }',
+    'a pool with a slot count',
+    '  - { name: docs-build, slots: 2, takes: {}, order: [oldest] }',
     'pools[0].slots',
   ],
   [
     'a pool with a field the schema does not know',
-    '  - { name: docs-build, slots: 1, size: 2, takes: { phase: build }, order: [oldest] }',
+    '  - { name: docs-build, size: 2, takes: {}, order: [oldest] }',
     'pools[0]',
   ],
   [
     'a plug-in reference whose map has two keys',
-    '  - { name: docs-build, slots: 1, takes: { phase: build }, order: [{ oldest: {}, rank: { boost: 1 } }] }',
+    '  - { name: docs-build, takes: {}, order: [{ oldest: {}, rank: { boost: 1 } }] }',
     'pools[0].order[0]',
   ],
   [
     'a second pool with the same name',
-    '  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }\n  - { name: docs-build, slots: 1, takes: { phase: review }, order: [oldest] }',
+    '  - { name: docs-build, takes: {}, order: [oldest] }\n  - { name: docs-build, takes: {}, order: [oldest] }',
     'pools[1].name',
   ],
 ])('it rejects %s as invalid', (_, poolLines, path) => {
@@ -480,20 +551,28 @@ test.each([
           new TextEncoder().encode(`
 version: 1
 concepts: [pool@1, rank@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
 ${poolLines}
 lead: []
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
         ],
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -506,7 +585,7 @@ recipes:
 });
 
 test.each(['build', 'constructor'])(
-  'it rejects the pipeline phase %s with no maxAttempts as invalid',
+  'it rejects the pipeline step %s with no timeoutMinutes',
   (phase) => {
     const concepts: Concept[] = [
       {
@@ -529,20 +608,28 @@ test.each(['build', 'constructor'])(
             new TextEncoder().encode(`
 version: 1
 concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: ${phase}, maxAttempts: 2, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [${phase}], maxAttempts: {}, recipes: { ${phase}: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { ${phase}: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+  - { name: docs-build, takes: {}, order: [oldest] }
 lead: []
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
           ],
           ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
         ]),
       },
       concepts,
+      phases: [buildMockPhaseKind({ name: phase, outcomes: ['built'] })],
       pins,
     });
 
@@ -551,8 +638,8 @@ recipes:
       rejections: [
         {
           file: 'rules.yaml',
-          path: `kinds["core.issue"].maxAttempts.${phase}`,
-          reason: { kind: 'invalid', message: `the pipeline phase ${phase} has no maxAttempts` },
+          path: 'pipelines.standard[0]',
+          reason: { kind: 'step-without-timeout', phase },
         },
       ],
     });
@@ -581,20 +668,28 @@ test('it rejects the reserved key __proto__ as invalid', () => {
           new TextEncoder().encode(`
 version: 1
 concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  __proto__: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  __proto__: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+  - { name: docs-build, takes: {}, order: [oldest] }
 lead: []
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
         ],
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -638,20 +733,28 @@ test('it rejects two pinned concepts that register one plug-in name as invalid',
           new TextEncoder().encode(`
 version: 1
 concepts: [pool@1, age@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+  - { name: docs-build, takes: {}, order: [oldest] }
 lead: []
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
         ],
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -689,20 +792,28 @@ test('it rejects a prompt path with a "." folder as invalid', () => {
           new TextEncoder().encode(`
 version: 1
 concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+  - { name: docs-build, takes: {}, order: [oldest] }
 lead: []
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: ./prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: ./prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
         ],
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -753,20 +864,28 @@ test('it puts a signal that lead and a pool order both name once in the pool ord
           new TextEncoder().encode(`
 version: 1
 concepts: [pool@1, expedite@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest, expedite] }
+  - { name: docs-build, takes: {}, order: [oldest, expedite] }
 lead: [expedite]
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
         ],
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -800,20 +919,28 @@ test('it rejects a concept pinned twice as invalid', () => {
           new TextEncoder().encode(`
 version: 1
 concepts: [pool@1, pool@2]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+  - { name: docs-build, takes: {}, order: [oldest] }
 lead: []
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
         ],
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -867,20 +994,28 @@ test.each([
           new TextEncoder().encode(`
 version: 1
 concepts: [pool@1, ${ref}]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+  - { name: docs-build, takes: {}, order: [oldest] }
 lead: []
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
         ],
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -918,20 +1053,28 @@ test('it rejects a pool order that names a signal no pinned concept registers', 
           new TextEncoder().encode(`
 version: 1
 concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest, newest] }
+  - { name: docs-build, takes: {}, order: [oldest, newest] }
 lead: []
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
         ],
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -969,20 +1112,28 @@ test('it rejects a lead that names a signal no pinned concept registers', () => 
           new TextEncoder().encode(`
 version: 1
 concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+  - { name: docs-build, takes: {}, order: [oldest] }
 lead: [expedite]
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
         ],
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -1028,20 +1179,28 @@ test("it rejects a pool order reference whose parameters the signal's params sch
           new TextEncoder().encode(`
 version: 1
 concepts: [pool@1, rank@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest, { rank: { boost: high } }] }
+  - { name: docs-build, takes: {}, order: [oldest, { rank: { boost: high } }] }
 lead: []
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
         ],
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -1097,20 +1256,28 @@ test('it rejects a pinned concept whose gate refuses empty parameters', () => {
           new TextEncoder().encode(`
 version: 1
 concepts: [pool@1, hold@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+  - { name: docs-build, takes: {}, order: [oldest] }
 lead: []
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
         ],
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -1166,21 +1333,29 @@ test('it rejects a propagation line over an unknown relation type', () => {
           new TextEncoder().encode(`
 version: 1
 concepts: [pool@1, expedite@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+  - { name: docs-build, takes: {}, order: [oldest] }
 lead: [expedite]
 propagation:
   - { value: expedite, over: parent, toward: source }
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
         ],
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -1231,21 +1406,29 @@ test('it rejects a propagation line for a signal with no combine', () => {
           new TextEncoder().encode(`
 version: 1
 concepts: [pool@1, expedite@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+  - { name: docs-build, takes: {}, order: [oldest] }
 lead: [expedite]
 propagation:
   - { value: oldest, over: blocks, toward: source }
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
         ],
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -1262,10 +1445,35 @@ recipes:
 });
 
 test.each([
-  ['no recipe entry', '{}'],
-  ['a recipe name the rules file does not define', '{ build: build-v2 }'],
-  ['a recipe name every object inherits', '{ build: toString }'],
-])('it rejects a kind with %s for a pipeline phase', (_, recipes) => {
+  {
+    title: 'no recipe entry',
+    recipes: '{}',
+    kind: 'step-without-recipe',
+    phase: 'build',
+    path: 'kinds["core.issue"].recipes.build',
+  },
+  {
+    title: 'a recipe name the rules file does not define',
+    recipes: '{ build: build-v2 }',
+    kind: 'missing-recipe',
+    phase: 'build',
+    path: 'kinds["core.issue"].recipes.build',
+  },
+  {
+    title: 'a recipe name every object inherits',
+    recipes: '{ build: toString }',
+    kind: 'missing-recipe',
+    phase: 'build',
+    path: 'kinds["core.issue"].recipes.build',
+  },
+  {
+    title: 'an attended recipe name the rules file does not define',
+    recipes: '{ build: build-v1, build/attended: build-v2 }',
+    kind: 'missing-recipe',
+    phase: 'build/attended',
+    path: 'kinds["core.issue"].recipes["build/attended"]',
+  },
+])('it rejects a kind with $title for a pipeline phase', (row) => {
   const concepts: Concept[] = [
     {
       name: 'pool',
@@ -1287,20 +1495,28 @@ test.each([
           new TextEncoder().encode(`
 version: 1
 concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: ${recipes} }
+  core.issue: { pipeline: standard, recipes: ${row.recipes} }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+  - { name: docs-build, takes: {}, order: [oldest] }
 lead: []
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
         ],
         ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -1309,8 +1525,8 @@ recipes:
     rejections: [
       {
         file: 'rules.yaml',
-        path: 'kinds["core.issue"].recipes.build',
-        reason: { kind: 'missing-recipe', itemKind: 'core.issue', phase: 'build' },
+        path: row.path,
+        reason: { kind: row.kind, itemKind: 'core.issue', phase: row.phase },
       },
     ],
   });
@@ -1338,20 +1554,28 @@ test('it rejects a recipe whose prompt file is missing', () => {
           new TextEncoder().encode(`
 version: 1
 concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+  - { name: docs-build, takes: {}, order: [oldest] }
 lead: []
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
         ],
         ['prompts/build-v2.md', new TextEncoder().encode('Build {{title}}.\n')],
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -1383,14 +1607,21 @@ test('it changes the rules version when one byte of the prompt template changes'
   const rules = new TextEncoder().encode(`
 version: 1
 concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+  - { name: docs-build, takes: {}, order: [oldest] }
 lead: []
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `);
 
   const before = loadRules({
@@ -1402,6 +1633,7 @@ recipes:
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -1414,6 +1646,7 @@ recipes:
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -1442,14 +1675,21 @@ test("it changes the rules version when a concept's pinned hash changes", () => 
       new TextEncoder().encode(`
 version: 1
 concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+  - { name: docs-build, takes: {}, order: [oldest] }
 lead: []
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
     ],
     ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
@@ -1458,12 +1698,14 @@ recipes:
   const before = loadRules({
     checkout: { commit: '3f2a1c0', files },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
   const after = loadRules({
     checkout: { commit: '3f2a1c0', files },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins: new Map([
       ...pins,
       ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source, edited') }],
@@ -1492,14 +1734,21 @@ test('it keeps the rules version when a file the loader does not read changes', 
   const rules = new TextEncoder().encode(`
 version: 1
 concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+  - { name: docs-build, takes: {}, order: [oldest] }
 lead: []
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `);
 
   const prompt = new TextEncoder().encode('Build {{title}}.\n');
@@ -1514,6 +1763,7 @@ recipes:
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -1527,6 +1777,7 @@ recipes:
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -1558,19 +1809,27 @@ test('it returns every rejection a rules file has in one result', () => {
           new TextEncoder().encode(`
 version: 1
 concepts: [pool@1, triage@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
 kinds:
-  core.issue: { pipeline: [build], maxAttempts: { build: 2 }, recipes: { build: build-v1 } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
 pools:
-  - { name: docs-build, slots: 1, takes: { phase: build }, order: [oldest] }
+  - { name: docs-build, takes: {}, order: [oldest] }
 lead: []
 propagation: []
 recipes:
-  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription }
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
         ],
       ]),
     },
     concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
     pins,
   });
 
@@ -1589,4 +1848,689 @@ recipes:
       },
     ],
   });
+});
+
+test.each([
+  [
+    'a step whose phase no phase kind has',
+    `    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next, blocked: { hold: blocked } } }
+    - { phase: deploy, maxAttempts: 2, timeoutMinutes: 30, on: { done: next } }`,
+    'pipelines.standard[1].phase',
+    { kind: 'unknown-phase', phase: 'deploy' },
+  ],
+  [
+    'a step that maps no edge for an outcome of its phase kind',
+    '    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }',
+    'pipelines.standard[0].on',
+    { kind: 'unmapped-outcome', phase: 'build', outcome: 'blocked' },
+  ],
+  [
+    'a step that maps an outcome its phase kind lacks',
+    '    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next, blocked: { hold: blocked }, failed: again } }',
+    'pipelines.standard[0].on.failed',
+    { kind: 'unknown-outcome', phase: 'build', outcome: 'failed' },
+  ],
+  [
+    'a backward edge with no max',
+    `    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next, blocked: { hold: blocked } } }
+    - { phase: review, maxAttempts: 2, timeoutMinutes: 45, on: { passed: { end: reviewed }, changes-requested: { to: build } } }`,
+    'pipelines.standard[1].on.changes-requested',
+    { kind: 'open-loop', phase: 'review', outcome: 'changes-requested' },
+  ],
+  [
+    'an edge back to its own step with no max',
+    '    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next, blocked: { to: build } } }',
+    'pipelines.standard[0].on.blocked',
+    { kind: 'open-loop', phase: 'build', outcome: 'blocked' },
+  ],
+  [
+    'an edge to a phase the pipeline lacks',
+    `    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next, blocked: { hold: blocked } } }
+    - { phase: review, maxAttempts: 2, timeoutMinutes: 45, on: { passed: { end: reviewed }, changes-requested: { to: design, max: 3 } } }`,
+    'pipelines.standard[1].on.changes-requested',
+    { kind: 'edge-to-unknown-phase', phase: 'review', to: 'design' },
+  ],
+  [
+    'resume on a forward edge',
+    `    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: { to: review, resume: true }, blocked: { hold: blocked } } }
+    - { phase: review, maxAttempts: 2, timeoutMinutes: 45, on: { passed: { end: reviewed }, changes-requested: { to: build, max: 3 } } }`,
+    'pipelines.standard[0].on.built',
+    { kind: 'resume-on-forward-edge', phase: 'build', outcome: 'built' },
+  ],
+  [
+    'a hold edge that names an engine hold reason',
+    '    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next, blocked: { hold: attempts used up } } }',
+    'pipelines.standard[0].on.blocked.hold',
+    { kind: 'engine-hold-reason', phase: 'build', outcome: 'blocked', reason: 'attempts used up' },
+  ],
+])('it rejects %s', (_, steps, path, reason) => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const result: unknown = loadRules({
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+${steps}
+kinds:
+  core.issue: { pipeline: standard, recipes: { build: build-v1, review: build-v1, deploy: build-v1 } }
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+pools:
+  - { name: build, takes: {}, order: [oldest] }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+      ]),
+    },
+    concepts,
+    phases: [
+      buildMockPhaseKind({ name: 'build', outcomes: ['built', 'blocked'] }),
+      buildMockPhaseKind({ name: 'review', outcomes: ['passed', 'changes-requested'] }),
+    ],
+    pins,
+  });
+
+  expect(result).toStrictEqual({
+    kind: 'rejected',
+    rejections: [{ file: 'rules.yaml', path, reason }],
+  });
+});
+
+test('it rejects a step whose phase kind lists an engine outcome', () => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const result: unknown = loadRules({
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next, lost: again } }
+kinds:
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+pools:
+  - { name: build, takes: {}, order: [oldest] }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+      ]),
+    },
+    concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built', 'lost'] })],
+    pins,
+  });
+
+  expect(result).toStrictEqual({
+    kind: 'rejected',
+    rejections: [
+      {
+        file: 'rules.yaml',
+        path: 'pipelines.standard[0].phase',
+        reason: { kind: 'engine-outcome-listed', phase: 'build', outcome: 'lost' },
+      },
+    ],
+  });
+});
+
+test.each([
+  [
+    'afterQuietMinutes below afterIdleMinutes',
+    '{ afterIdleMinutes: 30, afterQuietMinutes: 20, afterUnattendedMinutes: 240 }',
+    'sleep.afterQuietMinutes',
+    { kind: 'quiet-below-idle' },
+  ],
+  [
+    'afterUnattendedMinutes below afterQuietMinutes',
+    '{ afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 45 }',
+    'sleep.afterUnattendedMinutes',
+    { kind: 'unattended-below-quiet' },
+  ],
+])('it rejects sleep times with %s', (_, sleep, path, reason) => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const result: unknown = loadRules({
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+kinds:
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+pools:
+  - { name: build, takes: {}, order: [oldest] }
+sleep: ${sleep}
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+      ]),
+    },
+    concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
+    pins,
+  });
+
+  expect(result).toStrictEqual({
+    kind: 'rejected',
+    rejections: [{ file: 'rules.yaml', path, reason }],
+  });
+});
+
+test('it rejects a recipe that lists a skill when the rules pin no skills commit', () => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const result: unknown = loadRules({
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+kinds:
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [bake-off] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+pools:
+  - { name: build, takes: {}, order: [oldest] }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+      ]),
+    },
+    concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
+    pins,
+  });
+
+  expect(result).toStrictEqual({
+    kind: 'rejected',
+    rejections: [
+      {
+        file: 'rules.yaml',
+        path: 'recipes.build-v1.skills',
+        reason: { kind: 'skills-without-pin', recipe: 'build-v1' },
+      },
+    ],
+  });
+});
+
+test.each([
+  [
+    'a limit',
+    '  - { name: workers, max: 7, counts: {} }\n  - { name: fast-lane, max: 1, counts: { lane: fast } }',
+    '  - { name: build, takes: { phase: build }, order: [oldest] }',
+    'limits[1].counts.lane',
+  ],
+  [
+    'a pool',
+    '  - { name: workers, max: 7, counts: {} }',
+    '  - { name: build, takes: { lane: fast }, order: [oldest] }',
+    'pools[0].takes.lane',
+  ],
+])('it rejects %s that filters on a field no concept registers', (_, limits, pools, path) => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+      filterFields: [{ name: 'phase', value: () => null }],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const result: unknown = loadRules({
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+kinds:
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+${limits}
+pools:
+${pools}
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+      ]),
+    },
+    concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
+    pins,
+  });
+
+  expect(result).toStrictEqual({
+    kind: 'rejected',
+    rejections: [
+      { file: 'rules.yaml', path, reason: { kind: 'unknown-filter-field', field: 'lane' } },
+    ],
+  });
+});
+
+test.each([
+  ['a phase no limit counts', '{ phase: review }'],
+  ['two phases of which a limit counts one', '{ phase: [build, review] }'],
+  ['no filter at all', '{}'],
+])('it rejects a pool that takes %s', (_, takes) => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+      filterFields: [{ name: 'phase', value: () => null }],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const result: unknown = loadRules({
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+kinds:
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: builds, max: 2, counts: { phase: build } }
+pools:
+  - { name: build, takes: { phase: build }, order: [oldest] }
+  - { name: other, takes: ${takes}, order: [oldest] }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+      ]),
+    },
+    concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
+    pins,
+  });
+
+  expect(result).toStrictEqual({
+    kind: 'rejected',
+    rejections: [
+      {
+        file: 'rules.yaml',
+        path: 'pools[1]',
+        reason: { kind: 'pool-without-limit', pool: 'other' },
+      },
+    ],
+  });
+});
+
+test('it loads a pool whose takes are narrower than the counts of a limit', () => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+      filterFields: [
+        { name: 'phase', value: () => null },
+        { name: 'kind', value: () => null },
+      ],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const result = loadRules({
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+kinds:
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: builds, max: 2, counts: { phase: [build, review] } }
+pools:
+  - { name: build, takes: { phase: build, kind: core.issue }, order: [oldest] }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+      ]),
+    },
+    concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
+    pins,
+  });
+
+  expect(result.kind).toBe('loaded');
+});
+
+test.each([
+  {
+    title: 'a limit name used twice',
+    limits: '  - { name: workers, max: 7, counts: {} }\n  - { name: workers, max: 3, counts: {} }',
+    kinds: '  core.issue: { pipeline: standard, recipes: { build: build-v1 } }',
+    steps: '    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }',
+    relationTypes: '[blocks]',
+    path: 'limits[1].name',
+  },
+  {
+    title: 'a kind that names a pipeline the file lacks',
+    limits: '  - { name: workers, max: 7, counts: {} }',
+    kinds: '  core.issue: { pipeline: fast, recipes: { build: build-v1 } }',
+    steps: '    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }',
+    relationTypes: '[blocks]',
+    path: 'kinds["core.issue"].pipeline',
+  },
+  {
+    title: 'a kind with the slice 1 maxAttempts map',
+    limits: '  - { name: workers, max: 7, counts: {} }',
+    kinds:
+      '  core.issue: { pipeline: standard, maxAttempts: { build: 2 }, recipes: { build: build-v1 } }',
+    steps: '    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }',
+    relationTypes: '[blocks]',
+    path: 'kinds["core.issue"]',
+  },
+  {
+    title: 'a pipeline that names one phase twice',
+    limits: '  - { name: workers, max: 7, counts: {} }',
+    kinds: '  core.issue: { pipeline: standard, recipes: { build: build-v1 } }',
+    steps:
+      '    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }\n    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }',
+    relationTypes: '[blocks]',
+    path: 'pipelines.standard[1].phase',
+  },
+  {
+    title: 'a relation type listed twice',
+    limits: '  - { name: workers, max: 7, counts: {} }',
+    kinds: '  core.issue: { pipeline: standard, recipes: { build: build-v1 } }',
+    steps: '    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }',
+    relationTypes: '[blocks, blocks]',
+    path: 'relationTypes[1]',
+  },
+])('it rejects $title as invalid', (row) => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const result: unknown = loadRules({
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+${row.steps}
+kinds:
+${row.kinds}
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: ${row.relationTypes}
+limits:
+${row.limits}
+pools:
+  - { name: build, takes: {}, order: [oldest] }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+      ]),
+    },
+    concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
+    pins,
+  });
+
+  expect(result).toStrictEqual({
+    kind: 'rejected',
+    rejections: [
+      {
+        file: 'rules.yaml',
+        path: row.path,
+        reason: { kind: 'invalid', message: expect.any(String) },
+      },
+    ],
+  });
+});
+
+test.each(['main', '4f1c9e0'])(
+  'it rejects the skills ref %s, which is no full commit, as invalid',
+  (ref) => {
+    const concepts: Concept[] = [
+      {
+        name: 'pool',
+        version: 1,
+        signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+      },
+    ];
+
+    const pins = new Map<string, ConceptPin>([
+      ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+    ]);
+
+    const result: unknown = loadRules({
+      checkout: {
+        commit: '3f2a1c0',
+        files: new Map([
+          [
+            'rules.yaml',
+            new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+kinds:
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
+skills: { source: example/skills, ref: ${ref} }
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+pools:
+  - { name: build, takes: {}, order: [oldest] }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
+`),
+          ],
+          ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+        ]),
+      },
+      concepts,
+      phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
+      pins,
+    });
+
+    expect(result).toStrictEqual({
+      kind: 'rejected',
+      rejections: [
+        {
+          file: 'rules.yaml',
+          path: 'skills.ref',
+          reason: { kind: 'invalid', message: expect.any(String) },
+        },
+      ],
+    });
+  },
+);
+
+test("it changes the rules version when a phase kind's version changes", () => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const files = new Map([
+    [
+      'rules.yaml',
+      new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+kinds:
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+pools:
+  - { name: build, takes: {}, order: [oldest] }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
+`),
+    ],
+    ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+  ]);
+
+  const before = loadRules({
+    checkout: { commit: '3f2a1c0', files },
+    concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
+    pins,
+  });
+
+  const after = loadRules({
+    checkout: { commit: '3f2a1c0', files },
+    concepts,
+    phases: [{ ...buildMockPhaseKind({ name: 'build', outcomes: ['built'] }), version: 2 }],
+    pins,
+  });
+
+  invariant(before.kind === 'loaded');
+  invariant(after.kind === 'loaded');
+
+  expect(after.rules.version).not.toBe(before.rules.version);
 });

@@ -414,12 +414,8 @@ export interface RecipeMaterial {
   readonly name: RecipeName;
   readonly recipe: Recipe;
   readonly promptHash: ContentHash;
-  readonly pluginFolderHash: ContentHash;
   readonly rulesVersion: RulesVersion;
 }
-
-// the loader can't see the plugin folder, so claimNext adds its hash
-export type LoadedRecipe = Omit<RecipeMaterial, 'pluginFolderHash'>;
 
 export interface ResolvedRecipe extends RecipeMaterial {
   readonly hash: RecipeHash;

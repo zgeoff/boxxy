@@ -4,7 +4,7 @@ import type {
   FrameItem,
   ItemId,
   SliceOnePick as Pick,
-  SliceOnePool as Pool,
+  Pool,
   PoolName,
 } from '@boxxy/model';
 import { compareItemIDs } from './compare-item-ids.ts';

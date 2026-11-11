@@ -1,6 +1,7 @@
 import type { JsonValue } from '@boxxy/content-hash';
 import type { z } from 'zod';
 import type { CloseOutParser, Effect } from '../closeouts/types.ts';
+import type { RulesHoldReason } from '../pipeline/types.ts';
 import type {
   Admission,
   FrameItem,
@@ -23,11 +24,11 @@ import type {
   ItemKindName,
   ItemView,
   LeverKind,
-  LoadedRecipe,
   Minutes,
   PhaseName,
   PipelineName,
   PullRequestRow,
+  RecipeMaterial,
   RecipeName,
   RelationTypeName,
   RulesVersion,
@@ -173,7 +174,7 @@ export type Edge =
   | 'again'
   | { readonly to: PhaseName; readonly max?: number; readonly resume?: boolean }
   | { readonly end: string }
-  | { readonly hold: string };
+  | { readonly hold: RulesHoldReason };
 
 export interface SkillsPin {
   // the repository, as owner/name
@@ -211,7 +212,7 @@ export interface LoadedRules {
   // in declared order, each pool's `order` starting with `lead`
   readonly pools: readonly Pool[];
   readonly propagation: readonly PropagationLine[];
-  readonly recipes: ReadonlyMap<RecipeName, LoadedRecipe>;
+  readonly recipes: ReadonlyMap<RecipeName, RecipeMaterial>;
   readonly sleep: SleepRules;
 
   // null when the rules file has no `skills` block
@@ -269,6 +270,14 @@ export type LoadRejectionReason =
       readonly kind: 'resume-on-forward-edge';
       readonly phase: PhaseName;
       readonly outcome: string;
+    }
+
+  // a `hold` edge names one of the engine's hold reasons
+  | {
+      readonly kind: 'engine-hold-reason';
+      readonly phase: PhaseName;
+      readonly outcome: string;
+      readonly reason: string;
     };
 
 export type LoadResult =

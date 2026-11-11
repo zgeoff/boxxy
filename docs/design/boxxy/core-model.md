@@ -103,7 +103,7 @@ One attempt is one run of one phase on one item ([decision 0002](../../decisions
 An attempt records:
 
 - **Its recipe.** The recipe is what the attempt ran with: agent, model, effort, prompt template,
-  skills, plugins, instruction files, rules version and experiment arm. It is content-addressed, so
+  skills with their pinned commit, instruction files, rules version and experiment arm. It is content-addressed, so
   each recipe hash resolves to the exact material that ran.
 - **Its claim.** A lease row in the boxxy store, guarded by a generation number
   ([dispatch](./dispatch.md)).

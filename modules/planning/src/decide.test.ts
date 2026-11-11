@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { SliceOnePool as Pool } from '@boxxy/model';
+import type { Pool } from '@boxxy/model';
 import { brandSchemas, signalKey } from '@boxxy/model';
 import { buildMockFrameItem } from '@boxxy/model/test-utils/build-mock-frame-item';
 import { decide } from './decide.ts';
@@ -47,7 +47,6 @@ test('it returns the same picks for the same frame across 100 runs', () => {
   const pools: Pool[] = [
     {
       name: brandSchemas.poolName.parse('build'),
-      slots: 3,
       takes: { phase: ['build'] },
       order: [signalKey('oldest', {})],
     },
@@ -100,7 +99,6 @@ test('it breaks a tie on every signal by item id, whatever the candidate order',
   const pools: Pool[] = [
     {
       name: brandSchemas.poolName.parse('build'),
-      slots: 2,
       takes: { phase: ['build'] },
       order: [signalKey('oldest', {})],
     },
@@ -144,7 +142,6 @@ test('it sorts a candidate with no value for a signal after the candidates with 
   const pools: Pool[] = [
     {
       name: brandSchemas.poolName.parse('build'),
-      slots: 2,
       takes: { phase: ['build'] },
       order: [signalKey('oldest', {})],
     },
@@ -203,7 +200,6 @@ test("it sorts by the pool's later signal when the first ties", () => {
   const pools: Pool[] = [
     {
       name: brandSchemas.poolName.parse('build'),
-      slots: 1,
       takes: { phase: ['build'] },
       order: [signalKey('expedite', {}), signalKey('oldest', {})],
     },
@@ -244,13 +240,11 @@ test('it offers a candidate to the first pool that takes it, and never twice', (
   const pools: Pool[] = [
     {
       name: brandSchemas.poolName.parse('small'),
-      slots: 1,
       takes: { phase: ['build'] },
       order: [],
     },
     {
       name: brandSchemas.poolName.parse('large'),
-      slots: 4,
       takes: { phase: ['build'] },
       order: [],
     },
@@ -297,7 +291,6 @@ test('it picks no held candidate', () => {
   const pools: Pool[] = [
     {
       name: brandSchemas.poolName.parse('build'),
-      slots: 2,
       takes: { phase: ['build'] },
       order: [],
     },
@@ -331,7 +324,6 @@ test("it never matches a pool's filter field that a candidate has no value for",
   const pools: Pool[] = [
     {
       name: brandSchemas.poolName.parse('build'),
-      slots: 2,
       takes: { phase: ['build'], area: ['maintenance'] },
       order: [],
     },
@@ -373,10 +365,9 @@ test('it picks one candidate per free slot, and none for a pool with no free slo
   };
 
   const pools: Pool[] = [
-    { name: brandSchemas.poolName.parse('full'), slots: 2, takes: { phase: ['build'] }, order: [] },
+    { name: brandSchemas.poolName.parse('full'), takes: { phase: ['build'] }, order: [] },
     {
       name: brandSchemas.poolName.parse('build'),
-      slots: 4,
       takes: { phase: ['build'] },
       order: [],
     },

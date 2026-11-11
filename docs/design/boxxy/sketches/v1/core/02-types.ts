@@ -93,9 +93,8 @@ export type HoldReason =
   // a settled attempt holds an outcome that the current rules do not map for its phase
   | 'outcome not in rules'
   // The reason that a `{ hold: reason }` edge of the rules names, such as `declined` or
-  // `duplicate`. The loader brands it.
-  // Not decided: whether the loader refuses a reason that equals one of the three engine
-  // reasons above.
+  // `duplicate`. The loader brands it, and refuses a reason that equals one of the three engine
+  // reasons above (`engine-hold-reason`), so a report can tell an engine hold from a rules hold.
   | RulesHoldReason;
 
 export type RulesHoldReason = string & { readonly __rulesHold: unique symbol };
@@ -315,7 +314,7 @@ export interface PipelineStep {
 export type Edge =
   | 'next'
   | 'again' // run the same phase again; counts against `maxAttempts` (the v1 rules use it for `abandoned`)
-  // `max` is required for this step or an earlier one.
+  // `max` is required when `to` names this step or an earlier one.
   // `resume: true` keeps the session of the target phase for the rework. The next attempt of
   // `to` wakes that session and gets its input as a message, in place of a spawn.
   | { readonly to: PhaseName; readonly max?: number; readonly resume?: boolean }
@@ -344,7 +343,8 @@ export type LoadRejectionReason =
   | { readonly kind: 'unattended-below-quiet' } // `afterUnattendedMinutes` < `afterQuietMinutes`
   | { readonly kind: 'engine-outcome-listed'; readonly phase: PhaseName; readonly outcome: EngineOutcome } // a phase kind lists `lost` or `unsettleable`
   | { readonly kind: 'skills-without-pin'; readonly recipe: string } // a recipe lists a skill, and the rules pin no skills commit
-  | { readonly kind: 'resume-on-forward-edge'; readonly phase: PhaseName; readonly outcome: string }; // `resume` on an edge that does not go back
+  | { readonly kind: 'resume-on-forward-edge'; readonly phase: PhaseName; readonly outcome: string } // `resume` on an edge that does not go back
+  | { readonly kind: 'engine-hold-reason'; readonly phase: PhaseName; readonly outcome: string; readonly reason: string }; // a `hold` edge names an engine hold reason
 
 export interface LoadedRules {
   // ...the fields that `libs/model` has on this type, and:

@@ -70,6 +70,8 @@ import { createFakeFactSink, outboxLimits, runSenderOnce, toWireItem } from '@bo
 //
 //   recipes:                                     # A recipe lists the skills its phase needs.
 //                                                # The pin and the list are part of the recipe hash.
+//     # Each recipe also has the `prompt` path and the capacity `source` of the existing `Recipe`
+//     # type; modules/rules/example/rules.yaml, the file that a loader test loads, shows them.
 //     # Every v1 recipe runs Claude Opus 5.5 at medium effort. Rules data only: `agent`,
 //     # `model` and `effort` are fields of the existing `Recipe` type. v1 workers are Claude; Codex as a
 //     # worker is later.
@@ -107,7 +109,9 @@ import { createFakeFactSink, outboxLimits, runSenderOnce, toWireItem } from '@bo
 // has no entry in `on` (`unmapped-outcome`); `on` names an outcome the phase kind lacks
 // (`unknown-outcome`); a backward `to` has no `max` (`open-loop`); a pool has `slots`; a filter
 // names an unknown field; no limit is sure to count a pool's attempts; a step has no
-// `timeoutMinutes` (`step-without-timeout`); `afterQuietMinutes` is below `afterIdleMinutes`.
+// `timeoutMinutes` (`step-without-timeout`); `afterQuietMinutes` is below `afterIdleMinutes`; a
+// `hold` edge names an engine hold reason (`engine-hold-reason`). `lead` and `propagation` are
+// optional, and empty when the file leaves them out.
 
 // ── 2. modules/closeout/src/phases/review.ts (the build adds this file) ────────────────────────
 // `outcomes` is the one list. The loader checks `on` against it, and the compiler checks the

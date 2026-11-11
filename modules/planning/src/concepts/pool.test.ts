@@ -22,7 +22,6 @@ test("it picks only the candidates whose filter-field values match a pool's take
     pools: [
       {
         name: 'widgets',
-        slots: 2,
         takes: { phase: 'build', kind: ['core.issue'], repo: ['acme/widgets'] },
         order: ['oldest'],
       },

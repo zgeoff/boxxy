@@ -31,6 +31,7 @@ rules/            the loaded rules, the plug-in registries, pipelines and phases
                   types  define-phase
 pipeline/         the engine that moves an item through its pipeline
                   types (Settled, Position, RetryLever)   v1: advance  find-position
+                  constants (the engine's outcomes and hold reasons)
 dispatch/         claims, settlement and the parts of a store change
                   types  build-applied-change  find-slot-take
 closeouts/        the close-out types and schemas
@@ -43,13 +44,13 @@ ports/            the interfaces that an adapter implements
                   types: the store, the worker, the notifier, the pepys reader, the forge
 reports/          the output schemas of the pepys queries
                   cost-to-land-schema  stage-time-schema  types  constants (the step and basis lists)
-slice-one/        the slice 1 shapes that the store, planning, the rules loader and the close-out
-                  parser still use; each slice that moves a package to v1 deletes what it no
-                  longer needs
+slice-one/        the slice 1 shapes that the store, planning and the close-out parser still use;
+                  each slice that moves a package to v1 deletes what it no longer needs
                   types  slice-one-fact-schemas  slice-one-row-schemas
 utils/            format-key-path  to-json-value
 test-utils/       the factories    v1: create-fake-pepys-reader  pepys-reader-contract
                   build-mock-work-fact  build-mock-cost-to-land  create-fake-notifier
+                  build-mock-phase-kind
 ```
 
 ## `adapters/store-sqlite/src`
@@ -108,10 +109,12 @@ modules/closeout/src
 
 modules/rules/src
   index  types  constants
-  loading/        load-rules  build-rejection
+  loading/        load-rules  build-rejection  to-filter
+                  collect-step-rejections  collect-recipe-rejections  collect-filter-rejections
   parse/          parse-rules-file  parse-concept-entry  rules-file-schema
   registry/       build-registry  resolve-plugin  resolve-signal-ref
   dry-run/        v1: dry-run-rules
+modules/rules/example           the v1 rules file and its prompts, which a loader test reads
 ```
 
 `modules/planning` reaches 7 loose modules with `explain`. `modules/rules` keeps its modules in the folders above, and only `index`, `types` and `constants` stay loose in `src/`, so the rules dry run is one more folder.
@@ -168,5 +171,4 @@ Each of these is a guess that the v1 build confirms or changes:
 1. `libs/model/src/types.ts` holds the old `types/core.ts` whole. A split by subject, such as IDs, rows and recipes, is a later choice.
 2. `ports/` and `rows/` name a kind of file more than a subject. The alternative is to split `ports/types.ts` by port into the subject folders.
 3. A concept file and a phase file export under the bare name, such as `pool` and `review`. The other fix is a file name with a suffix, such as `review-phase.ts`, which breaks the pin script's `concepts/<name>.ts` path.
-4. The split of `modules/rules` into `parse/` and `registry/` is not checked against the v1 loader changes.
-5. No sketch says which outbox function lives in `modules/dispatch` and which in `apps/server`.
+4. No sketch says which outbox function lives in `modules/dispatch` and which in `apps/server`.

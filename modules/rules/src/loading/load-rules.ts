@@ -5,12 +5,19 @@ import type {
   ConceptName,
   ConceptPin,
   ItemKindName,
-  SliceOneKindRules as KindRules,
+  KindRules,
+  Limit,
   LoadRejection,
-  SliceOneLoadResult as LoadResult,
-  LoadedRecipe,
-  SliceOnePool as Pool,
+  LoadResult,
+  PhaseKind,
+  PhaseName,
+  Pipeline,
+  PipelineStep,
+  Pool,
+  RecipeMaterial,
   RecipeName,
+  RelationType,
+  RelationTypeName,
   RulesVersion,
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
@@ -19,12 +26,16 @@ import { match } from 'ts-pattern';
 import { rulesFileName } from '../constants.ts';
 import { parseConceptEntry } from '../parse/parse-concept-entry.ts';
 import { parseRulesFile } from '../parse/parse-rules-file.ts';
-import type { ParsedRulesFile } from '../parse/rules-file-schema.ts';
+import type { ParsedRulesFile, ParsedStep } from '../parse/rules-file-schema.ts';
 import { buildRegistry } from '../registry/build-registry.ts';
 import { resolvePlugin } from '../registry/resolve-plugin.ts';
 import { resolveSignalRef } from '../registry/resolve-signal-ref.ts';
 import type { Checked, PinnedConcept, ResolvedSignal } from '../types.ts';
 import { buildRejection } from './build-rejection.ts';
+import { collectFilterRejections } from './collect-filter-rejections.ts';
+import { collectRecipeRejections } from './collect-recipe-rejections.ts';
+import { collectStepRejections } from './collect-step-rejections.ts';
+import { toFilter } from './to-filter.ts';
 
 interface LoadRulesInput {
   readonly checkout: {
@@ -33,6 +44,9 @@ interface LoadRulesInput {
   };
   readonly concepts: readonly Concept[];
   readonly pins: ReadonlyMap<ConceptName, ConceptPin>;
+
+  // the phase kinds the server registers, as it registers the concepts
+  readonly phases: readonly PhaseKind[];
 }
 
 export function loadRules(input: LoadRulesInput): LoadResult {
@@ -66,6 +80,7 @@ function buildLoadResult(
   );
 
   const registry = built.value;
+  const phases = buildPhases(input.phases);
   const lead = file.lead.map((ref, index) => resolveSignalRef(ref, ['lead', index], registry));
 
   const pools = file.pools.map((pool, poolIndex) => ({
@@ -93,7 +108,10 @@ function buildLoadResult(
     ...built.rejections,
     ...[...signals, ...gates].flatMap((checked) => checked.rejections),
     ...collectPropagationRejections(file, propagation),
-    ...collectMissingRecipes(file),
+    ...collectStepRejections(file, phases),
+    ...collectRecipeRejections(file),
+    ...collectFilterRejections(file, registry),
+    ...collectSleepRejections(file),
     ...prompts.rejections,
   ];
 
@@ -101,9 +119,9 @@ function buildLoadResult(
     return { kind: 'rejected', rejections };
   }
 
-  const version = buildRulesVersion(
-    input.checkout.commit,
-    [
+  const version = buildRulesVersion({
+    commit: input.checkout.commit,
+    files: [
       { path: rulesFileName, bytes: rulesBytes, executable: false },
       ...prompts.value.map((prompt) => ({
         path: prompt.recipe.prompt,
@@ -111,11 +129,11 @@ function buildLoadResult(
         executable: false,
       })),
     ],
-    registry.pins,
-  );
+    pins: registry.pins,
+    phases: input.phases,
+  });
 
   const leadKeys = lead.map((checked) => getValue(checked).key);
-  const kinds = buildKinds(file);
 
   return {
     kind: 'loaded',
@@ -127,30 +145,34 @@ function buildLoadResult(
         signals.map((checked) => [getValue(checked).key, getValue(checked).resolved]),
       ),
       gates: gates.map((checked) => getValue(checked)),
-      kinds,
-      maxAttemptsByKind: new Map(
-        [...kinds].map(([kind, kindRules]) => [
-          kind,
-          new Map(kindRules.pipeline.steps.map((step) => [step.phase, step.maxAttempts])),
-        ]),
-      ),
+      kinds: buildKinds(file),
+      phases,
+      limits: file.limits.map((limit): Limit => ({
+        name: limit.name,
+        max: limit.max,
+        counts: toFilter(limit.counts),
+      })),
       pools: pools.map((entry): Pool => ({
         name: entry.pool.name,
-        slots: entry.pool.slots,
-        takes: buildTakes(entry.pool.takes),
+        takes: toFilter(entry.pool.takes),
         order: [...new Set([...leadKeys, ...entry.order.map((checked) => getValue(checked).key)])],
       })),
       propagation: file.propagation,
       recipes: new Map(
-        prompts.value.map((prompt): [RecipeName, LoadedRecipe] => [
+        prompts.value.map((prompt): [RecipeName, RecipeMaterial] => [
           prompt.name,
           {
             name: prompt.name,
-            recipe: { ...prompt.recipe, skills: [] },
+            recipe: prompt.recipe,
             promptHash: hashBytes(prompt.bytes),
             rulesVersion: version,
           },
         ]),
+      ),
+      sleep: file.sleep,
+      skills: file.skills ?? null,
+      relationTypes: new Map(
+        file.relationTypes.map((name): [RelationTypeName, RelationType] => [name, { name }]),
       ),
     },
     warnings: [],
@@ -192,6 +214,14 @@ function getPin(pins: ReadonlyMap<ConceptName, ConceptPin>, concept: Concept): C
   return pin;
 }
 
+function buildPhases(phases: readonly PhaseKind[]): ReadonlyMap<PhaseName, PhaseKind> {
+  const byName = new Map(phases.map((phase) => [phase.name, phase]));
+
+  invariant(byName.size === phases.length, 'the server registers each phase kind once');
+
+  return byName;
+}
+
 interface RecipePrompt {
   readonly name: RecipeName;
   readonly recipe: ParsedRulesFile['recipes'][RecipeName];
@@ -223,17 +253,17 @@ function collectPrompts(
   return { value: prompts, rejections };
 }
 
-const knownRelationTypes: ReadonlySet<string> = new Set(['blocks']);
-
 function collectPropagationRejections(
   file: ParsedRulesFile,
   signals: readonly Checked<ResolvedSignal>[],
 ): LoadRejection[] {
+  const relationTypes: ReadonlySet<string> = new Set(file.relationTypes);
+
   return file.propagation.flatMap((line, index) => {
     const rejections: LoadRejection[] = [];
     const signal = signals[index]?.value ?? null;
 
-    if (!knownRelationTypes.has(line.over)) {
+    if (!relationTypes.has(line.over)) {
       rejections.push(
         buildRejection(['propagation', index, 'over'], {
           kind: 'unknown-relation-type',
@@ -255,34 +285,35 @@ function collectPropagationRejections(
   });
 }
 
-function collectMissingRecipes(file: ParsedRulesFile): LoadRejection[] {
-  return Object.entries(file.kinds).flatMap(([itemKind, kind]) =>
-    kind.pipeline
-      .filter(
-        (phase) =>
-          !Object.hasOwn(kind.recipes, phase) ||
-          !Object.hasOwn(file.recipes, kind.recipes[phase] ?? ''),
-      )
-      .map((phase) =>
-        buildRejection(['kinds', itemKind, 'recipes', phase], {
-          kind: 'missing-recipe',
-          itemKind,
-          phase,
-        }),
-      ),
-  );
+function collectSleepRejections(file: ParsedRulesFile): LoadRejection[] {
+  const sleep = file.sleep;
+
+  return [
+    ...(sleep.afterQuietMinutes < sleep.afterIdleMinutes
+      ? [buildRejection(['sleep', 'afterQuietMinutes'], { kind: 'quiet-below-idle' })]
+      : []),
+    ...(sleep.afterUnattendedMinutes < sleep.afterQuietMinutes
+      ? [buildRejection(['sleep', 'afterUnattendedMinutes'], { kind: 'unattended-below-quiet' })]
+      : []),
+  ];
 }
 
-function buildRulesVersion(
-  commit: string,
-  files: readonly TreeFile[],
-  pins: readonly ConceptPin[],
-): RulesVersion {
+interface RulesVersionInput {
+  readonly commit: string;
+  readonly files: readonly TreeFile[];
+  readonly pins: readonly ConceptPin[];
+  readonly phases: readonly PhaseKind[];
+}
+
+// A replay needs the exact plug-in code, so each concept pin and each phase kind's version are
+// part of the version.
+function buildRulesVersion(input: RulesVersionInput): RulesVersion {
   return brandSchemas.rulesVersion.parse(
     contentHash({
-      commit,
-      files: hashTree(files),
-      pins: pins.map((pin) => ({ ref: pin.ref, sourceHash: pin.sourceHash })),
+      commit: input.commit,
+      files: hashTree(input.files),
+      pins: input.pins.map((pin) => ({ ref: pin.ref, sourceHash: pin.sourceHash })),
+      phases: input.phases.map((phase) => `${phase.name}@${phase.version}`).toSorted(),
     }),
   );
 }
@@ -294,27 +325,34 @@ function getValue<T>(checked: Checked<T>): T {
 }
 
 function buildKinds(file: ParsedRulesFile): ReadonlyMap<ItemKindName, KindRules> {
-  return new Map(
-    Object.entries(file.kinds).map(([name, kind]): [ItemKindName, KindRules] => [
-      brandSchemas.itemKindName.parse(name),
-      {
-        pipeline: {
-          name: brandSchemas.pipelineName.parse(name),
-          steps: kind.steps,
-        },
-        recipes: kind.recipes,
-      },
+  const pipelines = new Map(
+    Object.entries(file.pipelines).map(([name, steps]): [string, Pipeline] => [
+      name,
+      { name: brandSchemas.pipelineName.parse(name), steps: steps.map((step) => buildStep(step)) },
     ]),
+  );
+
+  return new Map(
+    Object.entries(file.kinds).map(([name, kind]): [ItemKindName, KindRules] => {
+      const pipeline = pipelines.get(kind.pipeline);
+
+      invariant(
+        pipeline,
+        `the rules file schema refuses the kind ${name}, whose pipeline is missing`,
+      );
+
+      return [brandSchemas.itemKindName.parse(name), { pipeline, recipes: kind.recipes }];
+    }),
   );
 }
 
-function buildTakes(
-  takes: ParsedRulesFile['pools'][number]['takes'],
-): Readonly<Record<string, readonly string[]>> {
-  return Object.fromEntries(
-    Object.entries(takes).map(([field, value]) => [
-      field,
-      typeof value === 'string' ? [value] : value,
-    ]),
-  );
+function buildStep(step: ParsedStep): PipelineStep {
+  invariant(step.timeoutMinutes !== undefined, 'the loader refuses a step with no time limit');
+
+  return {
+    phase: step.phase,
+    maxAttempts: step.maxAttempts,
+    timeoutMinutes: step.timeoutMinutes,
+    on: step.on,
+  };
 }
