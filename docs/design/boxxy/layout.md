@@ -56,16 +56,29 @@ more packages share lives in `@boxxy/model`, in `libs/model`, so the modules, th
 Each package's `turbo.json` carries one tag, and `turbo boundaries` fails an import that the tag
 doesn't allow:
 
-| Tag     | May import           |
-| ------- | -------------------- |
-| app     | module, adapter, lib |
-| module  | module, lib          |
-| adapter | module, lib          |
-| lib     | lib                  |
+| Tag     | May import                   |
+| ------- | ---------------------------- |
+| app     | module, adapter, lib, package |
+| module  | module, lib                  |
+| adapter | module, lib                  |
+| lib     | lib                          |
+| package | lib                          |
 
 A module never imports an adapter. A module that needs an outside system declares a port, such as
 `ClaimStore`; an adapter implements it; the app builds the adapter and passes it in. This keeps
 `decide()` pure, so a replay can rerun it on recorded facts (see [dispatch](./dispatch.md)).
+
+Every package under `packages/` carries the tag `package`. Another repo's deployment installs such
+a package, such as `@boxxy/pepys` in the pepys deployment, so it must pull in as little of boxxy as
+possible. It imports libs only: a lib holds the types and ports it needs, and a module would drag
+the domain into the deployment. Only an app imports a package, because the app is the one place that
+builds what the packages provide. No module, adapter or lib does, which is also the rule that keeps
+`@boxxy/pepys` out of the modules and `@boxxy/model`. A package that needs an adapter's work takes
+it through a port in `libs/model`, as a module does.
+
+A lib that a package depends on is installed with it, so such a lib keeps its test-only libraries
+in `devDependencies`. `@boxxy/model` lists `@faker-js/faker` there: its fakes in `src/test-utils/`
+use it, and `src/index.ts` imports none of them.
 
 A package's `turbo.json` holds only its tag:
 
@@ -81,14 +94,14 @@ Each outside system has one package that may talk to it:
 | -------------- | ----------------------- | --------------------------------------------------------------------- |
 | the store      | `adapters/store-sqlite` | only it imports `bun:sqlite`, `kysely` or `@zgeoff/kysely-bun-sqlite` |
 | atc            | `adapters/worker-atc`   | only it imports `@atcx/contract`                                      |
-| GitHub         | `adapters/forge-github` | only an adapter calls `fetch`                                         |
+| GitHub         | `adapters/forge-github` | only an adapter or a package calls `fetch`                            |
 | pepys          | `packages/pepys`        | no module and no lib imports `@boxxy/pepys`                           |
 
 Two libraries have a pin of their own. Only `modules/rules` imports `yaml`, so every rules file
 reaches the other packages through `loadRules`. Only `modules/dispatch` imports `xstate`, for the
 attempt state table.
 
-The `zgeoff/import-zones` rule in `.oxlintrc.json` holds these pins. The v1 build adds the pins for `xstate` and `@boxxy/pepys` ([work list](./v1-work-list.md)). Lint can't tell which adapter a
+The `zgeoff/import-zones` rule in `.oxlintrc.json` holds these pins. The v1 build adds the pins for `xstate` and `@boxxy/pepys` ([work list](./v1-work-list.md)). Lint lets an adapter and a package under `packages/` call `fetch`, and can't tell which one a
 `fetch` reaches, so review checks that GitHub calls stay in `forge-github` and pepys calls in
 `packages/pepys`.
 

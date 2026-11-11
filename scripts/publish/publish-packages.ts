@@ -95,7 +95,7 @@ async function publishRequest(
     .exhaustive();
 }
 
-const publishedFolders = ['apps', 'modules', 'adapters', 'libs'] as const;
+const publishedFolders = ['apps', 'modules', 'adapters', 'libs', 'packages'] as const;
 
 async function readWorkspacePackagePaths(options: PackagesPublishOptions): Promise<string[]> {
   const listed = await Promise.all(

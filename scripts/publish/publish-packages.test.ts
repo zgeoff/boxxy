@@ -271,7 +271,7 @@ test('it puts the package manifest back when the rehearsal pack fails', async ()
   expect(restored).toBe(manifestText);
 });
 
-test('it rehearses every package in apps, modules, adapters and libs when the rehearsal lists no paths', async () => {
+test('it rehearses every package in apps, modules, adapters, libs and packages when the rehearsal lists no paths', async () => {
   const ctx = await setupTest();
 
   await ctx.createNPM({});
@@ -281,6 +281,7 @@ test('it rehearses every package in apps, modules, adapters and libs when the re
     'modules/brew/package.json': JSON.stringify({ name: '@acme/brew', version: '0.3.0' }),
     'adapters/spout/package.json': JSON.stringify({ name: '@acme/spout', version: '0.1.0' }),
     'libs/std/package.json': JSON.stringify({ name: '@zgeoff/std', version: '0.4.0' }),
+    'packages/jar/package.json': JSON.stringify({ name: '@acme/jar', version: '1.0.0' }),
     'test-utils/package.json': JSON.stringify({ name: '@acme/test-utils', version: '0.0.0' }),
   });
 
@@ -295,6 +296,7 @@ test('it rehearses every package in apps, modules, adapters and libs when the re
       'npm publish ./acme-kettle-2.0.0-rehearsal.tgz --dry-run --tag rehearsal --access public',
       'npm publish ./zgeoff-std-0.4.0-rehearsal.tgz --dry-run --tag rehearsal --access public',
       'npm publish ./acme-brew-0.3.0-rehearsal.tgz --dry-run --tag rehearsal --access public',
+      'npm publish ./acme-jar-1.0.0-rehearsal.tgz --dry-run --tag rehearsal --access public',
       '',
     ].join('\n'),
   );

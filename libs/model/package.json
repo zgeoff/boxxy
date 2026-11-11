@@ -32,9 +32,19 @@
   },
   "dependencies": {
     "@boxxy/content-hash": "workspace:*",
-    "@faker-js/faker": "catalog:",
     "tiny-invariant": "catalog:",
     "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "catalog:"
+  },
+  "peerDependencies": {
+    "@faker-js/faker": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@faker-js/faker": {
+      "optional": true
+    }
   },
   "engines": {
     "bun": ">=1.3",

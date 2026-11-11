@@ -60,10 +60,18 @@
       "version": "0.1.2",
       "dependencies": {
         "@boxxy/content-hash": "workspace:*",
-        "@faker-js/faker": "catalog:",
         "tiny-invariant": "catalog:",
         "zod": "catalog:",
       },
+      "devDependencies": {
+        "@faker-js/faker": "catalog:",
+      },
+      "peerDependencies": {
+        "@faker-js/faker": "catalog:",
+      },
+      "optionalPeers": [
+        "@faker-js/faker",
+      ],
     },
     "modules/closeout": {
       "name": "@boxxy/closeout",

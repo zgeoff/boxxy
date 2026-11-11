@@ -62,7 +62,7 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 
 | File                                                                              | What it does                                                                                                      | Copied from    |
 | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------- |
-| `package.json` (root)                                                             | the workspace list (`apps/*`, `modules/*`, `adapters/*`, `libs/*`), the catalog, tooling                          | wringer        |
+| `package.json` (root)                                                             | the workspace list (`apps/*`, `modules/*`, `adapters/*`, `libs/*`, `packages/*`), the catalog, tooling                          | wringer        |
 | `.bun-version`                                                                    | the Bun version CI and `packageManager` use                                                                       | wringer        |
 | `bunfig.toml`                                                                     | isolated linker, exact saves, a 7-day minimum release age with first-party excludes, the test preload             | wringer        |
 | `tsconfig.base.json`, `tsconfig.json`                                             | the shared compiler options, and the root files' typecheck                                                        | wringer        |
@@ -194,7 +194,7 @@ release-please writes. It also sets `description`, `homepage` and `bugs`, as wri
 
 ## Every package publishes
 
-Every package under `apps/`, `modules/`, `adapters/` and `libs/` publishes as `@boxxy/<folder>`, as
+Every package under `apps/`, `modules/`, `adapters/`, `libs/` and `packages/` publishes as `@boxxy/<folder>`, as
 wringer publishes each of its packages. A published package ships source, so it can't depend on a
 private one; publishing all of them keeps the CLI's dependencies installable without a bundler.
 The repo has no private package. The oRPC contract lives in `libs/contract`

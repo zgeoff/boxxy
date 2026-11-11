@@ -12,10 +12,11 @@
     "zgeoff/import-zones": [
       "error",
       {
-        "workspaces": ["apps/*", "modules/*", "adapters/*", "libs/*"],
+        "workspaces": ["apps/*", "modules/*", "adapters/*", "libs/*", "packages/*"],
         "zones": {
-          "packages": ["apps/**", "modules/**", "adapters/**", "libs/**"],
+          "packages": ["apps/**", "modules/**", "adapters/**", "libs/**", "packages/**"],
           "adapters": ["adapters/**"],
+          "deployed": ["packages/**"],
           "domain": ["modules/**", "libs/**"],
           "rules": ["modules/rules/**"],
           "store-sqlite": ["adapters/store-sqlite/**"],
@@ -53,8 +54,8 @@
             "name": "network",
             "globals": ["fetch"],
             "from": ["packages"],
-            "allow": ["adapters"],
-            "reason": "only an adapter calls an outside system"
+            "allow": ["adapters", "deployed"],
+            "reason": "only an adapter, or a package that another repo installs, calls an outside system"
           }
         ],
         "unresolved": [

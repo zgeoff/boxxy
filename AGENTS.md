@@ -49,7 +49,7 @@ The mistakes that cost most here:
 ## Layout
 
 [The layout doc](docs/design/boxxy/layout.md) sets the rules for packages, folders and imports.
-Read it before you add a package, a file or an import. The workspace has four kinds of package:
+Read it before you add a package, a file or an import. The workspace has five kinds of package:
 
 - `apps/`: the CLI and the server. They build the adapters and pass them in.
 - `modules/`: the domain logic. A module reads no files, starts no processes, makes no network
@@ -57,6 +57,8 @@ Read it before you add a package, a file or an import. The workspace has four ki
 - `adapters/`: one package for each outside system, such as the store or GitHub.
 - `libs/`: types, schemas and pure helpers that two or more packages use, such as `@boxxy/model`.
   A lib does no I/O, the same as a module.
+- `packages/`: packages that another repo's deployment installs, such as `@boxxy/pepys`. A package
+  imports libs only, and only an app imports a package.
 
 Three checks enforce the layout in CI:
 

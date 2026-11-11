@@ -10,7 +10,6 @@ No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc list
 | The shapes that the core sketch names and does not show: the take SQL of the claim, the sync of the limit seats, `decide` with its snapshot, wake and decision types, the outcome types of the worker port, the spawn request, the effects and their handlers, and the design and build close-outs. Slice 1 code holds an earlier form of several. | [`02-types.ts`](./sketches/v1/core/02-types.ts) |
 | The atc call behind each method of the worker port, and the crash windows of the three steps of a sleep. | [`02-types.ts`](./sketches/v1/core/02-types.ts), [`03-flow.ts`](./sketches/v1/core/03-flow.ts), section C |
 | Which outbox function lives in `modules/dispatch` and which in `apps/server`. | [folder layout](./layout-folders.md#open-questions) |
-| The `turbo boundaries` tag of `packages/pepys`, and the import zones for it. The [layout](./layout.md#dependency-rules) has four tags, and none fits a package that holds a plug-in, an adapter and a reader. | [layout](./layout.md) |
 | A query for the measure "attempts lost". No query reads the failure of an attempt. | [`04-facts.ts`](./sketches/v1/core/04-facts.ts), section D |
 | A cause on the `slept` fact. Without one, no report can tell an unattended sleep from an idle sleep. | [`02-queries.ts`](./sketches/v1/pepys-package/02-queries.ts), section D |
 

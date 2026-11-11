@@ -11,7 +11,7 @@
   "boundaries": {
     "tags": {
       "app": {
-        "dependencies": { "allow": ["module", "adapter", "lib"] }
+        "dependencies": { "allow": ["module", "adapter", "lib", "package"] }
       },
       // a module never imports an adapter; the app passes each adapter in
       "module": {
@@ -21,6 +21,11 @@
         "dependencies": { "allow": ["module", "lib"] }
       },
       "lib": {
+        "dependencies": { "allow": ["lib"] }
+      },
+      // another repo's deployment installs a package, so it reaches only libs, and only an app
+      // imports it
+      "package": {
         "dependencies": { "allow": ["lib"] }
       }
     }

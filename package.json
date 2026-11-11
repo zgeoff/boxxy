@@ -12,7 +12,8 @@
       "apps/*",
       "modules/*",
       "adapters/*",
-      "libs/*"
+      "libs/*",
+      "packages/*"
     ],
     "catalog": {
       "@commitlint/cli": "21.2.4",

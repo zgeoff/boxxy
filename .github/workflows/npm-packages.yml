@@ -35,6 +35,7 @@ jobs:
         modules/**
         adapters/**
         libs/**
+        packages/**
 
   rehearse:
     name: Rehearse the npm publish

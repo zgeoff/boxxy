@@ -10,7 +10,7 @@
   // the test script names its roots, so knip reads no package's tests from it
   "workspaces": {
     ".": { "entry": ["*.test.ts", "scripts/**/*.test.ts"] },
-    "{apps,modules,adapters,libs}/*": { "entry": ["src/**/*.test.ts", "e2e/**/*.test.ts"] }
+    "{apps,modules,adapters,libs,packages}/*": { "entry": ["src/**/*.test.ts", "e2e/**/*.test.ts"] }
   },
   "ignoreIssues": {
     "scripts/parse-shell-words.ts": ["types"],
