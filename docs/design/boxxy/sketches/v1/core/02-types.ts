@@ -327,7 +327,7 @@ export type Edge =
   // is a fact about the attempt only. The hold reason, and the attempt's close-out in
   // `item.get`, show the agent's result: `declined` with its reason, or `duplicate` with the
   // other item.
-  | { readonly hold: string };
+  | { readonly hold: RulesHoldReason };
 
 export type LoadRejectionReason =
   // ...the reasons that `libs/model` has, `unknown-filter-field` and `pool-without-limit` (this
