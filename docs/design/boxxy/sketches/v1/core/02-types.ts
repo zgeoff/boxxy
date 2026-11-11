@@ -620,67 +620,36 @@ export interface PullRequestReading {
 // The attempt code lives in `modules/dispatch/src/attempts/`.
 //
 // Every write to the `attempts` and `attempt_sessions` tables, and every seat write, is built
-// here. No other file names `table: 'attempts'`; a test in the package fails when one does.
+// here. No other file of the package names `table: 'attempts'`; the test of
+// scripts/collect-attempt-writes.ts fails when one does (tests and test-utils fixtures aside).
 // Callers decide WHEN (they hold the reading, the claim or the procedure input); this module
 // decides WHETHER the move is allowed and WHAT is written. A caller applies the change with
 // `tx.applyChange` and never edits it. So `closeOutAttempt`, `actOnReading`, `settleAttempt`
 // and `requestWake` build no write of their own, and the sleep, the wake and the suspend mark
 // have no builder of their own.
 
-export type AttemptEvent =
-  | { readonly kind: 'claimed'; readonly pick: StartPick; readonly input: JsonValue; readonly mode: SessionMode; readonly spawn: SpawnRequest; readonly recipe: ResolvedRecipe; readonly decision: DecisionRow }
-  // On a `closing` attempt (cause `item-closed`, no session seen before) it records the atc
-  // session id and moves nothing, so the stop can name the session.
-  // `resumeFallback`: true when the claim was to wake a kept session and it fell back to a
-  // fresh spawn. It is on the `started` fact.
-  | { readonly kind: 'started'; readonly atcSession: AtcSessionId; readonly via: 'start' | 'reconcile'; readonly resumeFallback?: boolean }
-  | { readonly kind: 'spawn-unanswered'; readonly reason: string } // ─▶ reconciling
-  | { readonly kind: 'session-seen'; readonly row: AttemptSessionRow } // bind an agent session id; no state move
-  | { readonly kind: 'closed-out'; readonly closeOut: CloseOut; readonly hash: ContentHash }
-  | { readonly kind: 'timed-out'; readonly afterMinutes: Minutes }
-  // ─▶ closing, cause `stalled`. Agent mode only. It writes no fact of its own:
-  // `boxxy.attempt.settled` carries `closing: stalled` and `failure: stalled`.
-  | { readonly kind: 'stalled'; readonly afterMinutes: Minutes }
-  // ─▶ closing, cause `skill-missing`, from `attempt.bindSession`. No fact of its own:
-  // `settled` carries the cause and the failure; the names are in its `failure` text.
-  | { readonly kind: 'skill-missing'; readonly skills: readonly string[] }
-  // The host refused the resume of a `waking` attempt for capacity.
-  // ─▶ sleeping: release-seats, and the wake request is left set. It writes `slept`, so that
-  // the `woken` fact of this wake has its pair.
-  | { readonly kind: 'wake-refused' }
-  | { readonly kind: 'turn-ended' }
-  | { readonly kind: 'item-closed' } // ─▶ closing, cause `item-closed`. A sleeping attempt gets `settled` instead
-  | { readonly kind: 'suspend-asked' } // sets the mark
-  | { readonly kind: 'suspend-refused' } // clears the mark
-  | { readonly kind: 'slept'; readonly idleSince: Instant; readonly asked: boolean }
-  | { readonly kind: 'wake-requested'; readonly by: WakeSource }
-  // `overCap`: false for a wake that `claimNext` seated. True for the wake of a session that
-  // the owner revived when no seat was free (`wake-over-cap`): `actOnReading` builds the event
-  // from the attempt's stored `fields`, the seats are taken past the limit's `max`, and the
-  // limit counts them. The `woken` fact carries `overCap: true`, and the `DecisionRow` of an
-  // over-cap wake records each such limit's count and `max` at that moment.
-  | { readonly kind: 'woken'; readonly pick: WakePick; readonly decision: DecisionRow; readonly overCap: boolean }
-  | { readonly kind: 'resumed'; readonly atcSession: AtcSessionId }
-  // `returnedOutcome`: see `AttemptRow.returnedOutcome`
-  | { readonly kind: 'settled'; readonly settlement: Settlement; readonly returnedOutcome: string | null; readonly plans: readonly EffectPlan[]; readonly sessionStopped: boolean }
-  | { readonly kind: 'stray-stopped' };
+// Built: `AttemptEvent` is in modules/dispatch/src/attempts/types.ts, and `AttemptChange` and
+// `buildAttemptChange` in build-attempt-change.ts. Where the build differs from this sketch:
+//   - `buildAttemptChange` also takes the `actor` of the facts it records.
+//   - `claimed` carries what the new row and the `claimed` fact need and this sketch's event lacked:
+//     `number`, `runner`, `leaseGen`, the recipe's hash and rules version, `skillsRef`, the
+//     spawn request with its hash, `caller` (the kept session's, or null), and the decision
+//     without its ID, attempt and time. The builder makes the attempt ID and the decision ID.
+//   - `started` carries `via` (`start` gives the `started` fact, `reconcile` the `reconciled`
+//     fact), the outcome's `caller`, and `resumeFallback`, always set. `resumed` carries `caller`.
+//   - `stalled` and `skill-missing` carry nothing: no fact of their own reads a field.
+//   - `settled` carries the fields of the `settled` fact in place of `plans` (03-flow.ts,
+//     section A): no effect plan type exists yet, and the effect writes are the caller's.
+//   - `AttemptChange` is `{ kind: 'change', change }` or `not-allowed`, and `change` is the
+//     builder's own store change: `at`, `under` (with `holdGen`, or null), the writes (attempt
+//     row, attempt session, lease, decision, seat take and seat release) and the facts, which
+//     can be empty. The dispatch slice hands it to the store, whose port takes slice 1 rows
+//     until the store slice moves it to v1.
 
 export type WakeSource =
   | 'command' // `boxxy item wake`
   | 'session-ran' // a reading shows the session running while the attempt sleeps
   | 'host-slept-unasked'; // the host slept with no request, so the attempt wakes by itself
-
-export type AttemptChange =
-  | { readonly kind: 'change'; readonly change: StoreChange }
-  | { readonly kind: 'not-allowed'; readonly state: AttemptState; readonly event: AttemptEvent['kind'] };
-
-// Pure. `attempt` is null only for `claimed`. The table of allowed moves is in 03-flow.ts.
-export declare function buildAttemptChange(input: {
-  readonly attempt: AttemptRow | null;
-  readonly event: AttemptEvent;
-  readonly now: Instant;
-  readonly newId: NewId;
-}): AttemptChange;
 
 // ── modules/dispatch/src: the callers ──────────────────────────────────────────────────────────
 

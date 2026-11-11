@@ -57,18 +57,39 @@ import { hashCanonical } from '@boxxy/content-hash';
 //                                                                or failed
 //   stray-stopped      succeeded or failed, with `strayedAt`     (same)       `sessionStoppedAt`; no fact
 //
-// Each change carries `under: { item, phase, gen: leaseGen, holdGen }` and an `expect` on the
-// row's state, so two callers that race get one `applied` and one `stale-generation` or
-// `guard-mismatch`. A caller drops a refused change and reads again on the next tick.
+// The build follows this table in modules/dispatch/src/attempts/attempt-moves.ts, one data row per
+// line above (`started` has one row per `via` and one for `closing`; `settled` one per end
+// state). Four cells the table above leaves open, as built:
+//   - `resumed` clears the wake request. Without it a woken attempt keeps its request, and its
+//     next sleep reads as a sleep with a wake already asked for.
+//   - `wake-refused` writes `slept` with `idleSince` the earlier `sleptAt` and `asked: true`.
+//   - `item-closed` builds no fact: the change of `item.close` writes `boxxy.item.closed`, which
+//     lists each attempt it ended.
+//   - `settled` builds the attempt's own writes and the `settled` fact. The event carries the
+//     fact's `criteria`, `matched`, `frictionDropped` and `skippedEffects`; `settleAttempt` adds
+//     the writes and facts of the effect plans to the same store change.
+//
+// The race guard. Each change of a live attempt carries `under: { item, phase, gen: leaseGen,
+// holdGen }`. Its update of the attempt row `expect`s every column the machine's context reads
+// (`AttemptGuard`: state, holdGen, the suspend mark, the wake request, closing, atcSession,
+// strayedAt, sessionStoppedAt), as the builder read them. So two callers that race on one row
+// get one `applied` and one `stale-generation` or `guard-mismatch`, also for two moves that keep
+// the state (two `suspend-asked`, two `wake-requested`, two `stray-stopped`). A caller drops a
+// refused change and reads again on the next tick. Two kinds of change carry no `under`: the
+// claim, which takes the lease (`lease-held` guards it), and a move of a settled attempt
+// (`session-seen`, `stray-stopped`), whose lease is released. `session-seen` writes no attempt
+// column, so it carries no `expect`; the unique key of `attempt_sessions` guards it.
 //
 // The table above is an XState machine, `xstate@6.0.0-beta.2`, pinned exactly (no version
-// range). modules/dispatch/src/attempts/attempt-machine.ts holds it, and `buildAttemptChange` is
-// its only caller. The reconcile table of section B is a plain function, not a machine.
-//   - No actor is created. `buildAttemptChange` calls the pure `transition` function, and reads
-//     the effects (the facts, the seat change) from its answer as data. `isUnhandled` on that
-//     answer gives `not-allowed`.
-//   - `claimed` is the initial transition (`initialTransition`), so the machine lists no
-//     `claimed` event.
+// range). modules/dispatch/src/attempts/attempt-machine.ts builds it from the table of moves,
+// and `buildAttemptChange` is its only caller. The reconcile table of section B is a plain
+// function, not a machine.
+//   - No actor is created. `buildAttemptChange` calls the pure `transition` function. Each move
+//     emits one `{ type: 'effect', effect }` event per write or fact (`enq.emit`), and the
+//     builder reads them from the answer as data. `isUnhandled` on that answer gives
+//     `not-allowed`.
+//   - `claimed` is the initial transition (`initialTransition`; the root `entry` emits its
+//     effects), so the machine lists no `claimed` event.
 //   - The row stores the state value (`AttemptRow.state`) and the context, never a snapshot.
 //     `machine.resolveState({ value, context })` builds the snapshot from the row on each call.
 //     XState's `restoreMachineSnapshot` is internal and is not used.
@@ -82,10 +103,14 @@ import { hashCanonical } from '@boxxy/content-hash';
 //       hasSession      `atcSession` is set; the same row reads it
 //       strayed         `strayedAt` is set; `stray-stopped` reads it
 //       sessionStopped  `sessionStoppedAt` is set; `stray-stopped` reads and sets it
-//     The table needs all of them, the last four included.
-//   - v6 has no `guard` key: a guard is an `if` inside the transition function.
-//   - The machine's events use the field `type`, which XState needs. This sketch's
-//     `AttemptEvent` uses `kind`, and `buildAttemptChange` maps one to the other.
+//     The table needs all of them, the last four included. The builder writes a context change
+//     back to its column (a set flag writes `now`, a cleared one null).
+//   - v6 has no `guard` key: a guard is an `if` inside the transition function, and it returns
+//     before any `enq` call, because XState takes any queued effect as a taken transition.
+//   - Every state's `on` lists all 18 events, and a handler with no matching row returns
+//     `undefined` (unhandled). tsgo refuses an `on` object whose keys are optional.
+//   - The machine's events use the field `type`, which XState needs. `AttemptEvent` uses
+//     `kind`, and `buildAttemptChange` maps one to the other.
 //   - `woken` carries the field `overCap`.
 //   - A spawn refused for capacity has no event and no state: it is `settled` from `starting`.
 //   - `hasSession` is about the atc session ID. The agent session ID of the no-sleep rule is
@@ -95,13 +120,14 @@ import { hashCanonical } from '@boxxy/content-hash';
 //     states.
 //   - The kept session is NOT in the machine. It is state of the item, between two attempts
 //     (section H). The machine of the second attempt sees a plain `started`.
-//   - Tests. A path set generated with `xstate/graph` (`getShortestPaths`, `getSimplePaths`)
-//     proves that every one of the 8 states is reached; `holdGen` is left out of
-//     `serializeState` there. The paths prove states, not every transition, so one direct test
-//     covers `stray-stopped`.
-// Not checked: tsgo, and the `under` and `expect` race guard above.
+//   - Tests. A path set generated with `xstate/graph` (`getShortestPaths`) proves that every
+//     one of the 8 states is reached, in each mode; `holdGen` is left out of `serializeState`
+//     there. The paths prove states, not every transition, so one direct test covers
+//     `stray-stopped`, and the builder's tests have one case per row and per state it is
+//     allowed from.
+//   - The machine typechecks under the repo's tsgo build (`tsrs`).
 
-export function buildAttemptChange(input: { attempt: AttemptRow | null; event: AttemptEvent; now: Instant; newId: () => string }): AttemptChange {
+export function buildAttemptChange(input: { attempt: AttemptRow | null; event: AttemptEvent; actor: ActorRef; now: Instant; newId: () => string }): AttemptChange {
   throw new Error('not implemented'); // the table above
 }
 

@@ -76,7 +76,8 @@ v1 adds more than 8 modules to this package, so they start in folders:
 index.ts
 timeouts          every time limit of dispatch that the rules do not hold
 attempts/         the attempt lifecycle and its one writer
-                  attempt-machine  build-attempt-change  end-item-attempts  find-call-attempt
+                  attempt-moves  attempt-machine  build-attempt-change  build-attempt-fact
+                  end-item-attempts  find-call-attempt  types
 claims/           claim-next  start-claim  resume-claim  request-wake
 readings/         what the runner does with a session reading
                   pick-reading-action  read-waiting-since  act-on-reading
@@ -91,7 +92,9 @@ test-utils/       the store contract and its case files, the memory store, the c
 
 A new case file of the store contract goes in `test-utils/`, beside `claim-store-contract`.
 
-The attempt state machine is `attempts/attempt-machine`, with its test beside it. It is an XState machine, and `build-attempt-change` in the same folder is its only caller. `@boxxy/dispatch` has one dependency for it, `xstate`, pinned exactly at `6.0.0-beta.2` with no version range. No other package imports `xstate`.
+The attempt state machine is `attempts/attempt-machine`, with its test beside it. It is an XState machine built from the table of moves in `attempts/attempt-moves`, and `build-attempt-change` in the same folder is its only caller. `@boxxy/dispatch` has one dependency for it, `xstate`, pinned exactly at `6.0.0-beta.2` with no version range. No other package imports `xstate`.
+
+`build-attempt-change` is the only file of the package that writes the attempts table, the attempt sessions table or a limit seat. The test of `scripts/collect-attempt-writes` reads the package's source and fails on such a write in any other file. It leaves out the tests and the store fixtures in `test-utils/`, which seed those tables.
 
 ## `modules/planning/src`, `modules/closeout/src`, `modules/rules/src`
 

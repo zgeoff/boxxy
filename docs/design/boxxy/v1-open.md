@@ -60,7 +60,6 @@ Each row names the test that settles it, where one is known.
 | Whether an agent-mode session ever ends a turn on purpose before its close-out, such as to wait for a background task. boxxy closes such a session as `closeout-missing`. | Watch the first live attempts. |
 | Which error atc gives when the worker target has no free machine. The worker adapter must map it to the cause `capacity`. | Fill the target, then spawn. |
 | That the generic on the phase definer gives a compile error for an outcome the phase kind does not list. | Compile one phase file with a wrong outcome. |
-| The XState machine under tsgo, and the race guard of a store change with the machine. | The machine's tests in the build. |
 | The cost of the position fold inside the claim's lock. | The dispatch benchmark with 20,000 items. |
 
 ### The API

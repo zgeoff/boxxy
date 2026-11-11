@@ -25,7 +25,7 @@ The diagram shows the common moves. Section A of [`03-flow.ts`](./sketches/v1/co
 
 - **One writer.** The attempt-change builder in `modules/dispatch/src/attempts/` builds every write to the attempts table, to the attempt sessions table, and every seat write. A caller passes an event and applies the change it gets back. A test fails when another file writes to the attempts table.
 - **The table is an XState machine**, `xstate` pinned exactly at `6.0.0-beta.2`. The builder calls the pure `transition` function and creates no actor. The row stores the state value and the context, never a snapshot. Section A lists the rules of the machine.
-- **Races.** Each change names the lease generation and the hold generation it was built under, and the state it expects. Of two callers that race, the store applies one change and refuses the other. The caller drops a refused change and reads again on the next tick.
+- **Races.** Each change of a live attempt names the lease generation and the hold generation it was built under. It expects the state and every other column that the machine's guards read, as the builder read them, so two moves that keep the state also race. Of two callers that race, the store applies one change and refuses the other. The caller drops a refused change and reads again on the next tick.
 - **Seats.** An attempt takes its seats at the claim, releases them at the sleep, takes them again at the wake before the session resumes, and releases them at the settle. An attempt in `closing` keeps what it held.
 - **The lease.** The attempt holds its item-phase lease from the claim to the settle, through every sleep, so no second attempt starts on the item.
 
