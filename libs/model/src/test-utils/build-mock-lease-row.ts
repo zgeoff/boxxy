@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
-import { brandSchemas } from '../brand-schemas.ts';
-import type { LeaseRow } from '../types/core.ts';
+import { brandSchemas } from '../rows/brand-schemas.ts';
+import type { LeaseRow } from '../types.ts';
 
 export function buildMockLeaseRow(overrides: Partial<LeaseRow> = {}): LeaseRow {
   return {
