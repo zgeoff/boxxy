@@ -28,8 +28,8 @@ sequenceDiagram
 3. The store reads its observation boundary and the snapshot: open items, links, the latest planning
    facts, leases, the seats held in each limit, and the wakes asked for.
 4. `buildFrame()` and `decide()` run over that snapshot ([planning](./planning.md)).
-5. The store takes the item-phase lease and a seat in each limit that the first pick names, all in
-   one change. A unique index on the live item-phase lease makes the lease take compare-and-set. The
+5. The store takes the item-phase lease and a seat in each limit that counts the first pick, all
+   in one change. A unique index on the live item-phase lease makes the lease take compare-and-set. The
    seat take is all or none: the store counts each limit's held seats under the write lock, and
    refuses the whole change when one limit is full or unknown. The store section of the
    [core types sketch](./sketches/v1/core/02-types.ts) gives the rules of the take.
