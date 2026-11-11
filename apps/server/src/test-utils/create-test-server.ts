@@ -1,12 +1,16 @@
+import { watchPullRequests } from '@boxxy/dispatch';
+import type { WatchReport } from '@boxxy/dispatch';
 import type { FakeForge } from '@boxxy/dispatch/test-utils/create-fake-forge';
 import { createFakeForge } from '@boxxy/dispatch/test-utils/create-fake-forge';
 import type { TestDispatch } from '@boxxy/dispatch/test-utils/create-test-dispatch';
 import { createTestDispatch } from '@boxxy/dispatch/test-utils/create-test-dispatch';
+import type { ClosableClaimStore } from '@boxxy/dispatch/test-utils/types';
 import type {
   AttemptId,
   AttemptRow,
   CallerProof,
   Clock,
+  PepysReader,
   PhaseName,
   SessionReading,
 } from '@boxxy/model';
@@ -33,6 +37,12 @@ export interface TestServerOptions {
   // the server's real proof in place of the fake one, built on the test's clock; the fake that
   // `callerProof` returns then proves nothing
   readonly makeCallerProof?: (clock: Clock) => Promise<CallerProof>;
+
+  // the reader of a pepys under test in place of the fake one, which `pepys` then still returns
+  readonly pepys?: PepysReader;
+
+  // the memory store when left out
+  readonly store?: ClosableClaimStore;
 }
 
 export interface TestServer {
@@ -57,6 +67,9 @@ export interface TestServer {
   // one runner tick at the clock's time
   readonly tick: () => Promise<TickReport>;
 
+  // one pass of the pull request watch at the clock's time
+  readonly watch: () => Promise<WatchReport>;
+
   // an item at the phase, claimed and started by the fake worker; its row carries the caller
   // that its session reports
   readonly seedStartedAttempt: (phase: PhaseName) => Promise<AttemptRow>;
@@ -65,7 +78,9 @@ export interface TestServer {
 // The server's two listeners on the memory store, the fake worker, the fake clock, a fake pepys
 // reader, a fake notifier and a fake forge, with the example rules. No port is opened.
 export async function createTestServer(options: TestServerOptions = {}): Promise<TestServer> {
-  const dispatch = await createTestDispatch();
+  const dispatchOptions = options.store === undefined ? {} : { store: options.store };
+
+  const dispatch = await createTestDispatch(dispatchOptions);
 
   const callerProof = createFakeCallerProof();
   const pepys = createFakePepysReader();
@@ -95,7 +110,7 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
         ? callerProof
         : await options.makeCallerProof(dispatch.clock),
     workerTokenDigest: buildTokenDigest(workerToken),
-    pepys: options.hasPepys === false ? null : pepys,
+    pepys: options.hasPepys === false ? null : (options.pepys ?? pepys),
     forge,
     outbox: createOffOutbox(dispatch.store, dispatch.clock),
     readings,
@@ -128,6 +143,15 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
         newId: dispatch.newId,
         readings,
         log,
+      }),
+    watch: () =>
+      watchPullRequests({
+        store: dispatch.store,
+        forge,
+        rules: dispatch.rules(),
+        runner: dispatch.runner,
+        now: dispatch.clock.now(),
+        newId: dispatch.newId,
       }),
     seedStartedAttempt: async (phase) => {
       await dispatch.seedItem({ phase });
