@@ -1,7 +1,6 @@
 {
   "name": "@boxxy/pepys",
   "version": "0.0.0",
-  "private": true,
   "description": "The pepys plug-in of boxxy, its fact sink and its report reader",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/packages/pepys#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",
@@ -13,15 +12,30 @@
   },
   "files": [
     "src",
-    "!src/**/*.test.ts"
+    "!src/**/*.test.ts",
+    "!src/test-utils",
+    "dist"
   ],
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./sink": "./src/create-pepys-fact-sink.ts",
-    "./reader": "./src/create-pepys-reader.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    },
+    "./sink": {
+      "types": "./dist/create-pepys-fact-sink.d.ts",
+      "default": "./src/create-pepys-fact-sink.ts"
+    },
+    "./reader": {
+      "types": "./dist/create-pepys-reader.d.ts",
+      "default": "./src/create-pepys-reader.ts"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
+    "build": "rm -rf dist && tsrs -p tsconfig.build.json",
     "glue": "pepys build src/boxxy-work-plugin.ts",
     "typecheck": "tsrs --noEmit"
   },
@@ -37,7 +51,7 @@
     "zod": "catalog:"
   },
   "peerDependencies": {
-    "@pepys/kit": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-kit-0.0.1.tgz",
+    "@pepys/kit": "0.0.1",
     "zod": "catalog:"
   },
   "engines": {

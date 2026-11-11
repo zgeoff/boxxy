@@ -172,7 +172,7 @@
         "zod": "catalog:",
       },
       "peerDependencies": {
-        "@pepys/kit": "https://github.com/zgeoff/pepys/releases/download/preview-kit-0.0.1/pepys-kit-0.0.1.tgz",
+        "@pepys/kit": "0.0.1",
         "zod": "catalog:",
       },
     },
