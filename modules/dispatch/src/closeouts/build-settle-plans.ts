@@ -1,0 +1,118 @@
+import { dedupeOpenItems } from '@boxxy/closeout';
+import type { Effect, ItemId, ItemView, WorkFacts } from '@boxxy/model';
+import { match } from 'ts-pattern';
+import { effectHandlers } from './effect-handlers.ts';
+import type { EffectContext, EffectPlan } from './types.ts';
+
+type SettledFact = WorkFacts['boxxy.attempt.settled'];
+
+interface SettlePlansInput {
+  readonly effects: readonly Effect[];
+  readonly ctx: EffectContext;
+
+  // the open `core.issue` items of the item's repo, for the dedupe of filed items
+  readonly openIssues: readonly ItemView[];
+
+  // the rules map the outcome to a `{ hold: reason }` edge
+  readonly held: boolean;
+}
+
+export interface SettlePlans {
+  readonly plans: readonly EffectPlan[];
+  readonly criteria: SettledFact['criteria'];
+  readonly matched: readonly ItemId[];
+  readonly skippedEffects: SettledFact['skippedEffects'];
+}
+
+// The plan of each effect of a settle, and the `settled` fact's fields that the plans decide.
+// A hold withholds each effect that changes an existing item; a filed item and friction change
+// none. A `file-item` that matches an open issue files nothing and lists it in `matched`.
+export function buildSettlePlans(input: SettlePlansInput): SettlePlans {
+  const fileItems = input.effects.flatMap((effect) =>
+    effect.kind === 'file-item' ? [effect.item] : [],
+  );
+
+  const deduped = dedupeOpenItems(fileItems, input.openIssues);
+
+  const toFile = new Set(deduped.file);
+
+  const plans = input.effects
+    .filter((effect) => effect.kind !== 'file-item' || toFile.has(effect.item))
+
+    // each item update expects the item open, so the close goes last
+    .toSorted(
+      (first, second) => Number(first.kind === 'close-item') - Number(second.kind === 'close-item'),
+    )
+    .map((effect): EffectPlan =>
+      input.held && isItemChange(effect)
+        ? { kind: 'skip', effect, reason: 'the item holds for the owner' }
+        : planEffect(effect, input.ctx),
+    );
+
+  return {
+    plans,
+    criteria: collectCopiedEvidence(plans, input.ctx.item),
+    matched: deduped.matched,
+    skippedEffects: plans.flatMap((plan) =>
+      plan.kind === 'skip' ? [{ effect: plan.effect.kind, reason: plan.reason }] : [],
+    ),
+  };
+}
+
+const itemChanges: ReadonlySet<Effect['kind']> = new Set([
+  'close-item',
+  'add-relation',
+  'set-kind',
+  'set-field',
+  'set-acceptance',
+]);
+
+function isItemChange(effect: Effect): boolean {
+  return itemChanges.has(effect.kind);
+}
+
+// A handler that throws is a bug in the handler, not in the stored data, but the settle still
+// lands: the effect is skipped and listed.
+function planEffect(effect: Effect, ctx: EffectContext): EffectPlan {
+  try {
+    return pickHandler(effect)(ctx);
+  } catch (error) {
+    return { kind: 'skip', effect, reason: `the handler failed: ${String(error)}` };
+  }
+}
+
+function pickHandler(effect: Effect): (ctx: EffectContext) => EffectPlan {
+  return match(effect)
+    .returnType<(ctx: EffectContext) => EffectPlan>()
+    .with({ kind: 'file-item' }, (filed) => (ctx) => effectHandlers['file-item'](filed, ctx))
+    .with({ kind: 'close-item' }, (close) => (ctx) => effectHandlers['close-item'](close, ctx))
+    .with({ kind: 'add-relation' }, (add) => (ctx) => effectHandlers['add-relation'](add, ctx))
+    .with({ kind: 'set-kind' }, (set) => (ctx) => effectHandlers['set-kind'](set, ctx))
+    .with({ kind: 'set-field' }, (set) => (ctx) => effectHandlers['set-field'](set, ctx))
+    .with({ kind: 'set-acceptance' }, (set) => (ctx) => effectHandlers['set-acceptance'](set, ctx))
+    .with(
+      { kind: 'record-proposal' },
+      (record) => (ctx) => effectHandlers['record-proposal'](record, ctx),
+    )
+    .exhaustive();
+}
+
+// The evidence ids that an applied `set-acceptance` added to each criterion.
+function collectCopiedEvidence(
+  plans: readonly EffectPlan[],
+  item: ItemView,
+): SettledFact['criteria'] {
+  return plans.flatMap((plan) => {
+    if (plan.kind !== 'apply' || plan.effect.kind !== 'set-acceptance') {
+      return [];
+    }
+
+    return plan.effect.criteria.flatMap((criterion) => {
+      const before = new Set(item.acceptance.find((old) => old.id === criterion.id)?.evidence);
+
+      const added = criterion.evidence.filter((evidence) => !before.has(evidence));
+
+      return added.length === 0 ? [] : [{ criterion: criterion.id, evidence: added }];
+    });
+  });
+}

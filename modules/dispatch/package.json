@@ -31,13 +31,16 @@
     "typecheck": "tsrs --noEmit"
   },
   "dependencies": {
+    "@boxxy/closeout": "workspace:*",
+    "@boxxy/content-hash": "workspace:*",
     "@boxxy/model": "workspace:*",
+    "@boxxy/planning": "workspace:*",
     "tiny-invariant": "catalog:",
     "ts-pattern": "catalog:",
     "xstate": "catalog:"
   },
   "devDependencies": {
-    "@boxxy/closeout": "workspace:*"
+    "@boxxy/rules": "workspace:*"
   },
   "engines": {
     "bun": ">=1.3",
