@@ -30,26 +30,27 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | Runtime            | Bun `1.4.4`; `engines.node >=24`, for npm publish                                                                     | pepys, nixie, atc, noslop               |
 | Compiler           | `typescript` `7.0.2`, `tsrs` `0.18.0-ts7.1.0-dev.20260929`                                                            | wringer, nixie, atc, noslop             |
 | Strict config      | `@tsconfig/strictest` `2.0.8`                                                                                         | wringer                                 |
-| Lint               | `oxlint` `1.90.0`, `@zgeoff/oxlint-config` `0.7.7`                                                                    | atc; zgeoff/tools                       |
+| Lint               | `oxlint` `1.90.0`, `@zgeoff/oxlint-config` `0.10.5`                                                                    | atc; zgeoff/tools                       |
 | Type-aware lint    | `@maschwenk/tsrslint` `0.1.6`                                                                                         | wringer, nixie, atc, noslop             |
 | Format             | `oxfmt` `0.75.0`, `@zgeoff/oxfmt-config` `0.1.0`, `@zgeoff/format-codemod` `0.3.5`                                    | atc (oxfmt); zgeoff/tools (the configs) |
 | Package boundaries | `turbo` `2.11.10`                                                                                                     | noslop, nixie                           |
 | Typed API          | `@orpc/contract`, `@orpc/server`, `@orpc/client`, `@orpc/mcp` `2.0.0-beta.50`, `@modelcontextprotocol/server` `2.4.0` | boxxy's own choice                      |
 | HTTP server        | `elysia` `2.0.0-rc.0`, with `typebox` `1.4.3`, `exact-mirror` `1.2.6` and `openapi-types` `12.1.3` as pepys pins them | pepys                                   |
-| Database           | `kysely` `0.29.7` on `bun:sqlite` through `@zgeoff/kysely-bun-sqlite` `0.3.0`                                         | nixie, atc                              |
+| Database           | `kysely` `0.29.8` on `bun:sqlite` through `@zgeoff/kysely-bun-sqlite` `0.3.2`                                         | nixie, atc                              |
 | Migrations         | Kysely's `Migrator` with an in-code migration provider                                                                | atc                                     |
 | Validation         | `zod` `4.6.7`                                                                                                         | all five                                |
 | Rules files        | `yaml` `2.9.1`                                                                                                        | boxxy's own choice                      |
 | CLI                | `node:util` `parseArgs`, with the command table of `apps/cli`                                                         | boxxy's own choice                      |
 | Logging            | `@logtape/logtape` `2.4.2`                                                                                            | nixie, atc, noslop                      |
-| Control flow       | `ts-pattern` `5.9.2`, `tiny-invariant` `1.3.3`, `type-fest` `5.10.0`, `@zgeoff/std` `0.4.0`                           | atc, pepys                              |
+| Control flow       | `ts-pattern` `5.9.2`, `tiny-invariant` `1.3.3`, `type-fest` `5.10.0`, `@zgeoff/std` `0.4.3`                           | atc, pepys                              |
 | State machines     | `xstate` `6.0.0-beta.2`, pinned exactly, for the attempt state table in `@boxxy/dispatch` only                        | boxxy's own choice                      |
 | Tests              | `bun test` through `@zgeoff/rig` `0.2.3` (`rig unit`, `rig related`, `rig bench`), `@zgeoff/bun-test-extended` `0.2.3`, `@faker-js/faker` `10.6.0` | zgeoff/tools                            |
 | HTTP mocks         | `msw` `2.15.0`, `@msw/data` `1.1.8`                                                                                   | nixie, noslop                           |
 | Git hooks          | `lefthook` `2.2.2`, gitleaks                                                                                          | all five                                |
 | Commits            | `@commitlint/cli` `21.2.4`, `@zgeoff/commitlint-config` `0.1.0`                                                       | wringer, pepys, nixie                   |
-| Dead code          | `knip` `6.43.0`                                                                                                       | the newest of the five                  |
-| Skill gate         | `@zgeoff/skill-gate` `0.2.15`                                                                                         | the newest of the five                  |
+| Repo checks        | `@zgeoff/chex` `0.3.3`, for the test layout and docs checks                                                           | zgeoff/tools                            |
+| Dead code          | `knip` `6.44.1`                                                                                                       | the newest of the five                  |
+| Skill gate         | `@zgeoff/skill-gate` `0.2.27`                                                                                         | the newest of the five                  |
 
 - msw stays on 2, because msw 3 doesn't intercept `fetch` under Bun.
 - Expected outcomes are values of a union type, branched with `ts-pattern`'s `match().exhaustive()`.
@@ -92,8 +93,9 @@ is wringer's, with `boundaries` (`turbo boundaries`) added, as noslop's has, and
 (`chex test-layout`), which fails a test or a test helper outside the
 [test layout](./layout.md#inside-a-package). No root script runs the whole list: the type-aware lint
 (`lint:full`) and the dead-code check run in CI only, so an agent on a host with little memory
-never runs them. An agent runs `typecheck`, `lint` and `test` locally.
-lefthook's pre-push runs `prose` and `boundaries`, then the synced baseline.
+never runs them. An agent runs `typecheck`, `lint` and `test` locally. CI also runs each docs check
+that the `check:docs` script names, and `prose` adds the prose check of `AGENTS.md`. lefthook's
+pre-push runs `prose` and `boundaries`, then the synced baseline.
 
 ### What repo-sync delivers
 
@@ -207,5 +209,3 @@ The repo has no private package. The oRPC contract lives in `libs/contract`
 - **The shared configs adopted nowhere yet.** `@zgeoff/oxfmt-config` and `@zgeoff/tsconfig` are new
   in zgeoff/tools. boxxy takes the oxfmt config, as the stack decision sets, and stays on
   `@tsconfig/strictest`, which all five repos run, until `@zgeoff/tsconfig` is proven downstream.
-- **First-party scope.** The Renovate preset and chex's first-party scopes don't list `@boxxy/**`.
-  They need it only when another repo depends on a `@boxxy/*` package.

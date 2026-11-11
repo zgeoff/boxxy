@@ -17,6 +17,7 @@ The mistakes that cost most here:
   your work needs.
 - [Layout](#layout): follow the layout doc. Code under `modules/` and `libs/` does no I/O.
 - [Docs and decisions](#docs-and-decisions): a design doc changes in the same PR as the code.
+- [Packages](#packages): one exact version per dependency, in the root catalog.
 - [Checks](#checks): run the local checks before you push. The type-aware lint runs in CI only.
 - [Commits and pull requests](#commits-and-pull-requests): Conventional Commits, one PR per
   change, no attribution lines.
@@ -83,10 +84,23 @@ When a check fails, move the code to the package the layout names. Never add an 
     day the choice was made, in `YYYY-MM-DD` form.
   - To change a decision, edit its record, and add an `Updated: YYYY-MM-DD` line under its date.
 
+## Packages
+
+- Pin every external version once, exactly, in the root `workspaces.catalog`. A package writes
+  `"catalog:"` for an external dependency and `"workspace:*"` for another `@boxxy/*` package.
+- Install with the Bun version in `packageManager`. Another version rewrites unrelated lines of
+  `bun.lock`.
+- Give each first-party package that `bun.lock` holds, such as one from `@zgeoff/` or `@atcx/`, an
+  entry in `minimumReleaseAgeExcludes` in `bunfig.toml`, by its full name. A scope pattern such as
+  `@zgeoff/*` lets nothing through. Never ignore an audit finding to get past the gate.
+
 ## Checks
 
 - `bun run typecheck`, `bun run lint` and `bun run test` are the local checks. Run them before you
-  push, and fix every failure.
+  push, and fix every failure. `bun run test` runs `rig unit`, which runs the tests in random order
+  with no isolation between the files of a worker.
+- `bun run check:docs` runs the docs checks. `bun run bench` runs the benchmarks through
+  `rig bench`. CI does not run the benchmarks.
 - `bun run lint:full` adds the type-aware pass and the type check. It runs in CI only, so never run
   it locally.
 - lefthook runs the light checks before a commit and a push: lint on the files your branch changes,
