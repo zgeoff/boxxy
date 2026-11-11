@@ -367,38 +367,6 @@ export interface FactSink {
   send: (facts: readonly OutboxFact[]) => Promise<SinkAnswer>;
 }
 
-export interface CostToLandRow {
-  readonly item: ItemId;
-  readonly title: string;
-  readonly repo: RepoName;
-  readonly landedAt: Instant;
-  readonly model: string;
-  readonly attempts: number;
-  readonly requests: number;
-  readonly inputTokens: number;
-  readonly outputTokens: number;
-  readonly cacheReadTokens: number;
-  readonly cacheCreationTokens: number;
-
-  // input, cache read and cache creation tokens together
-  readonly totalInputTokens: number;
-
-  // modelled at list price, not billed
-  readonly costUsd: number;
-}
-
-export interface CostToLandInput {
-  readonly repo?: string;
-
-  // ISO 8601, as the pepys query takes it
-  readonly landedFrom?: string;
-  readonly landedTo?: string;
-}
-
-export interface CostReader {
-  costToLand: (input: CostToLandInput) => Promise<CostToLandRow[]>;
-}
-
 // The reports of pepys about one item.
 export interface PepysReader {
   readCostToLand: (item: ItemId) => Promise<PepysAnswer<CostToLand>>;

@@ -45,6 +45,10 @@
     "libs/model": {
       "component": "@boxxy/model",
       "initial-version": "0.1.0"
+    },
+    "packages/pepys": {
+      "component": "@boxxy/pepys",
+      "initial-version": "0.1.0"
     }
   }
 }

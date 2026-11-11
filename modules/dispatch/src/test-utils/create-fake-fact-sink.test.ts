@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { buildMockOutboxFact } from '@boxxy/model/test-utils/build-mock-outbox-fact';
+import { factSinkContract } from '@boxxy/model/test-utils/fact-sink-contract';
 import { createFakeFactSink } from './create-fake-fact-sink.ts';
-import { factSinkContract } from './fact-sink-contract.ts';
 
 function setupTest() {
   const fake = createFakeFactSink();

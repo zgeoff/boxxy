@@ -137,6 +137,19 @@
         "zod": "catalog:",
       },
     },
+    "packages/pepys": {
+      "name": "@boxxy/pepys",
+      "version": "0.0.0",
+      "dependencies": {
+        "@boxxy/model": "workspace:*",
+      },
+      "devDependencies": {
+        "zod": "catalog:",
+      },
+      "peerDependencies": {
+        "zod": "catalog:",
+      },
+    },
   },
   "catalog": {
     "@commitlint/cli": "21.2.4",
@@ -185,6 +198,8 @@
     "@boxxy/dispatch": ["@boxxy/dispatch@workspace:modules/dispatch"],
 
     "@boxxy/model": ["@boxxy/model@workspace:libs/model"],
+
+    "@boxxy/pepys": ["@boxxy/pepys@workspace:packages/pepys"],
 
     "@boxxy/planning": ["@boxxy/planning@workspace:modules/planning"],
 

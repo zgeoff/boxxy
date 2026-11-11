@@ -23,6 +23,14 @@
           "store-sqlite": ["adapters/store-sqlite/**"],
           "worker-atc": ["adapters/worker-atc/**"]
         },
+        "edges": [
+          {
+            "name": "pepys",
+            "from": ["domain"],
+            "to": ["deployed"],
+            "reason": "no module and no lib imports @boxxy/pepys; an app passes its sink and reader in through the ports"
+          }
+        ],
         "modules": [
           {
             "name": "sqlite",
