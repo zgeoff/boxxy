@@ -1338,7 +1338,8 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
     - the oxfmt, lefthook, commitlint and knip configs;
     - the PR template, `CLAUDE.md` and the root README;
     - the release-please config, with one component per package;
-    - `scripts/first-publish.sh`, which publishes one package's first version by hand.
+    - the first publish of each name by hand, as a placeholder, as the
+      [releasing runbook](../../runbooks/releasing.md#publish-a-new-package) gives it.
   - Workflows:
     - `pr.yml`, with the checks, through repo-sync;
     - `main.yml`, which runs release-please and publishes every released package as
@@ -1346,8 +1347,8 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
     - `npm-packages.yml`, which packs every package and dry-runs its publish on each PR.
   - Repo settings:
     - a ruleset on `main`.
-- **Owner steps:** run `scripts/first-publish.sh <package>` once per package, in the `@boxxy` npm
-  scope; add `main.yml` as the trusted publisher on npmjs.com; install the repo-sync App and set its
+- **Owner steps:** publish each package's first version by hand once, in the `@boxxy` npm scope;
+  add `main.yml` as the trusted publisher on npmjs.com; install the repo-sync App and set its
   secrets; allow auto-merge.
 - **Depends on:** H1.
 - **Acceptance:**

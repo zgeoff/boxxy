@@ -83,7 +83,7 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | `.github/workflows/main.yml`                                                      | checks on each push to `main`, then release-please, then a dispatched publish at the release tag                  | wringer        |
 | `.github/workflows/npm-packages.yml`                                              | packs each published package and dry-runs its publish                                                             | wringer        |
 | `.github/workflows/repo-sync.yml`                                                 | calls zgeoff/tools's repo-sync, pinned to the newest green tools commit                                           | zgeoff/tools   |
-| `scripts/publish/`, `scripts/release/`, `scripts/ci/`, `scripts/first-publish.sh` | the publish dispatch, the package publish and the one-time first publish; `scripts/test-utils/` holds their stubs | wringer        |
+| `scripts/publish/`, `scripts/release/`, `scripts/ci/` | the publish dispatch and the package publish; `scripts/test-utils/` holds their stubs | wringer        |
 
 The `BUN_CHECK_SCRIPTS` repo variable gives CI its list of root scripts:
 `audit deadcode format:check lint:full typecheck boundaries check:test-layout prose test`. The list
@@ -132,8 +132,9 @@ Publish runs queue and never cancel, so a release never stops halfway. Each publ
 one queue with its own checks, so releases publish in the order they were tagged. A version below
 the package's `latest` dist-tag publishes under the `backport` dist-tag, so `latest` stays on the
 newest version. A package that is new to npm
-gets one local publish through `scripts/first-publish.sh`, then a trusted publisher on npmjs.com
-that names `main.yml`. The [releasing runbook](../../runbooks/releasing.md) gives the steps.
+gets one local publish of a placeholder, then a trusted publisher on npmjs.com that names
+`main.yml`. [How boxxy ships](./release.md) gives the packages, the one version they share and the
+first publish, and the [releasing runbook](../../runbooks/releasing.md) gives the steps.
 
 ## tsconfig
 

@@ -1,0 +1,43 @@
+# How boxxy ships
+
+boxxy ships as `@boxxy/*` packages on npm, and every package carries the same version. A deployment in another repo never builds from this repo: it installs the packages from npm at one version and builds its images from them. CI publishes each version from a release tag with npm provenance. The [Release section of the tech stack](./tech-stack.md#release) gives the CI flow, and the [releasing runbook](../../runbooks/releasing.md) gives the steps a maintainer takes.
+
+## The packages
+
+Every package folder under `apps/`, `modules/`, `adapters/`, `libs/` and `packages/` publishes as `@boxxy/<folder>`, unless its `package.json` sets `"private": true`. Each public package ships its TypeScript source, its declarations in `dist/`, its README and the license, with `publishConfig.access` set to `public`.
+
+A deployment installs these:
+
+| What it builds | Packages it installs |
+| --- | --- |
+| the server image | `@boxxy/server`, and each `@boxxy/*` package the server depends on |
+| the pepys deployment | `@boxxy/pepys`, the plug-in, and `@boxxy/model` |
+| the agent image | `@boxxy/cli` |
+
+`@boxxy/pepys` lists `@pepys/kit` and `zod` as peer dependencies, so the plug-in uses the deployment's own copy of each. The peer range of `@pepys/kit` is an exact npm version: a pepys release can change the glue the plug-in ships, so a boxxy release names the one kit version it was built against. Inside this repo, the root `overrides` and the dev dependencies of `@boxxy/pepys` point the `@pepys/*` packages at a prerelease kit, which never reaches the dependencies or peer dependencies of a published manifest.
+
+## One version for every package
+
+`release-please-config.json` puts every package in one `linked-versions` group, `boxxy`. When a release holds a change to any package, release-please gives every package in the group the highest version among them, and releases each package at that version, a package with no change included. Each release still gets its own tag, `@boxxy/<folder>@<version>`, and every tag of one release sits on the same merge commit.
+
+The `node-workspace` plugin comes first, with `"merge": false`. release-please needs that order when it links versions in a workspace: the workspace plugin then updates the `@boxxy/*` dependency ranges and leaves the merge of the release pull request to the group.
+
+A new package joins the group with two lines in `release-please-config.json`: its entry under `packages`, and its component name in the group's `components`. `release-please-config.test.ts` fails while a package folder has no entry or its component is missing from the group.
+
+Before version 1.0, a breaking change raises the minor version and any other releasable change raises the patch version (`bump-minor-pre-major`, `bump-patch-for-minor-pre-major`).
+
+## The first publish of a new name
+
+npm adds a trusted publisher only to a package that is already on the registry. So each new name goes out once by hand, as a placeholder, and CI publishes every real version:
+
+1. A maintainer with two-factor authentication on the `@boxxy` npm org publishes version `0.0.1` of the name from their own machine. The placeholder holds no code: only a `package.json` with the name, the license and the `repository` field, a README that says it is a placeholder, and the license file. It is built outside the repo's package folders, so it can reserve a name before the package's code is on `main`.
+2. The maintainer adds a trusted publisher for the name that names this repo and `main.yml`, with npm publish allowed.
+3. The next release publishes the package's first real version from CI, with provenance. That version is above `0.0.1`, because `initial-version` is `0.1.0` and the group version is at least that.
+
+The [releasing runbook](../../runbooks/releasing.md#publish-a-new-package) gives the commands. A trusted publisher that no publish uses within 2 days expires, so step 2 waits until a release pull request is ready to merge.
+
+## What a deployment pins
+
+A deployment pins every `@boxxy/*` line of its `package.json` to one exact version, and its lockfile to the same. Its release check reads the version that npm holds for `@boxxy/server`, and moves every `@boxxy/*` line to that version in one change. Because every package shares the version, that one read is enough: no package of a release can sit at another version.
+
+The deployment also pins `@pepys/kit` to the version that `@boxxy/pepys` names as its peer. When pepys publishes a new kit version, boxxy moves its dev dependencies and the root `overrides` to npm at that version, regenerates the glue, sets the peer range to match, and releases; the deployment then moves both pins together.

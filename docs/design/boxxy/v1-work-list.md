@@ -1,6 +1,6 @@
 # v1 work list
 
-Build [v1](./v1.md) in the 22 slices below, in order. Each slice names its outcome, the sketch files it follows, what it needs first, and the check that proves it. Slices 1 to 14 need nothing outside this repo. Slices 15 to 19 each need a package or a change from another repo, and the last three slices prove the whole system: an end-to-end test in CI, the deploy, and one item through the deployed system. Before a slice, read its points in [open for the builder](./v1-open.md).
+Build [v1](./v1.md) in the 23 slices below, in order: slices 1 to 22, and slice 20a between 20 and 21. Each slice names its outcome, the sketch files it follows, what it needs first, and the check that proves it. Slices 1 to 14 need nothing outside this repo. Slices 15 to 19 each need a package or a change from another repo. Slices 20 to 22 prove the whole system: an end-to-end test in CI, the npm release that the deploy installs, the deploy, and one item through the deployed system. Before a slice, read its points in [open for the builder](./v1-open.md).
 
 Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and puts its code where the [folder layout](./layout-folders.md) says. The sketches are in [`sketches/v1/`](./sketches/v1/): `core/`, `edge/` and `pepys-package/`.
 
@@ -150,11 +150,18 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 - **Needs:** slices 1 to 19, and a pepys that the test can start: ingest, the store and the API, with the GitHub, telemetry and boxxy plug-ins.
 - **Check:** the test runs in CI with scripted sessions on the fake worker and a signed fake webhook for the merge. The facts go into a real pepys through its ingest route. The item ends `done`, and both queries return the expected rows from that pepys.
 
+### 20a. The npm release
+
+- **Outcome:** every package that the deployment installs is on npm with a trusted publisher, and one release publishes them all from CI at one shared version, with provenance: `@boxxy/server`, `@boxxy/pepys`, the CLI, and each package they depend on.
+- **Follows:** [How boxxy ships](./release.md); the [releasing runbook](../../runbooks/releasing.md).
+- **Needs:** slices 13 to 19 on `main`, each package in the `linked-versions` group, and each new name published once as a placeholder by a maintainer.
+- **Check:** `npm view @boxxy/<folder>@<version>` prints the release's version for every package, each version shows a provenance badge on npm, and `npm audit signatures` passes in an empty project that installs `@boxxy/server` and `@boxxy/pepys`.
+
 ### 21. The deploy
 
 - **Outcome:** the boxxy server runs in the deployment of the cloud repo, with the worker token, the trust documents, the pepys plug-in in the pepys deployment, and the CLI and hook plug-in in the agent image.
 - **Follows:** [API and auth](./v1-api-and-auth.md), "The two paths".
-- **Needs:** slice 20, and the deployed pepys.
+- **Needs:** slices 20 and 20a, and the deployed pepys.
 - **Check:** `boxxy status` from the owner's path answers, and the outbox state is `idle`.
 
 ### 22. The live proof

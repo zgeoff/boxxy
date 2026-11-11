@@ -3,12 +3,13 @@
 Use this runbook to set up releases once, to publish a package that is new to npm, to merge a
 release pull request, and to recover a release that failed. CI does the rest of a release.
 
-CI releases each `@boxxy/*` package to npm on its own version:
+CI releases every `@boxxy/*` package to npm at one shared version, as
+[How boxxy ships](../design/boxxy/release.md) describes:
 
 1. A commit lands on `main` that release-please counts as releasable, such as a `feat` or a `fix`.
    The release job in `.github/workflows/main.yml` runs release-please, which opens one release pull
-   request. That pull request bumps the version and adds a changelog entry for each package the
-   commit changed.
+   request. That pull request sets every package to the same new version, and adds a changelog entry
+   for each package.
 2. A maintainer merges the release pull request. The release job never merges it.
 3. The merge starts a run of the `Main` workflow, `main.yml`, which creates a tag for each released
    package, `@boxxy/<folder>@<version>`. Every tag of one release sits on the same merge commit. The
@@ -27,9 +28,8 @@ package by hand first, then turn CI releases on.
 **CAUTION:** Finish every step below within 2 days of step 1, when you add the first trusted
 publisher. npm expires a trusted publisher that no publish uses in its first 2 days.
 
-1. For each package, do steps 2 to 5 of [Publish a new package](#publish-a-new-package). Skip its
-   step 1: `release-please-config.json` lists every package already. Expect each package's npm
-   access page to list a trusted publisher.
+1. Do [Publish a new package](#publish-a-new-package) for every package, with each package's trusted
+   publisher. Expect each package's npm access page to list a trusted publisher.
 2. Take the client ID and the private key of the release GitHub App, which the release jobs of the
    other zgeoff repos use. GitHub runs CI on a pull request that this App opens, and on none that
    the default workflow token opens. Set the client ID as the `RELEASE_APP_ID` repo variable, and
@@ -45,53 +45,60 @@ publisher. npm expires a trusted publisher that no publish uses in its first 2 d
 
    Expect `gh variable list --repo zgeoff/boxxy` to show `RELEASE_ENABLED` with the value `true`.
 
-5. Merge a `feat` or `fix` commit to `main` that changes a file in every package, such as each
-   package's `README.md`. release-please releases only the packages a commit changes. Expect the
-   release job to open a release pull request that sets each package to `0.1.0`.
+5. Merge a `feat` or `fix` commit to `main`. Expect the release job to open a release pull request
+   that sets every package to one version, `<version>`.
 6. Merge that pull request, as [Merge a release pull request](#merge-a-release-pull-request)
-   describes. Expect `npm view @boxxy/<folder>@0.1.0 version` to print `0.1.0` for each package,
-   which CI published through each trusted publisher.
+   describes. Expect `npm view @boxxy/<folder>@<version> version` to print `<version>` for each
+   package, which CI published through each trusted publisher.
 
 ## Publish a new package
 
-A package's first version goes out from a maintainer's machine, and CI publishes every later one.
-The hand publish puts version `0.0.0`, the version in a new package's `package.json`, on npm. CI's
-first release of the package is `0.1.0`.
+A new name goes out once from a maintainer's machine as a placeholder, version `0.0.1`, with no
+code. CI publishes every real version, starting with the next release.
+[How boxxy ships](../design/boxxy/release.md#the-first-publish-of-a-new-name) says why. The
+`npm-first-publish` script of the
+[npm-publish skill](https://github.com/zgeoff/skills/tree/main/skills/npm-publish) does the checks
+and the publish.
 
-1. Add the package to `release-please-config.json`, under its `<path>`, with `@boxxy/<folder>` as
-   its `component` and `0.1.0` as its `initial-version`. Merge that change to `main`. Expect
-   `bun test release-please-config.test.ts` to pass; it fails while a package folder has no entry.
-2. Sign in to npm as an account that can publish under the `@boxxy` scope:
+1. Add the package to `release-please-config.json`: an entry under `packages`, at its `<path>`, with
+   `@boxxy/<folder>` as its `component` and `0.1.0` as its `initial-version`, and `@boxxy/<folder>`
+   in the `components` of the `linked-versions` group. Expect
+   `bun test release-please-config.test.ts` to pass.
+2. Make a placeholder folder outside the repo's package folders, such as
+   `/tmp/boxxy-placeholders/<folder>`. Give it a `package.json` with the name `@boxxy/<folder>`, the
+   version `0.0.1`, the license `MIT`, the `repository` field of the package's real `package.json`,
+   and `"publishConfig": { "access": "public" }`. Add a `README.md` that says the version is a
+   placeholder, and a copy of `LICENSE`.
+3. From the repo root, run the check:
 
    ```bash
-   npm login
-   npm whoami
+   npm-first-publish check <placeholder folder>... main.yml
    ```
 
-   Expect `npm whoami` to print your npm username.
+   Expect `npm accepts the dry run` for each placeholder, then `plan saved`.
 
-3. From the repo root, on an up-to-date `main`, run the first publish:
+4. In your own terminal, run the publish. npm asks you to log in and approve with two-factor
+   authentication:
 
    ```bash
-   bash scripts/first-publish.sh <path>
+   npm-first-publish
    ```
 
-   Expect `published @boxxy/<folder>@0.0.0`, followed by the trusted publisher settings. When npm
-   already holds the package, the script stops with `already exists on npm`.
+   Expect `published @boxxy/<folder>@0.0.1` for each placeholder.
 
-4. Open `https://www.npmjs.com/package/@boxxy/<folder>/access`, and add a trusted publisher for
-   GitHub Actions with the settings the script printed. Expect the access page to list the
-   publisher.
-5. Turn on "Allow npm publish" for the publisher. While it is off, the publisher allows only
-   `npm stage publish`, and the publish in `main.yml` fails with `ENEEDAUTH`. Expect the access page
-   to show npm publish allowed.
-6. **CAUTION:** Finish this step and step 7 within 2 days of step 4. npm expires a trusted publisher
-   that no publish uses in its first 2 days, and CI's publish in step 7 is the first use.
+5. **CAUTION:** Do this step only when a release pull request that releases the package is ready to
+   merge. npm expires a trusted publisher that no publish uses in its first 2 days.
 
-   Merge a releasable commit that changes the package. Expect a release pull request that sets the
-   package to `0.1.0`.
+   Add the trusted publisher of each new package:
 
-7. Merge the release pull request. Expect `npm view @boxxy/<folder>@0.1.0 version` to print `0.1.0`.
+   ```bash
+   npm-first-publish trust <path>... main.yml
+   ```
+
+   Expect `trusted publishing on` for each package.
+
+6. Merge the release pull request. Expect `npm view @boxxy/<folder>@<version> version` to print the
+   release's `<version>`.
 
 ## Merge a release pull request
 

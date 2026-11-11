@@ -26,6 +26,8 @@ experiments, so every part of the system can be compared and improved. Packages 
   rules.
 - [Layout](./layout.md): the workspace, package tags and import rules, and where a helper goes.
 - [Tech stack](./tech-stack.md): the runtime, libraries and repo tooling.
+- [How boxxy ships](./release.md): the npm packages, the one version they share, the first publish
+  of a new name, and what a deployment pins.
 - [Slice 1](./slice-1.md): what the first build includes and leaves out.
 - [v1](./v1.md): the four-phase pipeline and its rules, limits, recipes, the ledger and notices.
 - [Attempt lifecycle](./v1-lifecycle.md): the attempt states in v1, the reconcile table, sleep and

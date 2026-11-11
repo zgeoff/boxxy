@@ -95,7 +95,7 @@ Each row names the test that settles it, where one is known.
 
 | What | Where | Needed for |
 | --- | --- | --- |
-| `@pepys/kit`, `@pepys/testing` and `@pepys/cli` on npm. The package installs them from the tarballs of a prerelease. | pepys | publishing the package |
+| `@pepys/kit`, `@pepys/testing` and `@pepys/cli` on npm at the version the package is built against. npm holds `0.0.1` of each, and the published peer range of `@pepys/kit` is `0.0.1`, but the package installs them from the tarballs of a prerelease. Of those three, only the kit's source differs from npm's `0.0.1`, in one type the package does not use. | pepys | moving the dev install to npm |
 | `@pepys/api` in a tarball or on npm, for its `DeploymentClient` type. The server builds the client with `@orpc/client` and passes it to the reader. | pepys | the reader on the boxxy server |
 | The GitHub and telemetry plug-ins, with the pull request entity ID built from GitHub's own ID, and a proven origin on each telemetry row | pepys | the `produced` link and the cost query |
 | A delivery module in the GitHub plug-in that gives the merge, release and deploy times of a pull request | pepys | the stage-time query |
