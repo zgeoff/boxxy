@@ -36,8 +36,7 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 - The four close-outs of the v1 phases, each with its schema, and `closeOutSchema` for any of them.
 - The output schemas of the two pepys reports, `costToLandSchema` and `stageTimeSchema`.
 - `definePhase`, which registers a phase kind with its close-out type hidden.
-- The slice 1 forms that the reconcile table still uses, named `SliceOne…`, with the fact schemas
-  `sliceOneFactSchemas`.
+- The slice 1 forms, named `SliceOne…`, with the fact schemas `sliceOneFactSchemas`.
 - `buildItemViews`, which derives each item's position and state from its rows and the rules, with
   `findPosition` and `deriveItemState`.
 - `pickSeatTake` and `collectSeatSync`, which give a store's seat take and seat sync.

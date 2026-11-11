@@ -161,13 +161,7 @@ export type {
   TriageCloseOut,
 } from './closeouts/types.ts';
 
-export type {
-  Claim,
-  ReconcileAction,
-  ReconcileTable,
-  SliceOneClaim,
-  SpawnContext,
-} from './dispatch/types.ts';
+export type { Claim } from './dispatch/types.ts';
 
 export type {
   AnyNewFact,
