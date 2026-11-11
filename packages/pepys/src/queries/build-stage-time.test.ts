@@ -16,7 +16,7 @@ test('it gives the minutes of all seven steps, the rework, the review wait and t
         ended_at: '2026-11-11T02:05:00.000Z',
       }),
       buildMockAttemptReadRow({
-        number: 2,
+        number: 1,
         phase: 'build',
         outcome: 'built',
         claimed_at: '2026-11-11T02:10:00.000Z',
@@ -26,14 +26,14 @@ test('it gives the minutes of all seven steps, the rework, the review wait and t
         ]),
       }),
       buildMockAttemptReadRow({
-        number: 3,
+        number: 1,
         phase: 'review',
         outcome: 'changes-requested',
         claimed_at: '2026-11-11T03:16:00.000Z',
         ended_at: '2026-11-11T03:36:00.000Z',
       }),
       buildMockAttemptReadRow({
-        number: 4,
+        number: 2,
         phase: 'build',
         round: 2,
         outcome: 'built',
@@ -41,7 +41,7 @@ test('it gives the minutes of all seven steps, the rework, the review wait and t
         ended_at: '2026-11-11T04:10:00.000Z',
       }),
       buildMockAttemptReadRow({
-        number: 5,
+        number: 2,
         phase: 'review',
         round: 2,
         outcome: 'passed',
@@ -300,4 +300,46 @@ test('it gives seven steps with null minutes, which the schema accepts, for an i
     { step: 'release', minutes: null, endedAt: null },
     { step: 'deploy', minutes: null, endedAt: null },
   ]);
+});
+
+test('it takes the review wait from the review claimed next after each build, as each phase numbers its own attempts', () => {
+  const times = buildStageTime({
+    item: 'boxxy:item:0193a1b2-0000-7000-8000-000000000001',
+    environment: 'production',
+    attempts: [
+      buildMockAttemptReadRow({
+        number: 1,
+        phase: 'build',
+        outcome: 'built',
+        claimed_at: '2026-11-11T02:10:00.000Z',
+        ended_at: '2026-11-11T03:10:00.000Z',
+      }),
+      buildMockAttemptReadRow({
+        number: 1,
+        phase: 'review',
+        outcome: 'changes-requested',
+        claimed_at: '2026-11-11T03:13:00.000Z',
+        ended_at: '2026-11-11T03:36:00.000Z',
+      }),
+      buildMockAttemptReadRow({
+        number: 2,
+        phase: 'build',
+        round: 2,
+        outcome: 'built',
+        claimed_at: '2026-11-11T03:40:00.000Z',
+        ended_at: '2026-11-11T04:10:00.000Z',
+      }),
+      buildMockAttemptReadRow({
+        number: 2,
+        phase: 'review',
+        round: 2,
+        outcome: 'passed',
+        claimed_at: '2026-11-11T04:12:00.000Z',
+        ended_at: '2026-11-11T04:30:00.000Z',
+      }),
+    ],
+    deliveries: [],
+  });
+
+  expect(times.reviewWaitMinutes).toBe(5);
 });

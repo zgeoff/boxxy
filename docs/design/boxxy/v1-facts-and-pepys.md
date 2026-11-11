@@ -124,6 +124,7 @@ The query returns seven steps: triage, design, build, review, merge, release and
 - Merge starts at the latest end of a review that passed. A review that settled `unsettleable` starts no merge step, because boxxy could not read whether it passed, so such an item has null merge minutes after its pull request merged. Release starts at the merge, and deploy at the release. An item with two pull requests takes the earliest time of each step.
 - An attempt that failed with `no-capacity` is in no measure. Every other attempt counts, a `usage-limit` one too.
 - The rework count is the number of reviews that asked for changes. The highest round less one is a different number.
+- The wait for review of a build that was built runs from its end to the claim of the first review claimed after that end. The claim times give the order, because an attempt's number counts within its own phase.
 - An open sleep counts 0 minutes, because the query reads no clock.
 - The query names three outcome names of the phase kinds. A phase kind that renames one must change the query.
 

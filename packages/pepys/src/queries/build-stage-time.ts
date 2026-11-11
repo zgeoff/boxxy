@@ -170,16 +170,23 @@ interface SettledAttempt extends MeasuredAttempt {
   readonly ended_at: string;
 }
 
-// For each settled build that was built: the claim of the next review attempt, by number, less
-// the build's end. null when no build has a review after it.
+// For each settled build that was built: the claim of the review claimed next at or after the
+// build's end, less that end. An attempt's number counts within its phase, so it cannot order a
+// build against a review. null when no build has a review after it.
 function measureReviewWait(attempts: readonly MeasuredAttempt[]): number | null {
   const waits = attempts
     .filter((attempt): attempt is SettledAttempt => attempt.ended_at !== null)
     .filter((build) => build.phase === 'build' && build.outcome === outcomeNames.built)
     .flatMap((build) => {
       const [review] = attempts
-        .filter((attempt) => attempt.phase === 'review' && attempt.number > build.number)
-        .toSorted((left, right) => left.number - right.number);
+        .filter(
+          (attempt) =>
+            attempt.phase === 'review' && measureMinutes(build.ended_at, attempt.claimed_at) >= 0,
+        )
+        .toSorted(
+          (left, right) =>
+            measureMinutes(right.claimed_at, left.claimed_at) || left.id.localeCompare(right.id),
+        );
 
       return review === undefined ? [] : [measureMinutes(build.ended_at, review.claimed_at)];
     });

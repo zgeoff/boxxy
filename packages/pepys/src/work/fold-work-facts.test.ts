@@ -33,7 +33,7 @@ test('it folds the facts of an item into its rows, its session rows and its link
   expect(fold.attempts[1]).toStrictEqual({
     id: attempt.build,
     phase: 'build',
-    number: 2,
+    number: 1,
     round: 1,
     mode: 'agent',
     pool: 'main',

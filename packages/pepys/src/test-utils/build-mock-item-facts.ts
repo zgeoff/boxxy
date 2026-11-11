@@ -47,7 +47,7 @@ export function buildMockItemFacts(): ItemFacts {
     buildClaimed('f02', '02:01:00', { attempt: attempts.triage, phase: 'triage', number: 1 }),
     buildStarted('f03', '02:01:05', attempts.triage, 's-triage'),
     buildSettled('f04', '02:05:00', { attempt: attempts.triage, outcome: 'accepted' }),
-    buildClaimed('f05', '02:10:00', { attempt: attempts.build, phase: 'build', number: 2 }),
+    buildClaimed('f05', '02:10:00', { attempt: attempts.build, phase: 'build', number: 1 }),
     buildStarted('f06', '02:10:05', attempts.build, 's-build'),
     buildItemFact('boxxy.attempt.session_bound', {
       event: 'f07',
@@ -68,13 +68,13 @@ export function buildMockItemFacts(): ItemFacts {
     buildMark('boxxy.attempt.woken', 'f10', '02:50:00', attempts.build),
     buildMark('boxxy.attempt.closed_out', 'f11', '03:09:00', attempts.build),
     buildSettled('f12', '03:10:00', { attempt: attempts.build, outcome: 'built' }),
-    buildClaimed('f13', '03:16:00', { attempt: attempts.review, phase: 'review', number: 3 }),
+    buildClaimed('f13', '03:16:00', { attempt: attempts.review, phase: 'review', number: 1 }),
     buildStarted('f14', '03:16:05', attempts.review, 's-review'),
     buildSettled('f15', '03:36:00', { attempt: attempts.review, outcome: 'changes-requested' }),
     buildClaimed('f16', '03:40:00', {
       attempt: attempts.rebuild,
       phase: 'build',
-      number: 4,
+      number: 2,
       round: 2,
     }),
     buildStarted('f17', '03:40:05', attempts.rebuild, 's-build'),
@@ -82,7 +82,7 @@ export function buildMockItemFacts(): ItemFacts {
     buildClaimed('f19', '04:12:00', {
       attempt: attempts.rereview,
       phase: 'review',
-      number: 5,
+      number: 2,
       round: 2,
     }),
     buildStarted('f20', '04:12:05', attempts.rereview, 's-rereview'),

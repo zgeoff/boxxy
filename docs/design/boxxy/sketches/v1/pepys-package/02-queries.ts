@@ -320,7 +320,8 @@ declare function buildCostToLand(parts: {
 //   rework.count        the settled attempts with phase `review` and outcome `changes-requested`
 //   rework.minutes      the minutes, by the phase rule, of every attempt with `round` above 1
 //   reviewWaitMinutes   for each settled build with the outcome `built`: the `claimed_at` of the
-//                       next review attempt (by `number`) − that build's `ended_at`. The sum.
+//                       review claimed next at or after that build's `ended_at` − that `ended_at`.
+//                       The sum. `number` counts within one phase, so it cannot order the two.
 //                       null when no build has a review after it.
 //   sleepMinutes        the sum of every closed stretch in `sleeps`. A stretch with `to` null
 //                       (asleep now) counts 0: the query reads no clock.
