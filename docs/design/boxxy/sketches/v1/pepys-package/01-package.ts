@@ -46,8 +46,7 @@ export const deployment = defineDeployment({ name: 'harbour', plugins: [githubPl
 // B. The fact types are declared ONCE, in `@boxxy/model`
 // ═════════════════════════════════════════════════════════════════════════════════════════════
 //
-// boxxy repo, libs/model/src/facts/work-fact-schemas.ts. The slice 1 schemas of `SliceOneFacts`
-// are `sliceOneFactSchemas`, in libs/model/src/slice-one/. One zod schema per type of `WorkFacts`
+// boxxy repo, libs/model/src/facts/work-fact-schemas.ts. One zod schema per type of `WorkFacts`
 // (../core/04-facts.ts), checked against the type both ways:
 //
 //   export const workFactSchemas = {

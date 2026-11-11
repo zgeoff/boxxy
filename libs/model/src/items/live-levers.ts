@@ -1,11 +1,6 @@
-import type { SliceOneLeverRow as LeverRow } from '../slice-one/types.ts';
-import type { Instant, LeverKind } from '../types.ts';
+import type { Instant, LeverKind, LeverRow } from '../types.ts';
 
-// The slice 1 row and the v1 row, which adds `phase`, both pass through with their own type.
-export function liveLevers<Lever extends LeverRow>(
-  levers: readonly Lever[],
-  now: Instant,
-): Lever[] {
+export function liveLevers(levers: readonly LeverRow[], now: Instant): LeverRow[] {
   return levers.filter((lever) => !isExpired(lever, now) && !isUndone(lever, levers));
 }
 

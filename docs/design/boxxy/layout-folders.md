@@ -47,9 +47,6 @@ ports/            the interfaces that an adapter implements
 reports/          the output schemas of the pepys queries
                   cost-to-land-schema  stage-time-schema  types  constants (the step and basis lists)
                   outbox-status (the `runner.status` outbox type)
-slice-one/        the slice 1 shapes that the reconcile table and the slice 1 claim in
-                  `dispatch/types` still use; the slice that moves them to v1 deletes the folder
-                  types  slice-one-fact-schemas
 utils/            format-key-path  to-json-value
 test-utils/       the factories    v1: create-fake-pepys-reader  pepys-reader-contract
                   build-mock-work-fact  build-mock-cost-to-land  create-fake-notifier
