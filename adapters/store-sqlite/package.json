@@ -13,7 +13,6 @@
   "files": [
     "src",
     "!src/**/*.test.ts",
-    "!src/**/*.bench.ts",
     "dist"
   ],
   "type": "module",
@@ -27,7 +26,7 @@
     "access": "public"
   },
   "scripts": {
-    "bench:claim": "bun src/create-sqlite-claim-store.bench.ts",
+    "bench": "rig bench",
     "build": "rm -rf dist && tsrs -p tsconfig.build.json",
     "typecheck": "tsrs --noEmit"
   },
@@ -41,7 +40,8 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@boxxy/dispatch": "workspace:*"
+    "@boxxy/dispatch": "workspace:*",
+    "@zgeoff/rig": "catalog:"
   },
   "engines": {
     "bun": ">=1.3",

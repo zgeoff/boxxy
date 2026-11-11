@@ -37,6 +37,7 @@
       "@zgeoff/kysely-bun-sqlite": "0.3.2",
       "@zgeoff/oxfmt-config": "0.1.0",
       "@zgeoff/oxlint-config": "0.10.5",
+      "@zgeoff/rig": "0.2.3",
       "@zgeoff/skill-gate": "0.2.27",
       "elysia": "2.0.0-rc.0",
       "exact-mirror": "1.2.6",
@@ -60,6 +61,7 @@
   "type": "module",
   "scripts": {
     "audit": "bun audit --ignore=GHSA-g3hv-75wg-m249",
+    "bench": "rig bench",
     "boundaries": "turbo boundaries",
     "deadcode": "bash scripts/run-knip.sh",
     "format": "oxfmt . && { [ -z \"$(git ls-files -co --exclude-standard -- '*.ts' '*.tsx' $(sed -e '/^#/d' -e '/^$/d' -e 's/^/:(exclude,glob)/' .formatignore))\" ] || format-codemod --quiet .; }",
@@ -98,6 +100,7 @@
     "@zgeoff/format-codemod": "catalog:",
     "@zgeoff/oxfmt-config": "catalog:",
     "@zgeoff/oxlint-config": "catalog:",
+    "@zgeoff/rig": "catalog:",
     "@zgeoff/skill-gate": "catalog:",
     "knip": "catalog:",
     "lefthook": "catalog:",

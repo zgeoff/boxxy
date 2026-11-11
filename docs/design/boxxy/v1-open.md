@@ -12,7 +12,7 @@ No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc list
 ## Not decided
 
 - Three points of the [folder layout](./layout-folders.md#open-questions).
-- Whether to make the claim cheaper before the store holds thousands of open items. The built claim holds the lock for 418 ms at p50 with 20,000 open items, and for 2.4 s when every item has a lever ([dispatch](./dispatch.md#the-built-claim-measured)). The expedite signal reads every lever once per item, so its cost grows with the square of the item count.
+- Whether to make the claim cheaper before the store holds thousands of open items. The built claim holds the lock for 418 ms at p50 with 20,000 open items, and for 2.4 s when every item has a lever ([dispatch](./dispatch.md#the-built-claim-measured)). The expedite signal reads every lever once per item, so its cost grows with the square of the item count. At 5,000 open items the claim's median is 103 to 173 ms, over the store rule's limit of 50 ms, so `rig bench` fails its budget, and CI does not run the claim benchmark until this point is settled.
 
 ## Where the sketches disagree
 

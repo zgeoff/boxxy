@@ -19,7 +19,7 @@
     ".": { "entry": ["*.test.ts", "scripts/**/*.test.ts"] },
     "system-tests": { "entry": ["src/**/*.test.ts", "e2e/**/*.test.ts"] },
     "{apps,modules,adapters,libs,packages}/*": {
-      "entry": ["src/**/*.test.ts", "e2e/**/*.test.ts"]
+      "entry": ["src/**/*.test.ts", "e2e/**/*.test.ts", "bench/*.bench.ts"]
     }
   },
   "ignoreIssues": {

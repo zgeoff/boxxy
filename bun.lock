@@ -17,6 +17,7 @@
         "@zgeoff/format-codemod": "catalog:",
         "@zgeoff/oxfmt-config": "catalog:",
         "@zgeoff/oxlint-config": "catalog:",
+        "@zgeoff/rig": "catalog:",
         "@zgeoff/skill-gate": "catalog:",
         "knip": "catalog:",
         "lefthook": "catalog:",
@@ -72,6 +73,7 @@
       },
       "devDependencies": {
         "@boxxy/dispatch": "workspace:*",
+        "@zgeoff/rig": "catalog:",
       },
     },
     "adapters/worker-atc": {
@@ -279,6 +281,7 @@
     "@zgeoff/kysely-bun-sqlite": "0.3.2",
     "@zgeoff/oxfmt-config": "0.1.0",
     "@zgeoff/oxlint-config": "0.10.5",
+    "@zgeoff/rig": "0.2.3",
     "@zgeoff/skill-gate": "0.2.27",
     "elysia": "2.0.0-rc.0",
     "exact-mirror": "1.2.6",
@@ -769,6 +772,8 @@
 
     "@zgeoff/commitlint-config": ["@zgeoff/commitlint-config@0.1.0", "", { "peerDependencies": { "@commitlint/cli": ">=21.0.0" } }, "sha512-HEx06TxSmccoaQDNH8Honuv/pxp6I4GU8XpBvWGnibPLf3EKTskc9gJVdKMy43dox4t2i288vTC/mWHmWufUkg=="],
 
+    "@zgeoff/diet": ["@zgeoff/diet@0.2.2", "", { "bin": { "diet": "diet.sh" } }, "sha512-zrToDuLnJJGeSxYOvrydH+AlWdtITX4zNENeVh8Y56e1qbSMZl9UNvIp9x4kcs/dMguQW5ihuAupnqngFBYJ4w=="],
+
     "@zgeoff/format-codemod": ["@zgeoff/format-codemod@0.3.5", "", { "dependencies": { "gunshi": "1.0.0-rc.1", "oxc-parser": "0.155.0" }, "bin": { "format-codemod": "dist/cli.js" } }, "sha512-aVHu3c5pYTISM68OL5fPjo2Go5DwemqB70chqFLsOnjlDJsEYBB2jdzyufv8QxrOwtTishnMV/v7EexmLZhIyQ=="],
 
     "@zgeoff/kysely-bun-sqlite": ["@zgeoff/kysely-bun-sqlite@0.3.2", "", { "peerDependencies": { "kysely": ">=0.29.5 <0.30.0" } }, "sha512-vPVzoBWIDXrO6VCfHY8XJSCTnRlTgW078HtyjrVSQP9grT8UswGlad2CP+G8D0GzQLfDRwpRWqqsg4LgxgNRoA=="],
@@ -776,6 +781,8 @@
     "@zgeoff/oxfmt-config": ["@zgeoff/oxfmt-config@0.1.0", "", { "peerDependencies": { "oxfmt": ">=0.56.0" } }, "sha512-DS79sjXQLVAqql36hr3yknd9eD5p2oBod1cuEff1GsQoG3EX3Ge2pDmpJiEgahsWA4uwJIoxZthUbsnAuIzVog=="],
 
     "@zgeoff/oxlint-config": ["@zgeoff/oxlint-config@0.10.5", "", { "dependencies": { "@stylistic/eslint-plugin": "5.10.0" }, "peerDependencies": { "oxlint": ">=1.78.0" } }, "sha512-MPK/PTea0/MZDNjh75lprFkj8oTSwHgWgGYgpOm3TJ4l4uQDAhDyZO2nFXyaYZIYebK6EDQyRuQ9nFBFGMXODQ=="],
+
+    "@zgeoff/rig": ["@zgeoff/rig@0.2.3", "", { "dependencies": { "@zgeoff/diet": "0.2.2", "@zgeoff/std": "0.4.3", "gunshi": "1.0.0-rc.1", "ts-pattern": "5.9.2", "zod": "4.6.7" }, "bin": { "rig": "src/cli.ts" } }, "sha512-GvFI9PAGmz35S5u3SGL6Hi4cP/4IzyM2nt9qdXVLJL4q053xLbRTx4+qyoqQMl5+s+fA/eCJ+ibPJn7QtSTK0w=="],
 
     "@zgeoff/skill-gate": ["@zgeoff/skill-gate@0.2.27", "", { "dependencies": { "@zgeoff/agent-hooks": "0.2.11" } }, "sha512-olxrYsNvZjIQve3E5h5O3O6luYO545llSwdNdSiTuzqDcn4msCIbIeRdJ13QU4EpN8iHQtcGWJf3QDzOgz6qmQ=="],
 
