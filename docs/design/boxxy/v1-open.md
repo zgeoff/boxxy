@@ -12,7 +12,6 @@ No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc list
 
 ## Not decided
 
-- Whether a review that settled `unsettleable` starts the merge step of the stage times. In the sketch it does not, so such an item has null merge minutes after its pull request merged.
 - The name of boxxy's configuration value that holds the folders of the trust documents. The verifier itself is not open: impz builds it ([`01-api.ts`](./sketches/v1/edge/01-api.ts), section F).
 - Three points of the [folder layout](./layout-folders.md#open-questions).
 - Whether to make the claim cheaper before the store holds thousands of open items. The built claim holds the lock for 418 ms at p50 with 20,000 open items, and for 2.4 s when every item has a lever ([dispatch](./dispatch.md#the-built-claim-measured)). The expedite signal reads every lever once per item, so its cost grows with the square of the item count.
@@ -22,16 +21,6 @@ No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc list
 | Point | What stands |
 | --- | --- |
 | The test fixtures of the package sketch give review sessions the product `codex`. | v1 workers are Claude. The fixture keeps a second product so that the lines per product and the cost per turn stay tested. |
-
-## Known faults in the sketch code
-
-In three places the code of the package sketch does not do what its comment says. Each place has a `KNOWN FAULT:` comment. Build the intended rule.
-
-| Fault | Intended rule |
-| --- | --- |
-| [`01-package.ts`](./sketches/v1/pepys-package/01-package.ts) declares `caller_issuer` and `caller_subject` on `boxxy_attempt_session`, and both cost joins read them. The upsert writes neither, and `AttemptDraft.sessions` holds neither. No test covers the caller join. | The consumer `boxxy_work` writes both from the `caller` field of the `.started`, `.reconciled` and `.resumed` facts. Without the write the cost query counts nothing. Add the write, and a test: a telemetry row with the attempt's caller counts, and a row with another origin under the same session ID does not. |
-| Stage time, in [`02-queries.ts`](./sketches/v1/pepys-package/02-queries.ts): the comment says that the statement filters out a `no-capacity` attempt. The statement has no filter on `failure`. | A `no-capacity` attempt is left out of every measure. |
-| Cost, in the same file: the comment says that a `no-capacity` attempt counts in no total. `count(*)` counts it in `attempts`. | A `no-capacity` attempt counts in no total. An attempt that failed with `usage-limit` did run, so its cost and time count. |
 
 ## Lost on a restart
 
@@ -79,14 +68,13 @@ Each row names the test that settles it, where one is known.
 | Point | The test |
 | --- | --- |
 | That the glue generator types the catalog's nested payloads, and that scriptc compiles the decoder for 27 types. It ran for flat payloads. | Build the package with the pepys CLI. |
-| The tie rule for two pull request facts with one time. It ran for the session rule only. | The test of equal times, for a pull request. |
 | Which `Date` functions scriptc refuses to compile. The sketch knows of `Date.now` alone, so the consumer's module calls no `Date` function. | Compile one call of each `Date` function that date arithmetic needs. |
 | That a scope consumer can write two entity tables and a link from one scope read. | Run the consumer on the real pepys host. |
 | The scriptc compile of the entry file and the Rust host. The tests on the kit's test store prove neither. | The end-to-end test, on a real pepys. |
-| That the field `designMode` is typed in the glue. It is only when the model's schema names it as a key of an object. | Read the generated glue. |
+| How the glue types an `exactOptional` field of the model, such as `designMode` and every field of `item.edited`. The generator's source treats it as a required `unknown`, and the fold narrows each such field. | Read the generated glue. |
 | That a fact whose payload does not decode is reported. The scope read leaves it out with no error, so a newer boxxy server can lose a fact from a table. | Send one fact with an unknown field value. |
 | That a webhook's pull request ID equals the ID that REST returns. [`lookups.md`](./sketches/v1/pepys-package/lookups.md) compared REST with the Events API. | Compare one delivery in pepys with one REST read. |
-| That the store has `julianday`, window functions and a common table expression over attached files. | Run the cost query on the real store. |
+| That the five read statements of the two queries run on the real store. They ran on SQLite. | Run both queries on the real store. |
 | That the delivery module of the GitHub plug-in accepts two more joins. | Run the stage-time query. |
 | That a zod schema made in boxxy's copy of zod works as a family type in the kit. The peer dependency is meant to make it one copy. | Build the deployment with the package. |
 | That a JSON column compares equal after a round trip, for the sleep stretches. | The shuffle test on the real store. |
@@ -99,7 +87,7 @@ Each row names the test that settles it, where one is known.
 - An agent session ID never equals the atc session ID of another session.
 - The pepys test store returns rows and links in primary key order.
 - Ingest does not check the kind of a fact's actor. boxxy's actors are kinds that no plug-in brings.
-- The GitHub and telemetry plug-ins export the consumers, the delivery module and the row builders that the package sketch imports.
+- The telemetry plug-in exports the consumers and the row builders that the package sketch imports.
 - The pepys API serves each plug-in query on its RPC route under its snake case name.
 
 ## Needs work outside this repo
@@ -109,6 +97,9 @@ Each row names the test that settles it, where one is known.
 | `@pepys/kit`, with the fact batch sender, the plug-in client type and the definers | pepys | the sink, the reader and the package |
 | `@pepys/testing`, with the test store | pepys | the package's tests and the end-to-end test |
 | The GitHub and telemetry plug-ins, with the pull request entity ID built from GitHub's own ID, and a proven origin on each telemetry row | pepys | the `produced` link and the cost query |
+| A delivery module in the GitHub plug-in that gives the merge, release and deploy times of a pull request | pepys | the stage-time query |
+| The telemetry plug-in, with `origin_issuer` and `origin_subject` on each row | pepys | the cost query |
+| An export of the ingest receive route's handler from `@pepys/kit` | pepys | the sink contract run against real ingest |
 | The imp identity verifier (`@impz/client/identity`: `verifyImpIdentity`, `checkSessionImp`, `loadIdentityIssuers`), and a broker that signs each call | impz | the proven caller |
 | A session that reports its caller identity | atc | the caller on the attempt row |
 | A broker rule for the boxxy host, one trust document per broker host, and the worker token | the cloud repo | the worker path |

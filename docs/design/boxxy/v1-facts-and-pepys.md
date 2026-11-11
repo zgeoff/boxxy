@@ -33,10 +33,12 @@ A batch is the longest run of unsent rows, in order, that holds 100 facts or few
 | Answer from pepys | What the sender does |
 | --- | --- |
 | stored | marks the batch sent and sends the next one at once |
-| any 5xx answer, a timeout, no connection | keeps the batch, waits with a backoff from 1 second to 5 minutes, and sends the same rows again; never gives up |
-| the batch is refused, and it holds more than one row | splits the batch in halves and sends each, to find the bad row |
-| the batch is refused, and it holds one row | parks the row with the reason, and goes on |
-| the sink itself is refused, such as a wrong secret or a missing route | parks nothing, reports `blocked`, and tries again every 5 minutes |
+| 502, 503 or 504, a timeout, no connection | keeps the batch, waits with a backoff from 1 second to 5 minutes, and sends the same rows again; never gives up |
+| the batch is refused with 400, 413 or 422, and it holds more than one row | splits the batch in halves and sends each, to find the bad row |
+| the batch is refused with 400, 413 or 422, and it holds one row | parks the row with the reason, and goes on |
+| any other refusal, such as a wrong secret, a missing route, or a 500 | parks nothing, reports `blocked`, and tries again every 5 minutes |
+
+Ingest answers 500 when a source throws, when it has no blob store, or when its log refuses an append. No split of the batch fixes those, so the sink reports a 500 as a refusal of the sink.
 
 After 25 rows parked in a row with none stored between, the sender stops parking and reports `blocked`: that pattern means the boxxy server and the deployed `@boxxy/pepys` differ in version. `boxxy outbox retry` clears every park mark.
 
@@ -109,12 +111,16 @@ The query returns one line per phase, rework flag, product, model and cost basis
 - **Each telemetry row counts for one attempt.** The row's session and its proven origin must match the attempt's session and caller. When one session carried several attempts, each attempt owns the stretch from the time it was bound to the session until the next attempt was bound. A kept session is such a case.
 - **An unknown cost is null, never 0.** A product that reports cost per turn gets its own lines.
 
+Each query reads plain rows of its tables with one statement per table, and a builder in TypeScript does the stretches, the caller match and the sums. The statements need no window function, no `julianday` and no common table expression from the store.
+
 ### `boxxy_stage_time`
 
 The query returns seven steps: triage, design, build, review, merge, release and deploy. It also returns the rework count and minutes, the wait for review, and the time the item's attempts slept. A step that has not happened has null minutes.
 
 - The four phases come from the item's attempts. A phase's minutes are the sum over its settled attempts of the time from claim to end, less the attempt's sleep.
 - Merge, release and deploy come from the GitHub plug-in's delivery module, reached through the `produced` link. boxxy starts none of them.
+- Merge starts at the latest end of a review that passed. A review that settled `unsettleable` starts no merge step, because boxxy could not read whether it passed, so such an item has null merge minutes after its pull request merged. Release starts at the merge, and deploy at the release. An item with two pull requests takes the earliest time of each step.
+- An attempt that failed with `no-capacity` is in no measure. Every other attempt counts, a `usage-limit` one too.
 - The rework count is the number of reviews that asked for changes. The highest round less one is a different number.
 - An open sleep counts 0 minutes, because the query reads no clock.
 - The query names three outcome names of the phase kinds. A phase kind that renames one must change the query.

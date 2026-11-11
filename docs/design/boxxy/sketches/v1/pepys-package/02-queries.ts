@@ -4,6 +4,12 @@
 //   B. The two output schemas, declared once        boxxy repo, libs/model/src/reports/
 //   C. `boxxy_cost_to_land`                         packages/pepys/src/boxxy-cost-to-land-query.ts
 //   D. `boxxy_stage_time`                           packages/pepys/src/boxxy-stage-time-query.ts
+//
+// Built (slice 18): each query reads plain rows, one statement per table, in
+// `queries/constants.ts`, and a pure builder (`queries/build-cost-to-land.ts`,
+// `queries/build-stage-time.ts`) does the stretches, the caller match, the sums and the time
+// compares with `Date.parse`. The store runs no `julianday`, no window function and no common
+// table expression. A review that settled `unsettleable` starts no merge step.
 
 import { defineQuery } from '@pepys/kit';
 import type { QueryCall } from '@pepys/kit';
@@ -162,7 +168,7 @@ export const boxxyCostToLandQuery = defineQuery({
     const item = call.input.item;
 
     // statement 1: the count of attempts
-    // KNOWN FAULT: `count(*)` counts a `no-capacity` attempt. Intended: it counts in no total.
+    // Built (slice 18): a `no-capacity` attempt counts in no total.
     const attempts = await call.db
       .selectFrom('boxxy_attempt')
       .where('item_id', '=', item)
@@ -363,7 +369,7 @@ export const boxxyStageTimeQuery = defineQuery({
   reads: [boxxyWorkConsumer, ...githubDeliveryConsumers],
   handler: async (call) => {
     // statement 1: the attempts, oldest first
-    // KNOWN FAULT: no filter on `failure`. Intended: a `no-capacity` attempt is left out.
+    // Built (slice 18): a `no-capacity` attempt is left out of every measure.
     const attempts = await call.db
       .selectFrom('boxxy_attempt')
       .where('item_id', '=', call.input.item)

@@ -51,6 +51,7 @@ utils/            format-key-path  to-json-value
 test-utils/       the factories    v1: create-fake-pepys-reader  pepys-reader-contract
                   build-mock-work-fact  build-mock-cost-to-land  create-fake-notifier
                   build-mock-phase-kind  build-mock-outbox-fact
+                  fact-sink-contract (here, so `@boxxy/pepys` runs it with no module)
 ```
 
 ## `adapters/store-sqlite/src`
@@ -95,7 +96,6 @@ outbox/           what the outbox sender decides, with no I/O
 test-utils/       the store contract and its case files, the memory store, the change factories
                   v1: create-fake-worker  worker-contract  create-fake-clock
                   create-fake-backoff  create-test-dispatch  create-fake-fact-sink
-                  fact-sink-contract
 ```
 
 A new case file of the store contract goes in `test-utils/`, beside `claim-store-contract`.
@@ -162,9 +162,18 @@ adapters/worker-atc/src         @boxxy/worker-atc
   index  create-atc-worker  to-session-reading
 
 packages/pepys/src              @boxxy/pepys
+  create-pepys-fact-sink  create-pepys-reader   the `./sink` and `./reader` entries
+  wire-fact-schemas   the model's fact schemas plus the store version: the family's types
+  kit/            types: the kit types the package binds to, until `@pepys/kit` replaces them
+  sink/           to-wire-fact  pick-sink-answer
+  work/           fold-work-facts  types   the consumer's fold, with no kit import
+  queries/        build-cost-to-land  build-stage-time  constants (the statements)  types
+  test-utils/     create-ingest-stand-in  create-query-stand-in  build-mock-scope-fact
+                  build-mock-item-facts  build-mock-attempt-read-row
+                  build-mock-binding-read-row  build-mock-request-read-row
+  with @pepys/kit:
   index           the plug-in
   source          the fact family and the source; its own `exports` entry
-  create-pepys-fact-sink  create-pepys-reader
   work/           boxxy-work-consumer  link-types
   consumers/      the scriptc entry files: boxxy-work
   queries/        boxxy-cost-to-land-query  boxxy-stage-time-query

@@ -212,8 +212,10 @@ export interface FactSink {
 export type SinkAnswer =
   // 200: every fact of the batch is durable in the log
   | { readonly kind: 'stored' }
-  // ANY 5xx answer (not 503 alone), a timeout, or no connection: the batch may be stored or
-  // not. Send it again, with the same rows. The kit's sender answers `retry` for each of these.
+  // 502, 503 or 504, a timeout, or no connection: the batch may be stored or not. Send it
+  // again, with the same rows. The kit's sender answers `retry` for each of these, and `refused`
+  // for a 500, which ingest gives when a source throws, it has no blob store, or its log refuses
+  // an append. No split fixes those, so a 500 is `refused-sink`.
   | { readonly kind: 'retry'; readonly reason: string }
   // 400, 413 or 422: pepys read the batch and refuses its content. A repeat gets the same answer.
   | { readonly kind: 'refused-batch'; readonly status: 400 | 413 | 422; readonly reason: string }
@@ -224,6 +226,9 @@ export type SinkAnswer =
 // `@boxxy/pepys`. It holds no HTTP code: the kit's sender builds the
 // body, signs it as the `check` of `boxxySource` says (HMAC-SHA256 of the raw body, in the header
 // `x-boxxy-signature-256`), and posts it.
+// Built (slice 18): until `@pepys/kit` is published, the sink takes `{ send, timeoutMs }`, where
+// `send` is the kit's batch sender; the answer mapping is `sink/pick-sink-answer.ts`. With the kit
+// the options are `{ url, secret, timeoutMs }`. The kit's sender throws on an empty secret.
 export function createPepysFactSink(options: { url: string; secret: string }): FactSink {
   const sendBatch = createFactBatchSender({ source: boxxySource, url: options.url, secret: options.secret });
 
@@ -326,8 +331,8 @@ async function turn(deps: SenderDeps & { sink: FactSink }, held: readonly Outbox
 //   ─────────────────────  ──────────────  ───────────────────────────────────────────────────────
 //   200                    stored          `markFactsSent` for the batch. Backoff resets. Next
 //                                          batch at once, until no row is left.
-//   any 5xx, timeout,      retry           Keeps the batch as `held`. Waits 1 s, 2 s, 4 s … up
-//   no connection                          to 5 min, each ±20%. Sends the same rows with the
+//   502, 503, 504,         retry           Keeps the batch as `held`. Waits 1 s, 2 s, 4 s … up
+//   timeout, no connection                 to 5 min, each ±20%. Sends the same rows with the
 //                                          same event IDs. Marks nothing. Never gives up.
 //   413, batch of N > 1    refused-batch   The budget was wrong for this batch. Splits it in two
 //                                          halves and sends each. No wait.
@@ -336,7 +341,8 @@ async function turn(deps: SenderDeps & { sink: FactSink }, held: readonly Outbox
 //                                          the whole batch. Splits in halves to find it: about
 //                                          14 sends more for one bad fact in a batch of 100.
 //   400 or 422, N = 1      refused-batch   Parks the row with pepys's reason. Goes on.
-//   401, 404, 405, other   refused-sink    The secret, the URL or the deployment is wrong. Parks
+//   401, 404, 405, 500,    refused-sink    The secret, the URL or the deployment is wrong. Parks
+//   other
 //                                          nothing. State `blocked`. Tries the same batch again
 //                                          every 5 min, because the fix can be on the pepys side.
 //

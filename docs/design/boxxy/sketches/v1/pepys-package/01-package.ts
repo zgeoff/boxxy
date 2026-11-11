@@ -464,9 +464,9 @@ export function applyScope(scope: string): string {
     });
     operations.push(linkAttemptOf({ from: draft.id, to: item, confidence: 1, evidence: draft.claimedFact }));
 
-    // KNOWN FAULT: this upsert writes neither `caller_issuer` nor `caller_subject`, and
-    // `AttemptDraft.sessions` holds neither. Intended: both, from `caller` of the latest of
-    // `.started`, `.reconciled` and `.resumed`. Without them the cost query counts nothing.
+    // Built (slice 18): the fold in `work/fold-work-facts.ts` gives each session row
+    // `caller_issuer` and `caller_subject`, from `caller` of the latest of `.started`,
+    // `.reconciled` and `.resumed`, null when it carries none; this upsert writes both.
     for (const bound of draft.sessions) {
       operations.push({ upsert: { boxxy_attempt_session: { attempt_id: draft.id, session_id: bound.session, key: bound.key, product: bound.product, bound_at: bound.at } } });
       operations.push(linkRanIn({ from: draft.id, to: bound.session, confidence: 1, evidence: bound.evidence }));
