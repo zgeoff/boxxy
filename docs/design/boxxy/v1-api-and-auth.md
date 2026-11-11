@@ -104,6 +104,6 @@ The port has three adapters:
 
 Section F of [`01-api.ts`](./sketches/v1/edge/01-api.ts) says what the server checks on the token. The broker removes any such header that a guest sends and adds its own.
 
-The proven caller depends on three things outside this repo: the imp identity build in impz, an atc change that reports the caller identity of a session, and a broker rule that signs calls to the boxxy host. Until all three are in place, the server refuses every session and hook call. [Open for the builder](./v1-open.md#needs-work-outside-this-repo) lists them.
+The proven caller depends on three things outside this repo: the imp identity build in impz, an atc change that reports the VM host of a session, and a broker rule that signs calls to the boxxy host. Until all three are in place, the server refuses every session and hook call. [Open for the builder](./v1-open.md#needs-work-outside-this-repo) lists them.
 
 A test walks every procedure three ways: with the worker token against every owner procedure, with a missing or wrong proof against every session and hook procedure, and with one session's proof and another session's attempt ID. Each case must leave every row as it was. Section D of [`01-api.ts`](./sketches/v1/edge/01-api.ts) lists the cases.

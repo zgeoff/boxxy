@@ -31,8 +31,7 @@ export function buildMockAtcSessionRead(
       alive: true,
       canEject: false,
       locator: { daemonID: toDaemonID('mock-daemon'), targetID: 'box' },
-      caller: { issuer: 'https://broker.test', subject: 's1-mock' },
-      usageLimit: null,
+      host: { name: 'imp-mock', id: 'imp-id-mock', issuer: 'https://broker.test' },
       ...fields,
       lifecycle: {
         desired: 'run',

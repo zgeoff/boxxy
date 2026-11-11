@@ -26,7 +26,7 @@ export function toSessionReading(read: AtcSessionRead): SessionReading {
         attention: toAttention(session.state),
         lastActivityAt: toInstant(Math.max(read.lastActivityAt, session.lastAttachedAt)),
         lastOwnerAt: toInstant(session.lastAttachedAt),
-        usageLimitResetsAt: findUsageLimitResetsAt(session),
+        usageLimitResetsAt: findUsageLimitResetsAt(),
       }))
 
       // `desired` is `run` only when the host slept by itself, with nobody asking
@@ -56,9 +56,8 @@ function toInstant(timeMs: number): Instant {
   return brandSchemas.instant.parse(timeMs);
 }
 
-// the reset time, or the time atc saw the limit when the agent showed no reset time
-function findUsageLimitResetsAt(session: AtcSession): Instant | null {
-  const limit = session.usageLimit ?? null;
-
-  return limit === null ? null : toInstant(limit.resetsAt ?? limit.seenAt);
+// atc reports no usage limit yet, so no session reads as stopped at the limit. When atc gives the
+// limit and its reset time, this is the one place that maps them to the reading (v1-open.md).
+function findUsageLimitResetsAt(): Instant | null {
+  return null;
 }

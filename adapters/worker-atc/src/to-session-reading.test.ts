@@ -13,7 +13,7 @@ test('it reads a running agent process as a running session with its times and c
     kind: 'running',
     atcSession: brandSchemas.atcSessionId.parse('s1-mock'),
     agentSession: brandSchemas.agentSessionId.parse('agent-mock'),
-    caller: { issuer: 'https://broker.test', subject: 's1-mock' },
+    caller: { issuer: 'https://broker.test', subject: 'imp-id-mock' },
     attention: 'working',
     lastActivityAt: brandSchemas.instant.parse(2_000_000),
     lastOwnerAt: brandSchemas.instant.parse(1_500_000),
@@ -40,22 +40,15 @@ test('it takes the owner attach as the last activity when it is later than the l
   expect(toSessionReading(read)).toMatchObject({ lastActivityAt: 1_800_000 });
 });
 
-test.each([
-  ['the reset time', { seenAt: 1_100_000, resetsAt: 9_000_000 }, 9_000_000],
-  [
-    'the time the limit was seen when no reset time is known',
-    { seenAt: 1_100_000, resetsAt: null },
-    1_100_000,
-  ],
-])('it reads a usage limit as %s', (_case, usageLimit, resetsAt) => {
-  const read = buildMockAtcSessionRead({ session: { usageLimit } });
+test('it reads no usage limit while atc reports none', () => {
+  const read = buildMockAtcSessionRead();
 
-  expect(toSessionReading(read)).toMatchObject({ usageLimitResetsAt: resetsAt });
+  expect(toSessionReading(read)).toMatchObject({ usageLimitResetsAt: null });
 });
 
-test('it reads a session with no reported caller and no agent session with both null', () => {
+test('it reads a session with no host and no agent session with both null', () => {
   const read = buildMockAtcSessionRead();
-  const { caller: _, agentSessionID: __, ...session } = read.session;
+  const { host: _, agentSessionID: __, ...session } = read.session;
 
   expect(toSessionReading({ ...read, session })).toMatchObject({
     caller: null,

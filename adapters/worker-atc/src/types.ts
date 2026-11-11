@@ -13,12 +13,14 @@ type OutputOf<Procedure> = Procedure extends { '~orpc': { outputSchema?: infer S
 
 type CallOf<Procedure> = (input: InputOf<Procedure>) => Promise<OutputOf<Procedure>>;
 
-// The two fields atc does not report yet. `caller`: the issuer and subject of the identity token
-// that the imp broker signs for each call from the session's host. `usageLimit`: set once the agent
-// stopped at the account's usage limit, with the reset time when the agent showed one.
+// The field atc does not report yet: the imp that runs the session. Sub-sessions on one machine
+// share the same `host`; a session with no VM host has none. atc reports no usage limit.
 export interface AtcSessionAdditions {
-  readonly caller?: { readonly issuer: string; readonly subject: string } | null;
-  readonly usageLimit?: { readonly seenAt: number; readonly resetsAt: number | null } | null;
+  readonly host?: {
+    readonly name: string;
+    readonly id?: string;
+    readonly issuer?: string;
+  };
 }
 
 export type AtcSession = OutputOf<SessionProcedures['get']>['session'] & AtcSessionAdditions;

@@ -554,8 +554,8 @@ export interface WorkerKind {
 // call that reads trust). The atc call behind each method and the map of each atc answer to an
 // outcome are in v1-lifecycle.md, "The atc worker". `capacity` is `host_unavailable` with the
 // problem `ram_budget_exceeded` (`isCapacityRefusal`, the one place). The caller comes from
-// `findCallerIdentity`, which reads a `caller` field that atc does not report yet; the usage limit
-// comes from a `usageLimit` field that atc does not report yet (v1-open.md).
+// `findCallerIdentity`, which reads the `host` field (`name`, `id`, `issuer`) that atc does not
+// report yet; atc reports no usage limit, so `usageLimitResetsAt` is always null (v1-open.md).
 // `StartOutcome`, `SuspendOutcome`, `StopOutcome`, `ForgetOutcome` are in
 // libs/model/src/ports/types.ts. The fake atc client is
 // `@boxxy/worker-atc/test-utils/create-fake-atc-client`; the worker contract runs against the

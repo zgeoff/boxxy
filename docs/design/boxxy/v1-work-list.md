@@ -110,7 +110,7 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 
 - **Outcome:** the worker port on atc: start, read, suspend, resume, stop, forget and wake a kept session; the check of the trusted folder; the caller identity of each session.
 - **Follows:** `core/02-types.ts`, the worker port.
-- **Needs:** slice 9, and the atc change that reports a session's caller identity.
+- **Needs:** slice 9, and the atc change that reports a session's VM host.
 - **Check:** the worker contract suite against the adapter and the fake.
 
 ### 16. The GitHub adapter and the pull request watch

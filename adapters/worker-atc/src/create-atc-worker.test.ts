@@ -71,7 +71,7 @@ test('#start answers the session with the caller that atc reports for it', async
     kind: 'started',
     atcSession: brandSchemas.atcSessionId.parse('s1-fake'),
     agentSession: brandSchemas.agentSessionId.parse('agent-1'),
-    caller: { issuer: 'https://broker.test', subject: 's1-fake' },
+    caller: { issuer: 'https://broker.test', subject: 'imp-id-s1-fake' },
   });
 });
 

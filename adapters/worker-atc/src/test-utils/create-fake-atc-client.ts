@@ -12,7 +12,7 @@ type FakeCall = keyof AtcClient['session'];
 
 // What a test changes on a listed session. A field left out keeps the session's value.
 export type FakeSessionPatch = Partial<
-  Pick<AtcSession, 'state' | 'lastAttachedAt' | 'caller' | 'usageLimit' | 'agentSessionID'>
+  Pick<AtcSession, 'state' | 'lastAttachedAt' | 'host' | 'agentSessionID'>
 > & {
   readonly harness?: AtcSession['lifecycle']['harness'];
   readonly desired?: AtcSession['lifecycle']['desired'];
@@ -62,7 +62,7 @@ interface FakeAtcClientInput {
 const sessionInputSchema = z.object({ session: z.string() });
 
 // An atc daemon in memory, as atc's docs describe the calls the worker adapter makes. Each session
-// carries the caller `https://broker.test`, with its own ID as the subject.
+// runs on the host `imp-<session ID>`, with the issuer `https://broker.test`.
 export function createFakeAtcClient(input: FakeAtcClientInput): FakeAtcClient {
   const sessions = new Map<string, FakeSession>();
   const spawnKeys = new Map<string, string>();
@@ -151,8 +151,7 @@ export function createFakeAtcClient(input: FakeAtcClientInput): FakeAtcClient {
         harness: 'running',
         attachment: targetKind === 'local' ? 'local' : 'detached',
       },
-      caller: { issuer: 'https://broker.test', subject: id },
-      usageLimit: null,
+      host: { name: `imp-${id}`, id: `imp-id-${id}`, issuer: 'https://broker.test' },
     };
 
     sessions.set(id, {
