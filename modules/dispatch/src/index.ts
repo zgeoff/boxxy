@@ -43,3 +43,14 @@ export { forgetSessions } from './sessions/forget-sessions.ts';
 export type { ForgetReport, ForgetSessionsInput } from './sessions/types.ts';
 export { timeouts } from './timeouts.ts';
 export type { DispatchTimeouts } from './types.ts';
+export { linkPullRequest } from './pull-requests/link-pull-request.ts';
+export { parsePullRequestUrl } from './pull-requests/parse-pull-request-url.ts';
+
+export type {
+  LinkPullRequestInput,
+  LinkPullRequestResult,
+  WatchPullRequestsInput,
+  WatchReport,
+} from './pull-requests/types.ts';
+
+export { watchPullRequests } from './pull-requests/watch-pull-requests.ts';

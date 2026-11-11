@@ -19,6 +19,7 @@
         "@boxxy/content-hash",
         "@boxxy/contract",
         "@boxxy/dispatch",
+        "@boxxy/forge-github",
         "@boxxy/model",
         "@boxxy/notifier-atc",
         "@boxxy/pepys",
@@ -64,6 +65,10 @@
     },
     "adapters/notifier-atc": {
       "component": "@boxxy/notifier-atc",
+      "initial-version": "0.1.0"
+    },
+    "adapters/forge-github": {
+      "component": "@boxxy/forge-github",
       "initial-version": "0.1.0"
     },
     "libs/contract": {

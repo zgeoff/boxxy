@@ -274,6 +274,16 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         ? null
         : brandSchemas.atcSessionId.parse(session);
     },
+    readPullRequestRow: async (ref) => {
+      const row = await db
+        .selectFrom('pull_requests')
+        .selectAll()
+        .where('repo', '=', ref.repo)
+        .where('number', '=', ref.number)
+        .executeTakeFirst();
+
+      return row === undefined ? null : parseStoreRow('pull_requests', row);
+    },
     listWatchedPullRequests: async () => {
       const rows = await db
         .selectFrom('pull_requests')

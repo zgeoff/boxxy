@@ -37,6 +37,7 @@ export function createSQLiteTx(db: Kysely<StoreDatabase>): StoreTx {
     findAttemptBySession: inTurn(reader.findAttemptBySession),
     findAttemptByAgentSession: inTurn(reader.findAttemptByAgentSession),
     findSessionByCaller: inTurn(reader.findSessionByCaller),
+    readPullRequestRow: inTurn(reader.readPullRequestRow),
     listWatchedPullRequests: inTurn(reader.listWatchedPullRequests),
     listLimits: inTurn(reader.listLimits),
     listLimitSeats: inTurn(reader.listLimitSeats),

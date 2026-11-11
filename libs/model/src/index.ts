@@ -17,7 +17,7 @@ export { defineAdmission } from './planning/define-admission.ts';
 export { defineGate } from './planning/define-gate.ts';
 export { definePhase } from './rules/define-phase.ts';
 export { defineSignal } from './planning/define-signal.ts';
-export { deriveItemState } from './items/derive-item-state.ts';
+export { buildPhase, deriveItemState } from './items/derive-item-state.ts';
 export { designCloseOutSchema } from './closeouts/design-close-out-schema.ts';
 export { evidenceRowSchema } from './rows/evidence-row-schema.ts';
 export { findPosition } from './pipeline/find-position.ts';

@@ -77,6 +77,9 @@ export interface StoreReader extends OutboxReader {
   // counts. `ambiguous`: the latest attempts of two sessions hold it.
   findSessionByCaller: (caller: CallerIdentity) => Promise<AtcSessionId | 'ambiguous' | null>;
 
+  // the row of the pull request in any state, whichever attempt it links
+  readPullRequestRow: (ref: PullRequestRef) => Promise<PullRequestRow | null>;
+
   // the rows in state `open`
   listWatchedPullRequests: () => Promise<PullRequestRow[]>;
 

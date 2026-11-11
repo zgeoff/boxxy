@@ -1,0 +1,18 @@
+interface ForgeRequestInit {
+  readonly method: 'GET';
+  readonly headers: Readonly<Record<string, string>>;
+}
+
+// The one call the adapter needs, shaped as the platform's `fetch` takes it.
+export type ForgeFetch = (url: string, init: ForgeRequestInit) => Promise<Response>;
+
+export interface GithubForgeOptions {
+  readonly fetch: ForgeFetch;
+
+  // the REST root, such as `https://api.github.com`; a deployment points it at its broker
+  readonly baseUrl: string;
+
+  // Sent as a bearer token when given. A deployment whose broker adds the credential on the way
+  // out leaves it out. The adapter never logs it and never puts it in an error.
+  readonly token?: string;
+}

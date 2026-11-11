@@ -66,7 +66,7 @@ The `FactSink` port has three forms (section C): the pepys adapter, which uses t
 - **Three settle causes have no fact of their own.** `stalled`, `skill-missing` and a capacity refusal show on the `settled` fact.
 - **The schemas are declared once**, in `@boxxy/model`. The store checks each fact against them. The wire schema in `@boxxy/pepys` is the model's schema plus the store version, which the sink adds.
 - **The caller.** The `started`, `reconciled` and `resumed` facts carry the proven caller of the attempt's session. pepys counts a telemetry row for an attempt only when the row's proven origin is that caller.
-- **Pull requests.** boxxy stores GitHub's own ID of each pull request and sends it as a decimal string, because pepys builds its entity ID from it. The hook reads the forge before it writes. When the forge does not answer, the hook writes nothing, and the pull request watch links the pull request within 5 minutes.
+- **Pull requests.** boxxy stores GitHub's own ID of each pull request and sends it as a decimal string, because pepys builds its entity ID from it. The hook reads the forge before it writes. When the forge does not answer, the hook writes nothing, and the pull request watch links the pull request within 5 minutes ([the watch](./v1-lifecycle.md#the-pull-request-watch)).
 - **A merge.** boxxy records its own sighting of a merge, because the item's derived state reads it and boxxy must dispatch while pepys is down. pepys takes the merge time from the GitHub tables.
 
 Section C of [`04-facts.ts`](./sketches/v1/core/04-facts.ts) lists what the build changes in the slice 1 catalog.

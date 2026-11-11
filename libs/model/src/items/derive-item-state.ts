@@ -70,7 +70,7 @@ function deriveEndedState(linked: readonly PullRequestRow[]): DerivedState {
     : { state: 'waiting', reason: 'pull request closed unmerged' };
 }
 
-const buildPhase = 'build';
+export const buildPhase = 'build';
 
 // the pull requests linked to a succeeded build attempt
 function collectBuildPullRequests(

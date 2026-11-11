@@ -28,6 +28,17 @@
         "typescript": "catalog:",
       },
     },
+    "adapters/forge-github": {
+      "name": "@boxxy/forge-github",
+      "version": "0.1.0",
+      "dependencies": {
+        "@boxxy/model": "workspace:*",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@boxxy/dispatch": "workspace:*",
+      },
+    },
     "adapters/notifier-atc": {
       "name": "@boxxy/notifier-atc",
       "version": "0.1.0",
@@ -232,6 +243,8 @@
     "@boxxy/contract": ["@boxxy/contract@workspace:libs/contract"],
 
     "@boxxy/dispatch": ["@boxxy/dispatch@workspace:modules/dispatch"],
+
+    "@boxxy/forge-github": ["@boxxy/forge-github@workspace:adapters/forge-github"],
 
     "@boxxy/model": ["@boxxy/model@workspace:libs/model"],
 

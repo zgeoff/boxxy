@@ -168,6 +168,12 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
 
       return Promise.resolve(sessions[0] ?? null);
     },
+    readPullRequestRow: (ref) =>
+      Promise.resolve(
+        getTables().pull_requests.find(
+          (row) => row.repo === ref.repo && row.number === ref.number,
+        ) ?? null,
+      ),
     listWatchedPullRequests: () =>
       Promise.resolve(
         sortPullRequests(getTables().pull_requests.filter((row) => row.state === 'open')),

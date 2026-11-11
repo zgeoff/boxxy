@@ -202,3 +202,34 @@ Every other refusal that carries an atc error code answers `refused`. A call tha
 The trusted folders come from the app's configuration, by worker target: a folder is trusted when it is a listed folder or lies inside one. atc has no call that reads which folders an agent trusts.
 
 The adapter reads the caller identity from the session's `host` field: `name`, and `id` and `issuer` when atc knows them. The caller is the host's `issuer` with the host's `id` as the subject. The subject is the machine's ID as its issuer gives it, never the name. A session with no `host`, or a host without an `id` or an `issuer`, has no caller, because the identity check refuses a host that lacks either. Sub-sessions on one machine share the same `host`. The adapter reads no usage limit: every reading has `usageLimitResetsAt` null, because atc reports none. [Open for the builder](./v1-open.md#needs-work-outside-this-repo) tracks the atc change for `host`, and [Not checked](./v1-open.md#the-lifecycle) tracks the usage limit.
+
+
+## The pull request watch
+
+`linkPullRequest` is the hook's link, and `watchPullRequests` is one pass of the watch. Both write the pull request row, the evidence row and the facts in one change, and both write with no lease, because a succeeded build has released its lease.
+
+**The hook's link.** It takes the attempt that `pickCallAttempt` found and the URL that the hook read from `gh pr create`. It answers one of three ways:
+
+- `linked`, with `repeat: true` and no write when a pull request of the same item is already linked;
+- `retry`, with no write, when the forge throws or does not know the pull request yet. The watch links it later;
+- `refused`, with the reason `not-a-pull-request-url` for a URL that names no pull request or one of another repo than the item's, and `linked-elsewhere` for a pull request linked to another item.
+
+A pull request that the forge already shows merged or closed gets its `boxxy.pull_request.merged` or `.closed` fact in the same change, because the watch reads only open rows.
+
+**One pass of the watch.** The server runs it every 5 minutes. A forge call that throws counts in `unanswered`, writes nothing, and the next pass tries it again.
+
+1. For each repo with a succeeded build that has no pull request, the pass lists the open pull requests. It reads each one, and links the first whose commit carries the build's `Boxxy-Attempt` trailer, with source `watch`. It skips a build whose item has an open pull request, and a build that ended more than 7 days ago.
+2. For each open pull request row, the pass reads the forge. It links each commit whose trailer names an attempt of the same item, once per commit. It records a merge or a close, and sets the checked time.
+
+A pull request that merged before the watch ever listed it is not found by step 1. The hook's link covers it, because the link reads a merged pull request at once.
+
+## The GitHub adapter
+
+`@boxxy/forge-github` implements the forge port with `fetch`, a REST root and an optional token. A deployment whose broker adds the credential leaves the token out. The adapter reads GitHub's own `id` of the pull request. A 404 for a pull request reads as `not-found`, and every other failure throws.
+
+| Call | Endpoint |
+| --- | --- |
+| `readPullRequest` | `GET /repos/{owner}/{repo}/pulls/{number}` and `GET /repos/{owner}/{repo}/pulls/{number}/commits` |
+| `listOpenPullRequests` | `GET /repos/{owner}/{repo}/pulls?state=open` |
+
+All three are pull request reads. A fine-grained token or an app needs the `Pull requests: read` permission on the repos, and a classic token needs `public_repo` or `repo`. The adapter reads at most 2,000 open pull requests of a repo and 250 commits of a pull request, the limits of GitHub's listing.

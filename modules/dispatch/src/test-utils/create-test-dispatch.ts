@@ -90,6 +90,9 @@ export interface TestDispatch {
   readonly claim: () => Promise<Claim | null>;
   readonly seedItem: (input: SeedItemInput) => Promise<ItemId>;
 
+  // a build that closed out as `built` and settled, so it succeeded; its session is kept
+  readonly seedBuild: () => Promise<AttemptRow>;
+
   // A build that settled `built` with its session kept, a review that asked for changes, and
   // the claim of the second build through the `resume: true` edge, started on the kept session
   // as the resume of the kept session starts it.
@@ -173,6 +176,11 @@ export async function createTestDispatch(options: TestDispatchOptions = {}): Pro
     newId,
     runner,
     spawn,
+    seedBuild: async () => {
+      const built = await seedBuiltAttempt(dispatch);
+
+      return dispatch.readAttempt(built.first.id);
+    },
     seedRework: (input) => seedReworkAttempts(dispatch, input),
     rules: () => rules,
     setRules: (next) => {
@@ -285,7 +293,10 @@ export async function createTestDispatch(options: TestDispatchOptions = {}): Pro
   return dispatch;
 }
 
-async function seedReworkAttempts(dispatch: TestDispatch, input: ReworkInput): Promise<Rework> {
+// A build that claimed, closed out as `built` and settled; its session is kept.
+async function seedBuiltAttempt(
+  dispatch: TestDispatch,
+): Promise<{ item: ItemId; first: AttemptRow; firstBody: unknown }> {
   const item = await dispatch.seedItem({ phase: brandSchemas.phaseName.parse('build') });
   const first = await claimStarted(dispatch, item);
 
@@ -331,6 +342,51 @@ async function seedReworkAttempts(dispatch: TestDispatch, input: ReworkInput): P
 
   await closeAndSettle(dispatch, first, firstBody);
 
+  return { item, first, firstBody };
+}
+
+async function claimStarted(dispatch: TestDispatch, item: ItemId): Promise<AttemptRow> {
+  const claim = await dispatch.claim();
+
+  invariant(claim?.attempt.item === item, 'the claim picks the seeded item');
+
+  return dispatch.readAttempt(claim.attempt.id);
+}
+
+async function closeAndSettle(dispatch: TestDispatch, attempt: AttemptRow, body: unknown) {
+  const base = { store: dispatch.store, rules: dispatch.rules(), newId: dispatch.newId };
+  const now = dispatch.clock.now();
+
+  const answer = await closeOutAttempt({
+    ...base,
+    call: dispatch.buildCallRef(attempt),
+    body,
+    now,
+  });
+
+  invariant(answer.kind === 'recorded', `the seeded close-out records: ${JSON.stringify(answer)}`);
+
+  dispatch.clock.advance(1000);
+
+  await settleAttempt({
+    ...base,
+    attempt: attempt.id,
+    forced: null,
+    sessionStopped: true,
+    actor: `boxxy:runner:${dispatch.runner}`,
+    now: dispatch.clock.now(),
+  });
+
+  dispatch.clock.advance(1000);
+}
+
+async function seedReworkAttempts(dispatch: TestDispatch, input: ReworkInput): Promise<Rework> {
+  const built = await seedBuiltAttempt(dispatch);
+
+  const item = built.item;
+  const first = built.first;
+  const firstBody = built.firstBody;
+
   if (input.keptCaller !== undefined) {
     await dispatch.store.exclusive(async (tx) => {
       const view = await tx.readItem(item, dispatch.clock.now(), dispatch.rules());
@@ -374,41 +430,6 @@ async function seedReworkAttempts(dispatch: TestDispatch, input: ReworkInput): P
     firstBody,
     ...(await claimResumed(dispatch, first, input)),
   };
-}
-
-async function claimStarted(dispatch: TestDispatch, item: ItemId): Promise<AttemptRow> {
-  const claim = await dispatch.claim();
-
-  invariant(claim?.attempt.item === item, 'the claim picks the seeded item');
-
-  return dispatch.readAttempt(claim.attempt.id);
-}
-
-async function closeAndSettle(dispatch: TestDispatch, attempt: AttemptRow, body: unknown) {
-  const base = { store: dispatch.store, rules: dispatch.rules(), newId: dispatch.newId };
-  const now = dispatch.clock.now();
-
-  const answer = await closeOutAttempt({
-    ...base,
-    call: dispatch.buildCallRef(attempt),
-    body,
-    now,
-  });
-
-  invariant(answer.kind === 'recorded', `the seeded close-out records: ${JSON.stringify(answer)}`);
-
-  dispatch.clock.advance(1000);
-
-  await settleAttempt({
-    ...base,
-    attempt: attempt.id,
-    forced: null,
-    sessionStopped: true,
-    actor: `boxxy:runner:${dispatch.runner}`,
-    now: dispatch.clock.now(),
-  });
-
-  dispatch.clock.advance(1000);
 }
 
 // The claim only, then the `started` that the resume of the kept session records.

@@ -88,6 +88,9 @@ readings/         what the runner does with a session reading
 closeouts/        close-out-attempt  settle-attempt  pick-settlement  build-settle-plans
                   effect-handlers  types
 sessions/         resume-kept-session  forget-sessions
+pull-requests/    link-pull-request  watch-pull-requests  build-link-change  build-state-fact
+                  collect-attempt-trailers  collect-seen-state  parse-pull-request-url
+                  constants  types
 notices/          create-null-notifier  send-notices
 outbox/           what the outbox sender decides, with no I/O
                   take-batch  constants (the outbox limits)  measure-wire-bytes  pick-sender-move
@@ -95,7 +98,8 @@ outbox/           what the outbox sender decides, with no I/O
                   build-outbox-status  types
 test-utils/       the store contract and its case files, the memory store, the change factories
                   v1: create-fake-worker  worker-contract  create-fake-clock
-                  create-fake-backoff  create-test-dispatch  create-fake-fact-sink
+                  create-fake-backoff  create-test-dispatch  create-fake-fact-sink  create-fake-forge
+                  forge-contract
 ```
 
 A new case file of the store contract goes in `test-utils/`, beside `claim-store-contract`.
@@ -157,6 +161,11 @@ apps/cli/src                    @boxxy/cli
 
 adapters/notifier-atc/src       @boxxy/notifier-atc
   index  create-atc-notifier    sends a hold notice as an atc message to one named session
+
+adapters/forge-github/src       @boxxy/forge-github
+  index  types  constants  create-github-forge  github-schemas  to-pull-request-reading
+  github-forge-error
+  test-utils/     create-fake-github-fetch
 
 adapters/worker-atc/src         @boxxy/worker-atc
   index  types  create-atc-worker  to-session-reading  parse-atc-error

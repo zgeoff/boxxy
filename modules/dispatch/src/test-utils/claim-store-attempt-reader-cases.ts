@@ -231,6 +231,30 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
+    '#readPullRequestRow returns a merged pull request, and null for one never linked',
+    async (store) => {
+      const item = buildMockV1ItemRow();
+      const attempt = buildMockV1AttemptRow({ item: item.id, state: 'starting' });
+      const repo = brandSchemas.repoName.parse('acme/lamps');
+
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(buildMockFileItemChange(item));
+        await transaction.applyChange(buildMockClaimChange(attempt));
+        await transaction.applyChange(buildMockPullRequestChange({ attempt, state: 'merged' }));
+      });
+
+      const found = await store.read((transaction) =>
+        transaction.readPullRequestRow({ repo, number: 7 }),
+      );
+
+      const missing = await store.read((transaction) =>
+        transaction.readPullRequestRow({ repo, number: 8 }),
+      );
+
+      return { received: [found?.state, missing], expected: ['merged', null] };
+    },
+  ],
+  [
     '#listWatchedPullRequests returns an open pull request with its GitHub id and url',
     async (store) => {
       const item = buildMockV1ItemRow();
