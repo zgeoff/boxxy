@@ -190,14 +190,14 @@ A reading comes from `get`, by the session's `lifecycle.harness`, because atc li
 
 | Harness | Reading |
 | --- | --- |
-| `running` | `running`. The atc state gives the attention: `running` is working, `needs_you` needs input, `done` ended its turn. `lastActivityAt` is the later of atc's `lastActivityAt` (the last trail event) and `lastAttachedAt`. |
-| `suspended` | `suspended`. `asked` is true unless `lifecycle.desired` is `run`, which means the host slept by itself. |
+| `running` | `running`. The adapter sets the reading's `attention` from the atc state: `running` gives `working`, `needs_you` gives `needs-input`, and `done` gives `turn-ended`. The reading's `lastActivityAt` is the later of atc's `lastActivityAt` (the last trail event) and `lastAttachedAt`. |
+| `suspended` | `suspended`. The reading's `asked` (whether anyone asked the host to sleep) is true unless `lifecycle.desired` is `run`, which atc keeps when the host slept by itself. |
 | `exited` | `ended` |
 
-A `no_such_session` refusal reads as `absent`, and `stop` and `forget` answer it as `absent`. On `spawn` it answers `unknown`, because after a daemon restart atc gives it to a keyed spawn that ran, until the fleet restore lists the session. A `reconcile` that gets no answer from atc throws, so that a lost connection never settles a running attempt as `session-lost`.
+The adapter reads a `no_such_session` refusal as `absent`, and `stop` and `forget` answer `absent` for it. A `spawn` refused with `no_such_session` answers `unknown`: after a daemon restart, atc refuses a repeated spawn with that code when the first spawn under the same idempotency key ran, until the daemon lists the restored session again. A `reconcile` that gets no answer from atc throws, so that a lost connection never settles a running attempt as `session-lost`.
 
 Every other refusal that carries an atc error code answers `refused`. A call that gets no atc code, or `outcome_unknown` or `idempotency_key_unknown`, answers `unknown`, because atc may have run it. A refused `spawn` or `adopt` has the cause `capacity` when atc answers `host_unavailable` with the problem `ram_budget_exceeded`, impd's code for a host with no memory left for another machine. Every other refusal has the cause `other`.
 
 The trusted folders come from the app's configuration, by worker target: a folder is trusted when it is a listed folder or lies inside one. atc has no call that reads which folders an agent trusts.
 
-The caller identity and the usage limit wait on atc ([needs work outside this repo](./v1-open.md#needs-work-outside-this-repo)). The adapter reads `caller` (`issuer` and `subject`) and `usageLimit` (`seenAt`, and `resetsAt` or null) from the session, and atc reports neither yet, so every session has no caller and no usage limit until atc adds the two fields.
+The adapter reads the caller identity from the session's `caller` field (`issuer` and `subject`), and the usage limit from its `usageLimit` field (`seenAt`, and `resetsAt` or null). A session without the field has no caller, or no usage limit. [Open for the builder](./v1-open.md#needs-work-outside-this-repo) lists both fields as atc's to add.
