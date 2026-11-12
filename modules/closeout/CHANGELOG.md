@@ -2,20 +2,18 @@
 
 ## [0.2.0](https://github.com/zgeoff/boxxy/compare/@boxxy/closeout@0.1.9...@boxxy/closeout@0.2.0) (2026-11-12)
 
-
 ### Miscellaneous Chores
 
-* **@boxxy/closeout:** Synchronize boxxy versions
-
+- **@boxxy/closeout:** Synchronize boxxy versions
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.2.0
-  * devDependencies
-    * @boxxy/planning bumped to 0.2.0
-    * @boxxy/rules bumped to 0.2.0
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.0
+  - devDependencies
+    - @boxxy/planning bumped to 0.2.0
+    - @boxxy/rules bumped to 0.2.0
 
 ## [0.1.9](https://github.com/zgeoff/boxxy/compare/@boxxy/closeout@0.1.8...@boxxy/closeout@0.1.9) (2026-11-12)
 

@@ -2,38 +2,42 @@
 
 ## [0.2.0](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.1.9...@boxxy/server@0.2.0) (2026-11-12)
 
-
 ### Features
 
-* **notices:** retry notices with backoff and keep each key on its row ([#89](https://github.com/zgeoff/boxxy/issues/89)) ([b172a2b](https://github.com/zgeoff/boxxy/commit/b172a2bc47610f1a3ddf246a9123db6898358f07))
-* **server:** refuse an item for a repo the configuration does not name ([e41d6f9](https://github.com/zgeoff/boxxy/commit/e41d6f9e8c10177d1d7bf5503d8a8003bac24bd2))
-
+- **notices:** retry notices with backoff and keep each key on its row
+  ([#89](https://github.com/zgeoff/boxxy/issues/89))
+  ([b172a2b](https://github.com/zgeoff/boxxy/commit/b172a2bc47610f1a3ddf246a9123db6898358f07))
+- **server:** refuse an item for a repo the configuration does not name
+  ([e41d6f9](https://github.com/zgeoff/boxxy/commit/e41d6f9e8c10177d1d7bf5503d8a8003bac24bd2))
 
 ### Bug Fixes
 
-* **contract:** drop the held bind answer that no server sends ([9dff204](https://github.com/zgeoff/boxxy/commit/9dff204ea202f6338ddd2f1b521693fa7ce2de76))
-* **server:** ignore git replace objects when reading the rules ([e02a010](https://github.com/zgeoff/boxxy/commit/e02a010b039f4c4d7824e6676671ba20c7db13c7))
-* **server:** load rules only from a commit the rules ref holds ([abbede7](https://github.com/zgeoff/boxxy/commit/abbede794514234930dd431ea331e0b2ac740907))
-* **server:** read the rules from the checked commit, never the tree ([f87a6e1](https://github.com/zgeoff/boxxy/commit/f87a6e167aece6abe0bfd05d9b9227006d18cdc1))
-
+- **contract:** drop the held bind answer that no server sends
+  ([9dff204](https://github.com/zgeoff/boxxy/commit/9dff204ea202f6338ddd2f1b521693fa7ce2de76))
+- **server:** ignore git replace objects when reading the rules
+  ([e02a010](https://github.com/zgeoff/boxxy/commit/e02a010b039f4c4d7824e6676671ba20c7db13c7))
+- **server:** load rules only from a commit the rules ref holds
+  ([abbede7](https://github.com/zgeoff/boxxy/commit/abbede794514234930dd431ea331e0b2ac740907))
+- **server:** read the rules from the checked commit, never the tree
+  ([f87a6e1](https://github.com/zgeoff/boxxy/commit/f87a6e167aece6abe0bfd05d9b9227006d18cdc1))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/caller-proof-imp bumped to 0.2.0
-    * @boxxy/closeout bumped to 0.2.0
-    * @boxxy/content-hash bumped to 0.2.0
-    * @boxxy/contract bumped to 0.2.0
-    * @boxxy/dispatch bumped to 0.2.0
-    * @boxxy/forge-github bumped to 0.2.0
-    * @boxxy/model bumped to 0.2.0
-    * @boxxy/notifier-atc bumped to 0.2.0
-    * @boxxy/pepys bumped to 0.2.0
-    * @boxxy/planning bumped to 0.2.0
-    * @boxxy/rules bumped to 0.2.0
-    * @boxxy/store-sqlite bumped to 0.2.0
-    * @boxxy/worker-atc bumped to 0.2.0
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/caller-proof-imp bumped to 0.2.0
+    - @boxxy/closeout bumped to 0.2.0
+    - @boxxy/content-hash bumped to 0.2.0
+    - @boxxy/contract bumped to 0.2.0
+    - @boxxy/dispatch bumped to 0.2.0
+    - @boxxy/forge-github bumped to 0.2.0
+    - @boxxy/model bumped to 0.2.0
+    - @boxxy/notifier-atc bumped to 0.2.0
+    - @boxxy/pepys bumped to 0.2.0
+    - @boxxy/planning bumped to 0.2.0
+    - @boxxy/rules bumped to 0.2.0
+    - @boxxy/store-sqlite bumped to 0.2.0
+    - @boxxy/worker-atc bumped to 0.2.0
 
 ## [0.1.9](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.1.8...@boxxy/server@0.1.9) (2026-11-12)
 

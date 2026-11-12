@@ -2,23 +2,24 @@
 
 ## [0.2.0](https://github.com/zgeoff/boxxy/compare/@boxxy/contract@0.1.9...@boxxy/contract@0.2.0) (2026-11-12)
 
-
 ### Features
 
-* **notices:** retry notices with backoff and keep each key on its row ([#89](https://github.com/zgeoff/boxxy/issues/89)) ([b172a2b](https://github.com/zgeoff/boxxy/commit/b172a2bc47610f1a3ddf246a9123db6898358f07))
-* **server:** refuse an item for a repo the configuration does not name ([e41d6f9](https://github.com/zgeoff/boxxy/commit/e41d6f9e8c10177d1d7bf5503d8a8003bac24bd2))
-
+- **notices:** retry notices with backoff and keep each key on its row
+  ([#89](https://github.com/zgeoff/boxxy/issues/89))
+  ([b172a2b](https://github.com/zgeoff/boxxy/commit/b172a2bc47610f1a3ddf246a9123db6898358f07))
+- **server:** refuse an item for a repo the configuration does not name
+  ([e41d6f9](https://github.com/zgeoff/boxxy/commit/e41d6f9e8c10177d1d7bf5503d8a8003bac24bd2))
 
 ### Bug Fixes
 
-* **contract:** drop the held bind answer that no server sends ([9dff204](https://github.com/zgeoff/boxxy/commit/9dff204ea202f6338ddd2f1b521693fa7ce2de76))
-
+- **contract:** drop the held bind answer that no server sends
+  ([9dff204](https://github.com/zgeoff/boxxy/commit/9dff204ea202f6338ddd2f1b521693fa7ce2de76))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.2.0
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.0
 
 ## [0.1.9](https://github.com/zgeoff/boxxy/compare/@boxxy/contract@0.1.8...@boxxy/contract@0.1.9) (2026-11-12)
 

@@ -2,28 +2,31 @@
 
 ## [0.2.0](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.1.9...@boxxy/pepys@0.2.0) (2026-11-12)
 
-
 ### ⚠ BREAKING CHANGES
 
-* **pepys:** @boxxy/pepys now needs @pepys/* 0.2.x as its peers. A deployment on @pepys/* 0.1.x must move to 0.2.0 before it takes this release.
+- **pepys:** @boxxy/pepys now needs @pepys/* 0.2.x as its peers. A deployment on @pepys/* 0.1.x must
+  move to 0.2.0 before it takes this release.
 
 ### Features
 
-* **pepys:** move to pepys 0.2.0 ([0b732f5](https://github.com/zgeoff/boxxy/commit/0b732f5417062c4e04c47b42882ebb3a18b240df))
-
+- **pepys:** move to pepys 0.2.0
+  ([0b732f5](https://github.com/zgeoff/boxxy/commit/0b732f5417062c4e04c47b42882ebb3a18b240df))
 
 ### Bug Fixes
 
-* **model:** rename the store version field of the decision fact ([8407926](https://github.com/zgeoff/boxxy/commit/8407926275355fc3a8bd8bb016a00786136609c1))
-* **pepys:** bind the atc session by the id that telemetry carries ([#90](https://github.com/zgeoff/boxxy/issues/90)) ([c9a79e3](https://github.com/zgeoff/boxxy/commit/c9a79e3fdca5e5704013fe7ad4c306e99b86bf26))
-* **pepys:** count a turn cost as cover for its own session only ([d8748c9](https://github.com/zgeoff/boxxy/commit/d8748c91199c2afcd7e7fad7d3edfa241f8fd7ee))
-
+- **model:** rename the store version field of the decision fact
+  ([8407926](https://github.com/zgeoff/boxxy/commit/8407926275355fc3a8bd8bb016a00786136609c1))
+- **pepys:** bind the atc session by the id that telemetry carries
+  ([#90](https://github.com/zgeoff/boxxy/issues/90))
+  ([c9a79e3](https://github.com/zgeoff/boxxy/commit/c9a79e3fdca5e5704013fe7ad4c306e99b86bf26))
+- **pepys:** count a turn cost as cover for its own session only
+  ([d8748c9](https://github.com/zgeoff/boxxy/commit/d8748c91199c2afcd7e7fad7d3edfa241f8fd7ee))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.2.0
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.0
 
 ## [0.1.9](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.1.8...@boxxy/pepys@0.1.9) (2026-11-12)
 

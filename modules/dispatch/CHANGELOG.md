@@ -2,33 +2,37 @@
 
 ## [0.2.0](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.1.9...@boxxy/dispatch@0.2.0) (2026-11-12)
 
-
 ### Features
 
-* **notices:** retry notices with backoff and keep each key on its row ([#89](https://github.com/zgeoff/boxxy/issues/89)) ([b172a2b](https://github.com/zgeoff/boxxy/commit/b172a2bc47610f1a3ddf246a9123db6898358f07))
-
+- **notices:** retry notices with backoff and keep each key on its row
+  ([#89](https://github.com/zgeoff/boxxy/issues/89))
+  ([b172a2b](https://github.com/zgeoff/boxxy/commit/b172a2bc47610f1a3ddf246a9123db6898358f07))
 
 ### Bug Fixes
 
-* **dispatch:** key a pull request link by the item's repo spelling ([a870ac6](https://github.com/zgeoff/boxxy/commit/a870ac6086a847be0bead4de6e39e4ed7aac67e2))
-* **dispatch:** read only sendable notices so used-up ones block none ([c79b3b3](https://github.com/zgeoff/boxxy/commit/c79b3b3f6ad5d5b6f576dced6189d7b31a1619f9))
-* **dispatch:** record the session of a late stray so cleanup forgets it ([4e48f0a](https://github.com/zgeoff/boxxy/commit/4e48f0a914aa08f134283cdc8d45258981b98510))
-* **dispatch:** wake the kept session again after a lost wake reply ([2e2ddaf](https://github.com/zgeoff/boxxy/commit/2e2ddafa25b134a93d2d29f4b3c0eb5e83e5b0d5))
-* **model:** rename the store version field of the decision fact ([8407926](https://github.com/zgeoff/boxxy/commit/8407926275355fc3a8bd8bb016a00786136609c1))
-
+- **dispatch:** key a pull request link by the item's repo spelling
+  ([a870ac6](https://github.com/zgeoff/boxxy/commit/a870ac6086a847be0bead4de6e39e4ed7aac67e2))
+- **dispatch:** read only sendable notices so used-up ones block none
+  ([c79b3b3](https://github.com/zgeoff/boxxy/commit/c79b3b3f6ad5d5b6f576dced6189d7b31a1619f9))
+- **dispatch:** record the session of a late stray so cleanup forgets it
+  ([4e48f0a](https://github.com/zgeoff/boxxy/commit/4e48f0a914aa08f134283cdc8d45258981b98510))
+- **dispatch:** wake the kept session again after a lost wake reply
+  ([2e2ddaf](https://github.com/zgeoff/boxxy/commit/2e2ddafa25b134a93d2d29f4b3c0eb5e83e5b0d5))
+- **model:** rename the store version field of the decision fact
+  ([8407926](https://github.com/zgeoff/boxxy/commit/8407926275355fc3a8bd8bb016a00786136609c1))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/closeout bumped to 0.2.0
-    * @boxxy/content-hash bumped to 0.2.0
-    * @boxxy/model bumped to 0.2.0
-    * @boxxy/planning bumped to 0.2.0
-  * devDependencies
-    * @boxxy/rules bumped to 0.2.0
-  * peerDependencies
-    * @boxxy/rules bumped to 0.2.0
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/closeout bumped to 0.2.0
+    - @boxxy/content-hash bumped to 0.2.0
+    - @boxxy/model bumped to 0.2.0
+    - @boxxy/planning bumped to 0.2.0
+  - devDependencies
+    - @boxxy/rules bumped to 0.2.0
+  - peerDependencies
+    - @boxxy/rules bumped to 0.2.0
 
 ## [0.1.9](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.1.8...@boxxy/dispatch@0.1.9) (2026-11-12)
 

@@ -2,19 +2,19 @@
 
 ## [0.2.0](https://github.com/zgeoff/boxxy/compare/@boxxy/rules@0.1.9...@boxxy/rules@0.2.0) (2026-11-12)
 
-
 ### Bug Fixes
 
-* **cli:** tell a worker session how to close out ([7d397e2](https://github.com/zgeoff/boxxy/commit/7d397e2919e652d825e40f83cebb4ac55e0716b0))
-* **rules:** reject a rules file whose alias holds itself ([2227939](https://github.com/zgeoff/boxxy/commit/22279399d7246415a44e3d69f656ed009b0fff02))
-
+- **cli:** tell a worker session how to close out
+  ([7d397e2](https://github.com/zgeoff/boxxy/commit/7d397e2919e652d825e40f83cebb4ac55e0716b0))
+- **rules:** reject a rules file whose alias holds itself
+  ([2227939](https://github.com/zgeoff/boxxy/commit/22279399d7246415a44e3d69f656ed009b0fff02))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/content-hash bumped to 0.2.0
-    * @boxxy/model bumped to 0.2.0
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.2.0
+    - @boxxy/model bumped to 0.2.0
 
 ## [0.1.9](https://github.com/zgeoff/boxxy/compare/@boxxy/rules@0.1.8...@boxxy/rules@0.1.9) (2026-11-12)
 
