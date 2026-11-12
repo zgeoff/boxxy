@@ -11,8 +11,8 @@
   </p>
 </div>
 
-The boxxy server: the API on its owner and worker listeners, and the runner tick that claims tasks,
-reads sessions and sends the facts to pepys.
+The boxxy server: the API on its owner, worker and public listeners, and the runner tick that claims
+tasks, reads sessions and sends the facts to pepys.
 
 `startServer({ env, log })` reads the configuration at `BOXXY_CONFIG`, the trust documents and the
 tokens, then starts the listeners, the tick, the pull request watch and the outbox sender. Its
@@ -59,12 +59,12 @@ in the configuration, also set `BOXXY_PEPYS_SIGNING_SECRET`. With a `github` sec
 
 ## Features
 
-- `startServer`, which wires the store, the atc worker and notifier, pepys and both listeners.
-- `serveApi`, the two listeners as Elysia apps, for a caller that builds its own dependencies.
+- `startServer`, which wires the store, the atc worker, pepys and the listeners.
+- `serveApi`, the owner and worker listeners as Elysia apps, for a caller with its own deps.
 - `serverConfigSchema`, the configuration file's schema.
 - `./test-utils/create-test-server`, the API on in-memory fakes, for tests.
 
 ## Documentation
 
 [The API and its auth](../../docs/design/boxxy/v1-api-and-auth.md) sets out the listeners, the
-tokens and which caller may call each procedure.
+public door and its `publicDoor` configuration, the tokens and which caller may call each procedure.

@@ -24,7 +24,8 @@ boxxy/
 │   ├── capacity/      (slice 2) capacity sources, router, pacing gate
 │   └── train/         (next)    the merge rule; later the merge train
 ├── adapters/                    one package per outside system, named <port>-<system>
-│   ├── store-sqlite/            the only bun:sqlite + Kysely user; migrations
+│   ├── store-sqlite/            a bun:sqlite + Kysely user: the store and its migrations
+│   ├── auth-oauth/              the other bun:sqlite + Kysely user: the public door's OAuth server and its auth database
 │   ├── worker-atc/              spawns attempts through atc, reads back their session ids
 │   ├── notifier-atc/            sends a hold notice as an atc message
 │   ├── forge-github/            PR and commit links, checks, and (next) the merge
@@ -104,19 +105,24 @@ Each outside system has one package that may talk to it:
 
 | Outside system | Package                 | What lint checks                                                      |
 | -------------- | ----------------------- | --------------------------------------------------------------------- |
-| the store      | `adapters/store-sqlite` | only it imports `bun:sqlite`, `kysely` or `@zgeoff/kysely-bun-sqlite` |
+| the store      | `adapters/store-sqlite` | only it and `adapters/auth-oauth` import `bun:sqlite`, `kysely` or `@zgeoff/kysely-bun-sqlite`; the second one opens the auth database, never the store |
+| OAuth          | `adapters/auth-oauth`   | only it imports `better-auth` (and its subpaths), `@better-auth/mcp`, `@better-auth/oauth-provider`, `@simplewebauthn/server` or `reflect-metadata` |
 | atc            | `adapters/worker-atc`   | only it imports `@modelcontextprotocol/client`, to call the atc gateway's MCP tools |
 | imp identity   | `adapters/caller-proof-imp` | only it imports `@impz/client` or `@impz/client/identity`         |
 | GitHub         | `adapters/forge-github` | only an adapter or a package calls `fetch`                            |
 | pepys          | `packages/pepys`        | only it imports `@pepys/kit`, `@pepys/testing`, `@pepys/ingest`, `@pepys/api`, `@pepys/source-github` or `@pepys/source-telemetry`; no module and no lib imports `@boxxy/pepys` |
 
-oRPC has an owner and no lint pin. Only `libs/contract` calls `oc` and `mcp.tool` to define a procedure. `apps/server` imports `@orpc/server`, `@orpc/mcp` and `@modelcontextprotocol/server` to serve the contract, and `@orpc/client` to call the pepys query API. The atc stand-in in `adapters/worker-atc/src/test-utils/` imports `@modelcontextprotocol/server` too, to serve atc's tools on the library the atc gateway uses; the package lists it as an optional peer. `apps/cli` imports `@orpc/client` to call the server, and the real-pepys test deployment of `packages/pepys` imports it to call the pepys query API in process. Only `apps/server` imports `elysia`, and it lists Elysia's peers `exact-mirror`, `openapi-types` and `typebox` as its own dependencies. `@pepys/api` brings its own Elysia, `exact-mirror` and `typebox`, which the lockfile nests under it. All oRPC packages sit at one exact version, `2.0.0-beta.50`, in the root catalog. `@impz/client` brings its own `@orpc/client` 1.x, which the lockfile nests under it, so every boxxy package resolves the catalog version.
+oRPC has an owner and no lint pin. Only `libs/contract` calls `oc` and `mcp.tool` to define a procedure. `apps/server` imports `@orpc/server`, `@orpc/mcp` and `@modelcontextprotocol/server` to serve the contract, and `@orpc/client` to call the pepys query API. The atc stand-in in `adapters/worker-atc/src/test-utils/` imports `@modelcontextprotocol/server` too, to serve atc's tools on the library the atc gateway uses; the package lists it as an optional peer. `apps/cli` imports `@orpc/client` to call the server, and the real-pepys test deployment of `packages/pepys` imports it to call the pepys query API in process. Only `apps/server` and `adapters/auth-oauth` import `elysia`, and each lists Elysia's peers `exact-mirror`, `openapi-types` and `typebox` as its own dependencies.
+
+`@pepys/api` brings its own Elysia, `exact-mirror` and `typebox`, which the lockfile nests under it. All oRPC packages sit at one exact version, `2.0.0-beta.50`, in the root catalog. `@impz/client` brings its own `@orpc/client` 1.x, which the lockfile nests under it, so every boxxy package resolves the catalog version.
+
+The OAuth libraries sit at the versions that atc uses, pinned once in the root catalog: `better-auth` and `@better-auth/*` at `1.7.15`, and `@simplewebauthn/server` at `14.0.3`.
 
 Two libraries have a pin of their own. Only `modules/rules` imports `yaml`, so every rules file
 reaches the other packages through `loadRules`. Only `modules/dispatch` imports `xstate`, for the
 attempt state table.
 
-The `zgeoff/import-zones` rule in `.oxlintrc.json` holds these pins. Its `pepys` edge holds the pin for `@boxxy/pepys`, and its `pepys-kit` rule the pin for the kit. Lint lets an adapter and a package under `packages/` call `fetch`, and can't tell which one a
+The `zgeoff/import-zones` rule in `.oxlintrc.json` holds these pins. Its `oauth` rule holds the OAuth pin, and its `sqlite` rule allows both `store-sqlite` and `auth-oauth`. Its `pepys` edge holds the pin for `@boxxy/pepys`, and its `pepys-kit` rule the pin for the kit. Lint lets an adapter and a package under `packages/` call `fetch`, and can't tell which one a
 `fetch` reaches, so review checks that GitHub calls stay in `forge-github` and pepys calls in
 `packages/pepys`.
 

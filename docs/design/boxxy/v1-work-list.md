@@ -161,7 +161,7 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 ### 21. The deploy
 
 - **Outcome:** the boxxy server runs in the deployment of the cloud repo, with the worker token, the trust documents, the pepys plug-in in the pepys deployment, and the CLI and hook plug-in in the agent image.
-- **Follows:** [API and auth](./v1-api-and-auth.md), "The two paths".
+- **Follows:** [API and auth](./v1-api-and-auth.md), "The paths".
 - **Needs:** slices 20 and 20a, and the deployed pepys.
 - **Check:** `boxxy status` from the owner's path answers, and the outbox state is `idle`.
 

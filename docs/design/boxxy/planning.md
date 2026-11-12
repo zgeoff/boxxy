@@ -116,7 +116,7 @@ time ([rules](./rules.md#levers-as-facts)).
   - It lifts defer, quiet hours and budget holds on the pulled work and its blockers. A gate declared
     unliftable, such as `blocked` or `attended`, still holds.
   - It carries a reason and an optional expiry. Only a caller on the owner's path can expedite
-    ([API and auth](./v1-api-and-auth.md#the-two-paths)). An owner pull
+    ([API and auth](./v1-api-and-auth.md#the-paths)). An owner pull
     ranks ahead of a judgement phase's pull.
 - **Defer** hides an item from the frontier. `defer --until <time>` wakes it at that time. `defer`
   with no time keeps it out until `undefer`.

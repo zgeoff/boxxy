@@ -13,7 +13,7 @@ are in [the layout](./layout.md).
 - **Elysia 2.0 rc.** boxxy serves its oRPC API on the Elysia 2.0 release candidate, as pepys
   does. The other repos stay on Elysia 1.4.
 - **oRPC v2 beta.** The API and its two MCP endpoints run on an oRPC v2 beta, pinned exactly,
-  because v2 has the MCP integration ([API and auth](./v1-api-and-auth.md#the-three-doors)).
+  because v2 has the MCP integration ([API and auth](./v1-api-and-auth.md#the-doors)).
 - **Shared files through repo-sync.** boxxy takes its shared files from zgeoff/tools through the
   repo-sync workflow, like every other repo. repo-sync delivers the chex checks with them.
 - **The four-folder split.** boxxy uses noslop's and nixie's `apps/ modules/ adapters/ libs/` split,
