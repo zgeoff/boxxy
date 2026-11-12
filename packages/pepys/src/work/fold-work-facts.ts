@@ -106,7 +106,7 @@ export function foldWorkFacts(facts: readonly WorkFact[]): WorkFold {
 
       // the atc row too: `started` may be a parked outbox row that arrives later, or never
       bindSession(draft, {
-        session: fact.payload.atcSession,
+        session: toTelemetrySession(fact.payload.atcSession),
         key: 'atc',
         product: null,
         at: fact.at,
@@ -241,7 +241,7 @@ function laySession(draft: AttemptDraft, fact: AttemptSessionFact): void {
   }
 
   bindSession(draft, {
-    session: fact.payload.atcSession,
+    session: toTelemetrySession(fact.payload.atcSession),
     key: 'atc',
     product: null,
     at: fact.at,
@@ -276,6 +276,12 @@ function bindSession(draft: AttemptDraft, binding: SessionDraft): void {
     draft.sessions[index] = before;
     draft.sessions[index - 1] = binding;
   }
+}
+
+// atc stamps `atc.session.id` with the ID that the session's own host gives it, the last
+// dot-separated part of the `<target>.<daemon>.<id>` form that a remote client is answered with.
+function toTelemetrySession(atcSession: string): string {
+  return atcSession.slice(atcSession.lastIndexOf('.') + 1);
 }
 
 function layClosedOut(draft: AttemptDraft, fact: AttemptMarkFact): void {

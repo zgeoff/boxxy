@@ -223,6 +223,47 @@ test('it takes the caller of the latest started, reconciled or resumed fact for 
   ).toStrictEqual([['https://broker.example', 'imp-waker']]);
 });
 
+test('it binds the atc row of a session that a remote target started to the ID after the last dot', () => {
+  const facts = [
+    buildMockScopeFact('boxxy.attempt.claimed', {
+      event: 'f1',
+      at: '2026-11-11T02:10:00.000Z',
+      payload: {
+        attempt: '0193a1b2-0000-7000-8000-0000000000a2',
+        phase: 'build',
+        number: 1,
+        round: 1,
+      },
+    }),
+    buildMockScopeFact('boxxy.attempt.started', {
+      event: 'f2',
+      at: '2026-11-11T02:10:05.000Z',
+      payload: {
+        attempt: '0193a1b2-0000-7000-8000-0000000000a2',
+        atcSession: 'shoal-host.0c1d.s-build',
+        caller: { issuer: 'https://broker.example', subject: 'imp-builder' },
+      },
+    }),
+    buildMockScopeFact('boxxy.attempt.session_bound', {
+      event: 'f3',
+      at: '2026-11-11T02:10:06.000Z',
+      payload: {
+        attempt: '0193a1b2-0000-7000-8000-0000000000a2',
+        atcSession: 'shoal-host.0c1d.s-build',
+        agentSession: 'agent-7',
+        product: 'claude_code',
+      },
+    }),
+  ];
+
+  const fold = foldWorkFacts(facts);
+
+  expect(fold.attempts[0]?.sessions.map((bound) => [bound.key, bound.session])).toStrictEqual([
+    ['agent', 'agent-7'],
+    ['atc', 's-build'],
+  ]);
+});
+
 test('it writes null caller columns for an attempt whose session facts carry no caller', () => {
   const facts = [
     buildMockScopeFact('boxxy.attempt.claimed', {
