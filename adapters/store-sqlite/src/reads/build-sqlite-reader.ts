@@ -260,6 +260,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         .select('atc_session')
         .distinct()
         .where('caller', '=', stored)
+        .where('atc_session', 'is not', null)
         .where((builder) => isLatestOfSession(builder))
         .limit(2)
         .execute();

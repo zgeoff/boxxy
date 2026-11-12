@@ -64,6 +64,41 @@ export const claimStoreSessionCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
+    '#findSessionByCaller returns the kept session while a claim that resumes it has no session yet',
+    async (store) => {
+      const caller = { issuer: 'https://id.example.test', subject: 'worker-1' };
+      const item = buildMockV1ItemRow();
+
+      const kept = buildMockV1AttemptRow({
+        item: item.id,
+        state: 'starting',
+        caller,
+        claimedAt: brandSchemas.instant.parse(1000),
+      });
+
+      const resumed = buildMockV1AttemptRow({
+        item: item.id,
+        state: 'starting',
+        number: 2,
+        leaseGen: 2,
+        atcSession: null,
+        caller,
+        claimedAt: brandSchemas.instant.parse(4000),
+      });
+
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(buildMockFileItemChange(item));
+        await transaction.applyChange(buildMockClaimChange(kept));
+        await transaction.applyChange(buildMockSettleChange({ attempt: kept, state: 'succeeded' }));
+        await transaction.applyChange(buildMockClaimChange(resumed));
+      });
+
+      const found = await store.read((transaction) => transaction.findSessionByCaller(caller));
+
+      return { received: found, expected: kept.atcSession };
+    },
+  ],
+  [
     '#findSessionByCaller returns ambiguous when the latest attempts of two sessions hold it',
     async (store) => {
       const caller = { issuer: 'https://id.example.test', subject: 'worker-1' };
