@@ -9,6 +9,7 @@ import { requestWake } from '../claims/request-wake.ts';
 import { resumeClaim } from '../claims/resume-claim.ts';
 import { closeOutAttempt } from '../closeouts/close-out-attempt.ts';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
+import { loadVerifyRules } from '../test-utils/load-verify-rules.ts';
 import { actOnReading } from './act-on-reading.ts';
 import { pickReadingAction } from './pick-reading-action.ts';
 
@@ -57,6 +58,22 @@ async function setupTest() {
         actor: 'boxxy:owner:local',
         now: dispatch.clock.now(),
         newId: dispatch.newId,
+      });
+    },
+
+    // the item's review claims, passes and settles
+    passReview: async () => {
+      const claim = await dispatch.claim();
+
+      invariant(claim !== null, 'the review claims');
+
+      const review = await dispatch.readAttempt(claim.attempt.id);
+
+      await dispatch.closeAndSettle(review, {
+        round: 1,
+        cause: 'first',
+        reading: buildMockGateReading({ status: 'passed' }),
+        unrelatedLines: null,
       });
     },
     readItem: async (item: ItemId) => {
@@ -671,4 +688,41 @@ test('it wakes the kept session again, with no fresh spawn, after the reply to i
     first.atcSession,
     [],
   ]);
+});
+
+test('it wakes the kept session again for a builder verify whose wake reply was lost after the grader changed', async () => {
+  const ctx = await setupTest();
+
+  ctx.setRules(loadVerifyRules({ session: 'builder', resume: false }));
+
+  await ctx.seedBuild();
+  await ctx.passReview();
+
+  ctx.worker.failNext('resumeKept', { kind: 'unknown', reason: 'the reply did not arrive' });
+
+  const claim = await ctx.claim();
+
+  invariant(claim?.kind === 'start', 'the verify claims');
+
+  ctx.setRules(loadVerifyRules({ session: 'fresh', resume: false }));
+
+  const attempt = await ctx.readAttempt(claim.attempt.id);
+
+  await actOnReading({
+    store: ctx.store,
+    worker: ctx.worker,
+    rules: ctx.rules(),
+    backoff: ctx.backoff,
+    attempt,
+    reading: { kind: 'absent' },
+    action: { kind: 'respawn' },
+    now: ctx.clock.now(),
+    newId: ctx.newId,
+  });
+
+  const calls = ctx.worker.calls
+    .filter((call) => call.subject === attempt.id)
+    .map((call) => call.method);
+
+  expect(calls).toStrictEqual(['resumeKept', 'resumeKept']);
 });

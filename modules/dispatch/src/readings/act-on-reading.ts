@@ -2,13 +2,14 @@ import type {
   ActorRef,
   AttemptRow,
   Instant,
+  JsonValue,
   KeptPick,
   RunnerFault,
   SessionFault,
   SessionReading,
   StoreTx,
 } from '@boxxy/model';
-import { brandSchemas, isFilterMatch, spawnRequestSchema } from '@boxxy/model';
+import { brandSchemas, isFilterMatch, spawnRequestSchema, verifyInputSchema } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { match } from 'ts-pattern';
 import { isSameGuard } from '../attempts/is-same-guard.ts';
@@ -235,9 +236,9 @@ function readRow(input: ActOnReadingInput): Promise<AttemptRow> {
   });
 }
 
-// The kept session that the claim woke, picked again as the claim picked it. A wake whose reply
-// was lost leaves the kept session on the item, and the reading looks for the new attempt's
-// spawn name, which finds nothing; a fresh spawn would then run beside the woken session.
+// The kept session that the claim woke, picked again as the claim picked it, with the grader from
+// the stored input in case the rules reloaded. A wake whose reply was lost leaves the kept session
+// on the item, and a fresh spawn would then run beside the woken session.
 function readRespawnKept(input: ActOnReadingInput): Promise<KeptPick> {
   return input.store.read(async (tx) => {
     const detail = await tx.readItemDetail(input.attempt.item, input.now, input.rules);
@@ -249,21 +250,30 @@ function readRespawnKept(input: ActOnReadingInput): Promise<KeptPick> {
 
     const kind = input.rules.kinds.get(detail.item.kind);
 
-    return kind === undefined
-      ? { kind: 'none' }
-      : pickKeptSession({
-          item: detail.item,
-          attempts: detail.attempts,
-          pipeline: kind.pipeline,
-          phase: input.attempt.phase,
-          isBuilderSession: isBuilderSession(
-            input.rules,
-            kind,
-            input.attempt.phase,
-            input.attempt.mode,
-          ),
-        });
+    if (kind === undefined) {
+      return { kind: 'none' };
+    }
+
+    const stored = findInputSession(input.attempt.input);
+
+    return pickKeptSession({
+      item: detail.item,
+      attempts: detail.attempts,
+      pipeline: kind.pipeline,
+      phase: input.attempt.phase,
+      isBuilderSession:
+        stored === null
+          ? isBuilderSession(input.rules, kind, input.attempt.phase, input.attempt.mode)
+          : stored === 'builder',
+    });
   });
+}
+
+// the grader that a verify's stored input holds; null for the input of any other phase
+function findInputSession(phaseInput: JsonValue): 'builder' | 'fresh' | null {
+  const parsed = verifyInputSchema.safeParse(phaseInput);
+
+  return parsed.success ? parsed.data.session : null;
 }
 
 interface SleepTimes {
