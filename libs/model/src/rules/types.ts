@@ -156,6 +156,9 @@ export interface PhaseInputContext {
   // the item's `item.retry` levers, oldest first
   readonly retries: readonly RetryLever[];
   readonly pullRequests: readonly PullRequestRow[];
+
+  // the `session` field of the claim's recipe; null when the recipe sets none
+  readonly session: 'builder' | 'fresh' | null;
 }
 
 export interface SettleInput<Body> {

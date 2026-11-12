@@ -1,5 +1,6 @@
 import type { AttemptRow, Instant, ItemView, LoadedRules, RowWrite } from '@boxxy/model';
-import { spawnRequestSchema } from '@boxxy/model';
+import { buildPhase, spawnRequestSchema } from '@boxxy/model';
+import { isBuilderSession } from './is-builder-session.ts';
 
 interface KeepInput {
   // the attempt that settled `succeeded` with its session stopped
@@ -9,19 +10,18 @@ interface KeepInput {
   readonly now: Instant;
 }
 
-// The write that records the attempt's session as the item's kept session, when an edge of the
-// item's pipeline comes back to the attempt's phase with `resume: true`; else none. Pure.
+// The write that keeps the attempt's session on the item: for a phase that an edge resumes, a
+// build whose kind grades with a `session: builder` recipe, and that grader. Pure.
 export function buildKeepWrites(input: KeepInput): RowWrite[] {
   const attempt = input.attempt;
   const item = input.item;
+  const kind = input.rules.kinds.get(item.kind);
 
-  if (attempt.atcSession === null) {
+  if (attempt.atcSession === null || kind === undefined) {
     return [];
   }
 
-  const steps = input.rules.kinds.get(item.kind)?.pipeline.steps ?? [];
-
-  const isResumeEdge = steps.some((step) =>
+  const isResumeEdge = kind.pipeline.steps.some((step) =>
     Object.values(step.on).some(
       (edge) =>
         typeof edge === 'object' &&
@@ -31,7 +31,16 @@ export function buildKeepWrites(input: KeepInput): RowWrite[] {
     ),
   );
 
-  if (!isResumeEdge) {
+  const hasBuilderGrader = Object.values(kind.recipes).some(
+    (name) => input.rules.recipes.get(name)?.recipe.session === 'builder',
+  );
+
+  const isKept =
+    isResumeEdge ||
+    (attempt.phase === buildPhase && hasBuilderGrader) ||
+    isBuilderSession(input.rules, kind, attempt.phase, attempt.mode);
+
+  if (!isKept) {
     return [];
   }
 

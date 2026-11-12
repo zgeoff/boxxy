@@ -28,6 +28,7 @@ test('it accepts a built close-out that cites the attempt evidence for every cri
     attempt: row.attempt,
     evidence: [row],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({
@@ -55,6 +56,7 @@ test('it accepts a blocked close-out that cites no evidence', () => {
     attempt: row.attempt,
     evidence: [row],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({
@@ -73,6 +75,7 @@ test('it rejects a close-out that fails the schema, with the path of the bad fie
     attempt: row.attempt,
     evidence: [row],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({
@@ -100,6 +103,7 @@ test('it rejects a close-out that cites a criterion the item lacks', () => {
     attempt: row.attempt,
     evidence: [row],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({
@@ -128,6 +132,7 @@ test('it rejects a close-out that cites evidence of another attempt', () => {
     attempt: row.attempt,
     evidence: [row],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({
@@ -158,6 +163,7 @@ test('it rejects a built close-out with a criterion that has no evidence', () =>
     attempt: row.attempt,
     evidence: [row],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({
@@ -192,6 +198,7 @@ test('it returns all three problems of a close-out that has three', () => {
     attempt: row.attempt,
     evidence: [row],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({
@@ -220,6 +227,7 @@ test('it returns every schema problem of a close-out at once', () => {
     attempt: row.attempt,
     evidence: [row],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({
@@ -251,6 +259,7 @@ test('it rejects a friction entry whose target kind is outside the list, at its 
     attempt: row.attempt,
     evidence: [row],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({
@@ -279,6 +288,7 @@ test('it drops each friction entry with no target and counts it in frictionDropp
     attempt: row.attempt,
     evidence: [row],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({
@@ -310,6 +320,7 @@ test('it sets frictionDropped itself and ignores a count the agent sends', () =>
     attempt: row.attempt,
     evidence: [row],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({
@@ -327,6 +338,7 @@ test('it rejects a close-out that is not an object', () => {
     attempt: row.attempt,
     evidence: [row],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({
@@ -345,6 +357,7 @@ test('it rejects a close-out whose friction is not a list', () => {
     attempt: row.attempt,
     evidence: [row],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({
@@ -370,6 +383,7 @@ test('it rejects a close-out with a key that no build close-out has', () => {
     attempt: row.attempt,
     evidence: [row],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({
@@ -507,6 +521,7 @@ test('it gives a build of round 2 the design, the send-back of the review and th
     history,
     retries: [],
     pullRequests: [pullRequest],
+    session: null,
   });
 
   expect(input).toStrictEqual({
@@ -541,6 +556,7 @@ test.each([
     history,
     retries: [],
     pullRequests: [],
+    session: null,
   });
 
   expect(input).toStrictEqual({ acceptance: [], design: null, sentBack: null, pullRequest: null });
@@ -579,6 +595,7 @@ test('it sends a build the findings of a v1 review that asked for changes, as th
     ],
     retries: [],
     pullRequests: [],
+    session: null,
   });
 
   expect(input).toStrictEqual({

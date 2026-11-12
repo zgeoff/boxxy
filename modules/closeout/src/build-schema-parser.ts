@@ -8,7 +8,7 @@ import { measureJsonBytes } from './measure-json-bytes.ts';
 interface SchemaParserInput<Raw, Body> {
   // the body as the agent sends it, with no `frictionDropped`: the parser counts that itself
   readonly schema: z.ZodType<Raw>;
-  readonly toBody: (raw: Raw, frictionDropped: number) => Body;
+  readonly toBody: (raw: Raw, frictionDropped: number, ctx: CloseOutContext) => Body;
 
   // the rules of the phase that the schema cannot hold; each problem comes back
   readonly check: (body: Body, ctx: CloseOutContext) => readonly CloseOutProblem[];
@@ -41,7 +41,7 @@ function parseCloseOut<Raw, Body>(
     };
   }
 
-  const body = input.toBody(parsed.data, split.dropped);
+  const body = input.toBody(parsed.data, split.dropped, ctx);
   const problems = input.check(body, ctx);
 
   if (problems.length > 0) {

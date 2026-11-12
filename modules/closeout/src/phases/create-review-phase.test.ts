@@ -25,6 +25,7 @@ test('it gives the first review of a pull request round 1, cause first, and the 
     history: [buildMockSettledAttemptRow({ phase: 'build', outcome: 'built', endedAt: 1000 })],
     retries: [],
     pullRequests: [pullRequest],
+    session: null,
   });
 
   expect(input).toStrictEqual({
@@ -59,6 +60,7 @@ test('it gives the review after a review that asked for changes round 2 and caus
     ],
     retries: [],
     pullRequests: [buildMockV1PullRequestRow()],
+    session: null,
   });
 
   expect(input).toStrictEqual(
@@ -82,6 +84,7 @@ test('it counts no review that settled before the latest retry', () => {
       { at: brandSchemas.instant.parse(4000), phase: brandSchemas.phaseName.parse('build') },
     ],
     pullRequests: [buildMockV1PullRequestRow()],
+    session: null,
   });
 
   expect(input).toStrictEqual(
@@ -98,6 +101,7 @@ test('it gives a review of an item with no pull request no command, and asks the
     history: [buildMockSettledAttemptRow({ phase: 'build', outcome: 'built', endedAt: 1000 })],
     retries: [],
     pullRequests: [],
+    session: null,
   });
 
   expect(input).toStrictEqual({ pullRequest: null, round: 1, cause: 'first', command: null });
@@ -120,6 +124,7 @@ test('it reads the close-out that the server built from the gate reading', () =>
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({ kind: 'valid', closeOut });
@@ -136,6 +141,7 @@ test('it rejects a raw review result in place of the built close-out', () => {
       attempt: buildMockV1AttemptRow().id,
       evidence: [],
       world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+      input: null,
     },
   );
 
@@ -165,6 +171,7 @@ test('it rejects a verdict of the session in the form of a v1 review close-out',
       attempt: buildMockV1AttemptRow().id,
       evidence: [],
       world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+      input: null,
     },
   );
 

@@ -8,7 +8,7 @@ import type {
   ItemId,
   ItemView,
   JsonValue,
-  KeptSession,
+  KeptPick,
   LimitCount,
   LimitName,
   LoadedRules,
@@ -29,8 +29,10 @@ import invariant from 'tiny-invariant';
 import type { AttemptChange } from '../attempts/build-attempt-change.ts';
 import { buildAttemptChange } from '../attempts/build-attempt-change.ts';
 import type { ClaimedEvent, DecisionDraft } from '../attempts/types.ts';
+import { isBuilderSession } from '../sessions/is-builder-session.ts';
 import { buildPromptValues } from './build-prompt-values.ts';
 import { buildSnapshotHash } from './build-snapshot-hash.ts';
+import { findRecipeName } from './find-recipe-name.ts';
 import { pickKeptSession } from './pick-kept-session.ts';
 import type { ClaimInput, SpawnSettings } from './types.ts';
 
@@ -146,7 +148,7 @@ interface ClaimedParts {
 function buildClaimedEvent(parts: ClaimedParts): {
   readonly claimed: ClaimedEvent;
   readonly spawn: SpawnRequest;
-  readonly kept: KeptSession | null;
+  readonly kept: KeptPick;
 } {
   const item = parts.detail.item;
   const phase = parts.rules.phases.get(parts.pick.phase);
@@ -156,11 +158,7 @@ function buildClaimedEvent(parts: ClaimedParts): {
   invariant(kind !== undefined, `decide picks only an item of a loaded kind: ${item.kind}`);
 
   const mode: SessionMode = phase.mode?.(item) ?? 'agent';
-
-  const recipeName =
-    (mode === 'attended' ? kind.recipes[`${parts.pick.phase}/attended`] : undefined) ??
-    kind.recipes[parts.pick.phase];
-
+  const recipeName = findRecipeName(kind, parts.pick.phase, mode);
   const material = recipeName === undefined ? undefined : parts.rules.recipes.get(recipeName);
 
   invariant(
@@ -174,6 +172,7 @@ function buildClaimedEvent(parts: ClaimedParts): {
     history: parts.detail.attempts,
     retries: collectRetries(item.levers),
     pullRequests: parts.detail.pullRequests,
+    session: material.recipe.session ?? null,
   });
 
   const spawn = buildSpawnRequest({
@@ -190,6 +189,7 @@ function buildClaimedEvent(parts: ClaimedParts): {
     attempts: parts.detail.attempts,
     pipeline: kind.pipeline,
     phase: parts.pick.phase,
+    isBuilderSession: isBuilderSession(parts.rules, kind, parts.pick.phase, mode),
   });
 
   return {
@@ -214,7 +214,7 @@ function buildClaimedEvent(parts: ClaimedParts): {
       worker: phase.worker,
 
       // the resumed session makes its first call before the worker answers the resume
-      caller: kept?.caller ?? null,
+      caller: kept.kind === 'kept' ? kept.session.caller : null,
       decision: { ...parts.draft, item: item.id, kind: 'start', pool: parts.pick.pool },
     },
   };

@@ -20,6 +20,7 @@ test('it accepts a designed close-out with the design text and the place of the 
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({ kind: 'valid', closeOut: { ...raw, frictionDropped: 0 } });
@@ -38,6 +39,7 @@ test('it returns both problems of a blocked close-out with no reason and a bad f
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({

@@ -54,6 +54,7 @@ export { stageTimeSchema } from './reports/stage-time-schema.ts';
 export { toJSONValue } from './utils/to-json-value.ts';
 export { triageCloseOutSchema } from './closeouts/triage-close-out-schema.ts';
 export { verifyCloseOutSchema } from './closeouts/verify-close-out-schema.ts';
+export { verifyInputSchema } from './closeouts/verify-input-schema.ts';
 export { mergeCloseOutSchema } from './closeouts/merge-close-out-schema.ts';
 export { workFactSchemas } from './facts/work-fact-schemas.ts';
 export { costBases, phaseSteps, stageSteps } from './reports/constants.ts';
@@ -168,6 +169,7 @@ export type {
   SentBack,
   TriageCloseOut,
   VerifyCloseOut,
+  VerifyInput,
 } from './closeouts/types.ts';
 
 export type {
@@ -180,7 +182,7 @@ export type {
   MergeUnit,
 } from './merge/types.ts';
 
-export type { Claim } from './dispatch/types.ts';
+export type { Claim, KeptPick } from './dispatch/types.ts';
 
 export type {
   AnyNewFact,

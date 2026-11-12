@@ -2,7 +2,7 @@ import type {
   ActorRef,
   AttemptRow,
   Instant,
-  KeptSession,
+  KeptPick,
   RunnerFault,
   SessionFault,
   SessionReading,
@@ -20,6 +20,7 @@ import { pickKeptSession } from '../claims/pick-kept-session.ts';
 import { resumeClaim } from '../claims/resume-claim.ts';
 import { startClaim } from '../claims/start-claim.ts';
 import { settleAttempt } from '../closeouts/settle-attempt.ts';
+import { isBuilderSession } from '../sessions/is-builder-session.ts';
 import { timeouts } from '../timeouts.ts';
 import type { ActOnReadingInput, ReadingAction } from './types.ts';
 
@@ -237,7 +238,7 @@ function readRow(input: ActOnReadingInput): Promise<AttemptRow> {
 // The kept session that the claim woke, picked again as the claim picked it. A wake whose reply
 // was lost leaves the kept session on the item, and the reading looks for the new attempt's
 // spawn name, which finds nothing; a fresh spawn would then run beside the woken session.
-function readRespawnKept(input: ActOnReadingInput): Promise<KeptSession | null> {
+function readRespawnKept(input: ActOnReadingInput): Promise<KeptPick> {
   return input.store.read(async (tx) => {
     const detail = await tx.readItemDetail(input.attempt.item, input.now, input.rules);
 
@@ -249,12 +250,18 @@ function readRespawnKept(input: ActOnReadingInput): Promise<KeptSession | null> 
     const kind = input.rules.kinds.get(detail.item.kind);
 
     return kind === undefined
-      ? null
+      ? { kind: 'none' }
       : pickKeptSession({
           item: detail.item,
           attempts: detail.attempts,
           pipeline: kind.pipeline,
           phase: input.attempt.phase,
+          isBuilderSession: isBuilderSession(
+            input.rules,
+            kind,
+            input.attempt.phase,
+            input.attempt.mode,
+          ),
         });
   });
 }

@@ -22,6 +22,7 @@ export async function readCloseOutContext(
       rules,
       items.map((each) => each.id),
     ),
+    input: attempt.input,
   };
 }
 

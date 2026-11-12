@@ -8,6 +8,7 @@ const resultSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('verified') }),
   z.object({ kind: z.literal('failed'), features: featuresSchema }),
   z.object({ kind: z.literal('blocked'), question: z.string().min(1) }),
+  z.object({ kind: z.literal('abandoned'), reason: z.string().min(1) }),
 ]);
 
 export const verifyCloseOutSchema = z.strictObject({

@@ -90,12 +90,14 @@ export interface ReviewCloseOut {
   readonly unrelatedLines: number | null;
 }
 
-// The verify close-out, sent by the grading agent. The parser copies `session` from the recipe.
+// The verify close-out, sent by the grading agent. The parser copies `session` from the attempt's
+// input, which the claim took from the recipe.
 export interface VerifyCloseOut {
   readonly result:
     | { readonly kind: 'verified' }
     | { readonly kind: 'failed'; readonly features: readonly string[] }
-    | { readonly kind: 'blocked'; readonly question: string };
+    | { readonly kind: 'blocked'; readonly question: string }
+    | { readonly kind: 'abandoned'; readonly reason: string };
   readonly session: 'builder' | 'fresh';
   readonly friction: readonly Friction[];
   readonly frictionDropped: number;
@@ -195,6 +197,9 @@ export interface CloseOutContext {
   // the attempt's own evidence rows
   readonly evidence: readonly EvidenceRow[];
   readonly world: CloseOutWorld;
+
+  // the attempt's phase input, as its claim stored it
+  readonly input: JsonValue;
 }
 
 // What a parser may check a named item, kind or relation type against.
@@ -241,6 +246,15 @@ export interface ReviewInput {
   readonly round: number;
   readonly cause: RoundCause;
   readonly command: string | null;
+}
+
+// The input of a verify attempt: the item's pull request, and the head that its latest passed
+// review read, null when there is none. The grader takes the features in scope from the verify
+// tool, so the input holds no acceptance list. `session` is the recipe's grader.
+export interface VerifyInput {
+  readonly pullRequest: PullRequestLink | null;
+  readonly head: CommitSha | null;
+  readonly session: 'builder' | 'fresh';
 }
 
 export interface PullRequestLink {

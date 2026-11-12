@@ -18,11 +18,16 @@ export async function startClaim(input: StartClaimInput): Promise<RunnerFault | 
   const attempt = input.claim.attempt;
   const actor: ActorRef = `boxxy:runner:${attempt.runner}`;
   const base = { actor, now: input.now, newId: input.newId };
-  const kept = input.claim.kept;
+  const pick = input.claim.kept;
+  const kept = pick.kind === 'kept' ? pick.session : null;
 
+  // a claim that wants a kept session and finds none starts fresh, as a fallback
   const woken =
     kept === null
-      ? { outcome: await input.worker.start(input.claim.spawn), resumeFallback: false }
+      ? {
+          outcome: await input.worker.start(input.claim.spawn),
+          resumeFallback: pick.kind === 'gone',
+        }
       : await resumeKeptSession(input.worker, kept, input.claim.spawn);
 
   const outcome = woken.outcome;

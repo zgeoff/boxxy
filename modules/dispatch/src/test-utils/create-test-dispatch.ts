@@ -104,6 +104,9 @@ export interface TestDispatch {
   // after `seedBuild`: a review asks for changes, and the worker starts the rework on the kept session
   readonly seedReworkAfter: (first: AttemptRow) => Promise<AttemptRow>;
 
+  // the attempt's session sends the close-out body, and the runner settles the stopped session
+  readonly closeAndSettle: (attempt: AttemptRow, body: unknown) => Promise<void>;
+
   // the change of `item.close`: the item's close and the ends of its live attempts
   readonly closeItem: (item: ItemId, reason: string) => Promise<ApplyResult>;
   readonly readAttempt: (id: AttemptId) => Promise<AttemptRow>;
@@ -200,6 +203,7 @@ export async function createTestDispatch(options: TestDispatchOptions = {}): Pro
 
       return resumed.second;
     },
+    closeAndSettle: (attempt, body) => closeAndSettle(dispatch, attempt, body),
     rules: () => rules,
     setRules: (next) => {
       rules = next;

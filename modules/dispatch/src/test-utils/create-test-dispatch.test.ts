@@ -80,6 +80,29 @@ test('#seedBuildWithPullRequest settles a build built, whose review then reviews
   ]);
 });
 
+test('#closeAndSettle records the close-out and settles the attempt from it', async () => {
+  const dispatch = await createTestDispatch();
+  const item = await dispatch.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+  const claim = await dispatch.claim();
+
+  invariant(claim?.attempt.item === item, 'the claim picks the seeded item');
+
+  const attempt = await dispatch.readAttempt(claim.attempt.id);
+
+  await dispatch.closeAndSettle(attempt, {
+    result: { kind: 'abandoned', reason: 'The upload service is down' },
+    criteria: [],
+    openItems: [],
+    friction: [],
+  });
+
+  const settled = await dispatch.readAttempt(claim.attempt.id);
+
+  const received: unknown = [settled.state, settled.outcome];
+
+  expect(received).toStrictEqual(['failed', 'abandoned']);
+});
+
 test('#seedReworkAfter starts the second build on the first build session', async () => {
   const dispatch = await createTestDispatch();
   const first = await dispatch.seedBuild();

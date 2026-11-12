@@ -28,6 +28,7 @@ test('it accepts an accepted close-out that sets the kind, the design mode and t
       kinds: new Set([brandSchemas.itemKindName.parse('core.issue')]),
       relationTypes: new Set([brandSchemas.relationTypeName.parse('relates-to')]),
     },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({ kind: 'valid', closeOut: { ...raw, frictionDropped: 0 } });
@@ -53,6 +54,7 @@ test('it returns both problems of a close-out with an unknown kind and an unknow
       kinds: new Set([brandSchemas.itemKindName.parse('core.issue')]),
       relationTypes: new Set([brandSchemas.relationTypeName.parse('relates-to')]),
     },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({
@@ -73,6 +75,7 @@ test('it refuses to accept an item that has no acceptance list and gets none', (
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({ kind: 'invalid', problems: [{ kind: 'no-acceptance' }] });
@@ -93,6 +96,7 @@ test('it refuses to accept an item with an empty acceptance list in place of its
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
     world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({ kind: 'invalid', problems: [{ kind: 'no-acceptance' }] });
@@ -117,6 +121,7 @@ test('it refuses a duplicate of an item the store does not have, and of the item
       kinds: new Set(),
       relationTypes: new Set([brandSchemas.relationTypeName.parse('relates-to')]),
     },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({
@@ -153,6 +158,7 @@ test('it refuses each repeat of a relation, the duplicate-of relation of a dupli
         ['relates-to', 'duplicate-of'].map((type) => brandSchemas.relationTypeName.parse(type)),
       ),
     },
+    input: null,
   });
 
   expect(parsed).toStrictEqual({
@@ -266,9 +272,9 @@ test('it gives a triage attempt the item acceptance list as its input', () => {
 
   const attempt = buildMockV1AttemptRow().id;
 
-  expect(triage.input({ item, attempt, history: [], retries: [], pullRequests: [] })).toStrictEqual(
-    {
-      acceptance: [{ id: 'a1', text: 'A failed upload retries once' }],
-    },
-  );
+  expect(
+    triage.input({ item, attempt, history: [], retries: [], pullRequests: [], session: null }),
+  ).toStrictEqual({
+    acceptance: [{ id: 'a1', text: 'A failed upload retries once' }],
+  });
 });

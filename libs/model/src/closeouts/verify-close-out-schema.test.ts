@@ -14,6 +14,19 @@ test('it accepts a failed verify with its failing features', () => {
   expect(parsed).toStrictEqual(closeOut);
 });
 
+test('it accepts an abandoned verify with its reason', () => {
+  const closeOut = {
+    result: { kind: 'abandoned', reason: 'the harness never came up' },
+    session: 'fresh',
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  const parsed: unknown = verifyCloseOutSchema.safeParse(closeOut).data;
+
+  expect(parsed).toStrictEqual(closeOut);
+});
+
 test('it rejects a failed verify that names no feature', () => {
   const closeOut = {
     result: { kind: 'failed', features: [] },
