@@ -9,7 +9,10 @@ test('#atc_session_spawn reads a session that carries no lifecycle and no attach
     state: 'running',
   });
 
-  expect(parsed.success).toBeTrue();
+  expect(parsed).toStrictEqual({
+    success: true,
+    data: { id: 's1-fake', name: 'boxxy/attempt-1', createdAt: 1000, state: 'running' },
+  });
 });
 
 test.each([
