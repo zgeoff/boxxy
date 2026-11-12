@@ -63,7 +63,14 @@ export async function createRealPepys(options: TestPepysOptions): Promise<TestPe
   const store = await createTestStore({ plugins });
 
   const applyLog = () => applyFactLog(store, log, deployment);
-  const app = createApp(buildQueryContext(store.reader, deployment));
+
+  // The client sees only a generic 500, so the server's own error goes to the test output.
+  const app = createApp(buildQueryContext(store.reader, deployment), {
+    logError: (message, error) => {
+      console.error(message, error);
+    },
+  });
+
   const sendRequest = (url: string, init: RequestInit) => app.handle(new Request(url, init));
 
   const api = createORPCClient<UncheckedQueryClient>(
