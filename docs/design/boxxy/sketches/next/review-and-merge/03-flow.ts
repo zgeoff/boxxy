@@ -56,10 +56,10 @@ export async function runJobReading(deps: JobDeps): Promise<void> {
 
 // ── B. The review close-out (apps/server/src/procedures/close-out-review.ts) ───────────────────
 //
-// The review round runs in an agent session on a worker machine, through `atc.session`, as a
+// The review round runs in an agent session on an agent host, through `atc.session`, as a
 // build does. Its input carries the command that `ReviewGate.buildCommand` gave; the session runs
 // it in the pull request's checkout and sends the tool's raw result with `boxxy attempt
-// close-out`. The server keeps the forge and the tool's App keys: the worker machine gets neither.
+// close-out`. The server keeps the forge and the tool's App keys: the agent host gets neither.
 //
 // The `attempt.closeOut` procedure calls this for a review attempt, before the close-out change
 // of v1. It runs outside the lock, because `accept` posts to the forge. A close-out that the
@@ -154,7 +154,7 @@ function isPassedAt(review: GateRecord | null, head: CommitSha): boolean {
 
 // ── E. The merge job (modules/dispatch/src/jobs/create-merge-job.ts) ───────────────────────────
 //
-// `start` reads nothing and starts nothing. `read` makes the observation: the pull request, its
+// The job starts nothing. Each `read` makes the observation: the pull request, its
 // mergeable state, the checks at its head, the base branch's required checks, the verify reading
 // at the head, and the item's latest settled review from the store. Each forge call throws on no
 // answer, and the tick reads again later.
@@ -203,8 +203,10 @@ export async function runJobAction(deps: JobDeps, action: { kind: 'merge' }): Pr
 //   review  changes-requested { max: 2 }       the 3rd one                rounds used up (review changes-requested)
 //   merge   repair            { max: 3 }       the 4th one                rounds used up (merge repair)
 //   merge   stale             { max: 3 }       the 4th one                rounds used up (merge stale)
+//   merge   unverified        { max: 2 }       the 3rd one                rounds used up (merge unverified)
 //   verify  failed            { max: 2 }       the 3rd one                rounds used up (verify failed)
-//   review  failed            again, maxAttempts 2                       attempts used up (review)
+//   review  failed            again, maxAttempts 2   the 2nd in a row    attempts used up (review)
+//   verify  abandoned         again, maxAttempts 2   the 2nd in a row    attempts used up (verify)
 //
 // Each hold writes its notice row in the settle's lock, as in v1. `boxxy item retry <item>`
 // resets every count. An item whose pull request the owner merged by hand moves on with

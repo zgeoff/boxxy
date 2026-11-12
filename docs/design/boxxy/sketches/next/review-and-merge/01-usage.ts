@@ -23,7 +23,7 @@ import { decideMerge } from '@boxxy/train';
 //         maxAttempts: 2
 //         timeoutMinutes: 180
 //         on: { built: next, blocked: { hold: blocked }, abandoned: again }
-//       - phase: review                          # a session on a worker machine runs the review tool
+//       - phase: review                          # a session on an agent host runs the review tool
 //         maxAttempts: 2                         # a lost or failed round runs again, at the same round
 //         timeoutMinutes: 45
 //         on:
@@ -146,8 +146,8 @@ import { createMergeJob } from '@boxxy/dispatch';
 
 const forge = createGithubForge({ baseUrl: config.github.baseUrl, token: env.BOXXY_GITHUB_TOKEN, fetch });
 
-// The review tool runs on a worker machine, whose image pins it. The server keeps the tool's
-// GitHub App keys and uses them only to check and post a result; no worker machine gets them.
+// The review tool runs on an agent host, whose image pins it. The server keeps the tool's GitHub
+// App keys and uses them only to check and post a result; no agent host gets them.
 const reviewGate: ReviewGate = createNoslopReviewGate({ appEnv: secrets.review });
 
 // Parses the verify tool's report and reads its gate check through the forge port; no I/O of its own.
@@ -172,20 +172,22 @@ const rules = loadRules(text, { phases: [...phaseKinds, createReviewPhase(review
 // `buildCommand(round)` gives a command that writes one JSON file: `review`, the result of the
 // review below, and `findings`, the output of `noslop findings --pr <n> --repo <owner/name>
 // --json` with its exit code. Each review takes `--pr <n> --repo <owner/name> --adapter claude
-// --report json --json`. `--report` replaces the config's reporters, so the worker machine posts
-// nothing. `--adapter claude` uses the model sign-in that the worker machine's broker gives.
+// --report json --json`. `--report` replaces the config's reporters, so the agent host posts
+// nothing. `--adapter claude` uses the model sign-in that the agent host's broker gives.
 //
 //   cause     review
 //   ────────  ────────────────────────────────────────────────────────────────────────────────────
 //   first     `noslop review --full`
-//   rework    `noslop review --fixes-only`
+//   rework    `noslop review --fixes-only`. When its `fixChecks` is empty (no `fixed` answer got a
+//             verdict, such as when every answer is `not-a-defect`), the run read nothing at its
+//             head, though its `head` field names that head. The command then runs `noslop review`
+//             and keeps that result, so the review covers the head.
 //   recheck   `noslop review`: reads the files whose patch changed since the last review, and runs
 //             a resolution check on a merge of the base
 //
 // `accept(round, body)`, in the server:
-//   1. A `--fixes-only` result whose `fixChecks` holds no verdict read nothing at its head, though
-//      its `head` field names that head. The reading is `not-covered`; the round settles `failed`,
-//      and the edge `again` runs it as a `recheck`.
+//   1. A `--fixes-only` result with an empty `fixChecks` reads `not-covered`, and nothing is
+//      posted. The command never sends one; the check stops a session that skipped the fallback.
 //   2. `sendResult` from `@noslop/cli/post` checks the result against the pull request's head and
 //      the base branch's config, then posts it as the App. A refused result reads `not-covered`.
 //   3. `check(pr, { readOnly: true })` from `@noslop/cli/check` gives the findings still open.

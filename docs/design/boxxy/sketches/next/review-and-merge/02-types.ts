@@ -23,9 +23,9 @@ export interface GateRound {
   readonly cause: RoundCause;
 }
 
-// The review runs in an agent session on a worker machine; the server only checks and posts.
+// The review runs in an agent session on an agent host; the server only checks and posts.
 export interface ReviewGate {
-  // Pure. The command line that the review session runs on the worker machine, in the pull
+  // Pure. The command line that the review session runs on the agent host, in the pull
   // request's checkout. It prints the tool's result, which the session sends as its close-out.
   buildCommand: (round: GateRound) => string;
   // Runs in the server when the review session closes out with that result. It checks the result
@@ -194,7 +194,7 @@ export type MergeAnswer =
 export interface ReviewCloseOut {
   readonly round: number;
   readonly cause: RoundCause;
-  readonly reading: GateReading; // the parser refuses a reading whose head is not the attempt's head
+  readonly reading: GateReading; // from `ReviewGate.accept`, which matched its head to the pull request's head
 }
 
 // The verify close-out, sent by the grading agent. The parser copies `session` from the recipe.

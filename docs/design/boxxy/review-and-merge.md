@@ -65,9 +65,10 @@ A review goes like this:
 Rules of the review:
 
 - **Each reading carries its head.** When the result is for another head than the pull request's current head, or it read no part of that head, the reading is `not-covered`, and the review settles `failed`.
-- **A failed review runs once more.** A failed call, an unreadable result or a `not-covered` reading settles `failed`. The edge `again` runs the review as a `recheck` with the same review number. A second failed attempt in one item round holds the item with `attempts used up`.
+- **A failed review runs once more.** A failed call, an unreadable result or a `not-covered` reading settles `failed`. The edge `again` runs the review as a `recheck` with the same review number. A second failed review in a row holds the item with `attempts used up`.
 - **Three reviews, then a hold.** The edge `changes-requested: { to: build, max: 2, resume: true }` sends the item back twice. The third `changes-requested` holds it with `rounds used up`.
-- **A rework review raises no new finding.** It checks the builder's answers to the open findings. A `recheck` reviews what changed since the last review.
+- **A rework review raises no new finding.** It checks the builder's answers to the open findings with `--fixes-only`. When no `fixed` answer got a verdict, such as when the builder answered every finding `not-a-defect`, that run read nothing at the head. The command then runs a plain review, so the rework review covers the head. A `recheck` reviews what changed since the last review.
+- **boxxy trusts the review session as it trusts any session.** Only the review attempt's own session can close it out. noslop's check before a post matches the result's head and config to the pull request, and never checks that the review's calls ran.
 - **The builder answers findings in the review tool.** The rework build's input carries the open counts and `answerHint`, a text from the adapter with where the findings are and how to answer them. The core never reads a finding's text.
 
 Section 4 of [`01-usage.ts`](./sketches/next/review-and-merge/01-usage.ts) maps noslop's commands and output to the port.
@@ -81,7 +82,7 @@ The `verify` phase runs an agent session that drives the real app with the repo'
 | `verified` | on to merge |
 | `failed`, with the failing features | back to build, `max: 2`; the third `failed` holds the item with `rounds used up` |
 | `blocked`, with a question | hold, and the question reaches the owner |
-| `abandoned` | runs once more; a second in one item round holds the item with `attempts used up` |
+| `abandoned` | runs once more; a second `abandoned` in a row holds the item with `attempts used up` |
 
 `Verifier` has one method, `readAt(pullRequest, head)`, and the merge job calls it.
 
@@ -164,7 +165,8 @@ Section 5 of [`01-usage.ts`](./sketches/next/review-and-merge/01-usage.ts) shows
 | A red check sends the item to a repair build, and a fourth repair holds it with a notice. | The same journey with a red check, and a `decideMerge` test row for each row of the merge table. |
 | Each loop holds after its last send-back, with a notice. | An `advance` test over the rules lines in section 1 of `01-usage.ts`, one row per backward edge. |
 | A refused merge of a clean, green head holds the item, and a request with no answer is sent again. | `decideMerge` test rows with `acted` set: `not-mergeable` gives `refused`, no answer after 5 minutes gives a new request, and past the time limit gives `stalled`. |
-| A review never passes a head that it did not read. | Review adapter tests: a `--fixes-only` result that judged no fix reads `not-covered` and posts nothing, and a result for an old head reads `not-covered`. |
+| A review never passes a head that it did not read. | Review adapter tests: the rework command runs a plain review after a `--fixes-only` run that judged no fix; `accept` reads such a run as `not-covered` and posts nothing; and a result for an old head reads `not-covered`. |
+| A review close-out from any other session is refused. | The close-out procedure's caller test, as for every attempt. |
 | The core holds no tool name. | `turbo boundaries` and the import-zones lint: no file in `modules/` or `libs/` imports a review or verify adapter. |
 
 ## Left to the implementer
