@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.6](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.1.5...@boxxy/cli@0.1.6) (2026-11-12)
+
+
+### Features
+
+* **cli:** attach a compiled binary and the plug-in to each cli release ([681ac25](https://github.com/zgeoff/boxxy/commit/681ac25de671704c68171e3c0d5b9b140689d7ce))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/contract bumped to 0.1.6
+    * @boxxy/model bumped to 0.1.6
+
 ## [0.1.5](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.1.4...@boxxy/cli@0.1.5) (2026-11-12)
 
 ### Miscellaneous Chores

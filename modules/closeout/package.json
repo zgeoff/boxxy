@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/closeout",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "boxxy's phase kinds: the input, the close-out parser and the settle rule of triage, design, build and review",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/modules/closeout#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",
