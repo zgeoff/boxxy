@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.2](https://github.com/zgeoff/boxxy/compare/@boxxy/planning@0.2.1...@boxxy/planning@0.2.2) (2026-11-12)
+
+### Features
+
+- **review:** add the review phase on the noslop review gate
+  ([303381e](https://github.com/zgeoff/boxxy/commit/303381ec2850ee40231148e0ee7931a49a30e9c3))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.2.2
+    - @boxxy/model bumped to 0.2.2
+    - @boxxy/rules bumped to 0.2.2
+
 ## [0.2.1](https://github.com/zgeoff/boxxy/compare/@boxxy/planning@0.2.0...@boxxy/planning@0.2.1) (2026-11-12)
 
 ### Features

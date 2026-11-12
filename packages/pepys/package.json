@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/pepys",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "The pepys plug-in of boxxy, its fact sink and its report reader",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/packages/pepys#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",

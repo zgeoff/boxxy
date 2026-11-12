@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.2](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.2.1...@boxxy/pepys@0.2.2) (2026-11-12)
+
+### Features
+
+- **pepys:** port the plug-in to pepys 0.3.1
+  ([09c08fa](https://github.com/zgeoff/boxxy/commit/09c08fad1bf3910e68a7b09afa0f14364006b3bc))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.2
+
 ## [0.2.1](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.2.0...@boxxy/pepys@0.2.1) (2026-11-12)
 
 ### Features
