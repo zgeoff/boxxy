@@ -80,6 +80,18 @@ test('it claims an item of a repo with a git source with that source and no fold
   ]);
 });
 
+test('it gives no claim of a ready item whose repo the configuration does not name', async () => {
+  const ctx = await setupTest();
+
+  await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+
+  const claim = await ctx.claimNextWithRepos(
+    new Map([[brandSchemas.repoName.parse('example/widget'), '/tmp/boxxy-test/widget']]),
+  );
+
+  expect(claim).toBeNull();
+});
+
 test('it takes the seats of every limit that counts the pick', async () => {
   const ctx = await setupTest();
 
