@@ -68,7 +68,43 @@ test('it reads a repo as a git source of a URL and a ref', async () => {
   });
 });
 
+test('it reads a git source with the name of the variable that holds its clone token', async () => {
+  const ctx = await setupTest();
+
+  const source = {
+    url: 'https://git.example.test/example/app.git',
+    ref: 'main',
+    credentialRef: { name: 'EXAMPLE_GIT_TOKEN' },
+  };
+
+  await ctx.writeConfig(
+    JSON.stringify({
+      runner: 'runner-1',
+      store: { file: '/tmp/boxxy-test/boxxy.db' },
+      rules: { folder: '/tmp/boxxy-test/rules' },
+      api: {
+        listen: { hostname: '127.0.0.1', port: 4400 },
+        workerListen: { hostname: '127.0.0.1', port: 4401 },
+      },
+      spawn: { target: 'cloud', repos: { 'example/app': source } },
+      atc: { url: 'http://127.0.0.1:7777/mcp', trustedFolders: {} },
+    }),
+  );
+
+  const answer = await readServerConfig(ctx.file);
+
+  expect(answer.kind === 'read' && answer.config.spawn.repos['example/app']).toStrictEqual(source);
+});
+
 test.each([
+  [
+    'a git source whose credentialRef names no environment variable',
+    {
+      url: 'https://git.example.test/a.git',
+      ref: 'main',
+      credentialRef: { name: '1-EXAMPLE TOKEN' },
+    },
+  ],
   [
     'both a folder and a git source',
     { path: '/tmp/boxxy-test/app', url: 'https://git.example.test/a.git', ref: 'main' },

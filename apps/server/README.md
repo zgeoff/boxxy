@@ -50,9 +50,9 @@ The `atc` section of the configuration names the gateway:
 | `trustedFolders` | by worker target, the folders the agent trusts there               |
 | `noticeSession`  | optional: the atc session that gets the hold notices               |
 
-`spawn.repos` gives each repo a folder on the target, or a git source `{ url, ref }` that atc
-clones. [The atc worker](../../docs/design/boxxy/v1-lifecycle.md#the-atc-worker) says how each
-spawns, and lists the token's scopes.
+`spawn.repos` gives each repo a folder on the target, or a git source `{ url, ref, credentialRef? }`
+that atc clones. [The atc worker](../../docs/design/boxxy/v1-lifecycle.md#the-atc-worker) says how
+each spawns, what a `credentialRef` names, and the token's scopes.
 
 With a `pepys` section in the configuration, also set `BOXXY_PEPYS_SIGNING_SECRET`. With a `github`
 section, set `BOXXY_GITHUB_TOKEN` unless a broker adds the GitHub credential.

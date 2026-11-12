@@ -13,11 +13,13 @@ export type AtcSession = AtcToolResult<'atc_session_spawn'>;
 // milliseconds, or its creation time when it has none.
 export type AtcSessionRead = AtcToolResult<'atc_session_get'>;
 
-// atc's git workspace source: atc clones it into a folder it picks on the target
+// atc's git workspace source: atc clones it into a folder it picks on the target, with the token
+// in the daemon's environment variable that `credentialRef` names
 interface AtcGitWorkspace {
   readonly kind: 'git';
   readonly url: string;
   readonly ref: string;
+  readonly credentialRef?: { readonly kind: 'env'; readonly name: string };
 }
 
 // `cwd` for a folder on the target, or `workspace` with `trustClonedWorkspace`, never both

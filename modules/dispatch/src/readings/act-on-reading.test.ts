@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { buildMockNoslopReport } from '@boxxy/closeout/test-utils/build-mock-noslop-report';
-import type { AttemptRow, ItemId } from '@boxxy/model';
+import type { AttemptRow, ItemId, SpawnRequest, WorkerKind } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockPhaseKind } from '@boxxy/model/test-utils/build-mock-phase-kind';
 import invariant from 'tiny-invariant';
@@ -591,5 +591,57 @@ test('it returns a respawn that the worker refused, with its reason', async () =
       cause: 'other',
       reason: 'clone_failed: the source needs a credential',
     },
+  ]);
+});
+
+test('it respawns with the git source and the key that the claim stored', async () => {
+  const ctx = await setupTest();
+
+  await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+
+  const repo = brandSchemas.repoName.parse('example/app');
+  const source = { url: 'https://git.example.test/example/app.git', ref: 'main' };
+
+  const claim = await claimNext({
+    store: ctx.store,
+    runner: ctx.runner,
+    rules: ctx.rules(),
+    now: ctx.clock.now(),
+    newId: ctx.newId,
+    backoff: ctx.backoff,
+    spawn: { ...ctx.spawn, repos: new Map([[repo, source]]) },
+  });
+
+  invariant(claim?.kind === 'start', 'the claim starts the seeded item');
+
+  const sent: SpawnRequest[] = [];
+
+  const worker: WorkerKind = {
+    ...ctx.worker,
+    start: (request) => {
+      sent.push(request);
+
+      return ctx.worker.start(request);
+    },
+  };
+
+  await actOnReading({
+    store: ctx.store,
+    worker,
+    rules: ctx.rules(),
+    backoff: ctx.backoff,
+    attempt: claim.attempt,
+    reading: { kind: 'absent' },
+    action: { kind: 'respawn' },
+    now: ctx.clock.now(),
+    newId: ctx.newId,
+  });
+
+  expect(sent).toStrictEqual([
+    expect.objectContaining({
+      source,
+      idempotencyKey: claim.attempt.id,
+      name: `boxxy/${claim.attempt.id}`,
+    }),
   ]);
 });

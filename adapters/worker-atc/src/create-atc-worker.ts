@@ -277,8 +277,17 @@ function toSpawnPlace(request: SpawnRequest): AtcSpawnPlace {
     return { cwd: request.cwd };
   }
 
+  const source = request.source;
+
   return {
-    workspace: { kind: 'git', url: request.source.url, ref: request.source.ref },
+    workspace: {
+      kind: 'git',
+      url: source.url,
+      ref: source.ref,
+      ...(source.credentialRef === undefined
+        ? {}
+        : { credentialRef: { kind: 'env', name: source.credentialRef.name } }),
+    },
     trustClonedWorkspace: true,
   };
 }

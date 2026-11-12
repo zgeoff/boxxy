@@ -14,6 +14,16 @@ export const gitSourceSchema: z.ZodType<GitSource> = z.strictObject({
     .min(1)
     .max(255)
     .refine((ref) => !ref.startsWith('-'), 'a git source ref must not start with -'),
+
+  // atc's own rule for the name of an environment variable
+  credentialRef: z
+    .strictObject({
+      name: z
+        .string()
+        .max(255)
+        .regex(/^[A-Za-z_]\w*$/u, 'a credentialRef names an environment variable'),
+    })
+    .exactOptional(),
 });
 
 const spawnRequestFields = z.strictObject({

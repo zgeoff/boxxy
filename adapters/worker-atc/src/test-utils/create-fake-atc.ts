@@ -83,6 +83,7 @@ const gitWorkspaceArgs = z.strictObject({
   kind: z.literal('git'),
   url: z.string(),
   ref: z.string(),
+  credentialRef: z.strictObject({ kind: z.literal('env'), name: z.string() }).optional(),
 });
 
 const spawnArgs = z.object({

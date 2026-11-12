@@ -59,8 +59,45 @@ test.each([
   expect(spawnRequestSchema.safeParse(request).success).toBeFalse();
 });
 
+test('it accepts a stored spawn request with a git source and the name of its token variable', () => {
+  const request = {
+    target: 'worker-host',
+    source: {
+      url: 'https://git.example.test/example/app.git',
+      ref: 'main',
+      credentialRef: { name: 'EXAMPLE_GIT_TOKEN' },
+    },
+    prompt: 'Build the item.',
+    agent: 'claude',
+    model: 'a-model',
+    effort: 'high',
+    name: 'boxxy/0190a000-0000-7000-8000-000000000001',
+    idempotencyKey: '0190a000-0000-7000-8000-000000000001',
+  };
+
+  const parsed: unknown = spawnRequestSchema.safeParse(request).data;
+
+  expect(parsed).toStrictEqual(request);
+});
+
 test.each([
   ['a URL with a credential', { url: 'https://user:secret@git.example.test/a.git', ref: 'main' }],
+  [
+    'a credentialRef whose name is no environment variable',
+    {
+      url: 'https://git.example.test/a.git',
+      ref: 'main',
+      credentialRef: { name: 'EXAMPLE-GIT-TOKEN' },
+    },
+  ],
+  [
+    'a credentialRef that carries a value',
+    {
+      url: 'https://git.example.test/a.git',
+      ref: 'main',
+      credentialRef: { name: 'EXAMPLE_GIT_TOKEN', value: 'not-a-real-token' },
+    },
+  ],
   [
     'a ref that reads as an option',
     { url: 'https://git.example.test/a.git', ref: '--upload-pack' },

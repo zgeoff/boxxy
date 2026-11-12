@@ -46,7 +46,7 @@ Each row names the test that settles it, where one is known.
 | Whether a rework prompt sent with `atc_message_send` lets the agent push. Claude Code shows a relayed message as one a plug-in sent, and its auto-mode classifier reads only the owner's prompts. | The forced rework round of the live proof. |
 | That an attempt's spawn name stays the session's name until the session appears in `atc_sessions_list`. The agent's own `/rename` replaces it. | Spawn, drop the answer, then list. |
 | That each folder in the worker adapter's trusted folders exists and is trusted in a fresh machine of its target. The list is the deployment's statement, and a spawn in a configured folder sends the folder alone, with no workspace source and no `trustClonedWorkspace`. | Spawn once in each listed folder on a new machine. |
-| That atc clones a git source on an imp target, with the credential the broker adds, and trusts the clone, so the first turn runs. | Spawn once from a git source on a new imp. |
+| That atc's daemon clones a private git source with the token in the environment variable that its `credentialRef` names, and trusts the clone on an imp target, so the first turn runs. | Spawn once from a private git source on a new imp. |
 | What `lifecycle.harness` reads between a daemon restart and the fleet restore. If it reads `exited`, the runner settles a running attempt. | Restart the daemon with one session running, then read it before the restore. |
 
 ### The API

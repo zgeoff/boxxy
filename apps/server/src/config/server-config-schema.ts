@@ -14,7 +14,7 @@ const spawnSection = z.strictObject({
   target: name,
 
   // by repo: its folder on a target on the atc daemon's own host, or the git source that atc
-  // clones on a target that gives each session a fresh machine
+  // clones for a target that gives each session a fresh machine
   repos: z.record(z.string(), z.union([name, gitSourceSchema])),
 });
 

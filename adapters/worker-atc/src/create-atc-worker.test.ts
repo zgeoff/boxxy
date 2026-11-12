@@ -88,6 +88,35 @@ test('#start answers the session with the caller that atc reports for it', async
   });
 });
 
+test('#start sends the token variable of a git source as an env credentialRef', async () => {
+  const ctx = setupTest();
+  const attempt = buildMockV1AttemptRow().id;
+  const { cwd: _folder, ...request } = ctx.buildSpawnRequest(attempt, 'box');
+
+  await ctx.worker.start({
+    ...request,
+    source: {
+      url: 'https://git.example.test/example/widget.git',
+      ref: 'main',
+      credentialRef: { name: 'EXAMPLE_GIT_TOKEN' },
+    },
+  });
+
+  expect(ctx.atc.calls).toStrictEqual([
+    {
+      tool: 'atc_session_spawn',
+      args: expect.objectContaining({
+        workspace: {
+          kind: 'git',
+          url: 'https://git.example.test/example/widget.git',
+          ref: 'main',
+          credentialRef: { kind: 'env', name: 'EXAMPLE_GIT_TOKEN' },
+        },
+      }),
+    },
+  ]);
+});
+
 test('#start spawns a git source as a trusted atc workspace with no folder', async () => {
   const ctx = setupTest();
   const attempt = buildMockV1AttemptRow().id;
