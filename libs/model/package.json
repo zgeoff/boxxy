@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/model",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "The types that boxxy's packages share",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/libs/model#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",

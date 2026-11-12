@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.1.8](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.1.7...@boxxy/store-sqlite@0.1.8) (2026-11-12)
+
+### Bug Fixes
+
+- **store-sqlite:** keep sqlite temp files in memory
+  ([90700b8](https://github.com/zgeoff/boxxy/commit/90700b875e08eee115cc3619a3649018c1a3a9a3))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.1.8
+    - @boxxy/model bumped to 0.1.8
+  - devDependencies
+    - @boxxy/dispatch bumped to 0.1.8
+  - peerDependencies
+    - @boxxy/dispatch bumped to 0.1.8
+
 ## [0.1.7](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.1.6...@boxxy/store-sqlite@0.1.7) (2026-11-12)
 
 ### Miscellaneous Chores
