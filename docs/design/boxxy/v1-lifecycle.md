@@ -101,7 +101,8 @@ Section D of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the table of ca
 | a valid close-out over 120,000 bytes as stored | rejected, `too-large`; the attempt stays open |
 | the same body again | recorded, as a repeat; nothing is written |
 | another body after a valid close-out | refused, `already-closed-out` |
-| a session boxxy never started, or one with no proven caller | refused, `no-attempt` |
+| a proven caller that no session of boxxy holds | refused, `no-attempt` |
+| a call with no proven caller | 401, before the handler runs ([the proven caller](./v1-api-and-auth.md#the-proven-caller)) |
 
 - **The first valid close-out is final.** A later call cannot replace it.
 - **A call reaches the attempt it names, and only when that attempt is the current one of the calling session.** The current attempt is the latest attempt that the session carries, and its own row must hold the proven caller. The session reads its attempt ID with `attempt.current`. [API and auth](./v1-api-and-auth.md#the-proven-caller) has the rule in full.
