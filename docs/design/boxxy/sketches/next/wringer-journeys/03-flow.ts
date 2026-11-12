@@ -145,8 +145,8 @@ export async function landItem(ctx: DriveContext, input: { readonly title: strin
 
 // ── D. The CI step that runs the gate ──────────────────────────────────────────────────────────
 //
-// scripts/ci/run-verify-gate.ts, run as `bun run --silent ci:verify-gate` in the `verify`
-// workflow. The pull request's body comes from the event, as GitHub wrote it when the run started.
+// scripts/ci/run-verify-gate.ts, run as `bun run --silent ci:verify-gate` in the job of the
+// `verify / gate` check. The pull request's body comes from the event, as GitHub wrote it when the run started.
 
 export async function runVerifyGate(env: Readonly<Record<string, string | undefined>>): Promise<number> {
   const event = pullRequestEventSchema.parse(await Bun.file(requireEnv(env, 'GITHUB_EVENT_PATH')).json());
@@ -165,8 +165,8 @@ export async function runVerifyGate(env: Readonly<Record<string, string | undefi
 
   process.stdout.write(output);
 
-  // One annotation per failing feature and per unmapped path, which the Verifier adapter reads
-  // from the check run through the forge.
+  // One annotation per failing feature and per unmapped path, so the check run on the pull
+  // request names each cause next to the failed step.
   for (const line of formatGateAnnotations(parseGateEnvelope(output))) {
     console.log(line); // `::error title=verify gate::<feature>: <reason>`
   }
