@@ -42,6 +42,14 @@
   "devDependencies": {
     "@boxxy/rules": "workspace:*"
   },
+  "peerDependencies": {
+    "@boxxy/rules": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@boxxy/rules": {
+      "optional": true
+    }
+  },
   "engines": {
     "bun": ">=1.3",
     "node": ">=24"

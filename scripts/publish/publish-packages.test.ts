@@ -665,3 +665,34 @@ test('it refuses to publish a package whose export names a file the tarball leav
 
   expect(files.toSorted()).toStrictEqual(['package.json', 'src']);
 });
+
+test('it refuses to publish a package whose shipped source imports a name its manifest does not list', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createNPM({});
+
+  await writeTreeFiles(ctx.repo, {
+    'libs/std/package.json': JSON.stringify({
+      name: '@zgeoff/std',
+      version: '0.4.0',
+      files: ['src'],
+      devDependencies: { kettle: '1.0.0' },
+    }),
+    'libs/std/src/index.ts': "import { boil } from 'kettle';\n\nexport const std = boil;\n",
+  });
+
+  const failure = await ctx.runPublish(['libs/std'], '', 'rehearse').then(
+    () => null,
+    (error: unknown) => error,
+  );
+
+  expect(failure).toMatchObject({
+    message: expect.stringContaining(
+      '@zgeoff/std: src/index.ts imports kettle, which the manifest lists in no dependency field',
+    ),
+  });
+
+  const calls = await ctx.readNPMCalls();
+
+  expect(calls).toBe('');
+});

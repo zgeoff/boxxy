@@ -51,6 +51,12 @@
       "devDependencies": {
         "@boxxy/dispatch": "workspace:*",
       },
+      "peerDependencies": {
+        "@boxxy/dispatch": "workspace:*",
+      },
+      "optionalPeers": [
+        "@boxxy/dispatch",
+      ],
     },
     "adapters/notifier-atc": {
       "name": "@boxxy/notifier-atc",
@@ -75,6 +81,12 @@
         "@boxxy/dispatch": "workspace:*",
         "@zgeoff/rig": "catalog:",
       },
+      "peerDependencies": {
+        "@boxxy/dispatch": "workspace:*",
+      },
+      "optionalPeers": [
+        "@boxxy/dispatch",
+      ],
     },
     "adapters/worker-atc": {
       "name": "@boxxy/worker-atc",
@@ -182,6 +194,12 @@
         "@boxxy/rules": "workspace:*",
         "@faker-js/faker": "catalog:",
       },
+      "peerDependencies": {
+        "@faker-js/faker": "catalog:",
+      },
+      "optionalPeers": [
+        "@faker-js/faker",
+      ],
     },
     "modules/dispatch": {
       "name": "@boxxy/dispatch",
@@ -198,6 +216,12 @@
       "devDependencies": {
         "@boxxy/rules": "workspace:*",
       },
+      "peerDependencies": {
+        "@boxxy/rules": "workspace:*",
+      },
+      "optionalPeers": [
+        "@boxxy/rules",
+      ],
     },
     "modules/planning": {
       "name": "@boxxy/planning",

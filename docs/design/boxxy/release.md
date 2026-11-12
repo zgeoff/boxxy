@@ -16,7 +16,9 @@ A deployment installs these:
 
 `@boxxy/pepys` lists `@pepys/kit` and `zod` as peer dependencies, so the plug-in uses the deployment's own copy of each. The peer range of `@pepys/kit` is an exact npm version: a pepys release can change the glue the plug-in ships, so a boxxy release names the one kit version it was built against. Inside this repo, the root `overrides` and the dev dependencies of `@boxxy/pepys` point the `@pepys/*` packages at a prerelease kit, which never reaches the dependencies or peer dependencies of a published manifest.
 
-A package never names an export that its tarball lacks. The publish packs each package and reads the tarball's file list before `npm publish`, and refuses the run when an `exports` target has no packed file. The CI rehearsal makes this check on every package. A `src/test-utils/` folder ships and is exported with its package, so a shipped helper imports only what a deployment resolves: `@boxxy/pepys` lists `@pepys/testing`, which its `createTestPepys` needs, as an optional peer dependency.
+A package never names an export that its tarball lacks, and never ships source that imports a name its install does not bring. The publish packs each package, reads the tarball's file list, and refuses the run before `npm publish` when an `exports` target has no packed file, or a packed `src` file imports a bare name that is in no `dependencies`, `peerDependencies` or `optionalDependencies` field. `bun` and the `node:` and `bun:` modules count as listed. The CI rehearsal makes both checks on every package.
+
+A `src/test-utils/` folder ships and is exported with its package. A helper there may import a package that only a user of the helper needs. The package lists it as an optional peer dependency and keeps the dev dependency for the workspace: `@boxxy/pepys` lists `@pepys/testing`, `@boxxy/forge-github` and `@boxxy/store-sqlite` list `@boxxy/dispatch`, `@boxxy/dispatch` lists `@boxxy/rules`, and `@boxxy/closeout` lists `@faker-js/faker`. A `workspace:*` peer packs as the release's exact version.
 
 ## One version for every package
 

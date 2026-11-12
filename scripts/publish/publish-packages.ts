@@ -8,6 +8,7 @@ import type { CommandResult, RunCommand } from '../ci/run-command.ts';
 import { runCommand } from '../ci/run-command.ts';
 import { buildPackageSteps } from './build-package-steps.ts';
 import { buildPublishPlan } from './build-publish-plan.ts';
+import { collectUnresolvedImports } from './collect-unresolved-imports.ts';
 import { collectUnshippedExports } from './collect-unshipped-exports.ts';
 import { parseLatestVersion } from './parse-latest-version.ts';
 import type { ManifestParse, PackageManifest } from './parse-package-manifest.ts';
@@ -172,7 +173,7 @@ async function publishPackage(
     .exhaustive();
 
   try {
-    await checkTarballExports(entry, tarball, options);
+    await checkTarballContents(entry, tarball, options);
     await run(['npm', 'publish', `./${tarball}`, ...steps.publishArgs, ...tagArgs]);
   } finally {
     await options.fileSystem.removePath(join(entry.folder, tarball));
@@ -256,8 +257,9 @@ function buildPackManifestText(manifestText: string, version: string): string {
   return `${JSON.stringify({ ...manifest, version }, null, 2)}\n`;
 }
 
-// A package that names an export its tarball lacks would install and then fail on import.
-async function checkTarballExports(
+// A package that names an export its tarball lacks, or ships source that imports a name no
+// dependency field lists, would install and then fail on import.
+async function checkTarballContents(
   entry: PublicManifest,
   tarball: string,
   options: PackagesPublishOptions,
@@ -269,7 +271,23 @@ async function checkTarballExports(
 
   const manifestText = await options.fileSystem.readText(join(entry.folder, 'package.json'));
 
-  const faults = collectUnshippedExports(manifestText, listing.stdout.split('\n').filter(Boolean));
+  const entries = listing.stdout.split('\n').filter(Boolean);
+
+  const sourcePaths = entries
+    .map((tarEntry) => tarEntry.replace(/^package\//u, ''))
+    .filter((path) => path.startsWith('src/') && path.endsWith('.ts'));
+
+  const sources = await Promise.all(
+    sourcePaths.map(async (path) => ({
+      path,
+      text: await options.fileSystem.readText(join(entry.folder, path)),
+    })),
+  );
+
+  const faults = [
+    ...collectUnshippedExports(manifestText, entries),
+    ...collectUnresolvedImports(manifestText, sources),
+  ];
 
   if (faults.length > 0) {
     throw new Error(faults.map((fault) => `${entry.name}: ${fault}`).join('\n'));

@@ -36,6 +36,14 @@
   "devDependencies": {
     "@boxxy/dispatch": "workspace:*"
   },
+  "peerDependencies": {
+    "@boxxy/dispatch": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@boxxy/dispatch": {
+      "optional": true
+    }
+  },
   "engines": {
     "bun": ">=1.3",
     "node": ">=24"

@@ -41,6 +41,14 @@
     "@boxxy/rules": "workspace:*",
     "@faker-js/faker": "catalog:"
   },
+  "peerDependencies": {
+    "@faker-js/faker": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@faker-js/faker": {
+      "optional": true
+    }
+  },
   "engines": {
     "bun": ">=1.3",
     "node": ">=24"
