@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.4](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.1.3...@boxxy/pepys@0.1.4) (2026-11-12)
+
+### Bug Fixes
+
+- **pepys:** order the review wait by claim time, not attempt number
+  ([c67fab4](https://github.com/zgeoff/boxxy/commit/c67fab41c8062eb525e97136d0e297c710faba83))
+- **pepys:** read the telemetry origin columns as the plug-in has them
+  ([1b10edb](https://github.com/zgeoff/boxxy/commit/1b10edba2b4c67d4fcc632b492fdc1dd516b17e3))
+- **pepys:** ship test-utils and check each export has a packed file
+  ([b68d4b3](https://github.com/zgeoff/boxxy/commit/b68d4b3b15c05dabdf6406217a9874de37d46ebc))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.1.4
+
 ## 0.1.3 (2026-11-11)
 
 ### Features

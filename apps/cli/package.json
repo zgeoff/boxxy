@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/cli",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "The boxxy command line",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/apps/cli#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",

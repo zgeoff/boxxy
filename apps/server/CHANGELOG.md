@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.1.4](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.1.3...@boxxy/server@0.1.4) (2026-11-12)
+
+### Miscellaneous Chores
+
+- **@boxxy/server:** Synchronize boxxy versions
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/caller-proof-imp bumped to 0.1.4
+    - @boxxy/closeout bumped to 0.1.4
+    - @boxxy/content-hash bumped to 0.1.4
+    - @boxxy/contract bumped to 0.1.4
+    - @boxxy/dispatch bumped to 0.1.4
+    - @boxxy/forge-github bumped to 0.1.4
+    - @boxxy/model bumped to 0.1.4
+    - @boxxy/notifier-atc bumped to 0.1.4
+    - @boxxy/pepys bumped to 0.1.4
+    - @boxxy/planning bumped to 0.1.4
+    - @boxxy/rules bumped to 0.1.4
+    - @boxxy/store-sqlite bumped to 0.1.4
+    - @boxxy/worker-atc bumped to 0.1.4
+
 ## 0.1.3 (2026-11-11)
 
 ### Features
