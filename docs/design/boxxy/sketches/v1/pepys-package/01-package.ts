@@ -400,14 +400,14 @@ export function applyScope(scope: string): string {
         draft.atcSession = fact.payload.atcSession;
       }
 
-      bindSession(draft, toTelemetrySessionID(fact.payload.atcSession), 'atc', null, fact.at, fact.id);
+      bindSession(draft, toTelemetrySessionID(toLocalAtcSession(fact.payload.atcSession)), 'atc', null, fact.at, fact.id);
     }
 
     if (fact.type === 'boxxy.attempt.session_bound') {
       const draft = findDraft(drafts, toBoxxyAttemptID(fact.payload.attempt), fact.at);
 
       // the atc row too: `started` may be a parked outbox row that arrives later, or never
-      bindSession(draft, toTelemetrySessionID(fact.payload.atcSession), 'atc', null, fact.at, fact.id);
+      bindSession(draft, toTelemetrySessionID(toLocalAtcSession(fact.payload.atcSession)), 'atc', null, fact.at, fact.id);
       bindSession(draft, toTelemetrySessionID(fact.payload.agentSession), 'agent', fact.payload.product, fact.at, fact.id);
     }
 
@@ -495,6 +495,10 @@ export function applyScope(scope: string): string {
 
   return JSON.stringify(operations);
 }
+
+// The part of an atc session ID after its last dot: `target.daemon.s-build` ─▶ `s-build`, and a
+// local `s-build` stays `s-build`. atc stamps `atc.session.id` with this part.
+declare function toLocalAtcSession(atcSession: string): string;
 
 // The draft of one attempt, made on first sight. An index loop; `updatedAt` is the latest `at`.
 declare function findDraft(drafts: AttemptDraft[], id: BoxxyAttemptID, at: string): AttemptDraft;
