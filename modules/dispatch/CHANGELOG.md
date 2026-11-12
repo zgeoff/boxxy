@@ -2,34 +2,38 @@
 
 ## [0.1.9](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.1.8...@boxxy/dispatch@0.1.9) (2026-11-12)
 
-
 ### Features
 
-* **server:** name the clone token variable of a git source ([bb0c0d1](https://github.com/zgeoff/boxxy/commit/bb0c0d1ecdac12235afc70d1911845053b3adf89))
-
+- **server:** name the clone token variable of a git source
+  ([bb0c0d1](https://github.com/zgeoff/boxxy/commit/bb0c0d1ecdac12235afc70d1911845053b3adf89))
 
 ### Bug Fixes
 
-* **dispatch:** give no second claim of an item in one tick ([c4e2f27](https://github.com/zgeoff/boxxy/commit/c4e2f27d33d66882d27ecfae68105a018ea35963))
-* **dispatch:** pass over an item of an unconfigured repo in the claim ([f64dcdc](https://github.com/zgeoff/boxxy/commit/f64dcdc27989bc3aeab6cb3321f07e7409a95ff4))
-* **server:** log the reason of a refused spawn ([5969fea](https://github.com/zgeoff/boxxy/commit/5969feaa9b6322bbefbba1e6dbe689dc5527bc18))
-* **server:** log the reason of a refused wake and atc's problem ([1f6ef46](https://github.com/zgeoff/boxxy/commit/1f6ef468e5ad74cad84490e3f4eec587e70873e3))
-* **store-sqlite:** reject an exclusive call once the store closes ([ac87f1d](https://github.com/zgeoff/boxxy/commit/ac87f1d6105fea1e2ceff1a17df199b9571432d4))
-* **store-sqlite:** skip attempts with no session when matching a caller ([903fdd8](https://github.com/zgeoff/boxxy/commit/903fdd82fc270637fc993ff8478c9002103971ee))
-
+- **dispatch:** give no second claim of an item in one tick
+  ([c4e2f27](https://github.com/zgeoff/boxxy/commit/c4e2f27d33d66882d27ecfae68105a018ea35963))
+- **dispatch:** pass over an item of an unconfigured repo in the claim
+  ([f64dcdc](https://github.com/zgeoff/boxxy/commit/f64dcdc27989bc3aeab6cb3321f07e7409a95ff4))
+- **server:** log the reason of a refused spawn
+  ([5969fea](https://github.com/zgeoff/boxxy/commit/5969feaa9b6322bbefbba1e6dbe689dc5527bc18))
+- **server:** log the reason of a refused wake and atc's problem
+  ([1f6ef46](https://github.com/zgeoff/boxxy/commit/1f6ef468e5ad74cad84490e3f4eec587e70873e3))
+- **store-sqlite:** reject an exclusive call once the store closes
+  ([ac87f1d](https://github.com/zgeoff/boxxy/commit/ac87f1d6105fea1e2ceff1a17df199b9571432d4))
+- **store-sqlite:** skip attempts with no session when matching a caller
+  ([903fdd8](https://github.com/zgeoff/boxxy/commit/903fdd82fc270637fc993ff8478c9002103971ee))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/closeout bumped to 0.1.9
-    * @boxxy/content-hash bumped to 0.1.9
-    * @boxxy/model bumped to 0.1.9
-    * @boxxy/planning bumped to 0.1.9
-  * devDependencies
-    * @boxxy/rules bumped to 0.1.9
-  * peerDependencies
-    * @boxxy/rules bumped to 0.1.9
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/closeout bumped to 0.1.9
+    - @boxxy/content-hash bumped to 0.1.9
+    - @boxxy/model bumped to 0.1.9
+    - @boxxy/planning bumped to 0.1.9
+  - devDependencies
+    - @boxxy/rules bumped to 0.1.9
+  - peerDependencies
+    - @boxxy/rules bumped to 0.1.9
 
 ## [0.1.8](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.1.7...@boxxy/dispatch@0.1.8) (2026-11-12)
 

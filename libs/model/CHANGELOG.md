@@ -2,23 +2,23 @@
 
 ## [0.1.9](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.1.8...@boxxy/model@0.1.9) (2026-11-12)
 
-
 ### Features
 
-* **server:** name the clone token variable of a git source ([bb0c0d1](https://github.com/zgeoff/boxxy/commit/bb0c0d1ecdac12235afc70d1911845053b3adf89))
-
+- **server:** name the clone token variable of a git source
+  ([bb0c0d1](https://github.com/zgeoff/boxxy/commit/bb0c0d1ecdac12235afc70d1911845053b3adf89))
 
 ### Bug Fixes
 
-* **server:** log the reason of a refused spawn ([5969fea](https://github.com/zgeoff/boxxy/commit/5969feaa9b6322bbefbba1e6dbe689dc5527bc18))
-* **server:** log the reason of a refused wake and atc's problem ([1f6ef46](https://github.com/zgeoff/boxxy/commit/1f6ef468e5ad74cad84490e3f4eec587e70873e3))
-
+- **server:** log the reason of a refused spawn
+  ([5969fea](https://github.com/zgeoff/boxxy/commit/5969feaa9b6322bbefbba1e6dbe689dc5527bc18))
+- **server:** log the reason of a refused wake and atc's problem
+  ([1f6ef46](https://github.com/zgeoff/boxxy/commit/1f6ef468e5ad74cad84490e3f4eec587e70873e3))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/content-hash bumped to 0.1.9
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.1.9
 
 ## [0.1.8](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.1.7...@boxxy/model@0.1.8) (2026-11-12)
 
