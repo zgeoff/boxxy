@@ -88,6 +88,41 @@ test('#start answers the session with the caller that atc reports for it', async
   });
 });
 
+test('#start spawns a git source as a trusted atc workspace with no folder', async () => {
+  const ctx = setupTest();
+  const attempt = buildMockV1AttemptRow().id;
+  const { cwd: _folder, ...request } = ctx.buildSpawnRequest(attempt, 'box');
+
+  const outcome = await ctx.worker.start({
+    ...request,
+    source: { url: 'https://git.example.test/example/widget.git', ref: 'main' },
+  });
+
+  expect([outcome.kind, ctx.atc.calls]).toStrictEqual([
+    'started',
+    [
+      {
+        tool: 'atc_session_spawn',
+        args: {
+          target: 'box',
+          workspace: {
+            kind: 'git',
+            url: 'https://git.example.test/example/widget.git',
+            ref: 'main',
+          },
+          trustClonedWorkspace: true,
+          name: `boxxy/${attempt}`,
+          prompt: 'Build the widget.',
+          agent: 'claude',
+          model: 'example-model',
+          effort: 'medium',
+          idempotencyKey: attempt,
+        },
+      },
+    ],
+  ]);
+});
+
 test('#start refuses a folder outside the target trusted folders and spawns nothing', async () => {
   const ctx = setupTest();
   const attempt = buildMockV1AttemptRow().id;

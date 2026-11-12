@@ -45,7 +45,7 @@ export { relationRowSchema } from './rows/relation-row-schema.ts';
 export { reviewCloseOutSchema } from './closeouts/review-close-out-schema.ts';
 export { rowSchemas } from './rows/row-schemas.ts';
 export { signalKey } from './planning/signal-key.ts';
-export { spawnRequestSchema } from './rows/spawn-request-schema.ts';
+export { gitSourceSchema, spawnRequestSchema } from './rows/spawn-request-schema.ts';
 export { stageTimeSchema } from './reports/stage-time-schema.ts';
 export { toJSONValue } from './utils/to-json-value.ts';
 export { triageCloseOutSchema } from './closeouts/triage-close-out-schema.ts';
@@ -223,6 +223,7 @@ export type {
   FactSink,
   ForgetOutcome,
   Forge,
+  GitSource,
   HoldNotice,
   ItemDetailRows,
   ItemFilter,

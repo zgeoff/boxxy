@@ -542,8 +542,9 @@ export interface WorkerKind {
 // `capacity`: the target has no free imp slot.
 // Not checked: which error atc gives when the target has no free imp slot.
 //
-// `createAtcWorker` checks, before each spawn, that the worker folder of the spawn
-// request is a folder the agent trusts. A session that atc starts in an untrusted folder waits
+// A spawn request carries `cwd`, a folder on the target, or `source`, a `GitSource`
+// (`url`, `ref`) that atc clones and trusts. `createAtcWorker` checks, before
+// each spawn with a `cwd`, that the folder is one the agent trusts. A session that atc starts in an untrusted folder waits
 // at the trust dialog (atc `needs_you`, no turn runs). When the folder is not trusted, `start`
 // spawns nothing and answers `refused`, cause `other`, reason `worker folder not trusted`.
 //

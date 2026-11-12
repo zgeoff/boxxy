@@ -13,16 +13,27 @@ export type AtcSession = AtcToolResult<'atc_session_spawn'>;
 // milliseconds, or its creation time when it has none.
 export type AtcSessionRead = AtcToolResult<'atc_session_get'>;
 
-interface AtcSpawnInput {
+// atc's git workspace source: atc clones it into a folder it picks on the target
+interface AtcGitWorkspace {
+  readonly kind: 'git';
+  readonly url: string;
+  readonly ref: string;
+}
+
+// `cwd` for a folder on the target, or `workspace` with `trustClonedWorkspace`, never both
+export type AtcSpawnPlace =
+  | { readonly cwd: string }
+  | { readonly workspace: AtcGitWorkspace; readonly trustClonedWorkspace: boolean };
+
+type AtcSpawnInput = {
   readonly target: string;
-  readonly cwd: string;
   readonly name: string;
   readonly prompt: string;
   readonly agent: string;
   readonly model: string;
   readonly effort: string;
   readonly idempotencyKey: string;
-}
+} & AtcSpawnPlace;
 
 interface AtcForgetInput {
   readonly session: string;

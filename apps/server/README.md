@@ -21,13 +21,11 @@ secret value.
 
 ## Install
 
-Install the package from [npm](https://www.npmjs.com/package/@boxxy/server) with Bun:
+Install the package from npm with [Bun](https://bun.sh) 1.3 or newer:
 
 ```bash
 bun add @boxxy/server
 ```
-
-The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Usage
 
@@ -52,7 +50,9 @@ The `atc` section of the configuration names the gateway:
 | `trustedFolders` | by worker target, the folders the agent trusts there               |
 | `noticeSession`  | optional: the atc session that gets the hold notices               |
 
-[The atc worker](../../docs/design/boxxy/v1-lifecycle.md#the-atc-worker) lists the token's scopes.
+`spawn.repos` gives each repo a folder on the target, or a git source `{ url, ref }` that atc
+clones. [The atc worker](../../docs/design/boxxy/v1-lifecycle.md#the-atc-worker) says how each
+spawns, and lists the token's scopes.
 
 With a `pepys` section in the configuration, also set `BOXXY_PEPYS_SIGNING_SECRET`. With a `github`
 section, set `BOXXY_GITHUB_TOKEN` unless a broker adds the GitHub credential.

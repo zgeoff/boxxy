@@ -1,3 +1,4 @@
+import { gitSourceSchema } from '@boxxy/model';
 import { z } from 'zod';
 
 const name = z.string().min(1);
@@ -11,7 +12,10 @@ const address = z.strictObject({
 
 const spawnSection = z.strictObject({
   target: name,
-  repoPaths: z.record(z.string(), name),
+
+  // by repo: its folder on a target on the atc daemon's own host, or the git source that atc
+  // clones on a target that gives each session a fresh machine
+  repos: z.record(z.string(), z.union([name, gitSourceSchema])),
 });
 
 const atcSection = z.strictObject({

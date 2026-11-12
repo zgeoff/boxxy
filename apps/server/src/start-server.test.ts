@@ -27,7 +27,7 @@ async function setupTest() {
       listen: { hostname: '127.0.0.1', port: 0 },
       workerListen: { hostname: '127.0.0.1', port: 0 },
     },
-    spawn: { target: 'cloud', repoPaths: {} },
+    spawn: { target: 'cloud', repos: {} },
     atc: { url: 'http://127.0.0.1:9/mcp', trustedFolders: {} },
   };
 

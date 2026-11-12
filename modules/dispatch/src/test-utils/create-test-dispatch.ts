@@ -146,7 +146,7 @@ export async function createTestDispatch(options: TestDispatchOptions = {}): Pro
 
   const spawn: SpawnSettings = {
     target: 'worker-host',
-    repoPaths: new Map([[repo, '/tmp/boxxy-test/app']]),
+    repos: new Map([[repo, '/tmp/boxxy-test/app']]),
     prompts: new Map(
       [...example.checkout.files].map(([path, bytes]) => [path, decoder.decode(bytes)]),
     ),

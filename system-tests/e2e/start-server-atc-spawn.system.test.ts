@@ -33,29 +33,31 @@ async function setupTest() {
   const configFile = path.join(folder, 'boxxy.json');
   const warnings: string[] = [];
 
-  await Bun.write(
-    configFile,
-    JSON.stringify({
-      runner: 'runner-1',
-      store: { file: storeFile },
-      rules: { folder: rulesFolder },
-      api: {
-        listen: { hostname: '127.0.0.1', port: 0 },
-        workerListen: { hostname: '127.0.0.1', port: 0 },
-      },
-      spawn: { target: 'cloud', repoPaths: { 'example/app': '/tmp/boxxy-test/repos/app' } },
-      atc: {
-        url: atcServer.url,
-        host: 'atc.test',
-        trustedFolders: { cloud: ['/tmp/boxxy-test/repos'] },
-      },
-    }),
-  );
-
   return {
     atc,
     atcServer,
     warnings,
+
+    // writes the server's configuration, with the repos the test spawns in
+    writeConfig: (repos: Readonly<Record<string, unknown>>) =>
+      Bun.write(
+        configFile,
+        JSON.stringify({
+          runner: 'runner-1',
+          store: { file: storeFile },
+          rules: { folder: rulesFolder },
+          api: {
+            listen: { hostname: '127.0.0.1', port: 0 },
+            workerListen: { hostname: '127.0.0.1', port: 0 },
+          },
+          spawn: { target: 'cloud', repos },
+          atc: {
+            url: atcServer.url,
+            host: 'atc.test',
+            trustedFolders: { cloud: ['/tmp/boxxy-test/repos'] },
+          },
+        }),
+      ),
 
     // files one item in the store the server opens, through the store's own change
     createFiledItem: async () => {
@@ -88,6 +90,7 @@ async function setupTest() {
 test('it spawns a filed item on atc over MCP with the host name and the bearer and no warning', async () => {
   const ctx = await setupTest();
 
+  await ctx.writeConfig({ 'example/app': '/tmp/boxxy-test/repos/app' });
   await ctx.createFiledItem();
   await ctx.startServer();
 
@@ -109,4 +112,29 @@ test('it spawns a filed item on atc over MCP with the host name and the bearer a
     true,
     [],
   ]);
+});
+
+test('it spawns a repo with a git source as an atc workspace that atc trusts, with no cwd', async () => {
+  const ctx = await setupTest();
+
+  await ctx.writeConfig({
+    'example/app': { url: 'https://git.example.test/example/app.git', ref: 'main' },
+  });
+
+  await ctx.createFiledItem();
+  await ctx.startServer();
+
+  await waitFor(() => ctx.atc.calls.some((call) => call.tool === 'atc_session_spawn'), 15_000);
+
+  expect(ctx.atc.calls.find((call) => call.tool === 'atc_session_spawn')?.args).toStrictEqual({
+    target: 'cloud',
+    workspace: { kind: 'git', url: 'https://git.example.test/example/app.git', ref: 'main' },
+    trustClonedWorkspace: true,
+    name: expect.stringMatching(/^boxxy\//u),
+    prompt: expect.any(String),
+    agent: expect.any(String),
+    model: expect.any(String),
+    effort: expect.any(String),
+    idempotencyKey: expect.any(String),
+  });
 });

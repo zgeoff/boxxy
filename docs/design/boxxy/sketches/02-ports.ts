@@ -296,7 +296,7 @@ export type WorkerReading = { readonly kind: "running" | "ended" | "absent" };
  * per session through atc's own config. Slice 1. Owner: slice-1.md "claimNext" step 6.
  */
 export type SpawnRequest = {
-  readonly cwd: string; // the repo's configured local path; the prompt tells the agent to make its own worktree
+  readonly cwd: string; // the repo's configured local path; the prompt tells the agent to make its own worktree. Built: `cwd` or a git `source` (v1-lifecycle.md, "The atc worker")
   readonly prompt: string; // the rendered template
   readonly agent: string;
   readonly model: string;

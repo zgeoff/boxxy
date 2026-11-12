@@ -1,5 +1,5 @@
 import type { AtcSessionId, AttemptId, AttemptRow, SpawnRequest, WorkerKind } from '@boxxy/model';
-import { brandSchemas } from '@boxxy/model';
+import { brandSchemas, toJSONValue } from '@boxxy/model';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import invariant from 'tiny-invariant';
 
@@ -53,13 +53,10 @@ export const workerContract: readonly WorkerContractCase[] = [
     '#reconcile reads absent for an attempt whose spawn never ran',
     async (harness) => {
       const id = buildMockV1AttemptRow().id;
+      const spawnRequest = toJSONValue(harness.buildSpawnRequest(id));
 
       const reading = await harness.worker.reconcile(
-        buildMockV1AttemptRow({
-          id,
-          atcSession: null,
-          spawnRequest: { ...harness.buildSpawnRequest(id) },
-        }),
+        buildMockV1AttemptRow({ id, atcSession: null, spawnRequest }),
       );
 
       return { received: reading, expected: { kind: 'absent' } };
@@ -168,7 +165,7 @@ async function startAttempt(harness: WorkerHarness): Promise<AttemptRow> {
 
   return buildMockV1AttemptRow({
     id,
-    spawnRequest: { ...request },
+    spawnRequest: toJSONValue(request),
     atcSession: findStartedSession(outcome),
     caller: outcome.kind === 'started' ? outcome.caller : null,
   });

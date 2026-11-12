@@ -79,9 +79,17 @@ interface FakeAtcInput {
 
 const sessionArgs = z.object({ session: z.string() });
 
+const gitWorkspaceArgs = z.strictObject({
+  kind: z.literal('git'),
+  url: z.string(),
+  ref: z.string(),
+});
+
 const spawnArgs = z.object({
   target: z.string(),
-  cwd: z.string(),
+  cwd: z.string().optional(),
+  workspace: gitWorkspaceArgs.optional(),
+  trustClonedWorkspace: z.boolean().optional(),
   name: z.string(),
   idempotencyKey: z.string().optional(),
 });
@@ -119,6 +127,12 @@ export function createFakeAtc(input: FakeAtcInput): FakeAtc {
       return buildRefusal('target_forbidden');
     }
 
+    const cwd = pickSpawnFolder(spawned, count + 1);
+
+    if (cwd === null) {
+      return buildRefusal('bad_args');
+    }
+
     count += 1;
 
     const id = `s${count}-fake`;
@@ -127,7 +141,7 @@ export function createFakeAtc(input: FakeAtcInput): FakeAtc {
     const session: FakeSession = {
       id,
       name: spawned.name,
-      cwd: spawned.cwd,
+      cwd,
       target: spawned.target,
       targetKind,
       createdAt: now,
@@ -362,4 +376,24 @@ function buildDescriptor(session: FakeSession): Readonly<Record<string, unknown>
 
 function buildRefusal(code: string): FakeAtcAnswer {
   return { kind: 'refusal', code };
+}
+
+// A folder spawn runs in its `cwd`. A git spawn takes no `cwd` and trusts its clone, and runs in a
+// folder the fake picks, as atc does; any other mix is no spawn atc takes.
+function pickSpawnFolder(spawned: z.output<typeof spawnArgs>, count: number): string | null {
+  if (spawned.workspace === undefined) {
+    return spawned.trustClonedWorkspace === undefined ? (spawned.cwd ?? null) : null;
+  }
+
+  if (spawned.cwd !== undefined || spawned.trustClonedWorkspace !== true) {
+    return null;
+  }
+
+  const repo =
+    spawned.workspace.url
+      .split('/')
+      .at(-1)
+      ?.replace(/\.git$/u, '') ?? 'repo';
+
+  return `/tmp/boxxy-test/atc-workspaces/${repo}-${spawned.workspace.ref}-fake${count}`;
 }

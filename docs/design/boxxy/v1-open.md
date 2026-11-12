@@ -12,6 +12,7 @@ No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc list
 ## Not decided
 
 - Three points of the [folder layout](./layout-folders.md#open-questions).
+- What a build from a git source checks out. The design names no branch or commit per item, so every spawn clones the configured ref. A rework round on the kept session keeps the build's work. A fresh spawn after a failed wake starts again from the ref, and reaches the first build's work only through what that build pushed.
 - Whether to make the claim cheaper before the store holds thousands of open items. The built claim holds the lock for 418 ms at p50 with 20,000 open items, and for 2.4 s when every item has a lever ([dispatch](./dispatch.md#the-built-claim-measured)). The expedite signal reads every lever once per item, so its cost grows with the square of the item count. At 5,000 open items the claim's median is 103 to 173 ms, over the store rule's limit of 50 ms, so `rig bench` fails its budget, and CI does not run the claim benchmark until this point is settled.
 
 ## Where the sketches disagree
@@ -44,7 +45,8 @@ Each row names the test that settles it, where one is known.
 | The usage limit is not detected through atc in v1: no agent harness reports that a session hit the account's limit, so atc has nothing to pass on, and the worker adapter's `usageLimitResetsAt` is always null. A session at the limit then ends as a stall or a missing close-out, and the pool backoff never starts. It closes when atc reports the limit and its reset time on the session. | Run one session to the limit, then read it. |
 | Whether a rework prompt sent with `atc_message_send` lets the agent push. Claude Code shows a relayed message as one a plug-in sent, and its auto-mode classifier reads only the owner's prompts. | The forced rework round of the live proof. |
 | That an attempt's spawn name stays the session's name until the session appears in `atc_sessions_list`. The agent's own `/rename` replaces it. | Spawn, drop the answer, then list. |
-| That each folder in the worker adapter's trusted folders exists and is trusted in a fresh machine of its target. The list is the deployment's statement, and the spawn sends the folder alone, with no workspace source and no `trustClonedWorkspace`. | Spawn once in each listed folder on a new machine. |
+| That each folder in the worker adapter's trusted folders exists and is trusted in a fresh machine of its target. The list is the deployment's statement, and a spawn in a configured folder sends the folder alone, with no workspace source and no `trustClonedWorkspace`. | Spawn once in each listed folder on a new machine. |
+| That atc clones a git source on an imp target, with the credential the broker adds, and trusts the clone, so the first turn runs. | Spawn once from a git source on a new imp. |
 | What `lifecycle.harness` reads between a daemon restart and the fleet restore. If it reads `exited`, the runner settles a running attempt. | Restart the daemon with one session running, then read it before the restore. |
 
 ### The API

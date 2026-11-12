@@ -25,7 +25,7 @@ test('it reads a configuration file that passes the schema', async () => {
       listen: { hostname: '127.0.0.1', port: 4400 },
       workerListen: { hostname: '127.0.0.1', port: 4401 },
     },
-    spawn: { target: 'cloud', repoPaths: { 'example/app': '/tmp/boxxy-test/app' } },
+    spawn: { target: 'cloud', repos: { 'example/app': '/tmp/boxxy-test/app' } },
     atc: { url: 'http://127.0.0.1:7777/mcp', trustedFolders: { cloud: ['/tmp/boxxy-test'] } },
   };
 
@@ -34,6 +34,74 @@ test('it reads a configuration file that passes the schema', async () => {
   const answer = await readServerConfig(ctx.file);
 
   expect(answer).toStrictEqual({ kind: 'read', config });
+});
+
+test('it reads a repo as a git source of a URL and a ref', async () => {
+  const ctx = await setupTest();
+
+  await ctx.writeConfig(
+    JSON.stringify({
+      runner: 'runner-1',
+      store: { file: '/tmp/boxxy-test/boxxy.db' },
+      rules: { folder: '/tmp/boxxy-test/rules' },
+      api: {
+        listen: { hostname: '127.0.0.1', port: 4400 },
+        workerListen: { hostname: '127.0.0.1', port: 4401 },
+      },
+      spawn: {
+        target: 'cloud',
+        repos: { 'example/app': { url: 'https://git.example.test/example/app.git', ref: 'main' } },
+      },
+      atc: { url: 'http://127.0.0.1:7777/mcp', trustedFolders: {} },
+    }),
+  );
+
+  const answer = await readServerConfig(ctx.file);
+
+  expect(answer).toMatchObject({
+    kind: 'read',
+    config: {
+      spawn: {
+        repos: { 'example/app': { url: 'https://git.example.test/example/app.git', ref: 'main' } },
+      },
+    },
+  });
+});
+
+test.each([
+  [
+    'both a folder and a git source',
+    { path: '/tmp/boxxy-test/app', url: 'https://git.example.test/a.git', ref: 'main' },
+  ],
+  ['neither a folder nor a git source', {}],
+  [
+    'a git source with a credential in its URL',
+    { url: 'https://u:p@git.example.test/a.git', ref: 'main' },
+  ],
+  [
+    'a git source with a credential field',
+    { url: 'https://git.example.test/a.git', ref: 'main', credentialEnv: 'EXAMPLE_GIT_TOKEN' },
+  ],
+])('it answers invalid for a repo with %s', async (_title, repo) => {
+  const ctx = await setupTest();
+
+  await ctx.writeConfig(
+    JSON.stringify({
+      runner: 'runner-1',
+      store: { file: '/tmp/boxxy-test/boxxy.db' },
+      rules: { folder: '/tmp/boxxy-test/rules' },
+      api: {
+        listen: { hostname: '127.0.0.1', port: 4400 },
+        workerListen: { hostname: '127.0.0.1', port: 4401 },
+      },
+      spawn: { target: 'cloud', repos: { 'example/app': repo } },
+      atc: { url: 'http://127.0.0.1:7777/mcp', trustedFolders: {} },
+    }),
+  );
+
+  const answer = await readServerConfig(ctx.file);
+
+  expect(answer).toMatchObject({ kind: 'invalid' });
 });
 
 test('it reads the optional sections: trusted issuers, pepys and github', async () => {
@@ -47,7 +115,7 @@ test('it reads the optional sections: trusted issuers, pepys and github', async 
       listen: { hostname: '127.0.0.1', port: 4400 },
       workerListen: { hostname: '127.0.0.1', port: 4401 },
     },
-    spawn: { target: 'cloud', repoPaths: {} },
+    spawn: { target: 'cloud', repos: {} },
     atc: {
       url: 'http://atc-gateway.example.test:8080/mcp',
       host: 'atc.example.test',
@@ -82,7 +150,7 @@ test('it refuses a github section whose base URL is not a URL', async () => {
         listen: { hostname: '127.0.0.1', port: 4400 },
         workerListen: { hostname: '127.0.0.1', port: 4401 },
       },
-      spawn: { target: 'cloud', repoPaths: {} },
+      spawn: { target: 'cloud', repos: {} },
       atc: { url: 'http://127.0.0.1:7777/mcp', trustedFolders: {} },
       github: { baseUrl: 'api.github' },
     }),
@@ -105,7 +173,7 @@ test('it refuses an atc host that is no host name, such as one with a line break
         listen: { hostname: '127.0.0.1', port: 4400 },
         workerListen: { hostname: '127.0.0.1', port: 4401 },
       },
-      spawn: { target: 'cloud', repoPaths: {} },
+      spawn: { target: 'cloud', repos: {} },
       atc: {
         url: 'http://127.0.0.1:7777/mcp',
         host: 'atc.example.test\r\nx-extra: 1',

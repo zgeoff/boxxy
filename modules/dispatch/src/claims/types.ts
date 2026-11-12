@@ -4,6 +4,7 @@ import type {
   CapacityBackoff,
   Claim,
   ClaimStore,
+  GitSource,
   Instant,
   LoadedRules,
   NewId,
@@ -19,8 +20,8 @@ export interface SpawnSettings {
   // the worker target every session starts on
   readonly target: string;
 
-  // each repo's path on the target
-  readonly repoPaths: ReadonlyMap<RepoName, string>;
+  // each repo's folder on the target, or the git source that atc clones on it
+  readonly repos: ReadonlyMap<RepoName, string | GitSource>;
 
   // the text of each prompt template, by its path in the rules checkout
   readonly prompts: ReadonlyMap<string, string>;

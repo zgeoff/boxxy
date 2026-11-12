@@ -3,6 +3,7 @@ import { brandSchemas } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
 import { claimNext } from './claim-next.ts';
+import type { SpawnSettings } from './types.ts';
 
 async function setupTest() {
   const dispatch = await createTestDispatch();
@@ -18,6 +19,16 @@ async function setupTest() {
         newId: dispatch.newId,
         backoff: dispatch.backoff,
         spawn: dispatch.spawn,
+      }),
+    claimNextWithRepos: (repos: SpawnSettings['repos']) =>
+      claimNext({
+        store: dispatch.store,
+        runner: dispatch.runner,
+        rules: dispatch.rules(),
+        now: dispatch.clock.now(),
+        newId: dispatch.newId,
+        backoff: dispatch.backoff,
+        spawn: { ...dispatch.spawn, repos },
       }),
   };
 }
@@ -48,6 +59,25 @@ test('it claims a ready item with a spawn request that names the new attempt', a
   });
 
   expect(claim.spawn.prompt).toContain('Add a dark theme');
+});
+
+test('it claims an item of a repo with a git source with that source and no folder', async () => {
+  const ctx = await setupTest();
+
+  await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+
+  const source = { url: 'https://git.example.test/example/app.git', ref: 'main' };
+
+  const claim = await ctx.claimNextWithRepos(
+    new Map([...ctx.spawn.repos.keys()].map((repo) => [repo, source])),
+  );
+
+  invariant(claim?.kind === 'start', 'the claim starts the item');
+
+  expect([claim.spawn, 'cwd' in claim.spawn]).toStrictEqual([
+    expect.objectContaining({ source }),
+    false,
+  ]);
 });
 
 test('it takes the seats of every limit that counts the pick', async () => {

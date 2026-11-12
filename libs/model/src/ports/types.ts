@@ -305,12 +305,21 @@ export type SessionReading =
 
 export type Attention = 'working' | 'needs-input' | 'turn-ended';
 
-export interface SpawnRequest {
+// A git repository that atc clones on the target. It carries no credential: an imp clones over its
+// own network, where the broker adds the credential from the session's grants.
+export interface GitSource {
+  readonly url: string;
+  readonly ref: string;
+}
+
+// Exactly one of the two: `cwd`, the repo's folder on a target on the atc daemon's own host, or
+// `source`, which atc clones into a folder it picks on the target.
+export type SpawnRequest = SpawnRequestFields &
+  ({ readonly cwd: string } | { readonly source: GitSource });
+
+interface SpawnRequestFields {
   // the worker target, such as a host name of the worker kind
   readonly target: string;
-
-  // the repo's configured path on the target
-  readonly cwd: string;
   readonly prompt: string;
   readonly agent: string;
   readonly model: string;

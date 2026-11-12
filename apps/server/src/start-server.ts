@@ -294,10 +294,10 @@ function buildSpawnSettings(
 ): SpawnSettings {
   return {
     target: config.spawn.target,
-    repoPaths: new Map(
-      Object.entries(config.spawn.repoPaths).map(([repo, folder]) => [
+    repos: new Map(
+      Object.entries(config.spawn.repos).map(([repo, checkout]) => [
         brandSchemas.repoName.parse(repo),
-        folder,
+        checkout,
       ]),
     ),
     prompts,

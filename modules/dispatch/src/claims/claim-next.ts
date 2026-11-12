@@ -206,15 +206,15 @@ interface SpawnParts {
 }
 
 function buildSpawnRequest(parts: SpawnParts): SpawnRequest {
-  const cwd = parts.settings.repoPaths.get(parts.item.repo);
+  const checkout = parts.settings.repos.get(parts.item.repo);
   const template = parts.settings.prompts.get(parts.recipe.prompt);
 
-  invariant(cwd !== undefined, `the configuration names no path for the repo ${parts.item.repo}`);
+  invariant(checkout !== undefined, `the configuration names no repo ${parts.item.repo}`);
   invariant(template !== undefined, `the rules checkout has no prompt ${parts.recipe.prompt}`);
 
   return {
     target: parts.settings.target,
-    cwd,
+    ...(typeof checkout === 'string' ? { cwd: checkout } : { source: checkout }),
     prompt: renderPrompt(template, {
       title: parts.item.title,
       outcome: parts.item.outcome,

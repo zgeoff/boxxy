@@ -2,6 +2,7 @@ import type {
   AtcSessionId,
   AttemptRow,
   SessionReading,
+  SpawnRequest,
   StartOutcome,
   WorkerKind,
 } from '@boxxy/model';
@@ -11,7 +12,7 @@ import { isCapacityRefusal } from './is-capacity-refusal.ts';
 import { isFolderTrusted } from './is-folder-trusted.ts';
 import { AtcCallError } from './mcp/atc-call-error.ts';
 import { toSessionReading } from './to-session-reading.ts';
-import type { AtcClient, AtcSession } from './types.ts';
+import type { AtcClient, AtcSession, AtcSpawnPlace } from './types.ts';
 
 interface AtcWorkerInput {
   readonly client: AtcClient;
@@ -71,14 +72,18 @@ export function createAtcWorker(input: AtcWorkerInput): WorkerKind {
 
   return {
     start: async (request) => {
-      if (!isFolderTrusted(input.trustedFolders[request.target] ?? [], request.cwd)) {
+      // with a git source, atc verifies the clone and trusts that clone alone
+      if (
+        'cwd' in request &&
+        !isFolderTrusted(input.trustedFolders[request.target] ?? [], request.cwd)
+      ) {
         return { kind: 'refused', cause: 'other', reason: 'worker folder not trusted' };
       }
 
       try {
         const session = await client.spawnSession({
           target: request.target,
-          cwd: request.cwd,
+          ...toSpawnPlace(request),
           name: request.name,
           prompt: request.prompt,
           agent: request.agent,
@@ -247,4 +252,17 @@ function toCallFailure(error: unknown): {
   const unknown = error.code === 'outcome_unknown' || error.code === 'idempotency_key_unknown';
 
   return { kind: unknown ? 'unknown' : 'refused', reason };
+}
+
+// A folder on the target as `cwd`, or a git source as atc's workspace with no `cwd`, so that atc
+// picks the folder and the session's `cwd` holds it
+function toSpawnPlace(request: SpawnRequest): AtcSpawnPlace {
+  if ('cwd' in request) {
+    return { cwd: request.cwd };
+  }
+
+  return {
+    workspace: { kind: 'git', url: request.source.url, ref: request.source.ref },
+    trustClonedWorkspace: true,
+  };
 }
