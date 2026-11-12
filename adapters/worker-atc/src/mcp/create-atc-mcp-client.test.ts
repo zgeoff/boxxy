@@ -1,10 +1,10 @@
 import { expect, onTestFinished, test } from 'bun:test';
 import { createFakeClock } from '@boxxy/dispatch/test-utils/create-fake-clock';
+import { createFakeAtcServer } from '../test-utils/create-fake-atc-server.ts';
+import type { FakeAtcRequest } from '../test-utils/create-fake-atc-server.ts';
+import { createFakeAtc } from '../test-utils/create-fake-atc.ts';
 import { AtcCallError } from './atc-call-error.ts';
 import { createAtcMcpClient } from './create-atc-mcp-client.ts';
-import { createFakeAtcServer } from './test-utils/create-fake-atc-server.ts';
-import type { FakeAtcRequest } from './test-utils/create-fake-atc-server.ts';
-import { createFakeAtc } from './test-utils/create-fake-atc.ts';
 
 function setupTest() {
   const atc = createFakeAtc({ clock: createFakeClock(), targets: { box: 'suspending' } });
@@ -116,7 +116,7 @@ test('it refuses with forbidden when the gateway answers 403 to the host name', 
   expect(client.listSessions()).rejects.toMatchObject({ code: 'forbidden' });
 });
 
-test('it refuses with insufficient_scope a tool outside the token scopes', () => {
+test('it refuses with insufficient_scope and the scope name a tool outside the token scopes', () => {
   const ctx = setupTest();
 
   const server = createFakeAtcServer({
@@ -138,6 +138,7 @@ test('it refuses with insufficient_scope a tool outside the token scopes', () =>
 
   expect(client.spawnSession(ctx.spawnInput)).rejects.toMatchObject({
     code: 'insufficient_scope',
+    message: 'the atc token lacks the scope "spawn"',
   });
 });
 

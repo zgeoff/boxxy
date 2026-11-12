@@ -6,9 +6,10 @@ import type {
   WorkerKind,
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
-import { AtcCallError } from './atc-call-error.ts';
 import { findCallerIdentity } from './find-caller-identity.ts';
+import { isCapacityRefusal } from './is-capacity-refusal.ts';
 import { isFolderTrusted } from './is-folder-trusted.ts';
+import { AtcCallError } from './mcp/atc-call-error.ts';
 import { toSessionReading } from './to-session-reading.ts';
 import type { AtcClient, AtcSession } from './types.ts';
 
@@ -221,14 +222,16 @@ function toStarted(session: AtcSession): StartOutcome {
   };
 }
 
-// atc's MCP refusal carries only a code and a message, with none of the refusal's data, so the
-// adapter cannot tell a host with no budget for another machine from any other refusal.
 function toStartFailure(error: unknown): StartOutcome {
   const failure = toCallFailure(error);
 
-  return failure.kind === 'unknown'
-    ? { kind: 'unknown', reason: failure.reason }
-    : { kind: 'refused', cause: 'other', reason: failure.reason };
+  if (failure.kind === 'unknown') {
+    return { kind: 'unknown', reason: failure.reason };
+  }
+
+  const capacity = error instanceof AtcCallError && isCapacityRefusal(error);
+
+  return { kind: 'refused', cause: capacity ? 'capacity' : 'other', reason: failure.reason };
 }
 
 // atc may or may not have run a call it answers `outcome_unknown` or `idempotency_key_unknown`

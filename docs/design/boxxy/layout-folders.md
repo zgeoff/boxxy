@@ -191,7 +191,8 @@ adapters/caller-proof-imp/src   @boxxy/caller-proof-imp
 
 adapters/worker-atc/src         @boxxy/worker-atc
   index  types  create-atc-worker  to-session-reading  find-caller-identity  is-folder-trusted
-  create-atc-mcp-client  atc-tool-results  parse-tool-result  atc-call-error
+  is-capacity-refusal
+  mcp/            create-atc-mcp-client  atc-tool-results  parse-tool-result  atc-call-error
   test-utils/     create-fake-atc  create-fake-atc-server  build-mock-atc-session-read
 
 packages/pepys/src              @boxxy/pepys

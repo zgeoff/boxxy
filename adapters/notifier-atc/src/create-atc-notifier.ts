@@ -2,21 +2,42 @@ import type { HoldNotice, Notifier } from '@boxxy/model';
 import type { AtcNotifierOptions } from './types.ts';
 
 export function createAtcNotifier(options: AtcNotifierOptions): Notifier {
+  // by notice key: the tries of the notice that atc answered and refused
+  const refusedTries = new Map<string, number>();
+
   return {
     async tellHold(notice) {
+      const noticeKey = buildNoticeKey(notice);
+      const tries = refusedTries.get(noticeKey) ?? 0;
+
       try {
         await options.client.sendMessage({
           session: options.session,
           text: formatHoldMessage(notice),
-          idempotencyKey: buildIdempotencyKey(notice),
+          idempotencyKey: buildIdempotencyKey(noticeKey, tries),
         });
       } catch (error) {
-        return { kind: 'failed', reason: toFailureReason(error) };
+        const code = findErrorCode(error);
+
+        // atc answers `outcome_unknown` to a key it refused once, so a refused try never repeats
+        // its key; a try with no atc answer keeps the key, so atc sends the notice at most once
+        if (code !== null) {
+          refusedTries.set(noticeKey, tries + 1);
+        }
+
+        return { kind: 'failed', reason: code ?? 'atc send failed' };
       }
+
+      refusedTries.delete(noticeKey);
 
       return { kind: 'sent' };
     },
   };
+}
+
+// The port's notice has no id or try count; the item, the reason and the time name the notice.
+function buildNoticeKey(notice: HoldNotice): string {
+  return `boxxy-hold:${notice.item}:${notice.reason}:${notice.at}`;
 }
 
 function formatHoldMessage(notice: HoldNotice): string {
@@ -26,14 +47,12 @@ function formatHoldMessage(notice: HoldNotice): string {
   ].join('\n');
 }
 
-// The port's notice has no id or try count; the item, the reason and the time name the notice,
-// so a later try of the same notice repeats the key.
-function buildIdempotencyKey(notice: HoldNotice): string {
-  return `boxxy-hold:${notice.item}:${notice.reason}:${notice.at}`;
+function buildIdempotencyKey(noticeKey: string, refusedTryCount: number): string {
+  return refusedTryCount === 0 ? noticeKey : `${noticeKey}:try-${refusedTryCount + 1}`;
 }
 
 // Only a string `code` is kept: an error message may carry text that must not reach the log.
-function toFailureReason(error: unknown): string {
+function findErrorCode(error: unknown): string | null {
   if (
     typeof error === 'object' &&
     error !== null &&
@@ -43,5 +62,5 @@ function toFailureReason(error: unknown): string {
     return error.code;
   }
 
-  return 'atc send failed';
+  return null;
 }

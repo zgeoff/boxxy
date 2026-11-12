@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import type { atcToolResults } from './atc-tool-results.ts';
+import type { atcToolResults } from './mcp/atc-tool-results.ts';
 
 export type AtcToolName = keyof typeof atcToolResults;
 

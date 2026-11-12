@@ -2,7 +2,7 @@ import { McpServer, createMcpHandler } from '@modelcontextprotocol/server';
 import type { CallToolResult } from '@modelcontextprotocol/server';
 import { match } from 'ts-pattern';
 import { z } from 'zod';
-import { atcToolResults } from '../atc-tool-results.ts';
+import { atcToolResults } from '../mcp/atc-tool-results.ts';
 import type { AtcToolName } from '../types.ts';
 import type { FakeAtc, FakeAtcAnswer, FakeGatewayFailure } from './create-fake-atc.ts';
 
@@ -102,13 +102,32 @@ export function createFakeAtcServer(input: FakeAtcServerInput): FakeAtcServer {
   };
 }
 
+const declaredLifecycle = z.looseObject({ harness: z.string(), desired: z.string() });
+
+const declaredSession = z.looseObject({
+  agentSessionID: z.string().optional(),
+  lastAttachedAt: z.number(),
+  lifecycle: declaredLifecycle,
+});
+
+// the output schemas atc declares, which the server checks each structured result against
+const outputSchemas: Partial<Record<AtcToolName, z.ZodObject>> = {
+  atc_session_get: z.looseObject({ session: declaredSession, lastActivityAt: z.number() }),
+};
+
 function buildMcpServer(atc: FakeAtc): McpServer {
   const server = new McpServer({ name: 'atc', version: '7.14.0' });
 
   for (const tool of Object.keys(toolScopes).filter((name) => isToolName(name))) {
+    const outputSchema = outputSchemas[tool];
+
     server.registerTool(
       tool,
-      { description: `the fake atc's ${tool}`, inputSchema: z.looseObject({}) },
+      {
+        description: `the fake atc's ${tool}`,
+        inputSchema: z.looseObject({}),
+        ...(outputSchema === undefined ? {} : { outputSchema }),
+      },
       (args) => toToolResult(atc.answer(tool, args)),
     );
   }
@@ -129,6 +148,10 @@ function toToolResult(answer: FakeAtcAnswer): CallToolResult {
     }))
     .with({ kind: 'refusal' }, (refused) => ({
       content: [{ type: 'text', text: `${refused.code}: the fake atc refused the call` }],
+      structuredContent:
+        refused.problem === undefined
+          ? { code: refused.code }
+          : { code: refused.code, problem: refused.problem },
       isError: true,
     }))
     .exhaustive();

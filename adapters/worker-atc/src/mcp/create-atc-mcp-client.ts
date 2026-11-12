@@ -7,10 +7,10 @@ import {
   UnauthorizedError,
 } from '@modelcontextprotocol/client';
 import type { z } from 'zod';
+import type { AtcClient, AtcToolName } from '../types.ts';
 import { AtcCallError } from './atc-call-error.ts';
 import { atcToolResults as results } from './atc-tool-results.ts';
 import { parseToolResult } from './parse-tool-result.ts';
-import type { AtcClient, AtcToolName } from './types.ts';
 
 interface AtcMcpClientInput {
   // the gateway's `/mcp` endpoint, such as its in-cluster Service address
@@ -117,7 +117,10 @@ function buildHeaders(input: AtcMcpClientInput, init: RequestInit | undefined): 
 // only its status or its own message: a response body may echo what the request sent.
 function toCallError(error: unknown): Error {
   if (error instanceof InsufficientScopeError) {
-    return new AtcCallError('insufficient_scope', 'the atc token lacks the scope for this tool');
+    return new AtcCallError(
+      'insufficient_scope',
+      `the atc token lacks the scope ${toScopeName(error.requiredScope)}`,
+    );
   }
 
   if (error instanceof UnauthorizedError) {
@@ -133,6 +136,11 @@ function toCallError(error: unknown): Error {
   }
 
   return error instanceof Error ? error : new Error(String(error));
+}
+
+// the gateway's challenge names the scope; a value that is no scope name is never echoed
+function toScopeName(scope: string | undefined): string {
+  return scope !== undefined && /^[a-z][a-z_ ]{0,63}$/u.test(scope) ? `"${scope}"` : '(not named)';
 }
 
 function toHttpError(status: number): Error {

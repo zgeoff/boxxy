@@ -1,7 +1,9 @@
-import type { AtcSession, AtcSessionRead } from '../types.ts';
+import type { AtcSessionRead } from '../types.ts';
 
-type MockSession = Partial<Omit<AtcSession, 'lifecycle'>> & {
-  readonly lifecycle?: Partial<AtcSession['lifecycle']>;
+type ReadSession = AtcSessionRead['session'];
+
+type MockSession = Partial<Omit<ReadSession, 'lifecycle'>> & {
+  readonly lifecycle?: Partial<ReadSession['lifecycle']>;
 };
 
 // `atc_session_get`'s parsed result for a session whose agent runs and works on an imp target.

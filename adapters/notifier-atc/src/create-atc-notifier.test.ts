@@ -70,6 +70,74 @@ test('it sends the same idempotency key for the same notice and another for anot
   expect(keys[2]).not.toBe(keys[0]);
 });
 
+test('it sends a fresh idempotency key on the next try after atc answers outcome_unknown', async () => {
+  const ctx = setupTest();
+  let refusals = 1;
+
+  const notifier = createAtcNotifier({
+    client: {
+      sendMessage: (request) => {
+        ctx.sent.push(request);
+
+        refusals -= 1;
+
+        return refusals >= 0
+          ? Promise.reject(Object.assign(new Error('refused'), { code: 'outcome_unknown' }))
+          : Promise.resolve({});
+      },
+    },
+    session: 'owner-desk',
+  });
+
+  await notifier.tellHold(ctx.notice);
+
+  const outcome = await notifier.tellHold(ctx.notice);
+
+  expect([outcome, new Set(ctx.sent.map((request) => request.idempotencyKey)).size]).toStrictEqual([
+    { kind: 'sent' },
+    2,
+  ]);
+});
+
+test('it returns failed with outcome_unknown when atc cannot tell whether it sent', async () => {
+  const ctx = setupTest();
+
+  const notifier = createAtcNotifier({
+    client: {
+      sendMessage: () =>
+        Promise.reject(Object.assign(new Error('refused'), { code: 'outcome_unknown' })),
+    },
+    session: 'owner-desk',
+  });
+
+  const outcome = await notifier.tellHold(ctx.notice);
+
+  expect(outcome).toStrictEqual({ kind: 'failed', reason: 'outcome_unknown' });
+});
+
+test('it repeats the idempotency key on the next try after a send that got no atc answer', async () => {
+  const ctx = setupTest();
+  let losses = 1;
+
+  const notifier = createAtcNotifier({
+    client: {
+      sendMessage: (request) => {
+        ctx.sent.push(request);
+
+        losses -= 1;
+
+        return losses >= 0 ? Promise.reject(new Error('socket closed')) : Promise.resolve({});
+      },
+    },
+    session: 'owner-desk',
+  });
+
+  await notifier.tellHold(ctx.notice);
+  await notifier.tellHold(ctx.notice);
+
+  expect(ctx.sent[0]?.idempotencyKey).toBe(ctx.sent[1]?.idempotencyKey);
+});
+
 test('it returns failed with the atc error code when the session does not exist', async () => {
   const ctx = setupTest();
 

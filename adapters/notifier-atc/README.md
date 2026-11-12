@@ -28,7 +28,8 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 - `createAtcNotifier({ client, session })` returns a `Notifier`. The message names the item and the
   reason, and says the owner next runs `boxxy item note` and `boxxy item retry`.
 - The client is one call, `sendMessage`. The app builds it from its atc connection.
-- A send that fails, or that atc refuses, returns the failed outcome and never throws.
+- A send that fails, or that atc refuses, returns the failed outcome and never throws. After a
+  refusal, the next try of the notice goes out under a fresh idempotency key.
 
 ## Documentation
 

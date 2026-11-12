@@ -15,7 +15,7 @@ type Desired = 'run' | 'sleep' | 'stop';
 // shape.
 export type FakeAtcAnswer =
   | { readonly kind: 'result'; readonly result: Readonly<Record<string, unknown>> }
-  | { readonly kind: 'refusal'; readonly code: string }
+  | { readonly kind: 'refusal'; readonly code: string; readonly problem?: string }
   | { readonly kind: 'malformed'; readonly result: Readonly<Record<string, unknown>> };
 
 // A failure the gateway answers in place of the tool: `no-answer` is HTTP 502, and `rpc-error`

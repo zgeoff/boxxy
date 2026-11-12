@@ -554,8 +554,8 @@ export interface WorkerKind {
 // timeoutMs })` gives over MCP streamable HTTP; `trustedFolders` maps each worker target to the
 // folders the agent trusts there, from the app's configuration (atc has no call that reads
 // trust). The tool behind each method and the map of each atc answer to an outcome are in
-// v1-lifecycle.md, "The atc worker". Every refusal has the cause `other` for now: atc's MCP
-// refusal carries no `problem`, so `capacity` is never read (v1-open.md). The caller comes from
+// v1-lifecycle.md, "The atc worker". `isCapacityRefusal` reads `capacity` from the refusal's
+// structured `code` and `problem`. The caller comes from
 // `findCallerIdentity`, which reads the `host` field (`name`, `id`, `issuer`); atc reports no
 // usage limit, so `usageLimitResetsAt` is always null (v1-open.md). `StartOutcome`,
 // `SuspendOutcome`, `StopOutcome`, `ForgetOutcome` are in libs/model/src/ports/types.ts. The
@@ -671,8 +671,9 @@ export interface Notifier {
 // idempotencyKey })`, that resolves when atc takes the message and rejects when atc refuses it. A
 // rejection becomes `failed`, with the error's string `code` as the reason (`no_such_session`) or
 // `atc send failed`; the error text is never copied. The port's notice holds no row id or try
-// count, so the key is built from the item, the reason and the time: a later try of the same
-// notice repeats the key.
+// count, so the key is built from the item, the reason and the time. A try that atc answered and
+// refused, `outcome_unknown` included, gives the next try of the notice a fresh key, because atc
+// answers `outcome_unknown` to a repeat of a refused key; a try with no atc answer keeps its key.
 
 export interface NoticeRow {
   readonly id: number;

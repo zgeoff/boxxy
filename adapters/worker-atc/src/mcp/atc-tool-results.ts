@@ -4,28 +4,37 @@ import { z } from 'zod';
 const text = z.string().min(1).max(512);
 const time = z.number().int().nonnegative();
 
+const lifecycleSchema = z.object({
+  desired: z.enum(['run', 'sleep', 'stop']),
+  harness: z.enum(['running', 'suspended', 'exited']),
+});
+
 // The fields of atc's session entry that boxxy reads; atc sends more, and the parse drops them.
 // The enums are closed: a value atc adds later fails the parse, so boxxy never guesses its meaning.
+// A field that only a reading needs is optional here and checked when present.
 const sessionSchema = z.object({
   id: text,
   name: z.string().max(512),
   createdAt: time,
   state: z.enum(['running', 'needs_you', 'done', 'exited']),
   agentSessionID: text.optional(),
-  lastAttachedAt: time,
-  lifecycle: z.object({
-    desired: z.enum(['run', 'sleep', 'stop']),
-    harness: z.enum(['running', 'suspended', 'exited']),
-  }),
+  lastAttachedAt: time.optional(),
+  lifecycle: lifecycleSchema.optional(),
   host: z
     .object({ name: z.string().max(512), id: text.optional(), issuer: text.optional() })
     .optional(),
 });
 
+// `atc_session_get` declares the fields a reading needs, so a read without them fails the parse
+const readSessionSchema = sessionSchema.extend({
+  lastAttachedAt: time,
+  lifecycle: lifecycleSchema,
+});
+
 // The structured result of each atc tool the adapter calls, by tool name.
 export const atcToolResults = {
   atc_sessions_list: z.object({ sessions: z.array(sessionSchema).max(10_000) }),
-  atc_session_get: z.object({ session: sessionSchema, lastActivityAt: time }),
+  atc_session_get: z.object({ session: readSessionSchema, lastActivityAt: time }),
   atc_session_spawn: sessionSchema,
   atc_session_stop: z.object({ stopped: z.boolean() }),
   atc_session_adopt: z.object({ adopted: z.boolean() }),

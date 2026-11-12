@@ -4,8 +4,8 @@ import { workerContract } from '@boxxy/dispatch/test-utils/worker-contract';
 import type { AttemptId } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
-import { createAtcMcpClient } from './create-atc-mcp-client.ts';
 import { createAtcWorker } from './create-atc-worker.ts';
+import { createAtcMcpClient } from './mcp/create-atc-mcp-client.ts';
 import { createFakeAtcServer } from './test-utils/create-fake-atc-server.ts';
 import { createFakeAtc } from './test-utils/create-fake-atc.ts';
 
@@ -103,11 +103,34 @@ test('#start refuses a folder outside the target trusted folders and spawns noth
   ]);
 });
 
-test('#start answers the cause other for a host atc cannot ready, since MCP gives no problem', async () => {
+test('#start answers capacity when the host has no RAM budget for another machine', async () => {
   const ctx = setupTest();
   const attempt = buildMockV1AttemptRow().id;
 
-  ctx.atc.failNext('atc_session_spawn', { kind: 'refusal', code: 'host_unavailable' });
+  ctx.atc.failNext('atc_session_spawn', {
+    kind: 'refusal',
+    code: 'host_unavailable',
+    problem: 'ram_budget_exceeded',
+  });
+
+  const outcome = await ctx.worker.start(ctx.buildSpawnRequest(attempt, 'box'));
+
+  expect(outcome).toStrictEqual({
+    kind: 'refused',
+    cause: 'capacity',
+    reason: expect.stringContaining('host_unavailable'),
+  });
+});
+
+test('#start answers the cause other for a host atc cannot ready for another problem', async () => {
+  const ctx = setupTest();
+  const attempt = buildMockV1AttemptRow().id;
+
+  ctx.atc.failNext('atc_session_spawn', {
+    kind: 'refusal',
+    code: 'host_unavailable',
+    problem: 'impd_outdated',
+  });
 
   const outcome = await ctx.worker.start(ctx.buildSpawnRequest(attempt, 'box'));
 
@@ -345,6 +368,30 @@ test('#resume answers refused when atc cannot ready the host to wake', async () 
   const outcome = await ctx.worker.resume(attempt);
 
   expect(outcome).toMatchObject({ kind: 'refused', cause: 'other' });
+});
+
+test('#resume answers capacity when the host has no RAM budget to wake', async () => {
+  const ctx = setupTest();
+  const id = buildMockV1AttemptRow().id;
+
+  await ctx.worker.start(ctx.buildSpawnRequest(id, 'box'));
+
+  const attempt = buildMockV1AttemptRow({
+    id,
+    atcSession: brandSchemas.atcSessionId.parse('s1-fake'),
+  });
+
+  await ctx.worker.stop(attempt);
+
+  ctx.atc.failNext('atc_session_adopt', {
+    kind: 'refusal',
+    code: 'host_unavailable',
+    problem: 'ram_budget_exceeded',
+  });
+
+  const outcome = await ctx.worker.resume(attempt);
+
+  expect(outcome).toMatchObject({ kind: 'refused', cause: 'capacity' });
 });
 
 test('#resumeKept sends the prompt to the woken session as a message', async () => {
