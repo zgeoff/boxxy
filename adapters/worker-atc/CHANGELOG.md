@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.0](https://github.com/zgeoff/boxxy/compare/@boxxy/worker-atc@0.1.9...@boxxy/worker-atc@0.2.0) (2026-11-12)
+
+
+### Bug Fixes
+
+* **worker-atc:** answer unknown when a kept session does not stop ([318b1ab](https://github.com/zgeoff/boxxy/commit/318b1ab89317d13491b661d5037c0f5870a4cb23))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/model bumped to 0.2.0
+  * devDependencies
+    * @boxxy/dispatch bumped to 0.2.0
+
 ## [0.1.9](https://github.com/zgeoff/boxxy/compare/@boxxy/worker-atc@0.1.8...@boxxy/worker-atc@0.1.9) (2026-11-12)
 
 ### Features

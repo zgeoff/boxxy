@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.0](https://github.com/zgeoff/boxxy/compare/@boxxy/notifier-atc@0.1.9...@boxxy/notifier-atc@0.2.0) (2026-11-12)
+
+
+### Features
+
+* **notices:** retry notices with backoff and keep each key on its row ([#89](https://github.com/zgeoff/boxxy/issues/89)) ([b172a2b](https://github.com/zgeoff/boxxy/commit/b172a2bc47610f1a3ddf246a9123db6898358f07))
+
+
+### Bug Fixes
+
+* **notifier-atc:** keep the key after a send that atc may have run ([ad1d3f7](https://github.com/zgeoff/boxxy/commit/ad1d3f7db76a8aa565256e1b4c9adff7285303cc))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/model bumped to 0.2.0
+
 ## [0.1.9](https://github.com/zgeoff/boxxy/compare/@boxxy/notifier-atc@0.1.8...@boxxy/notifier-atc@0.1.9) (2026-11-12)
 
 ### Miscellaneous Chores
