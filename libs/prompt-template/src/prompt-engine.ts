@@ -1,4 +1,5 @@
 import { Liquid } from 'liquidjs';
+import { promptFilters, promptTags } from './constants.ts';
 
 // An empty `templates` map keeps Liquid off the file system. `jsTruthy` makes the empty string
 // false, as Liquid's own truthiness counts only nil and false as false. No `outputEscape`: a
@@ -10,6 +11,13 @@ export const promptEngine = new Liquid({
   strictFilters: true,
 });
 
-for (const tag of ['include', 'render', 'layout', 'block']) {
+const tags: ReadonlySet<string> = new Set(promptTags);
+const filters: ReadonlySet<string> = new Set(promptFilters);
+
+for (const tag of Object.keys(promptEngine.tags).filter((name) => !tags.has(name))) {
   Reflect.deleteProperty(promptEngine.tags, tag);
+}
+
+for (const filter of Object.keys(promptEngine.filters).filter((name) => !filters.has(name))) {
+  Reflect.deleteProperty(promptEngine.filters, filter);
 }

@@ -290,7 +290,9 @@ export type LoadRejectionReason =
   | { readonly kind: 'missing-recipe'; readonly itemKind: string; readonly phase: string }
   | { readonly kind: 'missing-prompt'; readonly path: string }
 
-  // the prompt template does not parse, names a value that is no placeholder, or reads a field of one
+  // the prompt template does not parse, uses a tag or filter off the list, names a value that is
+  // no placeholder or reads a name from a value, loops over anything but a bare placeholder,
+  // builds a range, or reads a field of any value
   | { readonly kind: 'bad-prompt'; readonly path: string; readonly message: string }
   | { readonly kind: 'uncommitted-changes' }
 

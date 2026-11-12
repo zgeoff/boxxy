@@ -481,7 +481,7 @@ export type LoadRejectionReason =
   | { readonly kind: "signal-without-combine"; readonly signal: string } // a propagation line's signal
   | { readonly kind: "missing-recipe"; readonly itemKind: string; readonly phase: string } // a pipeline phase with no recipe
   | { readonly kind: "missing-prompt"; readonly path: string }
-  | { readonly kind: "bad-prompt"; readonly path: string; readonly message: string } // the Liquid template does not parse, names a value that is no placeholder, or reads a field of one
+  | { readonly kind: "bad-prompt"; readonly path: string; readonly message: string } // the Liquid template does not parse, uses a tag or filter off the list, names a value that is no placeholder or reads a name from a value, loops over anything but a bare placeholder, builds a range, or reads a field of any value
   | { readonly kind: "uncommitted-changes" } // the server checks git and returns this; loadRules never does
   | { readonly kind: "unknown-plugin"; readonly pluginKind: PluginKindName; readonly name: string } // later
   | { readonly kind: "experiment"; readonly message: string }; // later: the experiment loader's own checks

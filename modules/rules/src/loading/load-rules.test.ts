@@ -2732,6 +2732,16 @@ test.each([
     "Build {{ title }}.\n\n{% include 'other.md' %}\n",
     expect.stringMatching(/^the template does not parse: tag "include" not found/u),
   ],
+  [
+    'an assign',
+    'Build {{ title }}.\n\n{% if design %}{% assign heading = title %}{% endif %}{{ heading }}\n',
+    expect.stringMatching(/^the template does not parse: tag "assign" not found/u),
+  ],
+  [
+    'a date filter',
+    "Build {{ title }} on {{ 'now' | date: '%Y-%m-%d' }}.\n",
+    expect.stringMatching(/^the template does not parse: undefined filter: date/u),
+  ],
 ])('it rejects a prompt template with %s', (_, template, message) => {
   const concepts: Concept[] = [
     {
