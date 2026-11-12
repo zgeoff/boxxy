@@ -112,3 +112,24 @@ test('it settles a spawn refused for another cause as spawn-refused, with no bac
     [],
   ]);
 });
+
+test.each([
+  ['capacity', 'host_unavailable: no free slot'],
+  ['other', 'unknown_target: no such target'],
+] as const)('it returns a spawn refused for %s, with its reason', async (cause, reason) => {
+  const ctx = await setupTest();
+  const claim = await ctx.claimBuild();
+
+  ctx.worker.failNext('start', { kind: 'refused', cause, reason });
+
+  const refusal = await ctx.start(claim);
+
+  expect(refusal).toStrictEqual({
+    kind: 'fault',
+    fault: 'spawn-refused',
+    attempt: claim.attempt.id,
+    item: claim.attempt.item,
+    cause,
+    reason,
+  });
+});

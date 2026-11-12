@@ -238,6 +238,7 @@ export type {
   RowWrite,
   SessionFault,
   SessionReading,
+  SpawnRefusal,
   SpawnRequest,
   StartOutcome,
   StopOutcome,

@@ -742,8 +742,10 @@ export type WakeSource =
 
 export declare function claimNext(input: ClaimInput): Promise<Claim | null>; // events `claimed`, `woken`
 // `startClaim` and `resumeClaim` return the fault of an agent session that another attempt
-// holds, or null; the runner logs the fault.
-export declare function startClaim(input: StartClaimInput): Promise<SessionFault | null>; // `started`, `spawn-unanswered`, `settled` (spawn-refused, no-capacity)
+// holds, or null; the runner logs the fault. `startClaim` also returns a refused spawn, and the
+// runner logs it at warn level with the worker's reason, which no fact carries.
+export interface SpawnRefusal { kind: 'fault'; fault: 'spawn-refused'; attempt: AttemptId; item: ItemId; cause: 'capacity' | 'other'; reason: string }
+export declare function startClaim(input: StartClaimInput): Promise<SessionFault | SpawnRefusal | null>; // `started`, `spawn-unanswered`, `settled` (spawn-refused, no-capacity)
 // A spawn that the worker refuses for capacity (no free imp slot on the host) does not count
 // against `maxAttempts`; the pool is marked full for `timeouts.capacityBackoffSeconds` and the item
 // is ready as it was.

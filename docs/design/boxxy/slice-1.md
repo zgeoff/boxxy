@@ -866,7 +866,9 @@ after the commit, outside the lock:
 - `started`: apply a change under the claim's generation that moves the attempt to `running` with
   atc's session id, and writes `boxxy.attempt.started`. When the outcome carries an agent session
   id, the same change records it ([agent sessions](#agent-sessions)).
-- `refused`: settle the attempt with the forced reason `spawn-refused` ([settle](#settle)).
+- `refused`: settle the attempt with the forced reason `spawn-refused` ([settle](#settle)), and
+  return the refusal. The runner logs it at warn level with the attempt, the item and the worker's
+  reason, because no fact carries the reason.
 - `unknown`: apply a change under the claim's generation that moves the attempt to `reconciling`,
   and writes `boxxy.attempt.reconciling`.
 

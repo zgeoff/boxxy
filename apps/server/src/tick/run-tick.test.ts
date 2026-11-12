@@ -138,6 +138,35 @@ test('it ends the claim loop on an error and still reads the live attempts', asy
   });
 });
 
+test('it logs a spawn that the worker refused, with its attempt, item and reason', async () => {
+  const ctx = await setupTest();
+  const item = await ctx.dispatch.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+
+  ctx.dispatch.worker.failNext('start', {
+    kind: 'refused',
+    cause: 'capacity',
+    reason: 'host_unavailable: no free slot',
+  });
+
+  await runTick(ctx.buildDeps());
+
+  const [refused] = await ctx.dispatch.store.read((tx) => tx.listItemAttempts(item));
+
+  invariant(refused !== undefined, 'the tick claimed the seeded item');
+
+  expect([ctx.logged, ctx.loggedFields]).toStrictEqual([
+    ['the worker refused a spawn'],
+    [
+      {
+        attempt: refused.id,
+        item,
+        cause: 'capacity',
+        reason: 'host_unavailable: no free slot',
+      },
+    ],
+  ]);
+});
+
 test('it logs each inner error of an AggregateError that ends the claim loop', async () => {
   const ctx = await setupTest();
 

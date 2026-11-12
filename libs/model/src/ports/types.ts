@@ -370,6 +370,17 @@ export interface SessionFault {
   readonly holder: AttemptId;
 }
 
+// A spawn that the worker refused. The attempt settles as `no-capacity` or `spawn-refused`, and
+// the runner logs the worker's reason, which no fact carries.
+export interface SpawnRefusal {
+  readonly kind: 'fault';
+  readonly fault: 'spawn-refused';
+  readonly attempt: AttemptId;
+  readonly item: ItemId;
+  readonly cause: 'capacity' | 'other';
+  readonly reason: string;
+}
+
 // What one batch sent to the sink got back. `retry` may or may not have stored the batch.
 export type SinkAnswer =
   | { readonly kind: 'stored' }

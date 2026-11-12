@@ -1,4 +1,4 @@
-import type { ActorRef, SessionFault, StartOutcome } from '@boxxy/model';
+import type { ActorRef, SessionFault, SpawnRefusal, StartOutcome } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { match } from 'ts-pattern';
 import { writeAttemptMove } from '../attempts/write-attempt-move.ts';
@@ -12,9 +12,11 @@ import type { StartClaimInput } from './types.ts';
 const secondMs = 1000;
 
 // Starts the claim's session outside the store lock, and records the worker's answer. A refusal
-// for capacity settles `no-capacity` and holds the pool back. Returns the fault of an agent
-// session that another attempt holds, or null.
-export async function startClaim(input: StartClaimInput): Promise<SessionFault | null> {
+// for capacity settles `no-capacity` and holds the pool back. Returns the refusal, the fault of an
+// agent session that another attempt holds, or null.
+export async function startClaim(
+  input: StartClaimInput,
+): Promise<SessionFault | SpawnRefusal | null> {
   const attempt = input.claim.attempt;
   const actor: ActorRef = `boxxy:runner:${attempt.runner}`;
   const base = { actor, now: input.now, newId: input.newId };
@@ -29,7 +31,7 @@ export async function startClaim(input: StartClaimInput): Promise<SessionFault |
   const resumeFallback = woken.resumeFallback;
   const keptClear = kept === null ? [] : [buildKeptClear(attempt.item, kept)];
 
-  return match<StartOutcome, Promise<SessionFault | null>>(outcome)
+  return match<StartOutcome, Promise<SessionFault | SpawnRefusal | null>>(outcome)
     .with({ kind: 'started' }, (started) =>
       input.store.exclusive(async (tx) => {
         const moved = await writeAttemptMove(
@@ -93,7 +95,14 @@ export async function startClaim(input: StartClaimInput): Promise<SessionFault |
         rules: input.rules,
       });
 
-      return null;
+      return {
+        kind: 'fault',
+        fault: 'spawn-refused',
+        attempt: attempt.id,
+        item: attempt.item,
+        cause: refused.cause,
+        reason: refused.reason,
+      };
     })
     .exhaustive();
 }

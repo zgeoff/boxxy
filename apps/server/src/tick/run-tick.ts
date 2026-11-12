@@ -24,9 +24,11 @@ import type {
   RunnerId,
   SessionFault,
   SessionReading,
+  SpawnRefusal,
   WorkerKind,
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
+import { match } from 'ts-pattern';
 import { formatErrorChain } from '../format-error-chain.ts';
 import type { ServerLog } from '../types.ts';
 
@@ -104,13 +106,27 @@ async function runClaimLoop(deps: TickDeps): Promise<number> {
   return claimed.size;
 }
 
-function logFault(deps: TickDeps, fault: SessionFault | null): void {
-  if (fault !== null) {
-    deps.log.warn('an agent session is bound to another attempt', {
-      attempt: fault.attempt,
-      holder: fault.holder,
-    });
+function logFault(deps: TickDeps, fault: SessionFault | SpawnRefusal | null): void {
+  if (fault === null) {
+    return;
   }
+
+  match(fault)
+    .with({ fault: 'agent-session-owned' }, (owned) => {
+      deps.log.warn('an agent session is bound to another attempt', {
+        attempt: owned.attempt,
+        holder: owned.holder,
+      });
+    })
+    .with({ fault: 'spawn-refused' }, (refused) => {
+      deps.log.warn('the worker refused a spawn', {
+        attempt: refused.attempt,
+        item: refused.item,
+        cause: refused.cause,
+        reason: refused.reason,
+      });
+    })
+    .exhaustive();
 }
 
 // One reading per live attempt. A reading that throws skips its attempt; the next tick reads it
