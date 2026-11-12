@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.7](https://github.com/zgeoff/boxxy/compare/@boxxy/notifier-atc@0.1.6...@boxxy/notifier-atc@0.1.7) (2026-11-12)
+
+
+### Features
+
+* **worker-atc:** read capacity and scopes from atc mcp refusals ([b294608](https://github.com/zgeoff/boxxy/commit/b2946080fd5352fd46cb9665598524494d862189))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/model bumped to 0.1.7
+
 ## [0.1.6](https://github.com/zgeoff/boxxy/compare/@boxxy/notifier-atc@0.1.5...@boxxy/notifier-atc@0.1.6) (2026-11-12)
 
 ### Miscellaneous Chores

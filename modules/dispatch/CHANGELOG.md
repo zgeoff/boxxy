@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.1.7](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.1.6...@boxxy/dispatch@0.1.7) (2026-11-12)
+
+
+### Features
+
+* **worker-atc:** spawn a git workspace on targets with fresh machines ([578228e](https://github.com/zgeoff/boxxy/commit/578228ec91ec9f17e81021226f27bc7c3f081f28))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/closeout bumped to 0.1.7
+    * @boxxy/content-hash bumped to 0.1.7
+    * @boxxy/model bumped to 0.1.7
+    * @boxxy/planning bumped to 0.1.7
+  * devDependencies
+    * @boxxy/rules bumped to 0.1.7
+  * peerDependencies
+    * @boxxy/rules bumped to 0.1.7
+
 ## [0.1.6](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.1.5...@boxxy/dispatch@0.1.6) (2026-11-12)
 
 ### Miscellaneous Chores
