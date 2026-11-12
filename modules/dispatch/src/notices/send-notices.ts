@@ -2,16 +2,19 @@ import type { NoticeOutcome, NoticeRow } from '@boxxy/model';
 import { noticeLimits } from './constants.ts';
 import type { NoticeReport, SendNoticesInput } from './types.ts';
 
-// Sends each unsent hold notice through the notifier and counts the try on its row. A failed
-// notice stays unsent until it has used `maxTries`. A notifier that throws counts as a failed
-// one, and no notice changes an attempt or an item.
+// Sends each unsent hold notice through the notifier and counts the try on its row. A notice
+// that used `maxTries` stays unsent and is no longer read, so it never holds back a newer one.
+// A notifier that throws counts as a failed try; no notice changes an attempt or an item.
 export async function sendNotices(input: SendNoticesInput): Promise<NoticeReport> {
-  const rows = await input.store.read((tx) => tx.listUnsentNotices(noticeLimits.readRows));
+  const rows = await input.store.read(async (tx) => ({
+    toSend: await tx.listNoticesToSend(noticeLimits.maxTries, noticeLimits.readRows),
+    unsent: await tx.listUnsentNotices(noticeLimits.readRows),
+  }));
 
   let sent = 0;
   let failed = 0;
 
-  for (const row of rows.filter((candidate) => candidate.tries < noticeLimits.maxTries)) {
+  for (const row of rows.toSend) {
     const outcome = await tellHold(input, row);
 
     const isSent = outcome.kind === 'sent';
@@ -28,7 +31,7 @@ export async function sendNotices(input: SendNoticesInput): Promise<NoticeReport
   return {
     sent,
     failed,
-    stuck: rows.filter((candidate) => candidate.tries >= noticeLimits.maxTries).length,
+    stuck: rows.unsent.filter((candidate) => candidate.tries >= noticeLimits.maxTries).length,
   };
 }
 

@@ -338,6 +338,18 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
 
       return rows.map((row) => parseStoreRow('notices', row));
     },
+    listNoticesToSend: async (maxTries, limit) => {
+      const rows = await db
+        .selectFrom('notices')
+        .selectAll()
+        .where('sent_at', 'is', null)
+        .where('tries', '<', maxTries)
+        .orderBy('id')
+        .limit(limit)
+        .execute();
+
+      return rows.map((row) => parseStoreRow('notices', row));
+    },
     listKeptSessions: async () => {
       const rows = await db
         .selectFrom('items')

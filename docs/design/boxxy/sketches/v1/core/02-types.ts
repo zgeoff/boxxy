@@ -606,7 +606,8 @@ export interface StoreReader {
   listLimits: () => Promise<LimitFill[]>;
   listLimitSeats: () => Promise<LimitSeatRow[]>;
   listItemNotes: (item: ItemId) => Promise<readonly NoteRow[]>; // oldest first
-  listUnsentNotices: (limit: number) => Promise<readonly NoticeRow[]>; // for the notice port, below
+  listUnsentNotices: (limit: number) => Promise<readonly NoticeRow[]>; // for `runner.status`, whatever their tries
+  listNoticesToSend: (maxTries: number, limit: number) => Promise<readonly NoticeRow[]>; // for the notice port, below: fewer than `maxTries` tries
   listKeptSessions: () => Promise<readonly { item: ItemId; kept: KeptSession }[]>; // for cleanup of kept sessions
   listSessionsToForget: (now: Instant) => Promise<readonly AttemptRow[]>; // for cleanup: the sessions that `forget` is due for
 }

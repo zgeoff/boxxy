@@ -278,4 +278,48 @@ export const claimStoreOutboxCases: readonly ClaimStoreCase[] = [
       return { received: unsent, expected: [{ ...notice, id: 1, tries: 1 }] };
     },
   ],
+  [
+    '#listNoticesToSend leaves out a sent notice and one that used all its tries',
+    async (store) => {
+      const item = buildMockV1ItemRow();
+
+      const notice = {
+        id: 0,
+        item: item.id,
+        reason: 'attempts used up',
+        at: brandSchemas.instant.parse(3000),
+        tries: 0,
+        sentAt: null,
+      } as const;
+
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(buildMockFileItemChange(item));
+
+        await transaction.applyChange({
+          at: notice.at,
+          writes: [
+            { op: 'insert', table: 'notices', row: { ...notice, tries: 5 } },
+            { op: 'insert', table: 'notices', row: notice },
+            { op: 'insert', table: 'notices', row: { ...notice, tries: 4 } },
+            { op: 'insert', table: 'notices', row: notice },
+          ],
+          facts: [],
+        });
+
+        await transaction.markNoticeTried(4, brandSchemas.instant.parse(3500), true);
+      });
+
+      const toSend: unknown = await store.read((transaction) =>
+        transaction.listNoticesToSend(5, 10),
+      );
+
+      return {
+        received: toSend,
+        expected: [
+          { ...notice, id: 2 },
+          { ...notice, id: 3, tries: 4 },
+        ],
+      };
+    },
+  ],
 ];

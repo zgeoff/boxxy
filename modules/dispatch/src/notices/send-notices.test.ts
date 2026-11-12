@@ -122,6 +122,36 @@ test('it stops calling the notifier after 5 failed tries and leaves the row list
   ]);
 });
 
+test('it sends a fresh notice behind 200 older notices that used all their tries', async () => {
+  const ctx = await setupTest();
+
+  const item = brandSchemas.itemId.parse('0190a6f4-0000-7000-8000-0000000000a1');
+  const reason = brandSchemas.rulesHoldReason.parse('blocked');
+
+  await ctx.store.exclusive((tx) =>
+    tx.applyChange({
+      at: ctx.clock.now(),
+      writes: Array.from({ length: 201 }, (_, index) => ({
+        op: 'insert' as const,
+        table: 'notices' as const,
+        row: {
+          id: index + 1,
+          item,
+          reason,
+          at: ctx.clock.now(),
+          tries: index < 200 ? 5 : 0,
+          sentAt: null,
+        },
+      })),
+      facts: [],
+    }),
+  );
+
+  const report = await ctx.send();
+
+  expect([report, ctx.notifier.calls()]).toStrictEqual([{ sent: 1, failed: 0, stuck: 200 }, 1]);
+});
+
 test('it counts a notifier that throws as a failed try', async () => {
   const ctx = await setupTest();
 

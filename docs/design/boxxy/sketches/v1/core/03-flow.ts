@@ -948,7 +948,7 @@ export function findPosition(input: { pipeline: Pipeline | null; attempts: reado
 //     kept 24 hours ago, unless a live later attempt runs on it. It forgets the sessions of
 //     settled attempts from `listSessionsToForget`. A new attempt move, `session-forgotten`,
 //     writes `sessionForgottenAt`, so the builder stays the one writer of the attempts table.
-//   - `sendNotices` reads up to 200 unsent rows, skips those with 5 tries, and counts a throwing
+//   - `sendNotices` reads up to 200 unsent rows with fewer than 5 tries, and counts a throwing
 //     notifier as a failed try. It waits between tries only as long as the tick does.
 
 // ── stubs ──────────────────────────────────────────────────────────────────────────────────────

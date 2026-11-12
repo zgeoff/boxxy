@@ -95,6 +95,9 @@ export interface StoreReader extends OutboxReader {
   // the rows not yet sent, whatever their tries, oldest first
   listUnsentNotices: (limit: number) => Promise<NoticeRow[]>;
 
+  // the rows not yet sent with fewer than `maxTries` tries, oldest first
+  listNoticesToSend: (maxTries: number, limit: number) => Promise<NoticeRow[]>;
+
   // oldest kept first
   listKeptSessions: () => Promise<{ readonly item: ItemId; readonly kept: KeptSession }[]>;
 

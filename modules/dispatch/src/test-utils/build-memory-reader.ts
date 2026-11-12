@@ -202,6 +202,13 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
           .toSorted((first, second) => first.id - second.id)
           .slice(0, limit),
       ),
+    listNoticesToSend: (maxTries, limit) =>
+      Promise.resolve(
+        getTables()
+          .notices.filter((notice) => notice.sentAt === null && notice.tries < maxTries)
+          .toSorted((first, second) => first.id - second.id)
+          .slice(0, limit),
+      ),
     listKeptSessions: () => {
       const kept = sortItems(getTables().items).flatMap((item) =>
         item.keptSession === null ? [] : [{ item: item.id, kept: item.keptSession }],
