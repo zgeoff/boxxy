@@ -955,7 +955,7 @@ export interface Procedures {
   // The hook fetches the skills FIRST, then binds. `missingSkills` names each listed skill
   // that is not in the workspace after the fetch. When it is not empty the attempt moves to
   // `closing` (cause `skill-missing`) and the answer is `skill-missing`.
-  'attempt.bindSession': { input: { session: Required<SessionRef>; seenAt: Instant; missingSkills?: readonly string[] }; output: { kind: 'bound' | 'held' | 'no-attempt' | 'not-current' /* from `pickCallAttempt` */ | 'skill-missing' } | SessionFault };
+  'attempt.bindSession': { input: { session: Required<SessionRef>; seenAt: Instant; missingSkills?: readonly string[] }; output: { kind: 'bound' | 'no-attempt' | 'not-current' /* from `pickCallAttempt` */ | 'skill-missing' } | SessionFault };
   // The owner's wake (../edge/01-api.ts names it `item.wake`). The runner's own wake sources
   // call `requestWake` directly, never this procedure.
   'item.wake': { input: { item: ItemId }; output: { kind: 'requested'; attempt: AttemptId; atcSession: AtcSessionId | null } | { kind: 'not-sleeping' } };

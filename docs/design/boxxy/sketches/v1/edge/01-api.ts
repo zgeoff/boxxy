@@ -415,7 +415,7 @@ export const contract = {
         z.discriminatedUnion('kind', [
           // `not-current`: the call names an attempt that is not the latest one of the calling
           // session (core `findCallAttempt`).
-          z.object({ kind: z.enum(['bound', 'held', 'no-attempt', 'not-current', 'skill-missing']) }),
+          z.object({ kind: z.enum(['bound', 'no-attempt', 'not-current', 'skill-missing']) }),
           z.object({ kind: z.literal('fault'), fault: z.literal('agent-session-owned'), holder: id }),
         ]),
       ),

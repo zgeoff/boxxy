@@ -1,4 +1,6 @@
-import { expect, test } from 'bun:test';
+import { expect, expectTypeOf, test } from 'bun:test';
+import type { BoxxyClient } from '@boxxy/contract';
+import type { BindAnswer } from '@boxxy/dispatch';
 import { brandSchemas } from '@boxxy/model';
 import { buildRPCRequest } from '../test-utils/build-rpc-request.ts';
 import { createTestServer } from '../test-utils/create-test-server.ts';
@@ -137,4 +139,10 @@ test('#recordPullRequest refuses another attempt and never reads the forge', asy
     answer: { status: 200, body: { json: { kind: 'refused', reason: 'not-current' } } },
     calls: [],
   });
+});
+
+test('it answers a bind with exactly the kinds that the bind of dispatch gives', () => {
+  type WireBind = Awaited<ReturnType<BoxxyClient['attempt']['bindSession']>>;
+
+  expectTypeOf<WireBind['kind']>().toEqualTypeOf<BindAnswer['kind']>();
 });

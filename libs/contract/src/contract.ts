@@ -228,7 +228,7 @@ const bindSessionInput = z.object({
 });
 
 const bindSessionOutput = z.discriminatedUnion('kind', [
-  z.object({ kind: z.enum(['bound', 'held', 'no-attempt', 'not-current', 'skill-missing']) }),
+  z.object({ kind: z.enum(['bound', 'no-attempt', 'not-current', 'skill-missing']) }),
   z.object({ kind: z.literal('fault'), fault: z.literal('agent-session-owned'), holder: id }),
 ]);
 

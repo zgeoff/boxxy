@@ -39,7 +39,7 @@ export async function runSessionStartHook(call: CommandCall): Promise<CLIResult>
   });
 
   return match(answer)
-    .with({ kind: 'bound' }, { kind: 'held' }, () => buildTextResult(''))
+    .with({ kind: 'bound' }, () => buildTextResult(''))
     .with({ kind: 'skill-missing' }, () =>
       buildErrorResult(
         `boxxy ends this attempt: the skills ${missing.join(', ')} are not in the pinned skills repository`,
