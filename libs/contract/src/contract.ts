@@ -489,8 +489,12 @@ export const contract = {
       .output(runnerStatusOutput),
 
     // These two write the runner row and no fact.
-    pause: oc.input(emptyInput).output(z.object({ paused: z.literal(true) })),
-    resume: oc.input(emptyInput).output(z.object({ paused: z.literal(false) })),
+    pause: tool('runner_pause', 'Stops boxxy from claiming new work. Running attempts go on.')
+      .input(emptyInput)
+      .output(z.object({ paused: z.literal(true) })),
+    resume: tool('runner_resume', 'Lets boxxy claim new work again.')
+      .input(emptyInput)
+      .output(z.object({ paused: z.literal(false) })),
   },
 
   outbox: {

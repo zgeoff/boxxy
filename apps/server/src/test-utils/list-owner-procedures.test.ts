@@ -15,11 +15,11 @@ test('#listOwnerProcedures lists the 27 owner procedures', () => {
   ]);
 });
 
-test('#listOwnerTools lists the 17 owner tools in snake case', () => {
+test('#listOwnerTools lists the 19 owner tools in snake case', () => {
   const rows = listOwnerTools();
 
   expect([rows.length, rows]).toStrictEqual([
-    17,
+    19,
     expect.arrayContaining([['item_file'], ['report_stage_times']]),
   ]);
 });

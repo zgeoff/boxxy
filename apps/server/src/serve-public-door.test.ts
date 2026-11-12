@@ -2,6 +2,8 @@ import { expect, test } from 'bun:test';
 import { authorizeTestClient } from '@boxxy/auth-oauth/test-utils/authorize-test-client';
 import invariant from 'tiny-invariant';
 import { z } from 'zod';
+import { maxRequestBytes } from './serve-api.ts';
+import { servePublicDoor } from './serve-public-door.ts';
 import { buildMCPRequest } from './test-utils/build-mcp-request.ts';
 import { buildRPCRequest } from './test-utils/build-rpc-request.ts';
 import { createTestServer } from './test-utils/create-test-server.ts';
@@ -170,4 +172,29 @@ test('it runs a read tool for a read token', async () => {
     status: 200,
     isError: undefined,
   });
+});
+
+test('it answers 413 to a streamed body over the limit, with no length header', async () => {
+  const ctx = await setupTest();
+
+  const chunk = new Uint8Array(maxRequestBytes);
+
+  const body = new ReadableStream<Uint8Array>({
+    start: (controller) => {
+      controller.enqueue(chunk);
+      controller.enqueue(chunk);
+      controller.close();
+    },
+  });
+
+  const response = await servePublicDoor(ctx.door).handle(
+    new Request(`${ctx.origin}/oauth2/token`, {
+      method: 'POST',
+      headers: { host: 'boxxy.test', 'content-type': 'application/x-www-form-urlencoded' },
+      body,
+      duplex: 'half',
+    }),
+  );
+
+  expect(response.status).toBe(413);
 });

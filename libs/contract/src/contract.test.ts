@@ -92,13 +92,13 @@ test('it lists a procedure as a tool only on the endpoint of its caller', () => 
   expect(invalid).toStrictEqual([]);
 });
 
-test('it lists 17 owner tools, 3 session tools and 12 procedures with no tool', () => {
+test('it lists 19 owner tools, 3 session tools and 10 procedures with no tool', () => {
   const ctx = setupTest();
   const rows = [...ctx.rows.values()];
 
   expect(
     ['owner', 'session', 'none'].map((tool) => rows.filter((row) => row.tool === tool).length),
-  ).toStrictEqual([17, 3, 12]);
+  ).toStrictEqual([19, 3, 10]);
 });
 
 test('it gives every owner tool a scope of read or write', () => {

@@ -21,7 +21,7 @@ export interface Access {
 
 export const access = {
   // The owner's agent files and steers work on the owner's behalf, so it gets every command on an
-  // item and every read: 17 tools. `rules.dryRun` is a read that is CLI only.
+  // item and every read: 19 tools, among them the two switches of the runner. `rules.dryRun` is a read that is CLI only.
   'item.file': buildOwnerWrite(
     'boxxy item file --repo --title --outcome [--acceptance]… [--kind] [--design-mode] [--blocked-by]… [--label]…',
   ),
@@ -34,6 +34,8 @@ export const access = {
   'item.note': buildOwnerWrite('boxxy item note <item> --text'),
   'relation.add': buildOwnerWrite('boxxy relation add <source> <type> <target>'),
   'relation.remove': buildOwnerWrite('boxxy relation remove <source> <type> <target>'),
+  'runner.pause': buildOwnerSwitch('boxxy runner pause'),
+  'runner.resume': buildOwnerSwitch('boxxy runner resume'),
   'plan.defer': buildOwnerWrite('boxxy defer <item> [--until] --reason'),
   'plan.undefer': buildOwnerWrite('boxxy undefer <item>'),
   'plan.expedite': buildOwnerWrite('boxxy expedite <item>… --reason [--expires]'),
@@ -85,22 +87,8 @@ export const access = {
     scope: 'none',
   },
 
-  // Not tools: each one switches the server itself, not one item, and writes no fact that would
-  // show who did it. They are for a person at the CLI.
-  'runner.pause': {
-    caller: 'owner',
-    actor: 'none',
-    tool: 'none',
-    cli: 'boxxy runner pause',
-    scope: 'write',
-  },
-  'runner.resume': {
-    caller: 'owner',
-    actor: 'none',
-    tool: 'none',
-    cli: 'boxxy runner resume',
-    scope: 'write',
-  },
+  // Not a tool: it acts on the whole outbox, not one item, and writes no fact that would show who
+  // did it. It is for a person at the CLI.
   'outbox.retry': {
     caller: 'owner',
     actor: 'none',
@@ -132,6 +120,11 @@ export type ProcedureName = keyof typeof access;
 
 function buildOwnerWrite(cli: string): Access {
   return { caller: 'owner', actor: 'boxxy:owner:local', tool: 'owner', cli, scope: 'write' };
+}
+
+// A switch of the server itself writes no fact that would show who did it, so it has no actor.
+function buildOwnerSwitch(cli: string): Access {
+  return { caller: 'owner', actor: 'none', tool: 'owner', cli, scope: 'write' };
 }
 
 function buildOwnerRead(cli: string): Access {

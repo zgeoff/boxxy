@@ -93,7 +93,7 @@ export async function openMCPAuth(options: MCPAuthOptions) {
 
     // The provider's own endpoint types do not satisfy the plugin type under
     // exactOptionalPropertyTypes, so boxxy reaches them over HTTP-shaped requests.
-    // oxlint-disable-next-line typescript/consistent-type-assertions -- approved GEO-1460: better-auth's plugin type fails its own type under exactOptionalPropertyTypes
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- better-auth's plugin type fails its own type under exactOptionalPropertyTypes
     plugins: [provider as BetterAuthPlugin, createOwnerPlugin()],
   });
 

@@ -19,11 +19,13 @@ test.each([
   ['item_close', 'write'],
   ['plan_defer', 'write'],
   ['relation_add', 'write'],
+  ['runner_pause', 'write'],
+  ['runner_resume', 'write'],
 ] as const)('it gives %s the %s scope', (tool, scope) => {
   expect(pickToolScope(tool)).toBe(scope);
 });
 
-test.each([['attempt_current'], ['auth_enroll'], ['runner_pause'], ['no_such_tool']])(
+test.each([['attempt_current'], ['auth_enroll'], ['outbox_retry'], ['no_such_tool']])(
   'it gives %s no scope, so the public door refuses it',
   (tool) => {
     expect(pickToolScope(tool)).toBeNull();
