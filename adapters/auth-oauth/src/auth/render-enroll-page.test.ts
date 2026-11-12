@@ -1,0 +1,34 @@
+// Copied from atc: packages/mcp/src/auth/render-enroll-page.test.ts at commit 4fe647cf.
+
+import { expect, test } from 'bun:test';
+import { renderEnrollPage } from './render-enroll-page.ts';
+
+test('it asks for the enrollment token before any passkey prompt', () => {
+  const page = renderEnrollPage({ ceremony: null, error: null });
+
+  expect(page).toInclude('<input name="token" autocomplete="off" autofocus required>');
+  expect(page).not.toInclude('id="boxxy-passkey"');
+});
+
+test('it holds the creation options and the token once the token checks out', () => {
+  const page = renderEnrollPage({
+    ceremony: { token: 'boxxy-enroll-sample', options: { challenge: 'Y2hhbGxlbmdl' } },
+    error: null,
+  });
+
+  expect(page).toInclude(
+    '<script type="application/json" id="boxxy-passkey">{"mode":"create","options":{"challenge":"Y2hhbGxlbmdl"}}</script>',
+  );
+
+  expect(page).toInclude('<input type="hidden" name="token" value="boxxy-enroll-sample">');
+});
+
+test('it escapes the token and the error it was given', () => {
+  const page = renderEnrollPage({
+    ceremony: { token: '"><b>x</b>', options: { challenge: 'Y2hhbGxlbmdl' } },
+    error: '<i>no</i>',
+  });
+
+  expect(page).not.toInclude('<b>x</b>');
+  expect(page).toInclude('<p class="error">&lt;i&gt;no&lt;/i&gt;</p>');
+});
