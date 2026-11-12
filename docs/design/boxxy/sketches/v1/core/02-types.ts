@@ -629,9 +629,9 @@ export interface StoreReader {
 //   - The rows are in a small table, not in the fact outbox. The outbox sends facts to pepys in order and
 //     parks on a failure; a notice has another target and must not hold facts back.
 //   - A hold that a rules change makes (no settle) gets no notice.
-// Adapters: `createAtcNotifier({ client, session })`, which sends an atc message to ONE named session
-// (the name is in boxxy's configuration, `notices.session`); `createFakeNotifier`, for tests;
-// `createNullNotifier`, when the configuration names no session.
+// Adapters: `createAtcNotifier({ client, session })`, which sends an atc message to ONE session by
+// its gateway ID (from `BOXXY_ATC_NOTICE_SESSION`, see owner-notices.md); `createFakeNotifier`, for
+// tests; `createNullNotifier`, when the environment sets no notice session.
 // An agent's question takes the same path: the agent closes out `blocked` with the question in
 // the close-out; the rules map `blocked` to a hold; the notice goes out; the owner answers with
 // a note (`item.note`) and `item.retry`, and the next attempt gets the note in its input.

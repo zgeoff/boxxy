@@ -11,7 +11,8 @@
   </p>
 </div>
 
-boxxy's `Notifier` port on atc: a hold notice arrives as one atc message in one named session.
+boxxy's `Notifier` port on atc: a hold notice arrives as one atc message in one session, which the
+caller names by its atc gateway ID.
 
 ## Install
 

@@ -95,6 +95,7 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 - **Follows:** [owner notices](./owner-notices.md).
 - **Needs:** slice 11.
 - **Check:** start-up tests that refuse the old key and a missing token.
+- **Built:** `@boxxy/server` reads both variables, and gives the notifier an atc client of its own with the notice token. Start-up tests refuse a config file that holds `noticeSession`, an empty notice token, and a notice session that is no gateway ID, and print no value. The system test `start-server-atc-notice` sends a hold notice to the session by its ID, through a gateway stand-in that takes the notice token alone.
 
 ## The deployment
 

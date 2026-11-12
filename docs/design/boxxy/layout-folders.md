@@ -178,11 +178,12 @@ system-tests/src                @boxxy/system-tests: the CLI against the real se
   test-utils/     create-test-cli  make-broker-send  read-json-output
                   verify/  the verify CLI, its registry and its harness: wringer-journeys.md
 system-tests/e2e                one cli-<group>.system.test.ts file per command group and per hook,
-                                and start-server-atc-spawn: the server's spawn through the atc stand-in
+                                start-server-atc-spawn: the server's spawn through the atc stand-in,
+                                and start-server-atc-notice: a hold notice through the atc stand-in
 apps/cli/hook-plugin            the Claude Code plug-in that the agent image installs
 
 adapters/notifier-atc/src       @boxxy/notifier-atc
-  index  create-atc-notifier    sends a hold notice as an atc message to one named session
+  index  create-atc-notifier    sends a hold notice as an atc message to one session, by its ID
 
 adapters/review-noslop/src      @boxxy/review-noslop
   index  types  create-noslop-review-gate  build-review-command  parse-review-body
