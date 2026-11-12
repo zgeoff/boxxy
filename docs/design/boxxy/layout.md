@@ -28,7 +28,7 @@ boxxy/
 │   ├── worker-atc/              spawns attempts through atc, reads back their session ids
 │   ├── notifier-atc/            sends a hold notice as an atc message
 │   ├── forge-github/            PR and commit links, checks, and (next) the merge
-│   ├── review-noslop/ (next)    runs the review tool for the ReviewGate port
+│   ├── review-noslop/ (next)    checks and posts the review tool's result for the ReviewGate port
 │   ├── verifier-wringer/ (next) reads the verify tool's report for the Verifier port
 │   ├── caller-proof-imp/        proves a session's caller from the broker's identity token
 │   └── capacity-<provider>/   (slice 2) one per capacity source

@@ -12,19 +12,20 @@ The decisions behind this doc are
 
 ## The merge gate
 
-A unit is ready to merge when each of its heads passes the merge rule of
+The train merges a unit only when each of its heads passes the merge rule of
 [review, verify and merge](./review-and-merge.md#the-merge-step): every required check green, a
-passed review at that head, and a verify reading of `verified` at that head.
+passed review at that head, and a verified verify reading at that head.
 
-- **The gate reads the review gate's reading at the head, never the review tool's GitHub check.**
-  noslop's check passes at a head that no review read, and after a failed review call.
-- **A clean rebase costs a cheap review.** noslop keys each file's review on a patch id that drops
-  hunk line numbers. A clean rebase, or a merge of the base that touches no line near the pull
-  request's hunks, leaves every patch id where it was, so the review round at the new head reads no
-  file. Only a file whose patch id changes needs a new review.
+- **boxxy reads its own review record at the head, never the review tool's GitHub check.** The
+  review tool, noslop, passes its check at a head that no review has read, and after a failed
+  review call.
+- **A clean rebase makes the next review cheap.** noslop keys each file's review on a hash of the
+  file's patch with the hunk line numbers left out. A clean rebase, or a merge of the base that
+  touches no line near the pull request's hunks, keeps every key, so the review at the new head
+  reads no file. Only a file whose key changes needs a new review.
 
-The train keeps the merge phase's outcomes, so a pipeline with a merge step does not change when
-the train replaces the merge rule.
+The train replaces `decideMerge` and keeps its outcomes, so the pipeline's merge phase and its
+edges stay the same.
 
 ## Units
 

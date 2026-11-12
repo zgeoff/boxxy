@@ -4,14 +4,14 @@
 // Every other function throws "not implemented".
 //
 //   A. A job attempt on each tick.
-//   B. The review job.
+//   B. The review close-out.
 //   C. The round and its cause.
 //   D. The merge rule.
 //   E. The merge job and its one action.
 //   F. The kept session, widened for the verify phase.
 //   G. The caps, from the engine as it is.
 
-import type { AttemptRow, CommitSha, Forge, GateRecord, Instant, JobReading, JobStep, JobWorker, MergeObservation, MergeRequest, MergeRules, ReviewGate, RoundCause, Settled } from '@boxxy/model';
+import type { AttemptRow, CommitSha, GateRecord, Instant, JobReading, JobStep, JobWorker, JsonValue, MergeObservation, MergeRequest, MergeRules, ReviewCloseOut, ReviewGate, RoundCause, Settled } from '@boxxy/model';
 import { match } from 'ts-pattern';
 
 // ── A. A job attempt on each tick (modules/dispatch/src/jobs/run-job-reading.ts) ───────────────
@@ -21,28 +21,15 @@ import { match } from 'ts-pattern';
 // machine and the same one writer of attempt state, with four of its states:
 //
 //   claimed ─▶ starting ──job-started──▶ running ──job-finished──▶ closing ──settled──▶ succeeded | failed
-//   starting, refused for capacity ─▶ settle `no-capacity`; refused otherwise ─▶ settle `spawn-refused`
-//   starting, unknown ─▶ reconciling; the next tick sends `start` again with the same key
-//   running ──acted, waited──▶ running
-//   running, reading `absent` ─▶ settle `job-lost` (outcome `lost`, edge `again`)
+//   starting: the first read moves it to running; a job starts nothing outside boxxy
+//   running ──acted, answered, waited──▶ running
 //   closing ─▶ settle in the same tick: a job holds no session to stop
 //
 // The lease and a `jobs` seat are held from the claim to the settle, so one item never runs two
-// reviews or two merges at once.
+// merges at once.
 
 export async function runJobReading(deps: JobDeps): Promise<void> {
   const { attempt, job } = deps;
-
-  if (attempt.state === 'starting' || attempt.state === 'reconciling') {
-    const started = await job.start(attempt);
-
-    return applyJobMove(deps, match(started)
-      .with({ kind: 'started' }, (answer) => ({ kind: 'job-started', head: answer.head }) as const)
-      .with({ kind: 'refused', cause: 'capacity' }, () => ({ kind: 'settle', forced: 'no-capacity' }) as const)
-      .with({ kind: 'refused' }, () => ({ kind: 'settle', forced: 'spawn-refused' }) as const)
-      .with({ kind: 'unknown' }, () => ({ kind: 'spawn-unanswered' }) as const)
-      .exhaustive());
-  }
 
   if (attempt.state === 'closing') {
     return applyJobMove(deps, { kind: 'settle', forced: null });
@@ -54,61 +41,35 @@ export async function runJobReading(deps: JobDeps): Promise<void> {
   }
 
   const reading: JobReading = await job.read(attempt); // throws on no answer: the attempt stays as it is
-  const step = pickJobStep({ reading, attempt, deps });
+
+  if (attempt.state === 'starting') await applyJobMove(deps, { kind: 'job-started' });
+
+  const deadlinePassed = deps.now - attempt.claimedAt > deps.step.timeoutMinutes * 60_000;
+  const step = deps.phase.drive({ observed: reading.observed, attempt, deadlinePassed, rules: deps.rules, now: deps.now });
 
   return match(step)
-    .with({ kind: 'lost' }, () => applyJobMove(deps, { kind: 'settle', forced: 'job-lost' }))
     .with({ kind: 'finish' }, (finish) => applyJobMove(deps, { kind: 'job-finished', closeOut: finish.closeOut })) // parsed by the phase kind; a refused body is a bug: log it, settle `closeout-unsettleable`
     .with({ kind: 'wait' }, (wait) => applyJobMove(deps, { kind: 'waited', reason: wait.reason, pending: wait.pending }))
     .with({ kind: 'act' }, (act) => runJobAction(deps, act.action))
     .exhaustive();
 }
 
-// Pure. A finished job result beats the clock. A job with no `drive` (the review) only waits,
-// until the step's time limit stops it as `timed-out`, which settles `lost`.
-export function pickJobStep(input: { reading: JobReading; attempt: AttemptRow; deps: JobDeps }): JobStep | { kind: 'lost' } {
-  const { reading, attempt, deps } = input;
-  const deadlinePassed = deps.now - (attempt.startedAt ?? attempt.claimedAt) > deps.step.timeoutMinutes * 60_000;
+// ── B. The review close-out (apps/server/src/procedures/close-out-review.ts) ───────────────────
+//
+// The review round runs in an agent session on a worker machine, through `atc.session`, as a
+// build does. Its input carries the command that `ReviewGate.buildCommand` gave; the session runs
+// it in the pull request's checkout and sends the tool's raw result with `boxxy attempt
+// close-out`. The server keeps the forge and the tool's App keys: the worker machine gets neither.
+//
+// The `attempt.closeOut` procedure calls this for a review attempt, before the close-out change
+// of v1. It runs outside the lock, because `accept` posts to the forge. A close-out that the
+// session sends again, after a server crash, runs `accept` again.
 
-  if (reading.kind === 'absent') return { kind: 'lost' };
-  if (reading.kind === 'finished') return { kind: 'finish', closeOut: reading.closeOut };
-  if (deps.phase.drive === undefined) return deadlinePassed ? { kind: 'lost' } : { kind: 'wait', reason: 'running', pending: [] };
+export async function runReviewCloseOut(deps: { gate: ReviewGate; attempt: AttemptRow & { readonly input: unknown }; body: JsonValue }): Promise<ReviewCloseOut> {
+  const input = parseRoundInput(deps.attempt.input);
+  const reading = await deps.gate.accept({ attempt: deps.attempt.id, pullRequest: input.pullRequest, round: input.round, cause: input.cause }, deps.body);
 
-  return deps.phase.drive({ observed: reading.observed, attempt, deadlinePassed, rules: deps.rules, now: deps.now });
-}
-
-// ── B. The review job (modules/dispatch/src/jobs/create-review-job.ts) ─────────────────────────
-
-export function createReviewJob(deps: { gate: ReviewGate; forge: Forge }): JobWorker {
-  return {
-    start: async (attempt) => {
-      const input = parseRoundInput(attempt.input);
-      // The head comes from the forge now: no stored row holds a fresh head.
-      const pullRequest = await deps.forge.readPullRequest(input.pullRequest);
-
-      if (pullRequest === 'not-found' || pullRequest.state !== 'open') {
-        return { kind: 'refused', cause: 'other', reason: 'the pull request is not open' };
-      }
-
-      const started = await deps.gate.start({ key: attempt.id, pullRequest: input.pullRequest, head: pullRequest.head, round: input.round, cause: input.cause });
-
-      return started.kind === 'started' ? { kind: 'started', head: pullRequest.head } : started.kind === 'refused' ? { kind: 'refused', cause: 'other', reason: started.reason } : started;
-    },
-    read: async (attempt) => {
-      const round = await deps.gate.read(attempt.id);
-
-      return match(round)
-        .with({ kind: 'running' }, () => ({ kind: 'running', observed: null }) as const)
-        .with({ kind: 'absent' }, () => ({ kind: 'absent' }) as const)
-        // The parser refuses a reading whose head is not `attempt.head`. A `not-covered` reading
-        // settles `failed`, and the edge `again` runs the round once more.
-        .with({ kind: 'finished' }, (finished) => ({ kind: 'finished', closeOut: toReviewCloseOut(attempt, finished.reading) }) as const)
-        .exhaustive();
-    },
-    act: () => {
-      throw new Error('a review job has no action');
-    },
-  };
+  return { round: input.round, cause: input.cause, reading }; // the phase kind's parser reads this as the close-out
 }
 
 // ── C. The round and its cause (modules/closeout/src/phases/review.ts, `buildRoundInput`) ──────
@@ -119,7 +80,9 @@ export function createReviewJob(deps: { gate: ReviewGate; forge: Forge }): JobWo
 //   cause  `first` when no review of this pull request settled since the lever;
 //          `rework` when the latest settled attempt before this one that is not a build is a
 //          review that settled `changes-requested`;
-//          `recheck` otherwise: the item came back from a merge (`repair`, `stale`) or a verify.
+//          `recheck` otherwise: the item came back from a merge (`repair`, `stale`) or a verify,
+//          or the last round settled `failed` and the edge `again` runs it once more. The
+//          tool's plain review reads the whole change when no earlier review of it succeeded.
 
 export function buildRoundCause(history: readonly Settled[]): RoundCause {
   const reviews = history.filter((settled) => settled.phase === 'review' && settled.outcome !== 'lost');
@@ -248,9 +211,9 @@ export async function runJobAction(deps: JobDeps, action: { kind: 'merge' }): Pr
 // `boxxy item retry <item> --phase merge`: the merge job reads `merged` and the item ends.
 
 interface JobDeps {
-  readonly attempt: AttemptRow & { readonly readAt: Instant | null; readonly startedAt: Instant | null; readonly claimedAt: Instant; readonly input: unknown };
+  readonly attempt: AttemptRow & { readonly readAt: Instant | null; readonly claimedAt: Instant };
   readonly job: JobWorker;
-  readonly phase: { readonly drive?: (ctx: never) => JobStep };
+  readonly phase: { readonly drive: (ctx: never) => JobStep }; // the loader refuses a job phase kind with no `drive`
   readonly step: { readonly timeoutMinutes: number };
   readonly rules: unknown;
   readonly now: Instant;
@@ -259,4 +222,3 @@ interface JobDeps {
 
 declare function applyJobMove(deps: JobDeps, move: unknown): Promise<'applied' | 'refused'>;
 declare function parseRoundInput(input: unknown): { pullRequest: never; round: number; cause: RoundCause };
-declare function toReviewCloseOut(attempt: AttemptRow, reading: unknown): never;

@@ -16,22 +16,27 @@ import type { AttemptId, AttemptRow, CommitSha, Instant, JsonValue, PullRequestR
 //   recheck  the review after a repair, a moved head or a failed verify: review what changed
 export type RoundCause = 'first' | 'rework' | 'recheck';
 
-export interface GateRoundRequest {
-  readonly key: AttemptId; // the review attempt; a second `start` with the same key starts nothing
+export interface GateRound {
+  readonly attempt: AttemptId; // the review attempt
   readonly pullRequest: PullRequestRef;
-  readonly head: CommitSha; // the head that the job read from the forge at its start
   readonly round: number; // 1, 2 or 3; counted by the core, never by the adapter
   readonly cause: RoundCause;
 }
 
+// The review runs in an agent session on a worker machine; the server only checks and posts.
 export interface ReviewGate {
-  start: (round: GateRoundRequest) => Promise<{ kind: 'started' } | { kind: 'refused'; reason: string } | { kind: 'unknown'; reason: string }>;
-  // `absent`: the adapter holds no run and no result for the key, such as after the process died.
-  read: (key: AttemptId) => Promise<{ kind: 'running' } | { kind: 'finished'; reading: GateReading } | { kind: 'absent' }>;
+  // Pure. The command line that the review session runs on the worker machine, in the pull
+  // request's checkout. It prints the tool's result, which the session sends as its close-out.
+  buildCommand: (round: GateRound) => string;
+  // Runs in the server when the review session closes out with that result. It checks the result
+  // against the pull request's current head, posts it to the pull request, and reads every
+  // finding's state. Throws only when the forge gives no answer; the session then sends again.
+  accept: (round: GateRound, result: JsonValue) => Promise<GateReading>;
 }
 
-// A reading always names the head it covers. `not-covered`: the run ended, and no part of it
-// read `head`. A tool check that passes at a head no run read is `not-covered`, never `passed`.
+// A reading always names the head it covers. `not-covered`: the result is for another head than
+// the pull request's current head, or it read no part of that head. A tool check that passes at
+// a head no review read is `not-covered`, never `passed`.
 export type GateReading =
   | ({ readonly status: 'passed' } & GateRun)
   | ({ readonly status: 'blocked'; readonly why: 'open-findings' | 'failed-call' | 'unreadable' } & GateRun)
@@ -74,22 +79,18 @@ export interface VerifiedFeature {
 // ── libs/model/src/ports/types.ts: the job worker ──────────────────────────────────────────────
 
 // The second worker shape, beside the session-shaped `WorkerKind`. A job runs a phase with no
-// agent session: a review round, a merge. It has no host, so no sleep, wake, kept session or
-// forget. The runner records the job's result as the attempt's close-out, and the attempt settles
+// agent session and no host: the merge. It has no sleep, wake, kept session or forget. It starts
+// nothing: the first read moves the attempt from `claimed` to `running`. The runner records the
+// result that the phase kind's `drive` gives as the attempt's close-out, and the attempt settles
 // by the normal path.
 export interface JobWorker {
-  // Idempotent by the attempt ID. `head`: the pull request head the job read, or null.
-  start: (attempt: AttemptRow) => Promise<{ kind: 'started'; head: CommitSha | null } | { kind: 'refused'; cause: 'capacity' | 'other'; reason: string } | { kind: 'unknown'; reason: string }>;
   // Throws when the outside system gives no answer, as `WorkerKind.reconcile` does.
   read: (attempt: AttemptRow) => Promise<JobReading>;
   // The one effect that the phase kind's `drive` chose. The merge is the only action.
   act: (attempt: AttemptRow, action: JobAction) => Promise<JobActAnswer>;
 }
 
-export type JobReading =
-  | { readonly kind: 'running'; readonly observed: JsonValue } // what the drive reads, such as a MergeObservation
-  | { readonly kind: 'finished'; readonly closeOut: JsonValue } // parsed by the phase kind's parser
-  | { readonly kind: 'absent' }; // no run and no result: the attempt settles `job-lost`
+export type JobReading = { readonly kind: 'running'; readonly observed: JsonValue }; // what the drive reads, such as a MergeObservation
 
 export type JobAction = { readonly kind: 'merge'; readonly unit: MergeUnit; readonly method: MergeMethod };
 export type JobActAnswer = MergeAnswer | { readonly kind: 'unknown'; readonly reason: string };
@@ -187,7 +188,8 @@ export type MergeAnswer =
 
 // ── libs/model/src/closeouts/types.ts: the close-outs ──────────────────────────────────────────
 
-// The review close-out, written by the runner from the gate's reading. It replaces v1's
+// The review close-out. The session sends the tool's raw result; the server replaces it with
+// `ReviewGate.accept`'s reading before the phase kind's parser reads it. It replaces v1's
 // `ReviewCloseOut` and `NoslopSummary`, and the 32,768-byte report limit goes with them.
 export interface ReviewCloseOut {
   readonly round: number;
@@ -223,27 +225,27 @@ export interface MergeCloseOut {
 //   | null
 
 // ── modules/dispatch: the attempt machine gains ────────────────────────────────────────────────
-// `AttemptRow` gains `worker: WorkerKindName`, `head: CommitSha | null` (set by `job-started`),
-// `actedAt` and `actedHead` (set by `acted`, which clears `actedAnswer`), `actedAnswer` (set by
+// `AttemptRow` gains `worker: WorkerKindName`, `actedAt` and `actedHead` (set by `acted`, which clears `actedAnswer`), `actedAnswer` (set by
 // `answered`), `readAt` and `waitReason` (set by `waited`).
-// `AttemptEvent` gains `job-started` (starting ─▶ running), `acted`, `answered` and `waited`
-// (running ─▶ running) and `job-finished` (running ─▶ closing, with the runner's close-out).
-// `ForcedFailure` gains `job-lost`: the job reads `absent`. It counts against `maxAttempts`.
+// `AttemptEvent` gains `job-started` (starting ─▶ running, on the first read), `acted`, `answered`
+// and `waited` (running ─▶ running) and `job-finished` (running ─▶ closing, with the runner's
+// close-out).
 // `DispatchTimeouts` gains `jobReadSeconds: 30`, the least time between two reads of one merge
 // job, so one waiting merge makes about 10 forge calls a minute at most, and `actRetryMinutes: 5`.
 
 // ── 04-facts.ts, section B: three new types (27 ─▶ 30). Entity: the item. ────────────────────
 
 export interface ReviewAndMergeFacts {
-  // written by: the runner, on a job's `started`, in place of `boxxy.attempt.started`, which
+  // written by: the runner, on a job's first read, in place of `boxxy.attempt.started`, which
   // names an atc session
-  'boxxy.attempt.job_started': { readonly attempt: AttemptId; readonly worker: WorkerKindName; readonly head: CommitSha | null };
+  'boxxy.attempt.job_started': { readonly attempt: AttemptId; readonly worker: WorkerKindName };
   // written by: the runner, in the change that sets `actedAt`, before the forge call
   'boxxy.merge.requested': { readonly attempt: AttemptId; readonly repo: RepoName; readonly number: number; readonly head: CommitSha; readonly method: MergeMethod; readonly required: readonly string[] };
   // written by: the runner, in the change that sets `actedAnswer`; no fact for a call with no answer
   'boxxy.merge.answered': { readonly attempt: AttemptId; readonly head: CommitSha; readonly answer: MergeAnswer['kind']; readonly mergeCommit: CommitSha | null };
 }
 // A round, its cost and the verify reading need no new type: `boxxy.attempt.closed_out` carries
-// each close-out above, and `boxxy.attempt.settled` its outcome and round.
+// each close-out above, and `boxxy.attempt.settled` its outcome and round. A review session
+// writes `boxxy.attempt.started` as any session does.
 
 declare type Friction = unknown;

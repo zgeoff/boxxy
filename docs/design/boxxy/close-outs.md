@@ -49,7 +49,7 @@ constraints apply to the kinds the design names:
 | triage | carries a typed `size`, which cohort keys and the [forecast](./planning.md#forecast-proposed) read |
 | contract | files a draft `core.decision` for the [sign-off gate](./core-model.md#gates-and-sign-offs) |
 | `plan.judge` | ends the strand with an override (pin, admit or lift) or a defer ([planning](./planning.md#the-judgement-pool)) |
-| review | the runner writes the review gate's reading as the close-out ([review, verify and merge](./review-and-merge.md#the-review-gate)); in v1 the review session sends the verdict and the findings as text ([v1](./v1.md#the-review)) |
+| review | the session sends the review tool's raw result, and the server reads it through the `ReviewGate` port into the close-out ([review, verify and merge](./review-and-merge.md#the-review-gate)); in v1 the review session sends the verdict and the findings as text ([v1](./v1.md#the-review)) |
 
 ## The v1 phase kinds
 
@@ -73,7 +73,7 @@ The parser cuts no list. A cut finding or open item would be work lost with no c
 
 A blocked or abandoned design or build fails, so it never reads as done work and no session is kept for it. Its failure is the outcome name. The engine reads some failure names, such as `no-capacity`, and the agent's free-text reason could match one, so the reason stays in the close-out. Every settle also asks to record each friction entry as a proposal. The settle returns the effects and the outcome, and the caller applies the effects. When the rules map the outcome to a hold, the caller withholds each effect that changes an item ([v1](./v1.md#the-pipeline)).
 
-In v1, the review session sends noslop's whole result. [Review, verify and merge](./review-and-merge.md) drops `NoslopSummary`: the runner writes the review close-out from the `ReviewGate` reading. The parser reads the version, the review ID, the head and the three lists it counts, and lets every other field through, so a newer noslop still parses. The stored close-out keeps `NoslopSummary`: the counts, the size of the result, and the result whole only when it is 32,768 bytes or smaller.
+In v1, the review session sends noslop's whole result. [Review, verify and merge](./review-and-merge.md) drops `NoslopSummary`: the server builds the review close-out from the `ReviewGate` reading. The parser reads the version, the review ID, the head and the three lists it counts, and lets every other field through, so a newer noslop still parses. The stored close-out keeps `NoslopSummary`: the counts, the size of the result, and the result whole only when it is 32,768 bytes or smaller.
 
 Each phase's input is the item's acceptance list. A build also gets the latest design, the findings of the latest review when it asked for changes, and the item's latest pull request. A review gets the latest design and the latest pull request. The notes of the item reach the session through `attempt.current`, beside the input.
 
