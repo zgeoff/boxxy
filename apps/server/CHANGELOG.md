@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.1.5](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.1.4...@boxxy/server@0.1.5) (2026-11-12)
+
+### Bug Fixes
+
+- **server:** follow symlinks when reading the trust documents
+  ([defda7f](https://github.com/zgeoff/boxxy/commit/defda7f8def03c8556d812e65a85cc2fb53ca265))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/caller-proof-imp bumped to 0.1.5
+    - @boxxy/closeout bumped to 0.1.5
+    - @boxxy/content-hash bumped to 0.1.5
+    - @boxxy/contract bumped to 0.1.5
+    - @boxxy/dispatch bumped to 0.1.5
+    - @boxxy/forge-github bumped to 0.1.5
+    - @boxxy/model bumped to 0.1.5
+    - @boxxy/notifier-atc bumped to 0.1.5
+    - @boxxy/pepys bumped to 0.1.5
+    - @boxxy/planning bumped to 0.1.5
+    - @boxxy/rules bumped to 0.1.5
+    - @boxxy/store-sqlite bumped to 0.1.5
+    - @boxxy/worker-atc bumped to 0.1.5
+
 ## [0.1.4](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.1.3...@boxxy/server@0.1.4) (2026-11-12)
 
 ### Miscellaneous Chores
