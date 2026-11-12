@@ -29,7 +29,10 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
   reason, and says the owner next runs `boxxy item note` and `boxxy item retry`.
 - The client is one call, `sendMessage`. The app builds it from its atc connection.
 - A send that fails, or that atc refuses, returns the failed outcome and never throws. After a
-  refusal, the next try of the notice goes out under a fresh idempotency key.
+  refusal, the next try of the notice goes out under a fresh idempotency key. After a send that atc
+  may have run, such as one answered `outcome_unknown`, the next try keeps the key, so the owner
+  never gets the notice twice. A notice whose first send never ran then uses up its tries and shows
+  as stuck.
 
 ## Documentation
 

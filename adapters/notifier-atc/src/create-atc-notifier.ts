@@ -1,6 +1,9 @@
 import type { HoldNotice, Notifier } from '@boxxy/model';
 import type { AtcNotifierOptions } from './types.ts';
 
+// the atc codes of a send that may have run; atc never runs a send again under such a key
+const mayHaveRun = new Set(['outcome_unknown', 'idempotency_key_unknown']);
+
 export function createAtcNotifier(options: AtcNotifierOptions): Notifier {
   // by notice key: the tries of the notice that atc answered and refused
   const refusedTries = new Map<string, number>();
@@ -20,8 +23,8 @@ export function createAtcNotifier(options: AtcNotifierOptions): Notifier {
         const code = findErrorCode(error);
 
         // atc answers `outcome_unknown` to a key it refused once, so a refused try never repeats
-        // its key; a try with no atc answer keeps the key, so atc sends the notice at most once
-        if (code !== null) {
+        // its key; a try that atc may have run keeps the key, so atc sends the notice at most once
+        if (code !== null && !mayHaveRun.has(code)) {
           refusedTries.set(noticeKey, tries + 1);
         }
 

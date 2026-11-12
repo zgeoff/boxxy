@@ -70,7 +70,7 @@ test('it sends the same idempotency key for the same notice and another for anot
   expect(keys[2]).not.toBe(keys[0]);
 });
 
-test('it sends a fresh idempotency key on the next try after atc answers outcome_unknown', async () => {
+test('it sends a fresh idempotency key on the next try after atc refuses the send', async () => {
   const ctx = setupTest();
   let refusals = 1;
 
@@ -82,7 +82,7 @@ test('it sends a fresh idempotency key on the next try after atc answers outcome
         refusals -= 1;
 
         return refusals >= 0
-          ? Promise.reject(Object.assign(new Error('refused'), { code: 'outcome_unknown' }))
+          ? Promise.reject(Object.assign(new Error('refused'), { code: 'session_busy' }))
           : Promise.resolve({});
       },
     },
@@ -98,6 +98,34 @@ test('it sends a fresh idempotency key on the next try after atc answers outcome
     2,
   ]);
 });
+
+test.each([['outcome_unknown'], ['idempotency_key_unknown']])(
+  'it repeats the idempotency key on the next try after atc answers %s',
+  async (code) => {
+    const ctx = setupTest();
+    let refusals = 1;
+
+    const notifier = createAtcNotifier({
+      client: {
+        sendMessage: (request) => {
+          ctx.sent.push(request);
+
+          refusals -= 1;
+
+          return refusals >= 0
+            ? Promise.reject(Object.assign(new Error('refused'), { code }))
+            : Promise.resolve({});
+        },
+      },
+      session: 'owner-desk',
+    });
+
+    await notifier.tellHold(ctx.notice);
+    await notifier.tellHold(ctx.notice);
+
+    expect(new Set(ctx.sent.map((request) => request.idempotencyKey)).size).toBe(1);
+  },
+);
 
 test('it returns failed with outcome_unknown when atc cannot tell whether it sent', async () => {
   const ctx = setupTest();
