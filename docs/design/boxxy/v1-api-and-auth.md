@@ -38,7 +38,7 @@ Section C of [`01-api.ts`](./sketches/v1/edge/01-api.ts) holds the input, the ou
 
 | Procedure | Caller | MCP tool | What it does |
 | --- | --- | --- | --- |
-| `item.file` | owner | owner | files an item |
+| `item.file` | owner | owner | files an item; refuses a repo that the server's `spawn.repos` does not name |
 | `item.edit` | owner | owner | replaces the given fields of an item |
 | `item.close` | owner | owner | closes an item and ends its live attempt; with `of`, as a duplicate |
 | `item.retry` | owner | owner | lifts a hold and resets the attempt counts; with `phase`, sets the position |

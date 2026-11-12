@@ -45,6 +45,7 @@ const rpc = new RPCHandler(router, {
     PEPYS_UNAVAILABLE: 503,
     PEPYS_NOT_CONFIGURED: 501,
     UNKNOWN_PHASE: 422,
+    REPO_NOT_CONFIGURED: 422,
   },
 });
 

@@ -73,7 +73,7 @@ const router = implementContract().router(handlers); // handlers: apps/server/sr
 // contract's error has no effect. A code that is not in the map answers 400.
 // Checked in the build: a custom code in `errorStatusMap` changes nothing on the MCP side. Over
 // MCP a typed error is a tool error, and the HTTP status stays 200.
-const rpc = new RPCHandler(router, { errorStatusMap: { ...COMMON_ERROR_STATUS_MAP, PEPYS_UNAVAILABLE: 503, PEPYS_NOT_CONFIGURED: 501, UNKNOWN_PHASE: 422 } });
+const rpc = new RPCHandler(router, { errorStatusMap: { ...COMMON_ERROR_STATUS_MAP, PEPYS_UNAVAILABLE: 503, PEPYS_NOT_CONFIGURED: 501, UNKNOWN_PHASE: 422, REPO_NOT_CONFIGURED: 422 } });
 
 // Two registrars, built once at start. The filter reads section D.
 // Checked in the build: each endpoint's tool list holds only the tools the filter keeps.
@@ -189,9 +189,13 @@ export const contract = {
   // ── C1. Item commands ──
   item: {
     // core: `item.file` with `kind` and `designMode`. Writes `boxxy.item.filed`, and one
-    // `boxxy.relation.added` per `blockedBy`, in one change.
+    // `boxxy.relation.added` per `blockedBy`, in one change. A repo that the server's
+    // `spawn.repos` does not name is refused with `REPO_NOT_CONFIGURED`: no session could start on it.
     file: tool('item_file', 'Files a new item of work. boxxy runs it through triage, design, build and review. Returns the item ID.')
-      .errors({ NOT_FOUND: { message: 'a blockedBy item does not exist', data: z.object({ item: id }) } })
+      .errors({
+        NOT_FOUND: { message: 'a blockedBy item does not exist', data: z.object({ item: id }) },
+        REPO_NOT_CONFIGURED: { message: 'the server configuration names no such repository', data: z.object({ repo: z.string() }) },
+      })
       .input(
         z.object({
           repo: text(200).describe('The repository, as owner/name.'),

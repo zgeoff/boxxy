@@ -113,6 +113,7 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
     pepys: options.hasPepys === false ? null : (options.pepys ?? pepys),
     forge,
     outbox: createOffOutbox(dispatch.store, dispatch.clock),
+    repos: new Set(dispatch.spawn.repos.keys()),
     readings,
     log,
   };

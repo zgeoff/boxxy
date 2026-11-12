@@ -314,7 +314,13 @@ export const contract = {
       'item_file',
       'Files a new item of work. boxxy runs it through triage, design, build and review. Returns the item ID.',
     )
-      .errors({ NOT_FOUND: { message: 'a blockedBy item does not exist', data: notFoundData } })
+      .errors({
+        NOT_FOUND: { message: 'a blockedBy item does not exist', data: notFoundData },
+        REPO_NOT_CONFIGURED: {
+          message: 'the server configuration names no such repository',
+          data: z.object({ repo: z.string() }),
+        },
+      })
       .input(itemFileInput)
       .output(itemOutput),
 

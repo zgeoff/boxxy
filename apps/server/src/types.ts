@@ -12,6 +12,7 @@ import type {
   NewId,
   OutboxStatus,
   PepysReader,
+  RepoName,
   RunnerId,
   SessionReading,
 } from '@boxxy/model';
@@ -59,6 +60,9 @@ export interface ServerDeps {
   // null: the configuration has no github section, so the pull request link answers `retry`
   readonly forge: Forge | null;
   readonly outbox: OutboxControl;
+
+  // the repos that the configuration's spawn section names; `item.file` refuses any other
+  readonly repos: ReadonlySet<RepoName>;
 
   // the last reading of each live attempt, which the tick writes and `runner.status` reads
   readonly readings: ReadonlyMap<AttemptId, SessionReading>;

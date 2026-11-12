@@ -137,6 +137,9 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
     pepys: pepys?.reader ?? null,
     forge,
     outbox: pepys?.sender ?? createOffOutbox(store, clock),
+    repos: new Set(
+      Object.keys(config.spawn.repos).map((repo) => brandSchemas.repoName.parse(repo)),
+    ),
     readings,
     log: input.log,
   };

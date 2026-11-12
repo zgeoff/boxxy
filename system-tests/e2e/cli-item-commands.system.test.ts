@@ -183,6 +183,28 @@ test('#item retry exits 1 and names the code for a phase the pipeline lacks', as
   });
 });
 
+test('#item file exits 1 and names the repo that the server configuration does not name', async () => {
+  const ctx = await setupTest();
+
+  const result = await ctx.run([
+    'item',
+    'file',
+    '--repo',
+    'example/widget',
+    '--title',
+    'Check a widget',
+    '--outcome',
+    'The widget passes.',
+  ]);
+
+  expect({ exitCode: result.exitCode, stderr: result.stderr }).toStrictEqual({
+    exitCode: 1,
+    stderr:
+      'error: REPO_NOT_CONFIGURED: the server configuration names no such repository ' +
+      '{"repo":"example/widget"}\n',
+  });
+});
+
 test('#item wake answers not-sleeping for an item with no sleeping attempt', async () => {
   const ctx = await setupTest();
   const filed = await ctx.fileItem();

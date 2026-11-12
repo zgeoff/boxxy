@@ -29,12 +29,17 @@ export const itemHandlers = {
   file: api.item.file.handler((options) => {
     const input = options.input;
     const notFound = options.errors.NOT_FOUND;
+    const repoNotConfigured = options.errors.REPO_NOT_CONFIGURED;
     const deps = options.context.deps;
     const kind = parseKnownKind(deps, input.kind ?? untriagedKind);
     const repo = brandSchemas.repoName.safeParse(input.repo);
 
     if (kind === null || !repo.success) {
       throw new ORPCError('BAD_REQUEST', { message: 'unknown item kind or repository name' });
+    }
+
+    if (!deps.repos.has(repo.data)) {
+      throw repoNotConfigured({ data: { repo: repo.data } });
     }
 
     return deps.store.exclusive(async (tx) => {

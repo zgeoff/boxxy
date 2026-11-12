@@ -20,6 +20,28 @@ async function setupTest() {
   };
 }
 
+test('#file refuses a repo that the server configuration does not name', async () => {
+  const ctx = await setupTest();
+
+  const answer = await ctx.callOwner('item.file', {
+    repo: 'example/widget',
+    title: 'Check a widget',
+    outcome: 'The widget passes.',
+  });
+
+  expect(answer).toStrictEqual({
+    status: 422,
+    body: {
+      json: {
+        defined: true,
+        code: 'REPO_NOT_CONFIGURED',
+        message: 'the server configuration names no such repository',
+        data: { repo: 'example/widget' },
+      },
+    },
+  });
+});
+
 test('#close closes an item as a duplicate of the item that its live duplicate-of relation names', async () => {
   const ctx = await setupTest();
   const source = await ctx.dispatch.seedItem({});
