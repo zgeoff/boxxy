@@ -149,7 +149,10 @@ export const itemHandlers = {
         newId: deps.newId,
       });
 
-      const relation = of === null ? null : buildRelationRow(item.id, of.id, 'duplicate-of', now);
+      const live = of === null ? false : await probeLiveDuplicateOf(tx, deps, item.id, of.id);
+
+      const relation =
+        of === null || live ? null : buildRelationRow(item.id, of.id, 'duplicate-of', now);
 
       await tx.applyChange({
         at: now,
@@ -433,6 +436,21 @@ function buildAcceptance(
   }
 
   return built;
+}
+
+// A close as a duplicate adds the duplicate-of relation unless it is live already: the store holds
+// one live relation per source, target and type.
+async function probeLiveDuplicateOf(
+  tx: StoreReader,
+  deps: ServerDeps,
+  source: ItemId,
+  target: ItemId,
+): Promise<boolean> {
+  const snapshot = await tx.readSnapshot(deps.clock.now(), deps.rulesState().rules);
+
+  return snapshot.relations.some(
+    (row) => row.source === source && row.target === target && row.type === 'duplicate-of',
+  );
 }
 
 function toItemView(item: ItemWithLevers): ItemView {

@@ -235,7 +235,7 @@ export const contract = {
     close: tool('item_close', 'Closes an item so that boxxy starts no more work on it, and ends the attempt that runs or sleeps on it.')
       .errors(notFound)
       // `of` marks a duplicate. The same change adds the relation `duplicate-of` from this item
-      // to `of`, and the stored reason is `duplicate`.
+      // to `of` when it is not live already, and the stored reason is `duplicate`.
       .input(z.object({ item: itemId, reason, of: itemId.optional().describe('The item that this one duplicates.') }))
       .output(z.object({ item: id, ended: z.array(z.object({ attempt: id, how: z.enum(['settled', 'closing']) })) })),
 
