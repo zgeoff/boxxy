@@ -18,7 +18,7 @@ reach each other, and the principles every other design doc follows.
  runner: claim → recipe → start → settle                         read tables, queries:
               │                                                  spend, outcomes,
               ▼                                                  findings, explain
- workers: atc.session (local-pty, imp) · noslop.cli · script
+ workers: atc.session (local-pty, imp) · jobs: review.round, merge.forge · script
               │ OTel, hooks, atc event trail
               └────────────────────────────────────────────────────────▶ pepys facts
 
@@ -32,7 +32,7 @@ reach each other, and the principles every other design doc follows.
 | boxxy store | One SQLite file behind one command API. It holds items, links, asks, attempts and leases, and runs `claimNext` inside its write transaction. | [dispatch](./dispatch.md) |
 | planning core | `buildFrame()` runs the planning plug-ins over the facts; `decide()` reads the frame and the pools and returns picks. | [planning](./planning.md) |
 | runner | Calls `claimNext`, resolves the recipe, starts the attempt through a worker kind, and settles its outcome. | [dispatch](./dispatch.md) |
-| workers | A worker kind starts an attempt and reconciles it after a crash. atc runs agent sessions; noslop runs reviews; `script` runs deterministic steps. | [core model](./core-model.md#workers) |
+| workers | A worker kind starts an attempt and reconciles it after a crash. atc runs agent sessions; a job runs a review round or a merge with no session ([review, verify and merge](./review-and-merge.md#job-attempts)); `script` runs deterministic steps. | [core model](./core-model.md#workers) |
 | pepys | The fact log and every read table. A new view is a new query or consumer in pepys, not a table in the boxxy store. | [measurement](./measurement.md) |
 | rules repo | Policy in git. The rules version hashes the commit, the files the loader read and the concept pins. | [rules](./rules.md#the-rules-version) |
 | telemetry | Agent CLIs send OpenTelemetry logs and metrics. Each request record joins to its attempt. | [measurement](./measurement.md) |

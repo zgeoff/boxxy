@@ -143,7 +143,7 @@ An attempt fails with one of ten forced failures, or with `closeout-missing` or 
 
 ## The kept session
 
-Section H of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the table. One rules line turns it on: the `changes-requested` edge carries `resume: true`.
+Section H of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the table. One rules line turns it on: the `changes-requested` edge carries `resume: true`. A verify recipe with `session: builder` keeps the session too ([review, verify and merge](./review-and-merge.md#the-verifier)).
 
 1. A build attempt settles `built`. boxxy stops its session and keeps it, and records the kept session on the item.
 2. The review runs in its own session.
@@ -239,4 +239,4 @@ A pull request that merged before the watch ever listed it is not found by step 
 | `readPullRequest` | `GET /repos/{owner}/{repo}/pulls/{number}` and `GET /repos/{owner}/{repo}/pulls/{number}/commits` |
 | `listOpenPullRequests` | `GET /repos/{owner}/{repo}/pulls?state=open` |
 
-All three are pull request reads. A fine-grained token or an app needs the `Pull requests: read` permission on the repos, and a classic token needs `public_repo` or `repo`. The adapter reads at most 2,000 open pull requests of a repo and 250 commits of a pull request, the limits of GitHub's listing.
+All three are pull request reads. A fine-grained token or an app needs the `Pull requests: read` permission on the repos, and a classic token needs `public_repo` or `repo`. The merge step needs more permissions ([review, verify and merge](./review-and-merge.md#the-merge-step)). The adapter reads at most 2,000 open pull requests of a repo and 250 commits of a pull request, the limits of GitHub's listing.

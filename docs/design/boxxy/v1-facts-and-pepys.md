@@ -120,8 +120,8 @@ Each query reads plain rows of its tables with one statement per table, and a bu
 The query returns seven steps: triage, design, build, review, merge, release and deploy. It also returns the rework count and minutes, the wait for review, and the time the item's attempts slept. A step that has not happened has null minutes.
 
 - The four phases come from the item's attempts. A phase's minutes are the sum over its settled attempts of the time from claim to end, less the attempt's sleep.
-- Merge, release and deploy come from the GitHub plug-in's delivery module, reached through the `produced` link. boxxy starts none of them.
-- Merge starts at the latest end of a review that passed. A review that settled `unsettleable` starts no merge step, because boxxy could not read whether it passed, so such an item has null merge minutes after its pull request merged. Release starts at the merge, and deploy at the release. An item with two pull requests takes the earliest time of each step.
+- Merge, release and deploy come from the GitHub plug-in's delivery module, reached through the `produced` link. In v1, boxxy starts none of them.
+- Merge starts at the latest end of a review that passed. With a merge phase, it starts at the claim of the first merge attempt after that review ([review, verify and merge](./review-and-merge.md#facts-and-pepys)). A review that settled `unsettleable` starts no merge step, because boxxy could not read whether it passed, so such an item has null merge minutes after its pull request merged. Release starts at the merge, and deploy at the release. An item with two pull requests takes the earliest time of each step.
 - An attempt that failed with `no-capacity` is in no measure. Every other attempt counts, a `usage-limit` one too.
 - The rework count is the number of reviews that asked for changes. The highest round less one is a different number.
 - The wait for review of a build that was built runs from its end to the claim of the first review claimed after that end. The claim times give the order, because an attempt's number counts within its own phase.

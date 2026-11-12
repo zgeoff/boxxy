@@ -42,6 +42,8 @@ experiments, so every part of the system can be compared and improved. Packages 
   designed.
 - [Work list](./v1-work-list.md): the v1 build as numbered slices, in dependency order.
 - [Folder layout](./layout-folders.md): the folders inside each package.
+- [Review, verify and merge](./review-and-merge.md): the `ReviewGate` and `Verifier` ports, the
+  job worker, and the merge step that lands a pull request when its checks are green.
 - [Interface sketches](./sketches/README.md): the shape of each interface, as TypeScript files.
 
 ## Reading order
