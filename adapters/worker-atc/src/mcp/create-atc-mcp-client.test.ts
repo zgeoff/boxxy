@@ -192,6 +192,18 @@ test('it rejects with an error that is no atc refusal when atc answers an intern
   );
 });
 
+test.each([
+  ['with its content-length', false],
+  ['as a stream without a content-length', true],
+])('it refuses as malformed_answer a body over 1 MiB sent %s', (_title, streamed) => {
+  const ctx = setupTest();
+  const client = ctx.makeClient();
+
+  ctx.atc.failNext('atc_sessions_list', { kind: 'oversized', streamed });
+
+  expect(client.listSessions()).rejects.toMatchObject({ code: 'malformed_answer' });
+});
+
 test('it answers the next call after a call that got no answer', async () => {
   const ctx = setupTest();
   const client = ctx.makeClient();

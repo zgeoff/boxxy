@@ -45,12 +45,12 @@ function buildMalformedError(tool: string): AtcCallError {
   );
 }
 
-// atc writes a refused call as `structuredContent: { code, problem? }`, beside a text for people.
-// The adapter reads the code and the problem from the structured part only, and keeps the text as
-// the message.
+// atc 7.14.0 writes a refused call as `structuredContent: { code, problem? }` beside the text
+// `<code>: <message>`. An older atc sends the text alone, so the code then comes from its prefix.
 const atcWord = z.string().regex(/^[a-z][a-z_]{0,63}$/u);
 const refusalSchema = z.object({ code: atcWord, problem: atcWord.optional() });
 const textContentSchema = z.object({ type: z.literal('text'), text: z.string() });
+const textRefusalPattern = /^(?<code>[a-z][a-z_]{0,63}): /u;
 const maxMessageLength = 500;
 
 function parseRefusal(
@@ -58,7 +58,13 @@ function parseRefusal(
   structured: Readonly<Record<string, unknown>> | undefined,
 ): AtcCallError {
   const first = textContentSchema.safeParse(content[0]);
-  const message = (first.success ? first.data.text : '').slice(0, maxMessageLength);
+  const text = first.success ? first.data.text : '';
+  const message = text.slice(0, maxMessageLength);
+
+  if (structured === undefined) {
+    return new AtcCallError(textRefusalPattern.exec(text)?.groups?.['code'] ?? 'refused', message);
+  }
+
   const refusal = refusalSchema.safeParse(structured);
 
   return refusal.success

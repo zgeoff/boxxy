@@ -11,6 +11,7 @@ import type { AtcClient, AtcToolName } from '../types.ts';
 import { AtcCallError } from './atc-call-error.ts';
 import { atcToolResults as results } from './atc-tool-results.ts';
 import { parseToolResult } from './parse-tool-result.ts';
+import { toCappedResponse } from './to-capped-response.ts';
 
 interface AtcMcpClientInput {
   // the gateway's `/mcp` endpoint, such as its in-cluster Service address
@@ -80,9 +81,15 @@ export function createAtcMcpClient(input: AtcMcpClientInput): AtcClient {
   };
 }
 
+const maxBodyBytes = 1024 * 1024;
+
 async function openClient(input: AtcMcpClientInput): Promise<Client> {
-  const sendRequest = (url: string | URL, init: RequestInit | undefined) =>
-    input.fetch(url, { ...init, headers: buildHeaders(input, init) });
+  const sendRequest = async (url: string | URL, init: RequestInit | undefined) => {
+    const response = await input.fetch(url, { ...init, headers: buildHeaders(input, init) });
+
+    // the client library reads a whole body before any schema sees it
+    return toCappedResponse(response, maxBodyBytes);
+  };
 
   const transport = new StreamableHTTPClientTransport(new URL(input.url), {
     fetch: sendRequest,

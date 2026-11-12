@@ -191,5 +191,38 @@ function toGatewayFailureResponse(failure: FakeGatewayFailure, id: string | numb
         error: { code: failed.code, message: 'the fake atc failed the call' },
       }),
     )
+    .with({ kind: 'oversized' }, (failed) => buildOversizedResponse(id, failed.streamed))
     .exhaustive();
+}
+
+// an `atc_sessions_list` result with no sessions, readable but for its 2 MiB text
+function buildOversizedResponse(id: string | number, streamed: boolean): Response {
+  const body = JSON.stringify({
+    jsonrpc: '2.0',
+    id,
+    result: {
+      content: [{ type: 'text', text: 'x'.repeat(2 * 1024 * 1024) }],
+      structuredContent: { sessions: [] },
+    },
+  });
+
+  const headers = { 'content-type': 'application/json' };
+
+  if (!streamed) {
+    return new Response(body, { headers });
+  }
+
+  const bytes = new TextEncoder().encode(body);
+
+  const stream = new ReadableStream<Uint8Array>({
+    start: (controller) => {
+      for (let start = 0; start < bytes.byteLength; start += 64 * 1024) {
+        controller.enqueue(bytes.subarray(start, start + 64 * 1024));
+      }
+
+      controller.close();
+    },
+  });
+
+  return new Response(stream, { headers });
 }

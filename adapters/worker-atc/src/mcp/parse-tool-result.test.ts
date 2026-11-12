@@ -51,12 +51,34 @@ test('it reads a refusal with no problem with a null problem', () => {
   });
 });
 
+test('it reads the code from the text prefix of a refusal with no structured content', () => {
+  const parsed = parseToolResult(
+    'atc_session_get',
+    { isError: true, content: [{ type: 'text', text: 'no_such_session: no session s9' }] },
+    z.object({}),
+  );
+
+  expect(parsed).toMatchObject({
+    kind: 'refused',
+    error: { code: 'no_such_session', problem: null },
+  });
+});
+
+test('it reads a refusal with no structured content and no code prefix as refused', () => {
+  const parsed = parseToolResult(
+    'atc_session_get',
+    { isError: true, content: [{ type: 'text', text: 'Something Broke' }] },
+    z.object({}),
+  );
+
+  expect(parsed).toMatchObject({ kind: 'refused', error: { code: 'refused', problem: null } });
+});
+
 test.each([
-  ['no structured content', undefined],
   ['a code that is no atc code', { code: 'No Such Session' }],
   ['a problem that is no atc code', { code: 'host_unavailable', problem: 'x'.repeat(100) }],
 ])(
-  'it reads a refusal with %s as refused, and never reads the code from the text',
+  'it reads a refusal with %s as refused, and never falls back to the text',
   (_title, structured) => {
     const parsed = parseToolResult(
       'atc_session_get',

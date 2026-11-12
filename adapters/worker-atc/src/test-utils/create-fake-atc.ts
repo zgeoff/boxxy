@@ -18,11 +18,13 @@ export type FakeAtcAnswer =
   | { readonly kind: 'refusal'; readonly code: string; readonly problem?: string }
   | { readonly kind: 'malformed'; readonly result: Readonly<Record<string, unknown>> };
 
-// A failure the gateway answers in place of the tool: `no-answer` is HTTP 502, and `rpc-error`
-// is a JSON-RPC error with the code.
+// A failure the gateway answers in place of the tool: `no-answer` is HTTP 502, `rpc-error` is a
+// JSON-RPC error with the code, and `oversized` is a 2 MiB result, with its `content-length` or as
+// a stream without one.
 export type FakeGatewayFailure =
   | { readonly kind: 'no-answer' }
-  | { readonly kind: 'rpc-error'; readonly code: number };
+  | { readonly kind: 'rpc-error'; readonly code: number }
+  | { readonly kind: 'oversized'; readonly streamed: boolean };
 
 export type FakeAtcFailure =
   | Exclude<FakeAtcAnswer, { readonly kind: 'result' }>
@@ -293,7 +295,7 @@ export function createFakeAtc(input: FakeAtcInput): FakeAtc {
     takeGatewayFailure: (tool, args) => {
       const failure = failures.get(tool);
 
-      if (failure?.kind !== 'no-answer' && failure?.kind !== 'rpc-error') {
+      if (failure === undefined || failure.kind === 'refusal' || failure.kind === 'malformed') {
         return null;
       }
 
