@@ -1,3 +1,5 @@
+import { parseArgs } from 'node:util';
+import { match } from 'ts-pattern';
 import type { Command } from '../types.ts';
 
 export type PickedCommand =
@@ -35,7 +37,7 @@ export function pickCommand(commands: readonly Command[], argv: readonly string[
 
   const words = argv.slice(command.path.length);
 
-  return words.some((word) => helpWords.has(word))
+  return isHelpRequest(command, words)
     ? { kind: 'help', prefix: command.path }
     : { kind: 'command', command, words };
 }
@@ -48,4 +50,26 @@ function pickGroup(commands: readonly Command[], argv: readonly string[]): Picke
   );
 
   return isGroup ? { kind: 'help', prefix } : { kind: 'unknown', word: argv[0] ?? '' };
+}
+
+// A help word that is the value of a flag, such as `--text help`, is that flag's value.
+function isHelpRequest(command: Command, words: readonly string[]): boolean {
+  const tokens = parseArgs({
+    args: [...words],
+    options: command.options,
+    allowPositionals: true,
+    strict: false,
+    tokens: true,
+  }).tokens;
+
+  const terminator = tokens.findIndex((token) => token.kind === 'option-terminator');
+  const beforeTerminator = terminator === -1 ? tokens : tokens.slice(0, terminator);
+
+  return beforeTerminator.some((token) =>
+    match(token)
+      .with({ kind: 'option' }, (option) => helpWords.has(option.rawName))
+      .with({ kind: 'positional' }, (positional) => helpWords.has(positional.value))
+      .with({ kind: 'option-terminator' }, () => false)
+      .exhaustive(),
+  );
 }

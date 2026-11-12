@@ -131,6 +131,27 @@ test('it posts the command as a call to the RPC route and prints the answer as J
   });
 });
 
+test.each([
+  [['--text', 'help'], 'help'],
+  [['--text=--help'], '--help'],
+])('it sends a flag value that is a help word, %p, as the value', async (flag, text) => {
+  const ctx = setupTest({ json: {}, status: 200 }, 'http://boxxy.test');
+
+  const result = await ctx.run(['item', 'note', 'i-1', ...flag]);
+
+  expect({ exitCode: result.exitCode, requests: ctx.requests }).toStrictEqual({
+    exitCode: 0,
+    requests: [
+      {
+        url: 'http://boxxy.test/rpc/item/note',
+        method: 'POST',
+        headers: [],
+        body: { json: { item: 'i-1', text } },
+      },
+    ],
+  });
+});
+
 test('it keeps the path of the server address in front of the RPC route', async () => {
   const ctx = setupTest({ json: {}, status: 200 }, 'http://boxxy.test/base/');
 
