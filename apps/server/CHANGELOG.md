@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.2.1](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.0...@boxxy/server@0.2.1) (2026-11-12)
+
+
+### Features
+
+* **item:** add the item body and build the launch prompt from it ([#94](https://github.com/zgeoff/boxxy/issues/94)) ([ad95f62](https://github.com/zgeoff/boxxy/commit/ad95f621adc62bec07a941c79cfbc8942fcbc2f1))
+* **model:** add the review, verify and merge ports and loader checks ([dd3a810](https://github.com/zgeoff/boxxy/commit/dd3a810e811a49abb235cc38dbf78857491c82a1))
+* **server:** read the notice session and its token from the environment ([645e9bd](https://github.com/zgeoff/boxxy/commit/645e9bd5f6c5c7324f109e16c21b4f29afd85824))
+* **server:** serve the owner mcp tools on a public oauth door ([#91](https://github.com/zgeoff/boxxy/issues/91)) ([ebacd1c](https://github.com/zgeoff/boxxy/commit/ebacd1c1f7d86567326a405ce273992faed3f046))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/auth-oauth bumped to 0.2.1
+    * @boxxy/caller-proof-imp bumped to 0.2.1
+    * @boxxy/closeout bumped to 0.2.1
+    * @boxxy/content-hash bumped to 0.2.1
+    * @boxxy/contract bumped to 0.2.1
+    * @boxxy/dispatch bumped to 0.2.1
+    * @boxxy/forge-github bumped to 0.2.1
+    * @boxxy/model bumped to 0.2.1
+    * @boxxy/notifier-atc bumped to 0.2.1
+    * @boxxy/pepys bumped to 0.2.1
+    * @boxxy/planning bumped to 0.2.1
+    * @boxxy/rules bumped to 0.2.1
+    * @boxxy/store-sqlite bumped to 0.2.1
+    * @boxxy/worker-atc bumped to 0.2.1
+
 ## [0.2.0](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.1.9...@boxxy/server@0.2.0) (2026-11-12)
 
 ### Features

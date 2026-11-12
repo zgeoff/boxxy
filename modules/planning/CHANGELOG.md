@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.1](https://github.com/zgeoff/boxxy/compare/@boxxy/planning@0.2.0...@boxxy/planning@0.2.1) (2026-11-12)
+
+
+### Features
+
+* **model:** add the review, verify and merge ports and loader checks ([dd3a810](https://github.com/zgeoff/boxxy/commit/dd3a810e811a49abb235cc38dbf78857491c82a1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/content-hash bumped to 0.2.1
+    * @boxxy/model bumped to 0.2.1
+    * @boxxy/rules bumped to 0.2.1
+
 ## [0.2.0](https://github.com/zgeoff/boxxy/compare/@boxxy/planning@0.1.9...@boxxy/planning@0.2.0) (2026-11-12)
 
 ### Miscellaneous Chores

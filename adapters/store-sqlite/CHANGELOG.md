@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.1](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.2.0...@boxxy/store-sqlite@0.2.1) (2026-11-12)
+
+
+### Features
+
+* **item:** add the item body and build the launch prompt from it ([#94](https://github.com/zgeoff/boxxy/issues/94)) ([ad95f62](https://github.com/zgeoff/boxxy/commit/ad95f621adc62bec07a941c79cfbc8942fcbc2f1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/content-hash bumped to 0.2.1
+    * @boxxy/model bumped to 0.2.1
+  * devDependencies
+    * @boxxy/dispatch bumped to 0.2.1
+  * peerDependencies
+    * @boxxy/dispatch bumped to 0.2.1
+
 ## [0.2.0](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.1.9...@boxxy/store-sqlite@0.2.0) (2026-11-12)
 
 ### Features
