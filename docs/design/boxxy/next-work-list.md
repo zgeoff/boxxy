@@ -19,6 +19,7 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 - **Follows:** [review and merge](./review-and-merge.md#job-attempts); `review-and-merge/03-flow.ts`.
 - **Needs:** slice 1.
 - **Check:** one test per job attempt transition, and a test that a refused lease sends no call.
+- **Built:** the claim stores the phase kind's worker on the attempt, and the tick routes each live attempt through the server's worker registry. `runJobReading` in `@boxxy/dispatch` moves a job attempt to running on its first read, records the moves waited, acted and answered, and settles the attempt in the same tick when its drive finishes. The acted mark and `boxxy.merge.requested` go in one change under the lease. Store migration 0006 adds the job columns to the attempt row. The `run-job-reading` tests cover each transition and a refused mark that sends no call.
 
 ### 3. The review phase
 
@@ -88,6 +89,7 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 - **Follows:** [owner notices](./owner-notices.md).
 - **Needs:** nothing.
 - **Check:** the `sendNotices` and notifier tests in the doc's acceptance section.
+- **Built:** store migration 0004 adds `keySeq`, `keyTries` and `nextTryAt` to the notice row, and both claim stores read due rows through `listNoticesDue`. `sendNotices` in `@boxxy/dispatch` retries with the backoff above, and the atc notifier keeps no state. `runner.status` returns `oldestUnsentAt` as a timestamp string, beside `lastError`. The `send-notices`, `create-atc-notifier` and `runner-handlers` tests cover the backoff, the code map and the status fields.
 
 ### 12. The notice session by ID, with its own token
 
