@@ -59,7 +59,24 @@ test('it fetches the listed skills into the workspace and binds the agent sessio
   const after = await ctx.server.dispatch.listFacts('boxxy.attempt.session_bound');
   const installed = await readFile(join(ctx.workspace, '.claude/skills/bake-off/SKILL.md'), 'utf8');
 
-  expect(result).toStrictEqual({ exitCode: 0, stdout: '', stderr: '' });
+  const output: unknown = JSON.parse(result.stdout);
+
+  expect({
+    exitCode: result.exitCode,
+    stdout: output,
+    stderr: result.stderr,
+  }).toStrictEqual({
+    exitCode: 0,
+    stdout: {
+      hookSpecificOutput: {
+        hookEventName: 'SessionStart',
+        additionalContext: expect.stringContaining('`boxxy attempt close-out`'),
+        reloadSkills: true,
+      },
+    },
+    stderr: '',
+  });
+
   expect(installed).toBe('Three sketches.\n');
   expect(after.length - before.length).toBe(1);
 });
@@ -119,7 +136,7 @@ test('it ends the attempt as skill-missing when the skills repository cannot be 
   ]);
 });
 
-test('it binds without a fetch when the recipe lists no skill', async () => {
+test('it binds without a fetch and tells the session its close-out when the recipe lists no skill', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.server.seedStartedAttempt(brandSchemas.phaseName.parse('triage'));
 
@@ -127,7 +144,30 @@ test('it binds without a fetch when the recipe lists no skill', async () => {
 
   const result = await ctx.startHook('agent-session-1', join(ctx.skillsFolder, 'nowhere'));
 
-  expect(result).toStrictEqual({ exitCode: 0, stdout: '', stderr: '' });
+  const output: unknown = JSON.parse(result.stdout);
+
+  expect({
+    exitCode: result.exitCode,
+    stdout: output,
+    stderr: result.stderr,
+  }).toStrictEqual({
+    exitCode: 0,
+    stdout: {
+      hookSpecificOutput: {
+        hookEventName: 'SessionStart',
+        additionalContext: [
+          'boxxy runs this session as one attempt at the triage phase.',
+          "Run `boxxy attempt current` first. It prints this attempt as JSON: the item, your input, the owner's notes on the item, and `closeOut`, which holds the JSON Schema of the close-out body.",
+          'To cite a test or a check, record it with `boxxy attempt evidence --kind <test|ci-run|live-check> --ref <what you checked>` and use the ID it prints.',
+          'Before you end, send the close-out body as JSON on stdin to `boxxy attempt close-out`, with one of these outcomes: accepted, duplicate, declined.',
+          'When it prints problems, fix each one and send it again. The first valid close-out is final.',
+          'A session that ends without a valid close-out fails.',
+        ].join('\n'),
+        reloadSkills: false,
+      },
+    },
+    stderr: '',
+  });
 });
 
 test('it waits and asks again when the server has no attempt for the session, then gives up', async () => {

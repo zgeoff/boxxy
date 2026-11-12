@@ -2,6 +2,7 @@ import { match } from 'ts-pattern';
 import { buildErrorResult, buildTextResult } from '../cli/build-answer-result.ts';
 import { defaultSkillsURL, envNames } from '../constants.ts';
 import type { CLIResult, CommandCall } from '../types.ts';
+import { formatSessionGuide } from './format-session-guide.ts';
 import { installSkills } from './install-skills.ts';
 import { parseHookPayload, sessionStartPayloadSchema } from './parse-hook-payload.ts';
 import { waitForAttempt } from './wait-for-attempt.ts';
@@ -39,7 +40,20 @@ export async function runSessionStartHook(call: CommandCall): Promise<CLIResult>
   });
 
   return match(answer)
-    .with({ kind: 'bound' }, () => buildTextResult(''))
+    .with({ kind: 'bound' }, () =>
+      buildTextResult(
+        JSON.stringify({
+          hookSpecificOutput: {
+            hookEventName: 'SessionStart',
+            additionalContext: formatSessionGuide(current.closeOut),
+
+            // Claude Code finds skills before SessionStart hooks finish, so the skills this hook
+            // installed are missing from the first prompt without a re-scan.
+            reloadSkills: current.skills.names.length > 0,
+          },
+        }),
+      ),
+    )
     .with({ kind: 'skill-missing' }, () =>
       buildErrorResult(
         `boxxy ends this attempt: the skills ${missing.join(', ')} are not in the pinned skills repository`,

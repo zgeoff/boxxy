@@ -28,6 +28,7 @@ Each procedure of the contract has one command. The usage line of a command is t
 1. Calls `attempt.current` until the server has an attempt for the session: 6 tries, 5 seconds apart. The runner stores a session's caller after the worker answers the start, and the hook can run first. With no attempt it exits 1.
 2. Installs each skill that `attempt.current` lists, at the rules' pin, into `<cwd>/.claude/skills/<name>`. [Installing skills](#installing-skills) says how.
 3. Calls `attempt.bindSession` with the agent session ID, `claude_code` and, when a skill is absent, `missingSkills`.
+4. On a `bound` answer, prints the [SessionStart hook JSON](https://code.claude.com/docs/en/hooks#sessionstart-decision-control) of Claude Code. Its `hookSpecificOutput.additionalContext` tells the agent how to close out, whatever the recipe prompt says: the phase, the outcome names from `attempt.current`, the commands `boxxy attempt current`, `boxxy attempt evidence` and `boxxy attempt close-out`, and that a session that ends without a valid close-out fails. Its `reloadSkills` is `true` when the recipe lists a skill, because Claude Code looks for skills before the hook ends.
 
 A bind answer of `skill-missing` makes the server move the attempt to `closing`, and the runner settles it as failed with `skill-missing`. The hook then exits 1 and names the skills. The hook exits 0 for `bound` and exits 1 for every other answer.
 
