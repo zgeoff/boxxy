@@ -2,19 +2,17 @@
 
 ## [0.1.4](https://github.com/zgeoff/boxxy/compare/@boxxy/planning@0.1.3...@boxxy/planning@0.1.4) (2026-11-12)
 
-
 ### Miscellaneous Chores
 
-* **@boxxy/planning:** Synchronize boxxy versions
-
+- **@boxxy/planning:** Synchronize boxxy versions
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/content-hash bumped to 0.1.4
-    * @boxxy/model bumped to 0.1.4
-    * @boxxy/rules bumped to 0.1.4
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.1.4
+    - @boxxy/model bumped to 0.1.4
+    - @boxxy/rules bumped to 0.1.4
 
 ## [0.1.3](https://github.com/zgeoff/boxxy/compare/@boxxy/planning@0.1.0...@boxxy/planning@0.1.3) (2026-11-11)
 

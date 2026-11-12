@@ -2,24 +2,23 @@
 
 ## [0.1.4](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.1.3...@boxxy/dispatch@0.1.4) (2026-11-12)
 
-
 ### Bug Fixes
 
-* **release:** list test-util imports as peers and check imports ([f9e64a2](https://github.com/zgeoff/boxxy/commit/f9e64a2b787341b1ea994018205b01799f1fed38))
-
+- **release:** list test-util imports as peers and check imports
+  ([f9e64a2](https://github.com/zgeoff/boxxy/commit/f9e64a2b787341b1ea994018205b01799f1fed38))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/closeout bumped to 0.1.4
-    * @boxxy/content-hash bumped to 0.1.4
-    * @boxxy/model bumped to 0.1.4
-    * @boxxy/planning bumped to 0.1.4
-  * devDependencies
-    * @boxxy/rules bumped to 0.1.4
-  * peerDependencies
-    * @boxxy/rules bumped to 0.1.4
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/closeout bumped to 0.1.4
+    - @boxxy/content-hash bumped to 0.1.4
+    - @boxxy/model bumped to 0.1.4
+    - @boxxy/planning bumped to 0.1.4
+  - devDependencies
+    - @boxxy/rules bumped to 0.1.4
+  - peerDependencies
+    - @boxxy/rules bumped to 0.1.4
 
 ## [0.1.3](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.1.1...@boxxy/dispatch@0.1.3) (2026-11-11)
 
