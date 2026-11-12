@@ -1,6 +1,13 @@
 # Review, verify and merge
 
-After a build, boxxy reviews the pull request, has an agent grade the work on the real app, and merges the pull request through GitHub when every required check is green at its head. A person takes part only when a loop has used all its send-backs. An agent comes back only for work that needs one: findings to answer, a conflict, a red check or a failed feature. Each loop sends the item back a set number of times, and then the item holds for the owner.
+After a build, boxxy reviews the pull request, has an agent grade the work on the real app, and merges the pull request through GitHub when every required check is green at its head. An agent comes back only for work that needs one: findings to answer, a conflict, a red check or a failed feature. The item holds for the owner in six cases:
+
+- a loop has used all its send-backs;
+- a review or a verify failed twice in a row;
+- the verify agent asks a question;
+- the pull request closed with no merge;
+- a required check stayed pending past the merge's time limit;
+- GitHub refused the merge of a clean, green head.
 
 ```mermaid
 flowchart LR
@@ -39,14 +46,14 @@ The sketches in [`sketches/next/review-and-merge/`](./sketches/next/review-and-m
 
 ## Decisions
 
-- **Review, verify and merge are pipeline phases.** A send-back is a backward edge, so the pipeline engine counts the send-backs, holds the item and sends the notice. The rules dry run covers the three steps.
+- **Review, verify and merge are pipeline phases.** A send-back is a backward edge, so the pipeline engine counts the send-backs, holds the item and sends the hold's notice to the owner. The [rules dry run](./rules.md) covers the three steps.
 - **The review runs in an agent session on an agent host.** The agent host's image pins noslop, and the boxxy server's pod is too small to run reviews. A server restart also leaves a running review alone. The session runs one command and sends its output as the close-out. The agent judges nothing.
 - **Only the server posts the review.** The server checks the result against the pull request's head, posts it as the noslop App, and reads the open findings. The App's keys stay in the server's pod.
 - **The merge runs on a job worker.** The runner reads a merge attempt on each tick, as it reads every live attempt. A webhook never starts a merge.
 - **An agent never decides a merge.** `decideMerge` in `modules/train` is pure, and the runner calls it on each read of a merge attempt.
 - **boxxy reads required checks from its rules and the branch.** It takes the union of `merge.checks` in the rules file and the base branch's required status checks. The loader refuses an empty `merge.checks`, because a branch can require nothing.
-- **boxxy's own review close-out decides "reviewed at this head".** boxxy never reads noslop's GitHub check, because that check passes at a head that no review has read.
-- **A recipe field picks who grades.** The verify phase always runs as its own agent attempt. A verify recipe with `session: builder` wakes the build's kept session, so the builder grades its own work. `session: fresh` starts a new session.
+- **boxxy decides "reviewed at this head" from its own review close-out.** boxxy never reads noslop's GitHub check, because that check passes at a head that no review has read.
+- **The owner picks who grades, with a recipe field.** The verify phase always runs as its own agent attempt. A verify recipe with `session: builder` wakes the build's kept session, so the builder grades its own work. `session: fresh` starts a new session.
 
 ## The review gate
 
@@ -57,7 +64,7 @@ The sketches in [`sketches/next/review-and-merge/`](./sketches/next/review-and-m
 
 A review goes like this:
 
-1. The core picks the review number and its cause with `buildRoundCause` ([`03-flow.ts`](./sketches/next/review-and-merge/03-flow.ts), section C). The cause is `first`, `rework` after a `changes-requested` review, or `recheck` after anything else.
+1. The core picks the review number and its cause with `buildRoundCause` ([`03-flow.ts`](./sketches/next/review-and-merge/03-flow.ts), section C). The cause is `first` for the first review, `rework` after a `changes-requested` review, or `recheck` after a repair, a `stale` send-back, a failed verify or a failed review.
 2. A session on an agent host runs the command in the pull request's checkout, and sends the tool's raw result with `boxxy attempt close-out`.
 3. The server's `attempt.closeOut` procedure hashes the raw result, and answers a repeat of a stored result as a repeat. Otherwise it passes the result to `accept`, before it takes the store's lock, because `accept` posts to GitHub.
 4. The procedure stores the `ReviewCloseOut` that holds the reading, through the phase kind's parser, as for any close-out. The attempt settles `passed`, `changes-requested` or `failed`.
@@ -66,7 +73,7 @@ Rules of the review:
 
 - **Each reading carries its head.** When the result is for another head than the pull request's current head, or it read no part of that head, the reading is `not-covered`, and the review settles `failed`.
 - **A failed review runs once more.** A failed call, an unreadable result or a `not-covered` reading settles `failed`. The edge `again` runs the review as a `recheck` with the same review number. A second failed review in a row holds the item with `attempts used up`.
-- **Three reviews, then a hold.** The edge `changes-requested: { to: build, max: 2, resume: true }` sends the item back twice. The third `changes-requested` holds it with `rounds used up`.
+- **Three reviews, then a hold.** The edge is `changes-requested: { to: build, max: 2, resume: true }`, so the third `changes-requested` holds the item with `rounds used up`.
 - **A rework review raises no new finding.** It checks the builder's answers to the open findings with `--fixes-only`. When no `fixed` answer got a verdict, such as when the builder answered every finding `not-a-defect`, that run read nothing at the head. The command then runs a plain review, so the rework review covers the head. A `recheck` reviews what changed since the last review.
 - **boxxy trusts the review session as it trusts any session.** Only the review attempt's own session can close it out. noslop's check before a post matches the result's head and config to the pull request, and never checks that the review's calls ran.
 - **The builder answers findings in the review tool.** The rework build's input carries the open counts and `answerHint`, a text from the adapter with where the findings are and how to answer them. The core never reads a finding's text.
@@ -84,11 +91,13 @@ The `verify` phase runs an agent session that drives the real app with the repo'
 | `blocked`, with a question | hold, and the question reaches the owner |
 | `abandoned` | runs once more; a second `abandoned` in a row holds the item with `attempts used up` |
 
-`Verifier` has one method, `readAt(pullRequest, head)`, and the merge job calls it.
+The verdict reaches the merge in three steps, and only the last one decides the merge:
 
-- **CI computes the fingerprint.** wringer's fingerprint of the change needs a checkout. The server has none, so the CI check `verify / gate` computes the fingerprint.
-- **The adapter reads the check and the report.** The wringer adapter reads the latest run of `verify / gate` at the head, and the report that the agent writes into the pull request body. A head with no finished gate run reads `not-covered`, never `verified`.
-- **The gate check runs again when the body changes.** The verify workflow runs on `pull_request` with the types `opened`, `synchronize`, `reopened` and `edited`, because the report lives in the body. The [wringer journeys design](./wringer-journeys.md) owns the workflow and how a verdict reaches the body.
+1. The verify agent runs the journeys, writes wringer's report into the pull request body, and then closes out `verified`, which moves the item on to merge.
+2. The CI check `verify / gate` reads that report and fails a change whose features lack a fresh verdict. The gate computes wringer's fingerprint of the change, which needs a checkout, and the server has none.
+3. The merge job calls `Verifier.readAt(pullRequest, head)`. The wringer adapter builds the `VerifyReading` from the latest `verify / gate` run at the head and the report in the body. A head with no finished gate run reads `not-covered`, never `verified`. `decideMerge` reads only this reading, so a `verified` close-out with no green gate never merges.
+
+[wringer journeys](./wringer-journeys.md) owns what the grading agent does, the report, and the `verify / gate` workflow. The workflow runs on `pull_request` with the types `opened`, `synchronize`, `reopened` and `edited`, because the report lives in the body.
 - **pepys compares the two graders by recipe.** The owner gives one item kind the `session: builder` recipe and another the `session: fresh` recipe. When the build's kept session is gone, a `session: builder` attempt runs on a fresh session, and its `started` fact carries `resumeFallback: true`, so a comparison can leave it out.
 
 ## The merge step
@@ -133,7 +142,7 @@ The GitHub adapter needs `Contents: write` and `Pull requests: write` to merge, 
 
 ### The merge train
 
-`decideMerge` takes a `MergeUnit`, a list of pull requests with their heads. The [merge train](./merge-train.md) design replaces `decideMerge` with a rule over units of several pull requests, and keeps its outcomes, so the pipeline stays the same. `MergeAnswer` holds `queued`, GitHub's answer when a merge queue takes a pull request. The direct merge call never answers `queued`.
+`decideMerge` takes a `MergeUnit`, a list of pull requests with their heads. `MergeAnswer` holds `queued`, GitHub's answer when a merge queue takes a pull request, which the direct merge call never gives. A rule over units of several pull requests can therefore take the place of `decideMerge` with the same outcomes, and the rules file's merge step and its edges stay as they are. The [merge train](./merge-train.md) describes that rule.
 
 ## Job attempts
 
@@ -145,7 +154,7 @@ A merge attempt uses the attempt states `starting`, `running`, `closing`, `succe
 
 ## Facts and pepys
 
-The fact catalog gains `boxxy.attempt.job_started`, `boxxy.merge.requested` and `boxxy.merge.answered`, and holds 30 types ([`02-types.ts`](./sketches/next/review-and-merge/02-types.ts), the last section). The item is the entity of each one. `boxxy.attempt.closed_out` carries the rest to pepys:
+The fact catalog of 30 types holds three for these steps: `boxxy.attempt.job_started`, `boxxy.merge.requested` and `boxxy.merge.answered` ([`02-types.ts`](./sketches/next/review-and-merge/02-types.ts), the last section). The item is the entity of each one. Everything else that pepys reads about these steps reaches it in `boxxy.attempt.closed_out`:
 
 - each review's head, open counts and token cost;
 - each verify close-out, with its grader;
