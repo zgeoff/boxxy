@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.1.9](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.1.8...@boxxy/store-sqlite@0.1.9) (2026-11-12)
+
+### Bug Fixes
+
+- **store-sqlite:** reject an exclusive call once the store closes
+  ([ac87f1d](https://github.com/zgeoff/boxxy/commit/ac87f1d6105fea1e2ceff1a17df199b9571432d4))
+- **store-sqlite:** skip attempts with no session when matching a caller
+  ([903fdd8](https://github.com/zgeoff/boxxy/commit/903fdd82fc270637fc993ff8478c9002103971ee))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.1.9
+    - @boxxy/model bumped to 0.1.9
+  - devDependencies
+    - @boxxy/dispatch bumped to 0.1.9
+  - peerDependencies
+    - @boxxy/dispatch bumped to 0.1.9
+
 ## [0.1.8](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.1.7...@boxxy/store-sqlite@0.1.8) (2026-11-12)
 
 ### Bug Fixes

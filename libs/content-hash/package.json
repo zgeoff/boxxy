@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/content-hash",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Canonical JSON and the SHA-256 content hashes boxxy records",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/libs/content-hash#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",
