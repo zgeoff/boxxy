@@ -244,17 +244,19 @@ Once the image holds no rules, `rules.yaml` opens with this comment:
 
 ### 1. A boxxy release with the checkout reader
 
-- **Outcome:** an `@boxxy/server` release holds the three reader commits: the ref check, the read from the checked commit, and `--no-replace-objects`. No release holds them yet.
+- **Outcome:** an `@boxxy/server` release holds the three reader commits: the ref check, the read from the checked commit, and `--no-replace-objects`.
 - **Follows:** [how boxxy ships](./release.md).
-- **Needs:** the owner merges the open release pull request.
+- **Needs:** a release that carries the three commits.
 - **Check:** `git tag --contains` on each of the three commits prints the release's `@boxxy/server` tag.
+- **Built:** `@boxxy/server@0.2.0` is the first tag that holds all three.
 
 ### 2. The rules repository's check and ruleset
 
-- **Outcome:** the rules repository holds the check, its workflow and `.gitignore`, and the ruleset is active.
-- **Follows:** [the rules repository's check](#the-rules-repositorys-check), [the ruleset](#the-ruleset).
+- **Outcome:** the rules repository holds the check, its workflow and `.gitignore`, the rules file opens with [the new header](#the-rules-files-header), and the ruleset is active. The header's sentence on how fast a merge reaches the server holds once slice 4 is live.
+- **Follows:** [the rules repository's check](#the-rules-repositorys-check), [the ruleset](#the-ruleset), [the rules file's header](#the-rules-files-header).
 - **Needs:** slice 1, for the pinned `@boxxy/server` version.
-- **Check:** a pull request that sets `maxAttempts: two` fails `rules-check` and cannot merge; a pull request that adds a prompt comment passes and merges; `git push --force` to `main` is refused.
+- **Check:** a pull request that sets `maxAttempts: two` fails `rules-check` and cannot merge; a pull request that adds a prompt comment passes and merges; the ruleset read back from the API lists `non_fast_forward` and `deletion` with no bypass actor.
+- **Built:** the check pins `@boxxy/server` 0.2.0. Its workflow also checks out with `persist-credentials: false`, and cancels an older run on a pull request but never on `main`. Each check above held.
 
 ### 3. The image carries git
 
@@ -272,8 +274,8 @@ Once the image holds no rules, `rules.yaml` opens with this comment:
 
 ### 5. Retire the image's rules
 
-- **Outcome:** the cloud repo loses `deploy/boxxy/rules/`, the image's `COPY` of it, the copy in `scripts/write-boxxy-image-context.sh`, the workflow's `deploy/boxxy/rules/**` path, and the image test's case for `/rules` in the image. Its boxxy architecture doc's "The rules" section says the rules come from the rules repository through the sidecar, and the rules file in the rules repository opens with [the new header](#the-rules-files-header).
-- **Follows:** [the rules file's header](#the-rules-files-header).
+- **Outcome:** the cloud repo loses `deploy/boxxy/rules/`, the image's `COPY` of it, the copy in `scripts/write-boxxy-image-context.sh`, the workflow's `deploy/boxxy/rules/**` path, and the image test's case for `/rules` in the image. Its boxxy architecture doc's "The rules" section says the rules come from the rules repository through the sidecar.
+- **Follows:** [the pod](#the-pod).
 - **Needs:** slice 4, live.
 - **Check:** `git grep -n 'deploy/boxxy/rules'` in the cloud repo prints nothing, and the image test passes.
 
