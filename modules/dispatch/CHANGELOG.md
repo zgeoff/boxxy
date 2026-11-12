@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.2.3](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.2.2...@boxxy/dispatch@0.2.3) (2026-11-12)
+
+### Features
+
+- **closeout:** add the verify phase on the build's kept session
+  ([94b58de](https://github.com/zgeoff/boxxy/commit/94b58de300eee536b3ad2a156fa668cfa221d751))
+- **dispatch:** run job attempts in the tick
+  ([dbb6b5c](https://github.com/zgeoff/boxxy/commit/dbb6b5c63844557723fa82ffbf3762c1415dc1e9))
+- **rules:** render launch prompts with liquid
+  ([3a2d195](https://github.com/zgeoff/boxxy/commit/3a2d19545b9eecee94086364986f9cfa7601b642))
+
+### Bug Fixes
+
+- **dispatch:** read a respawned verify's grader from its stored input
+  ([353c183](https://github.com/zgeoff/boxxy/commit/353c18378f5a7afa0ccc56be4152c6ece0031bc5))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/closeout bumped to 0.2.3
+    - @boxxy/content-hash bumped to 0.2.3
+    - @boxxy/model bumped to 0.2.3
+    - @boxxy/planning bumped to 0.2.3
+    - @boxxy/prompt-template bumped to 0.2.3
+  - devDependencies
+    - @boxxy/rules bumped to 0.2.3
+  - peerDependencies
+    - @boxxy/rules bumped to 0.2.3
+
 ## [0.2.2](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.2.1...@boxxy/dispatch@0.2.2) (2026-11-12)
 
 ### Features

@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.2.3](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.2.2...@boxxy/model@0.2.3) (2026-11-12)
+
+### Features
+
+- **closeout:** add the verify phase on the build's kept session
+  ([94b58de](https://github.com/zgeoff/boxxy/commit/94b58de300eee536b3ad2a156fa668cfa221d751))
+- **dispatch:** run job attempts in the tick
+  ([dbb6b5c](https://github.com/zgeoff/boxxy/commit/dbb6b5c63844557723fa82ffbf3762c1415dc1e9))
+- **rules:** render launch prompts with liquid
+  ([3a2d195](https://github.com/zgeoff/boxxy/commit/3a2d19545b9eecee94086364986f9cfa7601b642))
+
+### Bug Fixes
+
+- **prompt-template:** refuse tags and filters that bind or read clocks
+  ([895bf6a](https://github.com/zgeoff/boxxy/commit/895bf6a12fe5acf8a5323ebaed48c0283145be9c))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.2.3
+
 ## [0.2.2](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.2.1...@boxxy/model@0.2.2) (2026-11-12)
 
 ### Features

@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.2.3](https://github.com/zgeoff/boxxy/compare/@boxxy/rules@0.2.2...@boxxy/rules@0.2.3) (2026-11-12)
+
+### Features
+
+- **rules:** render launch prompts with liquid
+  ([3a2d195](https://github.com/zgeoff/boxxy/commit/3a2d19545b9eecee94086364986f9cfa7601b642))
+
+### Bug Fixes
+
+- **prompt-template:** refuse tags and filters that bind or read clocks
+  ([895bf6a](https://github.com/zgeoff/boxxy/commit/895bf6a12fe5acf8a5323ebaed48c0283145be9c))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.2.3
+    - @boxxy/model bumped to 0.2.3
+    - @boxxy/prompt-template bumped to 0.2.3
+
 ## [0.2.2](https://github.com/zgeoff/boxxy/compare/@boxxy/rules@0.2.1...@boxxy/rules@0.2.2) (2026-11-12)
 
 ### Features

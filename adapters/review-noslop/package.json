@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/review-noslop",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "boxxy's review gate on noslop: the review command, and the check and post of its result",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/adapters/review-noslop#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",

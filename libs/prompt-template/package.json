@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/prompt-template",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "The launch prompt template of a boxxy recipe: its placeholders, its load check and its render",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/libs/prompt-template#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",
