@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.2](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.2.1...@boxxy/store-sqlite@0.2.2) (2026-11-12)
+
+
+### Bug Fixes
+
+* **model:** read review close-outs stored before the review gate ([41f9de3](https://github.com/zgeoff/boxxy/commit/41f9de311c52fc915dfba989156d0277fef0707c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/content-hash bumped to 0.2.2
+    * @boxxy/model bumped to 0.2.2
+  * devDependencies
+    * @boxxy/dispatch bumped to 0.2.2
+  * peerDependencies
+    * @boxxy/dispatch bumped to 0.2.2
+
 ## [0.2.1](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.2.0...@boxxy/store-sqlite@0.2.1) (2026-11-12)
 
 ### Features

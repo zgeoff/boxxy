@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.2](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.2.1...@boxxy/model@0.2.2) (2026-11-12)
+
+
+### Features
+
+* **review:** add the review phase on the noslop review gate ([303381e](https://github.com/zgeoff/boxxy/commit/303381ec2850ee40231148e0ee7931a49a30e9c3))
+
+
+### Bug Fixes
+
+* **model:** read review close-outs stored before the review gate ([41f9de3](https://github.com/zgeoff/boxxy/commit/41f9de311c52fc915dfba989156d0277fef0707c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/content-hash bumped to 0.2.2
+
 ## [0.2.1](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.2.0...@boxxy/model@0.2.1) (2026-11-12)
 
 ### Features
