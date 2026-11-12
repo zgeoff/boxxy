@@ -2,20 +2,19 @@
 
 ## [0.2.3](https://github.com/zgeoff/boxxy/compare/@boxxy/closeout@0.2.2...@boxxy/closeout@0.2.3) (2026-11-12)
 
-
 ### Features
 
-* **closeout:** add the verify phase on the build's kept session ([94b58de](https://github.com/zgeoff/boxxy/commit/94b58de300eee536b3ad2a156fa668cfa221d751))
-
+- **closeout:** add the verify phase on the build's kept session
+  ([94b58de](https://github.com/zgeoff/boxxy/commit/94b58de300eee536b3ad2a156fa668cfa221d751))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.2.3
-  * devDependencies
-    * @boxxy/planning bumped to 0.2.3
-    * @boxxy/rules bumped to 0.2.3
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.3
+  - devDependencies
+    - @boxxy/planning bumped to 0.2.3
+    - @boxxy/rules bumped to 0.2.3
 
 ## [0.2.2](https://github.com/zgeoff/boxxy/compare/@boxxy/closeout@0.2.1...@boxxy/closeout@0.2.2) (2026-11-12)
 
