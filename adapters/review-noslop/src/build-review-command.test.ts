@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { GateRound } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
+import { z } from 'zod';
 import { buildReviewCommand, reviewFileName } from './build-review-command.ts';
 import { buildMockReviewResult } from './test-utils/build-mock-review-result.ts';
 import type { StubNoslopAnswers } from './test-utils/create-stub-noslop.ts';
@@ -26,7 +27,9 @@ async function setupTest() {
     const exitCode = await child.exited;
     const text = await readFile(join(root, reviewFileName), 'utf8');
 
-    return { exitCode, calls: await stub.readCalls(), body: JSON.parse(text) };
+    const body = z.looseObject({ review: z.unknown() }).parse(JSON.parse(text));
+
+    return { exitCode, calls: await stub.readCalls(), body };
   };
 
   return { runCommand };
