@@ -213,6 +213,12 @@ async function runForget(deps: TickDeps): Promise<number> {
   try {
     const report = await forgetSessions({ ...deps, actor: runnerActor(deps) });
 
+    if (report.failed.length > 0) {
+      deps.log.warn('the worker did not confirm the forget of done sessions', {
+        sessions: report.failed,
+      });
+    }
+
     return report.forgotten.length;
   } catch (error) {
     deps.log.warn('the forget of the done sessions failed', { error: formatErrorChain(error) });

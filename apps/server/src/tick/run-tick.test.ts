@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { closeOutAttempt, requestWake } from '@boxxy/dispatch';
+import { closeOutAttempt, requestWake, settleAttempt } from '@boxxy/dispatch';
 import { createTestDispatch } from '@boxxy/dispatch/test-utils/create-test-dispatch';
 import type { AttemptId, SessionReading, WorkerKind } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
@@ -279,4 +279,37 @@ test('it sends the stop of a stray session again and records it once the session
 
   expect(report.strays).toBe(1);
   expect(after.sessionStoppedAt).toBe(ctx.dispatch.clock.now());
+});
+
+test('it logs each session whose forget the worker refused', async () => {
+  const ctx = await setupTest();
+
+  await ctx.dispatch.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+
+  const claim = await ctx.dispatch.claim();
+
+  invariant(claim !== null, 'the claim picks the seeded item');
+
+  await settleAttempt({
+    store: ctx.dispatch.store,
+    attempt: claim.attempt.id,
+    forced: 'stalled',
+    sessionStopped: true,
+    rules: ctx.dispatch.rules(),
+    actor: `boxxy:runner:${ctx.dispatch.runner}`,
+    now: ctx.dispatch.clock.now(),
+    newId: ctx.dispatch.newId,
+  });
+
+  const failed = await ctx.dispatch.readAttempt(claim.attempt.id);
+
+  ctx.dispatch.clock.advance(25 * 3_600_000);
+  ctx.dispatch.worker.failNext('forget', { kind: 'refused', cause: 'other', reason: 'host busy' });
+
+  await runTick(ctx.buildDeps());
+
+  expect([ctx.logged, ctx.loggedFields]).toStrictEqual([
+    ['the worker did not confirm the forget of done sessions'],
+    [{ sessions: [failed.atcSession] }],
+  ]);
 });
