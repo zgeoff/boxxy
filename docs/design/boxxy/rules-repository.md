@@ -99,11 +99,13 @@ The Secret holds three keys: `ssh`, the deploy key's private half; `known_hosts`
 The image's base carries `git`, since `readRulesCheckout` runs `git` for a checkout. The distroless `cc-debian12` base has none: `exec: "/usr/bin/git": stat /usr/bin/git: no such file`. `cgr.dev/chainguard/git`, pinned by digest, runs the compiled `boxxy-linux-x64` binary as uid 65532 on a read-only root, and carries git 2.56.1.
 
 ```dockerfile
-# cloud repo, images/boxxy/Dockerfile; …existing lines, minus the COPY of rules/
+# cloud repo, images/boxxy/Dockerfile; …existing lines, the COPY of rules/ among them
 ARG BASE_IMAGE # a glibc base with git, pinned by digest
 FROM ${BASE_IMAGE}
 USER 65532
 ```
+
+The image keeps its `COPY` of `rules/` until [slice 5](#5-retire-the-images-rules). The server refuses to start when its rules folder is missing, so an image without the copy fails its existing test until the sidecar's mount replaces the copy.
 
 ### The rules repository's check
 
@@ -186,8 +188,9 @@ Once the image holds no rules, `rules.yaml` opens with this comment:
 # The boxxy server's live rules. A pull request merged to main reaches the server within 2
 # minutes: a sidecar in the server's pod fetches main every 30 seconds, and the server loads
 # the new commit on its next tick. The rules check loads each pull request with the server's
-# own loader, so a file it refuses never merges. When the server still refuses a commit, the
-# rules in force stay, and `boxxy runner status` shows the refused commit and each reason.
+# own loader, so a pull request it refuses cannot merge. When the server still refuses a
+# commit, the rules in force stay, and `boxxy runner status` shows the refused commit and
+# each reason.
 # They start as the v1 example rules of @boxxy/rules: four phases, two limits, five pools and
 # the sleep times. Each recipe runs atc's `boxxy` agent, which loads the boxxy hook plug-in.
 ```
@@ -206,6 +209,8 @@ Once the image holds no rules, `rules.yaml` opens with this comment:
 - When the loader refuses a commit, the rules in force stay, and `runner.status` shows `lastRejected: { commit, rejections }` with the refused commit. The next commit that loads clears it.
 - A read that throws inside the tick, such as when `git cat-file` finds an object that git-sync pruned, is logged as `the runner tick failed`, and the next tick tries again.
 - Prometheus scrapes the sidecar's `/metrics` on port 2020. An alert fires when `git_sync_count_total` with `status="success"` or `status="noop"` has not grown for 15 minutes, and when the series is missing, as every rule in the cloud repo's [observability](https://github.com/zgeoff/cloud/blob/main/docs/architecture/workloads/observability.md) design does.
+- The rules check runs the checker, the workflow and the pin from the pull request's own tree. A pull request that edits `.github/` can make the check pass on a file the loader refuses. The server's loader is the backstop: it refuses that file, and the rules in force stay.
+- The ruleset makes every change to `main` a merged pull request that passed `rules-check`. It requires no approval and never checks that a review ran, so it does not enforce the review gate that [rules](./rules.md#policy-in-git) requires of a rules pull request.
 - The pin of `@boxxy/server` in the rules check equals the pin in the cloud repo's `package.json`. A rules check older or newer than the live server can pass a file that the live server refuses, and the live server's refusal keeps the rules in force.
 - Every commit to `main` gives a new rules version, since the version hashes the commit. A change to the README or to the check's lock file is a new version with the same rules.
 
@@ -233,6 +238,7 @@ Once the image holds no rules, `rules.yaml` opens with this comment:
 ## Open questions
 
 - **Does `runner.status` need a fetch-age field?** The owner settles it. Until then, the alert in the cloud repo is the only signal that the checkout has stopped moving.
+- **What enforces the review gate on a rules pull request, and guards the rules check's own files?** The owner settles it. GitHub never counts an approval from the pull request's author, and every agent acts with the owner's login, so a required approval would block every merge. Until then, a merged rules pull request goes live whether or not a review ran.
 
 ## Slices
 
