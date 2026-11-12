@@ -29,7 +29,7 @@ import type {
 import { brandSchemas } from '@boxxy/model';
 import { match } from 'ts-pattern';
 import { formatErrorChain } from '../format-error-chain.ts';
-import type { ServerLog } from '../types.ts';
+import type { NoticeStatus, ServerLog } from '../types.ts';
 
 export interface TickDeps {
   readonly store: ClaimStore;
@@ -46,6 +46,7 @@ export interface TickDeps {
 
   // the last reading of each live attempt; the tick replaces it whole
   readonly readings: Map<AttemptId, SessionReading>;
+  readonly noticeStatus: NoticeStatus;
   readonly log: ServerLog;
 }
 
@@ -223,7 +224,13 @@ async function runForget(deps: TickDeps): Promise<number> {
 
 async function runNotices(deps: TickDeps): Promise<NoticeReport | null> {
   try {
-    return await sendNotices(deps);
+    const report = await sendNotices(deps);
+
+    if (report.lastError !== null) {
+      deps.noticeStatus.lastError = report.lastError;
+    }
+
+    return report;
   } catch (error) {
     deps.log.warn('the send of the hold notices failed', { error: formatErrorChain(error) });
 

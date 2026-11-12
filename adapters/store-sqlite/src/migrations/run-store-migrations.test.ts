@@ -8,6 +8,7 @@ import { Kysely } from 'kysely';
 import { z } from 'zod';
 import type { StoreDatabase } from '../types.ts';
 import { createTablesMigration } from './create-tables-migration.ts';
+import { noticeKeysMigration } from './notice-keys-migration.ts';
 import { renameRelationsMigration } from './rename-relations-migration.ts';
 import { runStoreMigrations } from './run-store-migrations.ts';
 import { v1TablesMigration } from './v1-tables-migration.ts';
@@ -36,6 +37,7 @@ async function setupTest() {
     createTables: () => createTablesMigration.up(db),
     renameRelations: () => renameRelationsMigration.up(db),
     migrateV1Tables: () => v1TablesMigration.up(db),
+    migrateNoticeKeys: () => noticeKeysMigration.up(db),
     writeRaw: (statement: string, ...values: number[]) => {
       sqlite.query(statement).run(...values);
     },
@@ -167,4 +169,37 @@ test('it changes nothing when it runs again on a migrated file', async () => {
   await ctx.migrate();
 
   expect({ schema: ctx.readSchema(), migrations: ctx.readMigrations() }).toStrictEqual(before);
+});
+
+test('it makes each old notice row due at its own time, on its first key, in the unsent index', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createTables();
+  await ctx.renameRelations();
+  await ctx.migrateV1Tables();
+
+  ctx.writeRaw(
+    "INSERT INTO notices (item, reason, at, tries, sent_at) VALUES ('item-a', 'blocked', ?, 7, NULL)",
+    1000,
+  );
+
+  ctx.writeRaw(
+    "INSERT INTO notices (item, reason, at, tries, sent_at) VALUES ('item-b', 'blocked', ?, 1, 2000)",
+    1500,
+  );
+
+  await ctx.migrateNoticeKeys();
+
+  const index = ctx.readSchema().find((entry) => entry.name === 'notices_unsent')?.sql;
+
+  expect([
+    ctx.readRaw('SELECT item, tries, key_seq, key_tries, next_try_at FROM notices ORDER BY id'),
+    index,
+  ]).toStrictEqual([
+    [
+      { item: 'item-a', tries: 7, key_seq: 0, key_tries: 0, next_try_at: 1000 },
+      { item: 'item-b', tries: 1, key_seq: 0, key_tries: 0, next_try_at: 1500 },
+    ],
+    'CREATE INDEX notices_unsent ON notices (next_try_at) WHERE sent_at IS NULL',
+  ]);
 });

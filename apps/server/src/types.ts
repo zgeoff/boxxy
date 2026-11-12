@@ -34,6 +34,12 @@ export interface OutboxControl {
   readonly nudge: () => void;
 }
 
+// What the notice sender last saw, which the tick writes and `runner.status` reads.
+export interface NoticeStatus {
+  // the reason of the most recent try that was not `sent`; null before any
+  lastError: string | null;
+}
+
 // Failures and state changes only. Never a token, a header or a secret.
 export interface ServerLog {
   readonly warn: (message: string, fields: Readonly<Record<string, unknown>>) => void;
@@ -66,6 +72,7 @@ export interface ServerDeps {
 
   // the last reading of each live attempt, which the tick writes and `runner.status` reads
   readonly readings: ReadonlyMap<AttemptId, SessionReading>;
+  readonly noticeStatus: Readonly<NoticeStatus>;
   readonly log: ServerLog;
 }
 

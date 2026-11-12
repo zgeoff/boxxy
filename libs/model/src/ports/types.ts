@@ -95,8 +95,8 @@ export interface StoreReader extends OutboxReader {
   // the rows not yet sent, whatever their tries, oldest first
   listUnsentNotices: (limit: number) => Promise<NoticeRow[]>;
 
-  // the rows not yet sent with fewer than `maxTries` tries, oldest first
-  listNoticesToSend: (maxTries: number, limit: number) => Promise<NoticeRow[]>;
+  // the rows not yet sent whose `nextTryAt` has passed, oldest `nextTryAt` first
+  listNoticesDue: (now: Instant, limit: number) => Promise<NoticeRow[]>;
 
   // oldest kept first
   listKeptSessions: () => Promise<{ readonly item: ItemId; readonly kept: KeptSession }[]>;
@@ -155,8 +155,8 @@ export interface StoreTx extends StoreReader {
   syncLimits: (limits: readonly Limit[], at: Instant) => Promise<void>;
   markPullRequestChecked: (ref: PullRequestRef, at: Instant) => Promise<void>;
 
-  // one more try of the notice; `sent` also sets its `sentAt`
-  markNoticeTried: (id: number, at: Instant, sent: boolean) => Promise<void>;
+  // one more try of the notice, with the new key state and next try time; a `sentAt` also marks it sent
+  markNoticeTried: (id: number, update: NoticeTryUpdate) => Promise<void>;
 }
 
 // A change may write no fact, such as the suspend mark; such a change moves no store version. The
@@ -346,11 +346,27 @@ export interface HoldNotice {
   readonly item: ItemId;
   readonly reason: HoldReason;
   readonly at: Instant;
+
+  // the row's current key; the adapter sends it unchanged
+  readonly key: string;
 }
 
 export type NoticeOutcome =
   | { readonly kind: 'sent' }
-  | { readonly kind: 'failed'; readonly reason: string };
+
+  // atc ran nothing
+  | { readonly kind: 'refused'; readonly reason: string }
+
+  // atc may have sent the message
+  | { readonly kind: 'uncertain'; readonly reason: string };
+
+// What one try writes to its row, besides one more `tries`.
+export interface NoticeTryUpdate {
+  readonly sentAt: Instant | null;
+  readonly keySeq: number;
+  readonly keyTries: number;
+  readonly nextTryAt: Instant;
+}
 
 // Proves who sent a request to the server. The server's root middleware calls it for every
 // session and hook procedure, and knows no header and no token itself. null: no proof, so the

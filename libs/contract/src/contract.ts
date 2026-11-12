@@ -274,8 +274,13 @@ const runnerStatusOutput = z.object({
   attempts: z.array(runnerAttempt),
   strays: z.array(attemptRowSchema),
 
-  // hold notices that the notifier has not sent
-  notices: z.object({ unsent: count }),
+  // hold notices that the notifier has not sent; `lastError` is the reason of the most recent
+  // try that was not sent
+  notices: z.object({
+    unsent: count,
+    oldestUnsentAt: instantOrNull,
+    lastError: z.string().nullable(),
+  }),
   outbox: outboxStatus,
   rules: rulesStatus,
 });

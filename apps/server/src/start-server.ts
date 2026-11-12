@@ -25,7 +25,7 @@ import { createRulesHolder } from './rules/create-rules-holder.ts';
 import { maxRequestBytes, serveApi } from './serve-api.ts';
 import { runTick } from './tick/run-tick.ts';
 import { startTickLoop } from './tick/start-tick-loop.ts';
-import type { ServerDeps, ServerLog } from './types.ts';
+import type { NoticeStatus, ServerDeps, ServerLog } from './types.ts';
 
 export interface StartServerInput {
   readonly env: Readonly<Record<string, string | undefined>>;
@@ -123,6 +123,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
 
   const readings = new Map<AttemptId, SessionReading>();
 
+  const noticeStatus: NoticeStatus = { lastError: null };
   const holder = rules.holder;
 
   const deps: ServerDeps = {
@@ -141,6 +142,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
       Object.keys(config.spawn.repos).map((repo) => brandSchemas.repoName.parse(repo)),
     ),
     readings,
+    noticeStatus,
     log: input.log,
   };
 
@@ -173,6 +175,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
         now: clock.now(),
         newId,
         readings,
+        noticeStatus,
         log: input.log,
       });
     },

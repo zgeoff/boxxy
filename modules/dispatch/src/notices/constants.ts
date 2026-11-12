@@ -1,7 +1,13 @@
 export const noticeLimits = {
-  // a row with this many tries is no longer sent, and stays listed in `runner.status`
-  maxTries: 5,
-
-  // the unsent rows one tick reads, tried or not
+  // the rows one tick reads, due or not
   readRows: 200,
+
+  // the wait after the first try; each later wait doubles
+  firstWaitMs: 5000,
+
+  // the longest wait between two tries of one row
+  longestWaitMs: 900_000,
+
+  // uncertain tries under one key before the row takes a new key
+  uncertainTriesPerKey: 3,
 } as const;

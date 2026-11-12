@@ -176,7 +176,7 @@ test('it withholds the close of a declined triage, holds the item, and writes th
   expect(notices).toMatchObject([{ item: attempt.item, reason: 'declined', tries: 0 }]);
 });
 
-test('it leaves the attempt and the item as they were when the notice of its hold fails 5 times', async () => {
+test('it leaves the attempt and the item as they were when the notice of its hold is refused 6 times', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.claimAt('triage');
 
@@ -192,10 +192,12 @@ test('it leaves the attempt and the item as they were when the notice of its hol
 
   const before = [await ctx.readAttempt(attempt.id), await ctx.readItem(attempt.item)];
 
-  notifier.failAlways('session offline');
+  notifier.failAlways({ kind: 'refused', reason: 'session_dead' });
 
   for (let tick = 0; tick < 6; tick += 1) {
     await sendNotices({ store: ctx.store, notifier, now: ctx.clock.now() });
+
+    ctx.clock.advance(900_000);
   }
 
   const after = [await ctx.readAttempt(attempt.id), await ctx.readItem(attempt.item)];
@@ -203,7 +205,7 @@ test('it leaves the attempt and the item as they were when the notice of its hol
   const notices = await ctx.listNotices();
 
   expect(after).toStrictEqual(before);
-  expect(notices).toMatchObject([{ item: attempt.item, tries: 5, sentAt: null }]);
+  expect(notices).toMatchObject([{ item: attempt.item, tries: 6, sentAt: null }]);
 });
 
 test('it closes a duplicate and adds the relation when the rules end the outcome', async () => {

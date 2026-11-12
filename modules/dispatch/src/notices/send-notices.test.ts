@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { Notifier } from '@boxxy/model';
+import type { NoticeRow, Notifier } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { createFakeNotifier } from '@boxxy/model/test-utils/create-fake-notifier';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
@@ -11,7 +11,7 @@ async function setupTest() {
 
   const notifier = createFakeNotifier();
 
-  const insertNotice = (item: string) =>
+  const insertNotice = (overrides: Partial<NoticeRow> = {}) =>
     dispatch.store.exclusive((tx) =>
       tx.applyChange({
         at: dispatch.clock.now(),
@@ -21,11 +21,15 @@ async function setupTest() {
             table: 'notices',
             row: {
               id: 1,
-              item: brandSchemas.itemId.parse(item),
+              item: brandSchemas.itemId.parse('0190a6f4-0000-7000-8000-0000000000a1'),
               reason: brandSchemas.rulesHoldReason.parse('blocked'),
               at: dispatch.clock.now(),
               tries: 0,
               sentAt: null,
+              keySeq: 0,
+              keyTries: 0,
+              nextTryAt: dispatch.clock.now(),
+              ...overrides,
             },
           },
         ],
@@ -33,13 +37,27 @@ async function setupTest() {
       }),
     );
 
+  const send = (target: Notifier = notifier) =>
+    sendNotices({ store: dispatch.store, notifier: target, now: dispatch.clock.now() });
+
   return {
     ...dispatch,
+    refused: { kind: 'refused', reason: 'session_dead' } as const,
+    uncertain: { kind: 'uncertain', reason: 'outcome_unknown' } as const,
     notifier,
     insertNotice,
-    send: (target: Notifier = notifier) =>
-      sendNotices({ store: dispatch.store, notifier: target, now: dispatch.clock.now() }),
+    send,
     listUnsent: () => dispatch.store.read((tx) => tx.listUnsentNotices(100)),
+
+    // one try now, then the clock moves past the next try
+    sendThenWait: async () => {
+      const report = await send();
+
+      dispatch.clock.advance(900_000);
+
+      return report;
+    },
+    sentKeys: () => notifier.attempts.map((notice) => notice.key),
     listFactTypes: async () => {
       const facts = await dispatch.store.read((tx) => tx.readUnsentFacts(1000));
 
@@ -48,35 +66,35 @@ async function setupTest() {
   };
 }
 
-test('it sends an unsent notice and marks it sent', async () => {
+test('it sends an unsent notice under its key and marks it sent', async () => {
   const ctx = await setupTest();
 
-  await ctx.insertNotice('0190a6f4-0000-7000-8000-0000000000a1');
+  await ctx.insertNotice();
 
   const report = await ctx.send();
   const unsent = await ctx.listUnsent();
 
-  expect([report, ctx.notifier.told.length, unsent]).toStrictEqual([
-    { sent: 1, failed: 0, stuck: 0 },
-    1,
+  expect([report, ctx.sentKeys(), unsent]).toStrictEqual([
+    { sent: 1, failed: 0, lastError: null },
+    ['boxxy-notice:1:0'],
     [],
   ]);
 });
 
-test('it keeps a failed notice unsent with one more try, and changes no attempt and no fact', async () => {
+test('it keeps a refused notice unsent, reports the reason, and changes no fact', async () => {
   const ctx = await setupTest();
 
-  await ctx.insertNotice('0190a6f4-0000-7000-8000-0000000000a1');
+  await ctx.insertNotice();
 
   const factsBefore = await ctx.listFactTypes();
 
-  ctx.notifier.failNext('session offline');
+  ctx.notifier.failNext(ctx.refused);
 
   const report = await ctx.send();
   const [row] = await ctx.listUnsent();
 
   expect([report, row?.tries, row?.sentAt]).toStrictEqual([
-    { sent: 0, failed: 1, stuck: 0 },
+    { sent: 0, failed: 1, lastError: 'session_dead' },
     1,
     null,
   ]);
@@ -86,87 +104,164 @@ test('it keeps a failed notice unsent with one more try, and changes no attempt 
   expect(factsAfter).toStrictEqual(factsBefore);
 });
 
-test('it sends a notice again on a later tick after a failure', async () => {
+test('it waits 5 seconds after the first try and does not try a row before its time', async () => {
   const ctx = await setupTest();
 
-  await ctx.insertNotice('0190a6f4-0000-7000-8000-0000000000a1');
+  await ctx.insertNotice();
 
-  ctx.notifier.failNext('session offline');
+  ctx.notifier.failAlways(ctx.refused);
 
   await ctx.send();
+
+  ctx.clock.advance(4999);
+
+  const early = await ctx.send();
+
+  ctx.clock.advance(1);
+
+  const due = await ctx.send();
+
+  expect([early.failed, due.failed, ctx.notifier.calls()]).toStrictEqual([0, 1, 2]);
+});
+
+test.each([
+  [1, 5000],
+  [2, 10_000],
+  [3, 20_000],
+  [9, 900_000],
+  [60, 900_000],
+])('it sets the next try of try %i to %i ms after it', async (tries, waitMs) => {
+  const ctx = await setupTest();
+
+  await ctx.insertNotice({ tries: tries - 1 });
+
+  ctx.notifier.failNext(ctx.refused);
+
+  const before = ctx.clock.now();
+
+  await ctx.send();
+
+  const [row] = await ctx.listUnsent();
+
+  expect(row?.nextTryAt).toBe(brandSchemas.instant.parse(before + waitMs));
+});
+
+test('it still tries a row that has 50 tries', async () => {
+  const ctx = await setupTest();
+
+  await ctx.insertNotice({ tries: 50 });
+
+  const report = await ctx.send();
+
+  expect([report.sent, ctx.notifier.calls()]).toStrictEqual([1, 1]);
+});
+
+test('it sends a notice again on a later tick after a refusal, under a new key', async () => {
+  const ctx = await setupTest();
+
+  await ctx.insertNotice();
+
+  ctx.notifier.failNext(ctx.refused);
+
+  await ctx.sendThenWait();
 
   const report = await ctx.send();
   const unsent = await ctx.listUnsent();
 
-  expect([report.sent, unsent]).toStrictEqual([1, []]);
-});
-
-test('it stops calling the notifier after 5 failed tries and leaves the row listed', async () => {
-  const ctx = await setupTest();
-
-  await ctx.insertNotice('0190a6f4-0000-7000-8000-0000000000a1');
-
-  ctx.notifier.failAlways('session offline');
-
-  for (let tick = 0; tick < 7; tick += 1) {
-    await ctx.send();
-  }
-
-  const [row] = await ctx.listUnsent();
-  const report = await ctx.send();
-
-  expect([ctx.notifier.calls(), row?.tries, report]).toStrictEqual([
-    5,
-    5,
-    { sent: 0, failed: 0, stuck: 1 },
+  expect([report.sent, ctx.sentKeys(), unsent]).toStrictEqual([
+    1,
+    ['boxxy-notice:1:0', 'boxxy-notice:1:1'],
+    [],
   ]);
 });
 
-test('it sends a fresh notice behind 200 older notices that used all their tries', async () => {
+test('it keeps the key after an uncertain try', async () => {
   const ctx = await setupTest();
 
-  const item = brandSchemas.itemId.parse('0190a6f4-0000-7000-8000-0000000000a1');
-  const reason = brandSchemas.rulesHoldReason.parse('blocked');
+  await ctx.insertNotice();
 
-  await ctx.store.exclusive((tx) =>
-    tx.applyChange({
-      at: ctx.clock.now(),
-      writes: Array.from({ length: 201 }, (_, index) => ({
-        op: 'insert' as const,
-        table: 'notices' as const,
-        row: {
-          id: index + 1,
-          item,
-          reason,
-          at: ctx.clock.now(),
-          tries: index < 200 ? 5 : 0,
-          sentAt: null,
-        },
-      })),
-      facts: [],
-    }),
-  );
+  ctx.notifier.failNext(ctx.uncertain);
 
-  const report = await ctx.send();
+  await ctx.sendThenWait();
+  await ctx.send();
 
-  expect([report, ctx.notifier.calls()]).toStrictEqual([{ sent: 1, failed: 0, stuck: 200 }, 1]);
+  expect(ctx.sentKeys()).toStrictEqual(['boxxy-notice:1:0', 'boxxy-notice:1:0']);
 });
 
-test('it counts a notifier that throws as a failed try', async () => {
+test('it takes a new key after the third uncertain try', async () => {
   const ctx = await setupTest();
 
-  await ctx.insertNotice('0190a6f4-0000-7000-8000-0000000000a1');
+  await ctx.insertNotice();
+
+  ctx.notifier.failAlways(ctx.uncertain);
+
+  for (let tick = 0; tick < 4; tick += 1) {
+    await ctx.sendThenWait();
+  }
+
+  const [row] = await ctx.listUnsent();
+
+  expect([ctx.sentKeys(), row?.keySeq, row?.keyTries]).toStrictEqual([
+    ['boxxy-notice:1:0', 'boxxy-notice:1:0', 'boxxy-notice:1:0', 'boxxy-notice:1:1'],
+    1,
+    1,
+  ]);
+});
+
+test('it keeps the key after a refused try that follows an uncertain one', async () => {
+  const ctx = await setupTest();
+
+  await ctx.insertNotice();
+
+  ctx.notifier.failNext(ctx.uncertain);
+
+  await ctx.sendThenWait();
+
+  ctx.notifier.failNext(ctx.refused);
+
+  await ctx.sendThenWait();
+  await ctx.send();
+
+  expect(ctx.sentKeys()).toStrictEqual([
+    'boxxy-notice:1:0',
+    'boxxy-notice:1:0',
+    'boxxy-notice:1:0',
+  ]);
+});
+
+test('it keeps the key of a row across a restart, because the key comes from the row', async () => {
+  const ctx = await setupTest();
+
+  await ctx.insertNotice({ keySeq: 4, keyTries: 2 });
+
+  ctx.notifier.failNext(ctx.uncertain);
+
+  await ctx.send();
+
+  const [row] = await ctx.listUnsent();
+
+  expect([ctx.sentKeys(), row?.keySeq, row?.keyTries]).toStrictEqual([['boxxy-notice:1:4'], 5, 0]);
+});
+
+test('it counts a notifier that throws as an uncertain try', async () => {
+  const ctx = await setupTest();
+
+  await ctx.insertNotice();
 
   const report = await ctx.send({ tellHold: () => Promise.reject(new Error('socket closed')) });
   const [row] = await ctx.listUnsent();
 
-  expect([report.failed, row?.tries]).toStrictEqual([1, 1]);
+  expect([report, row?.tries, row?.keyTries]).toStrictEqual([
+    { sent: 0, failed: 1, lastError: 'socket closed' },
+    1,
+    1,
+  ]);
 });
 
 test('it marks every notice sent through the null notifier', async () => {
   const ctx = await setupTest();
 
-  await ctx.insertNotice('0190a6f4-0000-7000-8000-0000000000a1');
+  await ctx.insertNotice();
 
   const report = await ctx.send(createNullNotifier());
   const unsent = await ctx.listUnsent();

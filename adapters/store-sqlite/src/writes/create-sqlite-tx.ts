@@ -4,6 +4,7 @@ import type {
   FactId,
   Instant,
   Limit,
+  NoticeTryUpdate,
   PullRequestRef,
   RunnerId,
   StoreChange,
@@ -43,7 +44,7 @@ export function createSQLiteTx(db: Kysely<StoreDatabase>): StoreTx {
     listLimitSeats: inTurn(reader.listLimitSeats),
     listItemNotes: inTurn(reader.listItemNotes),
     listUnsentNotices: inTurn(reader.listUnsentNotices),
-    listNoticesToSend: inTurn(reader.listNoticesToSend),
+    listNoticesDue: inTurn(reader.listNoticesDue),
     listKeptSessions: inTurn(reader.listKeptSessions),
     listSessionsToForget: inTurn(reader.listSessionsToForget),
     readRunner: inTurn(reader.readRunner),
@@ -63,8 +64,8 @@ export function createSQLiteTx(db: Kysely<StoreDatabase>): StoreTx {
     markPullRequestChecked: inTurn((ref: PullRequestRef, at: Instant) =>
       writePullRequestChecked(db, ref, at),
     ),
-    markNoticeTried: inTurn((id: number, at: Instant, sent: boolean) =>
-      writeNoticeTry(db, id, at, sent),
+    markNoticeTried: inTurn((id: number, update: NoticeTryUpdate) =>
+      writeNoticeTry(db, id, update),
     ),
   };
 }
@@ -216,14 +217,16 @@ async function writePullRequestChecked(
 async function writeNoticeTry(
   db: Kysely<StoreDatabase>,
   id: number,
-  at: Instant,
-  sent: boolean,
+  update: NoticeTryUpdate,
 ): Promise<void> {
   await db
     .updateTable('notices')
     .set((builder) => ({
       tries: builder('tries', '+', 1),
-      ...(sent ? { sent_at: at } : {}),
+      key_seq: update.keySeq,
+      key_tries: update.keyTries,
+      next_try_at: update.nextTryAt,
+      ...(update.sentAt === null ? {} : { sent_at: update.sentAt }),
     }))
     .where('id', '=', id)
     .execute();

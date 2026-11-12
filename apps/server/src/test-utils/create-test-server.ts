@@ -26,7 +26,7 @@ import { makeProposedRulesLoader } from '../rules/load-server-rules.ts';
 import { serveApi } from '../serve-api.ts';
 import type { TickReport } from '../tick/run-tick.ts';
 import { runTick } from '../tick/run-tick.ts';
-import type { ServerDeps, ServerLog } from '../types.ts';
+import type { NoticeStatus, ServerDeps, ServerLog } from '../types.ts';
 import type { FakeCallerProof } from './create-fake-caller-proof.ts';
 import { createFakeCallerProof } from './create-fake-caller-proof.ts';
 
@@ -90,6 +90,7 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
 
   const readings = new Map<AttemptId, SessionReading>();
 
+  const noticeStatus: NoticeStatus = { lastError: null };
   const logged: { message: string; fields: unknown }[] = [];
 
   const log: ServerLog = {
@@ -115,6 +116,7 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
     outbox: createOffOutbox(dispatch.store, dispatch.clock),
     repos: new Set(dispatch.spawn.repos.keys()),
     readings,
+    noticeStatus,
     log,
   };
 
@@ -143,6 +145,7 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
         now: dispatch.clock.now(),
         newId: dispatch.newId,
         readings,
+        noticeStatus,
         log,
       }),
     watch: () =>
