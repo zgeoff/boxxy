@@ -17,11 +17,11 @@
       "system-tests"
     ],
     "catalog": {
-      "@atcx/contract": "7.13.0",
       "@commitlint/cli": "21.2.4",
       "@faker-js/faker": "10.6.0",
       "@impz/client": "6.12.0",
       "@maschwenk/tsrslint": "0.1.6",
+      "@modelcontextprotocol/client": "2.4.0",
       "@modelcontextprotocol/server": "2.4.0",
       "@orpc/client": "2.0.0-beta.50",
       "@orpc/contract": "2.0.0-beta.50",

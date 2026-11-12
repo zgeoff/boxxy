@@ -55,7 +55,7 @@
           },
           {
             "name": "atc",
-            "modules": ["@atcx/contract"],
+            "modules": ["@modelcontextprotocol/client"],
             "allow": ["worker-atc"],
             "reason": "only adapters/worker-atc talks to atc; use its WorkerKind"
           },

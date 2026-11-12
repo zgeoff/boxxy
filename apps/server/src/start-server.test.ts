@@ -28,7 +28,7 @@ async function setupTest() {
       workerListen: { hostname: '127.0.0.1', port: 0 },
     },
     spawn: { target: 'cloud', repoPaths: {} },
-    atc: { url: 'http://127.0.0.1:9/rpc', trustedFolders: {} },
+    atc: { url: 'http://127.0.0.1:9/mcp', trustedFolders: {} },
   };
 
   await Bun.write(configFile, JSON.stringify(config));

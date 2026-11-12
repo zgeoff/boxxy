@@ -1,18 +1,31 @@
-import { expect, test } from 'bun:test';
+import { expect, onTestFinished, test } from 'bun:test';
 import { createFakeClock } from '@boxxy/dispatch/test-utils/create-fake-clock';
 import { workerContract } from '@boxxy/dispatch/test-utils/worker-contract';
 import type { AttemptId } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
+import { createAtcMcpClient } from './create-atc-mcp-client.ts';
 import { createAtcWorker } from './create-atc-worker.ts';
-import { FakeAtcError, createFakeAtcClient } from './test-utils/create-fake-atc-client.ts';
+import { createFakeAtcServer } from './test-utils/create-fake-atc-server.ts';
+import { createFakeAtc } from './test-utils/create-fake-atc.ts';
 
 function setupTest() {
   const clock = createFakeClock();
-  const atc = createFakeAtcClient({ clock, targets: { box: 'suspending', laptop: 'local' } });
+  const atc = createFakeAtc({ clock, targets: { box: 'suspending', laptop: 'local' } });
+  const server = createFakeAtcServer({ atc, token: 'atcs_test-token-0123', host: 'atc.test' });
+
+  onTestFinished(() => server.stop());
+
+  const client = createAtcMcpClient({
+    url: server.url,
+    host: 'atc.test',
+    token: 'atcs_test-token-0123',
+    fetch,
+    timeoutMs: 5000,
+  });
 
   const worker = createAtcWorker({
-    client: atc,
+    client,
     trustedFolders: { box: ['/tmp/boxxy-test/repos'], laptop: ['/tmp/boxxy-test/repos'] },
   });
 
@@ -90,21 +103,36 @@ test('#start refuses a folder outside the target trusted folders and spawns noth
   ]);
 });
 
-test('#start answers capacity when the host has no RAM budget for another machine', async () => {
+test('#start answers the cause other for a host atc cannot ready, since MCP gives no problem', async () => {
   const ctx = setupTest();
   const attempt = buildMockV1AttemptRow().id;
 
-  ctx.atc.failNext(
-    'spawn',
-    new FakeAtcError('host_unavailable', { provider: 'imp', problem: 'ram_budget_exceeded' }),
-  );
+  ctx.atc.failNext('atc_session_spawn', { kind: 'refusal', code: 'host_unavailable' });
 
   const outcome = await ctx.worker.start(ctx.buildSpawnRequest(attempt, 'box'));
 
   expect(outcome).toStrictEqual({
     kind: 'refused',
-    cause: 'capacity',
+    cause: 'other',
     reason: expect.stringContaining('host_unavailable'),
+  });
+});
+
+test('#start answers refused when atc answers a spawn with a result that fails its schema', async () => {
+  const ctx = setupTest();
+  const attempt = buildMockV1AttemptRow().id;
+
+  ctx.atc.failNext('atc_session_spawn', {
+    kind: 'malformed',
+    result: { id: 's1-fake', host: { issuer: 'https://elsewhere.test' } },
+  });
+
+  const outcome = await ctx.worker.start(ctx.buildSpawnRequest(attempt, 'box'));
+
+  expect(outcome).toStrictEqual({
+    kind: 'refused',
+    cause: 'other',
+    reason: expect.stringContaining('malformed_answer'),
   });
 });
 
@@ -112,7 +140,7 @@ test('#start answers unknown when atc cannot tell whether the spawn ran', async 
   const ctx = setupTest();
   const attempt = buildMockV1AttemptRow().id;
 
-  ctx.atc.failNext('spawn', new FakeAtcError('outcome_unknown'));
+  ctx.atc.failNext('atc_session_spawn', { kind: 'refusal', code: 'outcome_unknown' });
 
   const outcome = await ctx.worker.start(ctx.buildSpawnRequest(attempt, 'box'));
 
@@ -126,18 +154,18 @@ test('#start answers unknown when the call fails with no atc answer', async () =
   const ctx = setupTest();
   const attempt = buildMockV1AttemptRow().id;
 
-  ctx.atc.failNext('spawn', new Error('socket closed'));
+  ctx.atc.failNext('atc_session_spawn', { kind: 'no-answer' });
 
   const outcome = await ctx.worker.start(ctx.buildSpawnRequest(attempt, 'box'));
 
-  expect(outcome).toStrictEqual({ kind: 'unknown', reason: 'socket closed' });
+  expect(outcome).toStrictEqual({ kind: 'unknown', reason: 'atc gave no answer: HTTP 502' });
 });
 
 test('#start answers unknown for a keyed spawn that ran before its session is listed again', async () => {
   const ctx = setupTest();
   const attempt = buildMockV1AttemptRow().id;
 
-  ctx.atc.failNext('spawn', new FakeAtcError('no_such_session', { effectRef: 's9-fake' }));
+  ctx.atc.failNext('atc_session_spawn', { kind: 'refusal', code: 'no_such_session' });
 
   const outcome = await ctx.worker.start(ctx.buildSpawnRequest(attempt, 'box'));
 
@@ -148,7 +176,7 @@ test('#start answers refused with the cause other for any other atc refusal', as
   const ctx = setupTest();
   const attempt = buildMockV1AttemptRow().id;
 
-  ctx.atc.failNext('spawn', new FakeAtcError('auth_signin_needed'));
+  ctx.atc.failNext('atc_session_spawn', { kind: 'refusal', code: 'auth_signin_needed' });
 
   const outcome = await ctx.worker.start(ctx.buildSpawnRequest(attempt, 'box'));
 
@@ -172,21 +200,21 @@ test('#stop answers unknown when the call fails with no atc answer', async () =>
   const ctx = setupTest();
   const attempt = buildMockV1AttemptRow({ atcSession: brandSchemas.atcSessionId.parse('s1-fake') });
 
-  ctx.atc.failNext('kill', new Error('socket closed'));
+  ctx.atc.failNext('atc_session_stop', { kind: 'no-answer' });
 
   const outcome = await ctx.worker.stop(attempt);
 
-  expect(outcome).toStrictEqual({ kind: 'unknown', reason: 'socket closed' });
+  expect(outcome).toStrictEqual({ kind: 'unknown', reason: 'atc gave no answer: HTTP 502' });
 });
 
 test('#forget answers unknown when the call fails with no atc answer', async () => {
   const ctx = setupTest();
 
-  ctx.atc.failNext('forget', new Error('socket closed'));
+  ctx.atc.failNext('atc_session_forget', { kind: 'no-answer' });
 
   const outcome = await ctx.worker.forget(brandSchemas.atcSessionId.parse('s1-fake'));
 
-  expect(outcome).toStrictEqual({ kind: 'unknown', reason: 'socket closed' });
+  expect(outcome).toStrictEqual({ kind: 'unknown', reason: 'atc gave no answer: HTTP 502' });
 });
 
 test('#reconcile finds a session by its spawn name when the attempt holds no session', async () => {
@@ -204,9 +232,9 @@ test('#reconcile throws when atc does not answer, so no session reads absent by 
   const ctx = setupTest();
   const attempt = buildMockV1AttemptRow({ atcSession: brandSchemas.atcSessionId.parse('s1-fake') });
 
-  ctx.atc.failNext('get', new Error('socket closed'));
+  ctx.atc.failNext('atc_session_get', { kind: 'no-answer' });
 
-  expect(ctx.worker.reconcile(attempt)).rejects.toThrow('socket closed');
+  expect(ctx.worker.reconcile(attempt)).rejects.toThrow('atc gave no answer');
 });
 
 test('#suspend answers refused when another owner keeps the host awake', async () => {
@@ -220,7 +248,7 @@ test('#suspend answers refused when another owner keeps the host awake', async (
     atcSession: brandSchemas.atcSessionId.parse('s1-fake'),
   });
 
-  ctx.atc.failNext('kill', new FakeAtcError('host_leased'));
+  ctx.atc.failNext('atc_session_stop', { kind: 'refusal', code: 'host_leased' });
 
   const outcome = await ctx.worker.suspend(attempt, null);
 
@@ -293,13 +321,13 @@ test('#resume answers started without an adopt when the session already runs', a
 
   const outcome = await ctx.worker.resume(attempt);
 
-  expect([outcome.kind, ctx.atc.calls.map((call) => call.call)]).toStrictEqual([
+  expect([outcome.kind, ctx.atc.calls.map((call) => call.tool)]).toStrictEqual([
     'started',
-    ['spawn', 'get'],
+    ['atc_session_spawn', 'atc_session_get'],
   ]);
 });
 
-test('#resume answers capacity when the host has no RAM budget to wake', async () => {
+test('#resume answers refused when atc cannot ready the host to wake', async () => {
   const ctx = setupTest();
   const id = buildMockV1AttemptRow().id;
 
@@ -312,14 +340,11 @@ test('#resume answers capacity when the host has no RAM budget to wake', async (
 
   await ctx.worker.stop(attempt);
 
-  ctx.atc.failNext(
-    'adopt',
-    new FakeAtcError('host_unavailable', { provider: 'imp', problem: 'ram_budget_exceeded' }),
-  );
+  ctx.atc.failNext('atc_session_adopt', { kind: 'refusal', code: 'host_unavailable' });
 
   const outcome = await ctx.worker.resume(attempt);
 
-  expect(outcome).toMatchObject({ kind: 'refused', cause: 'capacity' });
+  expect(outcome).toMatchObject({ kind: 'refused', cause: 'other' });
 });
 
 test('#resumeKept sends the prompt to the woken session as a message', async () => {
@@ -364,7 +389,7 @@ test('#resumeKept stops the woken session again when atc refuses the message', a
 
   await ctx.worker.stop(attempt);
 
-  ctx.atc.failNext('message', new FakeAtcError('unsupported'));
+  ctx.atc.failNext('atc_message_send', { kind: 'refusal', code: 'unsupported' });
 
   const outcome = await ctx.worker.resumeKept(
     {

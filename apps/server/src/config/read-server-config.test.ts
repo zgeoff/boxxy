@@ -26,7 +26,7 @@ test('it reads a configuration file that passes the schema', async () => {
       workerListen: { hostname: '127.0.0.1', port: 4401 },
     },
     spawn: { target: 'cloud', repoPaths: { 'example/app': '/tmp/boxxy-test/app' } },
-    atc: { url: 'http://127.0.0.1:7777/rpc', trustedFolders: { cloud: ['/tmp/boxxy-test'] } },
+    atc: { url: 'http://127.0.0.1:7777/mcp', trustedFolders: { cloud: ['/tmp/boxxy-test'] } },
   };
 
   await ctx.writeConfig(JSON.stringify(config));
@@ -48,7 +48,12 @@ test('it reads the optional sections: trusted issuers, pepys and github', async 
       workerListen: { hostname: '127.0.0.1', port: 4401 },
     },
     spawn: { target: 'cloud', repoPaths: {} },
-    atc: { url: 'http://127.0.0.1:7777/rpc', trustedFolders: {} },
+    atc: {
+      url: 'http://atc-gateway.example.test:8080/mcp',
+      host: 'atc.example.test',
+      trustedFolders: {},
+      noticeSession: 'owner-desk',
+    },
     trustedIssuers: { folders: ['/tmp/boxxy-test/issuers'], audience: 'boxxy.example.test' },
     pepys: {
       ingestUrl: 'https://pepys.example.test/ingest/boxxy',
@@ -78,8 +83,34 @@ test('it refuses a github section whose base URL is not a URL', async () => {
         workerListen: { hostname: '127.0.0.1', port: 4401 },
       },
       spawn: { target: 'cloud', repoPaths: {} },
-      atc: { url: 'http://127.0.0.1:7777/rpc', trustedFolders: {} },
+      atc: { url: 'http://127.0.0.1:7777/mcp', trustedFolders: {} },
       github: { baseUrl: 'api.github' },
+    }),
+  );
+
+  const answer = await readServerConfig(ctx.file);
+
+  expect(answer.kind).toBe('invalid');
+});
+
+test('it refuses an atc host that is no host name, such as one with a line break', async () => {
+  const ctx = await setupTest();
+
+  await ctx.writeConfig(
+    JSON.stringify({
+      runner: 'runner-1',
+      store: { file: '/tmp/boxxy-test/boxxy.db' },
+      rules: { folder: '/tmp/boxxy-test/rules' },
+      api: {
+        listen: { hostname: '127.0.0.1', port: 4400 },
+        workerListen: { hostname: '127.0.0.1', port: 4401 },
+      },
+      spawn: { target: 'cloud', repoPaths: {} },
+      atc: {
+        url: 'http://127.0.0.1:7777/mcp',
+        host: 'atc.example.test\r\nx-extra: 1',
+        trustedFolders: {},
+      },
     }),
   );
 

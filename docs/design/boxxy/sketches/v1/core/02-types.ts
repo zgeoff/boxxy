@@ -548,18 +548,20 @@ export interface WorkerKind {
 // spawns nothing and answers `refused`, cause `other`, reason `worker folder not trusted`.
 //
 // Built: adapters/worker-atc. `createAtcWorker({ client, trustedFolders })`: `client` is
-// `AtcClient`, the seven `session.*` calls of `@atcx/contract` that the adapter makes (spawn, get,
-// list, kill, adopt, forget, message), built and connected by the app; `trustedFolders` maps each
-// worker target to the folders the agent trusts there, from the app's configuration (atc has no
-// call that reads trust). The atc call behind each method and the map of each atc answer to an
-// outcome are in v1-lifecycle.md, "The atc worker". `capacity` is `host_unavailable` with the
-// problem `ram_budget_exceeded` (`isCapacityRefusal`, the one place). The caller comes from
-// `findCallerIdentity`, which reads the `host` field (`name`, `id`, `issuer`) that atc does not
-// report yet; atc reports no usage limit, so `usageLimitResetsAt` is always null (v1-open.md).
-// `StartOutcome`, `SuspendOutcome`, `StopOutcome`, `ForgetOutcome` are in
-// libs/model/src/ports/types.ts. The fake atc client is
-// `@boxxy/worker-atc/test-utils/create-fake-atc-client`; the worker contract runs against the
-// adapter on a local target and on a target that sleeps its hosts.
+// `AtcClient`, the seven atc gateway MCP tools the adapter calls (`atc_session_spawn`,
+// `atc_session_get`, `atc_sessions_list`, `atc_session_stop`, `atc_session_adopt`,
+// `atc_session_forget`, `atc_message_send`), which `createAtcMcpClient({ url, host, token, fetch,
+// timeoutMs })` gives over MCP streamable HTTP; `trustedFolders` maps each worker target to the
+// folders the agent trusts there, from the app's configuration (atc has no call that reads
+// trust). The tool behind each method and the map of each atc answer to an outcome are in
+// v1-lifecycle.md, "The atc worker". Every refusal has the cause `other` for now: atc's MCP
+// refusal carries no `problem`, so `capacity` is never read (v1-open.md). The caller comes from
+// `findCallerIdentity`, which reads the `host` field (`name`, `id`, `issuer`); atc reports no
+// usage limit, so `usageLimitResetsAt` is always null (v1-open.md). `StartOutcome`,
+// `SuspendOutcome`, `StopOutcome`, `ForgetOutcome` are in libs/model/src/ports/types.ts. The
+// stand-in is `@boxxy/worker-atc/test-utils/create-fake-atc` behind `create-fake-atc-server`, an
+// in-process MCP endpoint; the worker contract runs against the adapter on a local target and on
+// a target that sleeps its hosts.
 
 export type SessionReading =
   // a live agent process. atc's `running`, `needs_you` and `done` all map here: `done` is

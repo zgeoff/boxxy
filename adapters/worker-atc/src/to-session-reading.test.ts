@@ -64,7 +64,7 @@ test.each([
   'it reads a suspended process with the desired state %s as asked: %s',
   (desired, asked) => {
     const read = buildMockAtcSessionRead({
-      session: { state: 'exited', lifecycle: { harness: 'suspended', vm: 'asleep', desired } },
+      session: { state: 'exited', lifecycle: { harness: 'suspended', desired } },
     });
 
     expect(toSessionReading(read)).toStrictEqual({

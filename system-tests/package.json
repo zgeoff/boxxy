@@ -20,6 +20,7 @@
     "@boxxy/rules": "workspace:*",
     "@boxxy/server": "workspace:*",
     "@boxxy/store-sqlite": "workspace:*",
+    "@boxxy/worker-atc": "workspace:*",
     "tiny-invariant": "catalog:",
     "zod": "catalog:"
   },

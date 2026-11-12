@@ -35,6 +35,7 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | Format             | `oxfmt` `0.75.0`, `@zgeoff/oxfmt-config` `0.1.0`, `@zgeoff/format-codemod` `0.3.5`                                    | atc (oxfmt); zgeoff/tools (the configs) |
 | Package boundaries | `turbo` `2.11.10`                                                                                                     | noslop, nixie                           |
 | Typed API          | `@orpc/contract`, `@orpc/server`, `@orpc/client`, `@orpc/mcp` `2.0.0-beta.50`, `@modelcontextprotocol/server` `2.4.0` | boxxy's own choice                      |
+| atc client         | `@modelcontextprotocol/client` `2.4.0`, the MCP client of the server library's release                                | atc (its gateway serves MCP)            |
 | HTTP server        | `elysia` `2.0.0-rc.0`, with `typebox` `1.4.3`, `exact-mirror` `1.2.6` and `openapi-types` `12.1.3` as pepys pins them | pepys                                   |
 | Database           | `kysely` `0.29.8` on `bun:sqlite` through `@zgeoff/kysely-bun-sqlite` `0.3.2`                                         | nixie, atc                              |
 | Migrations         | Kysely's `Migrator` with an in-code migration provider                                                                | atc                                     |

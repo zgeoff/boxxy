@@ -14,9 +14,10 @@
 boxxy's worker port on atc: it starts, reads, sleeps, wakes, stops and forgets the agent sessions
 that run boxxy's attempts.
 
-`createAtcWorker({ client, trustedFolders })` takes an atc client that the app builds and connects,
-and the folders the agent trusts on each worker target. It is the only package that imports
-`@atcx/contract`.
+`createAtcWorker({ client, trustedFolders })` takes an atc client and the folders the agent trusts
+on each worker target. `createAtcMcpClient({ url, host, token, fetch, timeoutMs })` builds the
+client on the atc gateway's MCP endpoint. It is the only package that imports
+`@modelcontextprotocol/client`.
 
 ## Install
 
@@ -30,9 +31,13 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Features
 
-- `createAtcWorker`, the `WorkerKind` port of `@boxxy/model` on atc's `session.*` calls.
-- `AtcClient`, the atc calls the adapter makes, typed from atc's published contract.
-- `./test-utils/create-fake-atc-client`, an atc daemon in memory for tests.
+- `createAtcWorker`, the `WorkerKind` port of `@boxxy/model` on atc's MCP tools.
+- `createAtcMcpClient`, the `AtcClient` over MCP streamable HTTP, with each tool result parsed by a
+  schema.
+- `AtcCallError`, the error of a call that atc refused, with atc's `code`.
+- `./test-utils/create-fake-atc`, an atc daemon in memory, and
+  `./test-utils/create-fake-atc-server`, the gateway's `/mcp` endpoint in process in front of it,
+  for tests.
 
 ## Documentation
 

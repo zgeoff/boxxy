@@ -90,7 +90,7 @@ When a check fails, move the code to the package the layout names. Never add an 
   `"catalog:"` for an external dependency and `"workspace:*"` for another `@boxxy/*` package.
 - Install with the Bun version in `packageManager`. Another version rewrites unrelated lines of
   `bun.lock`.
-- Give each first-party package that `bun.lock` holds, such as one from `@zgeoff/` or `@atcx/`, an
+- Give each first-party package that `bun.lock` holds, such as one from `@zgeoff/` or `@impz/`, an
   entry in `minimumReleaseAgeExcludes` in `bunfig.toml`, by its full name. A scope pattern such as
   `@zgeoff/*` lets nothing through. Never ignore an audit finding to get past the gate.
 

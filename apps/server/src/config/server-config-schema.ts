@@ -15,8 +15,15 @@ const spawnSection = z.strictObject({
 });
 
 const atcSection = z.strictObject({
-  // the atc daemon's oRPC route, such as `http://127.0.0.1:7777/rpc`
+  // the atc gateway's MCP endpoint, such as its in-cluster Service address
   url: z.url(),
+
+  // the gateway's public host name, sent as `Host`, such as `atc.example.com`; the gateway answers
+  // 403 to any other host. With none, the client sends the host of the URL.
+  host: z
+    .string()
+    .regex(/^[a-z0-9.-]+(?::[0-9]{1,5})?$/u)
+    .optional(),
 
   // by worker target: the folders the agent trusts, each with its subfolders
   trustedFolders: z.record(z.string(), z.array(name)),

@@ -9,7 +9,7 @@ import { createPepysReader } from '@boxxy/pepys/reader';
 import { createPepysFactSink } from '@boxxy/pepys/sink';
 import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
 import type { AtcClient } from '@boxxy/worker-atc';
-import { createAtcWorker } from '@boxxy/worker-atc';
+import { createAtcMcpClient, createAtcWorker } from '@boxxy/worker-atc';
 import { createORPCClient } from '@orpc/client';
 import { RPCLink } from '@orpc/client/fetch';
 import { buildTokenDigest } from './auth/pick-request-scope.ts';
@@ -45,6 +45,7 @@ export type StartAnswer =
   | { readonly kind: 'refused'; readonly message: string };
 
 const tickMs = 5000;
+const atcTimeoutMs = 30_000;
 const watchMs = 5 * 60 * 1000;
 
 // Reads the configuration and the secrets, loads the rules, opens the store, builds the adapters,
@@ -87,14 +88,13 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
 
   const runner = brandSchemas.runnerId.parse(config.runner);
 
-  // the client type is an object literal of the port's calls: an interface has no index
-  // signature, so `createORPCClient` refuses `AtcClient` itself
-  const atc = createORPCClient<{ readonly session: AtcClient['session'] }>(
-    new RPCLink({
-      ...toLinkTarget(config.atc.url),
-      headers: { authorization: `Bearer ${secrets.secrets.atcToken}` },
-    }),
-  );
+  const atc = createAtcMcpClient({
+    url: config.atc.url,
+    host: config.atc.host ?? null,
+    token: secrets.secrets.atcToken,
+    fetch,
+    timeoutMs: atcTimeoutMs,
+  });
 
   const worker = createAtcWorker({ client: atc, trustedFolders: config.atc.trustedFolders });
   const notifier = buildNotifier(config, atc);
@@ -213,13 +213,6 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
   };
 }
 
-// oRPC's link takes the origin apart from the route's path
-function toLinkTarget(address: string): { origin: string; url: `/${string}` } {
-  const parsed = new URL(address);
-
-  return { origin: parsed.origin, url: `/${parsed.pathname.replace(/^\/+/u, '')}` };
-}
-
 function buildNotifier(config: ServerConfig, atc: AtcClient): Notifier {
   const session = config.atc.noticeSession;
 
@@ -227,10 +220,7 @@ function buildNotifier(config: ServerConfig, atc: AtcClient): Notifier {
     return createNullNotifier();
   }
 
-  return createAtcNotifier({
-    client: { sendMessage: (request) => atc.session.message(request) },
-    session,
-  });
+  return createAtcNotifier({ client: { sendMessage: atc.sendMessage }, session });
 }
 
 interface PepysWiring {
@@ -285,6 +275,13 @@ function startPepys(input: PepysInput): PepysWiring | null {
   });
 
   return { reader, sender };
+}
+
+// oRPC's link takes the origin apart from the route's path
+function toLinkTarget(address: string): { origin: string; url: `/${string}` } {
+  const parsed = new URL(address);
+
+  return { origin: parsed.origin, url: `/${parsed.pathname.replace(/^\/+/u, '')}` };
 }
 
 function newId(): string {

@@ -12,7 +12,7 @@ function setupTest() {
       workerListen: { hostname: '127.0.0.1', port: 4401 },
     },
     spawn: { target: 'cloud', repoPaths: {} },
-    atc: { url: 'http://127.0.0.1:7777/rpc', trustedFolders: {} },
+    atc: { url: 'http://127.0.0.1:7777/mcp', trustedFolders: {} },
   };
 
   return {

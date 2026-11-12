@@ -31,13 +31,22 @@
     "typecheck": "tsrs --noEmit"
   },
   "dependencies": {
-    "@atcx/contract": "catalog:",
     "@boxxy/model": "workspace:*",
+    "@modelcontextprotocol/client": "catalog:",
     "ts-pattern": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@boxxy/dispatch": "workspace:*"
+    "@boxxy/dispatch": "workspace:*",
+    "@modelcontextprotocol/server": "catalog:"
+  },
+  "peerDependencies": {
+    "@modelcontextprotocol/server": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@modelcontextprotocol/server": {
+      "optional": true
+    }
   },
   "engines": {
     "bun": ">=1.3",

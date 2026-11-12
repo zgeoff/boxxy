@@ -41,7 +41,18 @@ bun run start
 ```
 
 - `<worker_token>` is the token the broker sends on every request to the worker listener.
-- `<atc_token>` is the token the server sends to the atc daemon.
+- `<atc_token>` is the atc gateway's service token, which the server sends as the bearer.
+
+The `atc` section of the configuration names the gateway:
+
+| Field            | Value                                                              |
+| ---------------- | ------------------------------------------------------------------ |
+| `url`            | the gateway's MCP endpoint, such as its in-cluster Service address |
+| `host`           | optional: the gateway's public host name, sent as `Host`           |
+| `trustedFolders` | by worker target, the folders the agent trusts there               |
+| `noticeSession`  | optional: the atc session that gets the hold notices               |
+
+[The atc worker](../../docs/design/boxxy/v1-lifecycle.md#the-atc-worker) lists the token's scopes.
 
 With a `pepys` section in the configuration, also set `BOXXY_PEPYS_SIGNING_SECRET`. With a `github`
 section, set `BOXXY_GITHUB_TOKEN` unless a broker adds the GitHub credential.

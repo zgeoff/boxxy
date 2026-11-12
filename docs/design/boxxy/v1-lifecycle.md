@@ -175,19 +175,21 @@ Section F of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the tables for 
 
 ## The atc worker
 
-`@boxxy/worker-atc` implements the worker port on atc's `session.*` calls, through a client that the app builds and passes to `createAtcWorker`. Every `kill` that the adapter sends sets `stopOnly`, so atc stops the session and keeps its record. A `kill` without `stopOnly` makes atc forget a session that has already exited.
+`@boxxy/worker-atc` implements the worker port on the atc gateway's MCP tools. `createAtcMcpClient` calls them over streamable HTTP at the gateway's `/mcp`, with the service token as the bearer and the gateway's public host name as `Host`, and the app passes the client to `createAtcWorker`. The gateway answers 403 to any other host. The client parses each tool's structured result with a zod schema, and refuses a result that fails it as `malformed_answer`, so no field of an unread shape reaches a reading. A 401 reads as `unauthorized`, a 403 as `forbidden`, and a 403 `insufficient_scope` as `insufficient_scope`; none of their messages holds the token. The client follows no redirect, so the bearer goes only to the configured address.
 
-| Port method | atc calls |
+| Port method | atc tools |
 | --- | --- |
-| `start` | the trusted-folder check, then `spawn` with the target, folder, name, prompt, agent, model, effort, and the attempt ID as the idempotency key |
-| `reconcile` | `get`; for an attempt with no atc session, first `list`, to find the latest session with the attempt's spawn name |
-| `suspend` | `get`, then `kill` unless the session shows activity after the idle time |
-| `resume` | `get`, then `adopt` unless the agent process runs, then `get` |
-| `stop` | `kill` |
-| `forget` | `forget` with `refuseLive`; a target that destroys its hosts answers a confirm token, and a second `forget` sends it |
-| `resumeKept` | the calls of `resume`, then `message` with the prompt, keyed by the new attempt's ID; a refused message stops the session again, so the claim's fresh spawn does not run beside it |
+| `start` | the trusted-folder check, then `atc_session_spawn` with the target, folder, name, prompt, agent, model, effort, and the attempt ID as the idempotency key |
+| `reconcile` | `atc_session_get`; for an attempt with no atc session, first `atc_sessions_list`, to find the latest session with the attempt's spawn name |
+| `suspend` | `atc_session_get`, then `atc_session_stop` unless the session shows activity after the idle time |
+| `resume` | `atc_session_get`, then `atc_session_adopt` unless the agent process runs, then `atc_session_get` |
+| `stop` | `atc_session_stop`, which stops the session and keeps its record |
+| `forget` | `atc_session_forget` without `stop`, so atc refuses a live session; a target that destroys its hosts answers a confirm token, and a second call sends it |
+| `resumeKept` | the tools of `resume`, then `atc_message_send` with the prompt, keyed by the new attempt's ID; a refused message stops the session again, so the claim's fresh spawn does not run beside it |
 
-A reading comes from `get`, by the session's `lifecycle.harness`, because atc lists a process asleep inside its host as `exited` too:
+The service token needs the scopes `read` and `message` for the reads and the message, `spawn` for `atc_session_spawn` and `atc_session_adopt`, and `kill` for `atc_session_stop` and `atc_session_forget`. The daemon reaches a session for the token only on a target that its `principals` key lists for `service:<name>`.
+
+A reading comes from `atc_session_get`, by the session's `lifecycle.harness`, because atc lists a process asleep inside its host as `exited` too:
 
 | Harness | Reading |
 | --- | --- |
@@ -195,13 +197,13 @@ A reading comes from `get`, by the session's `lifecycle.harness`, because atc li
 | `suspended` | `suspended`. The reading's `asked` (whether anyone asked the host to sleep) is true unless `lifecycle.desired` is `run`, which atc keeps when the host slept by itself. |
 | `exited` | `ended` |
 
-The adapter reads a `no_such_session` refusal as `absent`, and `stop` and `forget` answer `absent` for it. A `spawn` refused with `no_such_session` answers `unknown`: after a daemon restart, atc refuses a repeated spawn with that code when the first spawn under the same idempotency key ran, until the daemon lists the restored session again. A `reconcile` that gets no answer from atc throws, so that a lost connection never settles a running attempt as `session-lost`.
+The adapter reads a `no_such_session` refusal as `absent`, and `stop` and `forget` answer `absent` for it. An `atc_session_spawn` refused with `no_such_session` answers `unknown`: after a daemon restart, atc refuses a repeated spawn with that code when the first spawn under the same idempotency key ran, until the daemon lists the restored session again. A `reconcile` that gets no answer from atc throws, so that a lost connection never settles a running attempt as `session-lost`.
 
-Every other refusal that carries an atc error code answers `refused`. A call that gets no atc code, or `outcome_unknown` or `idempotency_key_unknown`, answers `unknown`, because atc may have run it. A refused `spawn` or `adopt` has the cause `capacity` when atc answers `host_unavailable` with the problem `ram_budget_exceeded`, impd's code for a host with no memory left for another machine. Every other refusal has the cause `other`.
+Every other refusal that carries an atc error code answers `refused`, and so does a malformed result. A JSON-RPC error that refuses the request before it runs (parse error, invalid request, method not found or invalid params) answers `refused` as `protocol_error`. A call that gets no atc answer, such as a timeout, a dropped connection, an HTTP 5xx or any other JSON-RPC error, or `outcome_unknown` or `idempotency_key_unknown`, answers `unknown`, because atc may have run it. Every refusal has the cause `other`: atc's MCP refusal is the text `<code>: <message>` with none of the refusal's data, so the adapter cannot see the `ram_budget_exceeded` problem that marks a host with no memory for another machine. [Open for the builder](./v1-open.md#needs-work-outside-this-repo) tracks it.
 
 The trusted folders come from the app's configuration, by worker target: a folder is trusted when it is a listed folder or lies inside one. atc has no call that reads which folders an agent trusts.
 
-The adapter reads the caller identity from the session's `host` field, which atc reports from release 7.13.0 (daemon feature `session.host`): `name`, and `id` and `issuer` when atc knows them. The caller is the host's `issuer` with the host's `id` as the subject. The subject is the machine's ID as its issuer gives it, never the name. A session with no `host`, such as one from a daemon that lacks `session.host`, or a host without an `id` or an `issuer`, has no caller, because the identity check refuses a host that lacks either. Sub-sessions on one machine share the same `host`. The adapter reads no usage limit: every reading has `usageLimitResetsAt` null, because atc reports none. [Not checked](./v1-open.md#the-lifecycle) tracks the usage limit.
+The adapter reads the caller identity from the session's `host` field, which atc reports from release 7.13.0 (daemon feature `session.host`) and the gateway passes on unchanged: `name`, and `id` and `issuer` when atc knows them. The caller is the host's `issuer` with the host's `id` as the subject. The subject is the machine's ID as its issuer gives it, never the name. A session with no `host`, such as one from a daemon that lacks `session.host`, or a host without an `id` or an `issuer`, has no caller, because the identity check refuses a host that lacks either. Sub-sessions on one machine share the same `host`. The adapter reads no usage limit: every reading has `usageLimitResetsAt` null, because atc reports none. [Not checked](./v1-open.md#the-lifecycle) tracks the usage limit.
 
 
 ## The pull request watch

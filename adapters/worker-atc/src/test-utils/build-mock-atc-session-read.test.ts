@@ -10,13 +10,8 @@ test('it builds a session whose agent runs and works', () => {
   ]);
 });
 
-test('it keeps the lifecycle layers that an override leaves out', () => {
+test('it keeps the lifecycle field that an override leaves out', () => {
   const read = buildMockAtcSessionRead({ session: { lifecycle: { harness: 'suspended' } } });
 
-  expect(read.session.lifecycle).toStrictEqual({
-    desired: 'run',
-    vm: 'awake',
-    harness: 'suspended',
-    attachment: 'detached',
-  });
+  expect(read.session.lifecycle).toStrictEqual({ desired: 'run', harness: 'suspended' });
 });

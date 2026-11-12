@@ -6,10 +6,9 @@ import type {
   WorkerKind,
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
+import { AtcCallError } from './atc-call-error.ts';
 import { findCallerIdentity } from './find-caller-identity.ts';
-import { isCapacityRefusal } from './is-capacity-refusal.ts';
 import { isFolderTrusted } from './is-folder-trusted.ts';
-import { parseAtcError } from './parse-atc-error.ts';
 import { toSessionReading } from './to-session-reading.ts';
 import type { AtcClient, AtcSession } from './types.ts';
 
@@ -23,7 +22,7 @@ interface AtcWorkerInput {
 // The worker port on atc. Every call reaches atc through the client; a refusal that carries an atc
 // code answers `refused`, and a call that got no atc answer answers `unknown`.
 export function createAtcWorker(input: AtcWorkerInput): WorkerKind {
-  const client = input.client.session;
+  const client = input.client;
 
   // a spawn whose answer was lost leaves the attempt with no session, which carries its spawn name
   const readSessionID = async (attempt: AttemptRow): Promise<AtcSessionId | null> => {
@@ -31,18 +30,18 @@ export function createAtcWorker(input: AtcWorkerInput): WorkerKind {
       return attempt.atcSession;
     }
 
-    const listed = await client.list({});
+    const listed = await client.listSessions();
 
     return findNamedSession(listed.sessions, `boxxy/${attempt.id}`);
   };
 
   const readSession = async (session: AtcSessionId): Promise<SessionReading> => {
     try {
-      const read = await client.get({ session });
+      const read = await client.readSession(session);
 
       return toSessionReading(read);
     } catch (error) {
-      if (parseAtcError(error)?.code === 'no_such_session') {
+      if (isAtcRefusal(error, 'no_such_session')) {
         return { kind: 'absent' };
       }
 
@@ -53,15 +52,15 @@ export function createAtcWorker(input: AtcWorkerInput): WorkerKind {
   // wakes a stopped session; a session that runs already answers as it is
   const resumeSession = async (session: AtcSessionId): Promise<StartOutcome> => {
     try {
-      const read = await client.get({ session });
+      const read = await client.readSession(session);
 
       if (read.session.lifecycle.harness === 'running') {
         return toStarted(read.session);
       }
 
-      await client.adopt({ session });
+      await client.adoptSession(session);
 
-      const adopted = await client.get({ session });
+      const adopted = await client.readSession(session);
 
       return toStarted(adopted.session);
     } catch (error) {
@@ -76,7 +75,7 @@ export function createAtcWorker(input: AtcWorkerInput): WorkerKind {
       }
 
       try {
-        const answer = await client.spawn({
+        const session = await client.spawnSession({
           target: request.target,
           cwd: request.cwd,
           name: request.name,
@@ -87,11 +86,11 @@ export function createAtcWorker(input: AtcWorkerInput): WorkerKind {
           idempotencyKey: request.idempotencyKey,
         });
 
-        return toStarted(answer.session);
+        return toStarted(session);
       } catch (error) {
         // after a daemon restart, a keyed spawn that ran answers this until the fleet restore
         // lists its session
-        if (parseAtcError(error)?.code === 'no_such_session') {
+        if (isAtcRefusal(error, 'no_such_session')) {
           return { kind: 'unknown', reason: 'the spawn ran, and its session is not listed yet' };
         }
 
@@ -111,7 +110,7 @@ export function createAtcWorker(input: AtcWorkerInput): WorkerKind {
           return { kind: 'refused', reason: 'no such session' };
         }
 
-        const read = await client.get({ session });
+        const read = await client.readSession(session);
 
         const reading = toSessionReading(read);
 
@@ -123,8 +122,7 @@ export function createAtcWorker(input: AtcWorkerInput): WorkerKind {
           return { kind: 'active' };
         }
 
-        // a plain kill of a session that already exited forgets it, so every kill is stop-only
-        await client.kill({ session, stopOnly: true });
+        await client.stopSession(session);
 
         return { kind: 'suspended' };
       } catch (error) {
@@ -150,29 +148,26 @@ export function createAtcWorker(input: AtcWorkerInput): WorkerKind {
           return { kind: 'absent' };
         }
 
-        await client.kill({ session, stopOnly: true });
+        await client.stopSession(session);
 
         return { kind: 'stopped' };
       } catch (error) {
-        return parseAtcError(error)?.code === 'no_such_session'
-          ? { kind: 'absent' }
-          : toCallFailure(error);
+        return isAtcRefusal(error, 'no_such_session') ? { kind: 'absent' } : toCallFailure(error);
       }
     },
     forget: async (session) => {
       try {
-        const first = await client.forget({ session, refuseLive: true });
+        // atc refuses a forget of a live session, so a forget never stops one that runs
+        const first = await client.forgetSession({ session });
 
         // a target that destroys its hosts answers a confirm token first, for a second call
         if ('confirmToken' in first) {
-          await client.forget({ session, refuseLive: true, confirmToken: first.confirmToken });
+          await client.forgetSession({ session, confirmToken: first.confirmToken });
         }
 
         return { kind: 'forgotten' };
       } catch (error) {
-        return parseAtcError(error)?.code === 'no_such_session'
-          ? { kind: 'absent' }
-          : toCallFailure(error);
+        return isAtcRefusal(error, 'no_such_session') ? { kind: 'absent' } : toCallFailure(error);
       }
     },
     resumeKept: async (kept, request) => {
@@ -183,7 +178,7 @@ export function createAtcWorker(input: AtcWorkerInput): WorkerKind {
       }
 
       try {
-        await client.message({
+        await client.sendMessage({
           session: kept.atcSession,
           text: request.prompt,
           idempotencyKey: request.idempotencyKey,
@@ -192,7 +187,7 @@ export function createAtcWorker(input: AtcWorkerInput): WorkerKind {
         return woken;
       } catch (error) {
         // the claim spawns a fresh session in its place, so the kept one must not run on
-        await client.kill({ session: kept.atcSession, stopOnly: true }).catch(() => null);
+        await client.stopSession(kept.atcSession).catch(() => null);
 
         return toStartFailure(error);
       }
@@ -210,6 +205,10 @@ function findNamedSession(sessions: readonly AtcSession[], name: string): AtcSes
   return latest === undefined ? null : brandSchemas.atcSessionId.parse(latest.id);
 }
 
+function isAtcRefusal(error: unknown, code: string): boolean {
+  return error instanceof AtcCallError && error.code === code;
+}
+
 function toStarted(session: AtcSession): StartOutcome {
   return {
     kind: 'started',
@@ -222,19 +221,14 @@ function toStarted(session: AtcSession): StartOutcome {
   };
 }
 
+// atc's MCP refusal carries only a code and a message, with none of the refusal's data, so the
+// adapter cannot tell a host with no budget for another machine from any other refusal.
 function toStartFailure(error: unknown): StartOutcome {
-  const atcError = parseAtcError(error);
   const failure = toCallFailure(error);
 
-  if (failure.kind === 'unknown' || atcError === null) {
-    return { kind: 'unknown', reason: failure.reason };
-  }
-
-  return {
-    kind: 'refused',
-    cause: isCapacityRefusal(atcError) ? 'capacity' : 'other',
-    reason: failure.reason,
-  };
+  return failure.kind === 'unknown'
+    ? { kind: 'unknown', reason: failure.reason }
+    : { kind: 'refused', cause: 'other', reason: failure.reason };
 }
 
 // atc may or may not have run a call it answers `outcome_unknown` or `idempotency_key_unknown`
@@ -242,16 +236,12 @@ function toCallFailure(error: unknown): {
   readonly kind: 'refused' | 'unknown';
   readonly reason: string;
 } {
-  const atcError = parseAtcError(error);
-
-  if (atcError === null) {
+  if (!(error instanceof AtcCallError)) {
     return { kind: 'unknown', reason: error instanceof Error ? error.message : String(error) };
   }
 
-  const reason = `${atcError.code}: ${atcError.message}`;
-
-  const unknown =
-    atcError.code === 'outcome_unknown' || atcError.code === 'idempotency_key_unknown';
+  const reason = `${error.code}: ${error.message}`;
+  const unknown = error.code === 'outcome_unknown' || error.code === 'idempotency_key_unknown';
 
   return { kind: unknown ? 'unknown' : 'refused', reason };
 }

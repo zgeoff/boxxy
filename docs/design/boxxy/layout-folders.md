@@ -173,7 +173,8 @@ apps/cli/src                    @boxxy/cli
   test-utils/     create-skills-repo  build-mock-cli-deps
 system-tests/src                @boxxy/system-tests: the CLI against the real server
   test-utils/     create-test-cli  read-json-output
-system-tests/e2e                one cli-<group>.system.test.ts file per command group and per hook
+system-tests/e2e                one cli-<group>.system.test.ts file per command group and per hook,
+                                and start-server-atc-spawn: the server's spawn through the atc stand-in
 apps/cli/hook-plugin            the Claude Code plug-in that the agent image installs
 
 adapters/notifier-atc/src       @boxxy/notifier-atc
@@ -189,9 +190,9 @@ adapters/caller-proof-imp/src   @boxxy/caller-proof-imp
   test-utils/     create-test-issuer
 
 adapters/worker-atc/src         @boxxy/worker-atc
-  index  types  create-atc-worker  to-session-reading  parse-atc-error
-  is-capacity-refusal  find-caller-identity  is-folder-trusted
-  test-utils/     create-fake-atc-client  build-mock-atc-session-read
+  index  types  create-atc-worker  to-session-reading  find-caller-identity  is-folder-trusted
+  create-atc-mcp-client  atc-tool-results  parse-tool-result  atc-call-error
+  test-utils/     create-fake-atc  create-fake-atc-server  build-mock-atc-session-read
 
 packages/pepys/src              @boxxy/pepys
   index  build-boxxy-plugin     the `.` entry: the plug-in, given the GitHub and telemetry consumers
