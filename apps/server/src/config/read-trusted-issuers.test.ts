@@ -1,5 +1,5 @@
 import { expect, onTestFinished, test } from 'bun:test';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { readTrustedIssuers } from './read-trusted-issuers.ts';
@@ -15,6 +15,10 @@ async function setupTest() {
       await mkdir(path.dirname(path.join(folder, relative)), { recursive: true });
 
       await Bun.write(path.join(folder, relative), text);
+    },
+    writeSymlink: async (relative: string, target: string) => {
+      await mkdir(path.dirname(path.join(folder, relative)), { recursive: true });
+      await symlink(target, path.join(folder, relative));
     },
   };
 }
@@ -41,11 +45,91 @@ test('it reads every file of each folder as JSON, in name order', async () => {
   });
 });
 
-test('it reads an empty folder as no issuer', async () => {
+test('it reads each document of a Kubernetes ConfigMap volume once, through its symlinks', async () => {
   const ctx = await setupTest();
+
+  await ctx.writeFile(
+    'mount/..2026_11_12_00_00_00.123/a.json',
+    '{"issuer":"https://a.example.test"}',
+  );
+
+  await ctx.writeFile(
+    'mount/..2026_11_12_00_00_00.123/b.json',
+    '{"issuer":"https://b.example.test"}',
+  );
+
+  await ctx.writeSymlink('mount/..data', '..2026_11_12_00_00_00.123');
+  await ctx.writeSymlink('mount/b.json', '..data/b.json');
+  await ctx.writeSymlink('mount/a.json', '..data/a.json');
+
+  const answer = await readTrustedIssuers([path.join(ctx.folder, 'mount')]);
+
+  expect(answer).toStrictEqual({
+    kind: 'read',
+    issuers: [{ issuer: 'https://a.example.test' }, { issuer: 'https://b.example.test' }],
+  });
+});
+
+test('it skips each entry whose name starts with two dots, a file or a symlink that points nowhere', async () => {
+  const ctx = await setupTest();
+
+  await ctx.writeFile('a.json', '{"issuer":"https://a.example.test"}');
+  await ctx.writeFile('..stale.json', '{"issuer":"https://stale.example.test"}');
+  await ctx.writeSymlink('..data_tmp', '..2026_11_12_00_00_00.456');
+
   const answer = await readTrustedIssuers([ctx.folder]);
 
-  expect(answer).toStrictEqual({ kind: 'read', issuers: [] });
+  expect(answer).toStrictEqual({
+    kind: 'read',
+    issuers: [{ issuer: 'https://a.example.test' }],
+  });
+});
+
+test('it skips a sub-folder and a symlink to a folder', async () => {
+  const ctx = await setupTest();
+
+  await ctx.writeFile('issuers/a.json', '{"issuer":"https://a.example.test"}');
+  await ctx.writeFile('issuers/nested/b.json', '{"issuer":"https://b.example.test"}');
+  await ctx.writeSymlink('issuers/linked', 'nested');
+
+  const answer = await readTrustedIssuers([path.join(ctx.folder, 'issuers')]);
+
+  expect(answer).toStrictEqual({
+    kind: 'read',
+    issuers: [{ issuer: 'https://a.example.test' }],
+  });
+});
+
+test('it refuses a symlink that points nowhere, and names it', async () => {
+  const ctx = await setupTest();
+
+  await ctx.writeFile('a.json', '{"issuer":"https://a.example.test"}');
+  await ctx.writeSymlink('b.json', 'missing.json');
+
+  const answer = await readTrustedIssuers([ctx.folder]);
+
+  expect(answer).toStrictEqual({
+    kind: 'invalid',
+    message: `the trust document at ${path.join(ctx.folder, 'b.json')} points nowhere`,
+  });
+});
+
+test('it refuses folders that hold no document, and names them', async () => {
+  const ctx = await setupTest();
+
+  await ctx.writeFile('east/nested/a.json', '{"issuer":"https://a.example.test"}');
+
+  await mkdir(path.join(ctx.folder, 'west'));
+
+  const east = path.join(ctx.folder, 'east');
+  const west = path.join(ctx.folder, 'west');
+
+  const answer = await readTrustedIssuers([east, west]);
+
+  expect(answer).toStrictEqual({
+    kind: 'invalid',
+    message: `no trust document in ${east}, ${west}`,
+  });
 });
 
 test('it refuses a file that is not JSON, and names it', async () => {

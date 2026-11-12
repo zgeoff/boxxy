@@ -768,8 +768,9 @@ declare function toName(path: readonly string[]): keyof typeof access; // ['item
 //     retire rules of a signing key are that package's. The adapter takes each trust document
 //     as parsed JSON and checks it with `loadIdentityIssuers`, so no other package names its type.
 //   - The configuration section `trustedIssuers { folders, audience }` holds the folders of the
-//     trust documents and the audience. The server parses every file in those folders as JSON
-//     and passes the values to the adapter.
+//     trust documents and the audience. The server parses every regular file in those folders
+//     as JSON (symlinks followed, `..` names skipped) and passes the values to the adapter.
+//     Folders that hold no document refuse the start.
 
 // The port. One method. The root middleware knows no header and no token. `CallerIdentity` and
 // `AtcSessionId` are core types (../core/02-types.ts).
@@ -781,7 +782,8 @@ export declare function impIdentityCallerProof(options: { issuers: readonly unkn
 // documents as parsed JSON, so no package but the adapter names `IdentityTrustDocument`; the app
 // reads the files of `trustedIssuers.folders`. The factory checks them with `loadIdentityIssuers`
 // and throws on a bad document or two documents of one issuer, so the server does not start. With
-// no document or an empty audience, `prove` answers null for every request. `prove` reads the
+// an empty audience, `prove` answers null for every request; the app refuses to start with no
+// document. `prove` reads the
 // header `imp-identity` (a compact JWT, no scheme), passes `clock.now()` in whole seconds, and
 // maps `VerifiedImp` to `{ issuer: issuer, subject: id }`; the imp name is never the subject.
 // `checkSessionImp` is not called: the server's `findSessionByCaller` and the core's attempt

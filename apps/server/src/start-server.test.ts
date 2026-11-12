@@ -1,5 +1,5 @@
 import { expect, onTestFinished, test } from 'bun:test';
-import { cp, mkdtemp, rm } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import invariant from 'tiny-invariant';
@@ -43,6 +43,7 @@ async function setupTest() {
 
   return {
     env,
+    folder,
     logged,
 
     // writes the configuration file again, with the given sections added
@@ -84,6 +85,45 @@ test('it names each missing secret and prints no secret value', async () => {
   expect(answer).toStrictEqual({
     kind: 'refused',
     message: 'set these variables: BOXXY_WORKER_TOKEN, BOXXY_ATC_TOKEN',
+  });
+});
+
+test('it refuses to start when the trusted issuers folders hold no document, and names them', async () => {
+  const ctx = await setupTest();
+
+  const issuers = path.join(ctx.folder, 'issuers');
+
+  await mkdir(issuers);
+
+  await ctx.addConfigSections({
+    trustedIssuers: { folders: [issuers], audience: 'boxxy.example.test' },
+  });
+
+  const answer = await ctx.start({});
+
+  expect(answer).toStrictEqual({
+    kind: 'refused',
+    message: `no trust document in ${issuers}`,
+  });
+});
+
+test('it refuses to start on a trust document symlink that points nowhere, and names it', async () => {
+  const ctx = await setupTest();
+
+  const issuers = path.join(ctx.folder, 'issuers');
+
+  await mkdir(issuers);
+  await symlink('missing.json', path.join(issuers, 'issuer.json'));
+
+  await ctx.addConfigSections({
+    trustedIssuers: { folders: [issuers], audience: 'boxxy.example.test' },
+  });
+
+  const answer = await ctx.start({});
+
+  expect(answer).toStrictEqual({
+    kind: 'refused',
+    message: `the trust document at ${path.join(issuers, 'issuer.json')} points nowhere`,
   });
 });
 
