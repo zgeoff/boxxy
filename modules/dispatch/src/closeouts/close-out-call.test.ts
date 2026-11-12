@@ -212,6 +212,39 @@ test('it rejects the close-out of a review of an item with no pull request, and 
   ]);
 });
 
+test('it rejects a review close-out on a server with no review gate, and records nothing', async () => {
+  const ctx = await setupTest();
+
+  await ctx.seedBuild();
+
+  const review = await ctx.claimReview();
+
+  const answer = await closeOutCall({
+    store: ctx.store,
+    call: ctx.buildCallRef(review),
+    body: {
+      round: 1,
+      cause: 'first',
+      reading: ctx.toBody(buildMockGateReading({ status: 'passed' })),
+      unrelatedLines: null,
+    },
+    rules: ctx.rules(),
+    now: ctx.clock.now(),
+    newId: ctx.newId,
+    review: null,
+  });
+
+  const after = await ctx.readAttempt(review.id);
+
+  expect([answer, after.closeOut]).toStrictEqual([
+    {
+      kind: 'rejected',
+      problems: [{ kind: 'phase-rule', message: 'this server has no review gate' }],
+    },
+    null,
+  ]);
+});
+
 test('it records the close-out of another phase as it is sent', async () => {
   const ctx = await setupTest();
   const item = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('design') });

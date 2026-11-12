@@ -15,9 +15,16 @@ import type { CloseOutInput } from './types.ts';
 
 export interface CloseOutCallInput extends CloseOutInput {
   // the review gate and the forge it reads changes from; null when the server has no review gate,
-  // so a review close-out goes to the phase kind's parse as it was sent, which rejects it
+  // so it rejects every review close-out
   readonly review: { readonly gate: ReviewGate; readonly forge: Forge } | null;
 }
+
+// The review phase kind's parser reads the body the server builds, which a session could forge
+// when no gate checks the raw result.
+const noGateAnswer: CloseOutAnswer = {
+  kind: 'rejected',
+  problems: [{ kind: 'phase-rule', message: 'this server has no review gate' }],
+};
 
 // A review's body is the tool's raw result, which the gate posts outside the store lock, as the
 // post goes to the forge. The session and repeat checks run first, so a call from another
@@ -31,8 +38,12 @@ export async function closeOutCall(input: CloseOutCallInput): Promise<CloseOutAn
     return start.answer;
   }
 
-  if (start.attempt.phase !== 'review' || input.review === null) {
+  if (start.attempt.phase !== 'review') {
     return closeOutAttempt(input);
+  }
+
+  if (input.review === null) {
+    return noGateAnswer;
   }
 
   const round = reviewInputSchema.safeParse(start.attempt.input);
