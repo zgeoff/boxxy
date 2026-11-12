@@ -1,6 +1,6 @@
-import { cp, lstat, mkdir, mkdtemp, rm, stat } from 'node:fs/promises';
+import { cp, lstat, mkdir, mkdtemp, realpath, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { skillsRepoFolder, workspaceSkillsFolder } from '../constants.ts';
 import type { CLIDeps } from '../types.ts';
 
@@ -42,12 +42,6 @@ export async function installSkills(input: InstallSkillsInput): Promise<string[]
     return [...input.names];
   }
 
-  const linked = await probeLinkedSkillsFolder(input.workspace);
-
-  if (linked) {
-    return [...input.names];
-  }
-
   const scratch = await mkdtemp(join(tmpdir(), 'boxxy-skills-'));
 
   try {
@@ -69,18 +63,6 @@ export async function installSkills(input: InstallSkillsInput): Promise<string[]
   } finally {
     await rm(scratch, { recursive: true, force: true });
   }
-}
-
-// The install removes each skill's folder before it copies the new one, so a link in the skills
-// path would point that removal at a folder outside the workspace.
-async function probeLinkedSkillsFolder(workspace: string): Promise<boolean> {
-  const parts = workspaceSkillsFolder.split('/');
-
-  const infos = await Promise.all(
-    parts.map((_, index) => lstat(join(workspace, ...parts.slice(0, index + 1))).catch(() => null)),
-  );
-
-  return infos.some((info) => info?.isSymbolicLink() === true);
 }
 
 async function runFetch(
@@ -122,10 +104,16 @@ async function installSkill(
     return false;
   }
 
+  const inside = await probeSkillsFolderInWorkspace(input.workspace);
+
+  if (!inside) {
+    return false;
+  }
+
   const target = join(input.workspace, workspaceSkillsFolder, name);
 
+  // Node has no openat, so a link made between the check above and this rm or cp still moves them
   const copied = await rm(target, { recursive: true, force: true })
-    .then(() => mkdir(dirname(target), { recursive: true }))
     .then(() => cp(join(scratch, skillsRepoFolder, name), target, { recursive: true }))
     .then(
       () => true,
@@ -135,4 +123,33 @@ async function installSkill(
   const skillFile = copied ? await stat(join(target, 'SKILL.md')).catch(() => null) : null;
 
   return skillFile?.isFile() === true;
+}
+
+// The copy removes the skill's folder first, so a link in the skills path would point that removal
+// outside the workspace. The check runs after git, so a link made while git ran is still seen.
+async function probeSkillsFolderInWorkspace(workspace: string): Promise<boolean> {
+  const parts = workspaceSkillsFolder.split('/');
+
+  const infos = await Promise.all(
+    parts.map((_, index) => lstat(join(workspace, ...parts.slice(0, index + 1))).catch(() => null)),
+  );
+
+  if (infos.some((info) => info?.isSymbolicLink() === true)) {
+    return false;
+  }
+
+  const skillsFolder = join(workspace, workspaceSkillsFolder);
+
+  try {
+    await mkdir(skillsFolder, { recursive: true });
+
+    const [resolved, resolvedWorkspace] = await Promise.all([
+      realpath(skillsFolder),
+      realpath(workspace),
+    ]);
+
+    return resolved === join(resolvedWorkspace, workspaceSkillsFolder);
+  } catch {
+    return false;
+  }
 }

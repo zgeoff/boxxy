@@ -1,5 +1,5 @@
 import { expect, onTestFinished, test } from 'bun:test';
-import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { runGit } from '../run-git.ts';
@@ -169,6 +169,39 @@ test('it returns no name and starts no git when the recipe lists no skill', asyn
   });
 
   expect([missing, calls]).toStrictEqual([[], []]);
+});
+
+test('it returns the name as missing when .claude/skills becomes a symbolic link during the fetch', async () => {
+  const ctx = await setupTest();
+  const repo = await ctx.makeRepo({ alpha: { 'SKILL.md': 'pinned\n' } });
+
+  const outside = join(ctx.folder, 'outside');
+  const skills = join(ctx.workspace, '.claude/skills');
+
+  await mkdir(skills, { recursive: true });
+  await mkdir(join(outside, 'alpha'), { recursive: true });
+  await writeFile(join(outside, 'alpha/keep.txt'), 'keep\n');
+
+  const missing = await installSkills({
+    pin: { source: repo.source, ref: repo.ref },
+    names: ['alpha'],
+    workspace: ctx.workspace,
+    baseURL: repo.baseURL,
+    runGit: async (args, folder) => {
+      const result = await runGit(args, folder);
+
+      if (args[0] === 'checkout') {
+        await rename(skills, join(ctx.folder, 'skills-moved'));
+        await symlink(outside, skills);
+      }
+
+      return result;
+    },
+  });
+
+  const outsideFiles = await Array.fromAsync(new Bun.Glob('**/*').scan({ cwd: outside }));
+
+  expect([missing, outsideFiles]).toStrictEqual([['alpha'], ['alpha/keep.txt']]);
 });
 
 test('it returns the name as missing when .claude is a file', async () => {
