@@ -94,9 +94,10 @@ export const costToLandSchema = z.object({
     requests: z.number().int(),
     costUSD: z.number(), // the sum of the lines that have a cost
     reworkCostUSD: z.number(), // the part of `costUSD` on rework lines
-    // requests on 'none' lines whose phase, rework flag and product have no 'turn' line (of any
-    // model: a turn cost with no model still covers its product's requests): requests
-    // whose cost is in neither table. Above 0, `costUSD` is a lower bound.
+    // 'none' requests whose session, phase, rework flag and product have no turn cost row (of any
+    // model: a turn cost with no model still covers its product's requests): requests whose cost
+    // is in neither table. A turn cost is a record of one session, so it covers that session's
+    // requests only. Above 0, `costUSD` is a lower bound.
     requestsWithoutCost: z.number().int(),
   }),
 });

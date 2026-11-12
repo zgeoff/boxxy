@@ -203,7 +203,7 @@ test('it counts each model request for one attempt, splits rework out, and keeps
       { phase: 'review', rework: false, product: 'codex', model: 'model-small', requests: 1, ...tokens, costUSD: null, costBasis: 'none' },
       { phase: 'review', rework: false, product: 'codex', model: 'model-small', requests: 0, inputTokens: 0, cacheReadTokens: 0, cacheCreationTokens: 0, outputTokens: 0, costUSD: 0.125, costBasis: 'turn' },
     ],
-    // the Codex request has a turn cost line for its phase and product, so it is not "without cost"
+    // the Codex request's session has a turn cost for its phase and product, so it is not "without cost"
     totals: { requests: 4, costUSD: 1.125, reworkCostUSD: 0.25, requestsWithoutCost: 0 },
   });
 });

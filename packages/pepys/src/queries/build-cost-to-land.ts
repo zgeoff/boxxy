@@ -36,7 +36,7 @@ export function buildCostToLand(parts: CostParts): CostToLand {
       requests: sumOf(lines.map((line) => line.requests)),
       costUSD: sumOf(lines.map((line) => line.costUSD ?? 0)),
       reworkCostUSD: sumOf(lines.filter((line) => line.rework).map((line) => line.costUSD ?? 0)),
-      requestsWithoutCost: countRequestsWithoutCost(requestLines, turnLines),
+      requestsWithoutCost: countRequestsWithoutCost(owners, parts.requests, parts.turns),
     },
   };
 }
@@ -207,20 +207,32 @@ function sumOf(values: readonly number[]): number {
   return values.reduce((sum, value) => sum + value, 0);
 }
 
-// The requests on `none` lines whose phase, rework flag and product have no `turn` line, of any
-// model: their cost is in neither table, and above 0 the total is a lower bound.
+// The counted `none` requests whose session, phase, rework flag and product have no turn cost row,
+// of any model: their cost is in neither table, and above 0 the total is a lower bound. A turn cost
+// is a record of one session, so it covers the requests of that session only.
 function countRequestsWithoutCost(
-  requestLines: readonly CostLine[],
-  turnLines: readonly CostLine[],
+  owners: Owners,
+  requests: readonly RequestReadRow[],
+  turns: readonly TurnReadRow[],
 ): number {
-  const covered = new Set(
-    turnLines.map((line) => JSON.stringify([line.phase, line.rework, line.product])),
-  );
+  const covered = new Set(collectCoverageKeys(owners, turns));
 
-  return sumOf(
-    requestLines
-      .filter((line) => line.costBasis === 'none')
-      .filter((line) => !covered.has(JSON.stringify([line.phase, line.rework, line.product])))
-      .map((line) => line.requests),
-  );
+  return collectCoverageKeys(
+    owners,
+    requests.filter((request) => request.cost_basis === 'none'),
+  ).filter((key) => !covered.has(key)).length;
+}
+
+// one key per row that an attempt owns
+function collectCoverageKeys(
+  owners: Owners,
+  rows: readonly (TelemetryRow & { readonly product: string })[],
+): string[] {
+  return rows.flatMap((row) => {
+    const attempt = findOwner(owners, row);
+
+    return attempt === undefined
+      ? []
+      : [JSON.stringify([row.session_id, attempt.phase, attempt.round > 1, row.product])];
+  });
 }

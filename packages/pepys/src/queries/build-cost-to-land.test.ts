@@ -283,6 +283,61 @@ test('it counts the requests of a none line with no turn line as without cost', 
   });
 });
 
+test('it counts a none request as without cost when only another session of its phase has a turn cost', () => {
+  const cost = buildCostToLand({
+    item: 'boxxy:item:0193a1b2-0000-7000-8000-000000000001',
+    attempts: [
+      buildMockAttemptReadRow({ id: 'boxxy:attempt:a3', phase: 'review', number: 3 }),
+      buildMockAttemptReadRow({ id: 'boxxy:attempt:a4', phase: 'review', number: 4 }),
+    ],
+    bindings: [
+      buildMockBindingReadRow({
+        attempt_id: 'boxxy:attempt:a3',
+        session_id: 'telemetry:session:s-paid',
+      }),
+      buildMockBindingReadRow({
+        attempt_id: 'boxxy:attempt:a4',
+        session_id: 'telemetry:session:s-unpaid',
+      }),
+    ],
+    requests: [
+      buildMockRequestReadRow({
+        session_id: 'telemetry:session:s-paid',
+        product: 'codex',
+        cost_basis: 'none',
+        cost_usd: null,
+        at: '2026-11-11T03:20:00.000Z',
+      }),
+      buildMockRequestReadRow({
+        session_id: 'telemetry:session:s-unpaid',
+        product: 'codex',
+        cost_basis: 'none',
+        cost_usd: null,
+        at: '2026-11-11T03:20:00.000Z',
+      }),
+    ],
+    turns: [
+      {
+        session_id: 'telemetry:session:s-paid',
+        origin_issuer: 'https://broker.example',
+        origin_subject: 'imp-builder',
+        product: 'codex',
+        model: null,
+        cost_usd: 1,
+        at: '2026-11-11T03:21:00.000Z',
+      },
+    ],
+    pullRequests: [],
+  });
+
+  expect(cost.totals).toStrictEqual({
+    requests: 2,
+    costUSD: 1,
+    reworkCostUSD: 0,
+    requestsWithoutCost: 1,
+  });
+});
+
 test('it gives the cost so far, with no landing time, for an item whose pull request has not merged', () => {
   const cost = buildCostToLand({
     item: 'boxxy:item:0193a1b2-0000-7000-8000-000000000001',

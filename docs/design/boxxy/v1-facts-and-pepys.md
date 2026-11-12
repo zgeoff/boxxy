@@ -111,7 +111,7 @@ The query returns one line per phase, rework flag, product, model and cost basis
 - **Every attempt counts**, whatever its state or outcome, also one after the merge. One exception: an attempt that failed with `no-capacity` ran no session and gets no line.
 - **Rework** is an attempt whose round is above 1.
 - **Each telemetry row counts for one attempt.** The row's session and its proven origin must match the attempt's session and caller. When one session carried several attempts, each attempt owns the stretch from the time it was bound to the session until the next attempt was bound. A kept session is such a case.
-- **An unknown cost is null, never 0.** A product that reports cost per turn gets its own lines.
+- **An unknown cost is null, never 0.** A product that reports cost per turn gets its own lines. A request with no cost counts in `requestsWithoutCost` unless its own session has a turn cost for the same phase, rework flag and product.
 
 Each query reads plain rows of its tables with one statement per table, and a builder in TypeScript does the stretches, the caller match and the sums. The statements need no window function, no `julianday` and no common table expression from the store. An input that names no boxxy item answers as an item with no rows.
 
