@@ -171,8 +171,9 @@ const rules = loadRules(text, { phases: [...phaseKinds, createReviewPhase(review
 //
 // `buildCommand(round)` gives a command that writes one JSON file: `review`, the result of the
 // review below, and `findings`, the output of `noslop findings --pr <n> --repo <owner/name>
-// --json` with its exit code. Each review takes `--pr <n> --repo <owner/name> --report json
-// --json`: `--report` replaces the config's reporters, so the worker machine posts nothing.
+// --json` with its exit code. Each review takes `--pr <n> --repo <owner/name> --adapter claude
+// --report json --json`. `--report` replaces the config's reporters, so the worker machine posts
+// nothing. `--adapter claude` uses the model sign-in that the worker machine's broker gives.
 //
 //   cause     review
 //   ────────  ────────────────────────────────────────────────────────────────────────────────────
