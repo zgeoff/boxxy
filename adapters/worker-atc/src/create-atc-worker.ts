@@ -202,7 +202,12 @@ export function createAtcWorker(input: AtcWorkerInput): WorkerKind {
         return woken;
       } catch (error) {
         // the claim spawns a fresh session in its place, so the kept one must not run on
-        await client.stopSession(kept.atcSession).catch(() => null);
+        try {
+          await client.stopSession(kept.atcSession);
+        } catch (stopError) {
+          // the kept session may still run, so no fresh spawn may start beside it
+          return { kind: 'unknown', reason: toCallFailure(stopError).reason };
+        }
 
         return toStartFailure(error);
       }

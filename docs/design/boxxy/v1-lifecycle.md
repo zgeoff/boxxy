@@ -185,7 +185,7 @@ Section F of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the tables for 
 | `resume` | `atc_session_get`, then `atc_session_adopt` unless the agent process runs, then `atc_session_get` |
 | `stop` | `atc_session_stop`, which stops the session and keeps its record |
 | `forget` | `atc_session_forget` without `stop`, so atc refuses a live session; a target that destroys its hosts answers a confirm token, and a second call sends it |
-| `resumeKept` | the tools of `resume`, then `atc_message_send` with the prompt, keyed by the new attempt's ID; a refused message stops the session again, so the claim's fresh spawn does not run beside it |
+| `resumeKept` | the tools of `resume`, then `atc_message_send` with the prompt, keyed by the new attempt's ID; a refused message stops the session again, so the claim's fresh spawn does not run beside it; when that stop fails, `resumeKept` answers `unknown`, so no fresh spawn starts |
 
 The service token `service:boxxy` has the scopes `read` and `message` for the reads and the message, `spawn` for `atc_session_spawn` and `atc_session_adopt`, and `kill` for `atc_session_stop` and `atc_session_forget`. The daemon reaches a session for the token only on a target that its `principals` key lists for `service:<name>`.
 

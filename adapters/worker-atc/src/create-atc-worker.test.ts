@@ -546,3 +546,34 @@ test('#resumeKept stops the woken session again when atc refuses the message', a
 
   expect([outcome.kind, reading.kind]).toStrictEqual(['refused', 'suspended']);
 });
+
+test('#resumeKept answers unknown when atc refuses the message and then the stop', async () => {
+  const ctx = setupTest();
+  const first = buildMockV1AttemptRow().id;
+  const second = buildMockV1AttemptRow().id;
+
+  await ctx.worker.start(ctx.buildSpawnRequest(first, 'box'));
+
+  await ctx.worker.stop(
+    buildMockV1AttemptRow({ id: first, atcSession: brandSchemas.atcSessionId.parse('s1-fake') }),
+  );
+
+  ctx.atc.failNext('atc_message_send', { kind: 'refusal', code: 'unsupported' });
+  ctx.atc.failNext('atc_session_stop', { kind: 'refusal', code: 'host_leased' });
+
+  const outcome = await ctx.worker.resumeKept(
+    {
+      atcSession: brandSchemas.atcSessionId.parse('s1-fake'),
+      target: 'box',
+      attempt: first,
+      keptAt: ctx.clock.now(),
+      caller: null,
+    },
+    ctx.buildSpawnRequest(second, 'box'),
+  );
+
+  expect(outcome).toStrictEqual({
+    kind: 'unknown',
+    reason: expect.stringContaining('host_leased'),
+  });
+});
