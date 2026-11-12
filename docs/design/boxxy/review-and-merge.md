@@ -112,6 +112,17 @@ Three fact types join the catalog, which then holds 30 ([`02-types.ts`](./sketch
 
 Section 5 of [`01-usage.ts`](./sketches/next/review-and-merge/01-usage.ts) shows both views. `boxxy item get` shows the latest review at each head with its open counts, the verify reading and its grader, the merge attempt's wait reason, and how many rounds each loop has used. `boxxy runner status` lists each live job with its wait reason and age. A hold reaches the owner's notice session through the [notice port](./v1.md#notices), as every hold does.
 
+## Acceptance
+
+| Behaviour | Evidence |
+| --- | --- |
+| An item whose required checks are green at its head merges with no person. | An e2e journey in `system-tests/e2e/` with a fake forge: the merge job calls `mergeAtHead` at the head it read, and the store holds `boxxy.merge.requested`, `boxxy.merge.answered` and one `boxxy.pull_request.merged`. |
+| A red check sends the item to a repair build, and a fourth repair holds it with a notice. | The same journey with a red check; a `decideMerge` test row for each outcome in the table above. |
+| Each loop holds after 3 rounds with a notice. | An `advance` test over the rules lines in section 1 of `01-usage.ts`, one row per backward edge. |
+| A refused merge of a clean, green head holds the item, and a request with no answer is sent again. | `decideMerge` test rows with `acted` set: `not-mergeable` gives `refused`, no answer after 5 minutes gives `act`, past the time limit gives `stalled`. |
+| A review round never passes a head it did not read. | A review adapter test over a recorded fixes-only result with an empty `fixChecks`: the adapter runs a plain review, and the reading comes from it. |
+| The core names no tool. | `turbo boundaries` and the import-zones lint: no file in `modules/` or `libs/` imports a review or verify adapter. |
+
 ## Builder decides
 
 - The folder names of the two adapters, inside the layout's rule of one package per outside system.

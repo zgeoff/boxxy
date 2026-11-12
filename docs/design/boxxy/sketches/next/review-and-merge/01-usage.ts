@@ -163,9 +163,10 @@ const rules = loadRules(text, { phases: phaseKinds, concepts, workers: [...worke
 //   cause     command (each with `--pr <n> --repo <owner/name> --report github --json`)
 //   ────────  ────────────────────────────────────────────────────────────────────────────────────
 //   first     `noslop review --full`
-//   rework    `noslop review --fixes-only`. When its result's `head` is not the round's head (the
-//             tool copies the last head when no `fixed` answer had a call), the adapter then runs
-//             `noslop review` in the same round, so the round covers the head.
+//   rework    `noslop review --fixes-only`. When its result's `fixChecks` holds no verdict (no
+//             `fixed` answer got a call, or every call failed), the run read nothing at the head,
+//             though its `head` field names the head. The adapter then runs `noslop review` in the
+//             same round, and builds the reading from that run, so the round covers the head.
 //   recheck   `noslop review`: reads the files whose patch changed since the last review, and runs
 //             a resolution check on a merge of the base
 //

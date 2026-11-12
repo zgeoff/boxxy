@@ -11,7 +11,7 @@
 //   F. The kept session, widened for the verify phase.
 //   G. The caps, from the engine as it is.
 
-import type { AttemptRow, CommitSha, Forge, GateRecord, Instant, JobReading, JobStep, JobWorker, MergeObservation, MergeRules, ReviewGate, RoundCause, Settled } from '@boxxy/model';
+import type { AttemptRow, CommitSha, Forge, GateRecord, Instant, JobReading, JobStep, JobWorker, MergeObservation, MergeRequest, MergeRules, ReviewGate, RoundCause, Settled } from '@boxxy/model';
 import { match } from 'ts-pattern';
 
 // ── A. A job attempt on each tick (modules/dispatch/src/jobs/run-job-reading.ts) ───────────────
@@ -135,7 +135,7 @@ export function buildRoundCause(history: readonly Settled[]): RoundCause {
 //
 // Pure. First match wins. Every green answer needs a record at `observed.head`.
 
-export function decideMerge(input: { observed: MergeObservation; rules: MergeRules; deadlinePassed: boolean; acted: { at: Instant; head: CommitSha } | null; now: Instant }): JobStep {
+export function decideMerge(input: { observed: MergeObservation; rules: MergeRules; deadlinePassed: boolean; acted: MergeRequest | null; now: Instant }): JobStep {
   const { observed } = input;
   const finish = (outcome: string, extra: object = {}): JobStep => ({ kind: 'finish', closeOut: { outcome, head: observed.head, verify: observed.verify, ...extra } });
 
@@ -168,9 +168,17 @@ export function decideMerge(input: { observed: MergeObservation; rules: MergeRul
   //    the gate check never merges an unverified head.
   if (observed.verify.status !== 'verified') return finish('unverified');
 
-  // 8. A request already sent at this head: wait for step 1, and send it again only after
-  //    `actRetryMinutes`. A second call is safe: GitHub merges only at `sha`.
-  if (input.acted?.head === observed.head && input.now - input.acted.at < 5 * 60_000) {
+  // 8. GitHub refused a merge of this clean, green head: a ruleset or a repo setting that boxxy
+  //    cannot fix. The item holds for the owner.
+  const sent = input.acted?.head === observed.head ? input.acted : null;
+
+  if (sent?.answer?.kind === 'not-mergeable') return finish('refused', { reason: sent.answer.reason });
+
+  // 9. A request already sent at this head: wait for step 1, and send it again only after
+  //    `actRetryMinutes`. A second call is safe: GitHub merges only at `sha`. Past the step's time
+  //    limit, hold.
+  if (sent !== null && input.deadlinePassed) return finish('stalled', { pending: [] });
+  if (sent !== null && input.now - sent.at < 5 * 60_000) {
     return { kind: 'wait', reason: 'merge requested', pending: [] };
   }
 
@@ -194,10 +202,12 @@ function isPassedAt(review: GateRecord | null, head: CommitSha): boolean {
 //      nothing.
 //   2. Outside the lock: `forge.mergeAtHead(pullRequest, head, method)`. GitHub merges only when the
 //      head is still `head`, so boxxy never merges a head whose checks it did not read.
-//   3. When the forge answered: write `boxxy.merge.answered`. The next read decides the outcome:
-//      `merged` and `queued` reach step 1 of the rule; `head-moved` reads as `stale` at step 3;
-//      `not-mergeable` with a clean mergeable state finishes `refused` (a ruleset or a setting that
-//      boxxy cannot fix). With no answer, nothing more is written, and step 8 sends the call again.
+//   3. When the forge answered: the move `answered` sets `actedAnswer` and writes
+//      `boxxy.merge.answered`. The next read decides the outcome: `merged` and `queued` reach
+//      step 1 of the rule; `head-moved` reads as `stale` at step 3; `not-mergeable` finishes
+//      `refused` at step 8 when the head is still clean and green, and otherwise reaches the step
+//      that matches what changed. With no answer, nothing more is written, and step 9 sends the
+//      call again.
 
 export async function runJobAction(deps: JobDeps, action: { kind: 'merge' }): Promise<void> {
   const marked = await applyJobMove(deps, { kind: 'acted', action });
@@ -206,7 +216,7 @@ export async function runJobAction(deps: JobDeps, action: { kind: 'merge' }): Pr
 
   const answer = await deps.job.act(deps.attempt, action);
 
-  if (answer.kind !== 'unknown') await writeMergeAnswered(deps, answer);
+  if (answer.kind !== 'unknown') await applyJobMove(deps, { kind: 'answered', answer });
 }
 
 // ── F. The kept session, widened (modules/dispatch/src/sessions/) ──────────────────────────────
@@ -250,4 +260,3 @@ interface JobDeps {
 declare function applyJobMove(deps: JobDeps, move: unknown): Promise<'applied' | 'refused'>;
 declare function parseRoundInput(input: unknown): { pullRequest: never; round: number; cause: RoundCause };
 declare function toReviewCloseOut(attempt: AttemptRow, reading: unknown): never;
-declare function writeMergeAnswered(deps: JobDeps, answer: unknown): Promise<void>;

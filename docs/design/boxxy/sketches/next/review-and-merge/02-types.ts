@@ -159,7 +159,11 @@ export interface GateRecord { readonly head: CommitSha; readonly status: GateRea
 
 export type MergeOutcome = 'merged' | 'repair' | 'stale' | 'unverified' | 'closed' | 'stalled' | 'refused';
 
-export declare function decideMerge(input: { observed: MergeObservation; rules: MergeRules; deadlinePassed: boolean; acted: { at: Instant; head: CommitSha } | null; now: Instant }): JobStep;
+// `acted` comes from the attempt row: the last request boxxy sent, and the forge's answer to it,
+// or null when that call got no answer.
+export interface MergeRequest { readonly at: Instant; readonly head: CommitSha; readonly answer: MergeAnswer | null }
+
+export declare function decideMerge(input: { observed: MergeObservation; rules: MergeRules; deadlinePassed: boolean; acted: MergeRequest | null; now: Instant }): JobStep;
 
 // ── libs/model/src/ports/types.ts: the forge gains ────────────────────────────────────────────
 
@@ -207,6 +211,7 @@ export interface MergeCloseOut {
   readonly failed: readonly string[]; // `repair`: the red checks; empty for a conflict
   readonly cause: 'conflict' | 'checks-red' | null; // `repair` only
   readonly mergeCommit: CommitSha | null; // `merged` only
+  readonly reason: string | null; // `refused` only: GitHub's text for the refusal
   readonly byBoxxy: boolean; // `merged`: true when boxxy's own call merged this head
   readonly verify: VerifyReading; // the reading the drive used, so pepys keeps the feature list
 }
@@ -219,9 +224,10 @@ export interface MergeCloseOut {
 
 // ── modules/dispatch: the attempt machine gains ────────────────────────────────────────────────
 // `AttemptRow` gains `worker: WorkerKindName`, `head: CommitSha | null` (set by `job-started`),
-// `actedAt` and `actedHead` (set by `acted`), `readAt` and `waitReason` (set by `waited`).
-// `AttemptEvent` gains `job-started` (starting ─▶ running), `acted` and `waited` (running ─▶
-// running) and `job-finished` (running ─▶ closing, with the runner's close-out).
+// `actedAt` and `actedHead` (set by `acted`, which clears `actedAnswer`), `actedAnswer` (set by
+// `answered`), `readAt` and `waitReason` (set by `waited`).
+// `AttemptEvent` gains `job-started` (starting ─▶ running), `acted`, `answered` and `waited`
+// (running ─▶ running) and `job-finished` (running ─▶ closing, with the runner's close-out).
 // `ForcedFailure` gains `job-lost`: the job reads `absent`. It counts against `maxAttempts`.
 // `DispatchTimeouts` gains `jobReadSeconds: 30`, the least time between two reads of one merge
 // job, so one waiting merge makes about 10 forge calls a minute at most, and `actRetryMinutes: 5`.
@@ -234,7 +240,7 @@ export interface ReviewAndMergeFacts {
   'boxxy.attempt.job_started': { readonly attempt: AttemptId; readonly worker: WorkerKindName; readonly head: CommitSha | null };
   // written by: the runner, in the change that sets `actedAt`, before the forge call
   'boxxy.merge.requested': { readonly attempt: AttemptId; readonly repo: RepoName; readonly number: number; readonly head: CommitSha; readonly method: MergeMethod; readonly required: readonly string[] };
-  // written by: the runner, when the forge answered the call; no fact for a call with no answer
+  // written by: the runner, in the change that sets `actedAnswer`; no fact for a call with no answer
   'boxxy.merge.answered': { readonly attempt: AttemptId; readonly head: CommitSha; readonly answer: MergeAnswer['kind']; readonly mergeCommit: CommitSha | null };
 }
 // A round, its cost and the verify reading need no new type: `boxxy.attempt.closed_out` carries
