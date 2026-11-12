@@ -2,24 +2,22 @@
 
 ## [0.1.5](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.1.4...@boxxy/dispatch@0.1.5) (2026-11-12)
 
-
 ### Miscellaneous Chores
 
-* **@boxxy/dispatch:** Synchronize boxxy versions
-
+- **@boxxy/dispatch:** Synchronize boxxy versions
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/closeout bumped to 0.1.5
-    * @boxxy/content-hash bumped to 0.1.5
-    * @boxxy/model bumped to 0.1.5
-    * @boxxy/planning bumped to 0.1.5
-  * devDependencies
-    * @boxxy/rules bumped to 0.1.5
-  * peerDependencies
-    * @boxxy/rules bumped to 0.1.5
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/closeout bumped to 0.1.5
+    - @boxxy/content-hash bumped to 0.1.5
+    - @boxxy/model bumped to 0.1.5
+    - @boxxy/planning bumped to 0.1.5
+  - devDependencies
+    - @boxxy/rules bumped to 0.1.5
+  - peerDependencies
+    - @boxxy/rules bumped to 0.1.5
 
 ## [0.1.4](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.1.3...@boxxy/dispatch@0.1.4) (2026-11-12)
 

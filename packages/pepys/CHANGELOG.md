@@ -2,17 +2,16 @@
 
 ## [0.1.5](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.1.4...@boxxy/pepys@0.1.5) (2026-11-12)
 
-
 ### Bug Fixes
 
-* **pepys:** take the pepys packages from npm and test against them ([1c9a4a4](https://github.com/zgeoff/boxxy/commit/1c9a4a42cd7527fab4236b73d5b8ad7f89d5abad))
-
+- **pepys:** take the pepys packages from npm and test against them
+  ([1c9a4a4](https://github.com/zgeoff/boxxy/commit/1c9a4a42cd7527fab4236b73d5b8ad7f89d5abad))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.1.5
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.1.5
 
 ## [0.1.4](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.1.3...@boxxy/pepys@0.1.4) (2026-11-12)
 
