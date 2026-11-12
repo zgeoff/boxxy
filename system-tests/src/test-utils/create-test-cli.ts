@@ -1,10 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import { runCLI, runGit } from '@boxxy/cli';
 import type { CLIDeps, CLIResult } from '@boxxy/cli';
-import { access } from '@boxxy/contract';
-import type { ProcedureName } from '@boxxy/contract';
 import type { TestServer, TestServerOptions } from '@boxxy/server/test-utils/create-test-server';
 import { createTestServer } from '@boxxy/server/test-utils/create-test-server';
+import { makeBrokerSend } from './make-broker-send.ts';
 
 interface RunInput {
   readonly stdin?: string;
@@ -19,27 +18,12 @@ export interface TestCLI {
   readonly run: (argv: readonly string[], input?: RunInput) => Promise<CLIResult>;
 }
 
-// The CLI wired to the real server on the memory store. The CLI sends no token, so this stands in
-// for the broker: a request for a session or hook procedure goes to the worker listener with the
-// worker token, and any other request goes to the owner listener.
+// The CLI wired to the real server on the memory store, behind the broker routing.
 export async function createTestCLI(options: TestServerOptions = {}): Promise<TestCLI> {
   const server = await createTestServer(options);
 
   const slept: number[] = [];
-
-  const send = (request: Request): Promise<Response> => {
-    const procedure = readProcedure(request);
-
-    if (procedure === null || access[procedure].caller === 'owner') {
-      return server.owner(request);
-    }
-
-    const headers = new Headers(request.headers);
-
-    headers.set('authorization', `Bearer ${server.workerToken}`);
-
-    return server.worker(new Request(request, { headers }));
-  };
+  const send = makeBrokerSend(server);
 
   return {
     server,
@@ -62,12 +46,4 @@ export async function createTestCLI(options: TestServerOptions = {}): Promise<Te
       return runCLI(deps, argv);
     },
   };
-}
-
-function readProcedure(request: Request): ProcedureName | null {
-  const name = new URL(request.url).pathname.replace(/^\/rpc\//u, '').replaceAll('/', '.');
-
-  return (
-    Object.keys(access).find((candidate): candidate is ProcedureName => candidate === name) ?? null
-  );
 }

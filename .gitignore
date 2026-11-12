@@ -33,3 +33,6 @@ scripts/.test-*
 
 # turbo cache and logs
 .turbo
+
+# verify CLI state and evidence
+.wringer/

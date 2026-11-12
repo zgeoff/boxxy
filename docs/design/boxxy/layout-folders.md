@@ -173,7 +173,8 @@ apps/cli/src                    @boxxy/cli
                   parse-hook-payload  pick-pull-request-url  wait-for-attempt
   test-utils/     create-skills-repo  build-mock-cli-deps
 system-tests/src                @boxxy/system-tests: the CLI against the real server
-  test-utils/     create-test-cli  read-json-output
+  test-utils/     create-test-cli  make-broker-send  read-json-output
+                  verify/  the verify CLI, its registry and its harness: wringer-journeys.md
 system-tests/e2e                one cli-<group>.system.test.ts file per command group and per hook,
                                 and start-server-atc-spawn: the server's spawn through the atc stand-in
 apps/cli/hook-plugin            the Claude Code plug-in that the agent image installs

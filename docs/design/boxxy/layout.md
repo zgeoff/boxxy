@@ -111,6 +111,7 @@ Each outside system has one package that may talk to it:
 | imp identity   | `adapters/caller-proof-imp` | only it imports `@impz/client` or `@impz/client/identity`         |
 | GitHub         | `adapters/forge-github` | only an adapter or a package calls `fetch`                            |
 | pepys          | `packages/pepys`        | only it imports `@pepys/kit`, `@pepys/testing`, `@pepys/ingest`, `@pepys/api`, `@pepys/source-github` or `@pepys/source-telemetry`; no module and no lib imports `@boxxy/pepys` |
+| wringer        | `system-tests`          | only it imports `@wringer/core`, `@wringer/gunshi`, `@wringer/http` or another `@wringer/*` package; the verify CLI lives in `system-tests/src/test-utils/verify/` |
 
 oRPC has an owner and no lint pin. Only `libs/contract` calls `oc` and `mcp.tool` to define a procedure. `apps/server` imports `@orpc/server`, `@orpc/mcp` and `@modelcontextprotocol/server` to serve the contract, and `@orpc/client` to call the pepys query API. The atc stand-in in `adapters/worker-atc/src/test-utils/` imports `@modelcontextprotocol/server` too, to serve atc's tools on the library the atc gateway uses; the package lists it as an optional peer. `apps/cli` imports `@orpc/client` to call the server, and the real-pepys test deployment of `packages/pepys` imports it to call the pepys query API in process. Only `apps/server` and `adapters/auth-oauth` import `elysia`, and each lists Elysia's peers `exact-mirror`, `openapi-types` and `typebox` as its own dependencies.
 
@@ -122,7 +123,7 @@ Two libraries have a pin of their own. Only `modules/rules` imports `yaml`, so e
 reaches the other packages through `loadRules`. Only `modules/dispatch` imports `xstate`, for the
 attempt state table.
 
-The `zgeoff/import-zones` rule in `.oxlintrc.json` holds these pins. Its `oauth` rule holds the OAuth pin, and its `sqlite` rule allows both `store-sqlite` and `auth-oauth`. Its `pepys` edge holds the pin for `@boxxy/pepys`, and its `pepys-kit` rule the pin for the kit. Lint lets an adapter and a package under `packages/` call `fetch`, and can't tell which one a
+The `zgeoff/import-zones` rule in `.oxlintrc.json` holds these pins. Its `oauth` rule holds the OAuth pin, and its `sqlite` rule allows both `store-sqlite` and `auth-oauth`. Its `pepys` edge holds the pin for `@boxxy/pepys`, and its `pepys-kit` rule the pin for the kit. Its `wringer` rule lets only `system-tests` import `@wringer/*`. Lint lets an adapter and a package under `packages/` call `fetch`, and can't tell which one a
 `fetch` reaches, so review checks that GitHub calls stay in `forge-github` and pepys calls in
 `packages/pepys`.
 

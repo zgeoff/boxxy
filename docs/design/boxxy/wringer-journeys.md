@@ -54,7 +54,8 @@ The real server has two listeners: the owner listener for owner calls, and the w
 
 - **Every owner and session step runs the real CLI as a process,** `bun apps/cli/src/main.ts`, with `BOXXY_URL` set to the `boxxy` listener. `runBoxxy`, the registry's helper for this, parses the CLI's JSON output with a schema. Before each session's calls, the harness sets the caller that the fake caller proof returns. The caller proof is the identity the server reads from a call, which a deployment gets from imp.
 - **Time moves only when a step moves it.** No tick, pull request watch or outbox send runs on a timer. A control route advances the fake clock, then runs one tick, one watch pass or one outbox drain. A journey reads the same numbers on every run.
-- **Each journey files its own item.** The harness keeps the item that the last `file-item` or `land-item` action filed, and a journey line refers to it as `@current`. Each pull request that the fake forge opens takes the next number. The three journeys run in any order after one `up`.
+- **Each journey files its own item.** The harness keeps the item that the last `file-item` or `land-item` action filed, and a journey line refers to it as `@current`. Each pull request that the fake forge opens takes the next number. The three journeys run in any order after one `up`. When a journey sets the current item, the harness closes the item before it, so no tick claims work for an old item. The minutes that a control route takes count from the day the current item was set.
+- **The doctor check calls `GET /control/health`.** The route sends a status call through the broker routing and asks pepys under test for a stage time. A doctor check runs no process, so it cannot run the CLI.
 - **The harness reaches no network outside localhost.** It needs no atc, GitHub or deployed pepys, and no token.
 
 ## The three journeys
@@ -96,7 +97,7 @@ The ignore list's groups, each with its reason in the sketch:
 1. Prose, tests and benches: `docs/**`, each `README.md`, `CHANGELOG.md` and `LICENSE`, `AGENTS.md`, `CLAUDE.md`, `**/*.test.ts`, `**/bench/**` and `system-tests/e2e/**`.
 2. Build, lint and repo wiring that Bun never reads when it runs the source: the TypeScript, turbo, lint, format, commit and hook configs, `.claude/**`, `.github/**`, and `scripts/**`.
 3. The files that Renovate and release-please change: each `package.json`, `bun.lock`, `.bun-version`, `.release-please-manifest.json` and `release-please-config.json`.
-4. Code that no journey runs: the four adapters behind the fakes, and the server's own start, config, timers and rules loader, which the harness replaces with `createTestServer`. The system test `start-server-atc-spawn`, each adapter's tests and contract suite, and the [live proof](./v1-work-list.md#22-the-live-proof) cover them.
+4. Code that no journey runs: the adapters behind the fakes, the public door's `adapters/auth-oauth` among them, and the server's own start, config, timers and rules loader, which the harness replaces with `createTestServer`. The system test `start-server-atc-spawn`, each adapter's tests and contract suite, and the [live proof](./v1-work-list.md#22-the-live-proof) cover them.
 
 The map keeps these rules:
 
