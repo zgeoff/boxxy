@@ -4,6 +4,7 @@ import { boxxySource } from '../boxxy-source.ts';
 import { boxxyWorkPlugin } from '../boxxy-work-plugin.ts';
 import { buildForeignStandIn } from '../test-utils/build-foreign-stand-in.ts';
 import { buildMockItemFacts } from '../test-utils/build-mock-item-facts.ts';
+import { boxxyWorkConsumer } from './boxxy-work-consumer.ts';
 
 async function setupTest() {
   const store = await createTestStore({
@@ -110,4 +111,24 @@ test('it writes the same rows and links whichever order the facts of an item arr
   });
 
   expect(report.isSame).toBe(true);
+});
+
+test('it declares the id and actor column of each entity view with the entityID kind', () => {
+  const tables: Readonly<Record<string, { columns: Readonly<Record<string, { kind: string }>> }>> =
+    boxxyWorkConsumer.tables;
+
+  const kinds = boxxyWorkConsumer.entityViews.map((view) => {
+    const columns = tables[view.table]?.columns ?? {};
+
+    return {
+      table: view.table,
+      id: columns[view.id]?.kind,
+      actor: view.actor === null ? null : columns[view.actor]?.kind,
+    };
+  });
+
+  expect(kinds).toStrictEqual([
+    { table: 'boxxy_item', id: 'entityID', actor: null },
+    { table: 'boxxy_attempt', id: 'entityID', actor: null },
+  ]);
 });
