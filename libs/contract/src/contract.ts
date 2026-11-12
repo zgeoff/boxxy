@@ -15,6 +15,7 @@ import {
 import { oc } from '@orpc/contract';
 import { mcp } from '@orpc/mcp';
 import { z } from 'zod';
+import { authContract } from './auth-contract.ts';
 
 // The wire rules are in section B of the API sketch: no transform in an input, times as ISO 8601,
 // a maximum on every string and list, and a release that removes or renames nothing.
@@ -496,6 +497,8 @@ export const contract = {
     // Clears the park mark of every parked outbox row, and wakes the sender.
     retry: oc.input(emptyInput).output(z.object({ unparked: count })),
   },
+
+  auth: authContract,
 
   rules: {
     // The server loads the given text with the phase kinds it runs, and answers, for each open
