@@ -11,18 +11,20 @@
 // moves them, so each journey reads the same numbers on every run.
 
 import { join } from 'node:path';
-import { createSkillsRepo } from '@boxxy/cli/test-utils/create-skills-repo';
 import { brandSchemas } from '@boxxy/model';
-import { createTestServer } from '@boxxy/server/test-utils/create-test-server';
 import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
-import { makeBrokerSend } from '@boxxy/system-tests/test-utils/make-broker-send';
-import { startPepysUnderTest } from '@boxxy/system-tests/test-utils/start-pepys-under-test';
 import type { DriveContext } from '@wringer/core';
 import type { CloseOutPreset, VerifyHarness } from './types.ts';
 
+// The test helpers the harness imports, declared here so the sketch imports no test helper.
+declare function createSkillsRepo(options: { folder: string; skills: Record<string, Record<string, string>> }): Promise<{ source: string; ref: string; baseURL: string }>; // @boxxy/cli/test-utils/create-skills-repo
+declare function createTestServer(options: object): Promise<VerifyHarness['server']>; // @boxxy/server/test-utils/create-test-server
+declare function makeBrokerSend(server: VerifyHarness['server']): (request: Request) => Promise<Response>; // @boxxy/system-tests/test-utils/make-broker-send
+declare function startPepysUnderTest(): Promise<VerifyHarness['pepys']>; // @boxxy/system-tests/test-utils/start-pepys-under-test
+
 // ── A. The harness process ─────────────────────────────────────────────────────────────────────
 //
-// scripts/verify/harness/main.ts
+// system-tests/src/test-utils/verify/harness/main.ts
 
 const directory = process.env['BOXXY_VERIFY_DIR'];
 
@@ -82,7 +84,7 @@ async function createVerifyHarness(runDirectory: string): Promise<VerifyHarness>
 
 // ── B. run-session ─────────────────────────────────────────────────────────────────────────────
 //
-// scripts/verify/harness/drive.ts. It runs in the verify CLI's process: the CLI steps run the real
+// verify/harness/drive.ts. It runs in the verify CLI's process: the CLI steps run the real
 // `boxxy` as a process, and the harness steps call a control route. Each step that fails throws
 // `check-failed`, and the steps after it do not run.
 

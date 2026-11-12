@@ -8,12 +8,14 @@
 //   D. The feature map in the `verify` skill: the three journeys, as an agent runs them.
 //
 // The harness that `bun verify up` launches, and its control routes, are in 02-types.ts and
-// 03-flow.ts. The registry, the map and the harness live in scripts/verify/, which may do I/O and
-// import any workspace package and its `./test-utils/*` entry (layout.md, "Workspace").
+// 03-flow.ts. The entry, the registry, the map and the harness live in
+// system-tests/src/test-utils/verify/. `chex test-layout` lets only a test or a test helper import
+// a `test-utils` entry, and the harness imports four, so the whole verify CLI is a test helper of
+// @boxxy/system-tests. Paths below are relative to that folder.
 
 // ── A. The entry point ─────────────────────────────────────────────────────────────────────────
 //
-// scripts/verify/verify.ts, the template's entry as wringer ships it.
+// verify/verify.ts, the template's entry as wringer ships it.
 
 import { runVerify } from '@wringer/gunshi';
 import { createVerifyRegistry } from './verify-registry.ts';
@@ -23,24 +25,21 @@ await runVerify(createVerifyRegistry(), { skill: '.claude/skills/verify' });
 // The root package.json gains:
 //
 //   "scripts": {
-//     "verify": "bun scripts/verify/verify.ts",
-//     "verify:lint": "bun scripts/verify/verify.ts lint",
+//     "verify": "bun system-tests/src/test-utils/verify/verify.ts",
+//     "verify:lint": "bun system-tests/src/test-utils/verify/verify.ts lint",
 //     "ci:verify-gate": "bun scripts/ci/run-verify-gate.ts"
-//   },
-//   "devDependencies": {
-//     "@wringer/core", "@wringer/gunshi", "@wringer/http": "catalog:", pinned at 0.2.0, the
-//       release that adds `.ignore(...)`;
-//     "@boxxy/cli", "@boxxy/server", "@boxxy/system-tests", "@boxxy/store-sqlite",
-//       "@boxxy/pepys", "@boxxy/model": "workspace:*", because the isolated linker resolves
-//       only what the root lists
 //   }
 //
-// .gitignore gains `.wringer/`. The `zgeoff/import-zones` pins gain one edge: only scripts/verify/
-// imports `@wringer/*`.
+// system-tests/package.json gains "@wringer/core", "@wringer/gunshi" and "@wringer/http" as
+// "catalog:", pinned at 0.2.0, the release that adds `.ignore(...)`. It already lists the @boxxy
+// packages the harness imports.
+//
+// .gitignore gains `.wringer/`. The `zgeoff/import-zones` pins gain one edge: only
+// @boxxy/system-tests imports `@wringer/*`.
 
 // ── B. The registry ────────────────────────────────────────────────────────────────────────────
 //
-// scripts/verify/verify-registry.ts
+// verify/verify-registry.ts
 
 import { join } from 'node:path';
 import { createWringer, local } from '@wringer/core';
@@ -226,7 +225,7 @@ export function createVerifyRegistry(): Wringer {
 
 // ── C. The path-to-feature map ─────────────────────────────────────────────────────────────────
 //
-// scripts/verify/feature-paths.ts. Globs are root-relative, as `git ls-files` prints them, and
+// verify/feature-paths.ts. Globs are root-relative, as `git ls-files` prints them, and
 // match with Bun.Glob.
 //
 // A package is in a feature when the feature's journey runs code in it. The harness runs the fakes
@@ -246,10 +245,8 @@ const everyJourney = [
   // the phase kinds, which the server loads with the rules
   'modules/closeout/**',
 
-  // the registry and the harness: a change here changes what a journey proves
-  'scripts/verify/**',
-
-  // the broker routing and pepys under test, which the harness reuses
+  // the verify CLI and its harness, the broker routing and pepys under test: a change here changes
+  // what a journey proves
   'system-tests/src/test-utils/**',
 ] as const;
 
@@ -297,9 +294,7 @@ export const ignoredPaths = [
   // the skills, the verify skill's feature map among them
   '.claude/**',
   '.github/**',
-  'scripts/*.ts',
-  'scripts/*.sh',
-  'scripts/{ci,dependency-gates,publish,release,test-utils}/**',
+  'scripts/**',
 
   // 3. The files that Renovate (the root catalog, the lock file, the Bun pin) and release-please
   //    (each package's version, the manifest) change. A patch or minor bump merges on green CI, and

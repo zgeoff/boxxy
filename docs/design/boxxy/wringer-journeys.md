@@ -35,7 +35,9 @@ flowchart LR
 
 ## The harness
 
-`bun verify up` launches one Bun process, `scripts/verify/harness/main.ts`, the harness. It builds the same parts as the end-to-end system test `journey-item-to-merge`, in the same way:
+The verify CLI, its registry, its map and the harness live in `system-tests/src/test-utils/verify/`, a test helper folder of `@boxxy/system-tests`. `chex test-layout` lets only a test or a test helper import a package's `test-utils` entry, and the harness imports four of them. The root `verify` script runs the CLI from there.
+
+`bun verify up` launches one Bun process, `verify/harness/main.ts` in that folder, the harness. It builds the same parts as the end-to-end system test `journey-item-to-merge`, in the same way:
 
 - the real server, composed by `createTestServer` with the SQLite store, the example rules, and a skills repo: a local git repo of skills that the rules pin and that the session-start hook reads;
 - the fake clock, worker, forge, caller proof and notifier that `createTestServer` passes in, where a deployment passes the atc, GitHub and imp adapters;
@@ -85,21 +87,21 @@ Section C of `01-usage.ts` holds the globs. wringer's gate fails a pull request 
 
 | Paths | Features |
 | --- | --- |
-| `apps/cli/**`, `apps/server/**`, `libs/**`, `adapters/store-sqlite/**`, `modules/{rules,dispatch,closeout}/**`, `scripts/verify/**`, `system-tests/src/test-utils/**` | all three |
+| `apps/cli/**`, `apps/server/**`, `libs/**`, `adapters/store-sqlite/**`, `modules/{rules,dispatch,closeout}/**`, `system-tests/src/test-utils/**` | all three |
 | `modules/planning/**` | `claim-settle`, `report-cost` |
 | `packages/pepys/**` | `report-cost` |
 
 The ignore list's groups, each with its reason in the sketch:
 
 1. Prose, tests and benches: `docs/**`, each `README.md`, `CHANGELOG.md` and `LICENSE`, `AGENTS.md`, `CLAUDE.md`, `**/*.test.ts`, `**/bench/**` and `system-tests/e2e/**`.
-2. Build, lint and repo wiring that Bun never reads when it runs the source: the TypeScript, turbo, lint, format, commit and hook configs, `.claude/**`, `.github/**`, and the repo scripts outside `scripts/verify/`.
+2. Build, lint and repo wiring that Bun never reads when it runs the source: the TypeScript, turbo, lint, format, commit and hook configs, `.claude/**`, `.github/**`, and `scripts/**`.
 3. The files that Renovate and release-please change: each `package.json`, `bun.lock`, `.bun-version`, `.release-please-manifest.json` and `release-please-config.json`.
 4. Code that no journey runs: the four adapters behind the fakes, and the server's own start, config, timers and rules loader, which the harness replaces with `createTestServer`. The system test `start-server-atc-spawn`, each adapter's tests and contract suite, and the [live proof](./v1-work-list.md#22-the-live-proof) cover them.
 
 The map keeps these rules:
 
 - A package is in a feature when the feature's journey runs code in it. The harness runs the fakes in a package's `src/test-utils/`, so the whole package folder maps, its fakes included.
-- A change to `scripts/verify/**` needs fresh verdicts of all three features, because it changes what a journey proves.
+- A change to `system-tests/src/test-utils/**`, the verify CLI and the harness among it, needs fresh verdicts of all three features, because it changes what a journey proves.
 - An ignore glob never matches a source file that a journey runs. `**/*.md` stays off the list, because the rules' prompts are markdown that the server sends to each session.
 - The dependency files are the one exception. A patch or minor update merges on green CI with no verdict. A major bump of a third-party package, or a new Bun version, gets the owner's standing review for major bumps, and the system tests in CI run the same flow as the journeys.
 - A new package fails the gate as unmapped until its pull request adds it to a feature or to the ignore list.
@@ -182,8 +184,7 @@ An unmapped path fails the gate while every feature reads `verified`. The readin
 - Each journey finishes in 60 seconds or less. `land-item`, the longest step, has a timeout of 60 seconds.
 - The harness prints its ready line only after both listeners answer. When a part fails to start, it exits with code 1 and the cause on stderr.
 - A control route answers 409 for a step whose state is wrong, and the registry turns the answer into `check-failed`. A route never retries.
-- Only `scripts/verify/` imports `@wringer/*`, and the import-zones pins hold that edge.
-- `.wringer/` is in `.gitignore`, and the registry sets no upload hook, so the evidence files never leave the grader's machine.
+- Only `@boxxy/system-tests` imports `@wringer/*`, and the import-zones pins hold that edge.- `.wringer/` is in `.gitignore`, and the registry sets no upload hook, so the evidence files never leave the grader's machine.
 - The repo owns the `verify` and `wringer` skills: `bunx @wringer/gunshi skill install` writes the `wringer` skill, and the repo writes the `verify` skill. The skills sync never delivers either.
 
 ## Decisions
@@ -197,7 +198,7 @@ An unmapped path fails the gate while every feature reads `verified`. The readin
 
 ## Builder decides
 
-- The names and layout of the files in `scripts/verify/` beyond the entry and the registry.
+- The names and layout of the files in `system-tests/src/test-utils/verify/` beyond the entry and the registry.
 - The canned close-out bodies behind each preset, and the title and acceptance text that `file-item` sends.
 - The wording of each `check-failed` message.
 - Whether the harness serves its two listeners on one port with path prefixes.

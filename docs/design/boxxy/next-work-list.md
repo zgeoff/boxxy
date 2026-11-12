@@ -38,10 +38,10 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 
 ### 5. The verify CLI and the harness
 
-- **Outcome:** `bun verify` with the registry, the harness, `runBoxxy`, `makeBrokerSend` and the map from paths to features. The verify and wringer skills, `.wringer/` in `.gitignore`, the import-zones entry for wringer, the layout row, and the grading steps in AGENTS.md.
+- **Outcome:** `bun verify` with the registry, the harness, `runBoxxy` and the map from paths to features, all in `system-tests/src/test-utils/verify/`, and `makeBrokerSend` in `@boxxy/system-tests/test-utils`. The verify and wringer skills, `.wringer/` in `.gitignore`, the import-zones entry for wringer, the layout row, and the grading steps in AGENTS.md.
 - **Follows:** [wringer journeys](./wringer-journeys.md); `wringer-journeys/01-usage.ts` and `02-types.ts`.
 - **Needs:** wringer 0.2.0.
-- **Check:** a fresh agent with only the verify skill reaches `done` on all three journeys. The journeys pass in a network namespace with only loopback up. `bun verify lint` passes, and a test fails on a tracked path that the map neither maps nor ignores.
+- **Check:** a fresh agent with only the verify skill reaches `done` on all three journeys. The journeys pass in a network namespace with only loopback up. `bun verify lint` and `bun run check:test-layout` pass, and a test fails on a tracked path that the map neither maps nor ignores.
 
 ### 6. The CI gate
 

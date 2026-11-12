@@ -8,21 +8,26 @@
 //   C. The real CLI as a process, and the word `@current`.
 //   D. The close-out presets and the shapes the reads check.
 //
-// All of it lives in scripts/verify/. The harness reuses the system tests' parts as they are:
-// `createTestServer` (@boxxy/server/test-utils), `startPepysUnderTest` and `runOutboxSender`
-// (@boxxy/system-tests/test-utils), `createSkillsRepo` (@boxxy/cli/test-utils). It adds one: the
-// broker routing that `createTestCLI` holds today moves to its own export, `makeBrokerSend`, so the
-// test and the harness route the same way.
+// All of it lives in system-tests/src/test-utils/verify/, a test helper folder, because the harness
+// imports the system tests' parts as they are: `createTestServer` (@boxxy/server/test-utils),
+// `startPepysUnderTest` and `runOutboxSender` (@boxxy/system-tests/test-utils), `createSkillsRepo`
+// (@boxxy/cli/test-utils). It adds one: the broker routing that `createTestCLI` holds moves to its
+// own export, `makeBrokerSend`, so the test and the harness route the same way.
 
 import type { AttemptId, AttemptRow, ItemId, PhaseName } from '@boxxy/model';
-import type { TestServer } from '@boxxy/server/test-utils/create-test-server';
-import type { PepysUnderTest } from '@boxxy/system-tests/test-utils/start-pepys-under-test';
 import type { DriveContext } from '@wringer/core';
 import { z } from 'zod';
 
+// The sketch imports no test helper; these stand for the helpers' results.
+type TestServer = Awaited<ReturnType<typeof createTestServer>>;
+type PepysUnderTest = Awaited<ReturnType<typeof startPepysUnderTest>>;
+
+declare function createTestServer(options: object): Promise<object>; // @boxxy/server/test-utils/create-test-server
+declare function startPepysUnderTest(): Promise<object>; // @boxxy/system-tests/test-utils/start-pepys-under-test
+
 // ── A. The launch ──────────────────────────────────────────────────────────────────────────────
 
-// scripts/verify/harness/main.ts reads one variable. It needs no atc, GitHub or pepys URL and no
+// verify/harness/main.ts reads one variable. It needs no atc, GitHub or pepys URL and no
 // token: every outside system is a fake inside the process.
 export interface HarnessEnv {
   // wringer's run folder for this `up`
@@ -128,7 +133,7 @@ export interface AttemptSummary {
 
 // ── C. The real CLI as a process ───────────────────────────────────────────────────────────────
 //
-// scripts/verify/run-boxxy.ts. It runs `bun apps/cli/src/main.ts <argv>` through `ctx.exec`, with
+// verify/run-boxxy.ts. It runs `bun apps/cli/src/main.ts <argv>` through `ctx.exec`, with
 // BOXXY_URL set to the `boxxy` endpoint and BOXXY_SKILLS_URL to the harness's skills repo. It
 // replaces the word `@current` with the item from `GET /control/current` first, so a journey line
 // names no ID that only the run knows. A non-zero exit throws `check-failed` with the CLI's stderr.
