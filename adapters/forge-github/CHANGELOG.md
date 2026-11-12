@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.1](https://github.com/zgeoff/boxxy/compare/@boxxy/forge-github@0.2.0...@boxxy/forge-github@0.2.1) (2026-11-12)
+
+### Miscellaneous Chores
+
+- **@boxxy/forge-github:** Synchronize boxxy versions
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.1
+  - devDependencies
+    - @boxxy/dispatch bumped to 0.2.1
+  - peerDependencies
+    - @boxxy/dispatch bumped to 0.2.1
+
 ## [0.2.0](https://github.com/zgeoff/boxxy/compare/@boxxy/forge-github@0.1.9...@boxxy/forge-github@0.2.0) (2026-11-12)
 
 ### Miscellaneous Chores

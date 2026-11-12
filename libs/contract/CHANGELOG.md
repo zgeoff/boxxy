@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.1](https://github.com/zgeoff/boxxy/compare/@boxxy/contract@0.2.0...@boxxy/contract@0.2.1) (2026-11-12)
+
+### Features
+
+- **item:** add the item body and build the launch prompt from it
+  ([#94](https://github.com/zgeoff/boxxy/issues/94))
+  ([ad95f62](https://github.com/zgeoff/boxxy/commit/ad95f621adc62bec07a941c79cfbc8942fcbc2f1))
+- **server:** serve the owner mcp tools on a public oauth door
+  ([#91](https://github.com/zgeoff/boxxy/issues/91))
+  ([ebacd1c](https://github.com/zgeoff/boxxy/commit/ebacd1c1f7d86567326a405ce273992faed3f046))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.1
+
 ## [0.2.0](https://github.com/zgeoff/boxxy/compare/@boxxy/contract@0.1.9...@boxxy/contract@0.2.0) (2026-11-12)
 
 ### Features
