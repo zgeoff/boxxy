@@ -182,10 +182,11 @@ export async function runTick(deps: TickDeps): Promise<void> {
   //   1. `claimNext` gives no pick, start or wake, in a pool that `deps.backoff` holds. A wake
   //      that the host refuses for capacity marks its pool (`resumeClaim`), as a refused spawn
   //      does (`startClaim`). `deps.now` is one value for the tick, so the mark outlasts the loop.
-  //   2. No item is claimed twice in one tick. A second claim of an item is carried out (its
-  //      change is applied already) and then ends the loop. It is the guard for a case that
-  //      rule 1 does not cover; the runner logs it. It also ends the loop after a second start
-  //      of an item whose first spawn was refused for another cause; the next tick goes on.
+  //   2. No item is claimed twice in one tick. `claimNext` takes the items that the tick
+  //      claimed and gives no pick, start or wake, of one of them. It is the guard for a case
+  //      that rule 1 does not cover, such as an item whose first spawn was refused for another
+  //      cause: its attempt settles, and without the guard the same tick claims and spawns it
+  //      again. The next tick goes on with it.
   //   3. An error in the loop (`ClaimRaceError`, a worker call that throws) ends the loop, not
   //      the tick. An attempt that it left in `starting` or `waking` is read below.
   // Without these rules, a wake that the host refuses goes back to `sleeping` with its request,
@@ -193,13 +194,8 @@ export async function runTick(deps: TickDeps): Promise<void> {
   const claimed = new Set<ItemId>();
 
   try {
-    for (let claim = await claimNext(deps); claim !== null; claim = await claimNext(deps)) {
+    for (let claim = await claimNext({ ...deps, claimed }); claim !== null; claim = await claimNext({ ...deps, claimed })) {
       await (claim.kind === 'start' ? startClaim({ ...deps, claim }) : resumeClaim({ ...deps, claim }));
-
-      if (claimed.has(claim.attempt.item)) {
-        console.error(`claim loop ended: item ${claim.attempt.item} was claimed twice in one tick`);
-        break;
-      }
 
       claimed.add(claim.attempt.item);
     }

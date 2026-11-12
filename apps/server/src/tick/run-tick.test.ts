@@ -217,6 +217,35 @@ test('it logs a wake that the worker refused, with its attempt, item and reason'
   ]);
 });
 
+test('it starts an item once in a tick when the worker refuses its spawn for a cause other than capacity', async () => {
+  const ctx = await setupTest();
+  const item = await ctx.dispatch.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+
+  ctx.dispatch.worker.failAlways('start', {
+    kind: 'refused',
+    cause: 'other',
+    reason: 'the host refused the spawn',
+  });
+
+  await runTick(ctx.buildDeps());
+
+  const starts = ctx.dispatch.worker.calls.filter((call) => call.method === 'start');
+
+  const view = await ctx.dispatch.store.read((tx) =>
+    tx.readItem(item, ctx.dispatch.clock.now(), ctx.dispatch.rules()),
+  );
+
+  const position: unknown = view?.position;
+
+  expect(starts).toBeArrayOfSize(1);
+
+  expect(position).toStrictEqual({
+    kind: 'phase',
+    phase: 'build',
+    round: expect.any(Number),
+  });
+});
+
 test('it logs each inner error of an AggregateError that ends the claim loop', async () => {
   const ctx = await setupTest();
 

@@ -6,6 +6,7 @@ import type {
   ClaimStore,
   GitSource,
   Instant,
+  ItemId,
   LoadedRules,
   NewId,
   RepoName,
@@ -37,6 +38,9 @@ export interface ClaimInput {
   // the runner's memory of the pools in backoff
   readonly backoff: CapacityBackoff;
   readonly spawn: SpawnSettings;
+
+  // the items that the runner's tick claimed already; the claim gives no second pick of one
+  readonly claimed?: ReadonlySet<ItemId>;
 }
 
 export interface StartClaimInput {

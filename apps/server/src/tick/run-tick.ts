@@ -74,27 +74,21 @@ export async function runTick(deps: TickDeps): Promise<TickReport> {
   return { claimed, read, strays, forgotten, notices };
 }
 
-// The claim loop ends on three rules: `claimNext` gives no pick in a pool in backoff, no item is
-// claimed twice in one tick, and an error ends the loop and not the tick.
+// The claim loop ends on three rules: `claimNext` gives no pick in a pool in backoff, it gives no
+// pick of an item that the tick claimed already, and an error ends the loop and not the tick.
 async function runClaimLoop(deps: TickDeps): Promise<number> {
   const claimed = new Set<ItemId>();
 
+  const input = { ...deps, claimed };
+
   try {
-    for (let claim = await claimNext(deps); claim !== null; claim = await claimNext(deps)) {
+    for (let claim = await claimNext(input); claim !== null; claim = await claimNext(input)) {
       const fault =
         claim.kind === 'start'
           ? await startClaim({ ...deps, claim })
           : await resumeClaim({ ...deps, claim });
 
       logFault(deps, fault);
-
-      if (claimed.has(claim.attempt.item)) {
-        deps.log.warn('the claim loop ended: an item was claimed twice in one tick', {
-          item: claim.attempt.item,
-        });
-
-        break;
-      }
 
       claimed.add(claim.attempt.item);
     }

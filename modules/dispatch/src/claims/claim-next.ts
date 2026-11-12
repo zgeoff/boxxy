@@ -5,6 +5,7 @@ import type {
   AttemptRow,
   Claim,
   ItemDetailRows,
+  ItemId,
   ItemView,
   JsonValue,
   KeptSession,
@@ -54,14 +55,19 @@ export function claimNext(input: ClaimInput): Promise<Claim | null> {
 
     const backoff = [...input.backoff.listHeld(input.now)];
     const frame = buildFrame({ snapshot, rules: input.rules, now: input.now });
+    const claimed = input.claimed ?? new Set<ItemId>();
 
     // a spawn needs the repo's checkout; an item of a repo the configuration does not name waits
-    const candidates = frame.candidates.filter((item) => input.spawn.repos.has(item.repo));
+    const candidates = frame.candidates.filter(
+      (item) => input.spawn.repos.has(item.repo) && !claimed.has(item.id),
+    );
+
+    const wakes = snapshot.wakes.filter((wake) => !claimed.has(wake.item));
 
     const decision = decide({
       frame: { ...frame, candidates },
       pools: input.rules.pools,
-      snapshot,
+      snapshot: { ...snapshot, wakes },
       backoff,
     });
 

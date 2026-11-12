@@ -1,8 +1,10 @@
 import { expect, test } from 'bun:test';
+import type { ItemId } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
 import { claimNext } from './claim-next.ts';
+import { requestWake } from './request-wake.ts';
 import type { SpawnSettings } from './types.ts';
 
 async function setupTest() {
@@ -29,6 +31,17 @@ async function setupTest() {
         newId: dispatch.newId,
         backoff: dispatch.backoff,
         spawn: { ...dispatch.spawn, repos },
+      }),
+    claimNextAfter: (claimed: readonly ItemId[]) =>
+      claimNext({
+        store: dispatch.store,
+        runner: dispatch.runner,
+        rules: dispatch.rules(),
+        now: dispatch.clock.now(),
+        newId: dispatch.newId,
+        backoff: dispatch.backoff,
+        spawn: dispatch.spawn,
+        claimed: new Set(claimed),
       }),
   };
 }
@@ -117,6 +130,44 @@ test('it gives no pick in a pool that the backoff holds', async () => {
   );
 
   const claim = await ctx.claimNext();
+
+  expect(claim).toBeNull();
+});
+
+test('it gives no start pick of an item that the tick claimed already', async () => {
+  const ctx = await setupTest();
+  const item = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+  const claim = await ctx.claimNextAfter([item]);
+
+  expect(claim).toBeNull();
+});
+
+test('it gives no wake pick of an item that the tick claimed already', async () => {
+  const ctx = await setupTest();
+
+  const item = await ctx.seedItem({
+    phase: brandSchemas.phaseName.parse('design'),
+    designMode: 'attended',
+  });
+
+  const started = await ctx.claim();
+
+  invariant(started !== null, 'the claim starts the seeded item');
+
+  ctx.worker.setSession(started.attempt.id, { state: 'suspended', asked: true });
+
+  await ctx.tick();
+
+  await requestWake({
+    store: ctx.store,
+    attempt: started.attempt.id,
+    by: 'command',
+    actor: 'boxxy:owner:local',
+    now: ctx.clock.now(),
+    newId: ctx.newId,
+  });
+
+  const claim = await ctx.claimNextAfter([item]);
 
   expect(claim).toBeNull();
 });
