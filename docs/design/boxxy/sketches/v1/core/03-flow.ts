@@ -194,7 +194,8 @@ export function buildAttemptChange(input: { attempt: AttemptRow | null; event: A
 //       (`host-slept-unasked`), so a host that slept across a restart of atc comes back alone.
 //   (5) Calls `resumeClaim` again. `timeouts.resumeLostMinutes` after `wokenAt`: settle,
 //       `resume-lost`.
-//   (6) Sends the stored spawn request again. `timeouts.spawnLostMinutes` after the claim:
+//   (6) Sends the stored spawn request again, as a wake of the kept session when the claim woke
+//       one (section H). `timeouts.spawnLostMinutes` after the claim:
 //       settle, `spawn-lost`.
 //   (7) Not for an attempt that entered `closing` before any session was seen (cause
 //       `item-closed`, `atcSession` null): its spawn may still land. That attempt gives
@@ -938,7 +939,8 @@ export function findPosition(input: { pipeline: Pipeline | null; attempts: reado
 //   - The start `Claim` carries `kept`. `startClaim` wakes it with `worker.resumeKept`; a refusal
 //     with cause `other` falls back to `worker.start` and the `started` fact says `resumeFallback`.
 //     A refusal for capacity settles `no-capacity` as any spawn does, and an unanswered wake goes
-//     to the reconcile table, with `keptSession` kept.
+//     to the reconcile table, with `keptSession` kept. A respawn from that table picks the kept
+//     session again and wakes it, so a lost reply never leaves a fresh spawn beside it.
 //   - `started` clears `keptSession` in the same change, for a wake and for a fallback. The agent
 //     session bind accepts the agent session that the kept attempt holds.
 //   - `forgetSessions` forgets the kept session of an item that is done, archived or closed, or

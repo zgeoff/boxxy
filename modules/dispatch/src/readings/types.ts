@@ -20,7 +20,7 @@ export type ReadingAction =
   | { readonly kind: 'bind-only' }
   | { readonly kind: 'move-to-running'; readonly via: 'reconcile' | 'resume' }
 
-  // sends the stored spawn request again
+  // sends the stored spawn request again, to the kept session when the claim woke one
   | { readonly kind: 'respawn' }
   | { readonly kind: 'clear-mark' }
   | { readonly kind: 'sleep-if-idle'; readonly waitingSince: Instant }

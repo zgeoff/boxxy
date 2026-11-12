@@ -645,3 +645,29 @@ test('it respawns with the git source and the key that the claim stored', async 
     }),
   ]);
 });
+
+test('it wakes the kept session again, with no fresh spawn, after the reply to its wake is lost', async () => {
+  const ctx = await setupTest();
+  const first = await ctx.seedBuild();
+
+  ctx.worker.failNext('resumeKept', { kind: 'unknown', reason: 'the reply did not arrive' });
+
+  const second = await ctx.seedReworkAfter(first);
+
+  ctx.worker.setSession(first.id, { state: 'running' });
+
+  await ctx.tick();
+
+  const after = await ctx.readAttempt(second.id);
+
+  const starts = ctx.worker.calls.filter(
+    (call) => call.method === 'start' && call.subject === second.id,
+  );
+
+  expect([second.state, after.state, after.atcSession, starts]).toStrictEqual([
+    'reconciling',
+    'running',
+    first.atcSession,
+    [],
+  ]);
+});

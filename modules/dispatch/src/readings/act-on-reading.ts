@@ -2,6 +2,7 @@ import type {
   ActorRef,
   AttemptRow,
   Instant,
+  KeptSession,
   RunnerFault,
   SessionFault,
   SessionReading,
@@ -15,6 +16,7 @@ import type { MoveBase, MoveEvent } from '../attempts/types.ts';
 import { writeAttemptMove } from '../attempts/write-attempt-move.ts';
 import { writeSessionBind } from '../attempts/write-session-bind.ts';
 import { buildSnapshotHash } from '../claims/build-snapshot-hash.ts';
+import { pickKeptSession } from '../claims/pick-kept-session.ts';
 import { resumeClaim } from '../claims/resume-claim.ts';
 import { startClaim } from '../claims/start-claim.ts';
 import { settleAttempt } from '../closeouts/settle-attempt.ts';
@@ -105,7 +107,7 @@ function runAction(
           kind: 'start',
           attempt: input.attempt,
           spawn: spawnRequestSchema.parse(input.attempt.spawnRequest),
-          kept: null,
+          kept: await readRespawnKept(input),
         },
       });
 
@@ -229,6 +231,31 @@ function readRow(input: ActOnReadingInput): Promise<AttemptRow> {
     invariant(row !== null, `the runner read a stored attempt: ${input.attempt.id}`);
 
     return row;
+  });
+}
+
+// The kept session that the claim woke, picked again as the claim picked it. A wake whose reply
+// was lost leaves the kept session on the item, and the reading looks for the new attempt's
+// spawn name, which finds nothing; a fresh spawn would then run beside the woken session.
+function readRespawnKept(input: ActOnReadingInput): Promise<KeptSession | null> {
+  return input.store.read(async (tx) => {
+    const detail = await tx.readItemDetail(input.attempt.item, input.now, input.rules);
+
+    invariant(
+      detail !== null,
+      `the runner read an attempt of a stored item: ${input.attempt.item}`,
+    );
+
+    const kind = input.rules.kinds.get(detail.item.kind);
+
+    return kind === undefined
+      ? null
+      : pickKeptSession({
+          item: detail.item,
+          attempts: detail.attempts,
+          pipeline: kind.pipeline,
+          phase: input.attempt.phase,
+        });
   });
 }
 
