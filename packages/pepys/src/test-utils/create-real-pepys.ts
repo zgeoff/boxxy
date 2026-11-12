@@ -2,29 +2,15 @@ import { createORPCClient } from '@orpc/client';
 import { RPCLink } from '@orpc/client/fetch';
 import { buildQueryContext, createApp } from '@pepys/api';
 import { createFakeSenderProof, createIngest, createMemoryFactLog } from '@pepys/ingest';
-import { checkDeployment, parseStreamName } from '@pepys/kit';
-import type {
-  FactBatchBody,
-  FactEnvelope,
-  Sender,
-  SourceDefinition,
-  StreamName,
-  StreamOffset,
-} from '@pepys/kit';
-import {
-  githubDeliveryConsumers,
-  githubPlugin,
-  githubPullRequestConsumer,
-  parsePullRequestDeliveries,
-  selectPullRequestDelivery,
-} from '@pepys/source-github';
+import { checkDeployment, toStreamName } from '@pepys/kit';
+import type { Sender } from '@pepys/kit';
+import { githubDelivery, githubPlugin, githubPullRequestConsumer } from '@pepys/source-github';
 import {
   telemetryModelRequestConsumer,
   telemetryPlugin,
   telemetryTurnCostConsumer,
 } from '@pepys/source-telemetry';
-import { createTestStore } from '@pepys/testing';
-import type { AppliedFact } from '@pepys/testing';
+import { applyFactLog, createTestStore } from '@pepys/testing';
 import { buildBoxxyPlugin } from '../build-boxxy-plugin.ts';
 import type { ForeignReads } from '../queries/types.ts';
 import type { UncheckedQueryClient } from '../types.ts';
@@ -34,18 +20,14 @@ const foreign: ForeignReads = {
   telemetryModelRequest: telemetryModelRequestConsumer,
   telemetryTurnCost: telemetryTurnCostConsumer,
   githubPullRequest: githubPullRequestConsumer,
-  delivery: {
-    consumers: githubDeliveryConsumers,
-    select: selectPullRequestDelivery,
-    parse: parsePullRequestDeliveries,
-  },
+  delivery: githubDelivery,
 };
 
 const telemetryToken = 'telemetry-test-token';
 
-// The real pepys ingest, the GitHub, telemetry and boxxy plug-ins, and the real query API, in
-// process. Ingest appends to its memory fact log. A host applies the log to the store; here each
-// query first applies what is new to the kit's test store, which the API then reads.
+// The real pepys ingest, plug-ins and query API, in process. Ingest appends to its memory fact log;
+// before each query, `applyFactLog` does the host's part and applies what is new to the kit's test
+// store, which the API reads.
 export async function createRealPepys(options: TestPepysOptions): Promise<TestPepys> {
   const plugins = [buildBoxxyPlugin(foreign), githubPlugin, telemetryPlugin];
   const checked = checkDeployment({ name: 'boxxy-system-test', plugins });
@@ -56,9 +38,9 @@ export async function createRealPepys(options: TestPepysOptions): Promise<TestPe
 
   const deployment = checked.value;
 
-  const streams = deployment.sources
-    .flatMap((source) => source.families.map((family) => family.stream))
-    .filter((stream) => isStreamName(stream));
+  const streams = deployment.sources.flatMap((source) =>
+    source.families.map((family) => toStreamName(family.stream)),
+  );
 
   const log = createMemoryFactLog(streams);
   const senders: Record<string, Sender> = {};
@@ -80,54 +62,7 @@ export async function createRealPepys(options: TestPepysOptions): Promise<TestPe
 
   const store = await createTestStore({ plugins });
 
-  const applied = new Map<StreamName, StreamOffset>();
-
-  for (const stream of streams) {
-    const tail = await log.readTail(stream);
-
-    if (tail.ok) {
-      applied.set(stream, tail.value);
-    }
-  }
-
-  const applyLog = async () => {
-    for (const source of deployment.sources) {
-      for (const stream of source.families.map((family) => family.stream)) {
-        await applyStream(source, stream);
-      }
-    }
-  };
-
-  const applyStream = async (source: SourceDefinition, name: string) => {
-    const from = isStreamName(name) ? applied.get(name) : undefined;
-
-    if (!isStreamName(name) || from === undefined) {
-      throw new Error(`the log holds no stream ${name}`);
-    }
-
-    const tail = await log.readTail(name);
-
-    const read = tail.ok ? await log.read(name, from, tail.value - from) : tail;
-
-    if (!tail.ok || !read.ok) {
-      throw new Error(`the log refused a read of ${name}`);
-    }
-
-    const facts = read.value
-      .map((stored) => toOutgoingFact(source.name, stored.fact))
-      .filter((fact) => isAppliedFact(source, fact));
-
-    if (facts.length !== read.value.length) {
-      throw new Error(`the log holds a fact of ${name} that the source's families refuse`);
-    }
-
-    if (facts.length > 0) {
-      await store.apply(source, facts);
-    }
-
-    applied.set(name, tail.value);
-  };
-
+  const applyLog = () => applyFactLog(store, log, deployment);
   const app = createApp(buildQueryContext(store.reader, deployment));
   const sendRequest = (url: string, init: RequestInit) => app.handle(new Request(url, init));
 
@@ -176,39 +111,6 @@ export async function createRealPepys(options: TestPepysOptions): Promise<TestPe
     },
     [Symbol.asyncDispose]: () => store[Symbol.asyncDispose](),
   };
-}
-
-// The kit tags a stream name it has parsed; a declared family stream always parses.
-function isStreamName(name: string): name is StreamName {
-  return parseStreamName(name).ok;
-}
-
-type WireFact = FactBatchBody['facts'][number];
-
-// The fact of a batch that ingest built the envelope from; the event is the envelope's ID less
-// the source's prefix.
-function toOutgoingFact(sourceName: string, fact: FactEnvelope<unknown>): WireFact {
-  return {
-    type: fact.type,
-    event: fact.id.replace(`event:${sourceName}:`, ''),
-    entity: fact.entity,
-    ...(fact.actor === undefined ? {} : { actor: fact.actor }),
-    at: fact.at,
-    payload: fact.payload,
-  };
-}
-
-// The check that ingest made before it stored the fact: a type of one of the source's families,
-// with a payload that the type's schema accepts.
-function isAppliedFact(
-  source: SourceDefinition,
-  fact: WireFact,
-): fact is WireFact & AppliedFact<SourceDefinition> {
-  return source.families.some(
-    (family) =>
-      Object.hasOwn(family.types, fact.type) &&
-      family.types[fact.type]?.safeParse(fact.payload).success === true,
-  );
 }
 
 // One Claude Code `api_request` log record in an OTLP logs body, as the telemetry route reads it.
