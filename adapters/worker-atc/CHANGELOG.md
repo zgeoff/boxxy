@@ -2,19 +2,17 @@
 
 ## [0.2.2](https://github.com/zgeoff/boxxy/compare/@boxxy/worker-atc@0.2.1...@boxxy/worker-atc@0.2.2) (2026-11-12)
 
-
 ### Miscellaneous Chores
 
-* **@boxxy/worker-atc:** Synchronize boxxy versions
-
+- **@boxxy/worker-atc:** Synchronize boxxy versions
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.2.2
-  * devDependencies
-    * @boxxy/dispatch bumped to 0.2.2
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.2
+  - devDependencies
+    - @boxxy/dispatch bumped to 0.2.2
 
 ## [0.2.1](https://github.com/zgeoff/boxxy/compare/@boxxy/worker-atc@0.2.0...@boxxy/worker-atc@0.2.1) (2026-11-12)
 
