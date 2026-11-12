@@ -111,6 +111,54 @@ test('it accepts a workflow dispatch and prints nothing', async () => {
   expect(result.stdout.toString()).toBe('');
 });
 
+test('it answers a release view with a release that holds no assets by default', async () => {
+  const ctx = await setupTest();
+
+  const result = Bun.spawnSync([
+    join(ctx.directory, 'gh'),
+    'release',
+    'view',
+    '@boxxy/cli@0.2.0',
+    '--json',
+    'assets',
+  ]);
+
+  expect(result.stdout.toString()).toBe('{"assets":[]}\n');
+});
+
+test('it prints nothing and succeeds for a release upload', async () => {
+  const ctx = await setupTest();
+
+  const result = Bun.spawnSync([
+    join(ctx.directory, 'gh'),
+    'release',
+    'upload',
+    '@boxxy/cli@0.2.0',
+    'SHA256SUMS',
+  ]);
+
+  expect({ exitCode: result.exitCode, stdout: result.stdout.toString() }).toStrictEqual({
+    exitCode: 0,
+    stdout: '',
+  });
+});
+
+test('it fails a release upload whose answer is "error"', async () => {
+  const ctx = await setupTest();
+
+  await ctx.gh.writeResponses('uploads', ['error']);
+
+  const result = Bun.spawnSync([
+    join(ctx.directory, 'gh'),
+    'release',
+    'upload',
+    '@boxxy/cli@0.2.0',
+    'SHA256SUMS',
+  ]);
+
+  expect(result.exitCode).toBe(1);
+});
+
 test('it fails a call whose body is "error"', async () => {
   const ctx = await setupTest();
 

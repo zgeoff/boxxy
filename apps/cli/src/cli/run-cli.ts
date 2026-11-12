@@ -1,6 +1,6 @@
 import { ORPCError } from '@orpc/client';
 import { allCommands } from '../commands/all-commands.ts';
-import { exitCodes } from '../constants.ts';
+import { exitCodes, packageVersion } from '../constants.ts';
 import { createClient } from '../create-client.ts';
 import type { CLIDeps, CLIResult } from '../types.ts';
 import { buildErrorResult, buildTextResult } from './build-answer-result.ts';
@@ -16,6 +16,10 @@ export async function runCLI(deps: CLIDeps, argv: readonly string[]): Promise<CL
 
   if (picked.kind === 'help') {
     return buildTextResult(formatHelp(allCommands, picked.prefix));
+  }
+
+  if (picked.kind === 'version') {
+    return buildTextResult(packageVersion);
   }
 
   if (picked.kind === 'unknown') {

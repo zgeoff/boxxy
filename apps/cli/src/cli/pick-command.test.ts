@@ -21,6 +21,10 @@ test.each([[[]], [['help']], [['--help']], [['-h']]])('it asks for help for %p',
   expect(pickCommand(allCommands, argv)).toStrictEqual({ kind: 'help', prefix: [] });
 });
 
+test('it asks for the version for --version', () => {
+  expect(pickCommand(allCommands, ['--version'])).toStrictEqual({ kind: 'version' });
+});
+
 test('it asks for the help of a group when the line names only the group', () => {
   expect(pickCommand(allCommands, ['hook'])).toStrictEqual({ kind: 'help', prefix: ['hook'] });
 });

@@ -24,6 +24,10 @@ bun add @boxxy/cli
 
 The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
+An image with no Bun downloads `boxxy-linux-x64`, `boxxy-hook-plugin.tar.gz` and `SHA256SUMS` from
+the GitHub release `@boxxy/cli@<version>`, as
+[the CLI release assets](../../docs/design/boxxy/release.md#the-cli-release-assets) describes.
+
 ## Usage
 
 Set the address of the server, then run a command:
@@ -35,8 +39,9 @@ BOXXY_URL=<server_url> boxxy item list --state ready
 - `<server_url>` is the origin of the server's owner listener. In a worker session an atc auth
   profile sets it to the broker's address.
 
-`boxxy --help` prints the usage line of every command. A command prints the server's answer as JSON
-and exits 0, exits 1 on a refusal or an error, and exits 2 on a wrong command line.
+`boxxy --help` prints the usage line of every command, and `boxxy --version` prints the version. A
+command prints the server's answer as JSON and exits 0, exits 1 on a refusal or an error, and exits
+2 on a wrong command line.
 
 ## Features
 

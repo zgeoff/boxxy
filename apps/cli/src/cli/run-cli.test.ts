@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { z } from 'zod';
 import { buildMockCLIDeps } from '../test-utils/build-mock-cli-deps.ts';
 import { runCLI } from './run-cli.ts';
 
@@ -49,6 +50,16 @@ test('it prints the usage of one command for --help after its name', async () =>
   const result = await runCLI(buildMockCLIDeps({}), ['item', 'close', '--help']);
 
   expect(result.stdout).toContain('boxxy item close <item> --reason [--of]');
+});
+
+test('it prints the version of the package and exits 0 for --version', async () => {
+  const manifestText = await Bun.file(new URL('../../package.json', import.meta.url)).text();
+
+  const manifest = z.object({ version: z.string() }).parse(JSON.parse(manifestText));
+
+  const result = await runCLI(buildMockCLIDeps({}), ['--version']);
+
+  expect(result).toStrictEqual({ exitCode: 0, stdout: `${manifest.version}\n`, stderr: '' });
 });
 
 test('it exits 2 for a command it does not have', async () => {

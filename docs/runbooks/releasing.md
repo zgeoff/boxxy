@@ -116,7 +116,8 @@ and the publish.
    gh run watch --repo zgeoff/boxxy
    ```
 
-   Expect its publish step to end with an `npm publish` for each released package.
+   Expect its publish step to end with an `npm publish` for each released package. Expect its
+   `Attach the CLI release assets` job to print `uploaded the CLI assets to @boxxy/cli@<version>`.
 
 5. Check the registry:
 
@@ -126,6 +127,14 @@ and the publish.
 
    Expect the version you released. Right after a publish, `npm view` can print nothing, or answer
    `E404` for a package that npm never held. Run the command again until it prints the version.
+
+6. Check the CLI's release assets in an empty folder:
+
+   ```bash
+   gh release download '@boxxy/cli@<version>' --repo zgeoff/boxxy -p boxxy-linux-x64 -p boxxy-hook-plugin.tar.gz -p SHA256SUMS && sha256sum -c SHA256SUMS
+   ```
+
+   Expect `OK` for `boxxy-linux-x64` and `boxxy-hook-plugin.tar.gz`.
 
 ## Recover a release blocked by a workflow change
 
@@ -193,3 +202,19 @@ any of those tags, and list the `<path>` of each package to publish:
 
    Expect the publish step to publish each package, or to print
    `skipping @boxxy/<folder>@<version>: already published` for a version npm holds.
+
+When `apps/cli` is among the listed paths, the run also attaches the CLI's assets. Expect
+`skipping the CLI assets: @boxxy/cli@<version> already holds SHA256SUMS` for a release that holds
+the whole set. The run uploads all three files again only when `SHA256SUMS` is missing.
+[The CLI release assets](../design/boxxy/release.md#the-cli-release-assets) gives the reason.
+
+**CAUTION:** A new compile can give a binary with a new checksum, which breaks each image that pins
+the old one. Delete `SHA256SUMS` from a release only to replace a set that no image pins yet.
+
+To replace the whole set, delete the checksum file, then dispatch the run with `["apps/cli"]`:
+
+```bash
+gh release delete-asset '@boxxy/cli@<version>' SHA256SUMS --repo zgeoff/boxxy --yes
+```
+
+Expect the next run to print `uploaded the CLI assets to @boxxy/cli@<version>`.

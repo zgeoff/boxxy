@@ -122,7 +122,8 @@ downstream repo setup runbook gives the one-time steps for a new repo.
 ## Release
 
 boxxy releases through release-please and publishes through npm trusted publishing, both as wringer
-does. One workflow, `main.yml`, publishes. `npm-packages.yml` only rehearses the publish on a PR.
+does. One workflow, `main.yml`, publishes. `npm-packages.yml` only rehearses the publish and the CLI build
+on a PR.
 
 1. A releasable commit lands on `main`. The shared release-please job opens or updates one release
    PR with the version bumps and changelogs.
@@ -132,6 +133,8 @@ does. One workflow, `main.yml`, publishes. `npm-packages.yml` only rehearses the
 4. The publish run waits for the tagged commit's checks, then runs `npm publish` from Node 24's
    bundled npm with the job's OIDC token. No npm token exists in the repo. `bun publish` has no OIDC
    support, so npm publishes.
+5. When the release holds `@boxxy/cli`, a second job of the publish run compiles the CLI and attaches
+   the binary to the CLI's GitHub release. It holds `contents: write`, apart from the publish job's OIDC token.
 
 Publish runs queue and never cancel, so a release never stops halfway. Each publish run waits in
 one queue with its own checks, so releases publish in the order they were tagged. A version below

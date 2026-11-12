@@ -7,7 +7,7 @@ import { parseTextRecord } from '../release/parse-text-record.ts';
 export type PublishMode = 'publish' | 'rehearse';
 
 // A rehearsal of an empty list covers every workspace package, so a new package joins it unlisted.
-type PublishPaths =
+export type PublishPaths =
   | { readonly kind: 'listed'; readonly paths: readonly string[] }
   | { readonly kind: 'workspace' };
 

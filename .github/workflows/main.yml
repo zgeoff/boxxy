@@ -1,7 +1,7 @@
 # Runs the shared Bun checks on every push to main, with the script list that
 # the BUN_CHECK_SCRIPTS repo variable sets for pull requests, then releases the
-# @boxxy/* packages through the shared release-please job and publishes each
-# released package to npm.
+# @boxxy/* packages through the shared release-please job, publishes each
+# released package to npm, and attaches the CLI's binary to its GitHub release.
 name: Main
 
 on:
@@ -156,3 +156,32 @@ jobs:
           PATHS_RELEASED: ${{ inputs.republish_paths }}
           RELEASED_VERSIONS: ${{ inputs.released_versions }}
         run: bun run --silent ci:publish-packages
+
+  # An agent image downloads the CLI as a compiled binary, so a release of
+  # @boxxy/cli attaches the binary, the hook plug-in archive and their
+  # checksums to its GitHub release. A job of its own, so contents: write
+  # never sits beside the publish job's OIDC token. The script skips a release
+  # that holds the checksum file already, so a rerun never replaces a set that
+  # an image may have pinned.
+  cli-assets:
+    name: Attach the CLI release assets
+    needs: checks
+    if: github.event_name == 'workflow_dispatch' && vars.RELEASE_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+      - run: bun install --frozen-lockfile
+      - name: Build, check and attach the CLI assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PATHS_RELEASED: ${{ inputs.republish_paths }}
+          RELEASED_VERSIONS: ${{ inputs.released_versions }}
+        run: bun run --silent ci:release-cli-assets

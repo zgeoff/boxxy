@@ -94,6 +94,7 @@
     "memory-capped": "bash scripts/run-memory-capped.sh \"$(bun scripts/read-memory-budget.ts)\"",
     "ci:dispatch-publish": "bun scripts/publish/dispatch-release-publish.ts",
     "ci:publish-packages": "bun scripts/publish/publish-packages.ts",
+    "ci:release-cli-assets": "bun scripts/publish/release-cli-assets.ts",
     "test:e2e": "rig e2e",
     "test:system": "rig system"
   },

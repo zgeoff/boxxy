@@ -11,7 +11,9 @@ type StubGHEndpoint =
   | 'merges'
   | 'labels'
   | 'edits'
-  | 'creates';
+  | 'creates'
+  | 'releases'
+  | 'uploads';
 
 export interface StubGH {
   writeResponses: (name: StubGHEndpoint, bodies: readonly unknown[]) => Promise<void>;
@@ -45,6 +47,8 @@ case "$*" in
   "pr edit "*) take edits '' > /dev/null ;;
   "pr create "*) take creates '' ;;
   "workflow run "*) ;;
+  "release view "*) take releases '{"assets":[]}' ;;
+  "release upload "*) take uploads '' > /dev/null ;;
   *) echo "unexpected gh call: $*" >&2; exit 1 ;;
 esac
 `;

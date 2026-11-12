@@ -1,3 +1,9 @@
+import manifest from '../package.json' with { type: 'json' };
+
+// An import, not a read at run time: `bun build --compile` bundles the manifest into the binary,
+// which has no package.json beside it.
+export const packageVersion: string = manifest.version;
+
 // 2 means the command line is wrong, or the server has no attempt for this session yet
 export const exitCodes = { ok: 0, failed: 1, usage: 2, retryLater: 2 } as const;
 

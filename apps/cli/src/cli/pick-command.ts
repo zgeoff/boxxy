@@ -5,9 +5,12 @@ export type PickedCommand =
 
   // the words name no command, or ask for help; `prefix` is the part that names a group
   | { readonly kind: 'help'; readonly prefix: readonly string[] }
+  | { readonly kind: 'version' }
   | { readonly kind: 'unknown'; readonly word: string };
 
 const helpWords = new Set(['help', '--help', '-h']);
+
+const versionWord = '--version';
 
 // Finds the command that the command line starts with. The rest of the line is its flags and
 // words.
@@ -16,6 +19,10 @@ export function pickCommand(commands: readonly Command[], argv: readonly string[
 
   if (first === undefined || helpWords.has(first)) {
     return { kind: 'help', prefix: [] };
+  }
+
+  if (first === versionWord) {
+    return { kind: 'version' };
   }
 
   const command = commands.find((candidate) =>
