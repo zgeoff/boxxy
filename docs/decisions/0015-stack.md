@@ -1,7 +1,8 @@
 # 0015: The stack
 
 Date: 2026-11-04
-Updated: 2026-11-12: the API moved to oRPC v2 beta, and the CLI to `parseArgs`.
+Updated: 2026-11-12: the API moved to oRPC v2 beta, the CLI to `parseArgs`, and the logs to JSON
+lines with no log library.
 
 ## Decision
 
@@ -15,7 +16,8 @@ catalog pins each version.
 - API: oRPC v2 beta on Elysia 2.0 rc, because v2 has the MCP integration
   ([decision 0017](./0017-v1-scope.md)).
 - Store: Kysely on `bun:sqlite`.
-- Libraries: zod 4, LogTape for logs, and ts-pattern. The CLI reads its flags with `node:util`
+- Libraries: zod 4 and ts-pattern. The server writes its logs as JSON lines to stderr, with no log
+  library. The CLI reads its flags with `node:util`
   `parseArgs` ([the CLI](../design/boxxy/v1-cli.md#commands)).
 - Tests: `bun test`, run through `@zgeoff/rig`.
 - Release: release-please, with npm trusted publishing.
