@@ -44,6 +44,11 @@ experiments, so every part of the system can be compared and improved. Packages 
 - [Folder layout](./layout-folders.md): the folders inside each package.
 - [Review, verify and merge](./review-and-merge.md): the `ReviewGate` and `Verifier` ports, the
   job worker, and the merge step that lands a pull request when its checks are green.
+- [Wringer journeys](./wringer-journeys.md): the test journeys, the map from paths to features,
+  and the `verify / gate` check, which fails a pull request that has no fresh verdict.
+- [Owner notices](./owner-notices.md): how the server sends a hold notice to the owner's notice
+  session through atc, with keys and retries that survive sleep and restart.
+- [Next work list](./next-work-list.md): the slices that build these three designs.
 - [Interface sketches](./sketches/README.md): the shape of each interface, as TypeScript files.
 
 ## Reading order

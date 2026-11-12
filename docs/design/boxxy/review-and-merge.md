@@ -88,7 +88,7 @@ The `verify` phase runs an agent session that drives the real app with the repo'
 
 - **CI computes the fingerprint.** wringer's fingerprint of the change needs a checkout. The server has none, so the CI check `verify / gate` computes the fingerprint.
 - **The adapter reads the check and the report.** The wringer adapter reads the latest run of `verify / gate` at the head, and the report that the agent writes into the pull request body. A head with no finished gate run reads `not-covered`, never `verified`.
-- **The gate check runs again when the body changes.** The verify workflow runs on `pull_request` with the types `opened`, `synchronize`, `reopened` and `edited`, because the report lives in the body. The wringer journeys design owns the workflow and how a verdict reaches the body.
+- **The gate check runs again when the body changes.** The verify workflow runs on `pull_request` with the types `opened`, `synchronize`, `reopened` and `edited`, because the report lives in the body. The [wringer journeys design](./wringer-journeys.md) owns the workflow and how a verdict reaches the body.
 - **pepys compares the two graders by recipe.** The owner gives one item kind the `session: builder` recipe and another the `session: fresh` recipe. When the build's kept session is gone, a `session: builder` attempt runs on a fresh session, and its `started` fact carries `resumeFallback: true`, so a comparison can leave it out.
 
 ## The merge step

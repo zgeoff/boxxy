@@ -2,7 +2,7 @@
 
 - **Status:** draft
 
-The owner learns of a hold from a notice: a message that the deployed server sends through [atc](https://github.com/zgeoff/atc), the tool that runs agent sessions, to one session, the owner's notice session. This design gets each notice to that session even while the session or the owner's machine sleeps, and lets the owner rename the session with no change to boxxy. The review-and-merge design (`review-and-merge.md`) owns the hold reasons and the text of each notice. [Notices in v1](./v1.md#notices) says which holds write a notice.
+The owner learns of a hold from a notice: a message that the deployed server sends through [atc](https://github.com/zgeoff/atc), the tool that runs agent sessions, to one session, the owner's notice session. This design gets each notice to that session even while the session or the owner's machine sleeps, and lets the owner rename the session with no change to boxxy. The [review-and-merge design](./review-and-merge.md) owns the hold reasons and the text of each notice. [Notices in v1](./v1.md#notices) says which holds write a notice.
 
 Terms this doc uses:
 
@@ -135,7 +135,7 @@ notices: {
 
 ## The review tool in production
 
-The review gate in the review-and-merge design (`review-and-merge.md`, section "The review gate") runs noslop in a review session on a worker machine, and the server posts the result as the noslop GitHub App. The deployment needs these:
+[The review gate](./review-and-merge.md#the-review-gate) runs noslop in a review session on a worker machine, and the server posts the result as the noslop GitHub App. The deployment needs these:
 
 - The noslop CLI in the worker image, at a pinned version. Codex, noslop's default model CLI, has no sign-in on a worker machine, so the review session runs noslop with `--adapter claude`.
 - A GitHub token in the review session, as `GH_TOKEN` or `GITHUB_TOKEN`, which noslop reads to fetch the pull request.
