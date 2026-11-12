@@ -28,7 +28,16 @@ test.each([
 ] as const)('it reads the atc state %s of a running process as %s', (state, attention) => {
   const read = buildMockAtcSessionRead({ session: { state } });
 
-  expect(toSessionReading(read)).toMatchObject({ kind: 'running', attention });
+  expect(toSessionReading(read)).toStrictEqual({
+    kind: 'running',
+    atcSession: brandSchemas.atcSessionId.parse('s1-mock'),
+    agentSession: brandSchemas.agentSessionId.parse('agent-mock'),
+    caller: { issuer: 'https://broker.test', subject: 'imp-id-mock' },
+    attention,
+    lastActivityAt: brandSchemas.instant.parse(1_000_000),
+    lastOwnerAt: brandSchemas.instant.parse(1_000_000),
+    usageLimitResetsAt: null,
+  });
 });
 
 test('it takes the owner attach as the last activity when it is later than the last event', () => {
@@ -37,22 +46,46 @@ test('it takes the owner attach as the last activity when it is later than the l
     session: { lastAttachedAt: 1_800_000 },
   });
 
-  expect(toSessionReading(read)).toMatchObject({ lastActivityAt: 1_800_000 });
+  expect(toSessionReading(read)).toStrictEqual({
+    kind: 'running',
+    atcSession: brandSchemas.atcSessionId.parse('s1-mock'),
+    agentSession: brandSchemas.agentSessionId.parse('agent-mock'),
+    caller: { issuer: 'https://broker.test', subject: 'imp-id-mock' },
+    attention: 'working',
+    lastActivityAt: brandSchemas.instant.parse(1_800_000),
+    lastOwnerAt: brandSchemas.instant.parse(1_800_000),
+    usageLimitResetsAt: null,
+  });
 });
 
 test('it reads no usage limit while atc reports none', () => {
   const read = buildMockAtcSessionRead();
 
-  expect(toSessionReading(read)).toMatchObject({ usageLimitResetsAt: null });
+  expect(toSessionReading(read)).toStrictEqual({
+    kind: 'running',
+    atcSession: brandSchemas.atcSessionId.parse('s1-mock'),
+    agentSession: brandSchemas.agentSessionId.parse('agent-mock'),
+    caller: { issuer: 'https://broker.test', subject: 'imp-id-mock' },
+    attention: 'working',
+    lastActivityAt: brandSchemas.instant.parse(1_000_000),
+    lastOwnerAt: brandSchemas.instant.parse(1_000_000),
+    usageLimitResetsAt: null,
+  });
 });
 
 test('it reads a session with no host and no agent session with both null', () => {
   const read = buildMockAtcSessionRead();
   const { host: _, agentSessionID: __, ...session } = read.session;
 
-  expect(toSessionReading({ ...read, session })).toMatchObject({
-    caller: null,
+  expect(toSessionReading({ ...read, session })).toStrictEqual({
+    kind: 'running',
+    atcSession: brandSchemas.atcSessionId.parse('s1-mock'),
     agentSession: null,
+    caller: null,
+    attention: 'working',
+    lastActivityAt: brandSchemas.instant.parse(1_000_000),
+    lastOwnerAt: brandSchemas.instant.parse(1_000_000),
+    usageLimitResetsAt: null,
   });
 });
 

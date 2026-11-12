@@ -14,13 +14,10 @@ function setupTest() {
 test('#atc_session_spawn answers the first session again for a second spawn with the same key', () => {
   const ctx = setupTest();
   const spawn = { target: 'box', cwd: '/tmp/boxxy-test/repo', name: 'a', idempotencyKey: 'key-1' };
+  const first = ctx.atc.answer('atc_session_spawn', spawn);
+  const repeat = ctx.atc.answer('atc_session_spawn', spawn);
 
-  ctx.atc.answer('atc_session_spawn', spawn);
-
-  expect(ctx.atc.answer('atc_session_spawn', spawn)).toMatchObject({
-    kind: 'result',
-    result: { id: 's1-fake' },
-  });
+  expect([first.kind, repeat]).toStrictEqual(['result', first]);
 });
 
 test('#atc_session_spawn refuses a target it does not have', () => {
@@ -36,18 +33,50 @@ test('#atc_session_spawn refuses a target it does not have', () => {
 });
 
 test.each([
-  ['box', 'suspended', 'sleep'],
-  ['laptop', 'exited', 'stop'],
+  [
+    'box',
+    'suspended',
+    { desired: 'sleep', vm: 'awake', harness: 'suspended', attachment: 'detached' },
+  ],
+  ['laptop', 'exited', { desired: 'stop', vm: 'none', harness: 'exited', attachment: 'local' }],
 ] as const)(
   '#atc_session_stop on the target %s leaves the harness %s',
-  (target, harness, desired) => {
+  (target, _harness, lifecycle) => {
     const ctx = setupTest();
 
     ctx.atc.answer('atc_session_spawn', { target, cwd: '/tmp/boxxy-test/repo', name: 'a' });
     ctx.atc.answer('atc_session_stop', { session: 's1-fake' });
 
-    expect(ctx.atc.answer('atc_session_get', { session: 's1-fake' })).toMatchObject({
-      result: { session: { state: 'exited', lifecycle: { harness, desired } } },
+    expect(ctx.atc.answer('atc_session_get', { session: 's1-fake' })).toStrictEqual({
+      kind: 'result',
+      result: {
+        session: {
+          id: 's1-fake',
+          name: 'a',
+          cwd: '/tmp/boxxy-test/repo',
+          agent: 'claude',
+          state: 'exited',
+          unread: false,
+          pinned: false,
+          alive: false,
+          kind: 'pty',
+          lastMsg: '',
+          createdAt: 1_000_000,
+          agentSessionID: 'agent-1',
+          lastAttachedAt: 1_000_000,
+          repoRoot: '/tmp/boxxy-test/repo',
+          namedBy: 'user',
+          canEject: false,
+          locator: { daemonID: 'fake-daemon', targetID: target },
+          lifecycle,
+          host: { name: 'imp-s1-fake', id: 'imp-id-s1-fake', issuer: 'https://broker.test' },
+        },
+        prompt: null,
+        lastActivityAt: 1_000_000,
+        pending: null,
+        result: null,
+        sessionRecord: null,
+      },
     });
   },
 );
@@ -64,7 +93,10 @@ test('#atc_session_forget takes a confirm token on a target that destroys its ho
     confirmToken: 'confirm-s1-fake',
   });
 
-  expect(forgot).toMatchObject({ result: { forgotten: true, destroyed: true } });
+  expect(forgot).toStrictEqual({
+    kind: 'result',
+    result: { forgotten: true, destroyed: true, workspace: { outcome: 'none' } },
+  });
 });
 
 test('#atc_session_forget refuses a session that runs', () => {
