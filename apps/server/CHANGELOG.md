@@ -2,30 +2,30 @@
 
 ## [0.1.7](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.1.6...@boxxy/server@0.1.7) (2026-11-12)
 
-
 ### Features
 
-* **worker-atc:** call atc through the gateway's mcp endpoint ([4565816](https://github.com/zgeoff/boxxy/commit/4565816e6c00e7a1ad7e77c296d13dd1350c704a))
-* **worker-atc:** spawn a git workspace on targets with fresh machines ([578228e](https://github.com/zgeoff/boxxy/commit/578228ec91ec9f17e81021226f27bc7c3f081f28))
-
+- **worker-atc:** call atc through the gateway's mcp endpoint
+  ([4565816](https://github.com/zgeoff/boxxy/commit/4565816e6c00e7a1ad7e77c296d13dd1350c704a))
+- **worker-atc:** spawn a git workspace on targets with fresh machines
+  ([578228e](https://github.com/zgeoff/boxxy/commit/578228ec91ec9f17e81021226f27bc7c3f081f28))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/caller-proof-imp bumped to 0.1.7
-    * @boxxy/closeout bumped to 0.1.7
-    * @boxxy/content-hash bumped to 0.1.7
-    * @boxxy/contract bumped to 0.1.7
-    * @boxxy/dispatch bumped to 0.1.7
-    * @boxxy/forge-github bumped to 0.1.7
-    * @boxxy/model bumped to 0.1.7
-    * @boxxy/notifier-atc bumped to 0.1.7
-    * @boxxy/pepys bumped to 0.1.7
-    * @boxxy/planning bumped to 0.1.7
-    * @boxxy/rules bumped to 0.1.7
-    * @boxxy/store-sqlite bumped to 0.1.7
-    * @boxxy/worker-atc bumped to 0.1.7
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/caller-proof-imp bumped to 0.1.7
+    - @boxxy/closeout bumped to 0.1.7
+    - @boxxy/content-hash bumped to 0.1.7
+    - @boxxy/contract bumped to 0.1.7
+    - @boxxy/dispatch bumped to 0.1.7
+    - @boxxy/forge-github bumped to 0.1.7
+    - @boxxy/model bumped to 0.1.7
+    - @boxxy/notifier-atc bumped to 0.1.7
+    - @boxxy/pepys bumped to 0.1.7
+    - @boxxy/planning bumped to 0.1.7
+    - @boxxy/rules bumped to 0.1.7
+    - @boxxy/store-sqlite bumped to 0.1.7
+    - @boxxy/worker-atc bumped to 0.1.7
 
 ## [0.1.6](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.1.5...@boxxy/server@0.1.6) (2026-11-12)
 

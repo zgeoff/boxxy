@@ -2,17 +2,15 @@
 
 ## [0.1.7](https://github.com/zgeoff/boxxy/compare/@boxxy/contract@0.1.6...@boxxy/contract@0.1.7) (2026-11-12)
 
-
 ### Miscellaneous Chores
 
-* **@boxxy/contract:** Synchronize boxxy versions
-
+- **@boxxy/contract:** Synchronize boxxy versions
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.1.7
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.1.7
 
 ## [0.1.6](https://github.com/zgeoff/boxxy/compare/@boxxy/contract@0.1.5...@boxxy/contract@0.1.6) (2026-11-12)
 

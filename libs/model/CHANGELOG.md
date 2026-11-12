@@ -2,17 +2,16 @@
 
 ## [0.1.7](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.1.6...@boxxy/model@0.1.7) (2026-11-12)
 
-
 ### Features
 
-* **worker-atc:** spawn a git workspace on targets with fresh machines ([578228e](https://github.com/zgeoff/boxxy/commit/578228ec91ec9f17e81021226f27bc7c3f081f28))
-
+- **worker-atc:** spawn a git workspace on targets with fresh machines
+  ([578228e](https://github.com/zgeoff/boxxy/commit/578228ec91ec9f17e81021226f27bc7c3f081f28))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/content-hash bumped to 0.1.7
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.1.7
 
 ## [0.1.6](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.1.5...@boxxy/model@0.1.6) (2026-11-12)
 
