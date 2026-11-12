@@ -17,6 +17,8 @@ The mistakes that cost most here:
   your work needs.
 - [Layout](#layout): follow the layout doc. Code under `modules/` and `libs/` does no I/O.
 - [Docs and decisions](#docs-and-decisions): a design doc changes in the same PR as the code.
+- [Verify before you hand off](#verify-before-you-hand-off): run the journey of each feature your
+  change touches, and put the report in the pull request.
 - [Packages](#packages): one exact version per dependency, in the root catalog.
 - [Checks](#checks): run the local checks before you push. The type-aware lint runs in CI only.
 - [Commits and pull requests](#commits-and-pull-requests): Conventional Commits, one PR per
@@ -43,6 +45,9 @@ The mistakes that cost most here:
   | `testing`      | writing or reviewing a test             |
   | `ci-design`    | changing a workflow, a job or a trigger |
 
+- The `verify` and `wringer` skills are in `.claude/skills/` too, and the repo owns both: load
+  `verify` before you grade a change, and `wringer` when `bun verify lint` fails or a new
+  `@wringer/gunshi` ships. `bunx @wringer/gunshi skill install` writes `wringer`.
 - A sync job copies the skills in `.claude/skills/` from
   [zgeoff/skills](https://github.com/zgeoff/skills) and overwrites local changes. Never edit them
   here. When a skill is wrong, say so in your PR description.
@@ -83,6 +88,22 @@ When a check fails, move the code to the package the layout names. Never add an 
   - Copy the shape of the newest record. Give it the next free four-digit number. Date it with the
     day the choice was made, in `YYYY-MM-DD` form.
   - To change a decision, edit its record, and add an `Updated: YYYY-MM-DD` line under its date.
+
+## Verify before you hand off
+
+[Wringer journeys](docs/design/boxxy/wringer-journeys.md) owns what each journey proves. Run these
+steps before you open or update a pull request, after your last code change:
+
+1. Load the `verify` skill, and run `bun verify report`. Each feature with `changed: true` needs a
+   verdict.
+2. Run `bun verify up` and `bun verify doctor`. Then run the journey of each changed feature, from
+   the skill's feature map, and `bun verify done`.
+3. Run `bun verify report --human`. Put the output last in the Verification section of the pull
+   request body, in place of an older report, with `gh pr edit --body-file`.
+4. Run `bun verify down`.
+
+Any edit after `done` makes every verdict stale: run the steps again. When a journey fails, fix the
+code, never the journey, unless your change means to change what the feature does.
 
 ## Packages
 
