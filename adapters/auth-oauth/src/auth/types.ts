@@ -75,7 +75,7 @@ export type TokenExchangeReason =
   | 'invalid_target'
   | 'other';
 
-export type BearerReason = 'malformed' | 'invalid_token';
+type BearerReason = 'malformed' | 'invalid_token';
 
 export type SecurityEvent = SecurityOutcome & {
   readonly path: string;
