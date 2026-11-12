@@ -98,6 +98,12 @@
       "devDependencies": {
         "@faker-js/faker": "catalog:",
       },
+      "peerDependencies": {
+        "@faker-js/faker": "catalog:",
+      },
+      "optionalPeers": [
+        "@faker-js/faker",
+      ],
     },
     "adapters/store-sqlite": {
       "name": "@boxxy/store-sqlite",
