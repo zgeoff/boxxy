@@ -48,7 +48,7 @@ export const runnerHandlers = {
         oldestUnsentAt:
           read.notices.length === 0
             ? null
-            : brandSchemas.instant.parse(Math.min(...read.notices.map((notice) => notice.at))),
+            : new Date(Math.min(...read.notices.map((notice) => notice.at))).toISOString(),
         lastError: read.notices.length === 0 ? null : deps.noticeStatus.lastError,
       },
       outbox,

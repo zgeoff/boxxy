@@ -71,7 +71,7 @@ test('#status shows the oldest unsent time and the reason of the last try that w
 
   expect(notices).toStrictEqual({
     unsent: 1,
-    oldestUnsentAt: at,
+    oldestUnsentAt: new Date(at).toISOString(),
     lastError: 'session_dead',
   });
 });

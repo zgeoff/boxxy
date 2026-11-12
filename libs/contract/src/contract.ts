@@ -278,7 +278,7 @@ const runnerStatusOutput = z.object({
   // try that was not sent
   notices: z.object({
     unsent: count,
-    oldestUnsentAt: instantOrNull,
+    oldestUnsentAt: time.nullable(),
     lastError: z.string().nullable(),
   }),
   outbox: outboxStatus,
