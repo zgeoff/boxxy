@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.8](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.1.7...@boxxy/pepys@0.1.8) (2026-11-12)
+
+
+### Miscellaneous Chores
+
+* **@boxxy/pepys:** Synchronize boxxy versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/model bumped to 0.1.8
+
 ## [0.1.7](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.1.6...@boxxy/pepys@0.1.7) (2026-11-12)
 
 ### Miscellaneous Chores

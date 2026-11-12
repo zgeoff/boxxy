@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.8](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.1.7...@boxxy/model@0.1.8) (2026-11-12)
+
+
+### Miscellaneous Chores
+
+* **@boxxy/model:** Synchronize boxxy versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/content-hash bumped to 0.1.8
+
 ## [0.1.7](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.1.6...@boxxy/model@0.1.7) (2026-11-12)
 
 ### Features
