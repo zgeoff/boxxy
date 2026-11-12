@@ -137,10 +137,12 @@ export const boxxySource = defineSource({
 //
 // Why both sides of a link hold the same ID:
 //   ran_in     boxxy has the atc session ID from the spawn answer, and writes it as `atcSession`
-//              of `.started`, `.reconciled` and `.resumed`. atc sets the resource attribute
-//              `atc.session.id` to that ID on every telemetry record of the session, and the
-//              telemetry plug-in's session entity is `telemetry:session:<value of atc.session.id>`
-//              (lookups.md, lookup 2). `telemetry_model_request.session_id` is a copy of that entity.
+//              of `.started`, `.reconciled` and `.resumed`. A remote target answers the ID as
+//              `<target>.<daemon>.<id>`, and atc sets the resource attribute `atc.session.id` to
+//              the `<id>` part on every telemetry record of the session, so the consumer keys the
+//              atc row by the part after the last dot. The telemetry plug-in's session entity is
+//              `telemetry:session:<value of atc.session.id>` (lookups.md, lookup 2).
+//              `telemetry_model_request.session_id` is a copy of that entity.
 //              A record with no `atc.session.id` gets the agent's own session ID as its session.
 //              boxxy holds that ID in `session_bound.agentSession`: the fallback row.
 //   produced   boxxy writes `pullRequestId`, a decimal string, from GitHub's `id` of
@@ -225,7 +227,7 @@ export const boxxyWorkConsumer = defineConsumer({
     // never on `boxxy_attempt.atc_session`: a join on that column alone cannot find a telemetry
     // row with no atc session ID, and it cannot split a session that served several attempts.
     // `key` says which ID the session entity holds:
-    //   key 'atc'   session_id = `telemetry:session:<atc session ID>`. From .started, .reconciled,
+    //   key 'atc'   session_id = `telemetry:session:<atc session ID after its last dot>`. From .started, .reconciled,
     //                .resumed and .session_bound. One row per atc session of the attempt.
     //   key 'agent'  session_id = `telemetry:session:<agent session ID>`. From .session_bound.
     //                It matches only a telemetry row that carried no `atc.session.id`.
