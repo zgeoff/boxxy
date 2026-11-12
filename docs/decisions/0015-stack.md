@@ -7,7 +7,8 @@ Updated: 2026-11-12: the API moved to oRPC v2 beta, and the CLI to `parseArgs`.
 
 boxxy uses the newest stack in use across atc, nixie, pepys, noslop and wringer, with wringer
 weighted most, picked by commit date where the repos disagree. The
-[tech stack design](../design/boxxy/tech-stack.md) gives each version.
+[tech stack design](../design/boxxy/tech-stack.md) gives where each choice comes from, and the root
+catalog pins each version.
 
 - Runtime and language: Bun 1.4.4, and TypeScript 7 with tsrs.
 - Lint and format: oxlint with tsrslint for type-aware lint, and oxfmt, with the shared configs.

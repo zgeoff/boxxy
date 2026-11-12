@@ -10,9 +10,9 @@ are in [the layout](./layout.md).
 
 ## The owner's calls
 
-- **Elysia 2.0 rc.** boxxy serves its oRPC API on Elysia `2.0.0-rc.0`, as pepys does. The other
-  repos stay on Elysia `1.4.30`.
-- **oRPC v2 beta.** The API and its two MCP endpoints run on oRPC `2.0.0-beta.50`, pinned exactly,
+- **Elysia 2.0 rc.** boxxy serves its oRPC API on the Elysia 2.0 release candidate, as pepys
+  does. The other repos stay on Elysia 1.4.
+- **oRPC v2 beta.** The API and its two MCP endpoints run on an oRPC v2 beta, pinned exactly,
   because v2 has the MCP integration ([API and auth](./v1-api-and-auth.md#the-three-doors)).
 - **Shared files through repo-sync.** boxxy takes its shared files from zgeoff/tools through the
   repo-sync workflow, like every other repo. repo-sync delivers the chex checks with them.
@@ -20,40 +20,36 @@ are in [the layout](./layout.md).
   enforced by turbo boundaries and `zgeoff/import-zones`, with wringer's package conventions inside
   each package.
 
-## Versions
+## Packages
 
-Every external version is pinned exactly, once, in the root `workspaces.catalog`. Packages write
-`"catalog:"` for an external dependency and `"workspace:*"` for another `@boxxy/*` package.
+Every external version is pinned exactly, once, in the root `workspaces.catalog`, which is the one list of versions. Packages write `"catalog:"` for an external dependency and `"workspace:*"` for another `@boxxy/*` package. The table gives where each choice comes from.
 
-| Area               | Package and version                                                                                                   | Copied from                             |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| Runtime            | Bun `1.4.4`; `engines.node >=24`, for npm publish                                                                     | pepys, nixie, atc, noslop               |
-| Compiler           | `typescript` `7.0.2`, `tsrs` `0.18.0-ts7.1.0-dev.20260929`                                                            | wringer, nixie, atc, noslop             |
-| Strict config      | `@tsconfig/strictest` `2.0.8`                                                                                         | wringer                                 |
-| Lint               | `oxlint` `1.90.0`, `@zgeoff/oxlint-config` `0.10.5`                                                                    | atc; zgeoff/tools                       |
-| Type-aware lint    | `@maschwenk/tsrslint` `0.1.6`                                                                                         | wringer, nixie, atc, noslop             |
-| Format             | `oxfmt` `0.75.0`, `@zgeoff/oxfmt-config` `0.1.0`, `@zgeoff/format-codemod` `0.3.5`                                    | atc (oxfmt); zgeoff/tools (the configs) |
-| Package boundaries | `turbo` `2.11.10`                                                                                                     | noslop, nixie                           |
-| Typed API          | `@orpc/contract`, `@orpc/server`, `@orpc/client`, `@orpc/mcp` `2.0.0-beta.50`, `@modelcontextprotocol/server` `2.4.0` | boxxy's own choice                      |
-| atc client         | `@modelcontextprotocol/client` `2.4.0`, the MCP client of the server library's release                                | atc (its gateway serves MCP)            |
-| HTTP server        | `elysia` `2.0.0-rc.0`, with `typebox` `1.4.3`, `exact-mirror` `1.2.6` and `openapi-types` `12.1.3` as pepys pins them | pepys                                   |
-| Database           | `kysely` `0.29.8` on `bun:sqlite` through `@zgeoff/kysely-bun-sqlite` `0.3.2`                                         | nixie, atc                              |
-| Migrations         | Kysely's `Migrator` with an in-code migration provider                                                                | atc                                     |
-| Validation         | `zod` `4.6.7`                                                                                                         | all five                                |
-| Rules files        | `yaml` `2.9.1`                                                                                                        | boxxy's own choice                      |
-| CLI                | `node:util` `parseArgs`, with the command table of `apps/cli`                                                         | boxxy's own choice                      |
-| Logging            | `@logtape/logtape` `2.4.2`                                                                                            | nixie, atc, noslop                      |
-| Control flow       | `ts-pattern` `5.9.2`, `tiny-invariant` `1.3.3`, `type-fest` `5.10.0`, `@zgeoff/std` `0.4.3`                           | atc, pepys                              |
-| State machines     | `xstate` `6.0.0-beta.2`, pinned exactly, for the attempt state table in `@boxxy/dispatch` only                        | boxxy's own choice                      |
-| Tests              | `bun test` through `@zgeoff/rig` `0.2.3` (`rig unit`, `rig related`, `rig bench`), `@zgeoff/bun-test-extended` `0.2.3`, `@faker-js/faker` `10.6.0` | zgeoff/tools                            |
-| HTTP mocks         | `msw` `2.15.0`, `@msw/data` `1.1.8`                                                                                   | nixie, noslop                           |
-| Git hooks          | `lefthook` `2.2.2`, gitleaks                                                                                          | all five                                |
-| Commits            | `@commitlint/cli` `21.2.4`, `@zgeoff/commitlint-config` `0.1.0`                                                       | wringer, pepys, nixie                   |
-| Repo checks        | `@zgeoff/chex` `0.3.4`, for the test layout and docs checks                                                           | zgeoff/tools                            |
-| Dead code          | `knip` `6.44.1`                                                                                                       | the newest of the five                  |
-| Skill gate         | `@zgeoff/skill-gate` `0.2.27`                                                                                         | the newest of the five                  |
+| Area | Packages | Copied from |
+| --- | --- | --- |
+| Runtime | Bun, at the version `.bun-version` gives; `engines.node >=24`, for npm publish | pepys, nixie, atc, noslop |
+| Compiler | `typescript` 7, `tsrs` | wringer, nixie, atc, noslop |
+| Strict config | `@tsconfig/strictest` | wringer |
+| Lint | `oxlint`, `@zgeoff/oxlint-config` | atc; zgeoff/tools |
+| Type-aware lint | `@maschwenk/tsrslint` | wringer, nixie, atc, noslop |
+| Format | `oxfmt`, `@zgeoff/oxfmt-config`, `@zgeoff/format-codemod` | atc (oxfmt); zgeoff/tools (the configs) |
+| Package boundaries | `turbo` | noslop, nixie |
+| Typed API | `@orpc/contract`, `@orpc/server`, `@orpc/client`, `@orpc/mcp`, `@modelcontextprotocol/server` | boxxy's own choice |
+| atc client | `@modelcontextprotocol/client`, the MCP client of the server library's release | atc (its gateway serves MCP) |
+| HTTP server | `elysia`, with `typebox`, `exact-mirror` and `openapi-types` as pepys pins them | pepys |
+| Database | `kysely` on `bun:sqlite` through `@zgeoff/kysely-bun-sqlite` | nixie, atc |
+| Migrations | Kysely's `Migrator` with an in-code migration provider | atc |
+| Validation | `zod` 4 | all five |
+| Rules files | `yaml` | boxxy's own choice |
+| CLI | `node:util` `parseArgs`, with the command table of `apps/cli` | boxxy's own choice |
+| Control flow | `ts-pattern`, `tiny-invariant` | atc, pepys |
+| State machines | `xstate` 6 beta, for the attempt state table in `@boxxy/dispatch` only | boxxy's own choice |
+| Tests | `bun test` through `@zgeoff/rig`, `@zgeoff/bun-test-extended`, `@faker-js/faker` | zgeoff/tools |
+| Git hooks | `lefthook`, gitleaks | all five |
+| Commits | `@commitlint/cli`, `@zgeoff/commitlint-config` | wringer, pepys, nixie |
+| Repo checks | `@zgeoff/chex`, for the test layout and docs checks | zgeoff/tools |
+| Dead code | `knip` | the newest of the five |
+| Skill gate | `@zgeoff/skill-gate` | the newest of the five |
 
-- msw stays on 2, because msw 3 doesn't intercept `fetch` under Bun.
 - Expected outcomes are values of a union type, branched with `ts-pattern`'s `match().exhaustive()`.
   `tiny-invariant` guards states that only a bug can reach. boxxy uses no result library.
 - boxxy has no OpenTelemetry SDK. Agents send their own telemetry, which atc's agent config
