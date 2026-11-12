@@ -2,29 +2,27 @@
 
 ## [0.1.6](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.1.5...@boxxy/server@0.1.6) (2026-11-12)
 
-
 ### Miscellaneous Chores
 
-* **@boxxy/server:** Synchronize boxxy versions
-
+- **@boxxy/server:** Synchronize boxxy versions
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/caller-proof-imp bumped to 0.1.6
-    * @boxxy/closeout bumped to 0.1.6
-    * @boxxy/content-hash bumped to 0.1.6
-    * @boxxy/contract bumped to 0.1.6
-    * @boxxy/dispatch bumped to 0.1.6
-    * @boxxy/forge-github bumped to 0.1.6
-    * @boxxy/model bumped to 0.1.6
-    * @boxxy/notifier-atc bumped to 0.1.6
-    * @boxxy/pepys bumped to 0.1.6
-    * @boxxy/planning bumped to 0.1.6
-    * @boxxy/rules bumped to 0.1.6
-    * @boxxy/store-sqlite bumped to 0.1.6
-    * @boxxy/worker-atc bumped to 0.1.6
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/caller-proof-imp bumped to 0.1.6
+    - @boxxy/closeout bumped to 0.1.6
+    - @boxxy/content-hash bumped to 0.1.6
+    - @boxxy/contract bumped to 0.1.6
+    - @boxxy/dispatch bumped to 0.1.6
+    - @boxxy/forge-github bumped to 0.1.6
+    - @boxxy/model bumped to 0.1.6
+    - @boxxy/notifier-atc bumped to 0.1.6
+    - @boxxy/pepys bumped to 0.1.6
+    - @boxxy/planning bumped to 0.1.6
+    - @boxxy/rules bumped to 0.1.6
+    - @boxxy/store-sqlite bumped to 0.1.6
+    - @boxxy/worker-atc bumped to 0.1.6
 
 ## [0.1.5](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.1.4...@boxxy/server@0.1.5) (2026-11-12)
 

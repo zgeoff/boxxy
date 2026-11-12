@@ -2,22 +2,21 @@
 
 ## [0.1.6](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.1.5...@boxxy/pepys@0.1.6) (2026-11-12)
 
-
 ### Features
 
-* **pepys:** take the delivery module as the github plug-in exports it ([29fd472](https://github.com/zgeoff/boxxy/commit/29fd472b42690c4cf8a5f6829664bb25b25583bd))
-
+- **pepys:** take the delivery module as the github plug-in exports it
+  ([29fd472](https://github.com/zgeoff/boxxy/commit/29fd472b42690c4cf8a5f6829664bb25b25583bd))
 
 ### Bug Fixes
 
-* **pepys:** move to pepys 0.1.1 and apply the fact log with pepys code ([fe0acb8](https://github.com/zgeoff/boxxy/commit/fe0acb833b49d155da784f94faf43073c942f8a2))
-
+- **pepys:** move to pepys 0.1.1 and apply the fact log with pepys code
+  ([fe0acb8](https://github.com/zgeoff/boxxy/commit/fe0acb833b49d155da784f94faf43073c942f8a2))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.1.6
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.1.6
 
 ## [0.1.5](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.1.4...@boxxy/pepys@0.1.5) (2026-11-12)
 
