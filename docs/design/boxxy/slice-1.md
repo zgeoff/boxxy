@@ -128,7 +128,7 @@ does it.
   waits until the owner runs `boxxy item retry`, which calls `item.retry`.
 - A confirmation that only the owner can give before an expedite takes effect, such as a passkey
   approval ([core model](./core-model.md#entry-points)). Any caller on the owner's path may
-  expedite ([API and auth](./v1-api-and-auth.md#the-two-paths)).
+  expedite ([API and auth](./v1-api-and-auth.md#the-paths)).
 - `explain` and replay. Each decision row records their inputs: the rules version, the snapshot
   hash, the store version, `pepys_offsets` and the plug-in faults. Slice 1 writes decision rows and
   never reads them.

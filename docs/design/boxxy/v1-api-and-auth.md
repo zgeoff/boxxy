@@ -1,29 +1,32 @@
 # API and auth in v1
 
-One contract holds every v1 procedure, and the server serves it through three doors: an RPC route for the CLI, an MCP endpoint for the owner's agent, and a second MCP endpoint for an agent inside a session. A table beside the contract says who each procedure is for. A worker session reaches the server through a broker that adds a bearer token, and that token may call only the session and hook procedures. Every session and hook call also needs a proven caller, and the server refuses the call when it cannot prove one. [`01-api.ts`](./sketches/v1/edge/01-api.ts) holds the contract, the access table and the auth rules.
+One contract holds every v1 procedure, and the server serves it through four doors: an RPC route for the CLI, an MCP endpoint for the owner's agent on the owner's private network, a second MCP endpoint for the same agent on a public door behind OAuth, and a third MCP endpoint for an agent inside a session. A table beside the contract says who each procedure is for. A worker session reaches the server through a broker that adds a bearer token, and that token may call only the session and hook procedures. Every session and hook call also needs a proven caller, and the server refuses the call when it cannot prove one. [`01-api.ts`](./sketches/v1/edge/01-api.ts) holds the contract, the access table and the auth rules.
 
-## The three doors
+## The doors
 
 ```mermaid
 flowchart LR
   cli[the CLI] --> rpc["/rpc"]
-  owner[the owner's agent] --> mcp["/mcp: 17 tools"]
+  owner[the owner's agent] --> mcp["/mcp: 19 tools"]
+  remote[the owner's assistant] --> oauth[the public door: OAuth] --> pmcp["/mcp: 19 tools, by scope"]
   session[an agent in a session] --> broker[the impd broker]
   broker --> rpc
   broker --> smcp["/mcp/session: 3 tools"]
   rpc --> router[one router]
   mcp --> router
+  pmcp --> router
   smcp --> router
 ```
 
-The contract lives in the package `@boxxy/contract`, and the server builds one router from it on oRPC v2. Section A of [`01-api.ts`](./sketches/v1/edge/01-api.ts) shows the server, the CLI client and an MCP call. [The CLI and the hooks](./v1-cli.md) covers the CLI. The server opens two listeners, each on an address that the configuration file sets:
+The contract lives in the package `@boxxy/contract`, and the server builds one router from it on oRPC v2. Section A of [`01-api.ts`](./sketches/v1/edge/01-api.ts) shows the server, the CLI client and an MCP call. [The CLI and the hooks](./v1-cli.md) covers the CLI. The server opens up to three listeners, each on an address that the configuration file sets:
 
-- The owner listener sits on the owner's private network. It serves `/rpc`, `/mcp` and `/healthz`.
+- The owner listener sits on the owner's private network. It serves `/rpc`, `/mcp` and `/healthz`. Its only gate is the network.
 - The worker listener is the broker's target. It serves `/rpc` and `/mcp/session`, and answers 401 on any path, unknown ones included, to a request without the worker token.
+- The public door serves `/mcp`, the OAuth routes and the sign-in pages, and nothing else. It is off when the configuration has no `publicDoor` section. [The public door](#the-public-door) covers it.
 
-Both listeners refuse a body over 256 KiB with 413, on every path, `/healthz` included. The server counts the bytes as it reads the body, so a streamed body with no length header gets the same limit.
+The owner and worker listeners refuse a body over 256 KiB with 413, on every path, `/healthz` included. The public door refuses a body over 256 KiB too. The server counts the bytes as it reads the body, so a streamed body with no length header gets the same limit.
 
-Both listeners refuse with 403 a request that a browser page sent: one with an `Origin` header, or a `Sec-Fetch-Site` header other than `none`. No caller of the server is a page. The owner listener takes no token, so without this check a page on any site could send it a write: a browser sends a `text/plain` POST with no CORS preflight, and a site whose name resolves to the listener's address passes for the same origin.
+The owner and worker listeners refuse with 403 a request that a browser page sent: one with an `Origin` header, or a `Sec-Fetch-Site` header other than `none`. No caller of those listeners is a page. The owner listener takes no token, so without this check a page on any site could send it a write: a browser sends a `text/plain` POST with no CORS preflight, and a site whose name resolves to the listener's address passes for the same origin. The public door is the one door a browser reaches, for the sign-in pages, and it holds its own checks.
 
 Section B holds the rules of the contract. Four of them shape every procedure:
 
@@ -60,28 +63,48 @@ Section C of [`01-api.ts`](./sketches/v1/edge/01-api.ts) holds the input, the ou
 | `attempt.closeOut` | session | session | sends the close-out |
 | `attempt.bindSession` | hook | none | binds the agent session; reports missing skills |
 | `attempt.recordPullRequest` | hook | none | links a pull request to the attempt |
-| `runner.pause` | owner | none | pauses the runner |
-| `runner.resume` | owner | none | resumes the runner |
+| `runner.pause` | owner | owner | pauses the runner |
+| `runner.resume` | owner | owner | resumes the runner |
 | `outbox.retry` | owner | none | clears the park mark of every parked outbox row |
 | `rules.dryRun` | owner | none | shows where each open item would stand under a rules file |
+| `auth.enroll` | owner | none | mints a one-time link that enrolls a passkey for the public door |
+| `auth.addClient` | owner | none | adds a client that may ask for a grant |
+| `auth.listClients` | owner | none | lists the clients |
+| `auth.removeClient` | owner | none | removes a client and revokes its grants |
+| `auth.listGrants` | owner | none | lists the grants |
+| `auth.revokeGrant` | owner | none | revokes one grant |
 
-- **17 owner tools.** The owner's agent files and steers work for the owner, so it gets every command on an item and every read.
+- **19 owner tools.** The owner's agent files and steers work for the owner, so it gets every command on an item, every read, and the runner pause and resume.
 - **3 session tools, on their own endpoint.** A session's tool list holds no command on another item. A session reports found work in its close-out, where settle dedupes it.
-- **6 procedures with no tool.** A hook program calls two of them. Three switch the whole server and write no fact that shows who did it, so they stay with a person at the CLI. The rules dry run takes a whole file.
+- **10 procedures with no tool.** A hook program calls two of them. The outbox retry acts on the whole outbox and writes no fact that shows who did it, so it stays with a person at the CLI. The rules dry run takes a whole file. Six manage the public door's sign-in, as [the public door](#the-public-door) says.
 - **A test keeps the access table in step with the contract.** It fails when a procedure has no entry, when an entry names no procedure, or when a tool has no name.
 
 `attempt.current` tells the agent which of the four close-outs its attempt takes: the phase, the JSON Schema of the body, and the outcome names. It also returns the skills to fetch and the item's notes.
 
-## The two paths
+## The paths
 
-Section E of [`01-api.ts`](./sketches/v1/edge/01-api.ts) holds the two paths, the scope of the worker token and the rule of the proven caller.
+Section E of [`01-api.ts`](./sketches/v1/edge/01-api.ts) holds the owner and worker paths, the scope of the worker token and the rule of the proven caller.
 
 | Path | Who | How the server knows |
 | --- | --- | --- |
 | the owner's path | the owner, the CLI and the owner's agent | the request arrives on the owner listener, with no token |
+| the public door | the owner's assistant, from anywhere | the request carries an OAuth access token that the owner approved, and the door serves only `/mcp` |
 | the worker path | a session and its hooks | the request arrives through the impd broker, which adds the worker bearer token, on either listener |
 
 A worker session runs in an imp, which reaches the public internet only. The session calls a made-up host, and the broker sends the request to the boxxy server and adds the bearer token. The session never holds the token. It gets the address as `BOXXY_URL` from an atc auth profile.
+
+## The public door
+
+[0018](../../decisions/0018-public-owner-mcp.md) records why the owner's MCP endpoint has a public door. The door runs the OAuth server of [`@boxxy/auth-oauth`](../../../adapters/auth-oauth/README.md), a copy of the one in atc, and serves the owner's 19 tools. It never serves `/rpc` or `/healthz`, and the six `auth` procedures are not tools, so no token reaches them.
+
+The configuration's `publicDoor` section holds the `port`, the `publicURL`, `trustForwardedFrom`, and optionally the `hostname` (loopback by default) and the `authFile`. A door that listens beyond loopback needs an `https` public URL. The `publicURL` is the OAuth issuer, and `<publicURL>/mcp` is the one resource that every token is bound to.
+
+- **Clients.** A client is a public client that the owner adds with `boxxy auth clients add`, with PKCE S256 and no client secret. The door has no dynamic client registration.
+- **Authorization.** Each authorization needs a fresh passkey sign-in, then a consent page that lists the scopes the client asked for. Only `read` starts ticked. The owner enrolls a passkey with `boxxy auth enroll`, which prints a one-time link.
+- **Tokens.** An access token is opaque, lasts 3600 seconds and is stored hashed. Refresh tokens rotate, and a reused one revokes the client's grants. A code lasts 600 seconds and an owner session 1800 seconds. The signing secret is drawn at each start, so a restart ends the sign-ins in progress. A token's audience must equal `<publicURL>/mcp`.
+- **Scopes.** `read` is for a tool that changes nothing: `runner_status`, `item_get`, `item_list`, `report_cost` and `report_stage_times`. `write` is for every tool that changes state, the runner pause and resume among them. The access table holds each tool's scope, and the door registers only a tool that has one. A token without the scope that a tool needs gets 403 with `insufficient_scope`. A request with no valid token gets 401.
+- **Request checks.** The door answers 403 to a request whose `Host` is not the public host or the local address, and to a form post or an MCP request whose `Origin` is another one. It writes each sign-in outcome and each refused token to stderr as a JSON line. `trustForwardedFrom` lists the socket peers whose `CF-Connecting-IP` header those lines label `trusted`.
+- **State.** The OAuth state lives in an auth database file beside the store, which only its owner can read. `boxxy auth clients` and `boxxy auth grants` manage it through the owner listener.
 
 ## The scope of the worker token
 

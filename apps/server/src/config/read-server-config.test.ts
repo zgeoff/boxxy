@@ -280,3 +280,36 @@ test('it refuses a path with no file', async () => {
     message: `no configuration file at ${ctx.file}.missing`,
   });
 });
+
+test('it defaults the public door to loopback with no trusted proxy', async () => {
+  const ctx = await setupTest();
+
+  const config = {
+    runner: 'runner-1',
+    store: { file: '/tmp/boxxy-test/boxxy.db' },
+    rules: { folder: '/tmp/boxxy-test/rules' },
+    api: {
+      listen: { hostname: '127.0.0.1', port: 4400 },
+      workerListen: { hostname: '127.0.0.1', port: 4401 },
+    },
+    spawn: { target: 'cloud', repos: {} },
+    atc: { url: 'http://127.0.0.1:7777/mcp', trustedFolders: {} },
+    publicDoor: { port: 4402, publicURL: 'https://boxxy.example.test' },
+  };
+
+  await ctx.writeConfig(JSON.stringify(config));
+
+  const answer = await readServerConfig(ctx.file);
+
+  expect(answer).toStrictEqual({
+    kind: 'read',
+    config: expect.objectContaining({
+      publicDoor: {
+        port: 4402,
+        hostname: '127.0.0.1',
+        publicURL: 'https://boxxy.example.test',
+        trustForwardedFrom: [],
+      },
+    }),
+  });
+});

@@ -337,7 +337,7 @@ test.each(listOwnerTools())(
   },
 );
 
-test('it lists the 17 owner tools on /mcp', async () => {
+test('it lists the 19 owner tools on /mcp', async () => {
   const ctx = await setupTest();
   const tools = await ctx.listTools('owner', '/mcp');
 

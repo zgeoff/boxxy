@@ -27,3 +27,17 @@ test('it sends no authorization header with no token', () => {
 
   expect(request.headers.get('authorization')).toBeNull();
 });
+
+test('it sends the host of a given origin', () => {
+  const request = buildMCPRequest({
+    path: '/mcp',
+    method: 'tools/list',
+    params: {},
+    origin: 'https://boxxy.test',
+  });
+
+  expect({ url: request.url, host: request.headers.get('host') }).toStrictEqual({
+    url: 'https://boxxy.test/mcp',
+    host: 'boxxy.test',
+  });
+});

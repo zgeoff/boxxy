@@ -97,7 +97,7 @@ const sessionMcp = serveTools(sessionTools, 'boxxy-session');
 //   every route of both listeners: 403 for a request a browser page sent (`Origin`, or a
 //   `Sec-Fetch-Site` other than `none`), and 413 for a body over 256 KiB
 //   .all('/rpc/*',        { parse: 'none' }, ({ request }) => rpc.handle(request, { prefix: '/rpc', context }))
-//   .all('/mcp',          { parse: 'none' }, ({ request }) => ownerMcp.fetch(request))     17 tools
+//   .all('/mcp',          { parse: 'none' }, ({ request }) => ownerMcp.fetch(request))     19 tools
 //   worker listener, `api.workerListen`, the broker's target; 401 on any path with no token:
 //   .all('/rpc/*',        { parse: 'none' }, ({ request }) => rpc.handle(request, { prefix: '/rpc', context }))
 //   .all('/mcp/session',  { parse: 'none' }, ({ request }) => sessionMcp.fetch(request))    3 tools
@@ -575,8 +575,8 @@ const ownerRead = (cli: string): Access => ({ caller: 'owner', actor: 'none', to
 
 export const access = {
   // The owner's agent files and steers work on the owner's behalf, so it gets every command on an
-  // item and every read: 17 tools. One read is not among them, `rules.dryRun` (below), which is
-  // CLI only.
+  // item and every read: 19 tools, the runner pause and resume among them. One read is not among
+  // them, `rules.dryRun` (below), which is CLI only.
   'item.file': ownerWrite('boxxy item file --repo --title --outcome [--acceptance]… [--kind] [--design-mode] [--blocked-by]… [--label]…'),
   'item.edit': ownerWrite('boxxy item edit <item> [--title] [--outcome] [--acceptance]… [--design-mode] [--label]…'),
   'item.close': ownerWrite('boxxy item close <item> --reason [--of]'),
@@ -607,10 +607,13 @@ export const access = {
   'attempt.bindSession': { caller: 'hook', actor: 'boxxy:hook:<id>', tool: 'none', cli: 'boxxy hook session-start   (hook payload on stdin)' },
   'attempt.recordPullRequest': { caller: 'hook', actor: 'boxxy:hook:<id>', tool: 'none', cli: 'boxxy hook post-tool-use   (hook payload on stdin)' },
 
-  // Not tools: each one switches the server itself, not one item, and writes no fact that would
-  // show who did it. They are for a person at the CLI.
-  'runner.pause': { caller: 'owner', actor: 'none', tool: 'none', cli: 'boxxy runner pause' },
-  'runner.resume': { caller: 'owner', actor: 'none', tool: 'none', cli: 'boxxy runner resume' },
+  // Tools, with no actor: each one switches the server itself, not one item, and writes no fact
+  // that would show who did it.
+  'runner.pause': { caller: 'owner', actor: 'none', tool: 'owner', cli: 'boxxy runner pause' },
+  'runner.resume': { caller: 'owner', actor: 'none', tool: 'owner', cli: 'boxxy runner resume' },
+
+  // Not a tool: it acts on the whole outbox, not one item, and writes no fact that would show who
+  // did it. It is for a person at the CLI.
   'outbox.retry': { caller: 'owner', actor: 'none', tool: 'none', cli: 'boxxy outbox retry' },
 
   // Not a tool, by choice: owner, CLI only. Its input is a whole rules file, and

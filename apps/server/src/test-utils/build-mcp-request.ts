@@ -7,6 +7,10 @@ interface MCPRequestInput {
 
   // the bearer token; none when left out
   readonly token?: string;
+
+  // the origin of the request, with its `Host` header, as the public door needs; the owner and
+  // worker listeners read neither
+  readonly origin?: string;
 }
 
 // One JSON-RPC request to an MCP endpoint. The endpoints keep no session, so a request needs no
@@ -21,7 +25,13 @@ export function buildMCPRequest(request: MCPRequestInput): Request {
     headers.set('authorization', `Bearer ${request.token}`);
   }
 
-  return new Request(`http://boxxy.test${request.path}`, {
+  const origin = request.origin ?? 'http://boxxy.test';
+
+  if (request.origin !== undefined) {
+    headers.set('host', new URL(origin).host);
+  }
+
+  return new Request(`${origin}${request.path}`, {
     method: 'POST',
     headers,
     body: JSON.stringify({

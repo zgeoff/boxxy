@@ -34,6 +34,7 @@
           "rules": ["modules/rules/**"],
           "dispatch": ["modules/dispatch/**"],
           "store-sqlite": ["adapters/store-sqlite/**"],
+          "auth-oauth": ["adapters/auth-oauth/**"],
           "worker-atc": ["adapters/worker-atc/**"],
           "caller-proof-imp": ["adapters/caller-proof-imp/**"],
           "pepys-package": ["packages/pepys/**"]
@@ -50,8 +51,24 @@
           {
             "name": "sqlite",
             "modules": ["bun:sqlite", "kysely", "@zgeoff/kysely-bun-sqlite"],
-            "allow": ["store-sqlite"],
-            "reason": "only adapters/store-sqlite opens the database; use its ClaimStore"
+            "allow": ["store-sqlite", "auth-oauth"],
+            "reason": "only adapters/store-sqlite opens the store, and only adapters/auth-oauth opens the auth database; use the ClaimStore or the public door"
+          },
+          {
+            "name": "oauth",
+            "modules": [
+              "better-auth",
+              "better-auth/api",
+              "better-auth/cookies",
+              "better-auth/crypto",
+              "better-auth/db/migration",
+              "@better-auth/mcp",
+              "@better-auth/oauth-provider",
+              "@simplewebauthn/server",
+              "reflect-metadata"
+            ],
+            "allow": ["auth-oauth"],
+            "reason": "only adapters/auth-oauth runs the OAuth server and its passkeys; take its public door"
           },
           {
             "name": "atc",

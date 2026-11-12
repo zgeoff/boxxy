@@ -1,3 +1,9 @@
+import { onTestFinished } from 'bun:test';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createPublicDoor } from '@boxxy/auth-oauth';
+import type { PublicDoor } from '@boxxy/auth-oauth';
 import { watchPullRequests } from '@boxxy/dispatch';
 import type { WatchReport } from '@boxxy/dispatch';
 import type { FakeForge } from '@boxxy/dispatch/test-utils/create-fake-forge';
@@ -23,7 +29,7 @@ import invariant from 'tiny-invariant';
 import { buildTokenDigest } from '../auth/pick-request-scope.ts';
 import { createOffOutbox } from '../outbox/create-off-outbox.ts';
 import { makeProposedRulesLoader } from '../rules/load-server-rules.ts';
-import { serveApi } from '../serve-api.ts';
+import { makePublicMcpServe, serveApi } from '../serve-api.ts';
 import type { TickReport } from '../tick/run-tick.ts';
 import { runTick } from '../tick/run-tick.ts';
 import type { NoticeStatus, ServerDeps, ServerLog } from '../types.ts';
@@ -43,6 +49,9 @@ export interface TestServerOptions {
 
   // the memory store when left out
   readonly store?: ClosableClaimStore;
+
+  // true: the server also runs a public door, with its auth database in a temp folder
+  readonly hasPublicDoor?: boolean;
 }
 
 export interface TestServer {
@@ -59,6 +68,10 @@ export interface TestServer {
   // what the server logged, in order
   readonly logged: readonly { readonly message: string; readonly fields: unknown }[];
   readonly deps: ServerDeps;
+
+  // the public door and the origin it was made with; null with no public door
+  readonly publicDoor: PublicDoor | null;
+  readonly publicOrigin: string;
 
   // the two listeners, as fetch handlers
   readonly owner: (request: Request) => Promise<Response>;
@@ -99,6 +112,18 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
     },
   };
 
+  const publicOrigin = 'https://boxxy.test';
+  const depsHolder: { current: ServerDeps | null } = { current: null };
+
+  const publicDoor =
+    options.hasPublicDoor === true
+      ? await startTestPublicDoor(publicOrigin, () => {
+          invariant(depsHolder.current !== null, 'the door serves after the deps exist');
+
+          return depsHolder.current;
+        })
+      : null;
+
   const deps: ServerDeps = {
     store: dispatch.store,
     runner: dispatch.runner,
@@ -118,7 +143,10 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
     readings,
     noticeStatus,
     log,
+    auth: publicDoor?.admin ?? null,
   };
+
+  depsHolder.current = deps;
 
   const listeners = serveApi(deps);
 
@@ -131,6 +159,8 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
     workerToken,
     logged,
     deps,
+    publicDoor,
+    publicOrigin,
     owner: (request) => listeners.owner.handle(request),
     worker: (request) => listeners.worker.handle(request),
     tick: () =>
@@ -167,4 +197,29 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
       return dispatch.readAttempt(claim.attempt.id);
     },
   };
+}
+
+async function startTestPublicDoor(
+  origin: string,
+  readDeps: () => ServerDeps,
+): Promise<PublicDoor> {
+  const folder = await mkdtemp(join(tmpdir(), 'boxxy-test-door-'));
+
+  const door = await createPublicDoor({
+    publicURL: origin,
+    hostname: '127.0.0.1',
+    dbPath: join(folder, 'auth.db'),
+    trustForwardedFrom: [],
+    writeSecurityLine: () => {},
+    readPeer: () => '127.0.0.1',
+    serveMCP: makePublicMcpServe(readDeps),
+  });
+
+  onTestFinished(async () => {
+    await door.stop();
+
+    await rm(folder, { recursive: true, force: true });
+  });
+
+  return door;
 }

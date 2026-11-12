@@ -147,11 +147,12 @@ libs/contract/src               @boxxy/contract
 apps/server/src                 @boxxy/server
   main                          the process entry: starts the server, stops it on a signal
   start-server                  reads the configuration, builds the adapters, starts it all
-  serve-api                     one router behind three doors on the owner and worker listeners
+  serve-api                     one router behind four doors on the owner, worker and public listeners
   read-limited-request          the body cap, counted while the body streams in
+  serve-public-door             the public door's listener: forwards each request to the door
   no-caller-proof               the `CallerProof` adapter that proves nobody
   create-capacity-backoff       the runner's memory of the pools a host refused for capacity
-  auth/           pick-request-scope  authorize-call
+  auth/           pick-request-scope  authorize-call  pick-tool-scope (the scope of each owner tool)
   config/         server-config-schema  read-server-config  pick-server-secrets
                   read-trusted-issuers  read-caller-proof (the one place that builds the
                   identity adapter)
@@ -184,6 +185,15 @@ adapters/forge-github/src       @boxxy/forge-github
   index  types  constants  create-github-forge  github-schemas  to-pull-request-reading
   github-forge-error
   test-utils/     create-fake-github-fetch
+
+adapters/auth-oauth/src          @boxxy/auth-oauth: the public door's OAuth server, copied from atc
+  index                         create-public-door and the types the server reads
+  auth/           the OAuth server on better-auth, the passkey sign-in, enrollment, consent and
+                  the security events, and `create-auth-admin` for the owner's commands
+  http/           create-public-door  create-mcp-http-app  public-door-paths  answer-mcp-request
+                  and the Host, origin and bearer checks
+  utils/          is-record  parse-json-strings  types
+  test-utils/     authorize-test-client  build-stub-authenticator  build-stub-clock  seed-passkey
 
 adapters/caller-proof-imp/src   @boxxy/caller-proof-imp
   index  types  imp-identity-caller-proof

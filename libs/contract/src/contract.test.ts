@@ -56,10 +56,10 @@ function setupTest() {
   };
 }
 
-test('it holds exactly 26 procedures', () => {
+test('it holds exactly 32 procedures', () => {
   const ctx = setupTest();
 
-  expect(ctx.procedures).toHaveLength(26);
+  expect(ctx.procedures).toHaveLength(32);
 });
 
 test('it gives every procedure exactly one access row, and every access row a procedure', () => {
@@ -92,13 +92,59 @@ test('it lists a procedure as a tool only on the endpoint of its caller', () => 
   expect(invalid).toStrictEqual([]);
 });
 
-test('it lists 17 owner tools, 3 session tools and 6 procedures with no tool', () => {
+test('it lists 19 owner tools, 3 session tools and 10 procedures with no tool', () => {
   const ctx = setupTest();
   const rows = [...ctx.rows.values()];
 
   expect(
     ['owner', 'session', 'none'].map((tool) => rows.filter((row) => row.tool === tool).length),
-  ).toStrictEqual([17, 3, 6]);
+  ).toStrictEqual([19, 3, 10]);
+});
+
+test('it gives every owner tool a scope of read or write', () => {
+  const ctx = setupTest();
+  const tools = [...ctx.rows].filter(([, row]) => row.tool === 'owner');
+
+  expect(tools.filter(([, row]) => row.scope !== 'read' && row.scope !== 'write')).toStrictEqual(
+    [],
+  );
+});
+
+test('it gives every procedure that changes state the write scope', () => {
+  const ctx = setupTest();
+
+  const writes = [
+    'item.file',
+    'item.edit',
+    'item.close',
+    'item.retry',
+    'item.wake',
+    'item.note',
+    'relation.add',
+    'relation.remove',
+    'plan.defer',
+    'plan.undefer',
+    'plan.expedite',
+    'plan.unexpedite',
+    'runner.pause',
+    'runner.resume',
+  ];
+
+  expect(writes.filter((name) => ctx.rows.get(name)?.scope !== 'write')).toStrictEqual([]);
+});
+
+test('it gives each read tool the read scope', () => {
+  const ctx = setupTest();
+  const reads = ['item.get', 'item.list', 'runner.status', 'report.cost', 'report.stageTimes'];
+
+  expect(reads.filter((name) => ctx.rows.get(name)?.scope !== 'read')).toStrictEqual([]);
+});
+
+test('it gives a session or hook procedure no scope', () => {
+  const ctx = setupTest();
+  const rows = [...ctx.rows].filter(([, row]) => row.caller !== 'owner');
+
+  expect(rows.filter(([, row]) => row.scope !== 'none')).toStrictEqual([]);
 });
 
 test('it names an MCP tool on a procedure exactly when its access row lists a tool', () => {
