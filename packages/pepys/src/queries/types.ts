@@ -1,4 +1,10 @@
-import type { ColumnKind, ConsumerDeclaration, QueryCall, TableDeclaration } from '@pepys/kit';
+import type {
+  ColumnKind,
+  ConsumerDeclaration,
+  EntityID,
+  QueryCall,
+  TableDeclaration,
+} from '@pepys/kit';
 import type { boxxyWorkConsumer } from '../work/boxxy-work-consumer.ts';
 
 // The rows the statements of the two queries read. Each holds the columns of its table that the
@@ -137,8 +143,8 @@ export type OpaqueConsumer = ConsumerDeclaration<
 export type StageTimeReads = readonly [typeof boxxyWorkConsumer, ...OpaqueConsumer[]];
 
 export interface DeliverySelectOptions {
-  // at least one, as pepys entity IDs
-  readonly pullRequests: readonly [string, ...string[]];
+  // at least one
+  readonly pullRequests: readonly [EntityID, ...EntityID[]];
 
   // the environment whose deploy counts
   readonly environment: string;

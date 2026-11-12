@@ -1,11 +1,14 @@
-import { expect, onTestFinished, test } from 'bun:test';
+import { expect, expectTypeOf, onTestFinished, test } from 'bun:test';
+import { githubDelivery } from '@pepys/source-github';
 import { createTestStore } from '@pepys/testing';
 import { boxxySource } from '../boxxy-source.ts';
 import { buildBoxxyPlugin } from '../build-boxxy-plugin.ts';
 import { buildForeignStandIn } from '../test-utils/build-foreign-stand-in.ts';
 import { buildMockAppliedFact } from '../test-utils/build-mock-applied-fact.ts';
 import { buildMockItemFacts } from '../test-utils/build-mock-item-facts.ts';
+import { toEntityID } from '../test-utils/to-entity-id.ts';
 import { buildStageTimeQuery } from './build-stage-time-query.ts';
+import type { DeliveryReads, DeliverySelectOptions } from './types.ts';
 
 async function setupTest() {
   const standIn = buildForeignStandIn();
@@ -121,8 +124,15 @@ test('it selects the delivery of a pull request once when two attempts of the it
 
   expect({ pullRequests: times.pullRequests, selects: ctx.selects }).toStrictEqual({
     pullRequests: ['github:pull_request:9001'],
-    selects: [{ pullRequests: ['github:pull_request:9001'], environment: 'production' }],
+    selects: [
+      { pullRequests: [toEntityID('github:pull_request:9001')], environment: 'production' },
+    ],
   });
+});
+
+test('it takes the GitHub plug-in delivery module, whose select refuses plain strings', () => {
+  expectTypeOf(githubDelivery).toExtend<DeliveryReads>();
+  expectTypeOf<readonly [string]>().not.toExtend<DeliverySelectOptions['pullRequests']>();
 });
 
 test('it answers null minutes for every step of an input that names no boxxy item', async () => {

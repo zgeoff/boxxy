@@ -101,6 +101,10 @@ export function updateBoxxyWorkModel(model: BoxxyWorkModel, message: BoxxyWorkMe
   return message.kind === 'reset' ? initBoxxyWorkModel() : { ...model, input: message.input };
 }
 
+declare const factTag: unique symbol;
+
+export type FactID = string & { readonly [factTag]: 'FactID' };
+
 export interface BoxxyItemFiledPayload {
   id: string;
   kind: string;
@@ -453,39 +457,39 @@ export interface BoxxyMergeAnsweredPayload {
 }
 
 export type BoxxyWorkFact =
-  | { id: string; type: 'boxxy.item.filed'; entity: string; at: string; payload: BoxxyItemFiledPayload }
-  | { id: string; type: 'boxxy.item.noted'; entity: string; at: string; payload: BoxxyItemNotedPayload }
-  | { id: string; type: 'boxxy.item.edited'; entity: string; at: string; payload: BoxxyItemEditedPayload }
-  | { id: string; type: 'boxxy.item.closed'; entity: string; at: string; payload: BoxxyItemClosedPayload }
-  | { id: string; type: 'boxxy.relation.added'; entity: string; at: string; payload: BoxxyRelationAddedPayload }
-  | { id: string; type: 'boxxy.relation.removed'; entity: string; at: string; payload: BoxxyRelationRemovedPayload }
-  | { id: string; type: 'boxxy.lever.recorded'; entity: string; at: string; payload: BoxxyLeverRecordedPayload }
-  | { id: string; type: 'boxxy.attempt.claimed'; entity: string; at: string; payload: BoxxyAttemptClaimedPayload }
-  | { id: string; type: 'boxxy.decision.recorded'; entity: string; at: string; payload: BoxxyDecisionRecordedPayload }
-  | { id: string; type: 'boxxy.attempt.started'; entity: string; at: string; payload: BoxxyAttemptStartedPayload }
-  | { id: string; type: 'boxxy.attempt.spawn_unanswered'; entity: string; at: string; payload: BoxxyAttemptSpawnUnansweredPayload }
-  | { id: string; type: 'boxxy.attempt.reconciled'; entity: string; at: string; payload: BoxxyAttemptReconciledPayload }
-  | { id: string; type: 'boxxy.attempt.session_bound'; entity: string; at: string; payload: BoxxyAttemptSessionBoundPayload }
-  | { id: string; type: 'boxxy.attempt.slept'; entity: string; at: string; payload: BoxxyAttemptSleptPayload }
-  | { id: string; type: 'boxxy.attempt.wake_requested'; entity: string; at: string; payload: BoxxyAttemptWakeRequestedPayload }
-  | { id: string; type: 'boxxy.attempt.woken'; entity: string; at: string; payload: BoxxyAttemptWokenPayload }
-  | { id: string; type: 'boxxy.attempt.resumed'; entity: string; at: string; payload: BoxxyAttemptResumedPayload }
-  | { id: string; type: 'boxxy.attempt.closed_out'; entity: string; at: string; payload: BoxxyAttemptClosedOutPayload }
-  | { id: string; type: 'boxxy.attempt.timed_out'; entity: string; at: string; payload: BoxxyAttemptTimedOutPayload }
-  | { id: string; type: 'boxxy.attempt.turn_ended'; entity: string; at: string; payload: BoxxyAttemptTurnEndedPayload }
-  | { id: string; type: 'boxxy.attempt.settled'; entity: string; at: string; payload: BoxxyAttemptSettledPayload }
-  | { id: string; type: 'boxxy.proposal.recorded'; entity: string; at: string; payload: BoxxyProposalRecordedPayload }
-  | { id: string; type: 'boxxy.evidence.recorded'; entity: string; at: string; payload: BoxxyEvidenceRecordedPayload }
-  | { id: string; type: 'boxxy.pull_request.linked'; entity: string; at: string; payload: BoxxyPullRequestLinkedPayload }
-  | { id: string; type: 'boxxy.commit.linked'; entity: string; at: string; payload: BoxxyCommitLinkedPayload }
-  | { id: string; type: 'boxxy.pull_request.merged'; entity: string; at: string; payload: BoxxyPullRequestMergedPayload }
-  | { id: string; type: 'boxxy.pull_request.closed'; entity: string; at: string; payload: BoxxyPullRequestClosedPayload }
-  | { id: string; type: 'boxxy.attempt.job_started'; entity: string; at: string; payload: BoxxyAttemptJobStartedPayload }
-  | { id: string; type: 'boxxy.merge.requested'; entity: string; at: string; payload: BoxxyMergeRequestedPayload }
-  | { id: string; type: 'boxxy.merge.answered'; entity: string; at: string; payload: BoxxyMergeAnsweredPayload };
+  | { id: FactID; type: 'boxxy.item.filed'; entity: EntityID; at: string; payload: BoxxyItemFiledPayload }
+  | { id: FactID; type: 'boxxy.item.noted'; entity: EntityID; at: string; payload: BoxxyItemNotedPayload }
+  | { id: FactID; type: 'boxxy.item.edited'; entity: EntityID; at: string; payload: BoxxyItemEditedPayload }
+  | { id: FactID; type: 'boxxy.item.closed'; entity: EntityID; at: string; payload: BoxxyItemClosedPayload }
+  | { id: FactID; type: 'boxxy.relation.added'; entity: EntityID; at: string; payload: BoxxyRelationAddedPayload }
+  | { id: FactID; type: 'boxxy.relation.removed'; entity: EntityID; at: string; payload: BoxxyRelationRemovedPayload }
+  | { id: FactID; type: 'boxxy.lever.recorded'; entity: EntityID; at: string; payload: BoxxyLeverRecordedPayload }
+  | { id: FactID; type: 'boxxy.attempt.claimed'; entity: EntityID; at: string; payload: BoxxyAttemptClaimedPayload }
+  | { id: FactID; type: 'boxxy.decision.recorded'; entity: EntityID; at: string; payload: BoxxyDecisionRecordedPayload }
+  | { id: FactID; type: 'boxxy.attempt.started'; entity: EntityID; at: string; payload: BoxxyAttemptStartedPayload }
+  | { id: FactID; type: 'boxxy.attempt.spawn_unanswered'; entity: EntityID; at: string; payload: BoxxyAttemptSpawnUnansweredPayload }
+  | { id: FactID; type: 'boxxy.attempt.reconciled'; entity: EntityID; at: string; payload: BoxxyAttemptReconciledPayload }
+  | { id: FactID; type: 'boxxy.attempt.session_bound'; entity: EntityID; at: string; payload: BoxxyAttemptSessionBoundPayload }
+  | { id: FactID; type: 'boxxy.attempt.slept'; entity: EntityID; at: string; payload: BoxxyAttemptSleptPayload }
+  | { id: FactID; type: 'boxxy.attempt.wake_requested'; entity: EntityID; at: string; payload: BoxxyAttemptWakeRequestedPayload }
+  | { id: FactID; type: 'boxxy.attempt.woken'; entity: EntityID; at: string; payload: BoxxyAttemptWokenPayload }
+  | { id: FactID; type: 'boxxy.attempt.resumed'; entity: EntityID; at: string; payload: BoxxyAttemptResumedPayload }
+  | { id: FactID; type: 'boxxy.attempt.closed_out'; entity: EntityID; at: string; payload: BoxxyAttemptClosedOutPayload }
+  | { id: FactID; type: 'boxxy.attempt.timed_out'; entity: EntityID; at: string; payload: BoxxyAttemptTimedOutPayload }
+  | { id: FactID; type: 'boxxy.attempt.turn_ended'; entity: EntityID; at: string; payload: BoxxyAttemptTurnEndedPayload }
+  | { id: FactID; type: 'boxxy.attempt.settled'; entity: EntityID; at: string; payload: BoxxyAttemptSettledPayload }
+  | { id: FactID; type: 'boxxy.proposal.recorded'; entity: EntityID; at: string; payload: BoxxyProposalRecordedPayload }
+  | { id: FactID; type: 'boxxy.evidence.recorded'; entity: EntityID; at: string; payload: BoxxyEvidenceRecordedPayload }
+  | { id: FactID; type: 'boxxy.pull_request.linked'; entity: EntityID; at: string; payload: BoxxyPullRequestLinkedPayload }
+  | { id: FactID; type: 'boxxy.commit.linked'; entity: EntityID; at: string; payload: BoxxyCommitLinkedPayload }
+  | { id: FactID; type: 'boxxy.pull_request.merged'; entity: EntityID; at: string; payload: BoxxyPullRequestMergedPayload }
+  | { id: FactID; type: 'boxxy.pull_request.closed'; entity: EntityID; at: string; payload: BoxxyPullRequestClosedPayload }
+  | { id: FactID; type: 'boxxy.attempt.job_started'; entity: EntityID; at: string; payload: BoxxyAttemptJobStartedPayload }
+  | { id: FactID; type: 'boxxy.merge.requested'; entity: EntityID; at: string; payload: BoxxyMergeRequestedPayload }
+  | { id: FactID; type: 'boxxy.merge.answered'; entity: EntityID; at: string; payload: BoxxyMergeAnsweredPayload };
 
-declare function readScopeFactsLength(scope: string): number;
-declare function readScopeFactsInto(scope: string, facts: Uint8Array): void;
+declare function readScopeFactsLength(scope: BoxxyItemID): number;
+declare function readScopeFactsInto(scope: BoxxyItemID, facts: Uint8Array): void;
 
 // every fact of the scope on the consumer's streams, one per fact ID, in the host's order
 export function readScopeFacts(scope: BoxxyItemID): BoxxyWorkFact[] {
@@ -523,6 +527,10 @@ function decodeBoxxyWorkFact(value: unknown): BoxxyWorkFact | undefined {
   const payload = 'payload' in value ? value.payload : undefined;
 
   if (typeof id !== 'string' || typeof entity !== 'string' || typeof at !== 'string') {
+    return undefined;
+  }
+
+  if (!isFactID(id) || !isFactEntityID(entity)) {
     return undefined;
   }
 
@@ -827,6 +835,14 @@ function decodeBoxxyWorkFact(value: unknown): BoxxyWorkFact | undefined {
   }
 
   return undefined;
+}
+
+function isFactID(text: string): text is FactID {
+  return text.length > 0;
+}
+
+function isFactEntityID(text: string): text is EntityID {
+  return text.length > 0;
 }
 
 function decodeBoxxyItemFiledPayload(value: unknown): BoxxyItemFiledPayload | undefined {

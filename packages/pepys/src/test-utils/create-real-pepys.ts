@@ -69,6 +69,7 @@ export async function createRealPepys(options: TestPepysOptions): Promise<TestPe
     logError: (message, error) => {
       console.error(message, error);
     },
+    oauth: null,
   });
 
   const sendRequest = (url: string, init: RequestInit) => app.handle(new Request(url, init));
