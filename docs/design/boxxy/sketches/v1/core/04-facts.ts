@@ -8,7 +8,7 @@
 // schema per type, generated from these payload types, so the sender and the consumer share them.
 //
 // THE LEDGER RULE. boxxy is the only ledger of the work. Every text of an item
-// (title, outcome, acceptance, labels, each note, each relation) is in a fact, in full. Nothing
+// (title, outcome, body, acceptance, labels, each note, each relation) is in a fact, in full. Nothing
 // about an item's content lives only in boxxy's table, so pepys can rebuild every item from the
 // stream. The catalog links to no outside tracker.
 //
@@ -73,7 +73,7 @@ export interface WorkFacts {
 
   // written by: `item.file`; settle, for each `file-item` effect (through dedupe)
   // The row without `keptSession`: that is state between two attempts, and no fact carries it.
-  'boxxy.item.filed': Omit<ItemRow, 'keptSession'>; // id, kind, repo, title, outcome, acceptance, fields (designMode), labels, foundInAttempt, filedBy, filedAt
+  'boxxy.item.filed': Omit<ItemRow, 'keptSession'>; // id, kind, repo, title, outcome, body, acceptance, fields (designMode), labels, foundInAttempt, filedBy, filedAt
 
   // written by: `item.note`. The FULL text of one note; notes are append-only.
   'boxxy.item.noted': { readonly seq: number; readonly text: string };
@@ -83,6 +83,7 @@ export interface WorkFacts {
   'boxxy.item.edited': {
     readonly title?: string;
     readonly outcome?: string;
+    readonly body?: string; // the whole new body
     readonly acceptance?: readonly Criterion[];
     readonly kind?: ItemKindName;
     readonly fields?: { readonly designMode?: DesignMode };

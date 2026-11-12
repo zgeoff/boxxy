@@ -195,12 +195,14 @@ export const contract = {
       .errors({
         NOT_FOUND: { message: 'a blockedBy item does not exist', data: z.object({ item: id }) },
         REPO_NOT_CONFIGURED: { message: 'the server configuration names no such repository', data: z.object({ repo: z.string() }) },
+        FACT_TOO_LARGE: { message: 'the change makes a fact larger than the outbox sends', data: z.object({ bytes: z.number().int(), max: z.number().int() }) },
       })
       .input(
         z.object({
           repo: text(200).describe('The repository, as owner/name.'),
           title: text(200),
           outcome: text(4000).describe('What is true when the item is done.'),
+          body: z.string().max(40_000).default('').describe('Markdown for the agent: context, scope, permissions and notes.'),
           acceptance: z.array(text(1000)).max(30).default([]).describe('One check per entry. Triage writes the list when it is empty.'),
           kind: id.optional().describe('The item kind. Triage sets it when absent.'),
           designMode: z.enum(['agent', 'attended']).optional().describe('attended: the owner works with the agent in the design session.'),
@@ -212,12 +214,13 @@ export const contract = {
 
     // Writes `boxxy.item.edited`. The edit does not change a field that is absent.
     edit: tool('item_edit', 'Replaces the given fields of an item. A field that is left out does not change.')
-      .errors(notFound)
+      .errors({ ...notFound, FACT_TOO_LARGE: { message: 'the change makes a fact larger than the outbox sends', data: z.object({ bytes: z.number().int(), max: z.number().int() }) } })
       .input(
         z.object({
           item: itemId,
           title: text(200).optional(),
           outcome: text(4000).optional(),
+          body: z.string().max(40_000).optional().describe('The whole new body.'),
           acceptance: z.array(criterionInputSchema).max(30).optional(),
           designMode: z.enum(['agent', 'attended']).optional(),
           labels: z.array(text(50)).max(20).optional().describe('The whole new list of labels.'),
@@ -361,7 +364,7 @@ export const contract = {
     //   phase    body (core type)   outcomes                                      what it carries
     //   ───────  ─────────────────  ────────────────────────────────────────────  ──────────────────────────────────────────
     //   triage   TriageCloseOut     accepted, duplicate, declined                 the result; kind, designMode, acceptance; relations
-    //   design   DesignCloseOut     designed, blocked, abandoned                  the design reference
+    //   design   DesignCloseOut     designed, blocked, abandoned                  the whole design and its location
     //   build    BuildCloseOut      built, blocked, abandoned                     evidence per criterion; open items
     //   review   ReviewCloseOut     passed, changes-requested                     the verdict; the findings
     //
@@ -577,8 +580,8 @@ export const access = {
   // The owner's agent files and steers work on the owner's behalf, so it gets every command on an
   // item and every read: 19 tools, the runner pause and resume among them. One read is not among
   // them, `rules.dryRun` (below), which is CLI only.
-  'item.file': ownerWrite('boxxy item file --repo --title --outcome [--acceptance]… [--kind] [--design-mode] [--blocked-by]… [--label]…'),
-  'item.edit': ownerWrite('boxxy item edit <item> [--title] [--outcome] [--acceptance]… [--design-mode] [--label]…'),
+  'item.file': ownerWrite('boxxy item file --repo --title --outcome [--body | --body-file] [--acceptance]… [--kind] [--design-mode] [--blocked-by]… [--label]…'),
+  'item.edit': ownerWrite('boxxy item edit <item> [--title] [--outcome] [--body | --body-file] [--acceptance]… [--design-mode] [--label]…'),
   'item.close': ownerWrite('boxxy item close <item> --reason [--of]'),
   'item.retry': ownerWrite('boxxy item retry <item> [--phase]'),
   'item.wake': ownerWrite('boxxy item wake <item>'),
