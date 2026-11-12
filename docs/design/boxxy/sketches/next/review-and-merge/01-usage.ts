@@ -197,7 +197,8 @@ const rules = loadRules(text, { phases: [...phaseKinds, createReviewPhase(review
 //   head                the result's `head`, which step 2 matched to the pull request's head
 //   status, why         `findings` exited 1 ─▶ blocked `unreadable`; any `failedCalls` ─▶ blocked
 //                       `failed-call`; any open finding from step 3 ─▶ blocked `open-findings`;
-//                       else passed. The `noslop` check run is never read: it passes at a head
+//                       a step 3 `conclusion` other than `success`, with no open finding (a
+//                       finding's marker became unreadable) ─▶ blocked `unreadable`; else passed. The `noslop` check run is never read: it passes at a head
 //                       that no review read, and after a failed call.
 //   open                the open findings, by severity, from the result's `findings` and the
 //                       `findings` list: P1 ─▶ high, P2 ─▶ medium, P3 ─▶ low

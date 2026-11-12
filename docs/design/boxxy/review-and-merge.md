@@ -59,7 +59,7 @@ A review goes like this:
 
 1. The core picks the review number and its cause with `buildRoundCause` ([`03-flow.ts`](./sketches/next/review-and-merge/03-flow.ts), section C). The cause is `first`, `rework` after a `changes-requested` review, or `recheck` after anything else.
 2. A session on an agent host runs the command in the pull request's checkout, and sends the tool's raw result with `boxxy attempt close-out`.
-3. The server's `attempt.closeOut` procedure passes the result to `accept`. It calls `accept` before it takes the store's lock, because `accept` posts to GitHub.
+3. The server's `attempt.closeOut` procedure hashes the raw result, and answers a repeat of a stored result as a repeat. Otherwise it passes the result to `accept`, before it takes the store's lock, because `accept` posts to GitHub.
 4. The procedure stores the `ReviewCloseOut` that holds the reading, through the phase kind's parser, as for any close-out. The attempt settles `passed`, `changes-requested` or `failed`.
 
 Rules of the review:
@@ -166,6 +166,8 @@ Section 5 of [`01-usage.ts`](./sketches/next/review-and-merge/01-usage.ts) shows
 | Each loop holds after its last send-back, with a notice. | An `advance` test over the rules lines in section 1 of `01-usage.ts`, one row per backward edge. |
 | A refused merge of a clean, green head holds the item, and a request with no answer is sent again. | `decideMerge` test rows with `acted` set: `not-mergeable` gives `refused`, no answer after 5 minutes gives a new request, and past the time limit gives `stalled`. |
 | A review never passes a head that it did not read. | Review adapter tests: the rework command runs a plain review after a `--fixes-only` run that judged no fix; `accept` reads such a run as `not-covered` and posts nothing; and a result for an old head reads `not-covered`. |
+| A server restart during a review never holds the item or starts a second review. | A system test that stops the server after `accept` posts and before the close-out is stored: the session's second close-out settles the same attempt. A second test repeats a stored close-out, and `accept` does not run. |
+| A passed review needs noslop's check to pass. | A review adapter test: `check` answers `failure` with no open finding, and the reading is blocked `unreadable`. |
 | A review close-out from any other session is refused. | The close-out procedure's caller test, as for every attempt. |
 | The core holds no tool name. | `turbo boundaries` and the import-zones lint: no file in `modules/` or `libs/` imports a review or verify adapter. |
 

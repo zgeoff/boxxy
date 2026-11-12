@@ -62,8 +62,11 @@ export async function runJobReading(deps: JobDeps): Promise<void> {
 // close-out`. The server keeps the forge and the tool's App keys: the agent host gets neither.
 //
 // The `attempt.closeOut` procedure calls this for a review attempt, before the close-out change
-// of v1. It runs outside the lock, because `accept` posts to the forge. A close-out that the
-// session sends again, after a server crash, runs `accept` again.
+// of v1. It runs outside the lock, because `accept` posts to the forge. The close-out hash covers
+// the session's raw body, never the built `ReviewCloseOut`: the procedure answers a repeat of a
+// stored body as `recorded` with `repeat: true` before `accept` runs, so a lost answer to the
+// session posts nothing twice. A close-out that the session sends again after a server crash,
+// with nothing stored, runs `accept` again.
 
 export async function runReviewCloseOut(deps: { gate: ReviewGate; attempt: AttemptRow & { readonly input: unknown }; body: JsonValue }): Promise<ReviewCloseOut> {
   const input = parseRoundInput(deps.attempt.input);
