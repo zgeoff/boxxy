@@ -1,6 +1,7 @@
 import type {
   AtcSessionId,
   AttemptRow,
+  GitSource,
   SessionReading,
   SpawnRequest,
   StartOutcome,
@@ -19,6 +20,10 @@ interface AtcWorkerInput {
 
   // by worker target: the folders that the agent on the target trusts, each with its subfolders
   readonly trustedFolders: Readonly<Record<string, readonly string[]>>;
+
+  // the configured git sources with a `credentialRef`; a spawn sends a variable name only with the
+  // URL that the configuration pairs it with, whatever the attempt row holds
+  readonly credentialSources: readonly GitSource[];
 }
 
 // The worker port on atc. Every call reaches atc through the client; a refusal that carries an atc
@@ -78,6 +83,10 @@ export function createAtcWorker(input: AtcWorkerInput): WorkerKind {
         !isFolderTrusted(input.trustedFolders[request.target] ?? [], request.cwd)
       ) {
         return { kind: 'refused', cause: 'other', reason: 'worker folder not trusted' };
+      }
+
+      if ('source' in request && !isCredentialConfigured(input.credentialSources, request.source)) {
+        return { kind: 'refused', cause: 'other', reason: 'git source credential not configured' };
       }
 
       try {
@@ -268,6 +277,17 @@ function formatRefusalReason(error: AtcCallError): string {
   return error.problem === null
     ? `${error.code}: ${message}`
     : `${error.code} (${error.problem}): ${message}`;
+}
+
+function isCredentialConfigured(configured: readonly GitSource[], source: GitSource): boolean {
+  const credential = source.credentialRef;
+
+  return (
+    credential === undefined ||
+    configured.some(
+      (entry) => entry.url === source.url && entry.credentialRef?.name === credential.name,
+    )
+  );
 }
 
 // A folder on the target as `cwd`, or a git source as atc's workspace with no `cwd`, so that atc

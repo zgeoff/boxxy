@@ -548,13 +548,14 @@ export interface WorkerKind {
 // at the trust dialog (atc `needs_you`, no turn runs). When the folder is not trusted, `start`
 // spawns nothing and answers `refused`, cause `other`, reason `worker folder not trusted`.
 //
-// Built: adapters/worker-atc. `createAtcWorker({ client, trustedFolders })`: `client` is
+// Built: adapters/worker-atc. `createAtcWorker({ client, trustedFolders, credentialSources })`: `client` is
 // `AtcClient`, the seven atc gateway MCP tools the adapter calls (`atc_session_spawn`,
 // `atc_session_get`, `atc_sessions_list`, `atc_session_stop`, `atc_session_adopt`,
 // `atc_session_forget`, `atc_message_send`), which `createAtcMcpClient({ url, host, token, fetch,
 // timeoutMs })` gives over MCP streamable HTTP; `trustedFolders` maps each worker target to the
 // folders the agent trusts there, from the app's configuration (atc has no call that reads
-// trust). The tool behind each method and the map of each atc answer to an outcome are in
+// trust); `credentialSources` lists the configured git sources with a `credentialRef`, and a
+// spawn sends a variable name only with the URL that one of them pairs it with. The tool behind each method and the map of each atc answer to an outcome are in
 // v1-lifecycle.md, "The atc worker". `isCapacityRefusal` reads `capacity` from the refusal's
 // structured `code` and `problem`. The caller comes from
 // `findCallerIdentity`, which reads the `host` field (`name`, `id`, `issuer`); atc reports no

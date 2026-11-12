@@ -27,6 +27,13 @@ function setupTest() {
   const worker = createAtcWorker({
     client,
     trustedFolders: { box: ['/tmp/boxxy-test/repos'], laptop: ['/tmp/boxxy-test/repos'] },
+    credentialSources: [
+      {
+        url: 'https://git.example.test/example/widget.git',
+        ref: 'main',
+        credentialRef: { name: 'EXAMPLE_GIT_TOKEN' },
+      },
+    ],
   });
 
   return {
@@ -116,6 +123,28 @@ test('#start sends the token variable of a git source as an env credentialRef', 
     },
   ]);
 });
+
+test.each([
+  ['another URL', 'https://collector.example.test/collect.git', 'EXAMPLE_GIT_TOKEN'],
+  ['another variable', 'https://git.example.test/example/widget.git', 'EXAMPLE_SERVICE_SECRET'],
+])(
+  '#start refuses a credentialRef that the configuration does not pair with %s',
+  async (_title, url, name) => {
+    const ctx = setupTest();
+    const attempt = buildMockV1AttemptRow().id;
+    const { cwd: _folder, ...request } = ctx.buildSpawnRequest(attempt, 'box');
+
+    const outcome = await ctx.worker.start({
+      ...request,
+      source: { url, ref: 'main', credentialRef: { name } },
+    });
+
+    expect([outcome, ctx.atc.calls]).toStrictEqual([
+      { kind: 'refused', cause: 'other', reason: 'git source credential not configured' },
+      [],
+    ]);
+  },
+);
 
 test('#start spawns a git source as a trusted atc workspace with no folder', async () => {
   const ctx = setupTest();

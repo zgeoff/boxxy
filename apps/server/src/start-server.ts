@@ -1,7 +1,7 @@
 import { createNullNotifier, outboxLimits, watchPullRequests } from '@boxxy/dispatch';
 import type { SpawnSettings } from '@boxxy/dispatch';
 import { createGithubForge } from '@boxxy/forge-github';
-import type { AttemptId, Notifier, SessionReading } from '@boxxy/model';
+import type { AttemptId, GitSource, Notifier, SessionReading } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { createAtcNotifier } from '@boxxy/notifier-atc';
 import type { UncheckedQueryClient } from '@boxxy/pepys';
@@ -96,7 +96,12 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
     timeoutMs: atcTimeoutMs,
   });
 
-  const worker = createAtcWorker({ client: atc, trustedFolders: config.atc.trustedFolders });
+  const worker = createAtcWorker({
+    client: atc,
+    trustedFolders: config.atc.trustedFolders,
+    credentialSources: collectCredentialSources(config.spawn.repos),
+  });
+
   const notifier = buildNotifier(config, atc);
 
   const pepys = startPepys({
@@ -211,6 +216,13 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
       },
     },
   };
+}
+
+function collectCredentialSources(repos: ServerConfig['spawn']['repos']): GitSource[] {
+  return Object.values(repos).filter(
+    (checkout): checkout is GitSource =>
+      typeof checkout !== 'string' && checkout.credentialRef !== undefined,
+  );
 }
 
 function buildNotifier(config: ServerConfig, atc: AtcClient): Notifier {
