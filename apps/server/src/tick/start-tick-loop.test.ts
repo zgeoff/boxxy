@@ -70,6 +70,8 @@ test('it runs no tick after the stop', async () => {
     log: ctx.log,
   });
 
+  onTestFinished(() => loop.stop());
+
   await loop.stop();
 
   expect(ticks).toBe(1);
