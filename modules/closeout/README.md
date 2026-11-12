@@ -11,8 +11,9 @@
   </p>
 </div>
 
-boxxy's phase kinds: triage, design, build and review. Each one gives the input of an attempt,
-checks the close-out the agent sends at the end of it, and settles the attempt from that close-out.
+boxxy's phase kinds: triage, design, build, review and verify. Each one gives the input of an
+attempt, checks the close-out the agent sends at the end of it, and settles the attempt from that
+close-out.
 
 The package does no I/O: the caller passes in the item, its attempts, the attempt's evidence rows
 and what a close-out may name.
@@ -29,8 +30,8 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Features
 
-- `triage`, `design` and `build`, and `phaseKinds`, which lists them for the rules loader. Each
-  parser returns the stored close-out, or every problem with it in one pass.
+- `triage`, `design`, `build` and `verify`, and `phaseKinds`, which lists them for the rules loader.
+  Each parser returns the stored close-out, or every problem with it in one pass.
 - `createReviewPhase`, which builds the review phase kind on the review gate's `buildCommand`. The
   server adds it to `phaseKinds`.
 - `countUnrelatedLines`, the changed lines of a later review in files that had no open finding.

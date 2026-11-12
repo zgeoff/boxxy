@@ -39,7 +39,8 @@ dispatch/         claims, settlement and the parts of a store change
 closeouts/        the close-out types and schemas
                   types  close-out-schema  triage-close-out-schema  design-close-out-schema
                   build-close-out-schema  review-close-out-schema  stored-review-close-out-schema
-                  verify-close-out-schema  merge-close-out-schema  friction-schema  open-item-schema
+                  verify-close-out-schema  verify-input-schema  merge-close-out-schema
+                  friction-schema  open-item-schema
 facts/            the fact catalog and the outbox row
                   types  work-fact-schemas  outbox-fact-schema  parse-new-fact
 merge/            types: what the merge job reads and what a merge decides
@@ -84,7 +85,7 @@ attempts/         the attempt lifecycle and its one writer
                   build-event-columns  get-action-member  end-item-attempts  is-same-guard
                   pick-call-attempt  write-attempt-move  write-session-bind  types
 claims/           claim-next  start-claim  resume-claim  request-wake  pick-kept-session
-                  build-snapshot-hash  types
+                  find-recipe-name  build-snapshot-hash  types
 readings/         what the runner does with a session reading
                   pick-reading-action  find-waiting-since  find-closing-failure  act-on-reading
                   types
@@ -92,7 +93,7 @@ jobs/             what the runner does with each read of a job attempt
                   run-job-reading  types
 closeouts/        close-out-attempt  read-close-out-context  settle-attempt  pick-settlement
                   build-settle-plans  effect-handlers  types
-sessions/         resume-kept-session  forget-sessions
+sessions/         resume-kept-session  forget-sessions  build-keep-writes  is-builder-session
 pull-requests/    link-pull-request  watch-pull-requests  build-link-change  build-state-fact
                   collect-attempt-trailers  collect-seen-state  parse-pull-request-url
                   constants  types
@@ -104,7 +105,7 @@ outbox/           what the outbox sender decides, with no I/O
 test-utils/       the store contract and its case files, the memory store, the change factories
                   v1: create-fake-worker  worker-contract  create-fake-clock
                   create-fake-backoff  create-test-dispatch  create-fake-fact-sink  create-fake-forge
-                  forge-contract  create-fake-job  load-job-rules
+                  forge-contract  create-fake-job  load-job-rules  load-verify-rules
 ```
 
 A new case file of the store contract goes in `test-utils/`, beside `claim-store-contract`.
@@ -125,7 +126,8 @@ modules/planning/src
 modules/closeout/src
   phase-kinds  build-schema-parser  close-out-limits  measure-json-bytes
   dedupe-open-items  missing-criteria  normalise-title
-  phases/         one file per phase kind, named as a concept file is: build (exports `build`);
+  phases/         one file per phase kind, named as a concept file is: build (exports `build`),
+                  verify (exports `verify`);
                   create-review-phase builds the review phase kind on the gate's `buildCommand`
   review/         build-round-cause  count-unrelated-lines
   utils/          the input helpers that two phase kinds share

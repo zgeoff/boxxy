@@ -124,7 +124,7 @@ import { createFakeFactSink, outboxLimits, runSenderOnce, toWireItem } from '@bo
 // and the outcomes. An input interface is not a `JsonValue` (it has no index signature), so
 // `input` returns `toJSONValue` of the typed value.
 
-declare const buildSchemaParser: <Raw, Body>(input: { schema: z.ZodType<Raw>; toBody: (raw: Raw, frictionDropped: number) => Body; check: (body: Body, ctx: CloseOutContext) => readonly CloseOutProblem[] }) => CloseOutParser<Body>;
+declare const buildSchemaParser: <Raw, Body>(input: { schema: z.ZodType<Raw>; toBody: (raw: Raw, frictionDropped: number, ctx: CloseOutContext) => Body; check: (body: Body, ctx: CloseOutContext) => readonly CloseOutProblem[] }) => CloseOutParser<Body>;
 // the round, its cause, the pull request and the gate's command (sketches/next/review-and-merge/03-flow.ts, section C)
 declare const buildReviewInput: (ctx: PhaseInputContext, buildCommand: ReviewGate['buildCommand']) => ReviewInput;
 declare const pickReviewOutcome: (reading: GateReading) => 'passed' | 'changes-requested' | 'failed';

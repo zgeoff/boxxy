@@ -143,7 +143,7 @@ An attempt fails with one of ten forced failures, or with `closeout-missing` or 
 
 ## The kept session
 
-Section H of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the table. One rules line turns it on: the `changes-requested` edge carries `resume: true`. A verify recipe with `session: builder` keeps the session too ([review, verify and merge](./review-and-merge.md#the-verifier)).
+Section H of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the table. One rules line turns it on: the `changes-requested` edge carries `resume: true`. A verify recipe with `session: builder` keeps the build's session too: the claim of the verify wakes it, and the verify keeps it again when it settles `verified` or `failed`, for the rework ([review, verify and merge](./review-and-merge.md#the-verifier)).
 
 1. A build attempt settles `built`. boxxy stops its session and keeps it, and records the kept session on the item.
 2. The review runs in its own session.

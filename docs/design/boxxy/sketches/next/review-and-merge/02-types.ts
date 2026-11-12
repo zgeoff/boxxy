@@ -207,9 +207,10 @@ export interface ReviewCloseOut {
   readonly unrelatedLines: number | null;
 }
 
-// The verify close-out, sent by the grading agent. The parser copies `session` from the recipe.
+// The verify close-out, sent by the grading agent. The claim copies the recipe's `session` into
+// the attempt's input, and the parser copies it from there.
 export interface VerifyCloseOut {
-  readonly result: { readonly kind: 'verified' } | { readonly kind: 'failed'; readonly features: readonly string[] } | { readonly kind: 'blocked'; readonly question: string };
+  readonly result: { readonly kind: 'verified' } | { readonly kind: 'failed'; readonly features: readonly string[] } | { readonly kind: 'blocked'; readonly question: string } | { readonly kind: 'abandoned'; readonly reason: string };
   readonly session: 'builder' | 'fresh';
   readonly friction: readonly Friction[];
   readonly frictionDropped: number;

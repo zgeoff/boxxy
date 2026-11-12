@@ -133,8 +133,10 @@ export const merge = definePhase({
 });
 
 // The verify phase kind (modules/closeout/src/phases/verify.ts) runs on `atc.session`, with the
-// outcomes `verified`, `failed`, `blocked` and `abandoned`. Its input is the pull request and its
-// head, with no acceptance text: the grader takes the features in scope from the verify tool.
+// outcomes `verified`, `failed`, `blocked` and `abandoned`. Its input is the pull request, the head
+// that the latest passed review read, and the recipe's `session`, with no acceptance text: the
+// grader takes the features in scope from the verify tool. `verified` and `failed` succeed, so a
+// `session: builder` grader keeps its session for the rework; `blocked` and `abandoned` fail.
 
 // ── 3. apps/server/src/start-server.ts ─────────────────────────────────────────────────────────
 

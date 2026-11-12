@@ -204,10 +204,12 @@ export async function runJobAction(deps: JobDeps, action: { kind: 'merge' }): Pr
 //   - A build that settles `built` keeps its session when an edge back to build has
 //     `resume: true`, or when the item's verify recipe has `session: builder`.
 //   - A verify attempt with `session: builder` is claimed through `worker.resumeKept`, as a rework
-//     build is. When the wake fails, it falls back to a fresh session, and `started` says
-//     `resumeFallback: true`, so pepys can drop the attempt from the comparison of graders.
-//   - A verify attempt that settles keeps its session again, so a repair or a rework that follows
-//     wakes the builder that wrote and graded the code.
+//     build is. When the wake fails or the item keeps no session, it falls back to a fresh
+//     session, and `started` says `resumeFallback: true`, so pepys can drop the attempt from the
+//     comparison of graders.
+//   - A `session: builder` verify attempt that settles `verified` or `failed` keeps its session
+//     again, so a repair or a rework that follows wakes the builder that wrote and graded the
+//     code. A `session: fresh` verify leaves the build's kept session on the item.
 //   - A kept session is forgotten 24 hours after it was kept, as in v1. A merge that waits longer
 //     on CI sends its repair to a fresh session.
 

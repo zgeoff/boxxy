@@ -34,6 +34,7 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 - **Follows:** [the verifier](./review-and-merge.md#the-verifier).
 - **Needs:** slice 1.
 - **Check:** the kept-session tests, and the loader refusal builder-session-not-kept.
+- **Built:** `verify` in `@boxxy/closeout` is in `phaseKinds`. Its input holds the pull request, the head that the latest passed review read and the recipe's `session`, and its parser copies `session` from that input into the close-out. A `verified` or `failed` verify succeeds, so a `session: builder` grader keeps its session for the rework, and a `blocked` or `abandoned` one fails. The verify close-out gains the result `abandoned`. `pickKeptSession` in `@boxxy/dispatch` wakes the kept session for a `session: builder` recipe as for a `resume: true` edge, and a claim that wants a kept session and finds none starts fresh with `resumeFallback: true`. `buildKeepWrites` keeps a build's session when its kind has a `session: builder` recipe, and keeps the grader's session again. The example rules hold no verify step. The `build-keep-writes`, `resume-kept-session`, `pick-kept-session` and `verify` tests cover the rule, and slice 1's loader test covers builder-session-not-kept.
 
 ## Wringer journeys
 
