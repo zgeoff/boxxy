@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/rules",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "boxxy's rules loader: checks a rules checkout and builds the plug-in registry",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/modules/rules#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",

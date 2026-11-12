@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/planning",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "boxxy's planning: builds the frame from the plug-ins and picks the next work for each free slot",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/modules/planning#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",
