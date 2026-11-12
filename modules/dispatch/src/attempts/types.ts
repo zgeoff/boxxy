@@ -188,7 +188,12 @@ export type MoveEvent =
       readonly kind: 'settled';
       readonly outcome: NonNullable<AttemptRow['outcome']>;
     })
-  | { readonly kind: 'stray-stopped' }
+  | {
+      readonly kind: 'stray-stopped';
+
+      // the session that the stop found by the spawn name; the row records it when it has none
+      readonly atcSession: AtcSessionId | null;
+    }
   | { readonly kind: 'session-forgotten' };
 
 export type AttemptEvent = ClaimedEvent | MoveEvent;

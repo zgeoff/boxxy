@@ -1,5 +1,6 @@
 import type {
   ActorRef,
+  AtcSessionId,
   AttemptRow,
   ClaimStore,
   Instant,
@@ -25,9 +26,15 @@ export interface StopStraySessionInput {
 // it on every tick for each stray, so a stop that fails is tried again on the next tick. null:
 // the session still runs, or it never appeared.
 export async function stopStraySession(input: StopStraySessionInput): Promise<MoveResult | null> {
-  const outcome = await input.worker.stop(input.attempt);
+  const found = await readStraySession(input);
 
-  if (!isSessionGone(input.attempt, outcome)) {
+  if (found === null) {
+    return null;
+  }
+
+  const outcome = await input.worker.stop({ ...input.attempt, atcSession: found });
+
+  if (!isSessionGone(outcome)) {
     return null;
   }
 
@@ -35,14 +42,25 @@ export async function stopStraySession(input: StopStraySessionInput): Promise<Mo
     writeAttemptMove(
       tx,
       input.attempt.id,
-      { kind: 'stray-stopped' },
+      { kind: 'stray-stopped', atcSession: found },
       { actor: input.actor, now: input.now, newId: input.newId },
     ),
   );
 }
 
-// An attempt with no session is looked for by its spawn name, so `absent` there means the session
-// has not appeared yet, and the loop keeps sending the stop.
-function isSessionGone(attempt: AttemptRow, outcome: StopOutcome): boolean {
-  return outcome.kind === 'stopped' || (outcome.kind === 'absent' && attempt.atcSession !== null);
+// An attempt whose item closed while its spawn was in flight has no session. The worker looks for
+// it by its spawn name, and the stop records what it finds, so cleanup can forget the session.
+// null: the session has not appeared yet.
+async function readStraySession(input: StopStraySessionInput): Promise<AtcSessionId | null> {
+  if (input.attempt.atcSession !== null) {
+    return input.attempt.atcSession;
+  }
+
+  const reading = await input.worker.reconcile(input.attempt);
+
+  return reading.kind === 'absent' ? null : reading.atcSession;
+}
+
+function isSessionGone(outcome: StopOutcome): boolean {
+  return outcome.kind === 'stopped' || outcome.kind === 'absent';
 }

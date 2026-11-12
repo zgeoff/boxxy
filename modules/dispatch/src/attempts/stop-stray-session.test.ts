@@ -78,3 +78,36 @@ test('it records nothing while the stray session does not stop', async () => {
 
   expect([stray.strayedAt !== null, result, after]).toStrictEqual([true, null, stray]);
 });
+
+test('it records the session that it finds by the spawn name of a stray with none', async () => {
+  const ctx = await setupTest();
+
+  await ctx.seedItem({});
+
+  ctx.worker.failNext('start', { kind: 'unknown', reason: 'the spawn did not answer' });
+
+  const claim = await ctx.claim();
+
+  invariant(claim?.kind === 'start', 'the claim starts the seeded item');
+
+  await ctx.closeItem(claim.attempt.item, 'Withdrawn.');
+
+  ctx.clock.advance(10 * 60_000 + 1);
+
+  await ctx.tick();
+
+  const stray = await ctx.readAttempt(claim.attempt.id);
+  const late = await ctx.worker.start(claim.spawn);
+
+  invariant(late.kind === 'started', 'the late spawn lands');
+
+  const result = await ctx.stop(stray, ctx.worker);
+  const after = await ctx.readAttempt(stray.id);
+
+  expect([stray.atcSession, result, after.atcSession, after.sessionStoppedAt]).toStrictEqual([
+    null,
+    { kind: 'applied' },
+    late.atcSession,
+    ctx.clock.now(),
+  ]);
+});

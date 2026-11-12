@@ -414,10 +414,36 @@ test.each<MoveCase>([
     `stray-stopped from ${from} with a stray session`,
     from,
     { strayedAt: brandSchemas.instant.parse(4000), sessionStoppedAt: null },
-    { kind: 'stray-stopped' },
+    { kind: 'stray-stopped', atcSession: null },
     [{ op: 'update', table: 'attempts', set: { state: from, sessionStoppedAt: 5000 } }],
     [],
   ]),
+  [
+    'stray-stopped that records the session found for a stray with none',
+    'failed',
+    { strayedAt: brandSchemas.instant.parse(4000), sessionStoppedAt: null, atcSession: null },
+    { kind: 'stray-stopped', atcSession: brandSchemas.atcSessionId.parse('atc-late') },
+    [
+      {
+        op: 'update',
+        table: 'attempts',
+        set: { state: 'failed', sessionStoppedAt: 5000, atcSession: 'atc-late' },
+      },
+    ],
+    [],
+  ],
+  [
+    'stray-stopped that keeps the session the stray already has',
+    'failed',
+    {
+      strayedAt: brandSchemas.instant.parse(4000),
+      sessionStoppedAt: null,
+      atcSession: brandSchemas.atcSessionId.parse('atc-first'),
+    },
+    { kind: 'stray-stopped', atcSession: brandSchemas.atcSessionId.parse('atc-other') },
+    [{ op: 'update', table: 'attempts', set: { state: 'failed', sessionStoppedAt: 5000 } }],
+    [],
+  ],
   ...(['succeeded', 'failed'] as const).map((from): MoveCase => [
     `session-forgotten from ${from}`,
     from,
@@ -550,7 +576,7 @@ test.each<[title: string, from: AttemptState, overrides: Partial<AttemptRow>, ev
     'stray-stopped from a failed attempt that never strayed',
     'failed',
     { strayedAt: null },
-    { kind: 'stray-stopped' },
+    { kind: 'stray-stopped', atcSession: null },
   ],
   [
     'stray-stopped from a stray whose session already stopped',
@@ -559,7 +585,7 @@ test.each<[title: string, from: AttemptState, overrides: Partial<AttemptRow>, ev
       strayedAt: brandSchemas.instant.parse(3000),
       sessionStoppedAt: brandSchemas.instant.parse(4000),
     },
-    { kind: 'stray-stopped' },
+    { kind: 'stray-stopped', atcSession: null },
   ],
   [
     'session-forgotten twice',
@@ -898,7 +924,11 @@ test('#buildAttemptChange builds a move of a settled attempt under no lease', ()
     strayedAt: brandSchemas.instant.parse(3000),
   });
 
-  const built: unknown = buildAttemptChange({ ...ctx, attempt, event: { kind: 'stray-stopped' } });
+  const built: unknown = buildAttemptChange({
+    ...ctx,
+    attempt,
+    event: { kind: 'stray-stopped', atcSession: null },
+  });
 
   expect(built).toStrictEqual({ kind: 'change', change: expect.objectContaining({ under: null }) });
 });
@@ -954,8 +984,8 @@ test.each<
   [
     'two stray-stopped moves of one stray attempt',
     { state: 'failed', strayedAt: brandSchemas.instant.parse(3000), sessionStoppedAt: null },
-    { kind: 'stray-stopped' },
-    { kind: 'stray-stopped' },
+    { kind: 'stray-stopped', atcSession: null },
+    { kind: 'stray-stopped', atcSession: null },
     'sessionStoppedAt',
     null,
     5000,

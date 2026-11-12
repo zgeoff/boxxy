@@ -56,7 +56,7 @@ import { hashCanonical } from '@boxxy/content-hash';
 //                                                                             so no claim of the same tick picks this wake again
 //   settled            every live state                          succeeded    release-seats, lease release, effects; `settled`
 //                                                                or failed
-//   stray-stopped      succeeded or failed, with `strayedAt`     (same)       `sessionStoppedAt`; no fact
+//   stray-stopped      succeeded or failed, with `strayedAt`     (same)       `sessionStoppedAt`, and `atcSession` when the row has none; no fact
 //
 // The build follows this table in modules/dispatch/src/attempts/attempt-moves.ts, one data row per
 // line above (`started` has one row per `via` and one for `closing`; `settled` one per end
@@ -494,8 +494,9 @@ export function closeOutAttempt(input: CloseOutInput): Promise<CloseOutAnswer> {
 //     `started` records its id, and the `closing` column stops it, with no grace. Then settle.
 //   - still `absent` at `timeouts.spawnLostMinutes` after the claim: settle as `failed`, `item-closed`,
 //     with `sessionStopped: false`. That sets `strayedAt`. The stray loop below then reads the
-//     session by its spawn name for `timeouts.strayHours`, stops one that appears late, and
-//     `runner.status` lists the attempt as a stray until then.
+//     session by its spawn name for `timeouts.strayHours`, stops one that appears late and records
+//     its id with `stray-stopped`, so cleanup forgets it, and `runner.status` lists the attempt as
+//     a stray until then.
 // So no path settles such an attempt without either a stop sent or the stray mark set.
 //
 // The session may still run. The runner keeps sending `stop` to each stray session every tick for

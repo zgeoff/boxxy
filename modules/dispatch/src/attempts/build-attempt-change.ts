@@ -489,6 +489,11 @@ function buildEventColumns(
       returnedOutcome: settled.returnedOutcome,
       endedAt: now,
     }))
+    .with({ kind: 'stray-stopped' }, (stopped) =>
+      attempt.atcSession === null && stopped.atcSession !== null
+        ? { atcSession: stopped.atcSession }
+        : {},
+    )
     .with(
       {
         kind: P.union(
@@ -504,7 +509,6 @@ function buildEventColumns(
           'suspend-refused',
           'wake-requested',
           'wake-refused',
-          'stray-stopped',
           'session-forgotten',
         ),
       },
