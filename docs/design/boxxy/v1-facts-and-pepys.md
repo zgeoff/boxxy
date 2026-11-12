@@ -21,7 +21,7 @@ Section B of [`02-outbox.ts`](./sketches/v1/edge/02-outbox.ts) holds the table a
 
 - **One write path.** The store's apply function is the only code that inserts an outbox row. It writes every row and every fact of a change in one transaction, or none ([decision 0013](../../decisions/0013-one-write-path-per-fact.md)). A state in the store therefore has its fact in the outbox.
 - **The row's sequence number is the store version**, and its fact ID is a UUID version 7 that the caller made. Every send of the row carries that ID as the event ID.
-- **No store change is refused for its size.** The API bounds every string and list, the close-out parser caps its lists and rejects a close-out over 120,000 bytes, and the sender parks a row that is still over the limit of one fact.
+- **No store change is refused for its size.** The API bounds every string and list it reads, except the close-out body. The close-out parser bounds the body instead: it keeps every list whole and rejects a close-out over 120,000 bytes as stored. The sender parks a row that is still over the limit of one fact.
 - **Nothing is dropped or capped.** Sent rows stay, because the sequence number is the store version and close-outs cite fact IDs.
 
 ## The sender
