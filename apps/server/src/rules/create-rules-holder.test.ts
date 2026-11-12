@@ -2,6 +2,7 @@ import { expect, onTestFinished, test } from 'bun:test';
 import { cp, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { $ } from 'bun';
 import { createRulesHolder } from './create-rules-holder.ts';
 
 async function setupTest() {
@@ -23,19 +24,21 @@ async function setupTest() {
     log: { warn: (message: string) => logged.push(message) },
     readRulesFile: () => Bun.file(path.join(folder, 'rules.yaml')).text(),
     writeRulesFile: (text: string) => Bun.write(path.join(folder, 'rules.yaml'), text),
+    runGit: (args: readonly string[]) =>
+      $`git -C ${folder} -c user.name=test -c user.email=test@example.com ${args}`.quiet(),
   };
 }
 
 test('it loads the rules of a plain folder', async () => {
   const ctx = await setupTest();
-  const answer = await createRulesHolder(ctx.folder, ctx.log);
+  const answer = await createRulesHolder({ folder: ctx.folder, ref: 'origin/main' }, ctx.log);
 
   expect(answer.kind === 'loaded' && answer.holder.state().rules.commit).toBe('folder');
 });
 
 test('it keeps the rules and records the refusal when a reload is refused', async () => {
   const ctx = await setupTest();
-  const answer = await createRulesHolder(ctx.folder, ctx.log);
+  const answer = await createRulesHolder({ folder: ctx.folder, ref: 'origin/main' }, ctx.log);
 
   await ctx.writeRulesFile('not: [valid rules\n');
 
@@ -57,7 +60,7 @@ test('it keeps the rules and records the refusal when a reload is refused', asyn
 
 test('it loads a changed rules file on reload', async () => {
   const ctx = await setupTest();
-  const answer = await createRulesHolder(ctx.folder, ctx.log);
+  const answer = await createRulesHolder({ folder: ctx.folder, ref: 'origin/main' }, ctx.log);
 
   const holder = answer.kind === 'loaded' ? answer.holder : null;
   const before = holder?.state().rules.version;
@@ -75,7 +78,32 @@ test('it refuses a folder whose rules do not load', async () => {
 
   await ctx.writeRulesFile('not: [valid rules\n');
 
-  const answer = await createRulesHolder(ctx.folder, ctx.log);
+  const answer = await createRulesHolder({ folder: ctx.folder, ref: 'origin/main' }, ctx.log);
 
   expect(answer.kind).toBe('refused');
+});
+
+test('it keeps the rules when a reload finds a commit that the rules ref does not hold', async () => {
+  const ctx = await setupTest();
+
+  await ctx.runGit(['init', '-q']);
+  await ctx.runGit(['add', '.']);
+  await ctx.runGit(['commit', '-q', '-m', 'add the rules']);
+  await ctx.runGit(['update-ref', 'refs/remotes/origin/main', 'HEAD']);
+
+  const answer = await createRulesHolder({ folder: ctx.folder, ref: 'origin/main' }, ctx.log);
+
+  const holder = answer.kind === 'loaded' ? answer.holder : null;
+  const before = holder?.state().rules.version;
+
+  const text = await ctx.readRulesFile();
+
+  await ctx.writeRulesFile(`${text}\n# an unmerged change\n`);
+  await ctx.runGit(['commit', '-q', '-a', '-m', 'change the rules on a branch']);
+  await holder?.reload();
+
+  expect({ version: holder?.state().rules.version, logged: ctx.logged }).toStrictEqual({
+    version: before,
+    logged: ['the rules checkout could not be read; the rules stay'],
+  });
 });

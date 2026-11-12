@@ -4,7 +4,7 @@ export { noCallerProof } from './no-caller-proof.ts';
 export { loadServerRules } from './rules/load-server-rules.ts';
 export type { RulesCheckout } from './rules/load-server-rules.ts';
 export { readRulesCheckout } from './rules/read-rules-checkout.ts';
-export type { CheckoutAnswer } from './rules/read-rules-checkout.ts';
+export type { CheckoutAnswer, RulesSource } from './rules/read-rules-checkout.ts';
 export { serveApi } from './serve-api.ts';
 export type { ApiListeners } from './serve-api.ts';
 export { startServer } from './start-server.ts';

@@ -6,7 +6,7 @@ function setupTest() {
   const config: ServerConfig = {
     runner: 'runner-1',
     store: { file: '/tmp/boxxy-test/boxxy.db' },
-    rules: { folder: '/tmp/boxxy-test/rules' },
+    rules: { folder: '/tmp/boxxy-test/rules', ref: 'origin/main' },
     api: {
       listen: { hostname: '127.0.0.1', port: 4400 },
       workerListen: { hostname: '127.0.0.1', port: 4401 },

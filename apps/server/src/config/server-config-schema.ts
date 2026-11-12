@@ -56,8 +56,9 @@ export const serverConfigSchema = z.strictObject({
   runner: name,
   store: z.strictObject({ file: name }),
 
-  // a git checkout, or a plain folder with no `.git`
-  rules: z.strictObject({ folder: name }),
+  // a git checkout, or a plain folder with no `.git`. A checkout loads only a commit that `ref`
+  // holds, such as the merged history of the rules repo; a plain folder has no ref.
+  rules: z.strictObject({ folder: name, ref: name.default('origin/main') }),
   api: z.strictObject({
     // the owner's private network: `/rpc`, `/mcp` and `/healthz`, with no token
     listen: address,

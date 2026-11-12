@@ -3,6 +3,7 @@ import type { LoadRejection, LoadResult } from '@boxxy/model';
 import type { RulesState, ServerLog } from '../types.ts';
 import type { RulesCheckout } from './load-server-rules.ts';
 import { loadServerRules, makeProposedRulesLoader } from './load-server-rules.ts';
+import type { RulesSource } from './read-rules-checkout.ts';
 import { readRulesCheckout } from './read-rules-checkout.ts';
 
 interface RulesHolder {
@@ -32,10 +33,10 @@ interface Held {
 // Loads the rules folder once, and swaps the rules, their checkout and the last refusal together
 // on each reload, so a dry run never pairs new rules with an old checkout.
 export async function createRulesHolder(
-  folder: string,
+  source: RulesSource,
   log: ServerLog,
 ): Promise<RulesHolderAnswer> {
-  const first = await readRulesCheckout(folder);
+  const first = await readRulesCheckout(source);
 
   if (first.kind === 'rejected') {
     return { kind: 'rejected', reason: first.reason };
@@ -54,7 +55,7 @@ export async function createRulesHolder(
   };
 
   const reload = async () => {
-    const read = await readRulesCheckout(folder);
+    const read = await readRulesCheckout(source);
 
     if (read.kind === 'rejected') {
       log.warn('the rules checkout could not be read; the rules stay', { reason: read.reason });

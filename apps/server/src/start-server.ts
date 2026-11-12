@@ -70,7 +70,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
     return { kind: 'refused', message: `set these variables: ${secrets.names.join(', ')}` };
   }
 
-  const rules = await createRulesHolder(config.rules.folder, input.log);
+  const rules = await createRulesHolder(config.rules, input.log);
 
   if (rules.kind !== 'loaded') {
     return { kind: 'refused', message: `the rules did not load: ${JSON.stringify(rules)}` };

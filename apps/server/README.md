@@ -14,10 +14,9 @@
 The boxxy server: the API on its owner and worker listeners, and the runner tick that claims tasks,
 reads sessions and sends the facts to pepys.
 
-`startServer({ env, log })` reads the configuration file at `BOXXY_CONFIG`, the trust documents and
-the tokens from the environment, then starts both listeners, the tick, the pull request watch and
-the outbox sender. It answers `refused` with a message that names each missing variable and never a
-secret value.
+`startServer({ env, log })` reads the configuration at `BOXXY_CONFIG`, the trust documents and the
+tokens, then starts the listeners, the tick, the pull request watch and the outbox sender. Its
+`refused` answer names each missing variable, never a secret value.
 
 ## Install
 
@@ -50,9 +49,10 @@ The `atc` section of the configuration names the gateway:
 | `trustedFolders` | by worker target, the folders the agent trusts there               |
 | `noticeSession`  | optional: the atc session that gets the hold notices               |
 
-`spawn.repos` gives each repo a folder on the target, or a git source `{ url, ref, credentialRef? }`
-that atc clones. [The atc worker](../../docs/design/boxxy/v1-lifecycle.md#the-atc-worker) says how
-each spawns, what a `credentialRef` names, and the token's scopes.
+A git checkout in `rules.folder` loads only a commit that `rules.ref` holds, `origin/main` by
+default ([rules](../../docs/design/boxxy/rules.md#policy-in-git)). `spawn.repos` gives each repo a
+folder on the target, or a git source `{ url, ref, credentialRef? }` that atc clones
+([the atc worker](../../docs/design/boxxy/v1-lifecycle.md#the-atc-worker)).
 
 With a `pepys` section in the configuration, also set `BOXXY_PEPYS_SIGNING_SECRET`. With a `github`
 section, set `BOXXY_GITHUB_TOKEN` unless a broker adds the GitHub credential.

@@ -20,7 +20,7 @@ test('it reads a configuration file that passes the schema', async () => {
   const config = {
     runner: 'runner-1',
     store: { file: '/tmp/boxxy-test/boxxy.db' },
-    rules: { folder: '/tmp/boxxy-test/rules' },
+    rules: { folder: '/tmp/boxxy-test/rules', ref: 'origin/main' },
     api: {
       listen: { hostname: '127.0.0.1', port: 4400 },
       workerListen: { hostname: '127.0.0.1', port: 4401 },
@@ -34,6 +34,31 @@ test('it reads a configuration file that passes the schema', async () => {
   const answer = await readServerConfig(ctx.file);
 
   expect(answer).toStrictEqual({ kind: 'read', config });
+});
+
+test('it defaults the rules ref to origin/main', async () => {
+  const ctx = await setupTest();
+
+  await ctx.writeConfig(
+    JSON.stringify({
+      runner: 'runner-1',
+      store: { file: '/tmp/boxxy-test/boxxy.db' },
+      rules: { folder: '/tmp/boxxy-test/rules' },
+      api: {
+        listen: { hostname: '127.0.0.1', port: 4400 },
+        workerListen: { hostname: '127.0.0.1', port: 4401 },
+      },
+      spawn: { target: 'cloud', repos: {} },
+      atc: { url: 'http://127.0.0.1:7777/mcp', trustedFolders: {} },
+    }),
+  );
+
+  const answer = await readServerConfig(ctx.file);
+
+  expect(answer.kind === 'read' && answer.config.rules).toStrictEqual({
+    folder: '/tmp/boxxy-test/rules',
+    ref: 'origin/main',
+  });
 });
 
 test('it reads a repo as a git source of a URL and a ref', async () => {
@@ -146,7 +171,7 @@ test('it reads the optional sections: trusted issuers, pepys and github', async 
   const config = {
     runner: 'runner-1',
     store: { file: '/tmp/boxxy-test/boxxy.db' },
-    rules: { folder: '/tmp/boxxy-test/rules' },
+    rules: { folder: '/tmp/boxxy-test/rules', ref: 'upstream/rules' },
     api: {
       listen: { hostname: '127.0.0.1', port: 4400 },
       workerListen: { hostname: '127.0.0.1', port: 4401 },
