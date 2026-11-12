@@ -76,11 +76,11 @@ test('#runBoxxy reads a plain-text answer as trimmed text', async () => {
   expect(output).toBe('fact-1');
 });
 
-test('#runBoxxy fails with check-failed and the CLI stderr on a non-zero exit', async () => {
+test('#runBoxxy fails with check-failed and the CLI stderr on a non-zero exit', () => {
   const ctx = setupTest({ exitCode: 1, stdout: '', stderr: 'error: NOT_FOUND\n' });
   const failure = runBoxxy(ctx.ctx, { argv: ['cost', 'x'], schema: z.unknown() });
 
-  await expect(failure).rejects.toMatchObject({
+  expect(failure).rejects.toMatchObject({
     code: 'check-failed',
     message: 'boxxy cost x exited 1: error: NOT_FOUND',
   });

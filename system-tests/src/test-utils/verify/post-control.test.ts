@@ -54,19 +54,19 @@ test('#postControl sends a GET with no body', async () => {
   expect(ctx.requests).toStrictEqual([{ method: 'GET', path: '/control/current' }]);
 });
 
-test('#postControl turns a 409 into check-failed with the harness message', async () => {
+test('#postControl turns a 409 into check-failed with the harness message', () => {
   const ctx = setupTest({ status: 409, json: { error: 'no current item' } });
   const failure = postControl(ctx.ctx, controlRoutes.readCurrent, null);
 
-  await expect(failure).rejects.toMatchObject({
+  expect(failure).rejects.toMatchObject({
     code: 'check-failed',
     message: 'GET /control/current answered 409: no current item',
   });
 });
 
-test('#postControl turns any other refusal into internal', async () => {
+test('#postControl turns any other refusal into internal', () => {
   const ctx = setupTest({ status: 500, json: 'boom', body: 'boom' });
   const failure = postControl(ctx.ctx, controlRoutes.readCurrent, null);
 
-  await expect(failure).rejects.toMatchObject({ code: 'internal' });
+  expect(failure).rejects.toMatchObject({ code: 'internal' });
 });
