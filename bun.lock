@@ -324,6 +324,9 @@
         "@boxxy/server": "workspace:*",
         "@boxxy/store-sqlite": "workspace:*",
         "@boxxy/worker-atc": "workspace:*",
+        "@wringer/core": "catalog:",
+        "@wringer/gunshi": "catalog:",
+        "@wringer/http": "catalog:",
         "tiny-invariant": "catalog:",
         "zod": "catalog:",
       },
@@ -353,6 +356,9 @@
     "@stylistic/eslint-plugin": "5.10.0",
     "@tsconfig/strictest": "2.0.8",
     "@types/bun": "1.4.4",
+    "@wringer/core": "0.2.0",
+    "@wringer/gunshi": "0.2.0",
+    "@wringer/http": "0.1.1",
     "@zgeoff/bun-test-extended": "0.2.3",
     "@zgeoff/chex": "0.3.4",
     "@zgeoff/commitlint-config": "0.1.0",
@@ -923,6 +929,12 @@
 
     "@typescript/typescript-win32-x64": ["@typescript/typescript-win32-x64@7.0.2", "", { "os": "win32", "cpu": "x64" }, "sha512-0BQ3HkAHHlKLSp1qRvf3SUhGpGsDuhB/jgFw75guyqbxJqEaS0Cw/VFO8i2nHglJUzQCRtMMR/IBAKE3ETMC4g=="],
 
+    "@wringer/core": ["@wringer/core@0.2.0", "", { "dependencies": { "@zgeoff/std": "0.4.3", "ts-pattern": "5.9.2", "xstate": "5.33.3", "zod": "4.6.7" } }, "sha512-UWiqgCQnn3Gaw3s0imC+cUNYattMwGVLy8uN39zLDecvAUv2MMGDxE1PSq2Zn4Xab5WpJaSCqCUOOoLPnFvOqA=="],
+
+    "@wringer/gunshi": ["@wringer/gunshi@0.2.0", "", { "dependencies": { "gunshi": "0.37.3", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2", "zod": "4.6.7" }, "peerDependencies": { "@wringer/core": "0.2.0" }, "bin": { "wringer-gunshi": "src/wringer-gunshi.ts" } }, "sha512-bXOnEI42WWRVNtHfz3DoLou6Vod0WLnMzkaAzikoQDd6AmExS6njkeDSwLifEa/YvoSIrt3vF8T5s4OT89RoQg=="],
+
+    "@wringer/http": ["@wringer/http@0.1.1", "", { "dependencies": { "zod": "4.6.7" }, "peerDependencies": { "@wringer/core": "0.1.2" } }, "sha512-TW/I336oOveL8ZJtx2fYczVhvUiGw2ouDlEEQcCPz27fmnkb+nCCdqjW+9ClBXS/EeffAT7DVKPpTbgKyR+pvw=="],
+
     "@zgeoff/agent-hooks": ["@zgeoff/agent-hooks@0.2.12", "", { "bin": { "agent-hooks": "dist/cli.js" } }, "sha512-bMEmXGtNICFNvR/e9lF9p+N4BwyIPqnG7IZ/m78vz3i5ZUZbgtSVLWgw3k5/d0cE6OXGLBW4sJ3twKd2kYzRSQ=="],
 
     "@zgeoff/bun-test-extended": ["@zgeoff/bun-test-extended@0.2.3", "", { "dependencies": { "jest-extended": "7.0.0", "jest-matcher-utils": "30.5.2" } }, "sha512-4ZNPft3LunVKp+s2esoJXSe64EaEywsu3z6Cg5/s/MJcdygmrQeAyfECioePCo5RuAIcaPfgF3lhYsPKcmVJ4w=="],
@@ -1322,6 +1334,10 @@
     "@pepys/api/exact-mirror": ["exact-mirror@1.2.7", "", { "peerDependencies": { "typebox": ">= 1.1.0" }, "optionalPeers": ["typebox"] }, "sha512-HhEYVm/y8qbEFnErtr0K7Jsuy0GzRlblZVyeaMoZBSKBDpNuELwzsWtzXQjezFVPka6ZqFaD6+EW3TW+x59vrw=="],
 
     "@pepys/api/typebox": ["typebox@1.4.4", "", {}, "sha512-ctPyL8BZibv6HYU6cE3ldDtfCTh7nXM7WPuL3KQVyRRhMnZEzU3o2yLVywxEEFmKEx+8EdeqG1/uTNzazRbxLA=="],
+
+    "@wringer/core/xstate": ["xstate@5.33.3", "", {}, "sha512-AnDRjS/GyKHmbA1PyhVCYBqYsA7EGe3KGgeD0ht3NFsXzoz7leX/HQDFX9QlHFJ/ltLHPsgChJYwPzRvB/0b4g=="],
+
+    "@wringer/gunshi/gunshi": ["gunshi@0.37.3", "", {}, "sha512-uwm23bguqDcleEetknuQnF5okLcgmQPM3iv4aWVHTPDbiSs9shh02F079NCY0mWkrIRjHqNhgmzW6k0FCXhy1g=="],
 
     "@zgeoff/format-codemod/oxc-parser": ["oxc-parser@0.155.0", "", { "dependencies": { "@oxc-project/types": "^0.155.0" }, "optionalDependencies": { "@oxc-parser/binding-android-arm-eabi": "0.155.0", "@oxc-parser/binding-android-arm64": "0.155.0", "@oxc-parser/binding-darwin-arm64": "0.155.0", "@oxc-parser/binding-darwin-x64": "0.155.0", "@oxc-parser/binding-freebsd-x64": "0.155.0", "@oxc-parser/binding-linux-arm-gnueabihf": "0.155.0", "@oxc-parser/binding-linux-arm-musleabihf": "0.155.0", "@oxc-parser/binding-linux-arm64-gnu": "0.155.0", "@oxc-parser/binding-linux-arm64-musl": "0.155.0", "@oxc-parser/binding-linux-ppc64-gnu": "0.155.0", "@oxc-parser/binding-linux-riscv64-gnu": "0.155.0", "@oxc-parser/binding-linux-riscv64-musl": "0.155.0", "@oxc-parser/binding-linux-s390x-gnu": "0.155.0", "@oxc-parser/binding-linux-x64-gnu": "0.155.0", "@oxc-parser/binding-linux-x64-musl": "0.155.0", "@oxc-parser/binding-openharmony-arm64": "0.155.0", "@oxc-parser/binding-win32-arm64-msvc": "0.155.0", "@oxc-parser/binding-win32-ia32-msvc": "0.155.0", "@oxc-parser/binding-win32-x64-msvc": "0.155.0" } }, "sha512-C/ReSf1JUFukK/zvk6jhcNibSssvas5+ktIzK7fbKVd3CedWe59C3QwHEOrEZj/4Rt9+xg0Jeis/Jv1F/KM1mw=="],
 

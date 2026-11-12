@@ -40,6 +40,9 @@
       "@stylistic/eslint-plugin": "5.10.0",
       "@tsconfig/strictest": "2.0.8",
       "@types/bun": "1.4.4",
+      "@wringer/core": "0.2.0",
+      "@wringer/gunshi": "0.2.0",
+      "@wringer/http": "0.1.1",
       "@zgeoff/bun-test-extended": "0.2.3",
       "@zgeoff/chex": "0.3.4",
       "@zgeoff/commitlint-config": "0.1.0",
@@ -101,7 +104,9 @@
     "ci:publish-packages": "bun scripts/publish/publish-packages.ts",
     "ci:release-cli-assets": "bun scripts/publish/release-cli-assets.ts",
     "test:e2e": "rig e2e",
-    "test:system": "rig system"
+    "test:system": "rig system",
+    "verify": "bun system-tests/src/test-utils/verify/verify.ts",
+    "verify:lint": "bun system-tests/src/test-utils/verify/verify.ts lint"
   },
   "devDependencies": {
     "@boxxy/content-hash": "workspace:*",

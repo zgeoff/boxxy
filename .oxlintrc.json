@@ -37,7 +37,8 @@
           "auth-oauth": ["adapters/auth-oauth/**"],
           "worker-atc": ["adapters/worker-atc/**"],
           "caller-proof-imp": ["adapters/caller-proof-imp/**"],
-          "pepys-package": ["packages/pepys/**"]
+          "pepys-package": ["packages/pepys/**"],
+          "system-tests": ["system-tests/**"]
         },
         "edges": [
           {
@@ -95,6 +96,19 @@
             ],
             "allow": ["pepys-package"],
             "reason": "only packages/pepys binds to the pepys kit; take its sink and reader through the ports"
+          },
+          {
+            "name": "wringer",
+            "modules": [
+              "@wringer/browser",
+              "@wringer/core",
+              "@wringer/db",
+              "@wringer/gunshi",
+              "@wringer/http",
+              "@wringer/stream"
+            ],
+            "allow": ["system-tests"],
+            "reason": "only system-tests builds the verify CLI; the registry lives in system-tests/src/test-utils/verify/"
           },
           {
             "name": "yaml",
