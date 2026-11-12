@@ -124,11 +124,15 @@ async function installSkill(
 
   const target = join(input.workspace, workspaceSkillsFolder, name);
 
-  await rm(target, { recursive: true, force: true });
-  await mkdir(dirname(target), { recursive: true });
-  await cp(join(scratch, skillsRepoFolder, name), target, { recursive: true });
+  const copied = await rm(target, { recursive: true, force: true })
+    .then(() => mkdir(dirname(target), { recursive: true }))
+    .then(() => cp(join(scratch, skillsRepoFolder, name), target, { recursive: true }))
+    .then(
+      () => true,
+      () => false,
+    );
 
-  const skillFile = await stat(join(target, 'SKILL.md')).catch(() => null);
+  const skillFile = copied ? await stat(join(target, 'SKILL.md')).catch(() => null) : null;
 
   return skillFile?.isFile() === true;
 }

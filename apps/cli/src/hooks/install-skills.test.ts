@@ -171,6 +171,18 @@ test('it returns no name and starts no git when the recipe lists no skill', asyn
   expect([missing, calls]).toStrictEqual([[], []]);
 });
 
+test('it returns the name as missing when .claude is a file', async () => {
+  const ctx = await setupTest();
+  const repo = await ctx.makeRepo({ alpha: { 'SKILL.md': 'pinned\n' } });
+
+  await mkdir(ctx.workspace, { recursive: true });
+  await writeFile(join(ctx.workspace, '.claude'), 'a file\n');
+
+  const missing = await ctx.install(repo, ['alpha']);
+
+  expect(missing).toStrictEqual(['alpha']);
+});
+
 test('it replaces a skill folder that is a symbolic link and leaves its target untouched', async () => {
   const ctx = await setupTest();
   const repo = await ctx.makeRepo({ alpha: { 'SKILL.md': 'pinned\n' } });
