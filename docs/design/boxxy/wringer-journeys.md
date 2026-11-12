@@ -103,8 +103,11 @@ The map keeps these rules:
   in a package's `src/test-utils/`, so the whole package folder maps, its fakes included.
 - `scripts/verify/**` maps to all three features. A change to the harness or a read command changes
   what a journey proves, so it needs fresh verdicts.
-- An ignore glob never matches a file that a journey runs. `**/*.md` stays off the list, because the
-  rules' prompts are markdown that the server sends to each session.
+- An ignore glob never matches a source file that a journey runs. `**/*.md` stays off the list,
+  because the rules' prompts are markdown that the server sends to each session.
+- The package manifests are the one exception: a journey reads them, and the list ignores them so
+  the bots' pull requests pass. A manifest change that alters behaviour, such as a new `exports`
+  entry, comes with a source change in the same package, which maps.
 - A new package fails the gate as unmapped until its pull request adds it to a feature or to the
   ignore list.
 - A pull request from Renovate, release-please or repo-sync changes only ignored paths, so the gate
@@ -112,10 +115,11 @@ The map keeps these rules:
 
 ## The CI check
 
-The gate runs in a workflow of its own, `.github/workflows/verify.yml`, because `pr.yml` is synced
-from zgeoff/tools and has no `edited` trigger. The workflow calls the shared `bun-checks.yml`, which
-checks out the full history with blobless filtering, sets up Bun and installs, and runs the scripts
-it is given.
+The gate runs in a workflow of its own, `.github/workflows/verify.yml`, with one job. `pr.yml` is
+synced from zgeoff/tools and has no `edited` trigger. The shared `bun-checks.yml` runs gitleaks and
+every static check of the repo beside the scripts it is given, so a body edit would rerun them all,
+and their failures would turn the gate red. The job pins each action to the commit that
+`bun-checks.yml` pins.
 
 ```yaml
 name: Verify
@@ -129,23 +133,35 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
-  verify:
-    permissions:
-      contents: read
-      pull-requests: write # the shared workflow's gitleaks scan comments on the pull request
-    uses: zgeoff/tools/.github/workflows/bun-checks.yml@<latest main commit> # main
-    with:
-      scripts: verify:lint ci:verify-gate
-      timeout-minutes: 5
+  verify-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@<sha> # v7.0.1
+        with:
+          fetch-depth: 0 # the fingerprint diffs against the merge base
+          filter: blob:none
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@<sha> # v2.2.0
+        with:
+          bun-version-file: .bun-version
+      - run: bun install --frozen-lockfile
+      - run: bun run --silent verify:lint
+      - run: bun run --silent ci:verify-gate
 ```
 
-- **Required check:** `verify / checks`, beside `pr / checks`. It has no `if:` and no path filter,
-  so it reports on every pull request.
+- **Required check:** `verify-gate`, beside `pr / checks`. The job has no `if:` and no path filter,
+  so it reports on every pull request. The slice that adds it is done only when the ruleset of
+  `main` requires both checks.
 - **What it runs:** `bun verify lint`, which fails on a glob that matches no file and on a journey
   line that would fail before it ran, then `ci:verify-gate`. That script writes the body from the
-  event to a file and runs `bun verify gate --base origin/<base branch> --body-file <file>`
-  (section D of `03-flow.ts`). Neither starts boxxy.
+  event to a file, runs `bun verify gate --base origin/<base branch> --body-file <file>`, and prints
+  one `::error::` annotation for each failing feature and each unmapped path (section D of
+  `03-flow.ts`). Neither step starts boxxy.
 - **Which commit:** the job checks out GitHub's merge ref, so the gate fingerprints the change as it
   would land on the base's tip. The fingerprint is a patch id with 3 lines of context, so it matches
   the grader's local verdict unless the base changed lines within 3 lines of the pull request's
@@ -189,7 +205,7 @@ The port and the merge step that reads it are designed apart. This design needs 
 port, and the wringer adapter gets it from the required check that this doc wires:
 
 ```ts
-// the core; the wringer adapter reads the check run `verify / checks` at the head through the forge
+// the core; the wringer adapter reads the check run `verify-gate` at the head through the forge
 interface Verifier {
   readGate(pullRequest: PullRequestRef, head: CommitSha): Promise<VerifyGate>;
 }
@@ -205,15 +221,17 @@ type VerifyGate =
   | { readonly kind: 'pending' };
 ```
 
-- `ci:verify-gate` prints one `::error::` line for each entry of the gate's `data.failing` and
-  `data.unmapped`, so each becomes an annotation of the check run, which the forge reads with no
-  checkout.
+- The adapter reads the failing features from the annotations of the `verify-gate` check run, which
+  the forge returns with no checkout.
 - The grader needs nothing from the port: the build recipe and `AGENTS.md` start it.
 
 ## Constraints
 
-- `bun verify up` then `bun verify doctor` pass on a machine with no network beyond localhost, after
-  `bun install`.
+- All three journeys pass on a machine with no network beyond localhost, after `bun install`. The
+  check runs them in a network namespace with only the loopback interface up, such as one made by
+  `unshare --map-root-user --net`.
+- `runBoxxy` sets `BOXXY_SKILLS_URL` on every CLI call, because the session-start hook fetches from
+  GitHub when the variable is unset.
 - Each journey finishes in 60 seconds or less, the timeout of `land-item`.
 - The harness process prints its ready line only after both listeners answer, and exits with code 1
   and the cause on stderr when a part fails to start.
@@ -237,8 +255,8 @@ type VerifyGate =
   verdict from a journey that never runs it.
 - **The bots' files are ignored.** A dependency bump and a release merge on green CI. The system
   tests drive the same flow in CI on every pull request.
-- **The gate runs on the merge ref through `bun-checks.yml`.** The shared workflow checks
-  out the full history that the fingerprint needs.
+- **The gate runs in a job of its own, on the merge ref.** The shared checks workflow would run every
+  static check again on each body edit, and a failure of one would read as a missing verdict.
 - **The build attempt grades.** It changed the code and has the journeys at hand, and the challenger
   needs no change on this repo.
 
@@ -262,6 +280,3 @@ type VerifyGate =
 
 - **Which wringer release carries `.ignore(...)`?** The wringer release settles it. Until it
   ships, the verify CLI is not built.
-- **Does the owner add `verify / checks` and `pr / checks` to the required checks of `main`?** The
-  owner settles it. The ruleset of `main` requires no status check now, so the gate blocks no merge
-  until the owner adds it.
