@@ -2,8 +2,8 @@ import { createHmac } from 'node:crypto';
 import type { FactSink, PepysReader } from '@boxxy/model';
 import { createPepysReader } from '@boxxy/pepys/reader';
 import { createPepysFactSink } from '@boxxy/pepys/sink';
+import { createRealPepys } from '@boxxy/pepys/test-utils/create-real-pepys';
 import type { TelemetryRequest } from '@boxxy/pepys/test-utils/create-test-pepys';
-import { createTestPepys } from '@boxxy/pepys/test-utils/create-test-pepys';
 
 // A pull request as GitHub's `pull_request` webhook describes it when it merges.
 export interface MergedPullRequest {
@@ -35,10 +35,10 @@ export interface PepysUnderTest extends AsyncDisposable {
 const boxxySecret = 'boxxy-test-signing-secret';
 const webhookSecret = 'github-test-webhook-secret';
 
-// The journey reaches pepys only through this function. It starts the boxxy plug-in on the kit's
-// test store, with stand-ins of the GitHub and telemetry plug-ins.
+// The journey reaches pepys only through this function. It starts the real pepys ingest and query
+// API in process, with the real GitHub, telemetry and boxxy plug-ins on the kit's test store.
 export async function startPepysUnderTest(): Promise<PepysUnderTest> {
-  const pepys = await createTestPepys({ boxxySecret, webhookSecret });
+  const pepys = await createRealPepys({ boxxySecret, webhookSecret });
 
   return {
     sink: createPepysFactSink({

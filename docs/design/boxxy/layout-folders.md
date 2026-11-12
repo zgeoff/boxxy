@@ -206,7 +206,8 @@ packages/pepys/src              @boxxy/pepys
   generated/      the glue that `pepys build` writes; never edited by hand
   queries/        build-cost-to-land-query  build-stage-time-query  build-cost-to-land
                   build-stage-time  find-item-entity-id  constants  types
-  test-utils/     create-ingest-stand-in  create-query-stand-in  build-foreign-stand-in
+  test-utils/     create-real-pepys  create-test-pepys  create-ingest-stand-in
+                  create-query-stand-in  build-foreign-stand-in
                   build-mock-applied-fact  build-mock-scope-fact  build-mock-item-facts
                   to-scope-fact  to-entity-id  and the read-row factories
 ```

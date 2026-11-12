@@ -93,7 +93,7 @@ type BoxxyClient = PluginClient<typeof boxxyPlugin>;
 
 export function createPepysReader(options: { apiOrigin: string; environment: string }): PepysReader {
   // The pepys API serves every query at `/rpc`. No token in v1.
-  // Assumed: it mounts each plug-in query under its snake case name, so this link can call it.
+  // It mounts each plug-in query under its snake case name, so this link can call it.
   const client: BoxxyClient = createORPCClient(new RPCLink({ origin: options.apiOrigin, url: '/rpc' }));
 
   return {

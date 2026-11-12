@@ -125,7 +125,7 @@ export interface BoxxyItemFiledPayloadAcceptanceItem {
 }
 
 export interface BoxxyItemFiledPayloadFields {
-  designMode: unknown;
+  designMode?: 'agent' | 'attended';
 }
 
 export interface BoxxyItemNotedPayload {
@@ -135,14 +135,24 @@ export interface BoxxyItemNotedPayload {
 }
 
 export interface BoxxyItemEditedPayload {
-  title: unknown;
-  outcome: unknown;
-  acceptance: unknown;
-  kind: unknown;
-  fields: unknown;
-  labels: unknown;
+  title?: string;
+  outcome?: string;
+  acceptance?: BoxxyItemEditedPayloadAcceptanceItem[];
+  kind?: string;
+  fields?: BoxxyItemEditedPayloadFields;
+  labels?: string[];
   byAttempt: string | null;
   storeVersion: number;
+}
+
+export interface BoxxyItemEditedPayloadAcceptanceItem {
+  id: string;
+  text: string;
+  evidence: string[];
+}
+
+export interface BoxxyItemEditedPayloadFields {
+  designMode?: 'agent' | 'attended';
 }
 
 export interface BoxxyItemClosedPayload {
@@ -955,10 +965,15 @@ function decodeBoxxyItemFiledPayloadFields(value: unknown): BoxxyItemFiledPayloa
     return undefined;
   }
 
-  const field0 = 'designMode' in value ? value.designMode : undefined;
+  const raw0 = 'designMode' in value ? value.designMode : undefined;
+  const field0 = raw0 === undefined ? undefined : raw0 === 'agent' || raw0 === 'attended' ? raw0 : undefined;
+
+  if (raw0 !== undefined && field0 === undefined) {
+    return undefined;
+  }
 
   return {
-    designMode: field0,
+    ...(field0 === undefined ? {} : { designMode: field0 }),
   };
 }
 
@@ -1021,17 +1036,47 @@ function decodeBoxxyItemEditedPayload(value: unknown): BoxxyItemEditedPayload | 
     return undefined;
   }
 
-  const field0 = 'title' in value ? value.title : undefined;
+  const raw0 = 'title' in value ? value.title : undefined;
+  const field0 = raw0 === undefined ? undefined : typeof raw0 === 'string' ? raw0 : undefined;
 
-  const field1 = 'outcome' in value ? value.outcome : undefined;
+  if (raw0 !== undefined && field0 === undefined) {
+    return undefined;
+  }
 
-  const field2 = 'acceptance' in value ? value.acceptance : undefined;
+  const raw1 = 'outcome' in value ? value.outcome : undefined;
+  const field1 = raw1 === undefined ? undefined : typeof raw1 === 'string' ? raw1 : undefined;
 
-  const field3 = 'kind' in value ? value.kind : undefined;
+  if (raw1 !== undefined && field1 === undefined) {
+    return undefined;
+  }
 
-  const field4 = 'fields' in value ? value.fields : undefined;
+  const raw2 = 'acceptance' in value ? value.acceptance : undefined;
+  const field2 = raw2 === undefined ? undefined : decodeBoxxyItemEditedPayloadAcceptance(raw2);
 
-  const field5 = 'labels' in value ? value.labels : undefined;
+  if (raw2 !== undefined && field2 === undefined) {
+    return undefined;
+  }
+
+  const raw3 = 'kind' in value ? value.kind : undefined;
+  const field3 = raw3 === undefined ? undefined : typeof raw3 === 'string' ? raw3 : undefined;
+
+  if (raw3 !== undefined && field3 === undefined) {
+    return undefined;
+  }
+
+  const raw4 = 'fields' in value ? value.fields : undefined;
+  const field4 = raw4 === undefined ? undefined : decodeBoxxyItemEditedPayloadFields(raw4);
+
+  if (raw4 !== undefined && field4 === undefined) {
+    return undefined;
+  }
+
+  const raw5 = 'labels' in value ? value.labels : undefined;
+  const field5 = raw5 === undefined ? undefined : decodeBoxxyItemEditedPayloadLabels(raw5);
+
+  if (raw5 !== undefined && field5 === undefined) {
+    return undefined;
+  }
 
   const raw6 = 'byAttempt' in value ? value.byAttempt : undefined;
   const field6 = raw6 === null ? null : typeof raw6 === 'string' ? raw6 : undefined;
@@ -1048,15 +1093,128 @@ function decodeBoxxyItemEditedPayload(value: unknown): BoxxyItemEditedPayload | 
   }
 
   return {
-    title: field0,
-    outcome: field1,
-    acceptance: field2,
-    kind: field3,
-    fields: field4,
-    labels: field5,
+    ...(field0 === undefined ? {} : { title: field0 }),
+    ...(field1 === undefined ? {} : { outcome: field1 }),
+    ...(field2 === undefined ? {} : { acceptance: field2 }),
+    ...(field3 === undefined ? {} : { kind: field3 }),
+    ...(field4 === undefined ? {} : { fields: field4 }),
+    ...(field5 === undefined ? {} : { labels: field5 }),
     byAttempt: field6,
     storeVersion: field7,
   };
+}
+
+function decodeBoxxyItemEditedPayloadAcceptance(value: unknown): BoxxyItemEditedPayloadAcceptanceItem[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const items: BoxxyItemEditedPayloadAcceptanceItem[] = [];
+
+  for (let index = 0; index < value.length; index += 1) {
+    const element: unknown = value[index];
+    const item = decodeBoxxyItemEditedPayloadAcceptanceItem(element);
+
+    if (item === undefined) {
+      return undefined;
+    }
+
+    items.push(item);
+  }
+
+  return items;
+}
+
+function decodeBoxxyItemEditedPayloadAcceptanceItem(value: unknown): BoxxyItemEditedPayloadAcceptanceItem | undefined {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const raw0 = 'id' in value ? value.id : undefined;
+  const field0 = typeof raw0 === 'string' ? raw0 : undefined;
+
+  if (field0 === undefined) {
+    return undefined;
+  }
+
+  const raw1 = 'text' in value ? value.text : undefined;
+  const field1 = typeof raw1 === 'string' ? raw1 : undefined;
+
+  if (field1 === undefined) {
+    return undefined;
+  }
+
+  const raw2 = 'evidence' in value ? value.evidence : undefined;
+  const field2 = decodeBoxxyItemEditedPayloadAcceptanceItemEvidence(raw2);
+
+  if (field2 === undefined) {
+    return undefined;
+  }
+
+  return {
+    id: field0,
+    text: field1,
+    evidence: field2,
+  };
+}
+
+function decodeBoxxyItemEditedPayloadAcceptanceItemEvidence(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const items: string[] = [];
+
+  for (let index = 0; index < value.length; index += 1) {
+    const element: unknown = value[index];
+    const item = typeof element === 'string' ? element : undefined;
+
+    if (item === undefined) {
+      return undefined;
+    }
+
+    items.push(item);
+  }
+
+  return items;
+}
+
+function decodeBoxxyItemEditedPayloadFields(value: unknown): BoxxyItemEditedPayloadFields | undefined {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const raw0 = 'designMode' in value ? value.designMode : undefined;
+  const field0 = raw0 === undefined ? undefined : raw0 === 'agent' || raw0 === 'attended' ? raw0 : undefined;
+
+  if (raw0 !== undefined && field0 === undefined) {
+    return undefined;
+  }
+
+  return {
+    ...(field0 === undefined ? {} : { designMode: field0 }),
+  };
+}
+
+function decodeBoxxyItemEditedPayloadLabels(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const items: string[] = [];
+
+  for (let index = 0; index < value.length; index += 1) {
+    const element: unknown = value[index];
+    const item = typeof element === 'string' ? element : undefined;
+
+    if (item === undefined) {
+      return undefined;
+    }
+
+    items.push(item);
+  }
+
+  return items;
 }
 
 function decodeBoxxyItemClosedPayload(value: unknown): BoxxyItemClosedPayload | undefined {

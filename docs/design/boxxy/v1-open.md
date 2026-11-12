@@ -75,8 +75,9 @@ Each row names the test that settles it, where one is known.
 | That a fact whose payload does not decode is reported. The scope read leaves it out with no error, so a newer boxxy server can lose a fact from a table. | Send one fact with an unknown field value. |
 | That a webhook's pull request ID equals the ID that REST returns. [`lookups.md`](./sketches/v1/pepys-package/lookups.md) compared REST with the Events API. | Compare one delivery in pepys with one REST read. |
 | That the six statements of the two queries run on the real store. They ran on the kit's test store. | Run both queries on the real store. |
-| That the GitHub plug-in's delivery module fits the stage-time query's delivery read. The tests give the read as fixed rows. | Run the stage-time query in a deployment. |
 | That a zod schema made in boxxy's copy of zod works as a family type in the kit. The peer dependency is meant to make it one copy. | Build the deployment with the package. |
+| That the GitHub plug-in's delivery module gives the release and deploy times that the stage-time query reads. The end-to-end test sends a merge only, so both stay null there. | Send a release and a deploy webhook in the end-to-end test. |
+| That the sink contract suite passes against real ingest. It runs against a stand-in; the end-to-end test sends through `createIngest` of `@pepys/ingest`. | Run the suite against `createRealPepys`. |
 | That a JSON column compares equal after a round trip, for the sleep stretches. | The shuffle test on the real store. |
 | Whether ingest stores a payload as sent or as parsed. If as parsed, a field the deployed package does not know is lost from the log. | Send one fact with an extra field and read the log. |
 | That an agent copies the atc session ID onto its telemetry records. atc's doc says so. | Read one exported record. |
@@ -87,19 +88,11 @@ Each row names the test that settles it, where one is known.
 - An agent session ID never equals the atc session ID of another session.
 - The pepys test store returns rows and links in primary key order.
 - Ingest does not check the kind of a fact's actor. boxxy's actors are kinds that no plug-in brings.
-- The consumers of the GitHub and telemetry plug-ins have the columns that the queries' consumer types name. A deployment passes them to the plug-in.
-- The pepys API serves each plug-in query on its RPC route under its snake case name.
 
 ## Needs work outside this repo
 
 | What | Where | Needed for |
 | --- | --- | --- |
-| `@pepys/kit`, `@pepys/testing` and `@pepys/cli` on npm at the version the package is built against. npm holds `0.0.1` of each, and the published peer range of `@pepys/kit` is `0.0.1`, but the package installs them from the tarballs of a prerelease. Of those three, only the kit's source differs from npm's `0.0.1`, in one type the package does not use. | pepys | moving the dev install to npm |
-| `@pepys/api` in a tarball or on npm, for its `DeploymentClient` type. The server builds the client with `@orpc/client` and passes it to the reader. | pepys | the reader on the boxxy server |
-| The GitHub and telemetry plug-ins, with the pull request entity ID built from GitHub's own ID, and a proven origin on each telemetry row | pepys | the `produced` link and the cost query |
-| A delivery module in the GitHub plug-in that gives the merge, release and deploy times of a pull request | pepys | the stage-time query |
-| The telemetry plug-in, with `origin_issuer` and `origin_subject` on each row | pepys | the cost query |
-| An export of the ingest receive route's handler from `@pepys/kit` | pepys | the sink contract run against real ingest |
 | A broker that signs each call with the identity token. The verifier is `@impz/client` 6.12.0, which `@boxxy/caller-proof-imp` uses. | impz | the proven caller |
 | A broker rule for the boxxy host, one trust document per broker host, and the worker token | the cloud repo | the worker path |
 | The boxxy CLI and the hook plug-in in the agent image, and `BOXXY_URL` in an atc auth profile | the cloud repo | every session call |

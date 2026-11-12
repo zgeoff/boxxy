@@ -67,7 +67,15 @@
           },
           {
             "name": "pepys-kit",
-            "modules": ["@pepys/kit", "@pepys/kit/send", "@pepys/testing"],
+            "modules": [
+              "@pepys/api",
+              "@pepys/ingest",
+              "@pepys/kit",
+              "@pepys/kit/send",
+              "@pepys/source-github",
+              "@pepys/source-telemetry",
+              "@pepys/testing"
+            ],
             "allow": ["pepys-package"],
             "reason": "only packages/pepys binds to the pepys kit; take its sink and reader through the ports"
           },

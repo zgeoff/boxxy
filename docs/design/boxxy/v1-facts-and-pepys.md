@@ -101,7 +101,7 @@ The consumer runs in scope mode, with one scope per item. From an item's facts i
 
 [`02-queries.ts`](./sketches/v1/pepys-package/02-queries.ts) holds both queries and their output schemas, which are declared once in `@boxxy/model`. Each query takes one item.
 
-The deployment builds the plug-in with `buildBoxxyPlugin`, and passes it the GitHub and telemetry consumers that the queries read, with the GitHub plug-in's delivery read. The package's types name the columns that each query reads, so a consumer with fewer columns fails the type check.
+The deployment builds the plug-in with `buildBoxxyPlugin`, and passes it the GitHub and telemetry consumers that the queries read, with the GitHub plug-in's delivery read. The deployment writes that read itself, because `@boxxy/pepys` does not depend on the GitHub plug-in at run time: it finds the pull requests through the `produced` links of the item's attempts, and passes them to the delivery module's `selectPullRequestDelivery`. `createRealPepys` in `@boxxy/pepys/test-utils` holds one such read. The package's types name the columns that each query reads, so a consumer with fewer columns fails the type check.
 
 ### `boxxy_cost_to_land`
 

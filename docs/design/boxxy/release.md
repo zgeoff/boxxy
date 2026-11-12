@@ -14,11 +14,11 @@ A deployment installs these:
 | the pepys deployment | `@boxxy/pepys`, the plug-in, and `@boxxy/model` |
 | the agent image | `@boxxy/cli` |
 
-`@boxxy/pepys` lists `@pepys/kit` and `zod` as peer dependencies, so the plug-in uses the deployment's own copy of each. The peer range of `@pepys/kit` is an exact npm version: a pepys release can change the glue the plug-in ships, so a boxxy release names the one kit version it was built against. Inside this repo, the root `overrides` and the dev dependencies of `@boxxy/pepys` point the `@pepys/*` packages at a prerelease kit, which never reaches the dependencies or peer dependencies of a published manifest.
+`@boxxy/pepys` lists `@pepys/kit` and `zod` as peer dependencies, so the plug-in uses the deployment's own copy of each. The peer range of `@pepys/kit` is `^0.1.0`, so a deployment can take any `0.1.x` kit, and a boxxy release moves the range when it moves to a new minor kit version. Inside this repo, the root catalog pins every `@pepys/*` package that boxxy installs to one exact npm version, and the dev dependencies of `@boxxy/pepys` take them from the catalog.
 
 A package never names an export that its tarball lacks, and never ships source that imports a name its install does not bring. The publish packs each package, reads the tarball's file list, and refuses the run before `npm publish` when an `exports` target has no packed file, or a packed `src` file imports a bare name that is in no `dependencies`, `peerDependencies` or `optionalDependencies` field. `bun` and the `node:` and `bun:` modules count as listed. The CI rehearsal makes both checks on every package.
 
-A `src/test-utils/` folder ships and is exported with its package. A helper there may import a package that only a user of the helper needs. The package lists it as an optional peer dependency and keeps the dev dependency for the workspace: `@boxxy/pepys` lists `@pepys/testing`, `@boxxy/forge-github` and `@boxxy/store-sqlite` list `@boxxy/dispatch`, `@boxxy/dispatch` lists `@boxxy/rules`, and `@boxxy/closeout` lists `@faker-js/faker`. A `workspace:*` peer packs as the release's exact version.
+A `src/test-utils/` folder ships and is exported with its package. A helper there may import a package that only a user of the helper needs. The package lists it as an optional peer dependency and keeps the dev dependency for the workspace: `@boxxy/pepys` lists `@pepys/testing`, `@pepys/ingest`, `@pepys/api`, the GitHub and telemetry plug-ins and `@orpc/client` for its two test deployments, `@boxxy/forge-github` and `@boxxy/store-sqlite` list `@boxxy/dispatch`, `@boxxy/dispatch` lists `@boxxy/rules`, and `@boxxy/closeout` lists `@faker-js/faker`. A `workspace:*` peer packs as the release's exact version.
 
 ## One version for every package
 
@@ -44,4 +44,4 @@ The [releasing runbook](../../runbooks/releasing.md#publish-a-new-package) gives
 
 A deployment pins every `@boxxy/*` line of its `package.json` to one exact version, and its lockfile to the same. Its release check reads the version that npm holds for `@boxxy/server`, and moves every `@boxxy/*` line to that version in one change. Because every package shares the version, that one read is enough: no package of a release can sit at another version.
 
-The deployment also pins `@pepys/kit` to the version that `@boxxy/pepys` names as its peer. When pepys publishes a new kit version, boxxy moves its dev dependencies and the root `overrides` to npm at that version, regenerates the glue, sets the peer range to match, and releases; the deployment then moves both pins together.
+The deployment also pins `@pepys/kit` to a version in the peer range of `@boxxy/pepys`. When pepys publishes a new minor kit version, boxxy moves the `@pepys/*` lines of the root catalog to that version, regenerates the glue, sets the peer range to match, and releases; the deployment then moves both pins together.
