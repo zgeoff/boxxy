@@ -1,5 +1,6 @@
 import type { Command } from '../types.ts';
 import { attemptCommands } from './attempt-commands.ts';
+import { authCommands } from './auth-commands.ts';
 import { hookCommands } from './hook-commands.ts';
 import { itemCommands } from './item-commands.ts';
 import { planCommands } from './plan-commands.ts';
@@ -13,6 +14,7 @@ export const allCommands: readonly Command[] = [
   ...relationCommands,
   ...planCommands,
   ...runnerCommands,
+  ...authCommands,
   ...reportCommands,
   ...attemptCommands,
   ...hookCommands,

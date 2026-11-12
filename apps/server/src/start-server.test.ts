@@ -1,9 +1,10 @@
 import { expect, onTestFinished, test } from 'bun:test';
-import { cp, mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, rm, stat, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import invariant from 'tiny-invariant';
 import { startServer } from './start-server.ts';
+import { readHttpStatus } from './test-utils/read-http-status.ts';
 
 async function setupTest() {
   const folder = await mkdtemp(path.join(tmpdir(), 'boxxy-test-server-'));
@@ -146,4 +147,72 @@ test('it starts both listeners on the ports the system picks', async () => {
   expect([answer.server.ownerPort, answer.server.workerPort]).toSatisfyAll(
     (port: number) => port > 0,
   );
+});
+
+test('it starts no public door when the configuration has none', async () => {
+  const ctx = await setupTest();
+  const answer = await ctx.start({});
+
+  invariant(answer.kind === 'started', 'the server starts');
+
+  expect(answer.server.publicPort).toBeNull();
+});
+
+test('it serves the MCP route and nothing else on the public door, on a port of its own', async () => {
+  const ctx = await setupTest();
+
+  await ctx.addConfigSections({
+    publicDoor: {
+      port: 0,
+      publicURL: 'http://127.0.0.1:4455',
+      authFile: path.join(ctx.folder, 'auth.db'),
+    },
+  });
+
+  const answer = await ctx.start({});
+
+  invariant(answer.kind === 'started', 'the server starts');
+  invariant(answer.server.publicPort !== null, 'the server runs a public door');
+
+  const base = `http://127.0.0.1:${answer.server.publicPort}`;
+
+  const mcp = await readHttpStatus(`${base}/mcp`, 'POST');
+  const rpc = await readHttpStatus(`${base}/rpc/item/list`, 'POST');
+  const health = await readHttpStatus(`${base}/healthz`, 'GET');
+
+  expect([mcp, rpc, health, answer.server.publicPort]).toStrictEqual([
+    401,
+    404,
+    404,
+    expect.not.toBeOneOf([answer.server.ownerPort, answer.server.workerPort]),
+  ]);
+});
+
+test('it keeps the auth database next to the store with mode 0600 when the configuration names no file', async () => {
+  const ctx = await setupTest();
+
+  await ctx.addConfigSections({
+    publicDoor: { port: 0, publicURL: 'http://127.0.0.1:4455' },
+  });
+
+  await ctx.start({});
+
+  const info = await stat(path.join(ctx.folder, 'boxxy-auth.db'));
+
+  expect(info.mode & 0o777).toBe(0o600);
+});
+
+test('it refuses to start a public door that listens beyond loopback with a plain http address', async () => {
+  const ctx = await setupTest();
+
+  await ctx.addConfigSections({
+    publicDoor: { port: 0, hostname: '0.0.0.0', publicURL: 'http://127.0.0.1:4455' },
+  });
+
+  const answer = await ctx.start({});
+
+  expect(answer).toStrictEqual({
+    kind: 'refused',
+    message: expect.stringContaining('the public door needs an https public URL'),
+  });
 });
