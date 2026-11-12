@@ -107,6 +107,30 @@ test('it reads the files of the checked commit when the working tree holds other
   );
 });
 
+test('it reads the committed bytes when a replace object stands in for the rules blob', async () => {
+  const ctx = await setupTest();
+
+  await ctx.writeFile('rules.yaml', 'version: 1\n');
+  await ctx.runGit(['init', '-q']);
+  await ctx.runGit(['add', '.']);
+  await ctx.runGit(['commit', '-q', '-m', 'add the rules']);
+  await ctx.runGit(['update-ref', 'refs/remotes/origin/main', 'HEAD']);
+  await ctx.writeFile('unreviewed.yaml', 'version: 2\n');
+
+  const reviewed = await ctx.runGit(['rev-parse', 'HEAD:rules.yaml']);
+  const unreviewed = await ctx.runGit(['hash-object', '-w', 'unreviewed.yaml']);
+
+  await ctx.runGit(['replace', reviewed.text().trim(), unreviewed.text().trim()]);
+
+  await rm(path.join(ctx.folder, 'unreviewed.yaml'));
+
+  const answer = await readRulesCheckout({ folder: ctx.folder, ref: 'origin/main' });
+
+  expect(answer.kind === 'read' && ctx.decode(answer.checkout.files.get('rules.yaml'))).toBe(
+    'version: 1\n',
+  );
+});
+
 test('it refuses a git checkout whose commit holds a symlink', async () => {
   const ctx = await setupTest();
 

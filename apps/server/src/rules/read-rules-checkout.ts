@@ -25,7 +25,11 @@ export function readRulesCheckout(source: RulesSource): Promise<CheckoutAnswer> 
 async function readGitCheckout(source: RulesSource): Promise<CheckoutAnswer> {
   const folder = source.folder;
 
-  const status = await $`git -C ${folder} status --porcelain`.quiet().nothrow();
+  // Every git call ignores `git replace`, which could swap a reviewed object for unreviewed bytes
+  // while HEAD and the tree stay clean.
+  const status = await $`git --no-replace-objects -C ${folder} status --porcelain`
+    .quiet()
+    .nothrow();
 
   if (status.exitCode !== 0) {
     return { kind: 'rejected', reason: `git could not read ${folder}` };
@@ -35,9 +39,10 @@ async function readGitCheckout(source: RulesSource): Promise<CheckoutAnswer> {
     return { kind: 'rejected', reason: 'the rules checkout has uncommitted changes' };
   }
 
-  const ref = await $`git -C ${folder} rev-parse --verify --quiet ${`${source.ref}^{commit}`}`
-    .quiet()
-    .nothrow();
+  const ref =
+    await $`git --no-replace-objects -C ${folder} rev-parse --verify --quiet ${`${source.ref}^{commit}`}`
+      .quiet()
+      .nothrow();
 
   if (ref.exitCode !== 0) {
     return { kind: 'rejected', reason: `git could not read the rules ref ${source.ref}` };
@@ -45,7 +50,10 @@ async function readGitCheckout(source: RulesSource): Promise<CheckoutAnswer> {
 
   // HEAD can move while the server reads, so every later step names this one commit ID, and the
   // files come from git, never from the working tree.
-  const head = await $`git -C ${folder} rev-parse --verify --quiet HEAD^{commit}`.quiet().nothrow();
+  const head =
+    await $`git --no-replace-objects -C ${folder} rev-parse --verify --quiet HEAD^{commit}`
+      .quiet()
+      .nothrow();
 
   if (head.exitCode !== 0) {
     return { kind: 'rejected', reason: `git could not read the HEAD of ${folder}` };
@@ -53,9 +61,10 @@ async function readGitCheckout(source: RulesSource): Promise<CheckoutAnswer> {
 
   const commit = head.text().trim();
 
-  const merged = await $`git -C ${folder} merge-base --is-ancestor ${commit} ${source.ref}`
-    .quiet()
-    .nothrow();
+  const merged =
+    await $`git --no-replace-objects -C ${folder} merge-base --is-ancestor ${commit} ${source.ref}`
+      .quiet()
+      .nothrow();
 
   if (merged.exitCode !== 0) {
     return {
@@ -64,7 +73,9 @@ async function readGitCheckout(source: RulesSource): Promise<CheckoutAnswer> {
     };
   }
 
-  const listed = await $`git -C ${folder} ls-tree -r -z --full-tree ${commit}`.quiet().text();
+  const listed = await $`git --no-replace-objects -C ${folder} ls-tree -r -z --full-tree ${commit}`
+    .quiet()
+    .text();
 
   const entries = listed
     .split('\0')
@@ -113,7 +124,8 @@ async function readCommitFiles(
     entries
       .toSorted((left, right) => (left.path < right.path ? -1 : 1))
       .map(async (entry): Promise<[string, Uint8Array]> => {
-        const blob = await $`git -C ${folder} cat-file blob ${entry.object}`.quiet();
+        const blob =
+          await $`git --no-replace-objects -C ${folder} cat-file blob ${entry.object}`.quiet();
 
         return [entry.path, new Uint8Array(blob.stdout)];
       }),
