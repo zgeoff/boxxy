@@ -2,29 +2,28 @@
 
 ## [0.1.8](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.1.7...@boxxy/server@0.1.8) (2026-11-12)
 
-
 ### Bug Fixes
 
-* **store-sqlite:** keep sqlite temp files in memory ([90700b8](https://github.com/zgeoff/boxxy/commit/90700b875e08eee115cc3619a3649018c1a3a9a3))
-
+- **store-sqlite:** keep sqlite temp files in memory
+  ([90700b8](https://github.com/zgeoff/boxxy/commit/90700b875e08eee115cc3619a3649018c1a3a9a3))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/caller-proof-imp bumped to 0.1.8
-    * @boxxy/closeout bumped to 0.1.8
-    * @boxxy/content-hash bumped to 0.1.8
-    * @boxxy/contract bumped to 0.1.8
-    * @boxxy/dispatch bumped to 0.1.8
-    * @boxxy/forge-github bumped to 0.1.8
-    * @boxxy/model bumped to 0.1.8
-    * @boxxy/notifier-atc bumped to 0.1.8
-    * @boxxy/pepys bumped to 0.1.8
-    * @boxxy/planning bumped to 0.1.8
-    * @boxxy/rules bumped to 0.1.8
-    * @boxxy/store-sqlite bumped to 0.1.8
-    * @boxxy/worker-atc bumped to 0.1.8
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/caller-proof-imp bumped to 0.1.8
+    - @boxxy/closeout bumped to 0.1.8
+    - @boxxy/content-hash bumped to 0.1.8
+    - @boxxy/contract bumped to 0.1.8
+    - @boxxy/dispatch bumped to 0.1.8
+    - @boxxy/forge-github bumped to 0.1.8
+    - @boxxy/model bumped to 0.1.8
+    - @boxxy/notifier-atc bumped to 0.1.8
+    - @boxxy/pepys bumped to 0.1.8
+    - @boxxy/planning bumped to 0.1.8
+    - @boxxy/rules bumped to 0.1.8
+    - @boxxy/store-sqlite bumped to 0.1.8
+    - @boxxy/worker-atc bumped to 0.1.8
 
 ## [0.1.7](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.1.6...@boxxy/server@0.1.7) (2026-11-12)
 
