@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.2.2](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.1...@boxxy/server@0.2.2) (2026-11-12)
+
+
+### Features
+
+* **review:** add the review phase on the noslop review gate ([303381e](https://github.com/zgeoff/boxxy/commit/303381ec2850ee40231148e0ee7931a49a30e9c3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/auth-oauth bumped to 0.2.2
+    * @boxxy/caller-proof-imp bumped to 0.2.2
+    * @boxxy/closeout bumped to 0.2.2
+    * @boxxy/content-hash bumped to 0.2.2
+    * @boxxy/contract bumped to 0.2.2
+    * @boxxy/dispatch bumped to 0.2.2
+    * @boxxy/forge-github bumped to 0.2.2
+    * @boxxy/model bumped to 0.2.2
+    * @boxxy/notifier-atc bumped to 0.2.2
+    * @boxxy/pepys bumped to 0.2.2
+    * @boxxy/planning bumped to 0.2.2
+    * @boxxy/review-noslop bumped to 0.2.2
+    * @boxxy/rules bumped to 0.2.2
+    * @boxxy/store-sqlite bumped to 0.2.2
+    * @boxxy/worker-atc bumped to 0.2.2
+
 ## [0.2.1](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.0...@boxxy/server@0.2.1) (2026-11-12)
 
 ### Features
