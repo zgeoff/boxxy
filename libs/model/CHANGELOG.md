@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.0](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.1.9...@boxxy/model@0.2.0) (2026-11-12)
+
+### Features
+
+- **notices:** retry notices with backoff and keep each key on its row
+  ([#89](https://github.com/zgeoff/boxxy/issues/89))
+  ([b172a2b](https://github.com/zgeoff/boxxy/commit/b172a2bc47610f1a3ddf246a9123db6898358f07))
+
+### Bug Fixes
+
+- **dispatch:** read only sendable notices so used-up ones block none
+  ([c79b3b3](https://github.com/zgeoff/boxxy/commit/c79b3b3f6ad5d5b6f576dced6189d7b31a1619f9))
+- **model:** rename the store version field of the decision fact
+  ([8407926](https://github.com/zgeoff/boxxy/commit/8407926275355fc3a8bd8bb016a00786136609c1))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.2.0
+
 ## [0.1.9](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.1.8...@boxxy/model@0.1.9) (2026-11-12)
 
 ### Features

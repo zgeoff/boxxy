@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.2.0](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.1.9...@boxxy/cli@0.2.0) (2026-11-12)
+
+### Bug Fixes
+
+- **cli:** check the skills folder just before each skill's copy
+  ([b3364ec](https://github.com/zgeoff/boxxy/commit/b3364ec892da80c115e35e6469e560a24299b411))
+- **cli:** keep the skills git from inheriting repository variables
+  ([5d19e23](https://github.com/zgeoff/boxxy/commit/5d19e23216371126f1dcbdc544388ea5b4cf55e1))
+- **cli:** read a help word that is a flag value as the value
+  ([0e3af21](https://github.com/zgeoff/boxxy/commit/0e3af211b46c5ae6fc8f7b0db32a2d35f78d08f2))
+- **cli:** refuse to install skills through a linked skills folder
+  ([61efe00](https://github.com/zgeoff/boxxy/commit/61efe001d46a5733a56cddf9136a2b2a5da2f38c))
+- **cli:** report a skill as missing when its copy fails
+  ([b00ea48](https://github.com/zgeoff/boxxy/commit/b00ea481479d6a3949ad0ff268b8b7299d1f75c8))
+- **cli:** tell a worker session how to close out
+  ([7d397e2](https://github.com/zgeoff/boxxy/commit/7d397e2919e652d825e40f83cebb4ac55e0716b0))
+- **contract:** drop the held bind answer that no server sends
+  ([9dff204](https://github.com/zgeoff/boxxy/commit/9dff204ea202f6338ddd2f1b521693fa7ce2de76))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/contract bumped to 0.2.0
+    - @boxxy/model bumped to 0.2.0
+
 ## [0.1.9](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.1.8...@boxxy/cli@0.1.9) (2026-11-12)
 
 ### Miscellaneous Chores
