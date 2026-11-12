@@ -319,7 +319,7 @@
     "@orpc/mcp": "2.0.0-beta.50",
     "@orpc/server": "2.0.0-beta.50",
     "@pepys/api": "0.1.1",
-    "@pepys/cli": "0.1.1",
+    "@pepys/cli": "0.2.0",
     "@pepys/ingest": "0.1.1",
     "@pepys/kit": "0.1.1",
     "@pepys/source-github": "0.1.1",
@@ -680,7 +680,7 @@
 
     "@pepys/api": ["@pepys/api@0.1.1", "", { "dependencies": { "@modelcontextprotocol/server": "2.4.0", "@orpc/contract": "2.0.0-beta.50", "@orpc/mcp": "2.0.0-beta.50", "@orpc/openapi": "2.0.0-beta.50", "@orpc/server": "2.0.0-beta.50", "@pepys/contract": "0.1.1", "@pepys/kit": "0.1.1", "@pepys/kysely-turso": "0.1.1", "@pepys/schema": "0.1.1", "@tursodatabase/database": "0.8.3", "elysia": "2.0.0-rc.1", "exact-mirror": "1.2.7", "kysely": "0.29.8", "openapi-types": "12.1.3", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2", "type-fest": "5.10.0", "typebox": "1.4.4", "zod": "4.6.7" } }, "sha512-tnJzn6B7kY77SDmHkHFibBJHjxMUFw/rEEgdTRYSPqc/UNuv+zsYantMOl2rwfpdXLjezMPoxFA9DS68Ofs5BA=="],
 
-    "@pepys/cli": ["@pepys/cli@0.1.1", "", { "dependencies": { "@pepys/kit": "0.1.1", "@pepys/schema": "0.1.1", "@scriptc/runtime-wasm32-wasi": "0.4.5", "@zgeoff/std": "0.4.3", "scriptc": "0.4.5", "ts-pattern": "5.9.2" }, "bin": { "pepys": "src/bin.ts" } }, "sha512-jXXCkEsUw3has63aU/bOQg+yT9CcudDsNY6gN3ZdSTMwKdZKKRnRjFTJQJewd5uCFGE+Wz/ebcZIQtk7UNPQkQ=="],
+    "@pepys/cli": ["@pepys/cli@0.2.0", "", { "dependencies": { "@pepys/kit": "0.2.0", "@pepys/schema": "0.2.0", "@scriptc/runtime-wasm32-wasi": "0.4.5", "@zgeoff/std": "0.4.3", "scriptc": "0.4.5", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2" }, "bin": { "pepys": "src/bin.ts" } }, "sha512-qUL2zjCwrWb6s7rPOZNOyJCkIm+Gm6jksm8Ny71q5KKrl9uG542VsSOTsC2bW6XJfDNj9D51DU4zYEcyHR8E4w=="],
 
     "@pepys/contract": ["@pepys/contract@0.1.1", "", { "dependencies": { "@orpc/contract": "2.0.0-beta.50", "@orpc/openapi": "2.0.0-beta.50", "zod": "4.6.7" } }, "sha512-h+pVrGAEn5CWpk+GMIsNAL9PWdhYy4/j7ynI9fmSnbd1CXZ2nsbL+9AoorVkTuHUW5pbkrvShvEGRj2y9TNHIA=="],
 
@@ -1209,6 +1209,10 @@
     "@pepys/api/exact-mirror": ["exact-mirror@1.2.7", "", { "peerDependencies": { "typebox": ">= 1.1.0" }, "optionalPeers": ["typebox"] }, "sha512-HhEYVm/y8qbEFnErtr0K7Jsuy0GzRlblZVyeaMoZBSKBDpNuELwzsWtzXQjezFVPka6ZqFaD6+EW3TW+x59vrw=="],
 
     "@pepys/api/typebox": ["typebox@1.4.4", "", {}, "sha512-ctPyL8BZibv6HYU6cE3ldDtfCTh7nXM7WPuL3KQVyRRhMnZEzU3o2yLVywxEEFmKEx+8EdeqG1/uTNzazRbxLA=="],
+
+    "@pepys/cli/@pepys/kit": ["@pepys/kit@0.2.0", "", { "dependencies": { "@zgeoff/std": "0.4.3", "kysely": "0.29.8", "ts-pattern": "5.9.2", "type-fest": "5.10.0", "zod": "4.6.7" } }, "sha512-rmIMzOH7cIEl+PKZ/i7WVDv8HdzLIdWmQxV073eY5ybf+MhNrjH7m1wZIQ0uA876Of5e9j+tlyvXaeknuPlfVw=="],
+
+    "@pepys/cli/@pepys/schema": ["@pepys/schema@0.2.0", "", { "dependencies": { "@pepys/kit": "0.2.0", "@zgeoff/std": "0.4.3", "ts-pattern": "5.9.2", "zod": "4.6.7" } }, "sha512-wHq76Q2wQ1T9Y8jqc9Abj3LZyceXSD/1vUN6hAm/ESj1BT6oscULPGjW7zFZqmhELVj0RPq3Krv5t0ws3Rxv+A=="],
 
     "@zgeoff/format-codemod/oxc-parser": ["oxc-parser@0.155.0", "", { "dependencies": { "@oxc-project/types": "^0.155.0" }, "optionalDependencies": { "@oxc-parser/binding-android-arm-eabi": "0.155.0", "@oxc-parser/binding-android-arm64": "0.155.0", "@oxc-parser/binding-darwin-arm64": "0.155.0", "@oxc-parser/binding-darwin-x64": "0.155.0", "@oxc-parser/binding-freebsd-x64": "0.155.0", "@oxc-parser/binding-linux-arm-gnueabihf": "0.155.0", "@oxc-parser/binding-linux-arm-musleabihf": "0.155.0", "@oxc-parser/binding-linux-arm64-gnu": "0.155.0", "@oxc-parser/binding-linux-arm64-musl": "0.155.0", "@oxc-parser/binding-linux-ppc64-gnu": "0.155.0", "@oxc-parser/binding-linux-riscv64-gnu": "0.155.0", "@oxc-parser/binding-linux-riscv64-musl": "0.155.0", "@oxc-parser/binding-linux-s390x-gnu": "0.155.0", "@oxc-parser/binding-linux-x64-gnu": "0.155.0", "@oxc-parser/binding-linux-x64-musl": "0.155.0", "@oxc-parser/binding-openharmony-arm64": "0.155.0", "@oxc-parser/binding-win32-arm64-msvc": "0.155.0", "@oxc-parser/binding-win32-ia32-msvc": "0.155.0", "@oxc-parser/binding-win32-x64-msvc": "0.155.0" } }, "sha512-C/ReSf1JUFukK/zvk6jhcNibSssvas5+ktIzK7fbKVd3CedWe59C3QwHEOrEZj/4Rt9+xg0Jeis/Jv1F/KM1mw=="],
 
