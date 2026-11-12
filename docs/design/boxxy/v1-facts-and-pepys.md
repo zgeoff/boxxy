@@ -62,6 +62,7 @@ The `FactSink` port has three forms (section C): the pepys adapter, which uses t
 
 - **Every fact names an item as its entity**, and a fact about an attempt carries the attempt in its payload. One scope in pepys then holds every fact of one item, so the consumer rebuilds an item from one read, in any arrival order. A relation fact names its source item.
 - **The fact ID on the wire** is `event:boxxy:<event>`, where the event is the outbox row's fact ID.
+- **The item body is in the `filed` fact, and in an `edited` fact when it changes.** A `filed` fact stored before the body existed reads as an empty body. The `@boxxy/pepys` schemas accept the body and the design text of a design close-out, and the package keeps no column for either: no query reads them, and the fact log keeps them. The owner door refuses a file or an edit whose fact would pass the outbox's limit of one fact ([the body](./v1.md#the-ledger-labels-notes-and-relations)).
 - **A runner pause or resume writes no fact**, because it names no item.
 - **Three settle causes have no fact of their own.** `stalled`, `skill-missing` and a capacity refusal show on the `settled` fact.
 - **The schemas are declared once**, in `@boxxy/model`. The store checks each fact against them. The wire schema in `@boxxy/pepys` is the model's schema plus the store version, which the sink adds. No model schema has a `storeVersion` field, so the decision fact carries the version of the snapshot it read as `snapshotStoreVersion`.

@@ -106,7 +106,7 @@ Section D of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the table of ca
 
 - **The first valid close-out is final.** A later call cannot replace it.
 - **A call reaches the attempt it names, and only when that attempt is the current one of the calling session.** The current attempt is the latest attempt that the session carries, and its own row must hold the proven caller. The session reads its attempt ID with `attempt.current`. [API and auth](./v1-api-and-auth.md#the-proven-caller) has the rule in full.
-- **The size limit is on the close-out as stored**, so an accepted close-out always fits one outbox item. `closeOutLimits` in [`02-types.ts`](./sketches/v1/core/02-types.ts) holds the numbers and the reason for each.
+- **The size limit is on the close-out as stored**, so an accepted close-out always fits one outbox item. It bounds the design text of a design close-out too, which has no limit of its own. `closeOutLimits` in [`02-types.ts`](./sketches/v1/core/02-types.ts) holds the numbers and the reason for each.
 
 ## Closing, the stop and the give-up rule
 
@@ -147,7 +147,7 @@ Section H of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the table. One 
 
 1. A build attempt settles `built`. boxxy stops its session and keeps it, and records the kept session on the item.
 2. The review runs in its own session.
-3. When the review asks for changes, the claim of the next build attempt wakes the kept session and sends the review's findings as a message. The new attempt binds to the same atc session.
+3. When the review asks for changes, the claim of the next build attempt wakes the kept session and sends the [launch prompt](./v1.md#the-launch-prompt) of the new attempt as a message. The prompt carries the findings. The new attempt binds to the same atc session.
 4. When the wake fails or the session is gone, boxxy spawns a fresh session, and the `started` fact says so. Either way the item's kept session is cleared when the new attempt starts. A wake refused for capacity settles the attempt as `no-capacity`, and a wake with no answer goes to the reconcile table; both keep the kept session. A respawn from the reconcile table wakes the kept session again, because a lost reply can leave it running, and a fresh spawn would run beside it.
 
 A kept session holds no seat while it sleeps. It is state of the item, outside the attempt machine: the first attempt has succeeded, and the second starts with the plain claim and start events. One atc session then carries two attempts, so the session ID alone does not say which attempt a call is for. The resumed session reads `attempt.current` again and gets the new attempt's ID. boxxy forgets a kept session when the item is done or closed, and 24 hours after it was kept, unless a live attempt runs on it.

@@ -15,6 +15,46 @@ import type { ClaimStoreCase } from './types.ts';
 
 export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
   [
+    '#readItem returns the body that the item was filed with, and the body after an update',
+    async (store) => {
+      const item = buildMockV1ItemRow({ body: '## Context\n\nThe first body.' });
+      const now = brandSchemas.instant.parse(5000);
+
+      await store.exclusive((transaction) =>
+        transaction.applyChange(buildMockFileItemChange(item)),
+      );
+
+      const filed = await store.read((transaction) =>
+        transaction.readItem(item.id, now, buildMockItemRules()),
+      );
+
+      await store.exclusive((transaction) =>
+        transaction.applyChange({
+          at: now,
+          writes: [
+            {
+              op: 'update',
+              table: 'items',
+              key: { id: item.id },
+              expect: {},
+              set: { body: 'The second body.' },
+            },
+          ],
+          facts: [],
+        }),
+      );
+
+      const edited = await store.read((transaction) =>
+        transaction.readItem(item.id, now, buildMockItemRules()),
+      );
+
+      return {
+        received: [filed?.body, edited?.body],
+        expected: ['## Context\n\nThe first body.', 'The second body.'],
+      };
+    },
+  ],
+  [
     '#readSnapshot holds the open items, the store version and the limits',
     async (store) => {
       const open = buildMockV1ItemRow();

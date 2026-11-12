@@ -22,12 +22,14 @@ export { defineSignal } from './planning/define-signal.ts';
 export { buildPhase, deriveItemState } from './items/derive-item-state.ts';
 export { designCloseOutSchema } from './closeouts/design-close-out-schema.ts';
 export { evidenceRowSchema } from './rows/evidence-row-schema.ts';
+export { getLaunchSections } from './closeouts/get-launch-sections.ts';
 export { findPosition } from './pipeline/find-position.ts';
 export { formatKeyPath } from './utils/format-key-path.ts';
 export { frictionSchema } from './closeouts/friction-schema.ts';
 export { isFilterMatch } from './planning/is-filter-match.ts';
+export { itemBodyMaxChars } from './rows/item-body-max-chars.ts';
+export { itemListViewSchema, itemViewSchema } from './rows/item-view-schema.ts';
 export { itemRowSchema } from './rows/item-row-schema.ts';
-export { itemViewSchema } from './rows/item-view-schema.ts';
 export { leverRowSchema } from './rows/lever-row-schema.ts';
 export { limitFillSchema } from './planning/limit-fill-schema.ts';
 export { limitSchema } from './rows/limit-schema.ts';
@@ -87,6 +89,7 @@ export type {
   ItemKindName,
   ItemRow,
   ItemState,
+  ItemListView,
   ItemView,
   KeptSession,
   KnownFailure,
@@ -148,7 +151,7 @@ export type {
   CloseOutWorld,
   CriterionText,
   DesignCloseOut,
-  DesignRef,
+  Design,
   Effect,
   Finding,
   Friction,

@@ -61,7 +61,7 @@ test('it records the first valid close-out and moves the attempt to closing', as
   const attempt = await ctx.claimDesign();
 
   const answer = await ctx.closeOut(attempt, {
-    result: { kind: 'designed', design: { summary: 'Follow the system theme.', location: null } },
+    result: { kind: 'designed', design: { text: 'Follow the system theme.', location: null } },
     friction: [],
   });
 
@@ -85,7 +85,7 @@ test('it answers the same body again as a repeat with the first fact and writes 
   const attempt = await ctx.claimDesign();
 
   const body = {
-    result: { kind: 'designed', design: { summary: 'Follow the system theme.', location: null } },
+    result: { kind: 'designed', design: { text: 'Follow the system theme.', location: null } },
     friction: [],
   };
 
@@ -104,7 +104,7 @@ test('it refuses a different body after the first close-out as already closed ou
   const attempt = await ctx.claimDesign();
 
   await ctx.closeOut(attempt, {
-    result: { kind: 'designed', design: { summary: 'Follow the system theme.', location: null } },
+    result: { kind: 'designed', design: { text: 'Follow the system theme.', location: null } },
     friction: [],
   });
 
@@ -148,7 +148,7 @@ test('it refuses a close-out of an attempt closing by another cause as not curre
   await ctx.closeItem(attempt.item, 'no longer wanted');
 
   const answer = await ctx.closeOut(attempt, {
-    result: { kind: 'designed', design: { summary: 'Follow the system theme.', location: null } },
+    result: { kind: 'designed', design: { text: 'Follow the system theme.', location: null } },
     friction: [],
   });
 
@@ -160,7 +160,7 @@ test('it refuses another body for a settled attempt as not current', async () =>
   const attempt = await ctx.claimDesign();
 
   await ctx.closeOut(attempt, {
-    result: { kind: 'designed', design: { summary: 'Follow the system theme.', location: null } },
+    result: { kind: 'designed', design: { text: 'Follow the system theme.', location: null } },
     friction: [],
   });
 

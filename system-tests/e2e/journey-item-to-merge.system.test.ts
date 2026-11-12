@@ -222,7 +222,7 @@ test('it takes an item through triage, design, build, review, one rework round a
     workMinutes: 10,
     closeOut: () =>
       Promise.resolve({
-        result: { kind: 'designed', design: { summary: 'Read the media query.', location: null } },
+        result: { kind: 'designed', design: { text: 'Read the media query.', location: null } },
         friction: [],
       }),
   });

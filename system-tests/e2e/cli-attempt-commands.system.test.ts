@@ -18,7 +18,7 @@ async function setupTest() {
 
   const designed = {
     kind: 'designed',
-    design: { summary: 'Follow the system theme.', location: null },
+    design: { text: 'Follow the system theme.', location: null },
   };
 
   const designBody = JSON.stringify({ result: designed, friction: [] });
@@ -110,7 +110,7 @@ test('#attempt close-out exits 1 for a different body after the first valid one'
 
   const result = await ctx.run(['attempt', 'close-out'], {
     stdin: JSON.stringify({
-      result: { kind: 'designed', design: { summary: 'Another design.', location: null } },
+      result: { kind: 'designed', design: { text: 'Another design.', location: null } },
       friction: [],
     }),
   });

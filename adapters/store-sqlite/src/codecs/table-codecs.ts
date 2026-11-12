@@ -25,6 +25,7 @@ export const tableCodecs: { readonly [T in TableName]: TableCodec<Tables[T]> } =
       'closedAt',
       'closeReason',
       'keptSession',
+      'body',
     ],
     json: ['acceptance', 'fields', 'labels', 'keptSession'],
     flags: [],

@@ -56,3 +56,18 @@ test('it rejects a body that is no phase close-out', () => {
 
   expect(closeOutSchema.safeParse(closeOut).success).toBe(false);
 });
+
+test('it reads a stored design close-out that holds a summary as one with the design text', () => {
+  const stored = {
+    result: { kind: 'designed', design: { summary: 'One retry button', location: null } },
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  const parsed: unknown = closeOutSchema.safeParse(stored).data;
+
+  expect(parsed).toStrictEqual({
+    ...stored,
+    result: { kind: 'designed', design: { text: 'One retry button', location: null } },
+  });
+});

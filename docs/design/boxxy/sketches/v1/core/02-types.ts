@@ -29,6 +29,10 @@ export interface ItemRow {
   // no index signature: an open record would let a fact carry a field that no schema checks.
   readonly fields: { readonly designMode?: DesignMode };
 
+  // Markdown for the agent, 40,000 characters at most, empty by default. The owner's words: triage
+  // does not change it, and the launch prompt passes it on.
+  readonly body: string;
+
   // boxxy is the ledger. Free labels, set by `item.file` and replaced by `item.edit`. No
   // registry: a label is any short string.
   readonly labels: readonly string[];
@@ -53,7 +57,7 @@ export interface KeptSession {
 
 // A note on an item. Append-only: no procedure edits or removes one. The fact
 // `boxxy.item.noted` carries the full text. `item.get` shows the notes, `item.list` searches
-// them, and the next attempt of the item gets them in its input.
+// them, and the launch prompt of the next attempt of the item carries them.
 export interface NoteRow {
   readonly item: ItemId;
   readonly seq: number; // 1, 2, 3… per item
@@ -400,7 +404,7 @@ export interface Recipe {
 }
 
 // ── libs/model/src/closeouts/types.ts ─────────────────────────────────────────────────────────
-// `CloseOut`, `DesignCloseOut`, `DesignRef`, `Finding`, `RelationDraft`, `BuildInput`, `Effect`
+// `CloseOut`, `DesignCloseOut`, `Design`, `Finding`, `RelationDraft`, `BuildInput`, `Effect`
 // and `CloseOutWorld` are in that file, and docs/design/boxxy/close-outs.md, "The v1 phase
 // kinds", holds their rules. `EffectHandlers` and `EffectPlan` belong to dispatch, which
 // applies the effects. This sketch shows three parts: the review close-out, the triage

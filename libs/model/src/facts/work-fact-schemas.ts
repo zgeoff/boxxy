@@ -61,11 +61,15 @@ const skippedEffectSchema = z.object({ effect: effectKindSchema, reason: z.strin
 // One schema per fact type, with no `storeVersion`: the wire schema of the pepys package adds
 // it. Each schema's output equals its payload type; the test of this file checks both ways.
 export const workFactSchemas = {
-  'boxxy.item.filed': itemRowSchema.omit({ keptSession: true }),
+  // A `filed` fact stored before the body existed has none, and reads as an empty body.
+  'boxxy.item.filed': itemRowSchema
+    .omit({ keptSession: true })
+    .extend({ body: z.string().default('') }),
   'boxxy.item.noted': z.object({ seq: roundSchema, text: z.string().min(1) }),
   'boxxy.item.edited': z.object({
     title: z.string().min(1).exactOptional(),
     outcome: z.string().min(1).exactOptional(),
+    body: z.string().exactOptional(),
     acceptance: z.array(criterionSchema).exactOptional(),
     kind: brandSchemas.itemKindName.exactOptional(),
     fields: editedFieldsSchema.exactOptional(),

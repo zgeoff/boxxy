@@ -11,6 +11,7 @@ export function buildMockV1ItemView(overrides: Partial<ItemView> = {}): ItemView
     repo: brandSchemas.repoName.parse(`${faker.word.noun()}/${faker.word.noun()}`),
     title: faker.lorem.sentence(),
     outcome: faker.lorem.sentence(),
+    body: '',
     acceptance: [
       { id: brandSchemas.criterionId.parse('a1'), text: faker.lorem.sentence(), evidence: [] },
     ],

@@ -56,8 +56,7 @@ export interface ReworkInput {
   // the caller that the item's kept session holds; the first build's caller when left out
   readonly keptCaller?: CallerIdentity | null;
 
-  // the second build starts through the worker's wake of the kept session; when left out, the
-  // test writes the start itself
+  // the worker's wake starts the second build on the kept session; when left out, the test does
   readonly startByWorker?: boolean;
 }
 
@@ -524,6 +523,7 @@ function buildSeedItemRow(
     repo,
     title: 'Add a dark theme',
     outcome: 'The app follows the system theme.',
+    body: '',
     acceptance: [
       {
         id: brandSchemas.criterionId.parse('a1'),

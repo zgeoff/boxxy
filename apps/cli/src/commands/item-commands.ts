@@ -1,6 +1,7 @@
 import { makeAnswerRun } from '../cli/make-answer-run.ts';
 import type { Command } from '../types.ts';
 import { parseCriterionFlag } from './parse-criterion-flag.ts';
+import { readItemBody } from './read-item-body.ts';
 
 const designModes = ['agent', 'attended'] as const;
 const itemStates = ['idea', 'ready', 'blocked', 'running', 'waiting', 'done', 'archived'] as const;
@@ -14,17 +15,20 @@ export const itemCommands: readonly Command[] = [
       repo: { type: 'string' },
       title: { type: 'string' },
       outcome: { type: 'string' },
+      body: { type: 'string' },
+      'body-file': { type: 'string' },
       acceptance: { type: 'string', multiple: true },
       kind: { type: 'string' },
       'design-mode': { type: 'string' },
       'blocked-by': { type: 'string', multiple: true },
       label: { type: 'string', multiple: true },
     },
-    run: makeAnswerRun((call) =>
+    run: makeAnswerRun(async (call) =>
       call.client.item.file({
         repo: call.args.requireString('repo'),
         title: call.args.requireString('title'),
         outcome: call.args.requireString('outcome'),
+        body: await readItemBody(call),
         acceptance: call.args.strings('acceptance'),
         blockedBy: call.args.strings('blocked-by'),
         labels: call.args.strings('label'),
@@ -40,11 +44,13 @@ export const itemCommands: readonly Command[] = [
     options: {
       title: { type: 'string' },
       outcome: { type: 'string' },
+      body: { type: 'string' },
+      'body-file': { type: 'string' },
       acceptance: { type: 'string', multiple: true },
       'design-mode': { type: 'string' },
       label: { type: 'string', multiple: true },
     },
-    run: makeAnswerRun((call) => {
+    run: makeAnswerRun(async (call) => {
       const acceptance = call.args.strings('acceptance');
       const labels = call.args.strings('label');
 
@@ -52,6 +58,7 @@ export const itemCommands: readonly Command[] = [
         item: call.args.positional(0, 'item'),
         title: call.args.string('title'),
         outcome: call.args.string('outcome'),
+        body: await readItemBody(call),
         designMode: call.args.oneOf('design-mode', designModes),
         acceptance:
           acceptance.length === 0
@@ -108,7 +115,8 @@ export const itemCommands: readonly Command[] = [
   {
     path: ['item', 'show'],
     procedure: 'item.get',
-    summary: 'Shows one item with its position, notes, attempts, relations and pull requests.',
+    summary:
+      'Shows one item with its body, position, notes, attempts, relations and pull requests.',
     options: {},
     run: makeAnswerRun((call) => call.client.item.get({ item: call.args.positional(0, 'item') })),
   },

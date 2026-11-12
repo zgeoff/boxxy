@@ -5,6 +5,7 @@ import type { StoreDatabase } from '../types.ts';
 import { withTransaction } from '../with-transaction.ts';
 import { takeWriteLock } from '../writes/take-write-lock.ts';
 import { createTablesMigration } from './create-tables-migration.ts';
+import { itemBodyMigration } from './item-body-migration.ts';
 import { noticeKeysMigration } from './notice-keys-migration.ts';
 import { renameRelationsMigration } from './rename-relations-migration.ts';
 import { v1TablesMigration } from './v1-tables-migration.ts';
@@ -27,6 +28,7 @@ const migrations = {
   '0002-rename-relations': renameRelationsMigration,
   '0003-v1-tables': v1TablesMigration,
   '0004-notice-keys': noticeKeysMigration,
+  '0005-item-body': itemBodyMigration,
 };
 
 async function runMigrator(db: Kysely<StoreDatabase>): Promise<void> {

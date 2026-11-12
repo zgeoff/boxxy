@@ -721,15 +721,12 @@ the example uses bare names.
   with `/`, sorts by the paths' UTF-8 bytes, and hashes the canonical JSON list of
   `{ path, sha256, executable }`.
 - **The prompt template** is Markdown with `{{name}}` placeholders. The server replaces each with
-  its value: `{{title}}`, `{{outcome}}`, `{{acceptance}}` (each criterion with its id), `{{repo}}`,
-  `{{attempt_id}}`, and `{{trailer}}`, `{{evidence_command}}` and `{{closeout_command}}`, the
-  commands for the [trailer](#links-to-commits-and-prs), evidence and
-  [close-out](#the-build-close-out). `claimNext` renders it from the template text in
-  `spawnContext`.
+  its value. [The launch prompt](./v1.md#the-launch-prompt) lists the placeholders and their
+  values. `claimNext` renders it from the template text in `spawnContext`.
 - **The prompt tells each attempt to make its own git worktree** in the target repo, named after the
   attempt id, and to work only there. Two slots of one pool start their sessions in the same repo
   path, so without this they would share one working tree.
-- **S1-09 ships a minimal `prompts/build-v1.md`** that uses every value, in an example rules checkout
+- **S1-09 ships a minimal `prompts/build-v1.md`** that uses the values it needs, in an example rules checkout
   at `apps/server/src/test-utils/rules/`, beside an example `rules.yaml`. S1-13 copies both into the rules
   repo and tunes the prompt.
 - **One configuration file holds the machine details:** the runner id, the store file, the rules
@@ -1516,7 +1513,7 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
   `createFakeWorker()` and the `WorkerKind` contract suite in `@boxxy/dispatch`, the runner loop in
   `@boxxy/server` with the `attempt_sessions` writes
   ([agent sessions](#agent-sessions)), and the example rules checkout with a minimal
-  `prompts/build-v1.md` that uses every [template value](#rules-for-slice-1).
+  `prompts/build-v1.md` that uses the [template values](./v1.md#the-launch-prompt) it needs.
 - **Depends on:** S1-08, A1.
 - **Acceptance:**
   - The `WorkerKind` contract suite passes against the fake and against `worker-atc` with atc's

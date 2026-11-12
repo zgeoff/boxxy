@@ -75,7 +75,11 @@ A blocked or abandoned design or build fails, so it never reads as done work and
 
 In v1, the review session sends noslop's whole result. [Review, verify and merge](./review-and-merge.md) drops `NoslopSummary`: the server builds the review close-out from the `ReviewGate` reading. The parser reads the version, the review ID, the head and the three lists it counts, and lets every other field through, so a newer noslop still parses. The stored close-out keeps `NoslopSummary`: the counts, the size of the result, and the result whole only when it is 32,768 bytes or smaller.
 
-Each phase's input is the item's acceptance list. A build also gets the latest design, the findings of the latest review when it asked for changes, and the item's latest pull request. A review gets the latest design and the latest pull request. The notes of the item reach the session through `attempt.current`, beside the input.
+Each phase's input is the item's acceptance list. A build also gets the latest design, the findings of the latest review when it asked for changes, and the item's latest pull request. A review gets the latest design and the latest pull request. The [launch prompt](./v1.md#the-launch-prompt) carries the design, the findings and the notes of the item, so the session needs no command to read its task.
+
+The design close-out holds `{ text, location }`. `text` is the whole design in markdown, code blocks included, and the limit of the whole close-out bounds it. `location` is a pointer to a doc in the repo, or null. A design close-out stored with `summary` in place of `text` reads as `text`, with no change to the stored data.
+
+Triage does not change the body. The body holds the owner's words, `## Permissions` among them, and the launch prompt passes them to the agent as the owner's. A triage close-out may still set the kind, the design mode, the acceptance list and the relations, and close a duplicate or a declined item.
 
 ## Derived from facts
 

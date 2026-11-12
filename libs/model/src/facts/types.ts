@@ -96,6 +96,9 @@ export interface WorkFacts {
   'boxxy.item.edited': {
     readonly title?: string;
     readonly outcome?: string;
+
+    // the whole new body
+    readonly body?: string;
     readonly acceptance?: readonly Criterion[];
     readonly kind?: ItemKindName;
     readonly fields?: { readonly designMode?: DesignMode };

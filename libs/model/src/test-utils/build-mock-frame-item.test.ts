@@ -11,6 +11,7 @@ test('it builds a ready item at the build phase of round 1', () => {
     repo: expect.stringMatching(/^[\w.-]+\/[\w.-]+$/u),
     title: expect.any(String),
     outcome: expect.any(String),
+    body: '',
     acceptance: [{ id: 'a1', text: expect.any(String), evidence: [] }],
     fields: {},
     labels: [],

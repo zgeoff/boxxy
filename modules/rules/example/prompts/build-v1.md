@@ -1,11 +1,17 @@
-Build the item {{title}} to its design and acceptance list, and open a pull request.
+Build this item to its design and acceptance list, and open a pull request.
 
-Run the checks that the repo's own agent instructions name. Close out `built`, `blocked` with the
-question the owner must answer, or `abandoned`.
+{{ticket}}
 
-Start by running `boxxy attempt current`. It prints this attempt as JSON: the item, your input, the
-owner's notes on the item, and `closeOut`, which holds the outcome names and the JSON Schema of the
-close-out body. Do what the notes say. To cite a test or a check, record it with
+The attempt's input, as JSON, names the pull request when one exists:
+
+{{input}}
+
+Run the checks that the repo's own agent instructions name. Fix each finding under "Findings to
+fix", when there are any. Close out `built`, `blocked` with the question the owner must answer, or
+`abandoned`.
+
+Run `boxxy attempt current` for the attempt ID and the JSON Schema of the close-out body. To cite a
+test or a check, record it with
 `boxxy attempt evidence --kind <test|ci-run|live-check> --ref <what you checked>` and use the ID it
 prints. Before you end, send the close-out body as JSON on stdin to `boxxy attempt close-out`. When
 it prints problems, fix each one and send it again. The first valid close-out is final, and a
