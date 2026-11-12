@@ -2,7 +2,7 @@
 
 - **Status:** draft
 
-boxxy has a verify CLI on [wringer](https://github.com/zgeoff/wringer) 0.2.0, run as `bun verify`, with three features: file an item, claim and settle an attempt, and report cost. An agent grades a pull request on its own machine: it runs the journey of each feature that the pull request changes, against a local boxxy, and puts the report in the pull request's body. A required CI check, `verify / gate`, fails a pull request that changes a feature's files with no fresh verdict for that feature.
+boxxy has a verify CLI on [wringer](https://github.com/zgeoff/wringer) 0.2.0, run as `bun verify`, with three features: file an item, claim and settle an attempt, and report cost. An agent grades a pull request on its own machine: it runs the journey of each feature that the pull request changes, against a local boxxy, and puts the report in the pull request's body. A CI check, `verify / gate`, fails a pull request that changes a feature's files with no fresh verdict for that feature, and boxxy's merge step waits for it through `merge.checks` in the rules file.
 
 wringer's terms, as this doc uses them:
 
@@ -30,7 +30,7 @@ flowchart LR
   grader -->|"bun verify done"| verdict["verdict at the fingerprint"]
   verdict -->|"report --human"| body["PR body"]
   body --> gate["CI: verify / gate"]
-  gate -->|"required check"| merge["merge step"]
+  gate -->|"merge.checks"| merge["merge step"]
 ```
 
 ## The harness
@@ -144,7 +144,7 @@ jobs:
       - run: bun run --silent ci:verify-gate
 ```
 
-- The job has no `if:` and no path filter, so it reports on every pull request, as a required check must.
+- The job has no `if:` and no path filter, so it reports on every pull request. boxxy's merge step waits for a check that never reports until its time limit, and then holds the item.
 - The gate has a workflow of its own because `pr.yml`, which repo-sync copies from zgeoff/tools, has no `edited` trigger. The shared `bun-checks.yml` that `pr.yml` calls runs every static check, so a body edit there would rerun them all.
 - The job pins each action to the commit that `bun-checks.yml` pins.
 - `bun verify lint` fails on a glob that matches no file, and on a journey line that calls no command of the registry.

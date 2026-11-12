@@ -1,6 +1,6 @@
 # Next work list
 
-Build three designs in the 14 slices below, in order: [review, verify and merge](./review-and-merge.md), [wringer journeys](./wringer-journeys.md) and [owner notices](./owner-notices.md). Each slice gives its outcome, the doc and sketch files it follows, what it needs first, and the check that proves it. Slices 1 to 12 need nothing outside this repo except wringer 0.2.0. Slices 13 and 14 change the cloud repo's deployment and each need a decision from the owner.
+Build three designs in the 14 slices below, in order: [review, verify and merge](./review-and-merge.md), [wringer journeys](./wringer-journeys.md) and [owner notices](./owner-notices.md). Each slice gives its outcome, the doc and sketch files it follows, what it needs first, and the check that proves it. Slices 1 to 12 need nothing outside this repo except wringer 0.2.0. Slices 13 and 14 change the cloud repo's deployment.
 
 Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and puts its code in the folders that the [folder layout](./layout-folders.md) sets. The sketches are in [`sketches/next/`](./sketches/next/): `review-and-merge/` and `wringer-journeys/`. The owner-notices sketches sit inside its doc.
 
@@ -22,10 +22,10 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 
 ### 3. The review phase
 
-- **Outcome:** `createReviewPhase`, `buildRoundCause`, the `review-run` recipe, and the close-out procedure that runs `accept` with the hash of the raw body. `adapters/review-noslop` builds the command, with the plain review when a rework judged no fix, and accepts the result through `sendResult` and `check`. The v1 `ReviewCloseOut` and `NoslopSummary` are gone, and the v1 sketch lines that named them are rewritten.
+- **Outcome:** `createReviewPhase`, `buildRoundCause`, the `review-run` recipe, and the close-out procedure that runs `accept` with the hash of the raw body. `adapters/review-noslop` builds the command: a full review first, then `--fixes-only` with the plain review when it judged no fix. It accepts the result through `sendResult` and `check`. Each review after the first records `unrelatedLines`, from the forge's `readChangedFiles` and the pure `countUnrelatedLines`. The v1 `ReviewCloseOut` and `NoslopSummary` are gone, and the v1 sketch lines that named them are rewritten.
 - **Follows:** [the review gate](./review-and-merge.md#the-review-gate); `review-and-merge/01-usage.ts`.
 - **Needs:** slice 1.
-- **Check:** the adapter tests in the doc's acceptance table, the system test of a restart between the post and the store, and a test that refuses a close-out from another session.
+- **Check:** the adapter tests in the doc's acceptance table, `countUnrelatedLines` test rows and a close-out procedure test with a fake forge compare, the system test of a restart between the post and the store, and a test that refuses a close-out from another session.
 
 ### 4. The verify phase
 
@@ -68,10 +68,10 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 
 ### 9. Stage time for the merge step
 
-- **Outcome:** the pepys stage-time query starts the merge step at the claim of the first merge attempt after the latest passed review.
+- **Outcome:** the pepys stage-time query starts the merge step at the claim of the first merge attempt after the latest passed review. A pepys query sums each item's `unrelatedLines` across its later reviews, so pepys shows unrelated change that reached a `--fixes-only` review.
 - **Follows:** [facts and pepys](./review-and-merge.md#facts-and-pepys).
-- **Needs:** slice 8.
-- **Check:** a stage-time query test.
+- **Needs:** slices 3 and 8.
+- **Check:** a stage-time query test, and a query test that reads `unrelatedLines` from two review close-outs.
 
 ### 10. The merge-and-hold journey
 
@@ -91,23 +91,23 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 
 ### 12. The notice session by ID, with its own token
 
-- **Outcome:** the config key `atc.notices.session` replaces `noticeSession`, and the server reads `BOXXY_ATC_NOTICE_TOKEN`. The server refuses to start when notices are on and the token is empty.
+- **Outcome:** the server reads the notice session's ID from `BOXXY_ATC_NOTICE_SESSION` and the notice token from `BOXXY_ATC_NOTICE_TOKEN`, and the config key `noticeSession` goes. The server refuses to start when the session ID is set and the token is empty, and when the config file still holds `noticeSession`.
 - **Follows:** [owner notices](./owner-notices.md).
 - **Needs:** slice 11.
-- **Check:** config tests that refuse the old key and a missing token.
+- **Check:** start-up tests that refuse the old key and a missing token.
 
 ## The deployment
 
 ### 13. Notices reach the owner
 
-- **Outcome:** the cloud stack config and Secret carry the notice session ID and the notice token. The atc gateway gives the client `boxxy-notices` the message scope only, and the owner's machine lets the principal `service:boxxy-notices` reach the notice session.
+- **Outcome:** the cloud Secret carries the notice session ID and the notice token, and the plain stack config carries neither. The atc gateway gives the client `boxxy-notices` the message scope only, and the owner's machine grants the principal `service:boxxy-notices` its `local` target, where the notice session runs.
 - **Follows:** [owner notices](./owner-notices.md).
-- **Needs:** slice 12, and the owner's choice of the grant's target.
+- **Needs:** slice 12.
 - **Check:** a forced hold reaches the notice session. A notice sent while the session is stopped arrives after it starts, and a notice sent after a rename arrives.
 
 ### 14. The review tool in production
 
-- **Outcome:** the agent image ships noslop and runs in production, and the review recipe text runs the command that slice 3 builds. The noslop App keys sit only in the boxxy server's Secret, and the App is installed on each repo that boxxy starts workers for.
+- **Outcome:** the agent image ships noslop and runs in production, and the review recipe text runs the command that slice 3 builds. Review sessions alone get the read-only clone token (`Contents: read`, `Pull requests: read`), the one the atc daemon clones with, through a path of their own such as a broker profile for the review recipe; build and design sessions never get it. The noslop App keys sit only in the boxxy server's Secret, and the App is installed on each repo that boxxy starts workers for.
 - **Follows:** [the review gate](./review-and-merge.md#the-review-gate); [owner notices](./owner-notices.md#the-review-tool-in-production).
-- **Needs:** slice 3, and the owner's choice of the GitHub token that a review session gets.
-- **Check:** a live review round leaves noslop's check run at the pull request head, posted by the server.
+- **Needs:** slice 3.
+- **Check:** a live review round leaves noslop's check run at the pull request head, posted by the server. A live build session's environment holds no clone token.

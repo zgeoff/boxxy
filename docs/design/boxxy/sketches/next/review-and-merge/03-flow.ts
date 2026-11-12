@@ -11,7 +11,7 @@
 //   F. The kept session, widened for the verify phase.
 //   G. The caps, from the engine as it is.
 
-import type { AttemptRow, CommitSha, GateRecord, Instant, JobReading, JobStep, JobWorker, JsonValue, MergeObservation, MergeRequest, MergeRules, ReviewCloseOut, ReviewGate, RoundCause, Settled } from '@boxxy/model';
+import type { AttemptRow, CommitSha, Forge, GateReading, GateRecord, Instant, JobReading, JobStep, JobWorker, JsonValue, MergeObservation, MergeRequest, MergeRules, ReviewCloseOut, ReviewGate, RoundCause, Settled } from '@boxxy/model';
 import { match } from 'ts-pattern';
 
 // ── A. A job attempt on each tick (modules/dispatch/src/jobs/run-job-reading.ts) ───────────────
@@ -68,18 +68,32 @@ export async function runJobReading(deps: JobDeps): Promise<void> {
 // session posts nothing twice. A close-out that the session sends again after a server crash,
 // with nothing stored, runs `accept` again.
 
-export async function runReviewCloseOut(deps: { gate: ReviewGate; attempt: AttemptRow & { readonly input: unknown }; body: JsonValue }): Promise<ReviewCloseOut> {
+export async function runReviewCloseOut(deps: { gate: ReviewGate; forge: Forge; attempt: AttemptRow & { readonly input: unknown }; earlier: GateReading | null; body: JsonValue }): Promise<ReviewCloseOut> {
   const input = parseRoundInput(deps.attempt.input);
   const reading = await deps.gate.accept({ attempt: deps.attempt.id, pullRequest: input.pullRequest, round: input.round, cause: input.cause }, deps.body);
+  const earlier = deps.earlier; // the item's latest settled review, from the store
 
-  return { round: input.round, cause: input.cause, reading }; // the phase kind's parser reads this as the close-out
+  if (input.cause === 'first' || earlier === null || earlier.status === 'not-covered' || reading.status === 'not-covered') {
+    return { round: input.round, cause: input.cause, reading, unrelatedLines: null }; // the phase kind's parser reads this as the close-out
+  }
+
+  const changed = await deps.forge.readChangedFiles(input.pullRequest.repo, earlier.head, reading.head);
+
+  return { round: input.round, cause: input.cause, reading, unrelatedLines: countUnrelatedLines(changed, earlier.findingPaths) };
+}
+
+// Pure (modules/closeout). The changed lines in files that had no open finding at the earlier review.
+export function countUnrelatedLines(changed: readonly { path: string; changedLines: number }[], findingPaths: readonly string[]): number {
+  const withFindings = new Set(findingPaths);
+
+  return changed.filter((file) => !withFindings.has(file.path)).reduce((sum, file) => sum + file.changedLines, 0);
 }
 
 // ── C. The round and its cause (modules/closeout/src/phases/review.ts, `buildRoundInput`) ──────
 //
 // Pure, over the item's settled attempts since its latest retry lever, oldest first.
-//   round  1 + the reviews since that lever that settled `changes-requested`. So round 3 is the
-//          last: the edge `changes-requested: { max: 2 }` holds the item when it blocks.
+//   round  1 + the reviews since that lever that settled `changes-requested`. So round 4 is the
+//          last: the edge `changes-requested: { max: 3 }` holds the item when it blocks.
 //   cause  `first` when no review of this pull request settled since the lever;
 //          `rework` when the latest settled attempt before this one that is not a build is a
 //          review that settled `changes-requested`;
@@ -203,7 +217,7 @@ export async function runJobAction(deps: JobDeps, action: { kind: 'merge' }): Pr
 //
 //   edge                                       hold                       the owner reads
 //   ─────────────────────────────────────────  ─────────────────────────  ──────────────────────────────────────
-//   review  changes-requested { max: 2 }       the 3rd one                rounds used up (review changes-requested)
+//   review  changes-requested { max: 3 }       the 4th one             rounds used up (review changes-requested)
 //   merge   repair            { max: 3 }       the 4th one                rounds used up (merge repair)
 //   merge   stale             { max: 3 }       the 4th one                rounds used up (merge stale)
 //   merge   unverified        { max: 2 }       the 3rd one                rounds used up (merge unverified)

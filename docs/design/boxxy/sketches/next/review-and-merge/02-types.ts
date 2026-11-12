@@ -11,15 +11,15 @@ import type { AttemptId, AttemptRow, CommitSha, Instant, JsonValue, PullRequestR
 // Why a round runs. The core picks it from the item's settled attempts (03-flow.ts, section C);
 // the adapter maps it to its own calls.
 //   first    the first review of the build's pull request
-//   rework   the review after a build that a `changes-requested` review sent back: check the
-//            builder's answers and raise no new finding
-//   recheck  the review after a repair, a moved head or a failed verify: review what changed
+//   rework   the review after a build that a `changes-requested` review sent back
+//   recheck  the review after a repair, a moved head, a failed verify or a failed review
+// Every review after the first checks the builder's answers and raises no new finding.
 export type RoundCause = 'first' | 'rework' | 'recheck';
 
 export interface GateRound {
   readonly attempt: AttemptId; // the review attempt
   readonly pullRequest: PullRequestRef;
-  readonly round: number; // 1, 2 or 3; counted by the core, never by the adapter
+  readonly round: number; // 1 to 4; counted by the core, never by the adapter
   readonly cause: RoundCause;
 }
 
@@ -46,6 +46,7 @@ export interface GateRun {
   readonly head: CommitSha;
   readonly open: SeverityCounts; // the findings still open at `head`, whatever round raised them
   readonly closedWithoutFix: number; // findings closed by an answer that is not a confirmed fix
+  readonly findingPaths: readonly string[]; // the files of the findings still open at `head`
   readonly cost: GateCost;
   readonly ref: string; // the tool's own ID of the run, for the owner to look up
   readonly answerHint: string; // text for the builder's input: where the findings are and how to answer
@@ -175,6 +176,8 @@ export interface Forge {
   readChecks: (repo: RepoName, head: CommitSha) => Promise<ReadonlyMap<string, 'success' | 'failure' | 'pending' | 'other'>>;
   readRequiredChecks: (repo: RepoName, branch: string) => Promise<readonly string[]>;
   readMergeable: (ref: PullRequestRef) => Promise<'clean' | 'conflict' | 'unknown'>;
+  // GitHub's compare of two heads: each changed file with its added and deleted lines.
+  readChangedFiles: (repo: RepoName, from: CommitSha, to: CommitSha) => Promise<readonly { readonly path: string; readonly changedLines: number }[]>;
   // `PUT .../pulls/{n}/merge` with `sha: head`: 200 merged, 409 head moved, 405 not mergeable.
   mergeAtHead: (ref: PullRequestRef, head: CommitSha, method: MergeMethod) => Promise<MergeAnswer>;
 }
@@ -195,6 +198,11 @@ export interface ReviewCloseOut {
   readonly round: number;
   readonly cause: RoundCause;
   readonly reading: GateReading; // from `ReviewGate.accept`, which matched its head to the pull request's head
+  // Every review after the first: the changed lines between the earlier review's head and this
+  // head, in files outside that review's `findingPaths`. pepys reads it from `closed_out`, to show
+  // how much unrelated change reaches a `--fixes-only` review. Null for the first review, and when
+  // the earlier review read no head.
+  readonly unrelatedLines: number | null;
 }
 
 // The verify close-out, sent by the grading agent. The parser copies `session` from the recipe.

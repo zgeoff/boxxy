@@ -25,25 +25,23 @@ flowchart LR
 
 ## Contracts
 
-### The notice session in the configuration
+### The notice session in the environment
 
-atc addresses a session only by its gateway ID, `<daemon>.<incarnation>.<id>`, and never by its name: the gateway answers `no_such_session` to any other value. The server's configuration therefore holds the ID.
+atc addresses a session only by its gateway ID, `<daemon>.<incarnation>.<id>`, and never by its name: the gateway answers `no_such_session` to any other value. The server therefore reads the ID, from `BOXXY_ATC_NOTICE_SESSION`, which the deployment's Secret holds next to the notice token. The configuration file's key `noticeSession` goes.
 
 ```ts
-// apps/server, the configuration file's `atc` section; `notices` replaces the key `noticeSession`
-const atcSection = z.strictObject({
-  // …existing fields
-  notices: z
-    .strictObject({
-      // the notice session's gateway ID, as `atc_sessions_list` prints it through the gateway
-      session: z.string().regex(/^[^.]+\.[^.]+\..+$/u),
-    })
-    .optional(), // with none, the server sends no notice and marks each row sent
+// apps/server, the environment it reads at start
+const noticeEnv = z.strictObject({
+  // the notice session's gateway ID, as `atc_sessions_list` prints it through the gateway;
+  // with none, the server sends no notice and marks each row sent
+  BOXXY_ATC_NOTICE_SESSION: z.string().regex(/^[^.]+\.[^.]+\..+$/u).optional(),
+  BOXXY_ATC_NOTICE_TOKEN: z.string().optional(),
 });
 ```
 
 - The notifier calls atc with the notice token, from `BOXXY_ATC_NOTICE_TOKEN`, and with no other token. The server's other atc calls, which start and stop worker sessions, use the worker token, from `BOXXY_ATC_TOKEN`.
-- When `notices` is set and `BOXXY_ATC_NOTICE_TOKEN` is empty, the server refuses to start.
+- When `BOXXY_ATC_NOTICE_SESSION` is set and `BOXXY_ATC_NOTICE_TOKEN` is empty, the server refuses to start.
+- The server refuses to start while its configuration file still holds `noticeSession`.
 
 ### The notices row and the port
 
@@ -108,12 +106,13 @@ notices: {
 ## What the deployment provides
 
 - The notice token, an atc service token that holds the `message` scope alone. The worker token holds `spawn` and `kill`, so the deployment never grants it the owner's machine.
-- A grant on the owner's machine that lets the notice token reach the notice session. atc lets a token reach a session only when that session and each of its sub-sessions run on a target that the grant names. The owner's agent in the notice session starts its side sessions as top-level sessions. A sub-session on another target makes atc answer `no_such_session`, and every notice then waits.
-- The notice session's gateway ID in the server's configuration. When the owner replaces the session with a new one, the owner sets the new ID, and the rows that wait go to the new session on their next try.
+- A grant on the owner's machine that lets the notice token reach the notice session on that machine's `local` target. atc lets a token reach a session only when that session and each of its sub-sessions run on a target that the grant names. The owner's agent in the notice session therefore starts its side sessions as top-level sessions. A sub-session on another target makes atc answer `no_such_session`, and every notice then waits.
+- The notice session's gateway ID in the Secret, next to the notice token. When the owner replaces the session with a new one, the owner sets the new ID, and the rows that wait go to the new session on their next try.
 
 ## Decisions
 
-- **The configuration holds the notice session's gateway ID.** atc resolves no names, and a rename keeps the ID.
+- **The Secret holds the notice session's gateway ID.** atc resolves no names, and a rename keeps the ID. The ID reaches the session, so it stays out of the plain stack config.
+- **The notice session runs on the owner machine's `local` target.** The grant names that target alone.
 - **A notice waits with no cap on tries.** A cap of 5 tries, one per tick, loses every notice sent while the owner's machine sleeps for more than 25 seconds.
 - **An uncertain key gives way to a new key after 3 tries.** A rare second copy costs the owner less than a notice that never arrives.
 - **The notice token is separate from the worker token.** The notice session runs on the owner's machine, and only a token without `spawn` and `kill` reaches it.
@@ -123,7 +122,7 @@ notices: {
 
 - **A forced hold reaches the notice session.** On the deployed system, a throwaway item whose task tells the worker to end its attempt as `blocked`, with a question, goes on hold. Within 2 ticks, the notice session's conversation shows an `<atc-message kind="connector">` that names the item, and `atc_message_get` on that message's ID shows `delivered` or `answered`. A hold from a rules change proves nothing, because no settle writes its notice.
 - **A stopped notice session loses no notice.** With the notice session stopped, a forced hold leaves `runner.status` at `unsent: 1` with `lastError: 'session_dead'`. After the owner starts the session again, the notice arrives once, within 15 minutes.
-- **A rename loses no notice.** With the notice session stopped, a forced hold leaves one row unsent. The owner renames the session and starts it again, with no change to the server's configuration, and the notice arrives once, at the same session ID.
+- **A rename loses no notice.** With the notice session stopped, a forced hold leaves one row unsent. The owner renames the session and starts it again, with no change to the Secret, and the notice arrives once, at the same session ID.
 - `sendNotices` tests: a refused try changes the key; an uncertain try keeps it; the third uncertain try changes it; a refused try after an uncertain one keeps the key; a row before its `nextTryAt` is not tried; a row with 50 tries is still tried.
 - Notifier tests: each atc code maps to its outcome, and the adapter sends the key it gets.
 
@@ -138,12 +137,11 @@ notices: {
 [The review gate](./review-and-merge.md#the-review-gate) runs noslop in a review session on a worker machine, and the server posts the result as the noslop GitHub App. The deployment needs these:
 
 - The noslop CLI in the worker image, at a pinned version. Codex, noslop's default model CLI, has no sign-in on a worker machine, so the review session runs noslop with `--adapter claude`.
-- A GitHub token in the review session, as `GH_TOKEN` or `GITHUB_TOKEN`, which noslop reads to fetch the pull request.
+- The read-only clone token in the review session, as `GH_TOKEN`, which noslop reads to fetch the pull request. It is the token the atc daemon clones with, with `Contents: read` and `Pull requests: read`. atc withholds the daemon's variables from sessions, so the review recipe reaches it through a path of its own, such as a broker profile. Build and design sessions never get it.
 - The App's keys in the server pod alone, and never in a worker session.
 - The App, installed on every repo that the server starts workers for.
 - The check: in the scratch repo of [the live proof](./v1-work-list.md#22-the-live-proof), a boxxy review round leaves a `noslop` check run, posted by the App, at the pull request's head.
 
 ## Out of scope
 
-- Which target the notice session runs on, and the grant that reaches it. The deployment owns both.
 - Asks, the requests that a worker makes to the owner for a decision. When an ask sends a notice, it uses the same rows and the same session.

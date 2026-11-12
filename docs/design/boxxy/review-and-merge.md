@@ -12,7 +12,7 @@ After a build, boxxy reviews the pull request, has an agent grade the work on th
 ```mermaid
 flowchart LR
   build -->|built| review
-  review -->|"changes-requested, max 2"| build
+  review -->|"changes-requested, max 3"| build
   review -->|"failed: once more"| review
   review -->|passed| verify
   verify -->|"failed, max 2"| build
@@ -27,7 +27,7 @@ flowchart LR
 
 This doc uses the terms of the [core model](./core-model.md) and [v1](./v1.md): item, phase, attempt, recipe, close-out, settle, edge, hold and round. These terms are its own, or have one meaning here:
 
-- **Send-back:** a backward edge, such as `changes-requested: { to: build, max: 2 }`. Its `max` is the number of send-backs the edge allows. The next use of that edge holds the item with `rounds used up`. Each edge counts its own uses since the item's latest `boxxy item retry`.
+- **Send-back:** a backward edge, such as `changes-requested: { to: build, max: 3 }`. Its `max` is the number of send-backs the edge allows. The next use of that edge holds the item with `rounds used up`. Each edge counts its own uses since the item's latest `boxxy item retry`.
 - **Review number:** 1 plus the item's `changes-requested` reviews since its latest retry. It differs from the item's round, which rises on every send-back.
 - **Worker:** what runs an attempt, named by the phase kind. `atc.session` runs an agent session on an agent host, a machine that atc starts. A job worker runs inside the boxxy server and starts no session. The rules limit named `workers` counts agent sessions only.
 - **The runner:** the server's loop that claims attempts and, on each tick, reads every live attempt ([attempt lifecycle](./v1-lifecycle.md)).
@@ -51,7 +51,8 @@ The sketches in [`sketches/next/review-and-merge/`](./sketches/next/review-and-m
 - **Only the server posts the review.** The server checks the result against the pull request's head, posts it as the noslop App, and reads the open findings. The App's keys stay in the server's pod.
 - **The merge runs on a job worker.** The runner reads a merge attempt on each tick, as it reads every live attempt. A webhook never starts a merge.
 - **An agent never decides a merge.** `decideMerge` in `modules/train` is pure, and the runner calls it on each read of a merge attempt.
-- **boxxy reads required checks from its rules and the branch.** It takes the union of `merge.checks` in the rules file and the base branch's required status checks. The loader refuses an empty `merge.checks`, because a branch can require nothing.
+- **boxxy reads required checks from its rules and the branch.** It takes the union of `merge.checks` in the rules file and the base branch's required status checks. The loader refuses an empty `merge.checks`, so the union is never empty, even on a branch that requires no check.
+- **boxxy's own repo requires no check on GitHub.** Its `main` keeps direct pushes open, so a broken boxxy never blocks its own fix. Its rules file lists `pr / checks` and `verify / gate` in `merge.checks`, and the merge step waits for both.
 - **boxxy decides "reviewed at this head" from its own review close-out.** boxxy never reads noslop's GitHub check, because that check passes at a head that no review has read.
 - **The owner picks who grades, with a recipe field.** The verify phase always runs as its own agent attempt. A verify recipe with `session: builder` wakes the build's kept session, so the builder grades its own work. `session: fresh` starts a new session.
 
@@ -73,8 +74,10 @@ Rules of the review:
 
 - **Each reading carries its head.** When the result is for another head than the pull request's current head, or it read no part of that head, the reading is `not-covered`, and the review settles `failed`.
 - **A failed review runs once more.** A failed call, an unreadable result or a `not-covered` reading settles `failed`. The edge `again` runs the review as a `recheck` with the same review number. A second failed review in a row holds the item with `attempts used up`.
-- **Three reviews, then a hold.** The edge is `changes-requested: { to: build, max: 2, resume: true }`, so the third `changes-requested` holds the item with `rounds used up`.
-- **A rework review raises no new finding.** It checks the builder's answers to the open findings with `--fixes-only`. When no `fixed` answer got a verdict, such as when the builder answered every finding `not-a-defect`, that run read nothing at the head. The command then runs a plain review, so the rework review covers the head. A `recheck` reviews what changed since the last review.
+- **Four reviews, then a hold.** The edge is `changes-requested: { to: build, max: 3, resume: true }`, so the fourth `changes-requested` holds the item with `rounds used up`.
+- **The first review is full, and every later review runs `--fixes-only`.** A later review checks the builder's answers to the open findings and raises no new finding. When no `fixed` answer got a verdict, such as when the builder answered every finding `not-a-defect` or a repair added no answer, that run read nothing at the head. The command then runs a plain review of what changed since the last review, so the review covers the head.
+- **boxxy counts the change that a later review skips.** Each review after the first records `unrelatedLines` in its close-out: the changed lines between the earlier review's head and this head, in files that had no open finding at the earlier review. The server reads the changed files from GitHub's compare, and the pure `countUnrelatedLines` counts them. pepys reads the field, so it shows how much unrelated change reaches a `--fixes-only` review.
+- **The review session gets the read-only clone token.** It is the token that the atc daemon clones with, with `Contents: read` and `Pull requests: read`, and noslop reads it as `GH_TOKEN`. atc withholds the daemon's variables from sessions, so the review recipe reaches the token through a path of its own, such as a broker profile. Build and design sessions never get it.
 - **boxxy trusts the review session as it trusts any session.** Only the review attempt's own session can close it out. noslop's check before a post matches the result's head and config to the pull request, and never checks that the review's calls ran.
 - **The builder answers findings in the review tool.** The rework build's input carries the open counts and `answerHint`, a text from the adapter with where the findings are and how to answer them. The core never reads a finding's text.
 
@@ -156,7 +159,7 @@ A merge attempt uses the attempt states `starting`, `running`, `closing`, `succe
 
 The fact catalog of 30 types holds three for these steps: `boxxy.attempt.job_started`, `boxxy.merge.requested` and `boxxy.merge.answered` ([`02-types.ts`](./sketches/next/review-and-merge/02-types.ts), the last section). The item is the entity of each one. Everything else that pepys reads about these steps reaches it in `boxxy.attempt.closed_out`:
 
-- each review's head, open counts and token cost;
+- each review's head, open counts, token cost and `unrelatedLines`;
 - each verify close-out, with its grader;
 - each merge close-out, with the verify reading.
 
@@ -174,7 +177,9 @@ Section 5 of [`01-usage.ts`](./sketches/next/review-and-merge/01-usage.ts) shows
 | A red check sends the item to a repair build, and a fourth repair holds it with a notice. | The same journey with a red check, and a `decideMerge` test row for each row of the merge table. |
 | Each loop holds after its last send-back, with a notice. | An `advance` test over the rules lines in section 1 of `01-usage.ts`, one row per backward edge. |
 | A refused merge of a clean, green head holds the item, and a request with no answer is sent again. | `decideMerge` test rows with `acted` set: `not-mergeable` gives `refused`, no answer after 5 minutes gives a new request, and past the time limit gives `stalled`. |
-| A review never passes a head that it did not read. | Review adapter tests: the rework command runs a plain review after a `--fixes-only` run that judged no fix; `accept` reads such a run as `not-covered` and posts nothing; and a result for an old head reads `not-covered`. |
+| Each review after the first records the changed lines outside the files that had findings. | `countUnrelatedLines` test rows, a close-out procedure test with a fake forge compare, and a pepys query test that reads `unrelatedLines`. |
+| Only a review session gets the read-only clone token. | A recipe test: the review recipe names the token's path, and the build and design recipes name none. |
+| A review never passes a head that it did not read. | Review adapter tests: the later-review command runs a plain review after a `--fixes-only` run that judged no fix; `accept` reads such a run as `not-covered` and posts nothing; and a result for an old head reads `not-covered`. |
 | A server restart during a review never holds the item or starts a second review. | A system test that stops the server after `accept` posts and before the close-out is stored: the session's second close-out settles the same attempt. A second test repeats a stored close-out, and `accept` does not run. |
 | A passed review needs noslop's check to pass. | A review adapter test: `check` answers `failure` with no open finding, and the reading is blocked `unreadable`. |
 | A review close-out from any other session is refused. | The close-out procedure's caller test, as for every attempt. |
@@ -189,6 +194,5 @@ Section 5 of [`01-usage.ts`](./sketches/next/review-and-merge/01-usage.ts) shows
 
 ## Open questions
 
-- **Whether a rework review may miss new code.** A rework review checks the builder's answers and raises no new finding, so a fix commit's other changes get no review before the next recheck. The owner decides whether to accept this. The design runs rework reviews with `--fixes-only`.
 - **Whether a second post of one result is safe.** When the server crashes after `accept` posts and before the close-out is stored, the session sends the close-out again, and `accept` posts again. noslop's docs do not say whether a repeat post adds comments. The owner checks it in the first live run on a real repo. The verdict stays right either way, because it comes from the open findings.
 - **The GitHub permissions.** The owner checks in the first live run that the permissions in [Races and repeats](#races-and-repeats) are enough to merge and to read rules, checks and statuses.

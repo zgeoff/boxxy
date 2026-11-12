@@ -28,7 +28,7 @@ import { decideMerge } from '@boxxy/train';
 //         timeoutMinutes: 45
 //         on:
 //           passed: next
-//           changes-requested: { to: build, max: 2, resume: true }   # 3 rounds: the 3rd blocked round holds
+//           changes-requested: { to: build, max: 3, resume: true }   # the 4th changes-requested holds
 //           failed: again
 //       - phase: verify                          # an agent session; the recipe says who grades
 //         maxAttempts: 2
@@ -178,12 +178,11 @@ const rules = loadRules(text, { phases: [...phaseKinds, createReviewPhase(review
 //   cause     review
 //   ────────  ────────────────────────────────────────────────────────────────────────────────────
 //   first     `noslop review --full`
-//   rework    `noslop review --fixes-only`. When its `fixChecks` is empty (no `fixed` answer got a
-//             verdict, such as when every answer is `not-a-defect`), the run read nothing at its
-//             head, though its `head` field names that head. The command then runs `noslop review`
-//             and keeps that result, so the review covers the head.
-//   recheck   `noslop review`: reads the files whose patch changed since the last review, and runs
-//             a resolution check on a merge of the base
+//   rework,   `noslop review --fixes-only`. When its `fixChecks` is empty (no `fixed` answer got a
+//   recheck   verdict, such as when every answer is `not-a-defect`, or a repair added no answer),
+//             the run read nothing at its head, though its `head` field names that head. The
+//             command then runs `noslop review`, which reads the files whose patch changed since
+//             the last review, and keeps that result, so the review covers the head.
 //
 // `accept(round, body)`, in the server:
 //   1. A `--fixes-only` result with an empty `fixChecks` reads `not-covered`, and nothing is
@@ -203,7 +202,8 @@ const rules = loadRules(text, { phases: [...phaseKinds, createReviewPhase(review
 //   open                the open findings, by severity, from the result's `findings` and the
 //                       `findings` list: P1 ─▶ high, P2 ─▶ medium, P3 ─▶ low
 //   closedWithoutFix    findings in state `not-a-defect`, `deferred` or `accepted-risk`
-//   cost                each entry of `calls`: model, the four token counts, `durationMs`
+//   findingPaths        the `path` of each open finding
+//   cost               each entry of `calls`: model, the four token counts, `durationMs`
 //   ref                 `reviewID`
 //   answerHint          "Run `noslop findings --pr <n> --repo <owner/name> --json`, and reply to
 //                       each open finding with a disposition: fixed, not-a-defect, deferred or
@@ -231,7 +231,7 @@ const rules = loadRules(text, { phases: [...phaseKinds, createReviewPhase(review
 //   review    round 2 at 3f2a91c: passed · round 1 at 9c01e2d: changes requested (high 1, medium 2)
 //   verify    verified at 3f2a91c by the builder: 3 features verified, 2 unchanged
 //   merge     attempt 1, waiting since 14:02 on: pr / checks
-//   rounds    review 2 of 3 · repair 0 of 3
+//   rounds    review send-backs 1 of 3 · repair 0 of 3
 //
 // A held item names the cap: `waiting (rounds used up: review changes-requested, then build)`.
 //
