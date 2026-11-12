@@ -47,7 +47,7 @@ export function createFakeForge(): FakeForge {
     return Promise.resolve({
       ...found.reading,
       githubId: found.githubId,
-      url: `https://github.com/${ref.repo}/pull/${ref.number}`,
+      url: `https://github.com/${found.ref.repo}/pull/${found.ref.number}`,
     });
   };
 
@@ -112,6 +112,7 @@ export function createFakeForge(): FakeForge {
   };
 }
 
+// GitHub matches a repo name in any case
 function toKey(ref: PullRequestRef): string {
-  return `${ref.repo}#${ref.number}`;
+  return `${ref.repo.toLowerCase()}#${ref.number}`;
 }

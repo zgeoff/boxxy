@@ -8,9 +8,9 @@ import type { LinkPullRequestInput, LinkPullRequestResult } from './types.ts';
 // It checks the call before the forge read and again in the write's lock, because a newer attempt
 // can take the session while the forge answers.
 export async function linkPullRequest(input: LinkPullRequestInput): Promise<LinkPullRequestResult> {
-  const ref = parsePullRequestUrl(input.url);
+  const parsed = parsePullRequestUrl(input.url);
 
-  if (ref === null) {
+  if (parsed === null) {
     return { kind: 'refused', reason: 'not-a-pull-request-url' };
   }
 
@@ -32,9 +32,12 @@ export async function linkPullRequest(input: LinkPullRequestInput): Promise<Link
 
   invariant(item !== null, 'the attempt of a call has its item');
 
-  if (item.repo.toLowerCase() !== ref.repo.toLowerCase()) {
+  if (item.repo.toLowerCase() !== parsed.repo.toLowerCase()) {
     return { kind: 'refused', reason: 'not-a-pull-request-url' };
   }
+
+  // GitHub matches a repo name in any case, so the item's spelling keys every row of the link
+  const ref: PullRequestRef = { repo: item.repo, number: parsed.number };
 
   const known = await input.store.read((reader) => readExisting(reader, ref, item.id));
 

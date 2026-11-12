@@ -185,6 +185,22 @@ test('it answers a repeat and writes nothing for a pull request already linked',
   expect(facts).toHaveLength(1);
 });
 
+test('it answers a repeat and writes nothing for a pull request linked again with its repo in another case', async () => {
+  const ctx = await setupTest();
+
+  ctx.addOpenPullRequest(7);
+
+  await ctx.link('https://github.com/Example/App/pull/7');
+
+  const repeat = await ctx.link('https://github.com/example/app/pull/7');
+  const facts = await ctx.listFacts('boxxy.pull_request.linked');
+
+  expect([repeat, facts.length]).toStrictEqual([
+    { kind: 'linked', repo: ctx.repo, number: 7, repeat: true },
+    1,
+  ]);
+});
+
 test('it records a merge at once for a pull request the forge shows merged', async () => {
   const ctx = await setupTest();
 

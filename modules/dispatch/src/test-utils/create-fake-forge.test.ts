@@ -11,6 +11,30 @@ test.each(forgeContract)('it keeps the forge contract: %s', async (_title, check
   expect(outcome.received).toStrictEqual(outcome.expected);
 });
 
+test('it reads a pull request by a repo name in another case, with the seeded url', async () => {
+  const forge = createFakeForge();
+
+  forge.seed({
+    ref: { repo: brandSchemas.repoName.parse('Acme/Lamps'), number: 4 },
+    githubId: 9_000_004,
+    reading: { state: 'open', mergedAt: null, mergeCommit: null, commits: [] },
+  });
+
+  const reading = await forge.readPullRequest({
+    repo: brandSchemas.repoName.parse('acme/lamps'),
+    number: 4,
+  });
+
+  expect(reading).toStrictEqual({
+    state: 'open',
+    mergedAt: null,
+    mergeCommit: null,
+    commits: [],
+    githubId: 9_000_004,
+    url: 'https://github.com/Acme/Lamps/pull/4',
+  });
+});
+
 test('it rejects every call while it is down and answers again after', async () => {
   const forge = createFakeForge();
   const repo = brandSchemas.repoName.parse('acme/lamps');

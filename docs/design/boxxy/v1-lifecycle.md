@@ -214,7 +214,7 @@ The adapter reads the caller identity from the session's `host` field, which atc
 
 `linkPullRequest` is the hook's link, and `watchPullRequests` is one pass of the watch. Both write the pull request row, the evidence row and the facts in one change, and both write with no lease, because a succeeded build has released its lease.
 
-**The hook's link.** It takes the hook's call and the URL that the hook read from `gh pr create`. It runs `pickCallAttempt` before the forge read and again in the write's lock, because a newer attempt can take the session while the forge answers. It answers one of three ways:
+**The hook's link.** It takes the hook's call and the URL that the hook read from `gh pr create`. It runs `pickCallAttempt` before the forge read and again in the write's lock, because a newer attempt can take the session while the forge answers. It matches the URL's repo to the item's in any case, as GitHub does, and keys the rows and facts by the item's spelling of the repo. It answers one of three ways:
 
 - `linked`, with `repeat: true` and no write when a pull request of the same item is already linked;
 - `retry`, with no write, when the forge throws or does not know the pull request yet. The watch links it later;
