@@ -15,7 +15,7 @@ test('it loads the example rules file', () => {
     buildMockPhaseKind({ name: 'triage', outcomes: ['accepted', 'duplicate', 'declined'] }),
     buildMockPhaseKind({ name: 'design', outcomes: ['designed', 'blocked', 'abandoned'] }),
     buildMockPhaseKind({ name: 'build', outcomes: ['built', 'blocked', 'abandoned'] }),
-    buildMockPhaseKind({ name: 'review', outcomes: ['passed', 'changes-requested'] }),
+    buildMockPhaseKind({ name: 'review', outcomes: ['passed', 'changes-requested', 'failed'] }),
   ];
 
   const prompts = [...input.checkout.files]
@@ -55,6 +55,7 @@ test('it loads the example rules file', () => {
         on: {
           passed: { end: 'reviewed' },
           'changes-requested': { to: 'build', max: 3, resume: true },
+          failed: 'again',
         },
       },
     ],
@@ -65,15 +66,17 @@ test('it loads the example rules file', () => {
     design: 'design-v1',
     'design/attended': 'design-attended-v1',
     build: 'build-v1',
-    review: 'review-v1',
+    review: 'review-run',
   };
 
-  const skillsByRecipe = new Map([
-    ['triage-v1', []],
-    ['design-v1', ['bake-off']],
-    ['design-attended-v1', ['bake-off']],
-    ['build-v1', []],
-    ['review-v1', []],
+  const opus = { model: 'claude-opus-5-5', effort: 'medium' };
+
+  const settingsByRecipe = new Map([
+    ['triage-v1', { ...opus, skills: [] }],
+    ['design-v1', { ...opus, skills: ['bake-off'] }],
+    ['design-attended-v1', { ...opus, skills: ['bake-off'] }],
+    ['build-v1', { ...opus, skills: [] }],
+    ['review-run', { model: 'claude-haiku-5-5', effort: 'low', skills: [] }],
   ]);
 
   expect(result).toStrictEqual({
@@ -116,11 +119,11 @@ test('it loads the example rules file', () => {
             name,
             recipe: {
               agent: 'claude',
-              model: 'claude-opus-5-5',
-              effort: 'medium',
+              model: settingsByRecipe.get(name)?.model,
+              effort: settingsByRecipe.get(name)?.effort,
               prompt: `prompts/${name}.md`,
               source: 'subscription',
-              skills: skillsByRecipe.get(name),
+              skills: settingsByRecipe.get(name)?.skills,
             },
             promptHash: hashBytes(bytes),
             rulesVersion: expect.stringMatching(/^[0-9a-f]{64}$/u),

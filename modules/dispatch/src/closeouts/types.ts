@@ -80,7 +80,12 @@ export interface CallRef {
 export interface CloseOutInput {
   readonly store: ClaimStore;
   readonly call: CallRef;
+
+  // the body that the phase kind's parser reads
   readonly body: unknown;
+
+  // the body the session sent, when the server built `body` from it; the repeat check hashes it
+  readonly sent?: unknown;
   readonly rules: LoadedRules;
   readonly now: Instant;
   readonly newId: NewId;

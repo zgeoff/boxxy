@@ -9,11 +9,9 @@
 //   6. Tests with no SQLite file and no atc.
 
 import { expect, test } from 'bun:test';
-import type { ClaimStore, CloseOutContext, CloseOutParser, CloseOutProblem, Instant, LoadedRules, PhaseInputContext, Procedures, ReviewCloseOut, ReviewInput, RunnerId, WorkerKind } from '@boxxy/model';
+import type { ClaimStore, CloseOutContext, CloseOutParser, CloseOutProblem, GateReading, Instant, LoadedRules, PhaseInputContext, Procedures, ReviewGate, ReviewInput, RunnerId, WorkerKind } from '@boxxy/model';
 import { brandSchemas, definePhase, findPosition, reviewCloseOutSchema, toJSONValue } from '@boxxy/model';
 import type { z } from 'zod';
-import { buildNoslopSummary } from './noslop/build-noslop-summary.ts'; // modules/closeout/src
-import { noslopReportSchema } from './noslop/noslop-report-schema.ts';
 import { actOnReading, claimNext, closeOutAttempt, pickReadingAction, resumeClaim, startClaim, timeouts } from '@boxxy/dispatch';
 import type { CapacityBackoff, ItemId } from '@boxxy/model';
 import { createFakeFactSink, outboxLimits, runSenderOnce, toWireItem } from '@boxxy/outbox'; // for the size test
@@ -60,9 +58,10 @@ import { createFakeFactSink, outboxLimits, runSenderOnce, toWireItem } from '@bo
 //           passed:            { end: reviewed }
 //           changes-requested: { to: build, max: 3, resume: true }   # the rework wakes the
 //                                                # build's kept session; a fresh spawn is the fallback
+//           failed:            again             # a failed call, an unreadable or uncovered result
 //
 //   kinds:
-//     core.idea:  { pipeline: standard, recipes: { triage: triage-v1, design: design-v1, design/attended: design-attended-v1, build: build-v1, review: review-v1 } }
+//     core.idea:  { pipeline: standard, recipes: { triage: triage-v1, design: design-v1, design/attended: design-attended-v1, build: build-v1, review: review-run } }
 //     core.issue: { pipeline: standard, recipes: { ...the same } }
 //
 //   skills:                                      # ONE commit of the public skills repo
@@ -75,7 +74,7 @@ import { createFakeFactSink, outboxLimits, runSenderOnce, toWireItem } from '@bo
 //                                                # The pin and the list are part of the recipe hash.
 //     # Each recipe also has the `prompt` path and the capacity `source` of the existing `Recipe`
 //     # type; modules/rules/example/rules.yaml, the file that a loader test loads, shows them.
-//     # Every v1 recipe runs Claude Opus 5.5 at medium effort. Rules data only: `agent`,
+//     # Every v1 recipe but review-run runs Claude Opus 5.5 at medium effort. Rules data only: `agent`,
 //     # `model` and `effort` are fields of the existing `Recipe` type. v1 workers are Claude; Codex as a
 //     # worker is later.
 //     triage-v1:          { agent: claude, model: claude-opus-5-5, effort: medium, skills: [] }
@@ -86,7 +85,9 @@ import { createFakeFactSink, outboxLimits, runSenderOnce, toWireItem } from '@bo
 //     build-v1:           { agent: claude, model: claude-opus-5-5, effort: medium, skills: [] }
 //                                                # A build recipe names no check command; its text
 //                                                # says to follow the repo's own agent instructions for checks.
-//     review-v1:          { agent: claude, model: claude-opus-5-5, effort: medium, skills: [] }
+//     review-run:         { agent: claude, model: claude-haiku-5-5, effort: low, skills: [] }
+//                                                # The session only runs the gate's command and
+//                                                # sends its file; the review tool does the review.
 //
 //   limits:
 //     - { name: workers,      max: 7, counts: {} }
@@ -116,7 +117,7 @@ import { createFakeFactSink, outboxLimits, runSenderOnce, toWireItem } from '@bo
 // `hold` edge names an engine hold reason (`engine-hold-reason`). `lead` and `propagation` are
 // optional, and empty when the file leaves them out.
 
-// ── 2. modules/closeout/src/phases/review.ts ───────────────────────────────────────────────────
+// ── 2. modules/closeout/src/phases/create-review-phase.ts ──────────────────────────────────────
 // `outcomes` is the one list. The loader checks `on` against it, and the compiler checks the
 // `outcome` that `settle` returns against it: `outcome: 'approved'` here is a type error
 // (libs/model/src/rules/define-phase.test.ts proves it). `definePhase` infers the body, the input
@@ -124,34 +125,26 @@ import { createFakeFactSink, outboxLimits, runSenderOnce, toWireItem } from '@bo
 // `input` returns `toJSONValue` of the typed value.
 
 declare const buildSchemaParser: <Raw, Body>(input: { schema: z.ZodType<Raw>; toBody: (raw: Raw, frictionDropped: number) => Body; check: (body: Body, ctx: CloseOutContext) => readonly CloseOutProblem[] }) => CloseOutParser<Body>;
-declare const buildReviewInput: (ctx: PhaseInputContext) => ReviewInput; // the acceptance list, the latest design, the latest pull request
+// the round, its cause, the pull request and the gate's command (sketches/next/review-and-merge/03-flow.ts, section C)
+declare const buildReviewInput: (ctx: PhaseInputContext, buildCommand: ReviewGate['buildCommand']) => ReviewInput;
+declare const pickReviewOutcome: (reading: GateReading) => 'passed' | 'changes-requested' | 'failed';
 
-// The session sends noslop's whole result; the stored close-out holds `NoslopSummary`. Neither
-// schema has a zod transform: `toBody` builds the stored form.
-const reviewBodySchema = reviewCloseOutSchema.omit({ frictionDropped: true }).extend({ noslop: noslopReportSchema });
-
-export const review = definePhase({
+// The session sends the review tool's raw result. The server builds the `ReviewCloseOut` from
+// `ReviewGate.accept`'s reading (sketches/next/review-and-merge/03-flow.ts, section B), and this
+// parser reads the built body. The server passes the gate's pure `buildCommand` in.
+export const createReviewPhase = (deps: Pick<ReviewGate, 'buildCommand'>) => definePhase({
   name: brandSchemas.phaseName.parse('review'),
-  version: 1,
+  version: 2,
   worker: brandSchemas.workerKindName.parse('atc.session'),
-  outcomes: ['passed', 'changes-requested'],
+  outcomes: ['passed', 'changes-requested', 'failed'],
   needsAcceptance: true,
-  input: (ctx) => toJSONValue(buildReviewInput(ctx)),
-  closeOut: buildSchemaParser({
-    schema: reviewBodySchema,
-    toBody: (raw: z.output<typeof reviewBodySchema>, frictionDropped): ReviewCloseOut => ({ ...raw, noslop: buildNoslopSummary(raw.noslop), frictionDropped }),
-    check: (closeOut) =>
-      closeOut.verdict.kind === 'changes-requested' && closeOut.verdict.findings.length === 0
-        ? [{ kind: 'phase-rule', message: 'changes-requested needs at least one finding' }]
-        : [],
-  }),
-  settle: ({ closeOut }) => ({
-    state: 'succeeded',
-    failure: null,
-    outcome: closeOut.verdict.kind,
-    effects: closeOut.friction.map((friction) => ({ kind: 'record-proposal', friction })),
-    frictionDropped: closeOut.frictionDropped,
-  }),
+  input: (ctx) => toJSONValue(buildReviewInput(ctx, deps.buildCommand)),
+  closeOut: buildSchemaParser({ schema: reviewCloseOutSchema, toBody: (raw) => raw, check: () => [] }),
+  settle: ({ closeOut }) => {
+    const outcome = pickReviewOutcome(closeOut.reading);
+
+    return { state: outcome === 'failed' ? 'failed' : 'succeeded', failure: outcome === 'failed' ? 'review-failed' : null, outcome, effects: [], frictionDropped: 0 };
+  },
 });
 
 // design.ts adds `mode: (item) => (item.fields.designMode === 'attended' ? 'attended' : 'agent')`.
@@ -421,8 +414,8 @@ test('it settles a closing attempt as failed when the phase kind can no longer s
   const { worker, claimReview, tick, readAttempt, readItem, heldSeats, loadPhaseKinds } = setupTest();
   const attempt = await claimReview();
 
-  await rpc['attempt.closeOut']({ session: { attempt: attempt.id } /* the test client's fake `CallerProof` gives the attempt's caller */, closeOut: buildMockReviewCloseOut() });
-  loadPhaseKinds([buildMockPhaseKind({ name: 'review', settle: () => { throw new Error('verdict.kind is not known'); } })]);
+  await rpc['attempt.closeOut']({ session: { attempt: attempt.id } /* the test client's fake `CallerProof` gives the attempt's caller */, closeOut: toJSONValue(buildMockGateReading({ status: 'passed' })) }); // the test server's fake gate reads the body as its reading
+  loadPhaseKinds([buildMockPhaseKind({ name: 'review', settle: () => { throw new Error('reading.status is not known'); } })]);
   worker.setSession(attempt.id, { state: 'suspended', asked: true, agentSession: null });
   await tick();
 
@@ -528,15 +521,15 @@ test('it writes nothing when the close-out of the first attempt arrives again af
   expect(listFacts('boxxy.attempt.closed_out')).toHaveLength(1);
 });
 
-test('it records a review close-out with a large noslop report as a fact that fits one outbox item', async () => {
+test('it records a review close-out just under the size limit as a fact that fits one outbox item', async () => {
   const { store, clock, claimReview, readAttempt, listFacts } = setupTest();
   const attempt = await claimReview();
-  const report = buildMockNoslopResult({ padBytes: 200_000 }); // valid shape, and under the request limit
+  const findingPaths = Array.from({ length: 500 }, (_, index) => `src/${index}/${'a'.repeat(200)}.ts`); // about 105,000 bytes as stored
 
-  const answer = await rpc['attempt.closeOut']({ session: { attempt: attempt.id } /* the test client's fake `CallerProof` gives the attempt's caller */, closeOut: buildMockReviewCloseOut({ noslop: report }) });
+  const answer = await rpc['attempt.closeOut']({ session: { attempt: attempt.id } /* the test client's fake `CallerProof` gives the attempt's caller */, closeOut: toJSONValue(buildMockGateReading({ status: 'blocked', why: 'open-findings', findingPaths })) });
 
   expect(answer.kind).toBe('recorded');
-  expect((await readAttempt(attempt.id)).closeOut).toMatchObject({ noslop: { counts: { findings: 0, failedCalls: 0, fixChecks: 0 }, report: null } });
+  expect((await readAttempt(attempt.id)).closeOut).toMatchObject({ reading: { findingPaths } });
 
   const [fact] = listFacts('boxxy.attempt.closed_out');
 
@@ -553,9 +546,9 @@ test('it records a review close-out with a large noslop report as a fact that fi
 test('it rejects a close-out that is too large as stored, and leaves the attempt open', async () => {
   const { claimReview, readAttempt, listFacts } = setupTest();
   const attempt = await claimReview();
-  const findings = Array.from({ length: 32 }, () => ({ title: 'a finding', body: '"'.repeat(1900) })); // about 122,700 bytes as stored: each quote is 2 bytes of JSON
+  const findingPaths = Array.from({ length: 32 }, () => '"'.repeat(1900)); // about 122,000 bytes as stored: each quote is 2 bytes of JSON
 
-  const answer = await rpc['attempt.closeOut']({ session: { attempt: attempt.id } /* the test client's fake `CallerProof` gives the attempt's caller */, closeOut: buildMockReviewCloseOut({ verdict: { kind: 'changes-requested', findings } }) });
+  const answer = await rpc['attempt.closeOut']({ session: { attempt: attempt.id } /* the test client's fake `CallerProof` gives the attempt's caller */, closeOut: toJSONValue(buildMockGateReading({ status: 'blocked', why: 'open-findings', findingPaths })) });
 
   expect(answer).toMatchObject({ kind: 'rejected', problems: [{ kind: 'too-large', max: 120_000 }] });
   expect((await readAttempt(attempt.id)).state).toBe('running');

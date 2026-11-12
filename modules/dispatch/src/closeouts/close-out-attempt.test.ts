@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
-import { buildMockNoslopReport } from '@boxxy/closeout/test-utils/build-mock-noslop-report';
 import type { AttemptRow } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
+import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
 import invariant from 'tiny-invariant';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
 import { closeOutAttempt } from './close-out-attempt.ts';
@@ -222,37 +222,20 @@ test('it writes nothing when the close-out of the first attempt arrives again af
   expect(closedOut).toHaveLength(2);
 });
 
-test('it records a review close-out with a large noslop report as a fact that fits one outbox item', async () => {
-  const ctx = await setupTest();
-  const attempt = await ctx.claimReview();
-
-  const answer = await ctx.closeOut(attempt, {
-    verdict: { kind: 'passed' },
-    noslop: buildMockNoslopReport({ title: 'x'.repeat(200_000) }),
-    friction: [],
-  });
-
-  const [fact] = await ctx.listFacts('boxxy.attempt.closed_out');
-  const after = await ctx.readAttempt(attempt.id);
-
-  expect(answer.kind).toBe('recorded');
-  expect(after.closeOut).toMatchObject({ noslop: { report: null } });
-  expect(new TextEncoder().encode(JSON.stringify(fact)).length).toBeLessThan(262_144 - 1024);
-});
-
 test('it rejects a close-out that is too large as stored, and leaves the attempt open', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.claimReview();
 
-  const findings = Array.from({ length: 32 }, () => ({
-    title: 'a finding',
-    body: '"'.repeat(1900),
-  }));
+  const findingPaths = Array.from(
+    { length: 32 },
+    (_unused, index) => `${index}${'"'.repeat(1900)}`,
+  );
 
   const answer = await ctx.closeOut(attempt, {
-    verdict: { kind: 'changes-requested', findings },
-    noslop: buildMockNoslopReport(),
-    friction: [],
+    round: 1,
+    cause: 'first',
+    reading: buildMockGateReading({ status: 'blocked', why: 'open-findings', findingPaths }),
+    unrelatedLines: null,
   });
 
   const after = await ctx.readAttempt(attempt.id);

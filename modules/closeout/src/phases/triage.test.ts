@@ -264,7 +264,11 @@ test('it gives a triage attempt the item acceptance list as its input', () => {
     ],
   });
 
-  expect(triage.input({ item, history: [], pullRequests: [] })).toStrictEqual({
-    acceptance: [{ id: 'a1', text: 'A failed upload retries once' }],
-  });
+  const attempt = buildMockV1AttemptRow().id;
+
+  expect(triage.input({ item, attempt, history: [], retries: [], pullRequests: [] })).toStrictEqual(
+    {
+      acceptance: [{ id: 'a1', text: 'A failed upload retries once' }],
+    },
+  );
 });

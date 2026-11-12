@@ -439,6 +439,14 @@ export type PepysAnswer<Value> =
 export interface Forge {
   readPullRequest: (ref: PullRequestRef) => Promise<PullRequestReading | 'not-found'>;
   listOpenPullRequests: (repo: RepoName) => Promise<PullRequestRef[]>;
+
+  // the forge's compare of two heads: each changed file with its added and deleted lines
+  readChangedFiles: (repo: RepoName, from: CommitSha, to: CommitSha) => Promise<ChangedFile[]>;
+}
+
+export interface ChangedFile {
+  readonly path: string;
+  readonly changedLines: number;
 }
 
 export interface PullRequestReading {

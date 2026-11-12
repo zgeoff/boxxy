@@ -14,6 +14,7 @@ import type {
   OutboxStatus,
   PepysReader,
   RepoName,
+  ReviewGate,
   RunnerId,
   SessionReading,
 } from '@boxxy/model';
@@ -66,6 +67,11 @@ export interface ServerDeps {
 
   // null: the configuration has no github section, so the pull request link answers `retry`
   readonly forge: Forge | null;
+
+  // the review gate a review close-out goes through, and the forge it reads the changed files
+  // from; null: the noslop App's keys or the github section are missing, so the server rejects
+  // each review close-out
+  readonly review: { readonly gate: ReviewGate; readonly forge: Forge } | null;
   readonly outbox: OutboxControl;
 
   // null: the configuration has no public door, so the auth procedures answer AUTH_NOT_CONFIGURED

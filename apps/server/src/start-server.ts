@@ -1,6 +1,7 @@
 import { dirname, join } from 'node:path';
 import { createPublicDoor } from '@boxxy/auth-oauth';
 import type { PublicDoor } from '@boxxy/auth-oauth';
+import { createReviewPhase, phaseKinds } from '@boxxy/closeout';
 import { createNullNotifier, outboxLimits, watchPullRequests } from '@boxxy/dispatch';
 import type { SpawnSettings } from '@boxxy/dispatch';
 import { createGithubForge } from '@boxxy/forge-github';
@@ -10,6 +11,7 @@ import { createAtcNotifier } from '@boxxy/notifier-atc';
 import type { UncheckedQueryClient } from '@boxxy/pepys';
 import { createPepysReader } from '@boxxy/pepys/reader';
 import { createPepysFactSink } from '@boxxy/pepys/sink';
+import { createNoslopReviewGate } from '@boxxy/review-noslop';
 import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
 import { createAtcMcpClient, createAtcWorker } from '@boxxy/worker-atc';
 import { createORPCClient } from '@orpc/client';
@@ -90,7 +92,14 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
     };
   }
 
-  const rules = await createRulesHolder(config.rules, input.log);
+  // The review session runs the command on an agent host, which never gets the App's keys; the
+  // server uses them only to check and post the result.
+  const reviewGate = createNoslopReviewGate({ appEnv: secrets.secrets.review ?? {} });
+
+  const rules = await createRulesHolder(config.rules, input.log, [
+    ...phaseKinds,
+    createReviewPhase(reviewGate),
+  ]);
 
   if (rules.kind !== 'loaded') {
     return { kind: 'refused', message: `the rules did not load: ${JSON.stringify(rules)}` };
@@ -175,6 +184,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
     workerTokenDigest: buildTokenDigest(secrets.secrets.workerToken),
     pepys: pepys?.reader ?? null,
     forge,
+    review: secrets.secrets.review === null || forge === null ? null : { gate: reviewGate, forge },
     outbox: pepys?.sender ?? createOffOutbox(store, clock),
     repos: new Set(
       Object.keys(config.spawn.repos).map((repo) => brandSchemas.repoName.parse(repo)),

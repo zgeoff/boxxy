@@ -29,7 +29,7 @@ boxxy/
 │   ├── worker-atc/              spawns attempts through atc, reads back their session ids
 │   ├── notifier-atc/            sends a hold notice as an atc message
 │   ├── forge-github/            PR and commit links, checks, and (next) the merge
-│   ├── review-noslop/ (next)    checks and posts the review tool's result for the ReviewGate port
+│   ├── review-noslop/           checks and posts the review tool's result for the ReviewGate port
 │   ├── verifier-wringer/ (next) reads the verify tool's report for the Verifier port
 │   ├── caller-proof-imp/        proves a session's caller from the broker's identity token
 │   └── capacity-<provider>/   (slice 2) one per capacity source
@@ -109,6 +109,7 @@ Each outside system has one package that may talk to it:
 | OAuth          | `adapters/auth-oauth`   | only it imports `better-auth` (and its subpaths), `@better-auth/mcp`, `@better-auth/oauth-provider`, `@simplewebauthn/server` or `reflect-metadata` |
 | atc            | `adapters/worker-atc`   | only it imports `@modelcontextprotocol/client`, to call the atc gateway's MCP tools |
 | imp identity   | `adapters/caller-proof-imp` | only it imports `@impz/client` or `@impz/client/identity`         |
+| noslop         | `adapters/review-noslop` | only it imports `@noslop/cli`, `@noslop/cli/post` or `@noslop/cli/check`, to check and post a review result with the noslop App's keys |
 | GitHub         | `adapters/forge-github` | only an adapter or a package calls `fetch`                            |
 | pepys          | `packages/pepys`        | only it imports `@pepys/kit`, `@pepys/testing`, `@pepys/ingest`, `@pepys/api`, `@pepys/source-github` or `@pepys/source-telemetry`; no module and no lib imports `@boxxy/pepys` |
 | wringer        | `system-tests`          | only it imports `@wringer/core`, `@wringer/gunshi`, `@wringer/http` or another `@wringer/*` package; the verify CLI lives in `system-tests/src/test-utils/verify/` |

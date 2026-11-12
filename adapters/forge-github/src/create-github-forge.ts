@@ -102,6 +102,23 @@ export function createGithubForge(options: GithubForgeOptions): Forge {
 
       return rows.map((row) => ({ repo, number: row.number }));
     },
+
+    // GitHub's compare lists at most 300 files, and a paged compare lists them on its first page
+    // only, so one call reads every file it gives
+    readChangedFiles: async (repo, from, to) => {
+      const path = `/repos/${repo}/compare/${from}...${to}`;
+
+      const compare = await readJson(path, githubSchemas.compare);
+
+      if (compare === null) {
+        throw new GithubForgeError(`GitHub did not find GET ${path}`, 404);
+      }
+
+      return (compare.files ?? []).map((file) => ({
+        path: file.filename,
+        changedLines: file.changes,
+      }));
+    },
   };
 }
 

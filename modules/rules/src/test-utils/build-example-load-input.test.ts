@@ -11,7 +11,7 @@ test('it gives the example rules file with the prompt of each of its five recipe
     'prompts/design-v1.md',
     'prompts/design-attended-v1.md',
     'prompts/build-v1.md',
-    'prompts/review-v1.md',
+    'prompts/review-run.md',
   ]);
 });
 

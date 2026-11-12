@@ -172,13 +172,13 @@ test('it gives no wake pick of an item that the tick claimed already', async () 
   expect(claim).toBeNull();
 });
 
-test('it carries the findings of the review in the prompt of a rework round', async () => {
+test('it carries the open counts and the answer hint of the review in the prompt of a rework round', async () => {
   const ctx = await setupTest();
   const rework = await ctx.seedRework({});
 
   expect(rework.claimed.spawnRequest).toMatchObject({
-    prompt: expect.stringContaining(
-      '## Findings to fix\n\n### The theme ignores the system\nRead the media query.',
+    prompt: expect.stringMatching(
+      /## Findings to answer\n\nThe review at [0-9a-f]{40} left findings open: high 1, medium 0, low 0\.\n\nReply to each open finding with a disposition\./u,
     ),
   });
 });

@@ -44,7 +44,8 @@ export { parseNewFact } from './facts/parse-new-fact.ts';
 export { pickSeatTake, type SeatTakeAnswer } from './dispatch/pick-seat-take.ts';
 export { pullRequestRowSchema } from './rows/pull-request-row-schema.ts';
 export { relationRowSchema } from './rows/relation-row-schema.ts';
-export { reviewCloseOutSchema } from './closeouts/review-close-out-schema.ts';
+export { gateReadingSchema, reviewCloseOutSchema } from './closeouts/review-close-out-schema.ts';
+export { reviewInputSchema } from './closeouts/review-input-schema.ts';
 export { rowSchemas } from './rows/row-schemas.ts';
 export { signalKey } from './planning/signal-key.ts';
 export { gitSourceSchema, spawnRequestSchema } from './rows/spawn-request-schema.ts';
@@ -155,17 +156,15 @@ export type {
   DesignCloseOut,
   Design,
   Effect,
-  Finding,
   Friction,
   FrictionTargetKind,
-  GateReviewCloseOut,
   MergeCloseOut,
-  NoslopSummary,
   OpenItem,
   PullRequestLink,
   RelationDraft,
   ReviewCloseOut,
   ReviewInput,
+  SentBack,
   TriageCloseOut,
   VerifyCloseOut,
 } from './closeouts/types.ts';
@@ -236,6 +235,7 @@ export type {
   Attention,
   CallerProof,
   CapacityBackoff,
+  ChangedFile,
   ClaimStore,
   Clock,
   FactSink,

@@ -1,4 +1,5 @@
-import { buildMockNoslopReport } from '@boxxy/closeout/test-utils/build-mock-noslop-report';
+import { toJSONValue } from '@boxxy/model';
+import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
 import { z } from 'zod';
 import { runBoxxy } from '../run-boxxy.ts';
 import type { VerifyContext } from '../verify-context.ts';
@@ -31,11 +32,8 @@ export function readCloseOutBody(ctx: VerifyContext, input: CloseOutInput): Prom
   }
 
   if (input.closeOut === 'passed') {
-    return Promise.resolve({
-      verdict: { kind: 'passed' },
-      noslop: buildMockNoslopReport(),
-      friction: [],
-    });
+    // the server's review gate in the harness is a stand-in, which reads the body as its reading
+    return Promise.resolve(toJSONValue(buildMockGateReading({ status: 'passed' })));
   }
 
   return readBuiltBody(ctx, input.pullRequest);

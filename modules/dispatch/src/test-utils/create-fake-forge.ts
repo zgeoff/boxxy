@@ -1,10 +1,25 @@
-import type { Forge, PullRequestReading, PullRequestRef, RepoName } from '@boxxy/model';
+import type {
+  ChangedFile,
+  CommitSha,
+  Forge,
+  PullRequestReading,
+  PullRequestRef,
+  RepoName,
+} from '@boxxy/model';
 
 // A pull request as a test puts it on a forge. The url is the one GitHub gives.
 export interface SeededPullRequest {
   readonly ref: PullRequestRef;
   readonly githubId: number;
   readonly reading: Omit<PullRequestReading, 'githubId' | 'url'>;
+}
+
+// A compare of two heads as a test puts it on a forge.
+export interface SeededCompare {
+  readonly repo: RepoName;
+  readonly from: CommitSha;
+  readonly to: CommitSha;
+  readonly files: readonly ChangedFile[];
 }
 
 export interface ReadHold {
@@ -17,6 +32,9 @@ export interface FakeForge extends Forge {
   readonly calls: readonly string[];
   seed: (pullRequest: SeededPullRequest) => void;
 
+  // the files that the compare of `from` and `to` in the repo gives
+  seedCompare: (compare: SeededCompare) => void;
+
   // while down, every call rejects, as a forge that does not answer
   setDown: (isDown: boolean) => void;
 
@@ -28,6 +46,7 @@ export interface FakeForge extends Forge {
 // A forge that keeps the pull requests a test seeds and answers as the `Forge` contract says.
 export function createFakeForge(): FakeForge {
   const pullRequests = new Map<string, SeededPullRequest>();
+  const compares = new Map<string, readonly ChangedFile[]>();
 
   const calls: string[] = [];
   let isDown = false;
@@ -55,6 +74,9 @@ export function createFakeForge(): FakeForge {
     calls,
     seed: (pullRequest) => {
       pullRequests.set(toKey(pullRequest.ref), pullRequest);
+    },
+    seedCompare: (compare) => {
+      compares.set(toCompareKey(compare.repo, compare.from, compare.to), compare.files);
     },
     setDown: (down) => {
       isDown = down;
@@ -109,10 +131,28 @@ export function createFakeForge(): FakeForge {
           .toSorted((first, second) => first.number - second.number),
       );
     },
+    readChangedFiles: (repo, from, to) => {
+      calls.push(`readChangedFiles ${repo} ${from}...${to}`);
+
+      if (isDown) {
+        return Promise.reject(new Error('the fake forge is down'));
+      }
+
+      const files = compares.get(toCompareKey(repo, from, to));
+
+      // GitHub answers 404 to a compare of a head it does not hold
+      return files === undefined
+        ? Promise.reject(new Error(`the fake forge holds no compare of ${from}...${to}`))
+        : Promise.resolve([...files]);
+    },
   };
 }
 
 // GitHub matches a repo name in any case
 function toKey(ref: PullRequestRef): string {
   return `${ref.repo.toLowerCase()}#${ref.number}`;
+}
+
+function toCompareKey(repo: RepoName, from: CommitSha, to: CommitSha): string {
+  return `${repo.toLowerCase()} ${from}...${to}`;
 }

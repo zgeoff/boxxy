@@ -1,5 +1,4 @@
-import { phaseKinds } from '@boxxy/closeout';
-import { buildMockNoslopReport } from '@boxxy/closeout/test-utils/build-mock-noslop-report';
+import { createReviewPhase, phaseKinds } from '@boxxy/closeout';
 import type {
   ApplyResult,
   AtcSessionId,
@@ -8,19 +7,16 @@ import type {
   CallerIdentity,
   CapacityBackoff,
   Claim,
-  DesignMode,
   FactType,
   ItemId,
-  ItemRow,
   LoadedRules,
   NewId,
   OutboxFact,
-  PhaseName,
   PipelineStep,
   RunnerId,
-  StoreChange,
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
+import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
 import { conceptPins, concepts } from '@boxxy/planning';
 import { loadRules } from '@boxxy/rules';
 import { buildExampleLoadInput } from '@boxxy/rules/test-utils/build-example-load-input';
@@ -34,23 +30,24 @@ import type { SpawnSettings } from '../claims/types.ts';
 import { closeOutAttempt } from '../closeouts/close-out-attempt.ts';
 import { settleAttempt } from '../closeouts/settle-attempt.ts';
 import type { CallRef } from '../closeouts/types.ts';
+import { linkPullRequest } from '../pull-requests/link-pull-request.ts';
 import { actOnReading } from '../readings/act-on-reading.ts';
 import { pickReadingAction } from '../readings/pick-reading-action.ts';
 import { buildMockNewId } from './build-mock-new-id.ts';
+import type { SeedItemInput } from './build-seed-item-change.ts';
+import { buildSeedItemChange } from './build-seed-item-change.ts';
 import { createFakeBackoff } from './create-fake-backoff.ts';
 import type { FakeClock } from './create-fake-clock.ts';
 import { createFakeClock } from './create-fake-clock.ts';
+import type { FakeForge } from './create-fake-forge.ts';
+import type { FakeReviewGate } from './create-fake-review-gate.ts';
+import { createFakeReviewGate } from './create-fake-review-gate.ts';
 import type { FakeWorker } from './create-fake-worker.ts';
 import { createFakeWorker } from './create-fake-worker.ts';
 import { createMemoryClaimStore } from './create-memory-claim-store.ts';
 import type { ClosableClaimStore } from './types.ts';
 
-export interface SeedItemInput {
-  // the phase the item stands at, through an `item.retry --phase` lever; with none, the item
-  // stands at its pipeline's first phase and has no lever
-  readonly phase?: PhaseName;
-  readonly designMode?: DesignMode;
-}
+export type { SeedItemInput } from './build-seed-item-change.ts';
 
 export interface ReworkInput {
   // the caller that the item's kept session holds; the first build's caller when left out
@@ -75,6 +72,9 @@ export interface TestDispatch {
   readonly store: ClosableClaimStore;
   readonly clock: FakeClock;
   readonly worker: FakeWorker;
+
+  // the gate that the review phase kind of the rules is built on
+  readonly reviewGate: FakeReviewGate;
   readonly backoff: CapacityBackoff;
   readonly newId: NewId;
   readonly runner: RunnerId;
@@ -91,6 +91,10 @@ export interface TestDispatch {
 
   // a build that closed out as `built` and settled, so it succeeded; its session is kept
   readonly seedBuild: () => Promise<AttemptRow>;
+
+  // the same, with the build's session first linking the open pull request of the example repo
+  // with this number, which the test's forge then holds
+  readonly seedBuildWithPullRequest: (forge: FakeForge, number: number) => Promise<AttemptRow>;
 
   // A build that settled `built` with its session kept, a review that asked for changes, and
   // the claim of the second build through the `resume: true` edge, started on the kept session
@@ -117,19 +121,24 @@ const repo = brandSchemas.repoName.parse('example/app');
 export interface TestDispatchOptions {
   // the memory store when left out
   readonly store?: ClosableClaimStore;
+
+  // a dispatch whose store, clock and IDs this one carries on, as a server does after a restart
+  readonly restartOf?: TestDispatch;
 }
 
 // The example rules with the four phase kinds, the store with its limits synced, the fake
 // worker, and a clock that moves only when the test moves it.
 export async function createTestDispatch(options: TestDispatchOptions = {}): Promise<TestDispatch> {
-  const store = options.store ?? createMemoryClaimStore();
-  const clock = createFakeClock();
+  const store = options.restartOf?.store ?? options.store ?? createMemoryClaimStore();
+  const clock = options.restartOf?.clock ?? createFakeClock();
   const worker = createFakeWorker({ clock });
   const backoff = createFakeBackoff();
-  const newId = buildMockNewId();
+  const newId = options.restartOf?.newId ?? buildMockNewId();
   const runner = brandSchemas.runnerId.parse('runner-1');
   const example = buildExampleLoadInput();
-  const loaded = loadRules({ ...example, concepts, pins: conceptPins, phases: phaseKinds });
+  const reviewGate = createFakeReviewGate();
+  const phases = [...phaseKinds, createReviewPhase(reviewGate)];
+  const loaded = loadRules({ ...example, concepts, pins: conceptPins, phases });
 
   invariant(loaded.kind === 'loaded', 'the example rules load');
 
@@ -168,12 +177,18 @@ export async function createTestDispatch(options: TestDispatchOptions = {}): Pro
     store,
     clock,
     worker,
+    reviewGate,
     backoff,
     newId,
     runner,
     spawn,
     seedBuild: async () => {
       const built = await seedBuiltAttempt(dispatch);
+
+      return dispatch.readAttempt(built.first.id);
+    },
+    seedBuildWithPullRequest: async (forge, number) => {
+      const built = await seedBuiltAttempt(dispatch, { forge, number });
 
       return dispatch.readAttempt(built.first.id);
     },
@@ -219,14 +234,14 @@ export async function createTestDispatch(options: TestDispatchOptions = {}): Pro
       }
     },
     seedItem: async (input) => {
-      const row = buildSeedItemRow(newId, clock.now(), input);
+      const seeded = buildSeedItemChange(newId, clock.now(), input);
 
-      await store.exclusive((tx) => tx.applyChange(buildSeedItemChange(newId, row, input.phase)));
+      await store.exclusive((tx) => tx.applyChange(seeded.change));
 
       // a lever orders after an attempt that ends at the same instant, so time moves on
       clock.advance(1000);
 
-      return row.id;
+      return seeded.row.id;
     },
     closeItem: (item, reason) =>
       store.exclusive(async (tx) => {
@@ -296,12 +311,22 @@ export async function createTestDispatch(options: TestDispatchOptions = {}): Pro
   return dispatch;
 }
 
+interface PullRequestLinkSeed {
+  readonly forge: FakeForge;
+  readonly number: number;
+}
+
 // A build that claimed, closed out as `built` and settled; its session is kept.
 async function seedBuiltAttempt(
   dispatch: TestDispatch,
+  link: PullRequestLinkSeed | null = null,
 ): Promise<{ item: ItemId; first: AttemptRow; firstBody: unknown }> {
   const item = await dispatch.seedItem({ phase: brandSchemas.phaseName.parse('build') });
   const first = await claimStarted(dispatch, item);
+
+  if (link !== null) {
+    await linkSeededPullRequest(dispatch, first, link);
+  }
 
   const evidence = brandSchemas.factId.parse(dispatch.newId());
   const now = dispatch.clock.now();
@@ -354,6 +379,31 @@ async function claimStarted(dispatch: TestDispatch, item: ItemId): Promise<Attem
   invariant(claim?.attempt.item === item, 'the claim picks the seeded item');
 
   return dispatch.readAttempt(claim.attempt.id);
+}
+
+// The build's session links an open pull request of the example repo, which the forge holds.
+async function linkSeededPullRequest(
+  dispatch: TestDispatch,
+  build: AttemptRow,
+  link: PullRequestLinkSeed,
+): Promise<void> {
+  link.forge.seed({
+    ref: { repo, number: link.number },
+    githubId: 9_000_000 + link.number,
+    reading: { state: 'open', mergedAt: null, mergeCommit: null, commits: [] },
+  });
+
+  const linked = await linkPullRequest({
+    store: dispatch.store,
+    forge: link.forge,
+    rules: dispatch.rules(),
+    call: dispatch.buildCallRef(build),
+    url: `https://github.com/${repo}/pull/${link.number}`,
+    now: dispatch.clock.now(),
+    newId: dispatch.newId,
+  });
+
+  invariant(linked.kind === 'linked', `the seeded pull request links: ${JSON.stringify(linked)}`);
 }
 
 async function closeAndSettle(dispatch: TestDispatch, attempt: AttemptRow, body: unknown) {
@@ -431,12 +481,15 @@ async function requestChanges(dispatch: TestDispatch, item: ItemId): Promise<voi
   const review = await claimStarted(dispatch, item);
 
   await closeAndSettle(dispatch, review, {
-    verdict: {
-      kind: 'changes-requested',
-      findings: [{ title: 'The theme ignores the system', body: 'Read the media query.' }],
-    },
-    noslop: buildMockNoslopReport(),
-    friction: [],
+    round: 1,
+    cause: 'first',
+    reading: buildMockGateReading({
+      status: 'blocked',
+      why: 'open-findings',
+      open: { high: 1, medium: 0, low: 0 },
+      findingPaths: ['src/theme.ts'],
+    }),
+    unrelatedLines: null,
   });
 }
 
@@ -504,88 +557,4 @@ async function readAttemptStep(
   const pipeline = item === null ? undefined : rules.kinds.get(item.kind)?.pipeline;
 
   return pipeline?.steps.find((step) => step.phase === attempt.phase) ?? null;
-}
-
-function buildSeedItemRow(
-  newId: NewId,
-  now: AttemptRow['claimedAt'],
-  input: SeedItemInput,
-): ItemRow {
-  return {
-    id: brandSchemas.itemId.parse(newId()),
-    kind: brandSchemas.itemKindName.parse('core.issue'),
-    repo,
-    title: 'Add a dark theme',
-    outcome: 'The app follows the system theme.',
-    body: '',
-    acceptance: [
-      {
-        id: brandSchemas.criterionId.parse('a1'),
-        text: 'The app reads dark when the system does.',
-        evidence: [],
-      },
-    ],
-    fields: input.designMode === undefined ? {} : { designMode: input.designMode },
-    labels: [],
-    foundInAttempt: null,
-    filedBy: 'boxxy:owner:local',
-    filedAt: now,
-    closedAt: null,
-    closeReason: null,
-    keptSession: null,
-  };
-}
-
-function buildSeedItemChange(
-  newId: NewId,
-  row: ItemRow,
-  phase: PhaseName | undefined,
-): StoreChange {
-  const { keptSession: _keptSession, ...filed } = row;
-
-  const fileFact = {
-    id: brandSchemas.factId.parse(newId()),
-    type: 'boxxy.item.filed',
-    entity: `boxxy:item:${row.id}`,
-    actor: 'boxxy:owner:local',
-    payload: filed,
-  } as const;
-
-  if (phase === undefined) {
-    return {
-      at: row.filedAt,
-      writes: [{ op: 'insert', table: 'items', row }],
-      facts: [fileFact],
-    };
-  }
-
-  const lever = {
-    seq: 1,
-    kind: 'item.retry',
-    item: row.id,
-    until: null,
-    expiresAt: null,
-    reason: null,
-    phase,
-    actor: 'boxxy:owner:local',
-    at: row.filedAt,
-  } as const;
-
-  return {
-    at: row.filedAt,
-    writes: [
-      { op: 'insert', table: 'items', row },
-      { op: 'insert', table: 'levers', row: lever },
-    ],
-    facts: [
-      fileFact,
-      {
-        id: brandSchemas.factId.parse(newId()),
-        type: 'boxxy.lever.recorded',
-        entity: `boxxy:item:${row.id}`,
-        actor: 'boxxy:owner:local',
-        payload: lever,
-      },
-    ],
-  };
 }

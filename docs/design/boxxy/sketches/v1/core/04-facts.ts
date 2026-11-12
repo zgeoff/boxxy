@@ -185,7 +185,7 @@ export interface WorkFacts {
 
   // written by: `attempt.closeOut`, for the first valid close-out. The attempt moves to `closing`.
   // `closeOut` is 120,000 bytes at most as JSON (`closeOutLimits`), so
-  // this fact always fits one outbox item. A review's `closeOut.noslop` is `NoslopSummary`.
+  // this fact always fits one outbox item. A review's `closeOut` holds the gate's reading.
   'boxxy.attempt.closed_out': OfAttempt & { readonly phase: PhaseName; readonly closeOut: CloseOut; readonly hash: ContentHash };
 
   // written by: the runner, past the step's `timeoutMinutes`. The attempt moves to `closing`

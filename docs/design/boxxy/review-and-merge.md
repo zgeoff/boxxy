@@ -67,11 +67,12 @@ A review goes like this:
 
 1. The core picks the review number and its cause with `buildRoundCause` ([`03-flow.ts`](./sketches/next/review-and-merge/03-flow.ts), section C). The cause is `first` for the first review, `rework` after a `changes-requested` review, or `recheck` after a repair, a `stale` send-back, a failed verify or a failed review.
 2. A session on an agent host runs the command in the pull request's checkout, and sends the tool's raw result with `boxxy attempt close-out`.
-3. The server's `attempt.closeOut` procedure hashes the raw result, and answers a repeat of a stored result as a repeat. Otherwise it passes the result to `accept`, before it takes the store's lock, because `accept` posts to GitHub.
+3. The server's `attempt.closeOut` procedure runs `closeOutCall` from `modules/dispatch`. It refuses a call from another session, hashes the raw result, and answers a repeat of a stored result as a repeat. Otherwise it passes the result to `accept`, before it takes the store's lock, because `accept` posts to GitHub.
 4. The procedure stores the `ReviewCloseOut` that holds the reading, through the phase kind's parser, as for any close-out. The attempt settles `passed`, `changes-requested` or `failed`.
 
 Rules of the review:
 
+- **A review needs a pull request.** When the item has none, the review's input holds no command, and the server rejects its close-out. The server reads the noslop App's keys from `NOSLOP_GITHUB_APP_ID`, `NOSLOP_GITHUB_APP_PRIVATE_KEY` and `NOSLOP_GITHUB_APP_INSTALLATION_ID`, and refuses to start when only some are set. Without the keys or a `github` section, it rejects every review close-out.
 - **Each reading carries its head.** When the result is for another head than the pull request's current head, or it read no part of that head, the reading is `not-covered`, and the review settles `failed`.
 - **A failed review runs once more.** A failed call, an unreadable result or a `not-covered` reading settles `failed`. The edge `again` runs the review as a `recheck` with the same review number. A second failed review in a row holds the item with `attempts used up`.
 - **Four reviews, then a hold.** The edge is `changes-requested: { to: build, max: 3, resume: true }`, so the fourth `changes-requested` holds the item with `rounds used up`.

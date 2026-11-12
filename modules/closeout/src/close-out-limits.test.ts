@@ -6,7 +6,3 @@ test('it keeps a close-out escaped once more, with its fact wrapper, under a fac
 
   expect(2 * closeOutLimits.closeOutBytes + 1024).toBeLessThan(factBytes);
 });
-
-test('it keeps a whole noslop report inside the limit of a close-out', () => {
-  expect(closeOutLimits.noslopReportBytes).toBeLessThan(closeOutLimits.closeOutBytes);
-});

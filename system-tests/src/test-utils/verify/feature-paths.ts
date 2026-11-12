@@ -85,6 +85,7 @@ export const ignoredPaths = [
   'adapters/caller-proof-imp/**',
   'adapters/notifier-atc/**',
   'adapters/forge-github/**',
+  'adapters/review-noslop/**',
   'apps/server/src/{main,start-server,no-caller-proof,create-capacity-backoff}.ts',
   'apps/server/src/config/**',
   'apps/server/src/rules/{create-rules-holder,read-rules-checkout}.ts',

@@ -20,6 +20,10 @@ interface ServerSecrets {
 
   // null: no notice session is set, so the server sends no notice
   readonly notice: NoticeSecrets | null;
+
+  // the noslop App's keys, by their variable names; null: none is set, so the server posts no
+  // review and rejects each review close-out
+  readonly review: Readonly<Record<string, string>> | null;
 }
 
 export type SecretsAnswer =
@@ -34,19 +38,28 @@ export type SecretsAnswer =
 // atc addresses a session only by its gateway ID, and answers `no_such_session` to a name
 const gatewayID = /^[^.]+\.[^.]+\..+$/u;
 
+const reviewNames = [
+  'NOSLOP_GITHUB_APP_ID',
+  'NOSLOP_GITHUB_APP_PRIVATE_KEY',
+  'NOSLOP_GITHUB_APP_INSTALLATION_ID',
+];
+
 // The secrets come from the environment only. An empty token counts as missing. The notice
-// session is unset only when its variable is absent; an empty one has the wrong shape.
+// session is unset only when its variable is absent; an empty one has the wrong shape. The noslop
+// App's keys go together: once one is set, each is needed.
 export function pickServerSecrets(
   config: ServerConfig,
   env: Readonly<Record<string, string | undefined>>,
 ): SecretsAnswer {
   const noticeSession = env['BOXXY_ATC_NOTICE_SESSION'];
+  const hasReview = reviewNames.some((name) => env[name] !== undefined);
 
   const needed = [
     'BOXXY_WORKER_TOKEN',
     'BOXXY_ATC_TOKEN',
     ...(config.pepys === undefined ? [] : ['BOXXY_PEPYS_SIGNING_SECRET']),
     ...(noticeSession === undefined ? [] : ['BOXXY_ATC_NOTICE_TOKEN']),
+    ...(hasReview ? reviewNames : []),
   ];
 
   const names = needed.filter((name) => (env[name] ?? '') === '');
@@ -72,6 +85,9 @@ export function pickServerSecrets(
         noticeSession === undefined
           ? null
           : { session: noticeSession, token: env['BOXXY_ATC_NOTICE_TOKEN'] ?? '' },
+      review: hasReview
+        ? Object.fromEntries(reviewNames.map((name) => [name, env[name] ?? '']))
+        : null,
     },
   };
 }

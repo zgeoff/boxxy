@@ -454,11 +454,10 @@ export function closeOutAttempt(input: CloseOutInput): Promise<CloseOutAnswer> {
       return { kind: 'rejected', problems: parsed.problems };
     }
 
-    // `parsed.closeOut` is the close-out as the fact will carry it, after the parser cut the
-    // noslop report of a review close-out (02-types.ts, `NoslopSummary`). The parser of every
-    // phase kind also makes the size check, last, so a `too-large` close-out is `invalid` above.
-    // `hash` is the hash of the body as sent, so a repeat of a body that the parser cut is still
-    // a repeat.
+    // `parsed.closeOut` is the close-out as the fact will carry it. The parser of every phase
+    // kind also makes the size check, last, so a `too-large` close-out is `invalid` above.
+    // `hash` is the hash of the body the session sent, so a repeat of a review's raw result is a
+    // repeat although the server built the stored body from the gate's reading.
     const built = buildAttemptChange({ attempt, event: { kind: 'closed-out', closeOut: parsed.closeOut, hash }, actor: `boxxy:attempt:${attempt.id}`, now: input.now, newId: input.newId });
 
     if (built.kind === 'not-allowed') {
@@ -765,8 +764,8 @@ export function findPosition(input: { pipeline: Pipeline | null; attempts: reado
 // 02-types.ts says how the store takes the seats; planning.md holds the rules of `decide`. Inside that lock
 // the claim also sets:
 //   round   `item.position.round`, the item's round, which `buildFrame` puts on the pick. Stored on the row.
-//   input   `phase.input({ item, history, pullRequests })`: for a build of round 2, the findings
-//           of the review that sent the item back. Stored on the row and rendered into the prompt.
+//   input   `phase.input({ item, history, pullRequests, attempt, retries })`: for a build of round 2,
+//           the open counts and `answerHint` of the review that sent the item back. Stored on the row and rendered into the prompt.
 //   mode    `phase.mode?.(item) ?? 'agent'`. Stored on the row. Picks the recipe `<phase>/attended`.
 //   spawn   the spawn request, named `boxxy/<attempt id>` with the attempt ID as its idempotency
 //           key, so the `claimed` event carries the new attempt's ID. Stored on the row as JSON;
@@ -889,7 +888,7 @@ export function findPosition(input: { pipeline: Pipeline | null; attempts: reado
 //                                                it came from, `keptAt`.
 //   the next build attempt is claimed through    `startClaim` wakes that session
 //   that edge                                    (`worker.resumeKept`) and sends the phase input
-//                                                (the review's findings) as a message. The new
+//                                                (the review's open counts) as a message. The new
 //                                                attempt binds to the SAME atc session.
 //   the wake fails, or the session is gone       A fresh spawn; `started` carries
 //                                                `resumeFallback: true`; `keptSession` is cleared.

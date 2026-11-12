@@ -1,5 +1,5 @@
 import { hashTree } from '@boxxy/content-hash';
-import type { LoadRejection, LoadResult } from '@boxxy/model';
+import type { LoadRejection, LoadResult, PhaseKind } from '@boxxy/model';
 import type { RulesState, ServerLog } from '../types.ts';
 import type { RulesCheckout } from './load-server-rules.ts';
 import { loadServerRules, makeProposedRulesLoader } from './load-server-rules.ts';
@@ -35,6 +35,7 @@ interface Held {
 export async function createRulesHolder(
   source: RulesSource,
   log: ServerLog,
+  phases: readonly PhaseKind[],
 ): Promise<RulesHolderAnswer> {
   const first = await readRulesCheckout(source);
 
@@ -42,7 +43,7 @@ export async function createRulesHolder(
     return { kind: 'rejected', reason: first.reason };
   }
 
-  const loaded = loadServerRules(first.checkout);
+  const loaded = loadServerRules(first.checkout, phases);
 
   if (loaded.kind === 'rejected') {
     return { kind: 'refused', rejections: loaded.rejections };
@@ -69,7 +70,7 @@ export async function createRulesHolder(
       return;
     }
 
-    const next = loadServerRules(read.checkout);
+    const next = loadServerRules(read.checkout, phases);
 
     if (next.kind === 'rejected') {
       log.warn('the rules load was refused; the rules stay', { commit: read.checkout.commit });
@@ -88,7 +89,7 @@ export async function createRulesHolder(
     kind: 'loaded',
     holder: {
       state: () => held.state,
-      loadProposed: (text) => makeProposedRulesLoader(held.checkout)(text),
+      loadProposed: (text) => makeProposedRulesLoader(held.checkout, phases)(text),
       texts: () => toTexts(held.checkout),
       reload,
     },

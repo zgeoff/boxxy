@@ -7,7 +7,7 @@ import { loadRules } from '@boxxy/rules';
 import buildPrompt from '@boxxy/rules/example/prompts/build-v1.md' with { type: 'text' };
 import designAttendedPrompt from '@boxxy/rules/example/prompts/design-attended-v1.md' with { type: 'text' };
 import designPrompt from '@boxxy/rules/example/prompts/design-v1.md' with { type: 'text' };
-import reviewPrompt from '@boxxy/rules/example/prompts/review-v1.md' with { type: 'text' };
+import reviewPrompt from '@boxxy/rules/example/prompts/review-run.md' with { type: 'text' };
 import triagePrompt from '@boxxy/rules/example/prompts/triage-v1.md' with { type: 'text' };
 import exampleRules from '@boxxy/rules/example/rules.yaml' with { type: 'text' };
 import invariant from 'tiny-invariant';
@@ -106,7 +106,7 @@ function setupTest() {
     ['design-v1', designPrompt],
     ['design-attended-v1', designAttendedPrompt],
     ['build-v1', buildPrompt],
-    ['review-v1', reviewPrompt],
+    ['review-run', reviewPrompt],
   ];
 
   const files = new Map([
@@ -122,7 +122,7 @@ function setupTest() {
     buildMockPhaseKind({ name: 'triage', outcomes: ['accepted', 'duplicate', 'declined'] }),
     buildMockPhaseKind({ name: 'design', outcomes: ['designed', 'blocked', 'abandoned'] }),
     buildMockPhaseKind({ name: 'build', outcomes: ['built', 'blocked', 'abandoned'] }),
-    buildMockPhaseKind({ name: 'review', outcomes: ['passed', 'changes-requested'] }),
+    buildMockPhaseKind({ name: 'review', outcomes: ['passed', 'changes-requested', 'failed'] }),
   ];
 
   return {

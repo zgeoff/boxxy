@@ -3,9 +3,9 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createSkillsRepo } from '@boxxy/cli/test-utils/create-skills-repo';
-import { buildMockNoslopReport } from '@boxxy/closeout/test-utils/build-mock-noslop-report';
-import { brandSchemas } from '@boxxy/model';
+import { brandSchemas, toJSONValue } from '@boxxy/model';
 import type { AttemptRow, ItemId } from '@boxxy/model';
+import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
 import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
 import invariant from 'tiny-invariant';
 import { z } from 'zod';
@@ -263,21 +263,21 @@ test('it takes an item through triage, design, build, review, one rework round a
     'built',
   ]);
 
-  // minutes 47 to 55: after 3 minutes in the queue, the first review asks for changes
+  // minutes 47 to 55: after 3 minutes in the queue, the first review leaves a finding open; the
+  // server's review gate is a stand-in that reads the body as its reading
+  const firstReading = buildMockGateReading({
+    status: 'blocked',
+    why: 'open-findings',
+    open: { high: 1, medium: 0, low: 0 },
+    findingPaths: ['src/theme.ts'],
+  });
+
   const firstReview = await ctx.runSession({
     item,
     source: 'startup',
     queueMinutes: 3,
     workMinutes: 8,
-    closeOut: () =>
-      Promise.resolve({
-        verdict: {
-          kind: 'changes-requested',
-          findings: [{ title: 'The theme ignores the system', body: 'Read the media query.' }],
-        },
-        noslop: buildMockNoslopReport(),
-        friction: [],
-      }),
+    closeOut: () => Promise.resolve(toJSONValue(firstReading)),
   });
 
   expect(firstReview.outcome).toBe('changes-requested');
@@ -316,23 +316,39 @@ test('it takes an item through triage, design, build, review, one rework round a
     outcome: 'built',
   });
 
-  // minutes 69 to 75: after 2 minutes in the queue, the second review passes
+  // minutes 69 to 75: after 2 minutes in the queue, the second review passes; the rework changed
+  // the file of the finding and one other file
+  const secondReading = buildMockGateReading({ status: 'passed' });
+
+  server.forge.seedCompare({
+    repo,
+    from: firstReading.head,
+    to: secondReading.head,
+    files: [
+      { path: 'src/theme.ts', changedLines: 12 },
+      { path: 'src/menu.ts', changedLines: 3 },
+    ],
+  });
+
   const secondReview = await ctx.runSession({
     item,
     source: 'startup',
     queueMinutes: 2,
     workMinutes: 6,
-    closeOut: () =>
-      Promise.resolve({
-        verdict: { kind: 'passed' },
-        noslop: buildMockNoslopReport(),
-        friction: [],
-      }),
+    closeOut: () => Promise.resolve(toJSONValue(secondReading)),
   });
 
   const reviewed = await ctx.showItem(item);
 
-  expect([secondReview.outcome, reviewed.derived.state]).toStrictEqual(['passed', 'waiting']);
+  expect([
+    secondReview.outcome,
+    secondReview.attempt.closeOut,
+    reviewed.derived.state,
+  ]).toStrictEqual([
+    'passed',
+    { round: 2, cause: 'rework', reading: secondReading, unrelatedLines: 3 },
+    'waiting',
+  ]);
 
   // minute 95: the pull request merges; the forge shows it to boxxy's watch, and GitHub sends the
   // signed webhook to pepys

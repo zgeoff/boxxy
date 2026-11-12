@@ -13,50 +13,73 @@ import { closeOutSchema, toJSONValue } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { buildAttemptChange } from '../attempts/build-attempt-change.ts';
 import { pickCallAttempt } from '../attempts/pick-call-attempt.ts';
-import type { CloseOutInput } from './types.ts';
+import type { CallRef, CloseOutInput } from './types.ts';
 
-// Records an attempt's close-out, in one store lock. The session check runs first, so the
-// answer to a call for an attempt that is not current does not depend on the body.
+// Records an attempt's close-out, in one store lock. The session check runs before the body is
+// read. The hash covers the body the session sent, so its repeat is a repeat even when the
+// server built the stored body from it.
 export function closeOutAttempt(input: CloseOutInput): Promise<CloseOutAnswer> {
   return input.store.exclusive(async (tx) => {
     const latest = await tx.findAttemptBySession(input.call.session);
 
-    const found = pickCallAttempt(latest, input.call);
+    const start = pickCloseOutStart(latest, input.call, input.sent ?? input.body);
 
-    if (found.kind === 'refused') {
-      return found;
+    if (start.kind === 'answer') {
+      return start.answer;
     }
 
-    const attempt = found.attempt;
+    return writeCloseOut(tx, input, start.attempt, start.hash);
+  });
+}
 
-    // the body only: the phase is the attempt's
-    const hash = buildBodyHash(input.body);
+export type CloseOutStart =
+  | { readonly kind: 'answer'; readonly answer: CloseOutAnswer }
+  | { readonly kind: 'open'; readonly attempt: AttemptRow; readonly hash: ContentHash };
 
-    if (hash === null) {
-      return {
+// The checks of a close-out call that come before its body is read: the session, the hash of the
+// body the session sent, a repeat of a stored close-out, and the attempt's state. Pure.
+export function pickCloseOutStart(
+  latest: AttemptRow | null,
+  call: CallRef,
+  sent: unknown,
+): CloseOutStart {
+  const found = pickCallAttempt(latest, call);
+
+  if (found.kind === 'refused') {
+    return { kind: 'answer', answer: found };
+  }
+
+  const attempt = found.attempt;
+
+  // the body only: the phase is the attempt's
+  const hash = buildBodyHash(sent);
+
+  if (hash === null) {
+    return {
+      kind: 'answer',
+      answer: {
         kind: 'rejected',
         problems: [{ kind: 'schema', path: '', message: 'the close-out is not valid JSON text' }],
-      };
-    }
+      },
+    };
+  }
 
-    if (attempt.closeOutHash === hash && attempt.closeOutFact !== null) {
-      return { kind: 'recorded', attempt: attempt.id, factId: attempt.closeOutFact, repeat: true };
-    }
+  if (attempt.closeOutHash === hash && attempt.closeOutFact !== null) {
+    return {
+      kind: 'answer',
+      answer: { kind: 'recorded', attempt: attempt.id, factId: attempt.closeOutFact, repeat: true },
+    };
+  }
 
-    if (attempt.state === 'closing' && attempt.closing === 'closed-out') {
-      return { kind: 'refused', reason: 'already-closed-out' };
-    }
+  if (attempt.state === 'closing' && attempt.closing === 'closed-out') {
+    return { kind: 'answer', answer: { kind: 'refused', reason: 'already-closed-out' } };
+  }
 
-    if (
-      attempt.state === 'closing' ||
-      attempt.state === 'succeeded' ||
-      attempt.state === 'failed'
-    ) {
-      return { kind: 'refused', reason: 'not-current' };
-    }
+  if (attempt.state === 'closing' || attempt.state === 'succeeded' || attempt.state === 'failed') {
+    return { kind: 'answer', answer: { kind: 'refused', reason: 'not-current' } };
+  }
 
-    return writeCloseOut(tx, input, attempt, hash);
-  });
+  return { kind: 'open', attempt, hash };
 }
 
 // null for a body that has no canonical JSON form, such as a string with a lone surrogate

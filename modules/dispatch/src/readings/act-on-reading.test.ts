@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
-import { buildMockNoslopReport } from '@boxxy/closeout/test-utils/build-mock-noslop-report';
 import type { AttemptRow, ItemId, SpawnRequest, WorkerKind } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
+import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
 import { buildMockPhaseKind } from '@boxxy/model/test-utils/build-mock-phase-kind';
 import invariant from 'tiny-invariant';
 import { claimNext } from '../claims/claim-next.ts';
@@ -269,9 +269,10 @@ test('it settles a closing attempt as failed when the phase kind can no longer s
   const rules = ctx.rules();
 
   await ctx.closeOut(attempt, {
-    verdict: { kind: 'passed' },
-    noslop: buildMockNoslopReport(),
-    friction: [],
+    round: 1,
+    cause: 'first',
+    reading: buildMockGateReading({ status: 'passed' }),
+    unrelatedLines: null,
   });
 
   ctx.setRules({
@@ -283,7 +284,7 @@ test('it settles a closing attempt as failed when the phase kind can no longer s
         {
           ...buildMockPhaseKind({ name: 'review', outcomes: ['passed', 'changes-requested'] }),
           settle: () => {
-            throw new Error('verdict.kind is not known');
+            throw new Error('reading.status is not known');
           },
         },
       ],

@@ -32,17 +32,19 @@ test.each([
   [
     'review',
     {
-      verdict: { kind: 'passed' },
-      noslop: {
-        version: 1,
-        reviewID: 'review-3c9a',
+      round: 1,
+      cause: 'first',
+      reading: {
+        status: 'passed',
         head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
-        counts: { findings: 0, failedCalls: 0, fixChecks: 0 },
-        reportBytes: 12,
-        report: { findings: [] },
+        open: { high: 0, medium: 0, low: 0 },
+        closedWithoutFix: 0,
+        findingPaths: [],
+        cost: { calls: [] },
+        ref: 'review-3c9a',
+        answerHint: 'Reply to each open finding.',
       },
-      friction: [],
-      frictionDropped: 0,
+      unrelatedLines: null,
     },
   ],
   [

@@ -2,6 +2,10 @@ import { z } from 'zod';
 
 const commit = z.object({ sha: z.string(), commit: z.object({ message: z.string() }) });
 
+// `changes` is the file's added and deleted lines together
+const changedLines = z.number().int().nonnegative();
+const compareFile = z.object({ filename: z.string().min(1), changes: changedLines });
+
 export const githubSchemas = {
   pullRequest: z.object({
     id: z.number().int().positive(),
@@ -12,4 +16,5 @@ export const githubSchemas = {
   }),
   commitPage: z.array(commit),
   pullRequestPage: z.array(z.object({ number: z.number().int().positive() })),
+  compare: z.object({ files: z.array(compareFile).optional() }),
 } as const;

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import buildPrompt from '../../example/prompts/build-v1.md' with { type: 'text' };
 import designAttendedPrompt from '../../example/prompts/design-attended-v1.md' with { type: 'text' };
 import designPrompt from '../../example/prompts/design-v1.md' with { type: 'text' };
-import reviewPrompt from '../../example/prompts/review-v1.md' with { type: 'text' };
+import reviewPrompt from '../../example/prompts/review-run.md' with { type: 'text' };
 import triagePrompt from '../../example/prompts/triage-v1.md' with { type: 'text' };
 import exampleRules from '../../example/rules.yaml' with { type: 'text' };
 
@@ -29,7 +29,7 @@ export function buildExampleLoadInput(): ExampleLoadInput {
     ['design-v1', designPrompt],
     ['design-attended-v1', designAttendedPrompt],
     ['build-v1', buildPrompt],
-    ['review-v1', reviewPrompt],
+    ['review-run', reviewPrompt],
   ] as const;
 
   return {

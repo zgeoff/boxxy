@@ -54,15 +54,15 @@ export async function runJobReading(deps: JobDeps): Promise<void> {
     .exhaustive();
 }
 
-// ── B. The review close-out (apps/server/src/procedures/close-out-review.ts) ───────────────────
+// ── B. The review close-out (modules/dispatch/src/closeouts/close-out-call.ts) ─────────────────
 //
 // The review round runs in an agent session on an agent host, through `atc.session`, as a
 // build does. Its input carries the command that `ReviewGate.buildCommand` gave; the session runs
 // it in the pull request's checkout and sends the tool's raw result with `boxxy attempt
 // close-out`. The server keeps the forge and the tool's App keys: the agent host gets neither.
 //
-// The `attempt.closeOut` procedure calls this for a review attempt, before the close-out change
-// of v1. It runs outside the lock, because `accept` posts to the forge. The close-out hash covers
+// The `attempt.closeOut` procedure calls `closeOutCall`, which calls this for a review attempt,
+// before the close-out change of v1. It runs outside the lock, because `accept` posts to the forge. The close-out hash covers
 // the session's raw body, never the built `ReviewCloseOut`: the procedure answers a repeat of a
 // stored body as `recorded` with `repeat: true` before `accept` runs, so a lost answer to the
 // session posts nothing twice. A close-out that the session sends again after a server crash,
@@ -89,7 +89,7 @@ export function countUnrelatedLines(changed: readonly { path: string; changedLin
   return changed.filter((file) => !withFindings.has(file.path)).reduce((sum, file) => sum + file.changedLines, 0);
 }
 
-// ── C. The round and its cause (modules/closeout/src/phases/review.ts, `buildRoundInput`) ──────
+// ── C. The round and its cause (modules/closeout/src/review/build-round-cause.ts) ──────────────
 //
 // Pure, over the item's settled attempts since its latest retry lever, oldest first.
 //   round  1 + the reviews since that lever that settled `changes-requested`. So round 4 is the

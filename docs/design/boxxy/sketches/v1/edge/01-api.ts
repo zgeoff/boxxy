@@ -366,7 +366,7 @@ export const contract = {
     //   triage   TriageCloseOut     accepted, duplicate, declined                 the result; kind, designMode, acceptance; relations
     //   design   DesignCloseOut     designed, blocked, abandoned                  the whole design and its location
     //   build    BuildCloseOut      built, blocked, abandoned                     evidence per criterion; open items
-    //   review   ReviewCloseOut     passed, changes-requested                     the verdict; the findings
+    //   review   the tool's result  passed, changes-requested, failed             the server stores ReviewCloseOut: the gate's reading
     //
     // Triage. `accepted` moves the item on. `declined` and `duplicate` do NOT close the item:
     // the rules map each to a hold, and the item waits for the owner. The hold withholds every
@@ -376,9 +376,9 @@ export const contract = {
     // owner confirms with `item.close`, or sends the item back to triage with `item.retry`. An
     // `accepted` close-out must leave the item with an acceptance list (`set.acceptance`, or
     // the item's own), or the parser answers `no-acceptance`.
-    // Review. A review session in an imp runs `noslop review --json --report json` and sends this
-    // close-out itself: `passed`, or `changes-requested` with the findings as text, plus
-    // noslop's raw result (`noslop`), which the parser checks for shape only.
+    // Review. A review session runs the command in its input and sends the review tool's raw
+    // result. The server passes it to `ReviewGate.accept`, and stores the `ReviewCloseOut` it
+    // builds from the reading (../../next/review-and-merge/03-flow.ts, section B).
     //
     // Every body also carries `friction` and `frictionDropped`. The outcome names are those of
     // the core's phase files; this file fixes none of them. Writes `boxxy.attempt.closed_out`,

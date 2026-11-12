@@ -7,6 +7,7 @@ import type {
   Effect,
   ItemView,
   PhaseInputContext,
+  SentBack,
 } from '@boxxy/model';
 import {
   brandSchemas,
@@ -59,17 +60,23 @@ export const build = definePhase({
   }),
 });
 
-// The findings come from the latest review, and only when it asked for changes: a build after
-// a passed review, sent back by the owner, gets none.
 function buildBuildInput(ctx: PhaseInputContext): BuildInput {
-  const review = findLatestCloseOut(ctx.history, 'review', reviewCloseOutSchema);
-
   return {
     acceptance: buildCriterionTexts(ctx.item),
     design: findLatestDesign(ctx.history),
-    findings: review?.verdict.kind === 'changes-requested' ? review.verdict.findings : [],
+    sentBack: findReviewSentBack(ctx),
     pullRequest: findPullRequestLink(ctx.pullRequests),
   };
+}
+
+// Only a latest review that asked for changes sends the build its findings: a build after a
+// passed review, sent back by the owner, gets none.
+function findReviewSentBack(ctx: PhaseInputContext): SentBack | null {
+  const reading = findLatestCloseOut(ctx.history, 'review', reviewCloseOutSchema)?.reading;
+
+  return reading?.status === 'blocked' && reading.why === 'open-findings'
+    ? { from: 'review', head: reading.head, open: reading.open, answerHint: reading.answerHint }
+    : null;
 }
 
 function collectBuildProblems(closeOut: BuildCloseOut, ctx: CloseOutContext): CloseOutProblem[] {

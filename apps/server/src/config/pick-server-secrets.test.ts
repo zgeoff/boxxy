@@ -44,6 +44,7 @@ test('it reads the two tokens when the configuration has no pepys section', () =
       pepysSigningSecret: null,
       githubToken: null,
       notice: null,
+      review: null,
     },
   });
 });
@@ -65,6 +66,7 @@ test('it reads the GitHub token when one is set', () => {
       pepysSigningSecret: null,
       githubToken: 'github-token-1',
       notice: null,
+      review: null,
     },
   });
 });
@@ -86,6 +88,7 @@ test('it reads an empty GitHub token as none', () => {
       pepysSigningSecret: null,
       githubToken: null,
       notice: null,
+      review: null,
     },
   });
 });
@@ -117,6 +120,7 @@ test('it reads the signing secret when the configuration has a pepys section', (
       pepysSigningSecret: 'signing-secret-1',
       githubToken: null,
       notice: null,
+      review: null,
     },
   });
 });
@@ -139,7 +143,51 @@ test('it reads the notice session and its own token when both are set', () => {
       pepysSigningSecret: null,
       githubToken: null,
       notice: { session: 'desk.3.s7', token: 'notice-token-1' },
+      review: null,
     },
+  });
+});
+
+test('it reads the three noslop App keys when they are set', () => {
+  const ctx = setupTest();
+
+  const answer = pickServerSecrets(ctx.config, {
+    BOXXY_WORKER_TOKEN: 'worker-token-1',
+    BOXXY_ATC_TOKEN: 'atc-token-1',
+    NOSLOP_GITHUB_APP_ID: '101',
+    NOSLOP_GITHUB_APP_PRIVATE_KEY: 'test-private-key',
+    NOSLOP_GITHUB_APP_INSTALLATION_ID: '202',
+  });
+
+  expect(answer).toStrictEqual({
+    kind: 'found',
+    secrets: {
+      workerToken: 'worker-token-1',
+      atcToken: 'atc-token-1',
+      pepysSigningSecret: null,
+      githubToken: null,
+      notice: null,
+      review: {
+        NOSLOP_GITHUB_APP_ID: '101',
+        NOSLOP_GITHUB_APP_PRIVATE_KEY: 'test-private-key',
+        NOSLOP_GITHUB_APP_INSTALLATION_ID: '202',
+      },
+    },
+  });
+});
+
+test('it names the other noslop App keys as missing when only one is set', () => {
+  const ctx = setupTest();
+
+  const answer = pickServerSecrets(ctx.config, {
+    BOXXY_WORKER_TOKEN: 'worker-token-1',
+    BOXXY_ATC_TOKEN: 'atc-token-1',
+    NOSLOP_GITHUB_APP_ID: '101',
+  });
+
+  expect(answer).toStrictEqual({
+    kind: 'missing',
+    names: ['NOSLOP_GITHUB_APP_PRIVATE_KEY', 'NOSLOP_GITHUB_APP_INSTALLATION_ID'],
   });
 });
 

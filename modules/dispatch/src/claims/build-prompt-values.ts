@@ -1,5 +1,5 @@
 import { getLaunchSections } from '@boxxy/model';
-import type { Design, Finding, ItemView, JsonValue, NoteRow } from '@boxxy/model';
+import type { Design, ItemView, JsonValue, NoteRow, SentBack } from '@boxxy/model';
 import { formatUTCDate } from './format-utc-date.ts';
 
 interface PromptValueParts {
@@ -15,7 +15,7 @@ export function buildPromptValues(parts: PromptValueParts): Record<string, strin
   const sections = getLaunchSections(parts.input);
   const acceptance = buildAcceptance(item);
   const design = buildDesign(sections.design);
-  const findings = buildFindings(sections.findings);
+  const findings = buildFindings(sections.sentBack);
   const notes = buildNotes(parts.notes);
 
   const ticket = [`# ${item.title}`, item.outcome, item.body, acceptance, design, findings, notes]
@@ -55,21 +55,18 @@ function buildDesign(design: Design | null): string {
   ].join('\n\n');
 }
 
-function buildFindings(findings: readonly Finding[]): string {
-  if (findings.length === 0) {
+function buildFindings(sentBack: SentBack | null): string {
+  if (sentBack === null) {
     return '';
   }
 
-  const entries = findings.map((finding) => {
-    const place =
-      finding.path === undefined
-        ? []
-        : [finding.line === undefined ? finding.path : `${finding.path}:${finding.line}`];
+  const open = sentBack.open;
 
-    return [`### ${finding.title}`, ...place, finding.body].join('\n');
-  });
-
-  return `## Findings to fix\n\n${entries.join('\n\n')}`;
+  return [
+    '## Findings to answer',
+    `The review at ${sentBack.head} left findings open: high ${open.high}, medium ${open.medium}, low ${open.low}.`,
+    sentBack.answerHint,
+  ].join('\n\n');
 }
 
 function buildNotes(notes: readonly NoteRow[]): string {

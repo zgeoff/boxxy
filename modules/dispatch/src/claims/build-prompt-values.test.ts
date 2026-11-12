@@ -33,10 +33,12 @@ test('it builds every placeholder from the item, the notes and the phase input',
     ],
     input: {
       design: { text: 'One button.\n\n```ts\nretry();\n```', location: 'docs/design/retry.md' },
-      findings: [
-        { title: 'Runs twice', body: 'A second click sends twice.', path: 'src/a.ts', line: 7 },
-        { title: 'No label', body: 'Add one.' },
-      ],
+      sentBack: {
+        from: 'review',
+        head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+        open: { high: 1, medium: 2, low: 0 },
+        answerHint: 'Reply to each open finding.',
+      },
     },
   });
 
@@ -49,7 +51,7 @@ test('it builds every placeholder from the item, the notes and the phase input',
     acceptance: '## Acceptance\n\n- a1: It retries',
     design: '## Design\n\nOne button.\n\n```ts\nretry();\n```\n\nLocation: docs/design/retry.md',
     findings:
-      '## Findings to fix\n\n### Runs twice\nsrc/a.ts:7\nA second click sends twice.\n\n### No label\nAdd one.',
+      '## Findings to answer\n\nThe review at e83c5163316f89bfbde7d9ab23ca2e25604af290 left findings open: high 1, medium 2, low 0.\n\nReply to each open finding.',
     notes: '## Notes from the owner\n\n- 1970-01-01: First\n- 1970-01-02: Second',
     ticket: expect.stringMatching(/^# Add a retry\n\nA failed upload sends again\.\n\n## Scope/u),
     input: expect.any(String),

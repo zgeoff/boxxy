@@ -22,7 +22,11 @@ function setupTest(token?: string) {
 test.each(forgeContract)('it keeps the forge contract: %s', async (_title, check) => {
   const ctx = setupTest();
 
-  const outcome = await check({ forge: ctx.forge, seed: ctx.github.seed });
+  const outcome = await check({
+    forge: ctx.forge,
+    seed: ctx.github.seed,
+    seedCompare: ctx.github.seedCompare,
+  });
 
   expect(outcome.received).toStrictEqual(outcome.expected);
 });

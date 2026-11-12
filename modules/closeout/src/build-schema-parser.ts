@@ -71,6 +71,12 @@ function splitFriction(raw: unknown): FrictionSplit {
   }
 
   const { frictionDropped: _, ...rest } = raw;
+
+  // a body with no friction list, such as a review's, keeps no `friction` key for a strict schema
+  if (!('friction' in rest)) {
+    return { candidate: rest, keptRawIndexes: [], dropped: 0 };
+  }
+
   const entries: readonly unknown[] = Array.isArray(rest['friction']) ? rest['friction'] : [];
   const keptRawIndexes = entries.flatMap((entry, index) => (isUntargeted(entry) ? [] : [index]));
 

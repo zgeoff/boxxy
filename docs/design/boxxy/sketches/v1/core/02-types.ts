@@ -404,51 +404,18 @@ export interface Recipe {
 }
 
 // ── libs/model/src/closeouts/types.ts ─────────────────────────────────────────────────────────
-// `CloseOut`, `DesignCloseOut`, `Design`, `Finding`, `RelationDraft`, `BuildInput`, `Effect`
+// `CloseOut`, `DesignCloseOut`, `Design`, `RelationDraft`, `BuildInput`, `Effect`
 // and `CloseOutWorld` are in that file, and docs/design/boxxy/close-outs.md, "The v1 phase
 // kinds", holds their rules. `EffectHandlers` and `EffectPlan` belong to dispatch, which
-// applies the effects. This sketch shows three parts: the review close-out, the triage
-// close-out, and the `set-acceptance` effect.
+// applies the effects. This sketch shows two parts: the triage close-out and the
+// `set-acceptance` effect.
 
-// The review of v1. A review session in an imp runs `noslop review --json --report json` and sends
-// this close-out itself, with `boxxy attempt close-out`, as any other agent session does.
-// The review phase has `worker: 'atc.session'` and its attempt takes a `workers` seat; no
-// `reviews` limit exists. The findings are text in the close-out, not noslop facts. This is a
-// stated departure, for v1, from decision 0009
-// (docs/decisions/0009-close-outs-hold-what-only-the-agent-knows.md), which says that the
-// findings of a review come from the review tool's facts. The session posts no App comment on
-// the pull request; it may post one summary comment.
-export interface ReviewCloseOut {
-  // `passed`, or `changes-requested` with the findings as text (`Finding`: title, body, path?, line?)
-  readonly verdict: { readonly kind: 'passed' } | { readonly kind: 'changes-requested'; readonly findings: readonly Finding[] };
-
-  // A summary of what `noslop review --json --report json` printed, not the whole result. The agent
-  // SENDS the whole result in `noslop`; the parser checks the fields that the summary reads,
-  // lets every other field through unread, then stores `NoslopSummary` in its place (the
-  // raw body schema is in modules/closeout/src/phases/review.ts). The verdict above is what counts,
-  // and the findings are whole, as text, in the verdict.
-  // The reason for the summary: the `closed_out` fact carries the close-out inside a wrapper.
-  // A stored result with no bound but the 256 KiB of a request body makes a fact over
-  // `factBytes`, which the sender parks and can never send.
-  readonly noslop: NoslopSummary;
-  readonly friction: readonly Friction[];
-  readonly frictionDropped: number;
-}
-
-// What the stored review close-out keeps of noslop's result.
-export interface NoslopSummary {
-  readonly version: number; // the schema version of noslop's result
-  readonly reviewID: string; // noslop's own ID of the run; the raw result is found by it
-  readonly head: CommitSha; // the commit that the run read
-  readonly counts: { readonly findings: number; readonly failedCalls: number; readonly fixChecks: number };
-  // The UTF-8 bytes of the JSON of the PARSED result (`measureJsonBytes`), which is what a
-  // stored copy would take. Not the bytes that the agent sent: the handler never sees those, and
-  // the stored JSON can be longer.
-  readonly reportBytes: number;
-  // The result whole, when `reportBytes` is `closeOutLimits.noslopReportBytes` or under. Else
-  // null: the raw report is cut, and only the fields above are kept. Never a part of the JSON.
-  readonly report: JsonValue | null;
-}
+// A review session runs the command in its input and sends the review tool's raw result with
+// `boxxy attempt close-out`, as any other agent session sends its close-out. The review phase has `worker: 'atc.session'` and its attempt takes a `workers` seat; no
+// `reviews` limit exists. The review close-out is `ReviewCloseOut` in
+// ../../next/review-and-merge/02-types.ts: the server builds it from `ReviewGate.accept`'s
+// reading of the tool's raw result, and the core never reads a finding's text, as decision 0009
+// (docs/decisions/0009-close-outs-hold-what-only-the-agent-knows.md) says.
 
 // modules/closeout/src/close-out-limits.ts. The numbers:
 //   262,144  a request body at the API (../edge/01-api.ts, rule 5). A body over it never
@@ -458,12 +425,9 @@ export interface NoslopSummary {
 //            around the close-out is 466 bytes with UUID IDs, and the stored envelope allows
 //            512 more. Under half of `factBytes` on purpose: a layer that escapes the JSON once
 //            more (a close-out of quotes only) gives 2 x 120,000 + 978 = 240,978, still under.
-//    32,768  `noslopReportBytes`: the most of noslop's raw result that a review close-out keeps,
-//            measured as `closeOutBytes` is: on the parsed value, as stored.
 // A test holds the relation: 2 x `closeOutBytes` + 1,024 < `factBytes`.
 export interface CloseOutLimits {
   readonly closeOutBytes: 120_000;
-  readonly noslopReportBytes: 32_768;
 }
 export declare const closeOutLimits: CloseOutLimits;
 

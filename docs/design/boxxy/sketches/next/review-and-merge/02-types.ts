@@ -194,8 +194,8 @@ export type MergeAnswer =
 // ── libs/model/src/closeouts/types.ts: the close-outs ──────────────────────────────────────────
 
 // The review close-out. The session sends the tool's raw result; the server replaces it with
-// `ReviewGate.accept`'s reading before the phase kind's parser reads it. It replaces v1's
-// `ReviewCloseOut` and `NoslopSummary`, and the 32,768-byte report limit goes with them.
+// `ReviewGate.accept`'s reading before the phase kind's parser reads it. No limit but the
+// close-out's own 120,000 bytes applies.
 export interface ReviewCloseOut {
   readonly round: number;
   readonly cause: RoundCause;

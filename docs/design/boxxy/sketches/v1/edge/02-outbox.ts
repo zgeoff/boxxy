@@ -102,9 +102,9 @@ await runSenderOnce({ store, sink: fake, clock, limits: outboxLimits }); // send
 //      longer than the sent JSON (`1e20` is stored as 21 bytes).
 //   2. At the parser. The close-out is `unknown` on the wire, so no list of it has a `max`, and
 //      the parser cuts no list: a cut finding or open item would be lost work with no count.
-//      The parser has two byte limits instead (core `closeOutLimits`). The review parser keeps
-//      the counts of noslop's raw result, and the result itself only when it is 32,768 bytes
-//      or under. Each parser then measures the close-out as stored, and one over 120,000
+//      The parser has a byte limit instead (core `closeOutLimits`). The review close-out holds
+//      the gate's reading, never the tool's raw result. Each parser measures the close-out as
+//      stored, and one over 120,000
 //      bytes is `rejected` as `too-large` with no write, so the agent sends a shorter one. A
 //      close-out fact is thus 120,000 + 466 bytes at most, under half of `factBytes`. It is a
 //      refusal of the COMMAND, before any change exists, so the rule holds that no store

@@ -1,6 +1,6 @@
 import type { JsonValue } from '@boxxy/content-hash';
 import type { MergeOutcome } from '../merge/types.ts';
-import type { GateReading, RoundCause, VerifyReading } from '../ports/types.ts';
+import type { GateReading, RoundCause, SeverityCounts, VerifyReading } from '../ports/types.ts';
 import type {
   AttemptId,
   CommitSha,
@@ -12,6 +12,7 @@ import type {
   ItemId,
   ItemKindName,
   ItemView,
+  PullRequestRef,
   RelationTypeName,
   RepoName,
 } from '../types.ts';
@@ -72,38 +73,10 @@ export interface BuildCloseOut {
   readonly frictionDropped: number;
 }
 
-// The review close-out as stored: the review session sends noslop's whole result, and the parser
-// keeps `NoslopSummary` in its place.
+// The review close-out that holds the review gate's reading. The session sends the tool's raw
+// result, and the server builds this from it with `ReviewGate.accept` before the phase kind's
+// parser reads it.
 export interface ReviewCloseOut {
-  readonly verdict:
-    | { readonly kind: 'passed' }
-    | { readonly kind: 'changes-requested'; readonly findings: readonly Finding[] };
-  readonly noslop: NoslopSummary;
-  readonly friction: readonly Friction[];
-  readonly frictionDropped: number;
-}
-
-export interface NoslopSummary {
-  // the schema version of noslop's result
-  readonly version: number;
-  readonly reviewID: string;
-  readonly head: CommitSha;
-  readonly counts: {
-    readonly findings: number;
-    readonly failedCalls: number;
-    readonly fixChecks: number;
-  };
-
-  // the UTF-8 bytes of the JSON of the parsed result, as a stored copy would take them
-  readonly reportBytes: number;
-
-  // the whole result when `reportBytes` is within the close-out limit; else null, never a part
-  readonly report: JsonValue | null;
-}
-
-// The review close-out that holds the review gate's reading. The server builds it from the
-// session's raw result with `ReviewGate.accept`, before the phase kind's parser reads it.
-export interface GateReviewCloseOut {
   readonly round: number;
   readonly cause: RoundCause;
 
@@ -152,13 +125,6 @@ export interface MergeCloseOut {
   readonly verify: VerifyReading;
 }
 
-export interface Finding {
-  readonly title: string;
-  readonly body: string;
-  readonly path?: string;
-  readonly line?: number;
-}
-
 // A relation that a close-out asks for, from the attempt's item to `target`.
 export interface RelationDraft {
   readonly type: RelationTypeName;
@@ -204,7 +170,7 @@ export type CloseOutProblem =
       readonly reason: 'unknown-type' | 'self';
     }
 
-  // a rule of one phase kind that its schema cannot hold, such as a finding for `changes-requested`
+  // a rule of one phase kind that its schema cannot hold, such as a review with no pull request
   | { readonly kind: 'phase-rule'; readonly message: string }
 
   // over `closeOutBytes` as stored; `bytes` tells the agent how much to cut
@@ -249,21 +215,31 @@ export interface AcceptanceInput {
   readonly acceptance: readonly CriterionText[];
 }
 
-// The input of a build attempt. In round 2 and later it holds the findings of the review that
-// sent the item back; in round 1 it holds none.
+// The input of a build attempt. After a review that asked for changes, `sentBack` holds that
+// review's open counts and where to answer its findings; the core never reads a finding's text.
 export interface BuildInput {
   readonly acceptance: readonly CriterionText[];
   readonly design: Design | null;
-  readonly findings: readonly Finding[];
+  readonly sentBack: SentBack | null;
 
   // the item's latest pull request, which a build of round 2 pushes to
   readonly pullRequest: PullRequestLink | null;
 }
 
+export interface SentBack {
+  readonly from: 'review';
+  readonly head: CommitSha;
+  readonly open: SeverityCounts;
+  readonly answerHint: string;
+}
+
+// The input of a review attempt. `command` is the review gate's command line for the round. With
+// no pull request, the round has nothing to review, and both are null.
 export interface ReviewInput {
-  readonly acceptance: readonly CriterionText[];
-  readonly design: Design | null;
-  readonly pullRequest: PullRequestLink | null;
+  readonly pullRequest: PullRequestRef | null;
+  readonly round: number;
+  readonly cause: RoundCause;
+  readonly command: string | null;
 }
 
 export interface PullRequestLink {

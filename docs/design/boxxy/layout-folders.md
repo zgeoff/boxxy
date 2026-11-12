@@ -122,10 +122,10 @@ modules/planning/src
 modules/closeout/src
   phase-kinds  build-schema-parser  close-out-limits  measure-json-bytes
   dedupe-open-items  missing-criteria  normalise-title
-  phases/         one file per phase kind, named as a concept file is: review (exports `review`)
-  noslop/         noslop-report-schema  build-noslop-summary
+  phases/         one file per phase kind, named as a concept file is: build (exports `build`);
+                  create-review-phase builds the review phase kind on the gate's `buildCommand`
+  review/         build-round-cause  count-unrelated-lines
   utils/          the input helpers that two phase kinds share
-  test-utils/     build-mock-noslop-report
 
 modules/rules/src
   index  types  constants
@@ -183,6 +183,11 @@ apps/cli/hook-plugin            the Claude Code plug-in that the agent image ins
 
 adapters/notifier-atc/src       @boxxy/notifier-atc
   index  create-atc-notifier    sends a hold notice as an atc message to one named session
+
+adapters/review-noslop/src      @boxxy/review-noslop
+  index  types  create-noslop-review-gate  build-review-command  parse-review-body
+  build-gate-reading  build-gate-cost
+  test-utils/     build-mock-review-result  create-fake-noslop-client  create-stub-noslop
 
 adapters/forge-github/src       @boxxy/forge-github
   index  types  constants  create-github-forge  github-schemas  to-pull-request-reading

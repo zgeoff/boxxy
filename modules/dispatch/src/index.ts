@@ -21,6 +21,8 @@ export type {
 } from './claims/types.ts';
 
 export { closeOutAttempt } from './closeouts/close-out-attempt.ts';
+export { closeOutCall } from './closeouts/close-out-call.ts';
+export type { CloseOutCallInput } from './closeouts/close-out-call.ts';
 export { settleAttempt } from './closeouts/settle-attempt.ts';
 export type { CallRef, CloseOutInput, EffectPlan, SettleAttemptInput } from './closeouts/types.ts';
 export { noticeLimits } from './notices/constants.ts';

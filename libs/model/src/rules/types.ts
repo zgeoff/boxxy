@@ -1,7 +1,7 @@
 import type { JsonValue } from '@boxxy/content-hash';
 import type { z } from 'zod';
 import type { CloseOutParser, Effect } from '../closeouts/types.ts';
-import type { RulesHoldReason } from '../pipeline/types.ts';
+import type { RetryLever, RulesHoldReason } from '../pipeline/types.ts';
 import type {
   Admission,
   FrameItem,
@@ -17,6 +17,7 @@ import type {
 } from '../planning/types.ts';
 import type { JobAction, MergeMethod } from '../ports/types.ts';
 import type {
+  AttemptId,
   AttemptRow,
   CommitSha,
   ConceptPin,
@@ -143,8 +144,14 @@ interface BivariantSettle<Body, Outcome extends string> {
 export interface PhaseInputContext {
   readonly item: ItemView;
 
+  // the attempt that the claim makes
+  readonly attempt: AttemptId;
+
   // the item's attempts, oldest first
   readonly history: readonly AttemptRow[];
+
+  // the item's `item.retry` levers, oldest first
+  readonly retries: readonly RetryLever[];
   readonly pullRequests: readonly PullRequestRow[];
 }
 

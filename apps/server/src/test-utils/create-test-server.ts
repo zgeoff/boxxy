@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createPublicDoor } from '@boxxy/auth-oauth';
 import type { PublicDoor } from '@boxxy/auth-oauth';
+import { createReviewPhase, phaseKinds } from '@boxxy/closeout';
 import { watchPullRequests } from '@boxxy/dispatch';
 import type { WatchReport } from '@boxxy/dispatch';
 import type { FakeForge } from '@boxxy/dispatch/test-utils/create-fake-forge';
@@ -50,6 +51,10 @@ export interface TestServerOptions {
   // the memory store when left out
   readonly store?: ClosableClaimStore;
 
+  // a server that this one replaces, as after a restart: it carries on that server's store, clock
+  // and IDs, and builds everything else again, the review gate and the forge among them
+  readonly restartOf?: { readonly dispatch: TestDispatch };
+
   // true: the server also runs a public door, with its auth database in a temp folder
   readonly hasPublicDoor?: boolean;
 }
@@ -91,7 +96,10 @@ export interface TestServer {
 // The server's two listeners on the memory store, the fake worker, the fake clock, a fake pepys
 // reader, a fake notifier and a fake forge, with the example rules. No port is opened.
 export async function createTestServer(options: TestServerOptions = {}): Promise<TestServer> {
-  const dispatchOptions = options.store === undefined ? {} : { store: options.store };
+  const dispatchOptions = {
+    ...(options.store !== undefined && { store: options.store }),
+    ...(options.restartOf !== undefined && { restartOf: options.restartOf.dispatch }),
+  };
 
   const dispatch = await createTestDispatch(dispatchOptions);
 
@@ -128,7 +136,10 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
     store: dispatch.store,
     runner: dispatch.runner,
     rulesState: () => ({ rules: dispatch.rules(), lastRejected: null }),
-    loadProposedRules: makeProposedRulesLoader(buildExampleLoadInput().checkout),
+    loadProposedRules: makeProposedRulesLoader(buildExampleLoadInput().checkout, [
+      ...phaseKinds,
+      createReviewPhase(dispatch.reviewGate),
+    ]),
     clock: dispatch.clock,
     newId: dispatch.newId,
     callerProof:
@@ -138,6 +149,7 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
     workerTokenDigest: buildTokenDigest(workerToken),
     pepys: options.hasPepys === false ? null : (options.pepys ?? pepys),
     forge,
+    review: { gate: dispatch.reviewGate, forge },
     outbox: createOffOutbox(dispatch.store, dispatch.clock),
     repos: new Set(dispatch.spawn.repos.keys()),
     readings,

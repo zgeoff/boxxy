@@ -1,12 +1,13 @@
 import type { Forge, PullRequestRef } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
-import type { SeededPullRequest } from './create-fake-forge.ts';
+import type { SeededCompare, SeededPullRequest } from './create-fake-forge.ts';
 
 // What a forge adapter's test gives each case: the forge, and a way to put a pull request on the
 // service behind it.
 export interface ForgeHarness {
   readonly forge: Forge;
   seed: (pullRequest: SeededPullRequest) => void;
+  seedCompare: (compare: SeededCompare) => void;
 }
 
 export interface ForgeContractOutcome {
@@ -141,6 +142,22 @@ export const forgeContract: readonly ForgeContractCase[] = [
       return {
         received: listed.map((ref) => ref.number),
         expected: Array.from({ length: 105 }, (_unused, index) => index + 1),
+      };
+    },
+  ],
+  [
+    '#readChangedFiles reads each changed file of the compare of two heads with its changed lines',
+    async (harness) => {
+      const files = [
+        { path: 'src/lamp.ts', changedLines: 12 },
+        { path: 'docs/lamp.md', changedLines: 3 },
+      ];
+
+      harness.seedCompare({ repo, from: buildSha(1), to: buildSha(2), files });
+
+      return {
+        received: await harness.forge.readChangedFiles(repo, buildSha(1), buildSha(2)),
+        expected: files,
       };
     },
   ],

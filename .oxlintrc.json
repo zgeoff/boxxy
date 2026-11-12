@@ -37,6 +37,7 @@
           "auth-oauth": ["adapters/auth-oauth/**"],
           "worker-atc": ["adapters/worker-atc/**"],
           "caller-proof-imp": ["adapters/caller-proof-imp/**"],
+          "review-noslop": ["adapters/review-noslop/**"],
           "pepys-package": ["packages/pepys/**"],
           "system-tests": ["system-tests/**"]
         },
@@ -82,6 +83,12 @@
             "modules": ["@impz/client", "@impz/client/identity"],
             "allow": ["caller-proof-imp"],
             "reason": "only adapters/caller-proof-imp verifies the imp identity token; take its CallerProof"
+          },
+          {
+            "name": "noslop",
+            "modules": ["@noslop/cli", "@noslop/cli/check", "@noslop/cli/post"],
+            "allow": ["review-noslop"],
+            "reason": "only adapters/review-noslop checks and posts a review result; take its ReviewGate"
           },
           {
             "name": "pepys-kit",

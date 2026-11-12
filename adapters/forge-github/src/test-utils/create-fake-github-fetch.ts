@@ -1,4 +1,7 @@
-import type { SeededPullRequest } from '@boxxy/dispatch/test-utils/create-fake-forge';
+import type {
+  SeededCompare,
+  SeededPullRequest,
+} from '@boxxy/dispatch/test-utils/create-fake-forge';
 import type { ForgeFetch } from '../types.ts';
 
 interface FakeGithubRequest {
@@ -10,15 +13,17 @@ export interface FakeGithubFetch {
   readonly fetch: ForgeFetch;
   readonly requests: readonly FakeGithubRequest[];
   seed: (pullRequest: SeededPullRequest) => void;
+  seedCompare: (compare: SeededCompare) => void;
 
   // every later call answers with the status and the body text
   answerWith: (status: number, body: string) => void;
 }
 
 // A GitHub REST API that serves the pull requests a test seeds: one pull request, its commits
-// and the list of open ones, each by pages of the size in `per_page`.
+// and the list of open ones, each by pages of the size in `per_page`, and the compares it seeds.
 export function createFakeGithubFetch(): FakeGithubFetch {
   const pullRequests: SeededPullRequest[] = [];
+  const compares: SeededCompare[] = [];
   const requests: FakeGithubRequest[] = [];
   let fixed: { readonly status: number; readonly body: string } | null = null;
 
@@ -29,7 +34,9 @@ export function createFakeGithubFetch(): FakeGithubFetch {
       return Promise.resolve(new Response(fixed.body, { status: fixed.status }));
     }
 
-    return Promise.resolve(answer(new URL(url), pullRequests));
+    const target = new URL(url);
+
+    return Promise.resolve(answerCompare(target, compares) ?? answer(target, pullRequests));
   };
 
   return {
@@ -38,10 +45,45 @@ export function createFakeGithubFetch(): FakeGithubFetch {
     seed: (pullRequest) => {
       pullRequests.push(pullRequest);
     },
+    seedCompare: (compare) => {
+      compares.push(compare);
+    },
     answerWith: (status, body) => {
       fixed = { status, body };
     },
   };
+}
+
+const comparePattern =
+  /^\/repos\/(?<repo>[^/]+\/[^/]+)\/compare\/(?<from>[0-9a-f]+)\.\.\.(?<to>[0-9a-f]+)$/u;
+
+// null for a path that is no compare; a compare the test did not seed answers 404, as GitHub does
+function answerCompare(url: URL, compares: readonly SeededCompare[]): Response | null {
+  const compare = comparePattern.exec(url.pathname);
+
+  if (compare === null) {
+    return null;
+  }
+
+  const found = compares.findLast(
+    (candidate) =>
+      candidate.repo === compare.groups?.['repo'] &&
+      candidate.from === compare.groups['from'] &&
+      candidate.to === compare.groups['to'],
+  );
+
+  if (found === undefined) {
+    return Response.json({ message: 'Not Found' }, { status: 404 });
+  }
+
+  return Response.json({
+    status: 'ahead',
+    files: found.files.map((file) => ({
+      filename: file.path,
+      status: 'modified',
+      changes: file.changedLines,
+    })),
+  });
 }
 
 const pullPattern =

@@ -22,7 +22,7 @@ import type {
   StoreTx,
   WakePick,
 } from '@boxxy/model';
-import { brandSchemas, toJSONValue } from '@boxxy/model';
+import { brandSchemas, collectRetries, toJSONValue } from '@boxxy/model';
 import { buildFrame, decide } from '@boxxy/planning';
 import invariant from 'tiny-invariant';
 import type { AttemptChange } from '../attempts/build-attempt-change.ts';
@@ -170,7 +170,9 @@ function buildClaimedEvent(parts: ClaimedParts): {
 
   const phaseInput = phase.input({
     item,
+    attempt: parts.attempt,
     history: parts.detail.attempts,
+    retries: collectRetries(item.levers),
     pullRequests: parts.detail.pullRequests,
   });
 

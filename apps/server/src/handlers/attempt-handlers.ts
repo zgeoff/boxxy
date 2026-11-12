@@ -1,6 +1,6 @@
 import {
   bindAttemptSession,
-  closeOutAttempt,
+  closeOutCall,
   linkPullRequest,
   pickCallAttempt,
 } from '@boxxy/dispatch';
@@ -54,13 +54,14 @@ export const attemptHandlers = {
       return noAttempt;
     }
 
-    return closeOutAttempt({
+    return closeOutCall({
       store: deps.store,
       call,
       body: input.closeOut,
       rules: deps.rulesState().rules,
       now: deps.clock.now(),
       newId: deps.newId,
+      review: deps.review,
     });
   }),
   evidence: api.attempt.evidence.handler((options) => {

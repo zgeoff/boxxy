@@ -43,6 +43,7 @@
     "@boxxy/notifier-atc": "workspace:*",
     "@boxxy/pepys": "workspace:*",
     "@boxxy/planning": "workspace:*",
+    "@boxxy/review-noslop": "workspace:*",
     "@boxxy/rules": "workspace:*",
     "@boxxy/store-sqlite": "workspace:*",
     "@boxxy/worker-atc": "workspace:*",

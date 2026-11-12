@@ -2,6 +2,8 @@ import { expect, test } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockEvidenceRow } from '@boxxy/model/test-utils/build-mock-evidence-row';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
+import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
+import { buildMockSettledAttemptRow } from '@boxxy/model/test-utils/build-mock-settled-attempt-row';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import { buildMockV1ItemView } from '@boxxy/model/test-utils/build-mock-v1-item-view';
 import { buildMockV1PullRequestRow } from '@boxxy/model/test-utils/build-mock-v1-pull-request-row';
@@ -462,13 +464,13 @@ test('it settles an abandoned close-out as failed, and leaves the acceptance lis
   });
 });
 
-test('it gives a build of round 2 the design, the findings of the review and the pull request', () => {
+test('it gives a build of round 2 the design, the send-back of the review and the pull request', () => {
   const item = buildMockV1ItemView({
     acceptance: [{ id: brandSchemas.criterionId.parse('a1'), text: 'Retries once', evidence: [] }],
   });
 
-  const finding = { title: 'The retry runs twice', body: 'A second click sends a second upload' };
   const pullRequest = buildMockV1PullRequestRow();
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
 
   const history = [
     buildMockV1AttemptRow({
@@ -480,60 +482,66 @@ test('it gives a build of round 2 the design, the findings of the review and the
         frictionDropped: 0,
       },
     }),
-    buildMockV1AttemptRow({
-      phase: brandSchemas.phaseName.parse('review'),
-      state: 'succeeded',
+    buildMockSettledAttemptRow({
+      phase: 'review',
+      outcome: 'changes-requested',
+      endedAt: 2000,
       closeOut: {
-        verdict: { kind: 'changes-requested', findings: [finding] },
-        noslop: {
-          version: 7,
-          reviewID: 'review-3c9a',
-          head: brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290'),
-          counts: { findings: 1, failedCalls: 0, fixChecks: 0 },
-          reportBytes: 2048,
-          report: null,
-        },
-        friction: [],
-        frictionDropped: 0,
+        round: 1,
+        cause: 'first',
+        reading: buildMockGateReading({
+          status: 'blocked',
+          why: 'open-findings',
+          head,
+          open: { high: 1, medium: 2, low: 0 },
+          answerHint: 'Reply to each open finding.',
+        }),
+        unrelatedLines: null,
       },
     }),
   ];
 
-  expect(build.input({ item, history, pullRequests: [pullRequest] })).toStrictEqual({
+  const input = build.input({
+    item,
+    attempt: buildMockV1AttemptRow().id,
+    history,
+    retries: [],
+    pullRequests: [pullRequest],
+  });
+
+  expect(input).toStrictEqual({
     acceptance: [{ id: 'a1', text: 'Retries once' }],
     design: { text: 'Retry once', location: null },
-    findings: [finding],
+    sentBack: {
+      from: 'review',
+      head,
+      open: { high: 1, medium: 2, low: 0 },
+      answerHint: 'Reply to each open finding.',
+    },
     pullRequest: { repo: pullRequest.repo, number: pullRequest.number, url: pullRequest.url },
   });
 });
 
-test('it gives a build after a passed review no findings', () => {
-  const item = buildMockV1ItemView({ acceptance: [] });
-
+test.each([
+  ['a passed review', buildMockGateReading({ status: 'passed' })],
+  ['a review with a failed call', buildMockGateReading({ status: 'blocked', why: 'failed-call' })],
+])('it gives a build after %s no send-back', (_title, reading) => {
   const history = [
-    buildMockV1AttemptRow({
-      phase: brandSchemas.phaseName.parse('review'),
-      state: 'succeeded',
-      closeOut: {
-        verdict: { kind: 'passed' },
-        noslop: {
-          version: 7,
-          reviewID: 'review-3c9a',
-          head: brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290'),
-          counts: { findings: 0, failedCalls: 0, fixChecks: 0 },
-          reportBytes: 2048,
-          report: null,
-        },
-        friction: [],
-        frictionDropped: 0,
-      },
+    buildMockSettledAttemptRow({
+      phase: 'review',
+      outcome: 'passed',
+      endedAt: 2000,
+      closeOut: { round: 1, cause: 'first', reading, unrelatedLines: null },
     }),
   ];
 
-  expect(build.input({ item, history, pullRequests: [] })).toStrictEqual({
-    acceptance: [],
-    design: null,
-    findings: [],
-    pullRequest: null,
+  const input = build.input({
+    item: buildMockV1ItemView({ acceptance: [] }),
+    attempt: buildMockV1AttemptRow().id,
+    history,
+    retries: [],
+    pullRequests: [],
   });
+
+  expect(input).toStrictEqual({ acceptance: [], design: null, sentBack: null, pullRequest: null });
 });

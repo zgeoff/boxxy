@@ -5,5 +5,4 @@ import type { CloseOutLimits } from './types.ts';
 // so a layer that escapes the JSON once more still fits.
 export const closeOutLimits: CloseOutLimits = {
   closeOutBytes: 120_000,
-  noslopReportBytes: 32_768,
 };

@@ -82,7 +82,7 @@ import { decideMerge } from '@boxxy/train';
 // Two kinds take the two verify recipes, so pepys compares the builder grading its own work with
 // a fresh session: the recipe hash on `claimed` and `session` on the verify close-out tell them apart.
 
-// ── 2. modules/closeout/src/phases/review.ts and merge.ts ──────────────────────────────────────
+// ── 2. modules/closeout/src/phases/create-review-phase.ts and merge.ts ────────────────────────
 
 // The server passes the gate's pure `buildCommand`, so the module never imports an adapter.
 export const createReviewPhase = (deps: Pick<ReviewGate, 'buildCommand'>) => definePhase({

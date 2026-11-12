@@ -60,7 +60,7 @@ Each parser runs these steps, and a failed step returns every problem it found a
 1. Drop each friction entry with no target, and count it in `frictionDropped`. boxxy ignores a count the agent sends.
 2. Check the body against the phase's schema. Every schema problem comes back, with its path in the body as sent.
 3. Build the stored body, and check the phase's rules, such as `no-acceptance`.
-4. Measure the stored body. One over 120,000 bytes is `too-large`, so the `closed_out` fact always fits one outbox item. `closeOutLimits` in `modules/closeout/src/close-out-limits.ts` holds both byte limits.
+4. Measure the stored body. One over 120,000 bytes is `too-large`, so the `closed_out` fact always fits one outbox item. `closeOutLimits` in `modules/closeout/src/close-out-limits.ts` holds the limit.
 
 The parser cuts no list. A cut finding or open item would be work lost with no count, and the byte limit already bounds the fact. Each parser also gives `jsonSchema`, the JSON Schema of the body the agent sends, which `attempt.current` passes to the session.
 
@@ -69,13 +69,13 @@ The parser cuts no list. A cut finding or open item would be work lost with no c
 | triage | `accepted` that leaves the item with no acceptance list; an unknown item, kind or relation type; a relation to the item itself; a relation named twice, counting the `duplicate-of` relation of a `duplicate` | succeeded. Asks to set the kind, the design mode and the acceptance list, numbered from `a1`, to add each relation, and to close a `duplicate` or `declined` item |
 | design | nothing past the schema | `designed`: succeeded. `blocked`, `abandoned`: failed, with the outcome as the failure |
 | build | a criterion the item lacks; evidence of another attempt; `built` with a criterion that has no evidence | as design. Asks to file each open item, and, when `built`, to add the cited evidence to the acceptance list |
-| review | `changes-requested` with no finding | succeeded |
+| review | a body that is not the `ReviewCloseOut` the server built from the gate's reading | passed: succeeded `passed`. Blocked on open findings: succeeded `changes-requested`. Any other reading: failed, with the failure `review-failed` |
 
 A blocked or abandoned design or build fails, so it never reads as done work and no session is kept for it. Its failure is the outcome name. The engine reads some failure names, such as `no-capacity`, and the agent's free-text reason could match one, so the reason stays in the close-out. Every settle also asks to record each friction entry as a proposal. The settle returns the effects and the outcome, and the caller applies the effects. When the rules map the outcome to a hold, the caller withholds each effect that changes an item ([v1](./v1.md#the-pipeline)).
 
-In v1, the review session sends noslop's whole result. [Review, verify and merge](./review-and-merge.md) drops `NoslopSummary`: the server builds the review close-out from the `ReviewGate` reading. The parser reads the version, the review ID, the head and the three lists it counts, and lets every other field through, so a newer noslop still parses. The stored close-out keeps `NoslopSummary`: the counts, the size of the result, and the result whole only when it is 32,768 bytes or smaller.
+The review session sends the review tool's raw result. The server passes it to `ReviewGate.accept`, and builds the `ReviewCloseOut` from the reading: the round, its cause, the reading and `unrelatedLines` ([the review gate](./review-and-merge.md#the-review-gate)). The review parser then checks that built body, and the repeat check hashes the raw result.
 
-Each phase's input is the item's acceptance list. A build also gets the latest design, the findings of the latest review when it asked for changes, and the item's latest pull request. A review gets the latest design and the latest pull request. The [launch prompt](./v1.md#the-launch-prompt) carries the design, the findings and the notes of the item, so the session needs no command to read its task.
+Each phase's input is the item's acceptance list. A build also gets the latest design, the open counts and `answerHint` of the latest review when it was blocked on open findings, and the item's latest pull request. A review gets its round, its cause, the item's pull request and the command to run. The [launch prompt](./v1.md#the-launch-prompt) carries the design, the findings and the notes of the item, so the session needs no command to read its task.
 
 The design close-out holds `{ text, location }`. `text` is the whole design in markdown, code blocks included, and the limit of the whole close-out bounds it. `location` is a pointer to a doc in the repo, or null. A design close-out stored with `summary` in place of `text` reads as `text`, with no change to the stored data.
 

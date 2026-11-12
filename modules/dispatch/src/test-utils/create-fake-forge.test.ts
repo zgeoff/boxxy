@@ -6,7 +6,7 @@ import { forgeContract } from './forge-contract.ts';
 test.each(forgeContract)('it keeps the forge contract: %s', async (_title, check) => {
   const forge = createFakeForge();
 
-  const outcome = await check({ forge, seed: forge.seed });
+  const outcome = await check({ forge, seed: forge.seed, seedCompare: forge.seedCompare });
 
   expect(outcome.received).toStrictEqual(outcome.expected);
 });

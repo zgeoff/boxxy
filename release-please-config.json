@@ -26,6 +26,7 @@
         "@boxxy/notifier-atc",
         "@boxxy/pepys",
         "@boxxy/planning",
+        "@boxxy/review-noslop",
         "@boxxy/rules",
         "@boxxy/server",
         "@boxxy/store-sqlite",
@@ -76,6 +77,10 @@
     },
     "adapters/forge-github": {
       "component": "@boxxy/forge-github",
+      "initial-version": "0.1.0"
+    },
+    "adapters/review-noslop": {
+      "component": "@boxxy/review-noslop",
       "initial-version": "0.1.0"
     },
     "adapters/auth-oauth": {

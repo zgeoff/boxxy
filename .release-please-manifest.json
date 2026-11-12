@@ -14,5 +14,6 @@
   "packages/pepys": "0.2.1",
   "apps/server": "0.2.1",
   "adapters/worker-atc": "0.2.1",
-  "adapters/auth-oauth": "0.2.1"
+  "adapters/auth-oauth": "0.2.1",
+  "adapters/review-noslop": "0.2.1"
 }

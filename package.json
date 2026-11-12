@@ -25,6 +25,7 @@
       "@maschwenk/tsrslint": "0.1.6",
       "@modelcontextprotocol/client": "2.4.0",
       "@modelcontextprotocol/server": "2.4.0",
+      "@noslop/cli": "0.4.29",
       "@orpc/client": "2.0.0-beta.50",
       "@orpc/contract": "2.0.0-beta.50",
       "@orpc/mcp": "2.0.0-beta.50",
