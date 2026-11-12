@@ -40,6 +40,8 @@ experiments, so every part of the system can be compared and improved. Packages 
   and its two queries.
 - [Open for the builder](./v1-open.md): what the v1 sketches leave unchecked, assumed or not
   designed.
+- [Rules from the rules repository](./rules-repository.md): how the deployed server gets new rules
+  commits with no deploy: the sync sidecar, its deploy key, the rules check and the ruleset.
 - [Work list](./v1-work-list.md): the v1 build as numbered slices, in dependency order.
 - [Folder layout](./layout-folders.md): the folders inside each package.
 - [Review, verify and merge](./review-and-merge.md): the `ReviewGate` and `Verifier` ports, the
