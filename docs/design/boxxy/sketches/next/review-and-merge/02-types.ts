@@ -197,8 +197,8 @@ export type MergeAnswer =
 // `ReviewGate.accept`'s reading before the phase kind's parser reads it. No limit but the
 // close-out's own 120,000 bytes applies.
 export interface ReviewCloseOut {
-  readonly round: number;
-  readonly cause: RoundCause;
+  readonly round: number | null; // null in a review close-out stored before the review gate
+  readonly cause: RoundCause | null;
   readonly reading: GateReading; // from `ReviewGate.accept`, which matched its head to the pull request's head
   // Every review after the first: the changed lines between the earlier review's head and this
   // head, in files outside that review's `findingPaths`. pepys reads it from `closed_out`, to show

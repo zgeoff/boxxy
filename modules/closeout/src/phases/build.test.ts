@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { brandSchemas } from '@boxxy/model';
+import { brandSchemas, closeOutSchema } from '@boxxy/model';
 import { buildMockEvidenceRow } from '@boxxy/model/test-utils/build-mock-evidence-row';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
 import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
@@ -544,4 +544,53 @@ test.each([
   });
 
   expect(input).toStrictEqual({ acceptance: [], design: null, sentBack: null, pullRequest: null });
+});
+
+test('it sends a build the findings of a v1 review that asked for changes, as the store reads it', () => {
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+
+  const stored = closeOutSchema.parse({
+    verdict: {
+      kind: 'changes-requested',
+      findings: [{ title: 'The retry runs twice', body: 'Guard it.', path: 'src/upload.ts' }],
+    },
+    noslop: {
+      version: 7,
+      reviewID: 'review-3c9a',
+      head,
+      counts: { findings: 1, failedCalls: 0, fixChecks: 0 },
+      reportBytes: 512,
+      report: null,
+    },
+    friction: [],
+    frictionDropped: 0,
+  });
+
+  const input = build.input({
+    item: buildMockV1ItemView({ acceptance: [] }),
+    attempt: buildMockV1AttemptRow().id,
+    history: [
+      buildMockSettledAttemptRow({
+        phase: 'review',
+        outcome: 'changes-requested',
+        endedAt: 2000,
+        closeOut: stored,
+      }),
+    ],
+    retries: [],
+    pullRequests: [],
+  });
+
+  expect(input).toStrictEqual({
+    acceptance: [],
+    design: null,
+    sentBack: {
+      from: 'review',
+      head,
+      open: { high: 1, medium: 0, low: 0 },
+      answerHint:
+        'Fix each of these findings:\n\n### The retry runs twice\nsrc/upload.ts\nGuard it.',
+    },
+    pullRequest: null,
+  });
 });

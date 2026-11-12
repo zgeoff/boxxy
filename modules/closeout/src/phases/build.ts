@@ -13,7 +13,7 @@ import {
   brandSchemas,
   buildCloseOutSchema,
   definePhase,
-  reviewCloseOutSchema,
+  storedReviewCloseOutSchema,
   toJSONValue,
 } from '@boxxy/model';
 import { match } from 'ts-pattern';
@@ -72,7 +72,7 @@ function buildBuildInput(ctx: PhaseInputContext): BuildInput {
 // Only a latest review that asked for changes sends the build its findings: a build after a
 // passed review, sent back by the owner, gets none.
 function findReviewSentBack(ctx: PhaseInputContext): SentBack | null {
-  const reading = findLatestCloseOut(ctx.history, 'review', reviewCloseOutSchema)?.reading;
+  const reading = findLatestCloseOut(ctx.history, 'review', storedReviewCloseOutSchema)?.reading;
 
   return reading?.status === 'blocked' && reading.why === 'open-findings'
     ? { from: 'review', head: reading.head, open: reading.open, answerHint: reading.answerHint }

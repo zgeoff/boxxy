@@ -8,7 +8,7 @@ import type {
   ReviewGate,
   ReviewInput,
 } from '@boxxy/model';
-import { reviewCloseOutSchema, reviewInputSchema, toJSONValue } from '@boxxy/model';
+import { reviewInputSchema, storedReviewCloseOutSchema, toJSONValue } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { closeOutAttempt, pickCloseOutStart } from './close-out-attempt.ts';
 import type { CloseOutInput } from './types.ts';
@@ -121,7 +121,7 @@ function findEarlierReading(
     .filter((row) => row.phase === 'review' && row.id !== current.id && row.endedAt !== null)
     .toSorted((first, second) => (first.endedAt ?? 0) - (second.endedAt ?? 0))
     .flatMap((row) => {
-      const parsed = reviewCloseOutSchema.safeParse(row.closeOut);
+      const parsed = storedReviewCloseOutSchema.safeParse(row.closeOut);
 
       return parsed.success ? [parsed.data.reading] : [];
     });

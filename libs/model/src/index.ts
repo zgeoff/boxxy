@@ -46,6 +46,7 @@ export { pullRequestRowSchema } from './rows/pull-request-row-schema.ts';
 export { relationRowSchema } from './rows/relation-row-schema.ts';
 export { gateReadingSchema, reviewCloseOutSchema } from './closeouts/review-close-out-schema.ts';
 export { reviewInputSchema } from './closeouts/review-input-schema.ts';
+export { storedReviewCloseOutSchema } from './closeouts/stored-review-close-out-schema.ts';
 export { rowSchemas } from './rows/row-schemas.ts';
 export { signalKey } from './planning/signal-key.ts';
 export { gitSourceSchema, spawnRequestSchema } from './rows/spawn-request-schema.ts';

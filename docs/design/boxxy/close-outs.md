@@ -75,6 +75,18 @@ A blocked or abandoned design or build fails, so it never reads as done work and
 
 The review session sends the review tool's raw result. The server passes it to `ReviewGate.accept`, and builds the `ReviewCloseOut` from the reading: the round, its cause, the reading and `unrelatedLines` ([the review gate](./review-and-merge.md#the-review-gate)). The review parser then checks that built body, and the repeat check hashes the raw result.
 
+A review close-out stored before the review gate holds the session's `verdict` and a summary of noslop's result. Every read of a stored close-out, in the store, the facts, the phase inputs and pepys, reads it as a `ReviewCloseOut`, with no change to the stored data. The review parser still rejects that shape, so a session can never send it.
+
+| v1 field                                   | Read as                                                                                                                         |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `verdict` `passed`                         | a `passed` reading with no open finding                                                                                         |
+| `verdict` `changes-requested`              | a reading blocked on `open-findings`. Each finding counts as `high`, because v1 kept no severity and each one sent the item back |
+| the findings' `path`s                      | `findingPaths`, which the next review's `unrelatedLines` reads                                                                  |
+| the findings' titles, places and bodies    | `answerHint`, which the next build's launch prompt shows, because the review tool never held those findings                     |
+| `noslop.head`, `noslop.reviewID`           | the reading's `head` and `ref`                                                                                                  |
+| no round, cause, cost or `unrelatedLines`  | `round` and `cause` null, no calls, `unrelatedLines` null                                                                       |
+| `noslop.report`, the counts, `friction`    | dropped. The settle of that review already recorded the friction as proposals                                                   |
+
 Each phase's input is the item's acceptance list. A build also gets the latest design, the open counts and `answerHint` of the latest review when it was blocked on open findings, and the item's latest pull request. A review gets its round, its cause, the item's pull request and the command to run. The [launch prompt](./v1.md#the-launch-prompt) carries the design, the findings and the notes of the item, so the session needs no command to read its task.
 
 The design close-out holds `{ text, location }`. `text` is the whole design in markdown, code blocks included, and the limit of the whole close-out bounds it. `location` is a pointer to a doc in the repo, or null. A design close-out stored with `summary` in place of `text` reads as `text`, with no change to the stored data.

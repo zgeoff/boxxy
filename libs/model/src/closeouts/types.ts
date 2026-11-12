@@ -77,8 +77,9 @@ export interface BuildCloseOut {
 // result, and the server builds this from it with `ReviewGate.accept` before the phase kind's
 // parser reads it.
 export interface ReviewCloseOut {
-  readonly round: number;
-  readonly cause: RoundCause;
+  // null in a close-out stored before the review gate, which kept neither
+  readonly round: number | null;
+  readonly cause: RoundCause | null;
 
   // `ReviewGate.accept` matched its head to the pull request's head
   readonly reading: GateReading;

@@ -38,8 +38,8 @@ dispatch/         claims, settlement and the parts of a store change
                   types  build-applied-change  pick-seat-take  collect-seat-sync
 closeouts/        the close-out types and schemas
                   types  close-out-schema  triage-close-out-schema  design-close-out-schema
-                  build-close-out-schema  review-close-out-schema  verify-close-out-schema
-                  merge-close-out-schema  friction-schema  open-item-schema
+                  build-close-out-schema  review-close-out-schema  stored-review-close-out-schema
+                  verify-close-out-schema  merge-close-out-schema  friction-schema  open-item-schema
 facts/            the fact catalog and the outbox row
                   types  work-fact-schemas  outbox-fact-schema  parse-new-fact
 merge/            types: what the merge job reads and what a merge decides
@@ -69,7 +69,7 @@ codecs/           how a row maps to its columns
 reads/            build-sqlite-reader  read-item-views  read-limit-fills  read-wakes
                   is-latest-of-session
 writes/           create-sqlite-tx  apply-sqlite-change  take-write-lock
-test-utils/       create-test-claim-store
+test-utils/       create-test-claim-store  seed-v1-review-close-out
 ```
 
 ## `modules/dispatch/src`

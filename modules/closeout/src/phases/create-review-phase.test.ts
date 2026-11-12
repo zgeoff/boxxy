@@ -142,6 +142,35 @@ test('it rejects a raw review result in place of the built close-out', () => {
   expect(parsed.kind).toBe('invalid');
 });
 
+test('it rejects a verdict of the session in the form of a v1 review close-out', () => {
+  const ctx = setupTest();
+  const item = buildMockV1ItemView();
+
+  const parsed = ctx.review.closeOut.parse(
+    {
+      verdict: { kind: 'passed' },
+      noslop: {
+        version: 7,
+        reviewID: 'review-3c9a',
+        head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+        counts: { findings: 0, failedCalls: 0, fixChecks: 0 },
+        reportBytes: 2,
+        report: {},
+      },
+      friction: [],
+      frictionDropped: 0,
+    },
+    {
+      item,
+      attempt: buildMockV1AttemptRow().id,
+      evidence: [],
+      world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    },
+  );
+
+  expect(parsed.kind).toBe('invalid');
+});
+
 test.each([
   {
     title: 'a passed reading',

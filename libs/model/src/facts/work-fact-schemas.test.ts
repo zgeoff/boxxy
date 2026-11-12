@@ -391,3 +391,45 @@ test('it reads a filed fact stored before the body existed as one with an empty 
 
   expect(parsed).toStrictEqual({ ...stored, body: '' });
 });
+
+test('it reads the close-out fact of a v1 review as one with the reading of its head', () => {
+  const stored = {
+    attempt: '0192f0c5-1a2b-7c3d-8e4f-5a6b7c8d9e0f',
+    phase: 'review',
+    closeOut: {
+      verdict: { kind: 'passed' },
+      noslop: {
+        version: 7,
+        reviewID: 'review-3c9a',
+        head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+        counts: { findings: 0, failedCalls: 0, fixChecks: 0 },
+        reportBytes: 2,
+        report: {},
+      },
+      friction: [],
+      frictionDropped: 0,
+    },
+    hash: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+  };
+
+  const parsed: unknown = workFactSchemas['boxxy.attempt.closed_out'].safeParse(stored).data;
+
+  expect(parsed).toStrictEqual({
+    ...stored,
+    closeOut: {
+      round: null,
+      cause: null,
+      reading: {
+        status: 'passed',
+        head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+        open: { high: 0, medium: 0, low: 0 },
+        closedWithoutFix: 0,
+        findingPaths: [],
+        cost: { calls: [] },
+        ref: 'review-3c9a',
+        answerHint: '',
+      },
+      unrelatedLines: null,
+    },
+  });
+});
