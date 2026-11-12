@@ -1,4 +1,4 @@
-import { cp, mkdir, mkdtemp, rm, stat } from 'node:fs/promises';
+import { cp, lstat, mkdir, mkdtemp, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { skillsRepoFolder, workspaceSkillsFolder } from '../constants.ts';
@@ -42,6 +42,12 @@ export async function installSkills(input: InstallSkillsInput): Promise<string[]
     return [...input.names];
   }
 
+  const linked = await probeLinkedSkillsFolder(input.workspace);
+
+  if (linked) {
+    return [...input.names];
+  }
+
   const scratch = await mkdtemp(join(tmpdir(), 'boxxy-skills-'));
 
   try {
@@ -63,6 +69,18 @@ export async function installSkills(input: InstallSkillsInput): Promise<string[]
   } finally {
     await rm(scratch, { recursive: true, force: true });
   }
+}
+
+// The install removes each skill's folder before it copies the new one, so a link in the skills
+// path would point that removal at a folder outside the workspace.
+async function probeLinkedSkillsFolder(workspace: string): Promise<boolean> {
+  const parts = workspaceSkillsFolder.split('/');
+
+  const infos = await Promise.all(
+    parts.map((_, index) => lstat(join(workspace, ...parts.slice(0, index + 1))).catch(() => null)),
+  );
+
+  return infos.some((info) => info?.isSymbolicLink() === true);
 }
 
 async function runFetch(
