@@ -8,6 +8,7 @@ test('it accepts an item with labels, a design mode and a kept session', () => {
     repo: 'acme/widgets',
     title: 'Add a retry button',
     outcome: 'A failed upload can be sent again',
+    body: '## Context\n\nUploads fail on a weak network.',
     acceptance: [],
     fields: { designMode: 'attended' },
     labels: ['uploads', 'ui'],

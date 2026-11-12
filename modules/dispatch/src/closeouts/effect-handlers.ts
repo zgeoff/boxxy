@@ -25,6 +25,7 @@ export const effectHandlers: EffectHandlers = {
       repo: ctx.item.repo,
       title: effect.item.title,
       outcome: effect.item.body,
+      body: '',
       acceptance: [],
       fields: {},
       labels: [],

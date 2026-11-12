@@ -8,6 +8,7 @@ import { Kysely } from 'kysely';
 import { z } from 'zod';
 import type { StoreDatabase } from '../types.ts';
 import { createTablesMigration } from './create-tables-migration.ts';
+import { itemBodyMigration } from './item-body-migration.ts';
 import { noticeKeysMigration } from './notice-keys-migration.ts';
 import { renameRelationsMigration } from './rename-relations-migration.ts';
 import { runStoreMigrations } from './run-store-migrations.ts';
@@ -38,6 +39,7 @@ async function setupTest() {
     renameRelations: () => renameRelationsMigration.up(db),
     migrateV1Tables: () => v1TablesMigration.up(db),
     migrateNoticeKeys: () => noticeKeysMigration.up(db),
+    migrateItemBody: () => itemBodyMigration.up(db),
     writeRaw: (statement: string, ...values: number[]) => {
       sqlite.query(statement).run(...values);
     },
@@ -201,5 +203,31 @@ test('it makes each old notice row due at its own time, on its first key, in the
       { item: 'item-b', tries: 1, key_seq: 0, key_tries: 0, next_try_at: 1500 },
     ],
     'CREATE INDEX notices_unsent ON notices (next_try_at) WHERE sent_at IS NULL',
+  ]);
+});
+
+test('it gives an item of a version 4 file an empty body, and lets a new item hold one', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createTables();
+  await ctx.renameRelations();
+  await ctx.migrateV1Tables();
+  await ctx.migrateNoticeKeys();
+
+  ctx.writeRaw(
+    "INSERT INTO items (id, kind, repo, title, outcome, acceptance, fields, labels, filed_by, filed_at) VALUES ('item-a', 'core.issue', 'acme/widgets', 'A title', 'An outcome', '[]', '{}', '[]', 'boxxy:owner:local', ?)",
+    1000,
+  );
+
+  await ctx.migrateItemBody();
+
+  ctx.writeRaw(
+    "INSERT INTO items (id, kind, repo, title, outcome, body, acceptance, fields, labels, filed_by, filed_at) VALUES ('item-b', 'core.issue', 'acme/widgets', 'A title', 'An outcome', '## Context', '[]', '{}', '[]', 'boxxy:owner:local', ?)",
+    2000,
+  );
+
+  expect(ctx.readRaw('SELECT id, body FROM items ORDER BY id')).toStrictEqual([
+    { id: 'item-a', body: '' },
+    { id: 'item-b', body: '## Context' },
   ]);
 });

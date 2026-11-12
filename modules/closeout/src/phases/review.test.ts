@@ -188,7 +188,7 @@ test('it gives a review the acceptance list, the design and the latest pull requ
       closeOut: {
         result: {
           kind: 'designed',
-          design: { summary: 'Retry once', location: 'docs/design/upload.md' },
+          design: { text: 'Retry once', location: 'docs/design/upload.md' },
         },
         friction: [],
         frictionDropped: 0,
@@ -201,7 +201,7 @@ test('it gives a review the acceptance list, the design and the latest pull requ
 
   expect(review.input({ item, history, pullRequests: [older, latest] })).toStrictEqual({
     acceptance: [{ id: 'a1', text: 'Retries once' }],
-    design: { summary: 'Retry once', location: 'docs/design/upload.md' },
+    design: { text: 'Retry once', location: 'docs/design/upload.md' },
     pullRequest: { repo: latest.repo, number: latest.number, url: latest.url },
   });
 });

@@ -171,3 +171,58 @@ test('it gives no wake pick of an item that the tick claimed already', async () 
 
   expect(claim).toBeNull();
 });
+
+test('it carries the findings of the review in the prompt of a rework round', async () => {
+  const ctx = await setupTest();
+  const rework = await ctx.seedRework({});
+
+  expect(rework.claimed.spawnRequest).toMatchObject({
+    prompt: expect.stringContaining(
+      '## Findings to fix\n\n### The theme ignores the system\nRead the media query.',
+    ),
+  });
+});
+
+test('it carries the item body and the owner notes in the prompt of a claim', async () => {
+  const ctx = await setupTest();
+  const item = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+
+  await ctx.store.exclusive((tx) =>
+    tx.applyChange({
+      at: ctx.clock.now(),
+      writes: [
+        {
+          op: 'update',
+          table: 'items',
+          key: { id: item },
+          expect: {},
+          set: { body: '## Scope\n\nOnly the theme.' },
+        },
+        {
+          op: 'insert',
+          table: 'notes',
+          row: {
+            item,
+            seq: 1,
+            text: 'Use the media query.',
+            by: 'boxxy:owner:local',
+            at: brandSchemas.instant.parse(0),
+          },
+        },
+      ],
+      facts: [],
+    }),
+  );
+
+  const claim = await ctx.claimNext();
+
+  invariant(claim?.kind === 'start', 'the claim starts the item');
+
+  expect(claim.spawn.prompt).toContain(
+    'The app follows the system theme.\n\n## Scope\n\nOnly the theme.\n\n## Acceptance',
+  );
+
+  expect(claim.spawn.prompt).toContain(
+    '## Notes from the owner\n\n- 1970-01-01: Use the media query.',
+  );
+});

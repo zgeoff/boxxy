@@ -4,12 +4,15 @@ import type { DesignCloseOut } from './types.ts';
 
 const reasonSchema = z.string().min(1);
 
-const designRefSchema = z.object({
-  summary: z.string().min(1),
-  location: z.string().min(1).nullable(),
-});
+const designSchema = z.preprocess(
+  upgradeLegacyDesign,
+  z.object({
+    text: z.string().min(1),
+    location: z.string().min(1).nullable(),
+  }),
+);
 
-const designedSchema = z.object({ kind: z.literal('designed'), design: designRefSchema });
+const designedSchema = z.object({ kind: z.literal('designed'), design: designSchema });
 const blockedSchema = z.object({ kind: z.literal('blocked'), reason: reasonSchema });
 const abandonedSchema = z.object({ kind: z.literal('abandoned'), reason: reasonSchema });
 
@@ -18,3 +21,19 @@ export const designCloseOutSchema = z.strictObject({
   friction: z.array(frictionSchema),
   frictionDropped: z.number().int().nonnegative(),
 }) satisfies z.ZodType<DesignCloseOut>;
+
+const recordSchema = z.record(z.string(), z.unknown());
+
+// A design close-out stored before the design held its whole text has `summary` in place of
+// `text`. It reads as `text`, with no change to the stored data.
+function upgradeLegacyDesign(value: unknown): unknown {
+  const record = recordSchema.safeParse(value);
+
+  if (!record.success || 'text' in record.data || typeof record.data['summary'] !== 'string') {
+    return value;
+  }
+
+  const { summary, ...rest } = record.data;
+
+  return { ...rest, text: summary };
+}

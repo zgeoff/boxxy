@@ -12,6 +12,7 @@ export const itemRowSchema = z.object({
   repo: brandSchemas.repoName,
   title: z.string().min(1),
   outcome: z.string().min(1),
+  body: z.string(),
   acceptance: z.array(criterionSchema),
   fields: z.object({ designMode: z.enum(['agent', 'attended']).exactOptional() }),
   labels: z.array(z.string().min(1)),

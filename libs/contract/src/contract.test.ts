@@ -226,3 +226,44 @@ test('it gives runner.status an outbox output that equals the model status type'
 
   expectTypeOf<WireOutbox>().toEqualTypeOf<OutboxStatus>();
 });
+
+test.each([
+  ['item.file', { repo: 'acme/widgets', title: 'T', outcome: 'O' }],
+  ['item.edit', { item: 'i-1' }],
+])('it accepts a body of 40,000 characters and refuses one of 40,001 for %s', (name, base) => {
+  const ctx = setupTest();
+  const input = ctx.procedures.find((procedure) => procedure.name === name)?.inputs[0] ?? z.never();
+
+  expect([
+    input.safeParse({ ...base, body: 'a'.repeat(40_000) }).success,
+    input.safeParse({ ...base, body: 'a'.repeat(40_001) }).success,
+  ]).toStrictEqual([true, false]);
+});
+
+test('it gives an item filed with no body an empty body', () => {
+  const ctx = setupTest();
+
+  const input =
+    ctx.procedures.find((procedure) => procedure.name === 'item.file')?.inputs[0] ?? z.never();
+
+  expect(input.safeParse({ repo: 'acme/widgets', title: 'T', outcome: 'O' }).data).toMatchObject({
+    body: '',
+  });
+});
+
+test('it leaves the body out of a row of item.list and keeps it in item.get', () => {
+  const ctx = setupTest();
+
+  const outputOf = (name: string) =>
+    z.toJSONSchema(
+      ctx.procedures.find((procedure) => procedure.name === name)?.outputs[0] ?? z.never(),
+      {
+        io: 'output',
+      },
+    );
+
+  expect([
+    JSON.stringify(outputOf('item.list')).includes('"body"'),
+    JSON.stringify(outputOf('item.get')).includes('"body"'),
+  ]).toStrictEqual([false, true]);
+});

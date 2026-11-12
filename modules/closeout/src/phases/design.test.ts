@@ -4,13 +4,13 @@ import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-att
 import { buildMockV1ItemView } from '@boxxy/model/test-utils/build-mock-v1-item-view';
 import { design } from './design.ts';
 
-test('it accepts a designed close-out with the summary and the place of the design', () => {
+test('it accepts a designed close-out with the design text and the place of the design', () => {
   const item = buildMockV1ItemView();
 
   const raw = {
     result: {
       kind: 'designed',
-      design: { summary: 'Retry once from the upload queue', location: 'docs/design/upload.md' },
+      design: { text: 'Retry once from the upload queue', location: 'docs/design/upload.md' },
     },
     friction: [{ target: { kind: 'skill', name: 'bake-off' }, change: 'Name the judge' }],
   };
@@ -56,7 +56,7 @@ test('it settles a designed close-out as succeeded, with a proposal for each fri
     attempt: buildMockV1AttemptRow({ phase: brandSchemas.phaseName.parse('design') }),
     item: buildMockV1ItemView(),
     closeOut: {
-      result: { kind: 'designed', design: { summary: 'Retry once', location: null } },
+      result: { kind: 'designed', design: { text: 'Retry once', location: null } },
       friction: [friction],
       frictionDropped: 0,
     },
@@ -101,4 +101,9 @@ test.each([
   const picked: unknown = design.mode?.(buildMockV1ItemView({ fields }));
 
   expect(picked).toBe(mode);
+});
+
+test('it gives the agent a close-out schema that names the design text', () => {
+  expect(JSON.stringify(design.closeOut.jsonSchema)).toContain('"text"');
+  expect(JSON.stringify(design.closeOut.jsonSchema)).not.toContain('"summary"');
 });

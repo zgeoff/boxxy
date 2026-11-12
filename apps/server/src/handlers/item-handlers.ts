@@ -1,8 +1,10 @@
-import { endItemAttempts, requestWake } from '@boxxy/dispatch';
+import { endItemAttempts, measureNewFactBytes, outboxLimits, requestWake } from '@boxxy/dispatch';
 import type {
+  AnyNewFact,
   Criterion,
   ItemId,
   ItemKindName,
+  ItemListView,
   ItemRow,
   ItemView,
   ItemWithLevers,
@@ -57,6 +59,7 @@ export const itemHandlers = {
         repo: repo.data,
         title: input.title,
         outcome: input.outcome,
+        body: input.body,
         acceptance: input.acceptance.map((text, index) => buildCriterion(index + 1, text)),
         fields: input.designMode === undefined ? {} : { designMode: input.designMode },
         labels: input.labels,
@@ -70,6 +73,9 @@ export const itemHandlers = {
 
       const { keptSession: _keptSession, ...filed } = row;
       const relations = blockers.items.map((source) => buildBlocksRow(source, row.id, now));
+      const filedFact = buildOwnerFact(deps, row.id, 'boxxy.item.filed', filed);
+
+      refuseLargeFact(filedFact, options.errors.FACT_TOO_LARGE);
 
       await tx.applyChange({
         at: now,
@@ -80,7 +86,7 @@ export const itemHandlers = {
           ),
         ],
         facts: [
-          buildOwnerFact(deps, row.id, 'boxxy.item.filed', filed),
+          filedFact,
           ...relations.map((relation) =>
             buildOwnerFact(deps, relation.source, 'boxxy.relation.added', {
               source: relation.source,
@@ -111,6 +117,7 @@ export const itemHandlers = {
       const set = {
         ...(input.title === undefined ? {} : { title: input.title }),
         ...(input.outcome === undefined ? {} : { outcome: input.outcome }),
+        ...(input.body === undefined ? {} : { body: input.body }),
         ...(acceptance === undefined ? {} : { acceptance }),
         ...(input.designMode === undefined
           ? {}
@@ -120,10 +127,17 @@ export const itemHandlers = {
 
       const now = deps.clock.now();
 
+      const editedFact = buildOwnerFact(deps, item.id, 'boxxy.item.edited', {
+        ...set,
+        byAttempt: null,
+      });
+
+      refuseLargeFact(editedFact, options.errors.FACT_TOO_LARGE);
+
       await tx.applyChange({
         at: now,
         writes: [{ op: 'update', table: 'items', key: { id: item.id }, expect: {}, set }],
-        facts: [buildOwnerFact(deps, item.id, 'boxxy.item.edited', { ...set, byAttempt: null })],
+        facts: [editedFact],
       });
 
       return { item: item.id };
@@ -351,7 +365,7 @@ export const itemHandlers = {
     const last = page.at(-1);
 
     return {
-      items: page.map((item) => toItemView(item)),
+      items: page.map((item) => toItemListView(item)),
       next: last !== undefined && start + input.limit < matched.length ? last.id : null,
     };
   }),
@@ -385,6 +399,22 @@ function buildRelationRow(
     addedAt: at,
     removedAt: null,
   };
+}
+
+interface FactTooLargeOptions {
+  readonly data: { readonly bytes: number; readonly max: number };
+}
+
+type FactTooLarge = (options: FactTooLargeOptions) => Error;
+
+// A fact over the outbox's limit would be parked and never reach the sink, so the door refuses
+// the change that makes it.
+function refuseLargeFact(fact: AnyNewFact, tooLarge: FactTooLarge): void {
+  const bytes = measureNewFactBytes(fact);
+
+  if (bytes > outboxLimits.factBytes) {
+    throw tooLarge({ data: { bytes, max: outboxLimits.factBytes } });
+  }
 }
 
 interface NotFoundOptions {
@@ -482,4 +512,10 @@ function isListMatch(item: ItemView, notes: readonly NoteRow[], filter: ListFilt
         value.toLowerCase().includes(text),
       ))
   );
+}
+
+function toItemListView(item: ItemWithLevers): ItemListView {
+  const { levers: _levers, body: _body, ...view } = item;
+
+  return view;
 }

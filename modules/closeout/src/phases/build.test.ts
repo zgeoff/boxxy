@@ -475,7 +475,7 @@ test('it gives a build of round 2 the design, the findings of the review and the
       phase: brandSchemas.phaseName.parse('design'),
       state: 'succeeded',
       closeOut: {
-        result: { kind: 'designed', design: { summary: 'Retry once', location: null } },
+        result: { kind: 'designed', design: { text: 'Retry once', location: null } },
         friction: [],
         frictionDropped: 0,
       },
@@ -501,7 +501,7 @@ test('it gives a build of round 2 the design, the findings of the review and the
 
   expect(build.input({ item, history, pullRequests: [pullRequest] })).toStrictEqual({
     acceptance: [{ id: 'a1', text: 'Retries once' }],
-    design: { summary: 'Retry once', location: null },
+    design: { text: 'Retry once', location: null },
     findings: [finding],
     pullRequest: { repo: pullRequest.repo, number: pullRequest.number, url: pullRequest.url },
   });

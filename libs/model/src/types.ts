@@ -120,6 +120,9 @@ export interface ItemRow {
   readonly repo: RepoName;
   readonly title: string;
   readonly outcome: string;
+
+  // markdown: context, scope, permissions and notes for the agent, as the owner wrote it
+  readonly body: string;
   readonly acceptance: readonly Criterion[];
   readonly fields: ItemFields;
 
@@ -167,6 +170,9 @@ export type WaitingReason =
 export type DerivedState =
   | { readonly state: Exclude<ItemState, 'waiting'> }
   | { readonly state: 'waiting'; readonly reason: WaitingReason };
+
+// A row of `item.list`: the view without the body, which can be long.
+export type ItemListView = Omit<ItemView, 'body'>;
 
 export interface ItemView extends ItemRow {
   readonly derived: DerivedState;

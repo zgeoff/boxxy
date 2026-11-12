@@ -42,6 +42,7 @@ test.each([
       repo: 'acme/widgets',
       title: 'Add a retry button',
       outcome: 'A failed upload can be sent again',
+      body: '## Context\n\nUploads fail on a weak network.',
       acceptance: [{ id: 'a1', text: 'The button sends the upload again', evidence: [] }],
       fields: { designMode: 'attended' },
       labels: ['uploads'],
@@ -55,7 +56,11 @@ test.each([
   ['boxxy.item.noted', { seq: 1, text: 'Keep the old button until the next release' }],
   [
     'boxxy.item.edited',
-    { fields: { designMode: 'agent' }, byAttempt: '0192f0c5-1a2b-7c3d-8e4f-5a6b7c8d9e0f' },
+    {
+      body: '## Scope\n\nThe upload row only.',
+      fields: { designMode: 'agent' },
+      byAttempt: '0192f0c5-1a2b-7c3d-8e4f-5a6b7c8d9e0f',
+    },
   ],
   [
     'boxxy.item.closed',
@@ -189,7 +194,7 @@ test.each([
       closeOut: {
         result: {
           kind: 'designed',
-          design: { summary: 'One retry button per upload row', location: null },
+          design: { text: 'One retry button per upload row', location: null },
         },
         friction: [],
         frictionDropped: 0,
@@ -337,3 +342,25 @@ test.each(Object.entries(workFactSchemas))(
     expect(() => schema.extend({ storeVersion: z.number().int() })).not.toThrow();
   },
 );
+
+test('it reads a filed fact stored before the body existed as one with an empty body', () => {
+  const stored = {
+    id: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77',
+    kind: 'core.issue',
+    repo: 'acme/widgets',
+    title: 'Add a retry button',
+    outcome: 'A failed upload can be sent again',
+    acceptance: [],
+    fields: {},
+    labels: [],
+    foundInAttempt: null,
+    filedBy: 'boxxy:owner:local',
+    filedAt: 1_762_300_000_000,
+    closedAt: null,
+    closeReason: null,
+  };
+
+  const parsed: unknown = workFactSchemas['boxxy.item.filed'].safeParse(stored).data;
+
+  expect(parsed).toStrictEqual({ ...stored, body: '' });
+});

@@ -3,6 +3,8 @@ import {
   closeOutAnswerSchema,
   costToLandSchema,
   evidenceRowSchema,
+  itemBodyMaxChars,
+  itemListViewSchema,
   itemViewSchema,
   limitFillSchema,
   loadRejectionSchema,
@@ -104,10 +106,25 @@ const attemptRefusal = z.object({
   reason: z.enum(['no-attempt', 'not-current']),
 });
 
+const itemBody = z
+  .string()
+  .max(itemBodyMaxChars)
+  .describe(
+    'Markdown for the agent: context, scope, permissions and notes, by convention under "## Context", "## Scope", "## Permissions" and "## Notes for the agent". The whole launch prompt carries it.',
+  );
+
+const factTooLarge = {
+  FACT_TOO_LARGE: {
+    message: 'the change makes a fact larger than the outbox sends',
+    data: z.object({ bytes: count, max: count }),
+  },
+};
+
 const itemFileInput = z.object({
   repo: text200.describe('The repository, as owner/name.'),
   title: text200,
   outcome: z.string().min(1).max(4000).describe('What is true when the item is done.'),
+  body: itemBody.default(''),
   acceptance: z
     .array(text1000)
     .max(30)
@@ -125,6 +142,7 @@ const itemEditInput = z.object({
   item: itemId,
   title: text200.optional(),
   outcome: z.string().min(1).max(4000).optional(),
+  body: itemBody.optional().describe('The whole new body.'),
   acceptance: z.array(criterionInput).max(30).optional(),
   designMode: designMode.optional(),
   labels: z.array(text50).max(20).optional().describe('The whole new list of labels.'),
@@ -162,7 +180,7 @@ const itemListInput = z.object({
   after: id.optional().describe('The `next` value of the call before.'),
 });
 
-const itemListOutput = z.object({ items: z.array(itemViewSchema), next: id.nullable() });
+const itemListOutput = z.object({ items: z.array(itemListViewSchema), next: id.nullable() });
 
 const relationAddInput = z.object({
   source: itemId,
@@ -326,6 +344,7 @@ export const contract = {
           message: 'the server configuration names no such repository',
           data: z.object({ repo: z.string() }),
         },
+        ...factTooLarge,
       })
       .input(itemFileInput)
       .output(itemOutput),
@@ -335,7 +354,7 @@ export const contract = {
       'item_edit',
       'Replaces the given fields of an item. A field that is left out does not change.',
     )
-      .errors(notFound)
+      .errors({ ...notFound, ...factTooLarge })
       .input(itemEditInput)
       .output(itemOutput),
 

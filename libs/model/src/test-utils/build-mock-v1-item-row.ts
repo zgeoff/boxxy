@@ -10,6 +10,7 @@ export function buildMockV1ItemRow(overrides: Partial<ItemRow> = {}): ItemRow {
     repo: brandSchemas.repoName.parse(`${faker.string.alpha(8)}/${faker.string.alpha(8)}`),
     title: faker.lorem.sentence(),
     outcome: faker.lorem.sentence(),
+    body: '',
     acceptance: [
       { id: brandSchemas.criterionId.parse('a1'), text: faker.lorem.sentence(), evidence: [] },
     ],

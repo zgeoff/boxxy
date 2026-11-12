@@ -12,6 +12,7 @@ import type {
   LimitCount,
   LimitName,
   LoadedRules,
+  NoteRow,
   Recipe,
   RecipeMaterial,
   SessionMode,
@@ -27,8 +28,10 @@ import invariant from 'tiny-invariant';
 import type { AttemptChange } from '../attempts/build-attempt-change.ts';
 import { buildAttemptChange } from '../attempts/build-attempt-change.ts';
 import type { ClaimedEvent, DecisionDraft } from '../attempts/types.ts';
+import { buildPromptValues } from './build-prompt-values.ts';
 import { buildSnapshotHash } from './build-snapshot-hash.ts';
 import { pickKeptSession } from './pick-kept-session.ts';
+import { renderPrompt } from './render-prompt.ts';
 import type { ClaimInput, SpawnSettings } from './types.ts';
 
 // A race that `decide` did not see: the change took no lease or no seat. The runner ends the
@@ -173,6 +176,7 @@ function buildClaimedEvent(parts: ClaimedParts): {
 
   const spawn = buildSpawnRequest({
     item,
+    notes: parts.detail.notes,
     attempt: parts.attempt,
     recipe: material.recipe,
     input: phaseInput,
@@ -215,6 +219,7 @@ function buildClaimedEvent(parts: ClaimedParts): {
 
 interface SpawnParts {
   readonly item: ItemView;
+  readonly notes: readonly NoteRow[];
   readonly attempt: AttemptId;
   readonly recipe: Recipe;
   readonly input: JsonValue;
@@ -231,30 +236,21 @@ function buildSpawnRequest(parts: SpawnParts): SpawnRequest {
   return {
     target: parts.settings.target,
     ...(typeof checkout === 'string' ? { cwd: checkout } : { source: checkout }),
-    prompt: renderPrompt(template, {
-      title: parts.item.title,
-      outcome: parts.item.outcome,
-      repo: parts.item.repo,
-      attempt_id: parts.attempt,
-      acceptance: parts.item.acceptance
-        .map((criterion) => `- ${criterion.id}: ${criterion.text}`)
-        .join('\n'),
-      input: JSON.stringify(parts.input, null, 2),
-    }),
+    prompt: renderPrompt(
+      template,
+      buildPromptValues({
+        item: parts.item,
+        notes: parts.notes,
+        input: parts.input,
+        attempt: parts.attempt,
+      }),
+    ),
     agent: parts.recipe.agent,
     model: parts.recipe.model,
     effort: parts.recipe.effort,
     name: `boxxy/${parts.attempt}`,
     idempotencyKey: parts.attempt,
   };
-}
-
-// Each `{{name}}` with a value is replaced; any other text stays as it is.
-function renderPrompt(template: string, values: Readonly<Record<string, string>>): string {
-  return template.replaceAll(
-    /\{\{(?<name>[a-z_]+)\}\}/gu,
-    (whole, name: string) => values[name] ?? whole,
-  );
 }
 
 // The recipe hash covers the recipe's fields, its prompt, the rules version and the skills pin.

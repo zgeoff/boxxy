@@ -38,19 +38,19 @@ export interface TriageCloseOut {
 
 export interface DesignCloseOut {
   readonly result:
-    | { readonly kind: 'designed'; readonly design: DesignRef }
+    | { readonly kind: 'designed'; readonly design: Design }
     | { readonly kind: 'blocked'; readonly reason: string }
     | { readonly kind: 'abandoned'; readonly reason: string };
   readonly friction: readonly Friction[];
   readonly frictionDropped: number;
 }
 
-// Where the design of an item is, and what it says in short. The build and the review get it in
-// their input.
-export interface DesignRef {
-  readonly summary: string;
+// The design of an item: the whole design in markdown, code blocks included. The build and the
+// review get it in their input. The size of the whole close-out bounds `text`.
+export interface Design {
+  readonly text: string;
 
-  // a URL or a repo path of the whole design; null when the summary is the whole design
+  // a pointer to a doc in the repo that holds the design too; null when there is none
   readonly location: string | null;
 }
 
@@ -195,7 +195,7 @@ export interface AcceptanceInput {
 // sent the item back; in round 1 it holds none.
 export interface BuildInput {
   readonly acceptance: readonly CriterionText[];
-  readonly design: DesignRef | null;
+  readonly design: Design | null;
   readonly findings: readonly Finding[];
 
   // the item's latest pull request, which a build of round 2 pushes to
@@ -204,7 +204,7 @@ export interface BuildInput {
 
 export interface ReviewInput {
   readonly acceptance: readonly CriterionText[];
-  readonly design: DesignRef | null;
+  readonly design: Design | null;
   readonly pullRequest: PullRequestLink | null;
 }
 

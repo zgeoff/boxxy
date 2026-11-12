@@ -31,6 +31,7 @@ export { packageName } from './package-name.ts';
 export { buildInitialSenderState } from './outbox/build-initial-sender-state.ts';
 export { buildOutboxStatus } from './outbox/build-outbox-status.ts';
 export { outboxLimits } from './outbox/constants.ts';
+export { measureNewFactBytes } from './outbox/measure-new-fact-bytes.ts';
 export { runSenderOnce } from './outbox/run-sender-once.ts';
 
 export type {

@@ -41,6 +41,7 @@ const defaultPayloads: { readonly [Type in MockedFactType]: () => WorkFacts[Type
     repo: brandSchemas.repoName.parse('shoal/charts'),
     title: faker.lorem.sentence(),
     outcome: faker.lorem.sentence(),
+    body: '',
     acceptance: [],
     fields: {},
     labels: [],

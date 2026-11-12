@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { positionSchema } from '../pipeline/position-schema.ts';
-import type { ItemView } from '../types.ts';
+import type { ItemListView, ItemView } from '../types.ts';
 import { brandSchemas } from './brand-schemas.ts';
 import { itemRowSchema } from './item-row-schema.ts';
 
@@ -25,7 +25,14 @@ const derivedSchema = z.discriminatedUnion('state', [
 ]);
 
 // typed as the core type, so a handler returns the stored view with its read-only lists
-export const itemViewSchema: z.ZodType<ItemView> = itemRowSchema.extend({
+const itemViewObjectSchema = itemRowSchema.extend({
   derived: derivedSchema,
   position: positionSchema,
+});
+
+export const itemViewSchema: z.ZodType<ItemView> = itemViewObjectSchema;
+
+// A row of `item.list` leaves out the body, which can be long.
+export const itemListViewSchema: z.ZodType<ItemListView> = itemViewObjectSchema.omit({
+  body: true,
 });

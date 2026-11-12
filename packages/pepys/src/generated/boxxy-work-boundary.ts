@@ -107,6 +107,7 @@ export interface BoxxyItemFiledPayload {
   repo: string;
   title: string;
   outcome: string;
+  body?: string;
   acceptance: BoxxyItemFiledPayloadAcceptanceItem[];
   fields: BoxxyItemFiledPayloadFields;
   labels: string[];
@@ -137,6 +138,7 @@ export interface BoxxyItemNotedPayload {
 export interface BoxxyItemEditedPayload {
   title?: string;
   outcome?: string;
+  body?: string;
   acceptance?: BoxxyItemEditedPayloadAcceptanceItem[];
   kind?: string;
   fields?: BoxxyItemEditedPayloadFields;
@@ -810,61 +812,68 @@ function decodeBoxxyItemFiledPayload(value: unknown): BoxxyItemFiledPayload | un
     return undefined;
   }
 
-  const raw5 = 'acceptance' in value ? value.acceptance : undefined;
-  const field5 = decodeBoxxyItemFiledPayloadAcceptance(raw5);
+  const raw5 = 'body' in value ? value.body : undefined;
+  const field5 = raw5 === undefined ? undefined : typeof raw5 === 'string' ? raw5 : undefined;
 
-  if (field5 === undefined) {
+  if (raw5 !== undefined && field5 === undefined) {
     return undefined;
   }
 
-  const raw6 = 'fields' in value ? value.fields : undefined;
-  const field6 = decodeBoxxyItemFiledPayloadFields(raw6);
+  const raw6 = 'acceptance' in value ? value.acceptance : undefined;
+  const field6 = decodeBoxxyItemFiledPayloadAcceptance(raw6);
 
   if (field6 === undefined) {
     return undefined;
   }
 
-  const raw7 = 'labels' in value ? value.labels : undefined;
-  const field7 = decodeBoxxyItemFiledPayloadLabels(raw7);
+  const raw7 = 'fields' in value ? value.fields : undefined;
+  const field7 = decodeBoxxyItemFiledPayloadFields(raw7);
 
   if (field7 === undefined) {
     return undefined;
   }
 
-  const raw8 = 'foundInAttempt' in value ? value.foundInAttempt : undefined;
-  const field8 = raw8 === null ? null : typeof raw8 === 'string' ? raw8 : undefined;
+  const raw8 = 'labels' in value ? value.labels : undefined;
+  const field8 = decodeBoxxyItemFiledPayloadLabels(raw8);
 
   if (field8 === undefined) {
     return undefined;
   }
 
-  const field9 = 'filedBy' in value ? value.filedBy : undefined;
+  const raw9 = 'foundInAttempt' in value ? value.foundInAttempt : undefined;
+  const field9 = raw9 === null ? null : typeof raw9 === 'string' ? raw9 : undefined;
 
-  const raw10 = 'filedAt' in value ? value.filedAt : undefined;
-  const field10 = typeof raw10 === 'number' ? raw10 : undefined;
-
-  if (field10 === undefined) {
+  if (field9 === undefined) {
     return undefined;
   }
 
-  const raw11 = 'closedAt' in value ? value.closedAt : undefined;
-  const field11 = raw11 === null ? null : typeof raw11 === 'number' ? raw11 : undefined;
+  const field10 = 'filedBy' in value ? value.filedBy : undefined;
+
+  const raw11 = 'filedAt' in value ? value.filedAt : undefined;
+  const field11 = typeof raw11 === 'number' ? raw11 : undefined;
 
   if (field11 === undefined) {
     return undefined;
   }
 
-  const raw12 = 'closeReason' in value ? value.closeReason : undefined;
-  const field12 = raw12 === null ? null : typeof raw12 === 'string' ? raw12 : undefined;
+  const raw12 = 'closedAt' in value ? value.closedAt : undefined;
+  const field12 = raw12 === null ? null : typeof raw12 === 'number' ? raw12 : undefined;
 
   if (field12 === undefined) {
     return undefined;
   }
 
-  const raw13 = 'storeVersion' in value ? value.storeVersion : undefined;
-  const field13 = typeof raw13 === 'number' ? raw13 : undefined;
+  const raw13 = 'closeReason' in value ? value.closeReason : undefined;
+  const field13 = raw13 === null ? null : typeof raw13 === 'string' ? raw13 : undefined;
 
   if (field13 === undefined) {
+    return undefined;
+  }
+
+  const raw14 = 'storeVersion' in value ? value.storeVersion : undefined;
+  const field14 = typeof raw14 === 'number' ? raw14 : undefined;
+
+  if (field14 === undefined) {
     return undefined;
   }
 
@@ -874,15 +883,16 @@ function decodeBoxxyItemFiledPayload(value: unknown): BoxxyItemFiledPayload | un
     repo: field2,
     title: field3,
     outcome: field4,
-    acceptance: field5,
-    fields: field6,
-    labels: field7,
-    foundInAttempt: field8,
-    filedBy: field9,
-    filedAt: field10,
-    closedAt: field11,
-    closeReason: field12,
-    storeVersion: field13,
+    ...(field5 === undefined ? {} : { body: field5 }),
+    acceptance: field6,
+    fields: field7,
+    labels: field8,
+    foundInAttempt: field9,
+    filedBy: field10,
+    filedAt: field11,
+    closedAt: field12,
+    closeReason: field13,
+    storeVersion: field14,
   };
 }
 
@@ -1051,57 +1061,65 @@ function decodeBoxxyItemEditedPayload(value: unknown): BoxxyItemEditedPayload | 
     return undefined;
   }
 
-  const raw2 = 'acceptance' in value ? value.acceptance : undefined;
-  const field2 = raw2 === undefined ? undefined : decodeBoxxyItemEditedPayloadAcceptance(raw2);
+  const raw2 = 'body' in value ? value.body : undefined;
+  const field2 = raw2 === undefined ? undefined : typeof raw2 === 'string' ? raw2 : undefined;
 
   if (raw2 !== undefined && field2 === undefined) {
     return undefined;
   }
 
-  const raw3 = 'kind' in value ? value.kind : undefined;
-  const field3 = raw3 === undefined ? undefined : typeof raw3 === 'string' ? raw3 : undefined;
+  const raw3 = 'acceptance' in value ? value.acceptance : undefined;
+  const field3 = raw3 === undefined ? undefined : decodeBoxxyItemEditedPayloadAcceptance(raw3);
 
   if (raw3 !== undefined && field3 === undefined) {
     return undefined;
   }
 
-  const raw4 = 'fields' in value ? value.fields : undefined;
-  const field4 = raw4 === undefined ? undefined : decodeBoxxyItemEditedPayloadFields(raw4);
+  const raw4 = 'kind' in value ? value.kind : undefined;
+  const field4 = raw4 === undefined ? undefined : typeof raw4 === 'string' ? raw4 : undefined;
 
   if (raw4 !== undefined && field4 === undefined) {
     return undefined;
   }
 
-  const raw5 = 'labels' in value ? value.labels : undefined;
-  const field5 = raw5 === undefined ? undefined : decodeBoxxyItemEditedPayloadLabels(raw5);
+  const raw5 = 'fields' in value ? value.fields : undefined;
+  const field5 = raw5 === undefined ? undefined : decodeBoxxyItemEditedPayloadFields(raw5);
 
   if (raw5 !== undefined && field5 === undefined) {
     return undefined;
   }
 
-  const raw6 = 'byAttempt' in value ? value.byAttempt : undefined;
-  const field6 = raw6 === null ? null : typeof raw6 === 'string' ? raw6 : undefined;
+  const raw6 = 'labels' in value ? value.labels : undefined;
+  const field6 = raw6 === undefined ? undefined : decodeBoxxyItemEditedPayloadLabels(raw6);
 
-  if (field6 === undefined) {
+  if (raw6 !== undefined && field6 === undefined) {
     return undefined;
   }
 
-  const raw7 = 'storeVersion' in value ? value.storeVersion : undefined;
-  const field7 = typeof raw7 === 'number' ? raw7 : undefined;
+  const raw7 = 'byAttempt' in value ? value.byAttempt : undefined;
+  const field7 = raw7 === null ? null : typeof raw7 === 'string' ? raw7 : undefined;
 
   if (field7 === undefined) {
+    return undefined;
+  }
+
+  const raw8 = 'storeVersion' in value ? value.storeVersion : undefined;
+  const field8 = typeof raw8 === 'number' ? raw8 : undefined;
+
+  if (field8 === undefined) {
     return undefined;
   }
 
   return {
     ...(field0 === undefined ? {} : { title: field0 }),
     ...(field1 === undefined ? {} : { outcome: field1 }),
-    ...(field2 === undefined ? {} : { acceptance: field2 }),
-    ...(field3 === undefined ? {} : { kind: field3 }),
-    ...(field4 === undefined ? {} : { fields: field4 }),
-    ...(field5 === undefined ? {} : { labels: field5 }),
-    byAttempt: field6,
-    storeVersion: field7,
+    ...(field2 === undefined ? {} : { body: field2 }),
+    ...(field3 === undefined ? {} : { acceptance: field3 }),
+    ...(field4 === undefined ? {} : { kind: field4 }),
+    ...(field5 === undefined ? {} : { fields: field5 }),
+    ...(field6 === undefined ? {} : { labels: field6 }),
+    byAttempt: field7,
+    storeVersion: field8,
   };
 }
 

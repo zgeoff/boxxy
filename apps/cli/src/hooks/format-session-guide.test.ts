@@ -27,3 +27,13 @@ test('it says that a session without a valid close-out fails', () => {
 
   expect(guide).toEndWith('A session that ends without a valid close-out fails.');
 });
+
+test('it says the task is in the launch prompt and what attempt current gives', () => {
+  const guide = formatSessionGuide({ phase: 'build', outcomes: ['built'] });
+
+  expect(guide).toContain('Your whole task is in the launch prompt');
+
+  expect(guide).toContain(
+    '`boxxy attempt current` for the attempt ID and the JSON Schema of the close-out body',
+  );
+});
