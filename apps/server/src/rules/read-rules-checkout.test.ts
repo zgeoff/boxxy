@@ -1,5 +1,5 @@
 import { expect, onTestFinished, test } from 'bun:test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { $ } from 'bun';
@@ -13,6 +13,7 @@ async function setupTest() {
   return {
     folder,
     writeFile: (name: string, text: string) => Bun.write(path.join(folder, name), text),
+    linkFile: (name: string, target: string) => symlink(target, path.join(folder, name)),
     runGit: (args: readonly string[]) =>
       $`git -C ${folder} -c user.name=test -c user.email=test@example.com ${args}`.quiet(),
     decode: (bytes: Uint8Array | undefined) => new TextDecoder().decode(bytes),
@@ -85,6 +86,42 @@ test('it refuses a git checkout that has no rules ref', async () => {
   expect(answer).toStrictEqual({
     kind: 'rejected',
     reason: 'git could not read the rules ref origin/main',
+  });
+});
+
+test('it reads the files of the checked commit when the working tree holds other bytes', async () => {
+  const ctx = await setupTest();
+
+  await ctx.writeFile('rules.yaml', 'version: 1\n');
+  await ctx.runGit(['init', '-q']);
+  await ctx.runGit(['add', '.']);
+  await ctx.runGit(['commit', '-q', '-m', 'add the rules']);
+  await ctx.runGit(['update-ref', 'refs/remotes/origin/main', 'HEAD']);
+  await ctx.runGit(['update-index', '--assume-unchanged', 'rules.yaml']);
+  await ctx.writeFile('rules.yaml', 'version: 2\n');
+
+  const answer = await readRulesCheckout({ folder: ctx.folder, ref: 'origin/main' });
+
+  expect(answer.kind === 'read' && ctx.decode(answer.checkout.files.get('rules.yaml'))).toBe(
+    'version: 1\n',
+  );
+});
+
+test('it refuses a git checkout whose commit holds a symlink', async () => {
+  const ctx = await setupTest();
+
+  await ctx.writeFile('real.yaml', 'version: 1\n');
+  await ctx.linkFile('rules.yaml', 'real.yaml');
+  await ctx.runGit(['init', '-q']);
+  await ctx.runGit(['add', '.']);
+  await ctx.runGit(['commit', '-q', '-m', 'add the rules']);
+  await ctx.runGit(['update-ref', 'refs/remotes/origin/main', 'HEAD']);
+
+  const answer = await readRulesCheckout({ folder: ctx.folder, ref: 'origin/main' });
+
+  expect(answer).toStrictEqual({
+    kind: 'rejected',
+    reason: 'the rules commit holds rules.yaml, which is not a plain file',
   });
 });
 

@@ -15,7 +15,7 @@ export interface RulesSource {
 
 // A git checkout gives its committed files at HEAD, when the ref's history holds HEAD, so only a
 // merged commit loads. A checkout with uncommitted changes is refused. A folder with no `.git`
-// gives every file that is not hidden.
+// gives every file that is not hidden, with no ref check.
 export function readRulesCheckout(source: RulesSource): Promise<CheckoutAnswer> {
   return existsSync(path.join(source.folder, '.git'))
     ? readGitCheckout(source)
@@ -43,7 +43,17 @@ async function readGitCheckout(source: RulesSource): Promise<CheckoutAnswer> {
     return { kind: 'rejected', reason: `git could not read the rules ref ${source.ref}` };
   }
 
-  const merged = await $`git -C ${folder} merge-base --is-ancestor HEAD ${source.ref}`
+  // HEAD can move while the server reads, so every later step names this one commit ID, and the
+  // files come from git, never from the working tree.
+  const head = await $`git -C ${folder} rev-parse --verify --quiet HEAD^{commit}`.quiet().nothrow();
+
+  if (head.exitCode !== 0) {
+    return { kind: 'rejected', reason: `git could not read the HEAD of ${folder}` };
+  }
+
+  const commit = head.text().trim();
+
+  const merged = await $`git -C ${folder} merge-base --is-ancestor ${commit} ${source.ref}`
     .quiet()
     .nothrow();
 
@@ -54,29 +64,62 @@ async function readGitCheckout(source: RulesSource): Promise<CheckoutAnswer> {
     };
   }
 
-  const commit = await $`git -C ${folder} rev-parse HEAD`.quiet().text();
-  const listed = await $`git -C ${folder} ls-files -z`.quiet().text();
+  const listed = await $`git -C ${folder} ls-tree -r -z --full-tree ${commit}`.quiet().text();
 
-  const paths = listed.split('\0').filter((entry) => entry !== '');
+  const entries = listed
+    .split('\0')
+    .filter((line) => line !== '')
+    .map((line) => parseTreeEntry(line));
 
-  const files = await readFiles(folder, paths);
+  const linked = entries.find((entry) => !isPlainFile(entry));
 
-  return { kind: 'read', checkout: { commit: commit.trim(), files } };
+  if (linked !== undefined) {
+    return {
+      kind: 'rejected',
+      reason: `the rules commit holds ${linked.path}, which is not a plain file`,
+    };
+  }
+
+  const files = await readCommitFiles(folder, entries);
+
+  return { kind: 'read', checkout: { commit, files } };
 }
 
-async function readFiles(
-  folder: string,
-  paths: readonly string[],
-): Promise<ReadonlyMap<string, Uint8Array>> {
-  const entries = await Promise.all(
-    paths.toSorted().map(async (file): Promise<[string, Uint8Array]> => {
-      const bytes = await Bun.file(path.join(folder, file)).bytes();
+interface TreeEntry {
+  readonly mode: string;
+  readonly type: string;
+  readonly object: string;
+  readonly path: string;
+}
 
-      return [file, bytes];
-    }),
+// one line of `git ls-tree -z`: `<mode> <type> <object>\t<path>`
+function parseTreeEntry(line: string): TreeEntry {
+  const tab = line.indexOf('\t');
+  const [mode = '', type = '', object = ''] = line.slice(0, tab).split(' ');
+
+  return { mode, type, object, path: line.slice(tab + 1) };
+}
+
+// a symlink (120000) could point outside the checkout, and a submodule has no bytes here
+function isPlainFile(entry: TreeEntry): boolean {
+  return entry.type === 'blob' && (entry.mode === '100644' || entry.mode === '100755');
+}
+
+async function readCommitFiles(
+  folder: string,
+  entries: readonly TreeEntry[],
+): Promise<ReadonlyMap<string, Uint8Array>> {
+  const read = await Promise.all(
+    entries
+      .toSorted((left, right) => (left.path < right.path ? -1 : 1))
+      .map(async (entry): Promise<[string, Uint8Array]> => {
+        const blob = await $`git -C ${folder} cat-file blob ${entry.object}`.quiet();
+
+        return [entry.path, new Uint8Array(blob.stdout)];
+      }),
   );
 
-  return new Map(entries);
+  return new Map(read);
 }
 
 // The commit of a checkout that is a plain folder. Its rules version is still the content hash
@@ -92,4 +135,19 @@ async function readFolder(folder: string): Promise<CheckoutAnswer> {
   const files = await readFiles(folder, paths);
 
   return { kind: 'read', checkout: { commit: folderCommit, files } };
+}
+
+async function readFiles(
+  folder: string,
+  paths: readonly string[],
+): Promise<ReadonlyMap<string, Uint8Array>> {
+  const entries = await Promise.all(
+    paths.toSorted().map(async (file): Promise<[string, Uint8Array]> => {
+      const bytes = await Bun.file(path.join(folder, file)).bytes();
+
+      return [file, bytes];
+    }),
+  );
+
+  return new Map(entries);
 }
