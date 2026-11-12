@@ -89,7 +89,13 @@ export type MoveEffect =
   | 'release-seats'
   | 'record-decision'
   | 'bind-session'
-  | FactType;
+  | AttemptFactType;
+
+// The facts that a move records: each attempt fact, and the decision of a claim or a wake.
+export type AttemptFactType = Extract<
+  FactType,
+  `boxxy.attempt.${string}` | 'boxxy.decision.recorded'
+>;
 
 // One row of the table of moves.
 export interface AttemptMove {

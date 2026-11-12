@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
-import type { AttemptRow, FactType } from '@boxxy/model';
+import type { AttemptRow } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import { buildAttemptFact } from './build-attempt-fact.ts';
-import type { MoveEvent } from './types.ts';
+import type { AttemptFactType, MoveEvent } from './types.ts';
 
 function setupTest() {
   return {
@@ -18,7 +18,7 @@ function setupTest() {
 test.each<
   [
     title: string,
-    type: FactType,
+    type: AttemptFactType,
     before: Partial<AttemptRow>,
     event: MoveEvent,
     payload: Record<string, unknown>,

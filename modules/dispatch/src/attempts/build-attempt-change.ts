@@ -6,7 +6,6 @@ import type {
   AttemptState,
   DecisionRow,
   FactId,
-  FactType,
   Instant,
   ItemId,
   LeaseRow,
@@ -26,6 +25,7 @@ import type { AttemptGuard } from './is-same-guard.ts';
 import type {
   AttemptContext,
   AttemptEvent,
+  AttemptFactType,
   AttemptMachineEvent,
   ClaimedEvent,
   DecisionDraft,
@@ -237,12 +237,12 @@ function collectEffectWrites(
   );
 }
 
-function isFactEffect(effect: MoveEffect): effect is FactType {
+function isFactEffect(effect: MoveEffect): effect is AttemptFactType {
   return effect.startsWith('boxxy.');
 }
 
 function buildEffectWrite(
-  effect: Exclude<MoveEffect, FactType>,
+  effect: Exclude<MoveEffect, AttemptFactType>,
   parts: MoveParts,
   now: Instant,
 ): AttemptWrite {
@@ -302,7 +302,7 @@ function getSeatLimits(event: AttemptEvent): StartPick['limits'] {
 }
 
 function collectEffectFacts(
-  factIDs: ReadonlyMap<FactType, FactId>,
+  factIDs: ReadonlyMap<AttemptFactType, FactId>,
   parts: MoveParts,
   base: BuildAttemptChangeBase,
 ): AnyNewFact[] {
@@ -314,7 +314,7 @@ function collectEffectFacts(
 function buildFactIDs(
   effects: readonly MoveEffect[],
   base: BuildAttemptChangeBase,
-): Map<FactType, FactId> {
+): Map<AttemptFactType, FactId> {
   return new Map(
     effects
       .filter((effect) => isFactEffect(effect))
@@ -464,7 +464,7 @@ function buildEventColumns(
   event: MoveEvent,
   attempt: AttemptRow,
   now: Instant,
-  factIDs: ReadonlyMap<FactType, FactId>,
+  factIDs: ReadonlyMap<AttemptFactType, FactId>,
 ): Partial<AttemptRow> {
   return match(event)
     .with({ kind: 'started' }, (started) => ({
@@ -517,7 +517,7 @@ function buildEventColumns(
     .exhaustive();
 }
 
-function getFactID(factIDs: ReadonlyMap<FactType, FactId>, type: FactType): FactId {
+function getFactID(factIDs: ReadonlyMap<AttemptFactType, FactId>, type: AttemptFactType): FactId {
   const id = factIDs.get(type);
 
   invariant(id !== undefined, `the move records ${type}`);
