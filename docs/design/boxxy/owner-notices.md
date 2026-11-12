@@ -27,7 +27,7 @@ flowchart LR
 
 ### The notice session in the environment
 
-atc addresses a session only by its gateway ID, `<daemon>.<incarnation>.<id>`, and never by its name: the gateway answers `no_such_session` to any other value. The server therefore reads the ID, from `BOXXY_ATC_NOTICE_SESSION`, which the deployment's Secret holds next to the notice token. The configuration file's key `noticeSession` goes.
+atc addresses a session only by its gateway ID, `<daemon>.<incarnation>.<id>`: the gateway answers `no_such_session` to any other value. The server therefore reads the ID, from `BOXXY_ATC_NOTICE_SESSION`, which the deployment's Secret holds next to the notice token. The configuration file's key `noticeSession` goes.
 
 ```ts
 // apps/server, the environment it reads at start
