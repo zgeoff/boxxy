@@ -1,4 +1,5 @@
 import { setTimeout as sleep } from 'node:timers/promises';
+import { formatErrorChain } from '../format-error-chain.ts';
 import type { ServerLog } from '../types.ts';
 
 export interface TickLoop {
@@ -25,7 +26,7 @@ export function startTickLoop(input: TickLoopInput): TickLoop {
       try {
         await input.runOnce();
       } catch (error) {
-        input.log.warn(input.failureMessage, { error: String(error) });
+        input.log.warn(input.failureMessage, { error: formatErrorChain(error) });
       }
 
       await sleep(input.intervalMs, null, { signal: run.wake.signal }).catch(() => null);

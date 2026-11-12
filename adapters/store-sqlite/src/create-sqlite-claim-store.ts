@@ -8,6 +8,7 @@ import { buildSQLiteReader } from './reads/build-sqlite-reader.ts';
 import type { StoreDatabase } from './types.ts';
 import { withBusyRetry } from './with-busy-retry.ts';
 import { withTransaction } from './with-transaction.ts';
+import { writeHandleSettings } from './write-handle-settings.ts';
 import { createSQLiteTx } from './writes/create-sqlite-tx.ts';
 import { takeWriteLock } from './writes/take-write-lock.ts';
 
@@ -24,7 +25,7 @@ export async function createSQLiteClaimStore(path: string): Promise<SQLiteClaimS
     writer.close();
   });
 
-  writer.run('PRAGMA busy_timeout = 0');
+  writeHandleSettings(writer, 0);
 
   // The file keeps its journal mode, so a read handle never sets it. SQLite fails these at once,
   // whatever the busy timeout, while another handle switches the file to WAL or recovers it.
@@ -97,7 +98,8 @@ async function withReadHandle<T>(
     handle.close();
   });
 
-  handle.run(`PRAGMA busy_timeout = ${lockWaitLimitMs}`);
+  writeHandleSettings(handle, lockWaitLimitMs);
+
   handle.run('PRAGMA synchronous = NORMAL');
 
   const readerDB = new Kysely<StoreDatabase>({ dialect: buildSQLiteDialect(handle) });

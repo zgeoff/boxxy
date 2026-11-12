@@ -2,6 +2,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { buildInitialSenderState, buildOutboxStatus, runSenderOnce } from '@boxxy/dispatch';
 import type { SenderDeps, SenderState, SenderTurn } from '@boxxy/dispatch';
 import { match } from 'ts-pattern';
+import { formatErrorChain } from '../format-error-chain.ts';
 import type { OutboxControl, ServerLog } from '../types.ts';
 
 export interface OutboxSenderInput extends SenderDeps {
@@ -48,7 +49,7 @@ export function startOutboxSender(input: OutboxSenderInput): OutboxSender {
 
       return pickWaitMs(turn, input.clock.now(), input.idleMs);
     } catch (error) {
-      input.log.warn('the outbox sender turn failed', { error: String(error) });
+      input.log.warn('the outbox sender turn failed', { error: formatErrorChain(error) });
 
       return input.idleMs;
     } finally {

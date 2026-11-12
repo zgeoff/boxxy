@@ -14,6 +14,7 @@ async function setupTest() {
   const readings = new Map<AttemptId, SessionReading>();
 
   const logged: string[] = [];
+  const loggedFields: Readonly<Record<string, unknown>>[] = [];
 
   const buildDeps = (worker: WorkerKind = dispatch.worker): TickDeps => ({
     store: dispatch.store,
@@ -27,8 +28,9 @@ async function setupTest() {
     newId: dispatch.newId,
     readings,
     log: {
-      warn: (message) => {
+      warn: (message, fields) => {
         logged.push(message);
+        loggedFields.push(fields);
       },
     },
   });
@@ -37,6 +39,7 @@ async function setupTest() {
     dispatch,
     readings,
     logged,
+    loggedFields,
     buildDeps,
     readRunner: () => dispatch.store.read((tx) => tx.readRunner(dispatch.runner)),
   };
@@ -132,6 +135,27 @@ test('it ends the claim loop on an error and still reads the live attempts', asy
     claimed: 0,
     read: 2,
     first: 'the claim loop ended',
+  });
+});
+
+test('it logs each inner error of an AggregateError that ends the claim loop', async () => {
+  const ctx = await setupTest();
+
+  await ctx.dispatch.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+
+  const failure = new AggregateError(
+    [new Error('disk I/O error'), new Error('cannot rollback - no transaction is active')],
+    'the work failed, and so did its rollback',
+  );
+
+  const worker: WorkerKind = { ...ctx.dispatch.worker, start: () => Promise.reject(failure) };
+
+  await runTick(ctx.buildDeps(worker));
+
+  expect(ctx.loggedFields[0]).toStrictEqual({
+    error:
+      'AggregateError: the work failed, and so did its rollback [Error: disk I/O error] ' +
+      '[Error: cannot rollback - no transaction is active]',
   });
 });
 

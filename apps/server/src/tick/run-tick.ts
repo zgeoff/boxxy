@@ -27,6 +27,7 @@ import type {
   WorkerKind,
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
+import { formatErrorChain } from '../format-error-chain.ts';
 import type { ServerLog } from '../types.ts';
 
 export interface TickDeps {
@@ -97,7 +98,7 @@ async function runClaimLoop(deps: TickDeps): Promise<number> {
       claimed.add(claim.attempt.item);
     }
   } catch (error) {
-    deps.log.warn('the claim loop ended', { error: String(error) });
+    deps.log.warn('the claim loop ended', { error: formatErrorChain(error) });
   }
 
   return claimed.size;
@@ -140,7 +141,7 @@ async function runReadings(deps: TickDeps): Promise<number> {
     } catch (error) {
       deps.log.warn('the reading of an attempt failed', {
         attempt: attempt.id,
-        error: String(error),
+        error: formatErrorChain(error),
       });
     }
   }
@@ -179,7 +180,7 @@ async function runStrayStops(deps: TickDeps): Promise<number> {
       stopped += result === null ? 0 : 1;
     }
   } catch (error) {
-    deps.log.warn('the stop of the stray sessions failed', { error: String(error) });
+    deps.log.warn('the stop of the stray sessions failed', { error: formatErrorChain(error) });
   }
 
   return stopped;
@@ -195,7 +196,7 @@ async function runForget(deps: TickDeps): Promise<number> {
 
     return report.forgotten.length;
   } catch (error) {
-    deps.log.warn('the forget of the done sessions failed', { error: String(error) });
+    deps.log.warn('the forget of the done sessions failed', { error: formatErrorChain(error) });
 
     return 0;
   }
@@ -205,7 +206,7 @@ async function runNotices(deps: TickDeps): Promise<NoticeReport | null> {
   try {
     return await sendNotices(deps);
   } catch (error) {
-    deps.log.warn('the send of the hold notices failed', { error: String(error) });
+    deps.log.warn('the send of the hold notices failed', { error: formatErrorChain(error) });
 
     return null;
   }

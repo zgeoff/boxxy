@@ -336,7 +336,7 @@ JSON-line oRPC messages over the daemon's unix socket, after a `daemon.hello` ha
 
 ## The store schema
 
-The store is one SQLite file in WAL mode, with `synchronous=NORMAL`. A second `BEGIN IMMEDIATE`
+The store is one SQLite file in WAL mode, with `synchronous=NORMAL`. Each handle sets `temp_store=MEMORY`, so the store runs on a host with no writable temp folder, such as a container with a read-only root. A second `BEGIN IMMEDIATE`
 waits for the first for up to 5,000 ms. The store retries it every 10 ms without blocking, because
 `bun:sqlite` waits for a lock synchronously and would stall every other store in the process. After
 5,000 ms the call rejects with SQLite's `SQLITE_BUSY` error. The switch of a new file to WAL mode
