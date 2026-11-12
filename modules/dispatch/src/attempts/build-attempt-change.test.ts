@@ -655,6 +655,7 @@ test('#buildAttemptChange claims a new attempt with its lease, seats and decisio
       spawnRequestHash,
       input: { findings: [] },
       mode: 'agent',
+      worker: brandSchemas.workerKindName.parse('atc.session'),
       caller: null,
       decision,
     },
@@ -700,6 +701,12 @@ test('#buildAttemptChange claims a new attempt with its lease, seats and decisio
     strayedAt: null,
     sessionStoppedAt: null,
     sessionForgottenAt: null,
+    worker: 'atc.session',
+    actedAt: null,
+    actedHead: null,
+    actedAnswer: null,
+    readAt: null,
+    waitReason: null,
   };
 
   const decisionRow = {

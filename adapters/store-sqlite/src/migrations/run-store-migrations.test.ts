@@ -9,6 +9,7 @@ import { z } from 'zod';
 import type { StoreDatabase } from '../types.ts';
 import { createTablesMigration } from './create-tables-migration.ts';
 import { itemBodyMigration } from './item-body-migration.ts';
+import { jobAttemptsMigration } from './job-attempts-migration.ts';
 import { noticeKeysMigration } from './notice-keys-migration.ts';
 import { renameRelationsMigration } from './rename-relations-migration.ts';
 import { runStoreMigrations } from './run-store-migrations.ts';
@@ -40,6 +41,7 @@ async function setupTest() {
     migrateV1Tables: () => v1TablesMigration.up(db),
     migrateNoticeKeys: () => noticeKeysMigration.up(db),
     migrateItemBody: () => itemBodyMigration.up(db),
+    migrateJobAttempts: () => jobAttemptsMigration.up(db),
     writeRaw: (statement: string, ...values: number[]) => {
       sqlite.query(statement).run(...values);
     },
@@ -229,5 +231,37 @@ test('it gives an item of a version 4 file an empty body, and lets a new item ho
   expect(ctx.readRaw('SELECT id, body FROM items ORDER BY id')).toStrictEqual([
     { id: 'item-a', body: '' },
     { id: 'item-b', body: '## Context' },
+  ]);
+});
+
+test('it gives an attempt of a version 5 file the atc worker and no job columns', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createTables();
+  await ctx.renameRelations();
+  await ctx.migrateV1Tables();
+  await ctx.migrateNoticeKeys();
+  await ctx.migrateItemBody();
+
+  ctx.writeRaw(
+    "INSERT INTO attempts (id, item, phase, number, runner, recipe_hash, rules_version, pool, lease_gen, spawn_request, spawn_request_hash, state, claimed_at, fields, mode, round, hold_gen) VALUES ('attempt-a', 'item-a', 'build', 1, 'runner-1', 'hash-a', 'rules-a', 'build', 1, '{}', 'hash-b', 'running', ?, '{}', 'agent', 1, 1)",
+    1000,
+  );
+
+  await ctx.migrateJobAttempts();
+
+  expect(
+    ctx.readRaw(
+      'SELECT worker, acted_at, acted_head, acted_answer, read_at, wait_reason FROM attempts',
+    ),
+  ).toStrictEqual([
+    {
+      worker: 'atc.session',
+      acted_at: null,
+      acted_head: null,
+      acted_answer: null,
+      read_at: null,
+      wait_reason: null,
+    },
   ]);
 });

@@ -207,6 +207,41 @@ export const attemptMoves: readonly AttemptMove[] = [
     context: () => ({ sessionStopped: true }),
   },
   {
+    // a job starts nothing outside boxxy, so its first read moves it to running
+    event: 'job-started',
+    from: ['starting'],
+    when: (context) => !context.hasSession,
+    to: 'running',
+    effects: ['boxxy.attempt.job_started'],
+  },
+  {
+    // marked under the lease before the call, so a refused mark sends no call
+    event: 'acted',
+    from: ['running'],
+    to: 'same',
+    effects: ['boxxy.merge.requested'],
+  },
+  {
+    event: 'answered',
+    from: ['running'],
+    to: 'same',
+    effects: ['boxxy.merge.answered'],
+  },
+  {
+    event: 'waited',
+    from: ['running'],
+    to: 'same',
+    effects: [],
+  },
+  {
+    // a job holds no session, so the runner settles it in the same tick
+    event: 'job-finished',
+    from: ['running'],
+    to: 'closing',
+    effects: ['boxxy.attempt.closed_out'],
+    context: () => ({ closing: 'closed-out' }),
+  },
+  {
     // a stray session is forgotten only after it has stopped
     event: 'session-forgotten',
     from: ['succeeded', 'failed'],

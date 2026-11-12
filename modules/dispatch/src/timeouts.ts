@@ -14,4 +14,6 @@ export const timeouts: DispatchTimeouts = {
   failedSessionHours: 24,
   usageLimitBackoffHours: 24,
   strayHours: 24,
+  jobReadSeconds: 30,
+  actRetryMinutes: 5,
 };

@@ -48,6 +48,8 @@ export { actOnReading } from './readings/act-on-reading.ts';
 export { findWaitingSince } from './readings/find-waiting-since.ts';
 export { pickReadingAction } from './readings/pick-reading-action.ts';
 export type { ActOnReadingInput, ReadingAction, ReadingInput } from './readings/types.ts';
+export { runJobReading } from './jobs/run-job-reading.ts';
+export type { JobFault, JobReadingInput } from './jobs/types.ts';
 export { forgetSessions } from './sessions/forget-sessions.ts';
 export type { ForgetReport, ForgetSessionsInput } from './sessions/types.ts';
 export { timeouts } from './timeouts.ts';

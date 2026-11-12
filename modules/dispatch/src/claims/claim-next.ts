@@ -211,6 +211,7 @@ function buildClaimedEvent(parts: ClaimedParts): {
       spawnRequestHash: contentHash(toJSONValue(spawn)),
       input: phaseInput,
       mode,
+      worker: phase.worker,
 
       // the resumed session makes its first call before the worker answers the resume
       caller: kept?.caller ?? null,

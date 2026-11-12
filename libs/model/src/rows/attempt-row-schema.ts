@@ -1,9 +1,17 @@
 import { contentHashSchema } from '@boxxy/content-hash';
 import { z } from 'zod';
 import { closeOutSchema } from '../closeouts/close-out-schema.ts';
+import type { MergeAnswer } from '../ports/types.ts';
 import type { AttemptRow } from '../types.ts';
 import { brandSchemas } from './brand-schemas.ts';
 import { callerIdentitySchema } from './caller-identity-schema.ts';
+
+const mergeAnswerSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('merged'), mergeCommit: brandSchemas.commitSha }),
+  z.object({ kind: z.literal('queued') }),
+  z.object({ kind: z.literal('head-moved') }),
+  z.object({ kind: z.literal('not-mergeable'), reason: z.string() }),
+]) satisfies z.ZodType<MergeAnswer>;
 
 const countSchema = z.number().int().nonnegative();
 const instantOrNullSchema = brandSchemas.instant.nullable();
@@ -66,4 +74,10 @@ export const attemptRowSchema: z.ZodType<AttemptRow> = z.object({
   strayedAt: instantOrNullSchema,
   sessionStoppedAt: instantOrNullSchema,
   sessionForgottenAt: instantOrNullSchema,
+  worker: brandSchemas.workerKindName,
+  actedAt: instantOrNullSchema,
+  actedHead: brandSchemas.commitSha.nullable(),
+  actedAnswer: mergeAnswerSchema.nullable(),
+  readAt: instantOrNullSchema,
+  waitReason: z.string().nullable(),
 });

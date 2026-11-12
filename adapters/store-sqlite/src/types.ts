@@ -74,6 +74,12 @@ export interface StoreDatabase {
     strayed_at: number | null;
     session_stopped_at: number | null;
     session_forgotten_at: number | null;
+    worker: string;
+    acted_at: number | null;
+    acted_head: string | null;
+    acted_answer: string | null;
+    read_at: number | null;
+    wait_reason: string | null;
   };
   attempt_sessions: {
     attempt: string;

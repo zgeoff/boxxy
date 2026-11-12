@@ -51,6 +51,12 @@ export function buildMockV1AttemptRow(overrides: Partial<AttemptRow> = {}): Atte
     strayedAt: null,
     sessionStoppedAt: null,
     sessionForgottenAt: null,
+    worker: brandSchemas.workerKindName.parse('atc.session'),
+    actedAt: null,
+    actedHead: null,
+    actedAnswer: null,
+    readAt: null,
+    waitReason: null,
     ...overrides,
   };
 }

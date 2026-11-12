@@ -2,6 +2,7 @@ import type { ContentHash, JsonValue } from '@boxxy/content-hash';
 import type { z } from 'zod';
 import type { CloseOut } from './closeouts/types.ts';
 import type { HoldReason, Position } from './pipeline/types.ts';
+import type { MergeAnswer } from './ports/types.ts';
 import type { brandSchemas } from './rows/brand-schemas.ts';
 
 type BrandOf<K extends keyof typeof brandSchemas> = z.output<(typeof brandSchemas)[K]>;
@@ -291,6 +292,19 @@ export interface AttemptRow {
   readonly strayedAt: Instant | null;
   readonly sessionStoppedAt: Instant | null;
   readonly sessionForgottenAt: Instant | null;
+
+  // the worker that runs the attempt, from its phase kind at the claim
+  readonly worker: WorkerKindName;
+
+  // A job's last action: when the runner marked it and the head it named, and the outside
+  // system's answer, null until one came. A new action clears the answer.
+  readonly actedAt: Instant | null;
+  readonly actedHead: CommitSha | null;
+  readonly actedAnswer: MergeAnswer | null;
+
+  // the last read of a job that waited or acted, and the reason of its last wait
+  readonly readAt: Instant | null;
+  readonly waitReason: string | null;
 }
 
 export interface AttemptSessionRow {

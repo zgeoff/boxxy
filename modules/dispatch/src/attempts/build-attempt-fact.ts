@@ -1,6 +1,7 @@
 import type { AnyNewFact, FactType, NewFact, WorkFacts } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { match } from 'ts-pattern';
+import { getActionMember } from './get-action-member.ts';
 import type { AttemptEvent, AttemptFactType, FactEnvelopeParts, MoveParts } from './types.ts';
 
 // The fact of one type that a move records, filled from the move's event and rows.
@@ -119,7 +120,7 @@ export function buildAttemptFact(
       return wrap(factType, { attempt, atcSession: resumed.atcSession, caller: resumed.caller });
     })
     .with('boxxy.attempt.closed_out', (factType) => {
-      const closed = event('closed-out');
+      const closed = parts.event.kind === 'job-finished' ? parts.event : event('closed-out');
 
       return wrap(factType, {
         attempt,
@@ -159,6 +160,36 @@ export function buildAttemptFact(
         matched: settled.matched,
         frictionDropped: settled.frictionDropped,
         skippedEffects: settled.skippedEffects,
+      });
+    })
+    .with('boxxy.attempt.job_started', (factType) => {
+      event('job-started');
+
+      return wrap(factType, { attempt, worker: after.worker });
+    })
+    .with('boxxy.merge.requested', (factType) => {
+      const action = event('acted').action;
+      const member = getActionMember(action);
+
+      return wrap(factType, {
+        attempt,
+        repo: member.pullRequest.repo,
+        number: member.pullRequest.number,
+        head: member.head,
+        method: action.method,
+        required: action.required,
+      });
+    })
+    .with('boxxy.merge.answered', (factType) => {
+      const answer = event('answered').answer;
+
+      invariant(after.actedHead !== null, 'an answer follows a marked request');
+
+      return wrap(factType, {
+        attempt,
+        head: after.actedHead,
+        answer: answer.kind,
+        mergeCommit: answer.kind === 'merged' ? answer.mergeCommit : null,
       });
     })
     .exhaustive();

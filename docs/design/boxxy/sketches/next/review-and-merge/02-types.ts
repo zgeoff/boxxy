@@ -93,7 +93,7 @@ export interface JobWorker {
 
 export type JobReading = { readonly kind: 'running'; readonly observed: JsonValue }; // what the drive reads, such as a MergeObservation
 
-export type JobAction = { readonly kind: 'merge'; readonly unit: MergeUnit; readonly method: MergeMethod };
+export type JobAction = { readonly kind: 'merge'; readonly unit: MergeUnit; readonly method: MergeMethod; readonly required: readonly string[] }; // `required`: the union the drive read, for `boxxy.merge.requested`
 export type JobActAnswer = MergeAnswer | { readonly kind: 'unknown'; readonly reason: string };
 
 // Built in apps/server. A phase kind's `worker` names an entry; the loader refuses a name the map
@@ -106,7 +106,7 @@ export type WorkerRegistry = ReadonlyMap<WorkerKindName, WorkerShape>; // replac
 export interface PhaseKind {
   // ...the fields it has, and:
   // A phase kind with a job worker gives `drive`: pure, called on each read of a running job.
-  readonly drive?: (ctx: { readonly observed: JsonValue; readonly attempt: AttemptRow; readonly deadlinePassed: boolean; readonly rules: LoadedRules; readonly now: Instant }) => JobStep;
+  readonly drive?: (ctx: { readonly observed: JsonValue; readonly attempt: AttemptRow; readonly deadlinePassed: boolean; readonly rules: LoadedRules; readonly now: Instant; readonly actRetryMinutes: number }) => JobStep;
 }
 
 export type JobStep =
@@ -236,7 +236,7 @@ export interface MergeCloseOut {
 
 // ── modules/dispatch: the attempt machine gains ────────────────────────────────────────────────
 // `AttemptRow` gains `worker: WorkerKindName`, `actedAt` and `actedHead` (set by `acted`, which clears `actedAnswer`), `actedAnswer` (set by
-// `answered`), `readAt` and `waitReason` (set by `waited`).
+// `answered`), `readAt` (set by `waited` and `acted`) and `waitReason` (set by `waited`).
 // `AttemptEvent` gains `job-started` (starting ─▶ running, on the first read), `acted`, `answered`
 // and `waited` (running ─▶ running) and `job-finished` (running ─▶ closing, with the runner's
 // close-out).

@@ -14,6 +14,8 @@ import type {
   FactId,
   FactType,
   Instant,
+  JobAction,
+  MergeAnswer,
   Minutes,
   NewId,
   ResolvedRecipe,
@@ -23,6 +25,7 @@ import type {
   WakePick,
   WakeSource,
   WorkFacts,
+  WorkerKindName,
 } from '@boxxy/model';
 
 // What the guards of the attempt machine read. Each field comes from one column of the attempt
@@ -78,7 +81,12 @@ export type AttemptMachineEvent =
         | 'resumed'
         | 'wake-refused'
         | 'stray-stopped'
-        | 'session-forgotten';
+        | 'session-forgotten'
+        | 'job-started'
+        | 'acted'
+        | 'answered'
+        | 'waited'
+        | 'job-finished';
     };
 
 // A write that a move makes besides the attempt row, or a fact it records.
@@ -91,11 +99,11 @@ export type MoveEffect =
   | 'bind-session'
   | AttemptFactType;
 
-// The facts that a move records: each attempt fact, and the decision of a claim or a wake.
-// The table holds the moves of session attempts only, so it records no job's first read.
-export type AttemptFactType = Exclude<
-  Extract<FactType, `boxxy.attempt.${string}` | 'boxxy.decision.recorded'>,
-  'boxxy.attempt.job_started'
+// The facts that a move records: each attempt fact, the decision of a claim or a wake, and a
+// job's request and the answer to it.
+export type AttemptFactType = Extract<
+  FactType,
+  `boxxy.attempt.${string}` | 'boxxy.decision.recorded' | `boxxy.merge.${string}`
 >;
 
 // One row of the table of moves.
@@ -136,6 +144,7 @@ export interface ClaimedEvent {
   readonly spawnRequestHash: AttemptRow['spawnRequestHash'];
   readonly input: AttemptRow['input'];
   readonly mode: SessionMode;
+  readonly worker: WorkerKindName;
 
   // a claim through a resume edge copies the kept session's caller
   readonly caller: CallerIdentity | null;
@@ -201,7 +210,19 @@ export type MoveEvent =
       // the session that the stop found by the spawn name; the row records it when it has none
       readonly atcSession: AtcSessionId | null;
     }
-  | { readonly kind: 'session-forgotten' };
+  | { readonly kind: 'session-forgotten' }
+
+  // a job's moves: its first read, the mark of its action before the call, the outside system's
+  // answer, a read that waits, and the close-out the runner built from the drive
+  | { readonly kind: 'job-started' }
+  | { readonly kind: 'acted'; readonly action: JobAction }
+  | { readonly kind: 'answered'; readonly answer: MergeAnswer }
+  | { readonly kind: 'waited'; readonly reason: string }
+  | {
+      readonly kind: 'job-finished';
+      readonly closeOut: CloseOut;
+      readonly hash: NonNullable<AttemptRow['closeOutHash']>;
+    };
 
 export type AttemptEvent = ClaimedEvent | MoveEvent;
 

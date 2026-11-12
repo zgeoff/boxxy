@@ -54,8 +54,9 @@ export interface SettleAttemptInput {
   readonly store: ClaimStore;
   readonly attempt: AttemptId;
 
-  // the cause that ends the attempt with the outcome `lost`; null settles by the close-out
-  readonly forced: ForcedFailure | null;
+  // the cause that ends the attempt with the outcome `lost`; null settles by the close-out.
+  // `closeout-unsettleable`: the phase kind refused the close-out the runner built for a job.
+  readonly forced: ForcedFailure | 'closeout-unsettleable' | null;
 
   // false: settled by the give-up rule while the session still ran
   readonly sessionStopped: boolean;

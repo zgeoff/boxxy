@@ -14,7 +14,7 @@ interface SettlementInput {
   readonly attempt: AttemptRow;
   readonly item: ItemView;
   readonly rules: LoadedRules;
-  readonly forced: ForcedFailure | null;
+  readonly forced: ForcedFailure | 'closeout-unsettleable' | null;
   readonly now: Instant;
 }
 
@@ -30,6 +30,10 @@ export interface PickedSettlement extends Omit<Settlement, 'outcome'> {
 // rollback to rules that map it cannot move the item on with no effect applied.
 export function pickSettlement(input: SettlementInput): PickedSettlement {
   const closeOut = input.attempt.closeOut;
+
+  if (input.forced === 'closeout-unsettleable') {
+    return buildUnsettleable(null);
+  }
 
   if (closeOut === null || input.forced !== null) {
     return {

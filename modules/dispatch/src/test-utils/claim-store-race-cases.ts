@@ -45,6 +45,7 @@ export const claimStoreRaceCases: readonly ClaimStoreCase[] = [
           spawnRequestHash: buildMockV1AttemptRow().spawnRequestHash,
           input: { findings: [] },
           mode: 'agent',
+          worker: brandSchemas.workerKindName.parse('atc.session'),
           caller: null,
           decision: {
             item: item.id,

@@ -29,4 +29,10 @@ export interface DispatchTimeouts {
 
   // how long the runner keeps stopping a stray session
   readonly strayHours: number;
+
+  // the least time between two reads of one job, so a waiting merge makes few forge calls
+  readonly jobReadSeconds: number;
+
+  // a job's action that got no answer is sent again only this long after its mark
+  readonly actRetryMinutes: number;
 }

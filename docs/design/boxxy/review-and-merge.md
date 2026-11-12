@@ -152,6 +152,9 @@ The GitHub adapter needs `Contents: write` and `Pull requests: write` to merge, 
 
 A merge attempt uses the attempt states `starting`, `running`, `closing`, `succeeded` and `failed`, and the one module that writes attempt state. Section A of [`03-flow.ts`](./sketches/next/review-and-merge/03-flow.ts) holds the changes of state.
 
+- **The runner routes each attempt by its worker.** The claim stores the phase kind's worker on the attempt row. On each tick the runner looks the name up in the server's `WorkerRegistry`: a session worker's attempt goes through the reconcile table, and a job's attempt goes through `runJobReading` in `modules/dispatch/src/jobs/`. The claim of a job attempt starts nothing.
+- **A job reads, then moves.** Its first read moves it from `starting` to running and writes `boxxy.attempt.job_started`. A read that throws moves nothing. A `wait` sets `readAt` and `waitReason`, an `act` sets `actedAt`, `actedHead` and `readAt`, and the job reads again only `jobReadSeconds` (30) after `readAt`. The drive gets `actRetryMinutes` (5) in its context, for the wait before it sends an unanswered action again.
+- **A finished job settles in the same tick.** The drive's close-out goes through the phase kind's parser. When the parser refuses it, the attempt settles `closeout-unsettleable`, and the runner logs the problems.
 - **A merge holds a `jobs` seat.** The `workers` limit, at 7, counts the phases that run agent sessions, review included. The `jobs` limit, at 20, counts merges, so a merge that waits on CI never holds a session's seat.
 - **The runner writes the merge close-out.** Its actor is `boxxy:runner:<runner_id>`, and it goes through the phase kind's parser and the `closed_out` fact, as an agent's close-out does.
 - **The loader checks each worker name.** The server passes the loader the names of the workers it built, and the loader refuses a phase kind that names any other worker.

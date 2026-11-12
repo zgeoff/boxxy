@@ -585,6 +585,9 @@ export interface JobAction {
   readonly kind: 'merge';
   readonly unit: MergeUnit;
   readonly method: MergeMethod;
+
+  // the check names the drive read as required, for the fact the runner writes before the call
+  readonly required: readonly string[];
 }
 
 export type JobActAnswer = MergeAnswer | { readonly kind: 'unknown'; readonly reason: string };

@@ -1,18 +1,11 @@
 import type { ContentHash } from '@boxxy/content-hash';
 import { contentHash } from '@boxxy/content-hash';
-import type {
-  AttemptRow,
-  CloseOutAnswer,
-  CloseOutContext,
-  FactId,
-  LoadedRules,
-  StoreChange,
-  StoreTx,
-} from '@boxxy/model';
+import type { AttemptRow, CloseOutAnswer, FactId, StoreChange, StoreTx } from '@boxxy/model';
 import { closeOutSchema, toJSONValue } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { buildAttemptChange } from '../attempts/build-attempt-change.ts';
 import { pickCallAttempt } from '../attempts/pick-call-attempt.ts';
+import { readCloseOutContext } from './read-close-out-context.ts';
 import type { CallRef, CloseOutInput } from './types.ts';
 
 // Records an attempt's close-out, in one store lock. The session check runs before the body is
@@ -104,7 +97,7 @@ async function writeCloseOut(
     return { kind: 'refused', reason: 'not-current' };
   }
 
-  const ctx = await readCloseOutContext(tx, input, attempt);
+  const ctx = await readCloseOutContext(tx, attempt, input.rules, input.now);
 
   const parsed = phase.closeOut.parse(input.body, ctx);
 
@@ -138,36 +131,6 @@ async function writeCloseOut(
         repeat: false,
       }
     : { kind: 'refused', reason: 'not-current' };
-}
-
-async function readCloseOutContext(
-  tx: StoreTx,
-  input: CloseOutInput,
-  attempt: AttemptRow,
-): Promise<CloseOutContext> {
-  const item = await tx.readItem(attempt.item, input.now, input.rules);
-
-  invariant(item !== null, `an attempt's item is stored: ${attempt.item}`);
-
-  const items = await tx.listItems({}, input.now, input.rules);
-
-  return {
-    item,
-    attempt: attempt.id,
-    evidence: await tx.listEvidence(attempt.id),
-    world: buildWorld(
-      input.rules,
-      items.map((each) => each.id),
-    ),
-  };
-}
-
-function buildWorld(rules: LoadedRules, items: readonly CloseOutContext['item']['id'][]) {
-  return {
-    items: new Set(items),
-    kinds: new Set(rules.kinds.keys()),
-    relationTypes: new Set(rules.relationTypes.keys()),
-  };
 }
 
 function getClosedOutFact(change: StoreChange): FactId {

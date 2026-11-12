@@ -81,14 +81,17 @@ index.ts
 timeouts  types  every time limit of dispatch that the rules do not hold
 attempts/         the attempt lifecycle and its one writer
                   attempt-moves  attempt-machine  build-attempt-change  build-attempt-fact
-                  end-item-attempts  is-same-guard  pick-call-attempt  write-attempt-move
-                  write-session-bind  types
+                  build-event-columns  get-action-member  end-item-attempts  is-same-guard
+                  pick-call-attempt  write-attempt-move  write-session-bind  types
 claims/           claim-next  start-claim  resume-claim  request-wake  pick-kept-session
                   build-snapshot-hash  types
 readings/         what the runner does with a session reading
-                  pick-reading-action  find-waiting-since  act-on-reading  types
-closeouts/        close-out-attempt  settle-attempt  pick-settlement  build-settle-plans
-                  effect-handlers  types
+                  pick-reading-action  find-waiting-since  find-closing-failure  act-on-reading
+                  types
+jobs/             what the runner does with each read of a job attempt
+                  run-job-reading  types
+closeouts/        close-out-attempt  read-close-out-context  settle-attempt  pick-settlement
+                  build-settle-plans  effect-handlers  types
 sessions/         resume-kept-session  forget-sessions
 pull-requests/    link-pull-request  watch-pull-requests  build-link-change  build-state-fact
                   collect-attempt-trailers  collect-seen-state  parse-pull-request-url
@@ -101,7 +104,7 @@ outbox/           what the outbox sender decides, with no I/O
 test-utils/       the store contract and its case files, the memory store, the change factories
                   v1: create-fake-worker  worker-contract  create-fake-clock
                   create-fake-backoff  create-test-dispatch  create-fake-fact-sink  create-fake-forge
-                  forge-contract
+                  forge-contract  create-fake-job  load-job-rules
 ```
 
 A new case file of the store contract goes in `test-utils/`, beside `claim-store-contract`.

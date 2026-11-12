@@ -40,6 +40,64 @@ test('it accepts a sleeping attended design attempt with its close-out', () => {
     strayedAt: null,
     sessionStoppedAt: null,
     sessionForgottenAt: null,
+    worker: 'atc.session',
+    actedAt: null,
+    actedHead: null,
+    actedAnswer: null,
+    readAt: null,
+    waitReason: null,
+  };
+
+  const parsed: unknown = attemptRowSchema.safeParse(row).data;
+
+  expect(parsed).toStrictEqual(row);
+});
+
+test('it accepts a running merge job with the answer to its merge request', () => {
+  const row = {
+    id: '0192f0c5-1a2b-7c3d-8e4f-5a6b7c8d9e0f',
+    item: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77',
+    phase: 'merge',
+    number: 1,
+    runner: 'runner-1',
+    recipeHash: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+    rulesVersion: '60303ae22b998861bce3b28f33eec1be758a213c86c93c076dbe9f558c11c752',
+    pool: 'merge',
+    leaseGen: 1,
+    spawnRequest: { prompt: 'Merge the pull request' },
+    spawnRequestHash: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+    state: 'running',
+    failure: null,
+    atcSession: null,
+    caller: null,
+    claimedAt: 1000,
+    startedAt: 2000,
+    endedAt: null,
+    fields: {},
+    mode: 'agent',
+    round: 1,
+    input: {},
+    holdGen: 1,
+    closeOut: null,
+    closeOutHash: null,
+    closeOutFact: null,
+    closing: null,
+    closingAt: null,
+    suspendRequestedAt: null,
+    sleptAt: null,
+    wakeRequestedAt: null,
+    wokenAt: null,
+    outcome: null,
+    returnedOutcome: null,
+    strayedAt: null,
+    sessionStoppedAt: null,
+    sessionForgottenAt: null,
+    worker: 'merge.forge',
+    actedAt: 3000,
+    actedHead: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+    actedAnswer: { kind: 'not-mergeable', reason: 'a ruleset blocks the merge' },
+    readAt: 3000,
+    waitReason: 'checks pending',
   };
 
   const parsed: unknown = attemptRowSchema.safeParse(row).data;

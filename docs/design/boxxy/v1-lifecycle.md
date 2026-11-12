@@ -64,7 +64,7 @@ Four rules decide the hard cells:
 - A close-out beats a sleep in progress. A close-out that lands between the sleep request and the stop moves the attempt to `closing`.
 - boxxy puts no attempt to sleep before atc reports an agent session ID for it, because atc cannot revive a session that stopped before atc captured the ID.
 
-The time limits that the rules file does not hold are in `timeouts`, in `modules/dispatch/src/timeouts.ts`: 10 minutes for a lost spawn, a lost resume and a session that does not stop, 60 seconds of grace before a stop, 10 seconds before a revived session wakes over the cap, 30 minutes for a stall, 60 seconds of capacity backoff, 24 hours at most of usage-limit backoff, and 24 hours for a stray session, a kept session and a failed attempt's session.
+The time limits that the rules file does not hold are in `timeouts`, in `modules/dispatch/src/timeouts.ts`: 10 minutes for a lost spawn, a lost resume and a session that does not stop, 60 seconds of grace before a stop, 10 seconds before a revived session wakes over the cap, 30 minutes for a stall, 60 seconds of capacity backoff, 24 hours at most of usage-limit backoff, and 24 hours for a stray session, a kept session and a failed attempt's session. A job attempt has two more: 30 seconds at least between two reads of one job (`jobReadSeconds`), and 5 minutes before the drive sends an unanswered action again (`actRetryMinutes`).
 
 ## Sleep and wake
 

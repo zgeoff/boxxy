@@ -5,7 +5,7 @@ import { createReviewPhase, phaseKinds } from '@boxxy/closeout';
 import { createNullNotifier, outboxLimits, watchPullRequests } from '@boxxy/dispatch';
 import type { SpawnSettings } from '@boxxy/dispatch';
 import { createGithubForge } from '@boxxy/forge-github';
-import type { AttemptId, GitSource, Notifier, SessionReading } from '@boxxy/model';
+import type { AttemptId, GitSource, Notifier, SessionReading, WorkerRegistry } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { createAtcNotifier } from '@boxxy/notifier-atc';
 import type { UncheckedQueryClient } from '@boxxy/pepys';
@@ -96,10 +96,34 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
   // server uses them only to check and post the result.
   const reviewGate = createNoslopReviewGate({ appEnv: secrets.secrets.review ?? {} });
 
-  const rules = await createRulesHolder(config.rules, input.log, [
-    ...phaseKinds,
-    createReviewPhase(reviewGate),
+  const atc = createAtcMcpClient({
+    url: config.atc.url,
+    host: config.atc.host ?? null,
+    token: secrets.secrets.atcToken,
+    fetch,
+    timeoutMs: atcTimeoutMs,
+  });
+
+  const workers: WorkerRegistry = new Map([
+    [
+      brandSchemas.workerKindName.parse('atc.session'),
+      {
+        shape: 'session',
+        worker: createAtcWorker({
+          client: atc,
+          trustedFolders: config.atc.trustedFolders,
+          credentialSources: collectCredentialSources(config.spawn.repos),
+        }),
+      },
+    ],
   ]);
+
+  const rules = await createRulesHolder(
+    config.rules,
+    input.log,
+    [...phaseKinds, createReviewPhase(reviewGate)],
+    [...workers.keys()],
+  );
 
   if (rules.kind !== 'loaded') {
     return { kind: 'refused', message: `the rules did not load: ${JSON.stringify(rules)}` };
@@ -116,21 +140,6 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
   const store = await createSQLiteClaimStore(config.store.file);
 
   const runner = brandSchemas.runnerId.parse(config.runner);
-
-  const atc = createAtcMcpClient({
-    url: config.atc.url,
-    host: config.atc.host ?? null,
-    token: secrets.secrets.atcToken,
-    fetch,
-    timeoutMs: atcTimeoutMs,
-  });
-
-  const worker = createAtcWorker({
-    client: atc,
-    trustedFolders: config.atc.trustedFolders,
-    credentialSources: collectCredentialSources(config.spawn.repos),
-  });
-
   const notifier = buildNotifier(config, secrets.secrets.notice);
 
   const pepys = startPepys({
@@ -219,7 +228,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
       await runTick({
         store,
         runner,
-        worker,
+        workers,
         rules: holder.state().rules,
         backoff,
         spawn: buildSpawnSettings(config, holder.texts()),

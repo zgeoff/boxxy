@@ -12,6 +12,33 @@ import type { ClaimStoreCase } from './types.ts';
 
 export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
   [
+    '#readAttempt returns a job attempt with its worker, its marked action and its answer',
+    async (store) => {
+      const attempt = buildMockV1AttemptRow({
+        state: 'running',
+        atcSession: null,
+        worker: brandSchemas.workerKindName.parse('merge.forge'),
+        actedAt: brandSchemas.instant.parse(3000),
+        actedHead: brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290'),
+        actedAnswer: { kind: 'not-mergeable', reason: 'a ruleset blocks the merge' },
+        readAt: brandSchemas.instant.parse(3000),
+        waitReason: 'checks pending',
+      });
+
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(
+          buildMockFileItemChange(buildMockV1ItemRow({ id: attempt.item })),
+        );
+
+        await transaction.applyChange(buildMockClaimChange(attempt));
+      });
+
+      const read = await store.read((transaction) => transaction.readAttempt(attempt.id));
+
+      return { received: read, expected: attempt };
+    },
+  ],
+  [
     '#readLastLeaseGen returns 0 for an item phase with no lease',
     async (store) => {
       const generation = await store.read((transaction) =>

@@ -1,6 +1,5 @@
 import type {
   AttemptRow,
-  ClosingCause,
   ForcedFailure,
   Instant,
   LiveAttemptState,
@@ -8,6 +7,7 @@ import type {
 } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { timeouts } from '../timeouts.ts';
+import { findClosingFailure } from './find-closing-failure.ts';
 import { findWaitingSince } from './find-waiting-since.ts';
 import type { ReadingAction, ReadingInput, ReadingTable, RunningBound } from './types.ts';
 
@@ -231,23 +231,6 @@ function pickClosingStop(
     closingMs < timeouts.stopGraceSeconds * secondMs;
 
   return isInsideGrace ? { kind: 'nothing' } : { kind: 'stop' };
-}
-
-// A closed-out attempt settles by its close-out; one that closed for its turn end has none
-const closingFailures: Readonly<Record<ClosingCause, ForcedFailure | null>> = {
-  'closed-out': null,
-  'turn-ended': null,
-  'timed-out': 'timed-out',
-  'item-closed': 'item-closed',
-  stalled: 'stalled',
-  'skill-missing': 'skill-missing',
-  'usage-limit': 'usage-limit',
-};
-
-function findClosingFailure(attempt: AttemptRow): ForcedFailure | null {
-  invariant(attempt.closing !== null, 'a closing attempt has a cause');
-
-  return closingFailures[attempt.closing];
 }
 
 // A session that stopped with no request of boxxy's: the host slept, so it wakes by itself.

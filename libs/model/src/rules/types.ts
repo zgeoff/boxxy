@@ -127,6 +127,9 @@ export interface DriveContext {
   readonly deadlinePassed: boolean;
   readonly rules: LoadedRules;
   readonly now: Instant;
+
+  // an action with no answer is sent again only this long after it was marked
+  readonly actRetryMinutes: number;
 }
 
 // `wait`: `item get` shows the reason. `finish`: the runner records the close-out as the

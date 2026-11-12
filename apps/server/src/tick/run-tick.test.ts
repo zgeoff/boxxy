@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test';
 import { closeOutAttempt, requestWake, settleAttempt } from '@boxxy/dispatch';
+import { createFakeJob } from '@boxxy/dispatch/test-utils/create-fake-job';
 import { createTestDispatch } from '@boxxy/dispatch/test-utils/create-test-dispatch';
+import { loadJobRules } from '@boxxy/dispatch/test-utils/load-job-rules';
 import type { AttemptId, SessionReading, WorkerKind } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { createFakeNotifier } from '@boxxy/model/test-utils/create-fake-notifier';
@@ -19,7 +21,9 @@ async function setupTest() {
   const buildDeps = (worker: WorkerKind = dispatch.worker): TickDeps => ({
     store: dispatch.store,
     runner: dispatch.runner,
-    worker,
+    workers: new Map([
+      [brandSchemas.workerKindName.parse('atc.session'), { shape: 'session', worker }],
+    ]),
     rules: dispatch.rules(),
     backoff: dispatch.backoff,
     spawn: dispatch.spawn,
@@ -342,4 +346,37 @@ test('it logs each session whose forget the worker refused', async () => {
     ['the worker did not confirm the forget of done sessions'],
     [{ sessions: [failed.atcSession] }],
   ]);
+});
+
+test('it claims a merge with no session start and reads it through its job worker', async () => {
+  const ctx = await setupTest();
+
+  const job = createFakeJob();
+  const rules = loadJobRules(job.drive);
+
+  await ctx.dispatch.store.exclusive((tx) => tx.syncLimits(rules.limits, ctx.dispatch.clock.now()));
+
+  const item = await ctx.dispatch.seedItem({ phase: brandSchemas.phaseName.parse('merge') });
+
+  const deps = ctx.buildDeps();
+
+  const report = await runTick({
+    ...deps,
+    rules,
+    workers: new Map([
+      ...deps.workers,
+      [brandSchemas.workerKindName.parse('merge.forge'), { shape: 'job', worker: job.worker }],
+    ]),
+  });
+
+  const [attempt] = await ctx.dispatch.store.read((tx) => tx.listItemAttempts(item));
+
+  const seen: unknown = {
+    claimed: report.claimed,
+    state: attempt?.state,
+    calls: ctx.dispatch.worker.calls,
+    reads: job.reads.map((read) => read.id),
+  };
+
+  expect(seen).toStrictEqual({ claimed: 1, state: 'running', calls: [], reads: [attempt?.id] });
 });

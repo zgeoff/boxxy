@@ -21,6 +21,7 @@ import type {
   PhaseName,
   SessionReading,
 } from '@boxxy/model';
+import { brandSchemas } from '@boxxy/model';
 import type { FakeNotifier } from '@boxxy/model/test-utils/create-fake-notifier';
 import { createFakeNotifier } from '@boxxy/model/test-utils/create-fake-notifier';
 import type { FakePepysReader } from '@boxxy/model/test-utils/create-fake-pepys-reader';
@@ -136,10 +137,11 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
     store: dispatch.store,
     runner: dispatch.runner,
     rulesState: () => ({ rules: dispatch.rules(), lastRejected: null }),
-    loadProposedRules: makeProposedRulesLoader(buildExampleLoadInput().checkout, [
-      ...phaseKinds,
-      createReviewPhase(dispatch.reviewGate),
-    ]),
+    loadProposedRules: makeProposedRulesLoader(
+      buildExampleLoadInput().checkout,
+      [...phaseKinds, createReviewPhase(dispatch.reviewGate)],
+      buildExampleLoadInput().workers,
+    ),
     clock: dispatch.clock,
     newId: dispatch.newId,
     callerProof:
@@ -179,7 +181,12 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
       runTick({
         store: dispatch.store,
         runner: dispatch.runner,
-        worker: dispatch.worker,
+        workers: new Map([
+          [
+            brandSchemas.workerKindName.parse('atc.session'),
+            { shape: 'session', worker: dispatch.worker },
+          ],
+        ]),
         rules: dispatch.rules(),
         backoff: dispatch.backoff,
         spawn: dispatch.spawn,

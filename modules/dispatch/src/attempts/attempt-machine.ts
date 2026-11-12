@@ -32,6 +32,11 @@ export const attemptMachine = createMachine({
       settled: types<{ state: 'succeeded' | 'failed'; sessionStopped: boolean }>(),
       'stray-stopped': types<void>(),
       'session-forgotten': types<void>(),
+      'job-started': types<void>(),
+      acted: types<void>(),
+      answered: types<void>(),
+      waited: types<void>(),
+      'job-finished': types<void>(),
     },
     emitted: { effect: types<{ effect: MoveEffect }>() },
   },
@@ -124,6 +129,11 @@ function buildStateHandlers(state: AttemptState): Record<AttemptMachineEvent['ty
     settled: build('settled'),
     'stray-stopped': build('stray-stopped'),
     'session-forgotten': build('session-forgotten'),
+    'job-started': build('job-started'),
+    acted: build('acted'),
+    answered: build('answered'),
+    waited: build('waited'),
+    'job-finished': build('job-finished'),
   };
 }
 

@@ -21,6 +21,7 @@ import { P, match } from 'ts-pattern';
 import { initialTransition, isUnhandled, transition } from 'xstate';
 import { attemptMachine } from './attempt-machine.ts';
 import { buildAttemptFact } from './build-attempt-fact.ts';
+import { buildEventColumns } from './build-event-columns.ts';
 import type { AttemptGuard } from './is-same-guard.ts';
 import type {
   AttemptContext,
@@ -148,6 +149,12 @@ function buildClaimedChange(base: BuildAttemptChangeBase, event: ClaimedEvent): 
     strayedAt: null,
     sessionStoppedAt: null,
     sessionForgottenAt: null,
+    worker: event.worker,
+    actedAt: null,
+    actedHead: null,
+    actedAnswer: null,
+    readAt: null,
+    waitReason: null,
   };
 
   const parts: MoveParts = {
@@ -431,6 +438,11 @@ function toMachineEvent(event: MoveEvent): AttemptMachineEvent {
           'wake-refused',
           'stray-stopped',
           'session-forgotten',
+          'job-started',
+          'acted',
+          'answered',
+          'waited',
+          'job-finished',
         ),
       },
       (other) => ({ type: other.kind }),
@@ -457,72 +469,6 @@ function buildContextColumns(
       : { sessionStoppedAt: after.sessionStopped ? now : null }),
     ...(before.sessionForgotten === after.sessionForgotten ? {} : { sessionForgottenAt: now }),
   };
-}
-
-// The columns that hold the event's own data.
-function buildEventColumns(
-  event: MoveEvent,
-  attempt: AttemptRow,
-  now: Instant,
-  factIDs: ReadonlyMap<AttemptFactType, FactId>,
-): Partial<AttemptRow> {
-  return match(event)
-    .with({ kind: 'started' }, (started) => ({
-      atcSession: started.atcSession,
-      caller: started.caller,
-      startedAt: attempt.startedAt ?? now,
-    }))
-    .with({ kind: 'closed-out' }, (closed) => ({
-      closeOut: closed.closeOut,
-      closeOutHash: closed.hash,
-      closeOutFact: getFactID(factIDs, 'boxxy.attempt.closed_out'),
-    }))
-    .with({ kind: 'slept' }, () => ({ sleptAt: now }))
-    .with({ kind: 'woken' }, () => ({ wokenAt: now }))
-    .with({ kind: 'resumed' }, (resumed) => ({
-      atcSession: resumed.atcSession,
-      caller: resumed.caller,
-    }))
-    .with({ kind: 'settled' }, (settled) => ({
-      failure: settled.failure,
-      outcome: settled.outcome,
-      returnedOutcome: settled.returnedOutcome,
-      endedAt: now,
-    }))
-    .with({ kind: 'stray-stopped' }, (stopped) =>
-      attempt.atcSession === null && stopped.atcSession !== null
-        ? { atcSession: stopped.atcSession }
-        : {},
-    )
-    .with(
-      {
-        kind: P.union(
-          'spawn-unanswered',
-          'session-seen',
-          'timed-out',
-          'item-closed',
-          'turn-ended',
-          'stalled',
-          'skill-missing',
-          'usage-limited',
-          'suspend-asked',
-          'suspend-refused',
-          'wake-requested',
-          'wake-refused',
-          'session-forgotten',
-        ),
-      },
-      () => ({}),
-    )
-    .exhaustive();
-}
-
-function getFactID(factIDs: ReadonlyMap<AttemptFactType, FactId>, type: AttemptFactType): FactId {
-  const id = factIDs.get(type);
-
-  invariant(id !== undefined, `the move records ${type}`);
-
-  return id;
 }
 
 function toAttemptGuard(attempt: AttemptRow): AttemptGuard {
