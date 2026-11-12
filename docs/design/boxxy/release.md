@@ -16,6 +16,8 @@ A deployment installs these:
 
 `@boxxy/pepys` lists `@pepys/kit` and `zod` as peer dependencies, so the plug-in uses the deployment's own copy of each. The peer range of `@pepys/kit` is an exact npm version: a pepys release can change the glue the plug-in ships, so a boxxy release names the one kit version it was built against. Inside this repo, the root `overrides` and the dev dependencies of `@boxxy/pepys` point the `@pepys/*` packages at a prerelease kit, which never reaches the dependencies or peer dependencies of a published manifest.
 
+A package never names an export that its tarball lacks. The publish packs each package and reads the tarball's file list before `npm publish`, and refuses the run when an `exports` target has no packed file. The CI rehearsal makes this check on every package. A `src/test-utils/` folder ships and is exported with its package, so a shipped helper imports only what a deployment resolves: `@boxxy/pepys` lists `@pepys/testing`, which its `createTestPepys` needs, as an optional peer dependency.
+
 ## One version for every package
 
 `release-please-config.json` puts every package in one `linked-versions` group, `boxxy`. When a release holds a change to any package, release-please gives every package in the group the highest version among them, and releases each package at that version, a package with no change included. Each release still gets its own tag, `@boxxy/<folder>@<version>`, and every tag of one release sits on the same merge commit.

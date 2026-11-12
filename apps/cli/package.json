@@ -16,7 +16,6 @@
   "files": [
     "src",
     "!src/**/*.test.ts",
-    "!src/test-utils",
     "hook-plugin",
     "dist"
   ],

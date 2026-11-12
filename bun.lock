@@ -238,8 +238,12 @@
       },
       "peerDependencies": {
         "@pepys/kit": "0.0.1",
+        "@pepys/testing": "0.0.1",
         "zod": "catalog:",
       },
+      "optionalPeers": [
+        "@pepys/testing",
+      ],
     },
     "system-tests": {
       "name": "@boxxy/system-tests",

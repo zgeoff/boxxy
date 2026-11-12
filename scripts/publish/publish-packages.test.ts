@@ -629,3 +629,39 @@ test('it refuses to publish when the pack leaves more than one tarball', async (
     ['npm view @zgeoff/std@0.4.0 version', 'npm view @zgeoff/std dist-tags.latest', ''].join('\n'),
   );
 });
+
+test('it refuses to publish a package whose export names a file the tarball leaves out', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createNPM({});
+
+  await writeTreeFiles(ctx.repo, {
+    'libs/std/package.json': JSON.stringify({
+      name: '@zgeoff/std',
+      version: '0.4.0',
+      files: ['src', '!src/test-utils'],
+      exports: { '.': './src/index.ts', './test-utils/*': './src/test-utils/*.ts' },
+    }),
+    'libs/std/src/index.ts': 'export const std = 1;\n',
+    'libs/std/src/test-utils/build-mock-std.ts': 'export const buildMockStd = 1;\n',
+  });
+
+  const failure = await ctx.runPublish(['libs/std'], '', 'rehearse').then(
+    () => null,
+    (error: unknown) => error,
+  );
+
+  expect(failure).toMatchObject({
+    message: expect.stringContaining(
+      '@zgeoff/std: the export "./test-utils/*" names ./src/test-utils/*.ts, which the tarball does not hold',
+    ),
+  });
+
+  const calls = await ctx.readNPMCalls();
+
+  expect(calls).toBe('');
+
+  const files = await readdir(join(ctx.repo, 'libs/std'));
+
+  expect(files.toSorted()).toStrictEqual(['package.json', 'src']);
+});
