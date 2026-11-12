@@ -60,7 +60,7 @@ test('it answers a token it never issued with 401 and records the refusal', asyn
 
   expect(answered.status).toBe(401);
 
-  expect(ctx.lines.map((line) => JSON.parse(line))).toStrictEqual([
+  expect(ctx.lines.map((line): unknown => JSON.parse(line))).toStrictEqual([
     expect.objectContaining({ kind: 'bearer', outcome: 'rejected', reason: 'invalid_token' }),
   ]);
 });
