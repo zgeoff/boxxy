@@ -742,10 +742,11 @@ export type WakeSource =
 
 export declare function claimNext(input: ClaimInput): Promise<Claim | null>; // events `claimed`, `woken`
 // `startClaim` and `resumeClaim` return the fault of an agent session that another attempt
-// holds, or null; the runner logs the fault. `startClaim` also returns a refused spawn, and the
-// runner logs it at warn level with the worker's reason, which no fact carries.
-export interface SpawnRefusal { kind: 'fault'; fault: 'spawn-refused'; attempt: AttemptId; item: ItemId; cause: 'capacity' | 'other'; reason: string }
-export declare function startClaim(input: StartClaimInput): Promise<SessionFault | SpawnRefusal | null>; // `started`, `spawn-unanswered`, `settled` (spawn-refused, no-capacity)
+// holds, a spawn or a wake that the worker refused, or null. The runner logs each fault at warn
+// level; a refusal carries the worker's reason, which no fact carries.
+export interface WorkerRefusal { kind: 'fault'; fault: 'spawn-refused' | 'wake-refused'; attempt: AttemptId; item: ItemId; cause: 'capacity' | 'other'; reason: string }
+export type RunnerFault = SessionFault | WorkerRefusal;
+export declare function startClaim(input: StartClaimInput): Promise<RunnerFault | null>; // `started`, `spawn-unanswered`, `settled` (spawn-refused, no-capacity)
 // A spawn that the worker refuses for capacity (no free imp slot on the host) does not count
 // against `maxAttempts`; the pool is marked full for `timeouts.capacityBackoffSeconds` and the item
 // is ready as it was.
@@ -754,7 +755,7 @@ export declare function startClaim(input: StartClaimInput): Promise<SessionFault
 // Only a refusal for another cause (bad request, unknown target, auth) settles as `spawn-refused`.
 // The limit `workers` (max 7 in v1) is a ceiling; the host's real free slots can be lower.
 // The table is in 03-flow.ts, section F.
-export declare function resumeClaim(input: ResumeClaimInput): Promise<SessionFault | null>; // `resumed`
+export declare function resumeClaim(input: ResumeClaimInput): Promise<RunnerFault | null>; // `resumed`
 export declare function closeOutAttempt(input: CloseOutInput): Promise<CloseOutAnswer>; // `closed-out`
 
 // What every call from inside a session gives the core.
@@ -794,7 +795,8 @@ export declare function settleAttempt(input: SettleAttemptInput): Promise<MoveRe
 export declare function endItemAttempts(input: { attempts: readonly AttemptRow[]; actor: ActorRef; now: Instant; newId: NewId }): { writes: readonly RowWrite[]; facts: readonly AnyNewFact[]; ended: readonly { attempt: AttemptId; how: 'settled' | 'closing' }[]; under: StoreChange['under'] | null };
 // The rest. It binds a new agent session that the reading shows first, and returns the fault
 // of one that another attempt holds, or null.
-export declare function actOnReading(input: ActOnReadingInput): Promise<SessionFault | null>;
+// the faults of the reading's bind and of its respawn or resume
+export declare function actOnReading(input: ActOnReadingInput): Promise<RunnerFault[]>;
 
 // Pure. The reconcile table (03-flow.ts, section B). The action type has one name,
 // `ReadingAction`. It takes the sleep times of the rules (`sleep`), not one number.

@@ -153,7 +153,7 @@ test('#start answers capacity when the host has no RAM budget for another machin
   expect(outcome).toStrictEqual({
     kind: 'refused',
     cause: 'capacity',
-    reason: expect.stringContaining('host_unavailable'),
+    reason: 'host_unavailable (ram_budget_exceeded): the fake atc refused the call',
   });
 });
 
@@ -172,7 +172,7 @@ test('#start answers the cause other for a host atc cannot ready for another pro
   expect(outcome).toStrictEqual({
     kind: 'refused',
     cause: 'other',
-    reason: expect.stringContaining('host_unavailable'),
+    reason: 'host_unavailable (impd_outdated): the fake atc refused the call',
   });
 });
 
@@ -241,7 +241,7 @@ test('#start answers refused with the cause other for any other atc refusal', as
   expect(outcome).toStrictEqual({
     kind: 'refused',
     cause: 'other',
-    reason: expect.stringContaining('auth_signin_needed'),
+    reason: 'auth_signin_needed: the fake atc refused the call',
   });
 });
 

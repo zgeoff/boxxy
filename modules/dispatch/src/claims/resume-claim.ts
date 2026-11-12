@@ -1,4 +1,4 @@
-import type { ActorRef, SessionFault } from '@boxxy/model';
+import type { ActorRef, RunnerFault } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { writeAttemptMove } from '../attempts/write-attempt-move.ts';
 import { writeSessionBind } from '../attempts/write-session-bind.ts';
@@ -9,8 +9,8 @@ const secondMs = 1000;
 
 // Resumes a woken attempt's session outside the store lock. A refusal for capacity sleeps the
 // row the claim woke again and holds its pool back; any other answer but `started` leaves it
-// `waking` for the reading to retry.
-export async function resumeClaim(input: ResumeClaimInput): Promise<SessionFault | null> {
+// `waking` for the reading to retry. Returns the refusal, a session fault, or null.
+export async function resumeClaim(input: ResumeClaimInput): Promise<RunnerFault | null> {
   const attempt = input.claim.attempt;
   const actor: ActorRef = `boxxy:runner:${attempt.runner}`;
   const base = { actor, now: input.now, newId: input.newId };
@@ -26,8 +26,17 @@ export async function resumeClaim(input: ResumeClaimInput): Promise<SessionFault
     await input.store.exclusive((tx) =>
       writeAttemptMove(tx, attempt.id, { kind: 'wake-refused' }, { ...base, seen: attempt }),
     );
+  }
 
-    return null;
+  if (outcome.kind === 'refused') {
+    return {
+      kind: 'fault',
+      fault: 'wake-refused',
+      attempt: attempt.id,
+      item: attempt.item,
+      cause: outcome.cause,
+      reason: outcome.reason,
+    };
   }
 
   if (outcome.kind !== 'started') {

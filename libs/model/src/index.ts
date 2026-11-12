@@ -236,9 +236,9 @@ export type {
   SinkAnswer,
   PullRequestReading,
   RowWrite,
+  RunnerFault,
   SessionFault,
   SessionReading,
-  SpawnRefusal,
   SpawnRequest,
   StartOutcome,
   StopOutcome,
@@ -250,6 +250,7 @@ export type {
   Tables,
   WakeSource,
   WorkerKind,
+  WorkerRefusal,
 } from './ports/types.ts';
 
 export type { CostToLand, StageTime } from './reports/types.ts';

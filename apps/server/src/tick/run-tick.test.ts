@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { closeOutAttempt } from '@boxxy/dispatch';
+import { closeOutAttempt, requestWake } from '@boxxy/dispatch';
 import { createTestDispatch } from '@boxxy/dispatch/test-utils/create-test-dispatch';
 import type { AttemptId, SessionReading, WorkerKind } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
@@ -162,6 +162,56 @@ test('it logs a spawn that the worker refused, with its attempt, item and reason
         item,
         cause: 'capacity',
         reason: 'host_unavailable: no free slot',
+      },
+    ],
+  ]);
+});
+
+test('it logs a wake that the worker refused, with its attempt, item and reason', async () => {
+  const ctx = await setupTest();
+
+  const item = await ctx.dispatch.seedItem({
+    phase: brandSchemas.phaseName.parse('design'),
+    designMode: 'attended',
+  });
+
+  await runTick(ctx.buildDeps());
+
+  const [attempt] = await ctx.dispatch.store.read((tx) => tx.listItemAttempts(item));
+
+  invariant(attempt !== undefined, 'the tick claimed the seeded item');
+
+  ctx.dispatch.worker.setSession(attempt.id, { state: 'suspended', asked: true });
+
+  await runTick(ctx.buildDeps());
+
+  await requestWake({
+    store: ctx.dispatch.store,
+    attempt: attempt.id,
+    by: 'command',
+    actor: 'boxxy:owner:local',
+    now: ctx.dispatch.clock.now(),
+    newId: ctx.dispatch.newId,
+  });
+
+  ctx.dispatch.worker.failNext('resume', {
+    kind: 'refused',
+    cause: 'capacity',
+    reason: 'host_unavailable (ram_budget_exceeded): no free slot',
+  });
+
+  const before = ctx.logged.length;
+
+  await runTick(ctx.buildDeps());
+
+  expect([ctx.logged.slice(before), ctx.loggedFields.slice(before)]).toStrictEqual([
+    ['the worker refused a wake'],
+    [
+      {
+        attempt: attempt.id,
+        item,
+        cause: 'capacity',
+        reason: 'host_unavailable (ram_budget_exceeded): no free slot',
       },
     ],
   ]);

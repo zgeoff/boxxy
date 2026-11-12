@@ -370,16 +370,20 @@ export interface SessionFault {
   readonly holder: AttemptId;
 }
 
-// A spawn that the worker refused. The attempt settles as `no-capacity` or `spawn-refused`, and
-// the runner logs the worker's reason, which no fact carries.
-export interface SpawnRefusal {
+// A spawn or a wake that the worker refused. A refused spawn settles the attempt as `no-capacity`
+// or `spawn-refused`; a refused wake sleeps the attempt again for capacity, and otherwise leaves it
+// `waking` for the next reading. The runner logs the worker's reason, which no fact carries.
+export interface WorkerRefusal {
   readonly kind: 'fault';
-  readonly fault: 'spawn-refused';
+  readonly fault: 'spawn-refused' | 'wake-refused';
   readonly attempt: AttemptId;
   readonly item: ItemId;
   readonly cause: 'capacity' | 'other';
   readonly reason: string;
 }
+
+// What a claim or a reading returns for the runner to log.
+export type RunnerFault = SessionFault | WorkerRefusal;
 
 // What one batch sent to the sink got back. `retry` may or may not have stored the batch.
 export type SinkAnswer =

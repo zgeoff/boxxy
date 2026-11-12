@@ -2,6 +2,7 @@ import type {
   ActorRef,
   AttemptRow,
   Instant,
+  RunnerFault,
   SessionFault,
   SessionReading,
   StoreTx,
@@ -22,19 +23,25 @@ import type { ActOnReadingInput, ReadingAction } from './types.ts';
 
 // Carries out the reconcile table's action for one reading, after it binds a new agent session
 // that the reading shows. An action whose row moved on since the runner read it does nothing.
-// Returns the fault of an agent session that another attempt holds, or null.
-export async function actOnReading(input: ActOnReadingInput): Promise<SessionFault | null> {
+// Returns the faults of the bind and the action.
+export async function actOnReading(input: ActOnReadingInput): Promise<RunnerFault[]> {
   const base: MoveBase = {
     actor: `boxxy:runner:${input.attempt.runner}` satisfies ActorRef,
     now: input.now,
     newId: input.newId,
   };
 
-  const fault = await writeReadingBind(input, base);
+  const faults: RunnerFault[] = [];
 
-  await runAction(input, input.action, base);
+  const bindFault = await writeReadingBind(input, base);
 
-  return fault;
+  if (bindFault !== null) {
+    faults.push(bindFault);
+  }
+
+  await runAction(input, input.action, base, faults);
+
+  return faults;
 }
 
 function writeReadingBind(input: ActOnReadingInput, base: MoveBase): Promise<SessionFault | null> {
@@ -57,7 +64,12 @@ function writeReadingBind(input: ActOnReadingInput, base: MoveBase): Promise<Ses
 
 const hourMs = 3_600_000;
 
-function runAction(input: ActOnReadingInput, action: ReadingAction, base: MoveBase) {
+function runAction(
+  input: ActOnReadingInput,
+  action: ReadingAction,
+  base: MoveBase,
+  faults: RunnerFault[],
+) {
   const id = input.attempt.id;
   const seen = { ...base, seen: input.attempt };
 
@@ -87,7 +99,7 @@ function runAction(input: ActOnReadingInput, action: ReadingAction, base: MoveBa
         return;
       }
 
-      await startClaim({
+      const fault = await startClaim({
         ...input,
         claim: {
           kind: 'start',
@@ -96,6 +108,10 @@ function runAction(input: ActOnReadingInput, action: ReadingAction, base: MoveBa
           kept: null,
         },
       });
+
+      if (fault !== null) {
+        faults.push(fault);
+      }
     })
     .with({ kind: 'clear-mark' }, async () => {
       await writeMove({ kind: 'suspend-refused' });
@@ -144,7 +160,14 @@ function runAction(input: ActOnReadingInput, action: ReadingAction, base: MoveBa
         return;
       }
 
-      await resumeClaim({ ...input, claim: { kind: 'wake', attempt: input.attempt } });
+      const fault = await resumeClaim({
+        ...input,
+        claim: { kind: 'wake', attempt: input.attempt },
+      });
+
+      if (fault !== null) {
+        faults.push(fault);
+      }
     })
     .with({ kind: 'close', cause: 'timed-out' }, async (close) => {
       await writeMove({ kind: 'timed-out', afterMinutes: close.afterMinutes });

@@ -798,6 +798,7 @@ export function findPosition(input: { pipeline: Pipeline | null; attempts: reado
 //                                 auth, worker folder not trusted). Counts against `maxAttempts`.
 //   refused, either cause         `startClaim` returns the refusal with the worker's reason, and
 //                                 the runner logs it at warn level with the attempt and the item.
+//                                 `resumeClaim` does the same for a refused wake.
 //
 //   Before that table, the kept session. When the item has a `keptSession` and the
 //   claim came through an edge with `resume: true`, `startClaim` calls `worker.resumeKept`

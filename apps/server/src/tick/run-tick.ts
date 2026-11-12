@@ -21,10 +21,9 @@ import type {
   NewId,
   Notifier,
   PipelineStep,
+  RunnerFault,
   RunnerId,
-  SessionFault,
   SessionReading,
-  SpawnRefusal,
   WorkerKind,
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
@@ -106,7 +105,7 @@ async function runClaimLoop(deps: TickDeps): Promise<number> {
   return claimed.size;
 }
 
-function logFault(deps: TickDeps, fault: SessionFault | SpawnRefusal | null): void {
+function logFault(deps: TickDeps, fault: RunnerFault | null): void {
   if (fault === null) {
     return;
   }
@@ -118,8 +117,10 @@ function logFault(deps: TickDeps, fault: SessionFault | SpawnRefusal | null): vo
         holder: owned.holder,
       });
     })
-    .with({ fault: 'spawn-refused' }, (refused) => {
-      deps.log.warn('the worker refused a spawn', {
+    .with({ fault: 'spawn-refused' }, { fault: 'wake-refused' }, (refused) => {
+      const call = refused.fault === 'spawn-refused' ? 'spawn' : 'wake';
+
+      deps.log.warn(`the worker refused a ${call}`, {
         attempt: refused.attempt,
         item: refused.item,
         cause: refused.cause,
@@ -151,9 +152,11 @@ async function runReadings(deps: TickDeps): Promise<number> {
         now: deps.now,
       });
 
-      const fault = await actOnReading({ ...deps, attempt, reading, action });
+      const faults = await actOnReading({ ...deps, attempt, reading, action });
 
-      logFault(deps, fault);
+      for (const fault of faults) {
+        logFault(deps, fault);
+      }
     } catch (error) {
       deps.log.warn('the reading of an attempt failed', {
         attempt: attempt.id,

@@ -544,3 +544,52 @@ test('it sends no second spawn for a respawn that the table picked before the st
 
   expect([action.kind, starts.length]).toStrictEqual(['respawn', 1]);
 });
+
+test('it returns a respawn that the worker refused, with its reason', async () => {
+  const ctx = await setupTest();
+  const item = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+
+  const claim = await claimNext({
+    store: ctx.store,
+    runner: ctx.runner,
+    rules: ctx.rules(),
+    now: ctx.clock.now(),
+    newId: ctx.newId,
+    backoff: ctx.backoff,
+    spawn: ctx.spawn,
+  });
+
+  invariant(claim?.kind === 'start', 'the claim starts the seeded item');
+
+  ctx.worker.failNext('start', {
+    kind: 'refused',
+    cause: 'other',
+    reason: 'clone_failed: the source needs a credential',
+  });
+
+  const reading = { kind: 'absent' } as const;
+  const now = ctx.clock.now();
+
+  const faults = await actOnReading({
+    store: ctx.store,
+    worker: ctx.worker,
+    rules: ctx.rules(),
+    backoff: ctx.backoff,
+    attempt: claim.attempt,
+    reading,
+    action: { kind: 'respawn' },
+    now,
+    newId: ctx.newId,
+  });
+
+  expect(faults).toStrictEqual([
+    {
+      kind: 'fault',
+      fault: 'spawn-refused',
+      attempt: claim.attempt.id,
+      item,
+      cause: 'other',
+      reason: 'clone_failed: the source needs a credential',
+    },
+  ]);
+});

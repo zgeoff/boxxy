@@ -230,13 +230,15 @@ function toStarted(session: AtcSession): StartOutcome {
 function toStartFailure(error: unknown): StartOutcome {
   const failure = toCallFailure(error);
 
-  if (failure.kind === 'unknown') {
+  if (failure.kind === 'unknown' || !(error instanceof AtcCallError)) {
     return { kind: 'unknown', reason: failure.reason };
   }
 
-  const capacity = error instanceof AtcCallError && isCapacityRefusal(error);
-
-  return { kind: 'refused', cause: capacity ? 'capacity' : 'other', reason: failure.reason };
+  return {
+    kind: 'refused',
+    cause: isCapacityRefusal(error) ? 'capacity' : 'other',
+    reason: formatRefusalReason(error),
+  };
 }
 
 // atc may or may not have run a call it answers `outcome_unknown` or `idempotency_key_unknown`
@@ -252,6 +254,20 @@ function toCallFailure(error: unknown): {
   const unknown = error.code === 'outcome_unknown' || error.code === 'idempotency_key_unknown';
 
   return { kind: unknown ? 'unknown' : 'refused', reason };
+}
+
+// `<code> (<problem>): <message>`. atc writes its text as `<code>: <message>`, so the code is not
+// repeated.
+function formatRefusalReason(error: AtcCallError): string {
+  const prefix = `${error.code}: `;
+
+  const message = error.message.startsWith(prefix)
+    ? error.message.slice(prefix.length)
+    : error.message;
+
+  return error.problem === null
+    ? `${error.code}: ${message}`
+    : `${error.code} (${error.problem}): ${message}`;
 }
 
 // A folder on the target as `cwd`, or a git source as atc's workspace with no `cwd`, so that atc
