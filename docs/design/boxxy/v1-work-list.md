@@ -164,6 +164,7 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 - **Follows:** [API and auth](./v1-api-and-auth.md), "The paths".
 - **Needs:** slices 20 and 20a, and the deployed pepys.
 - **Check:** `boxxy status` from the owner's path answers, and the outbox state is `idle`.
+- **Built:** the cloud repo's deployment runs the server image with the rules and prompts, the worker token and the trust documents. The pepys deployment runs `@boxxy/pepys` 0.2.0 on pepys 0.2.0, and the agent image carries the CLI and its hooks. `boxxy status` from the owner's path answers with no live attempt, and the outbox is `idle` with nothing unsent.
 
 ### 22. The live proof
 
@@ -176,3 +177,10 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
   - one forced rework round runs on the kept session;
   - no session and no worker machine is left after the item settles;
   - a replayed webhook changes nothing.
+- **Built:** one throwaway item in a private scratch repo went through triage, design, build, review, a second build round and a second review, and its pull request merged. Each check held:
+  - `report.cost` showed model requests in every phase and a cost above zero, and `report.stageTimes` showed minutes for triage, design, build, review and merge;
+  - the worker token got `FORBIDDEN` on an owner procedure, and a call with no token got 401;
+  - the review asked for changes, and the second build round ran on the first build's kept session;
+  - after the item settled, `boxxy status` showed no attempt and no stray, and no worker machine was left for the run's sessions. A failed session stays for the 24 hours that the [cleanup rule](./v1-lifecycle.md#cleanup) sets;
+  - a redelivered `pull_request` webhook left the pull request's row and both reports unchanged, because pepys applies each fact ID once.
+- **Faults the proof found:** the atc daemon's path had no `tar`; the deployed prompts did not tell a session how to close out, which the session start guide now does; and the cost query matched no telemetry for a session on a remote target, because telemetry carries the session's own ID, the part after the last dot.
