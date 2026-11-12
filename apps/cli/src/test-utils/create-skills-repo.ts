@@ -48,6 +48,8 @@ export async function createSkillsRepo(input: SkillsRepoInput): Promise<SkillsRe
       'user.name=Test',
       '-c',
       'user.email=test@example.com',
+      '-c',
+      'commit.gpgsign=false',
       'commit',
       '--quiet',
       '-m',
