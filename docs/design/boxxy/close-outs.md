@@ -22,8 +22,8 @@ build: those are facts that boxxy reads from the forge and CI.
 
 An item's acceptance is a typed list of criteria, each naming the evidence it needs, such as a PR, a
 review result, a CI run, a release or a live check. The close-out links each criterion the agent met
-to the fact that shows it. An item is done when every criterion has evidence. boxxy derives the
-part-done states, such as "shipped, one step owed", from which criteria still lack evidence.
+to the fact that shows it. boxxy never reads this evidence to decide that an item is done
+([derived item state](./v1.md#derived-item-state)).
 
 ### openItems
 
