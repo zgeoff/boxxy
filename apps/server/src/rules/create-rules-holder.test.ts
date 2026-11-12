@@ -2,9 +2,8 @@ import { expect, onTestFinished, test } from 'bun:test';
 import { cp, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { createReviewPhase, phaseKinds } from '@boxxy/closeout';
-import { brandSchemas } from '@boxxy/model';
 import { $ } from 'bun';
+import { buildServerRegistrations } from './build-server-registrations.ts';
 import { createRulesHolder } from './create-rules-holder.ts';
 
 async function setupTest() {
@@ -22,10 +21,9 @@ async function setupTest() {
 
   return {
     folder,
-    workers: [brandSchemas.workerKindName.parse('atc.session')],
     logged,
     log: { warn: (message: string) => logged.push(message) },
-    phases: [...phaseKinds, createReviewPhase({ buildCommand: () => 'noslop review' })],
+    registrations: buildServerRegistrations({ buildCommand: () => 'noslop review' }),
     readRulesFile: () => Bun.file(path.join(folder, 'rules.yaml')).text(),
     writeRulesFile: (text: string) => Bun.write(path.join(folder, 'rules.yaml'), text),
     runGit: (args: readonly string[]) =>
@@ -39,8 +37,7 @@ test('it loads the rules of a plain folder', async () => {
   const answer = await createRulesHolder(
     { folder: ctx.folder, ref: 'origin/main' },
     ctx.log,
-    ctx.phases,
-    ctx.workers,
+    ctx.registrations,
   );
 
   expect(answer.kind === 'loaded' && answer.holder.state().rules.commit).toBe('folder');
@@ -52,8 +49,7 @@ test('it keeps the rules and records the refusal when a reload is refused', asyn
   const answer = await createRulesHolder(
     { folder: ctx.folder, ref: 'origin/main' },
     ctx.log,
-    ctx.phases,
-    ctx.workers,
+    ctx.registrations,
   );
 
   await ctx.writeRulesFile('not: [valid rules\n');
@@ -80,8 +76,7 @@ test('it loads a changed rules file on reload', async () => {
   const answer = await createRulesHolder(
     { folder: ctx.folder, ref: 'origin/main' },
     ctx.log,
-    ctx.phases,
-    ctx.workers,
+    ctx.registrations,
   );
 
   const holder = answer.kind === 'loaded' ? answer.holder : null;
@@ -103,8 +98,7 @@ test('it refuses a folder whose rules do not load', async () => {
   const answer = await createRulesHolder(
     { folder: ctx.folder, ref: 'origin/main' },
     ctx.log,
-    ctx.phases,
-    ctx.workers,
+    ctx.registrations,
   );
 
   expect(answer.kind).toBe('refused');
@@ -121,8 +115,7 @@ test('it keeps the rules when a reload finds a commit that the rules ref does no
   const answer = await createRulesHolder(
     { folder: ctx.folder, ref: 'origin/main' },
     ctx.log,
-    ctx.phases,
-    ctx.workers,
+    ctx.registrations,
   );
 
   const holder = answer.kind === 'loaded' ? answer.holder : null;

@@ -1,8 +1,9 @@
 import { hashTree } from '@boxxy/content-hash';
-import type { LoadRejection, LoadResult, PhaseKind, WorkerKindName } from '@boxxy/model';
+import type { LoadRejection, LoadResult } from '@boxxy/model';
 import type { RulesState, ServerLog } from '../types.ts';
+import type { ServerRegistrations } from './build-server-registrations.ts';
 import type { RulesCheckout } from './load-server-rules.ts';
-import { loadServerRules, makeProposedRulesLoader } from './load-server-rules.ts';
+import { loadRegisteredRules, makeProposedRulesLoader } from './load-server-rules.ts';
 import type { RulesSource } from './read-rules-checkout.ts';
 import { readRulesCheckout } from './read-rules-checkout.ts';
 
@@ -35,8 +36,7 @@ interface Held {
 export async function createRulesHolder(
   source: RulesSource,
   log: ServerLog,
-  phases: readonly PhaseKind[],
-  workers: readonly WorkerKindName[],
+  registrations: ServerRegistrations,
 ): Promise<RulesHolderAnswer> {
   const first = await readRulesCheckout(source);
 
@@ -44,7 +44,7 @@ export async function createRulesHolder(
     return { kind: 'rejected', reason: first.reason };
   }
 
-  const loaded = loadServerRules(first.checkout, phases, workers);
+  const loaded = loadRegisteredRules(first.checkout, registrations);
 
   if (loaded.kind === 'rejected') {
     return { kind: 'refused', rejections: loaded.rejections };
@@ -71,7 +71,7 @@ export async function createRulesHolder(
       return;
     }
 
-    const next = loadServerRules(read.checkout, phases, workers);
+    const next = loadRegisteredRules(read.checkout, registrations);
 
     if (next.kind === 'rejected') {
       log.warn('the rules load was refused; the rules stay', { commit: read.checkout.commit });
@@ -90,7 +90,7 @@ export async function createRulesHolder(
     kind: 'loaded',
     holder: {
       state: () => held.state,
-      loadProposed: (text) => makeProposedRulesLoader(held.checkout, phases, workers)(text),
+      loadProposed: (text) => makeProposedRulesLoader(held.checkout, registrations)(text),
       texts: () => toTexts(held.checkout),
       reload,
     },

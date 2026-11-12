@@ -162,6 +162,7 @@ apps/server/src                 @boxxy/server
                   read-trusted-issuers  read-caller-proof (the one place that builds the
                   identity adapter)
   rules/          read-rules-checkout  load-server-rules  create-rules-holder
+                  build-server-registrations (the phase kinds and worker names the rules load with)
   handlers/       one file per procedure group, named `<group>-handlers`, with `api`
                   and the helpers they share
   tick/           run-tick  start-tick-loop

@@ -109,7 +109,7 @@ The image keeps its `COPY` of `rules/` until [slice 5](#5-retire-the-images-rule
 
 ### The rules repository's check
 
-The rules repository's CI loads each pull request with the server's own reader and loader, from `@boxxy/server` on npm, pinned to one exact version in `.github/rules-check/package.json` and its `bun.lock`.
+The rules repository's CI loads each pull request with the server's own reader and loader, from `@boxxy/server` on npm, pinned to one exact version in `.github/rules-check/package.json` and its `bun.lock`. `loadServerRules` takes the checkout alone, and loads it with the phase kinds and worker names that the server's start loads with, so the check refuses each file that the server refuses.
 
 ```ts
 // .github/rules-check/check-rules.ts, run as: bun check-rules.ts <checkout>

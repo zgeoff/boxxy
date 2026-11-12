@@ -4,7 +4,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createPublicDoor } from '@boxxy/auth-oauth';
 import type { PublicDoor } from '@boxxy/auth-oauth';
-import { createReviewPhase, phaseKinds } from '@boxxy/closeout';
 import { watchPullRequests } from '@boxxy/dispatch';
 import type { WatchReport } from '@boxxy/dispatch';
 import type { FakeForge } from '@boxxy/dispatch/test-utils/create-fake-forge';
@@ -30,6 +29,7 @@ import { buildExampleLoadInput } from '@boxxy/rules/test-utils/build-example-loa
 import invariant from 'tiny-invariant';
 import { buildTokenDigest } from '../auth/pick-request-scope.ts';
 import { createOffOutbox } from '../outbox/create-off-outbox.ts';
+import { buildServerRegistrations } from '../rules/build-server-registrations.ts';
 import { makeProposedRulesLoader } from '../rules/load-server-rules.ts';
 import { makePublicMcpServe, serveApi } from '../serve-api.ts';
 import type { TickReport } from '../tick/run-tick.ts';
@@ -139,8 +139,7 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
     rulesState: () => ({ rules: dispatch.rules(), lastRejected: null }),
     loadProposedRules: makeProposedRulesLoader(
       buildExampleLoadInput().checkout,
-      [...phaseKinds, createReviewPhase(dispatch.reviewGate)],
-      buildExampleLoadInput().workers,
+      buildServerRegistrations(dispatch.reviewGate),
     ),
     clock: dispatch.clock,
     newId: dispatch.newId,

@@ -1,7 +1,6 @@
 import { dirname, join } from 'node:path';
 import { createPublicDoor } from '@boxxy/auth-oauth';
 import type { PublicDoor } from '@boxxy/auth-oauth';
-import { createReviewPhase, phaseKinds } from '@boxxy/closeout';
 import { createNullNotifier, outboxLimits, watchPullRequests } from '@boxxy/dispatch';
 import type { SpawnSettings } from '@boxxy/dispatch';
 import { createGithubForge } from '@boxxy/forge-github';
@@ -28,6 +27,7 @@ import { formatErrorChain } from './format-error-chain.ts';
 import { createOffOutbox } from './outbox/create-off-outbox.ts';
 import type { OutboxSender } from './outbox/start-outbox-sender.ts';
 import { startOutboxSender } from './outbox/start-outbox-sender.ts';
+import { atcWorkerName, buildServerRegistrations } from './rules/build-server-registrations.ts';
 import { createRulesHolder } from './rules/create-rules-holder.ts';
 import { makePublicMcpServe, maxRequestBytes, serveApi } from './serve-api.ts';
 import { servePublicDoor } from './serve-public-door.ts';
@@ -106,7 +106,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
 
   const workers: WorkerRegistry = new Map([
     [
-      brandSchemas.workerKindName.parse('atc.session'),
+      atcWorkerName,
       {
         shape: 'session',
         worker: createAtcWorker({
@@ -121,8 +121,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
   const rules = await createRulesHolder(
     config.rules,
     input.log,
-    [...phaseKinds, createReviewPhase(reviewGate)],
-    [...workers.keys()],
+    buildServerRegistrations(reviewGate),
   );
 
   if (rules.kind !== 'loaded') {
