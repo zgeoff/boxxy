@@ -26,49 +26,19 @@ import {
 import { createTestStore } from '@pepys/testing';
 import type { AppliedFact } from '@pepys/testing';
 import { buildBoxxyPlugin } from '../build-boxxy-plugin.ts';
-import type { DeliveryReads, ForeignReads } from '../queries/types.ts';
+import type { ForeignReads } from '../queries/types.ts';
 import type { UncheckedQueryClient } from '../types.ts';
 import type { TelemetryRequest, TestPepys, TestPepysOptions } from './create-test-pepys.ts';
-
-// The pull requests that the item's attempts produced, as boxxy's own rows give them, and then
-// the GitHub plug-in's delivery module on those pull requests.
-const delivery: DeliveryReads = {
-  consumers: [...githubDeliveryConsumers],
-  readDeliveries: async (db, input) => {
-    const produced = await db
-      .selectFrom('link_effective as produced')
-      .innerJoin('boxxy_attempt as attempt', 'attempt.id', 'produced.from_id')
-      .where('produced.type', '=', 'produced')
-      .where('attempt.item_id', '=', input.item)
-      .select('produced.to_id as id')
-      .distinct()
-      .execute();
-
-    const [first, ...rest] = produced.map((row) => row.id);
-
-    if (first === undefined) {
-      return [];
-    }
-
-    const result = await selectPullRequestDelivery({
-      pullRequests: [first, ...rest],
-      environment: input.environment,
-    }).execute(db);
-
-    return parsePullRequestDeliveries(result.rows).map((row) => ({
-      pullRequest: row.pullRequest,
-      mergedAt: row.mergedAt,
-      release: row.release === null ? null : { at: row.release.at },
-      deploy: row.deploy === null ? null : { at: row.deploy.at },
-    }));
-  },
-};
 
 const foreign: ForeignReads = {
   telemetryModelRequest: telemetryModelRequestConsumer,
   telemetryTurnCost: telemetryTurnCostConsumer,
   githubPullRequest: githubPullRequestConsumer,
-  delivery,
+  delivery: {
+    consumers: githubDeliveryConsumers,
+    select: selectPullRequestDelivery,
+    parse: parsePullRequestDeliveries,
+  },
 };
 
 const telemetryToken = 'telemetry-test-token';

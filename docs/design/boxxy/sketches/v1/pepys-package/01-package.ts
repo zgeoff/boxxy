@@ -18,7 +18,7 @@
 // Built (slice 18): the files are `boxxy-source.ts`, `work/boxxy-work-consumer.ts`,
 // `build-boxxy-plugin.ts` and the entry `consumers/apply-scope.ts`. The plug-in is
 // `buildBoxxyPlugin(foreign)`: the deployment passes the GitHub and telemetry consumers and the
-// delivery read, so the package has no dependency on either plug-in and none on kysely. The glue
+// GitHub delivery module's consumers, select and parse, so the package has no dependency on either plug-in and none on kysely. The glue
 // builds from `boxxy-work-plugin.ts`. The reader takes a query client from the server, so the
 // package has no oRPC dependency. The package has no `./source` entry: the `.` entry exports
 // `boxxySource`, and the server needs only `./sink`.

@@ -1,10 +1,4 @@
-import type {
-  ColumnKind,
-  ConsumerDeclaration,
-  EntityID,
-  QueryCall,
-  TableDeclaration,
-} from '@pepys/kit';
+import type { ColumnKind, ConsumerDeclaration, QueryCall, TableDeclaration } from '@pepys/kit';
 import type { boxxyWorkConsumer } from '../work/boxxy-work-consumer.ts';
 
 // The rows the statements of the two queries read. Each holds the columns of its table that the
@@ -142,21 +136,30 @@ export type OpaqueConsumer = ConsumerDeclaration<
 
 export type StageTimeReads = readonly [typeof boxxyWorkConsumer, ...OpaqueConsumer[]];
 
-export interface DeliveryInput {
-  readonly item: EntityID;
+export interface DeliverySelectOptions {
+  // at least one, as pepys entity IDs
+  readonly pullRequests: readonly [string, ...string[]];
 
   // the environment whose deploy counts
   readonly environment: string;
+  readonly target?: string | undefined;
 }
 
-// The GitHub plug-in's delivery times of each pull request that an attempt of the item produced,
-// with the consumers that hold them.
+// A statement that runs on the query's connection and gives raw rows. Kysely's raw SQL builder
+// fits it, so this package imports no kysely.
+export interface DeliveryStatement {
+  readonly execute: (
+    db: QueryCall<unknown, StageTimeReads>['db'],
+  ) => Promise<{ readonly rows: readonly unknown[] }>;
+}
+
+// The GitHub plug-in's delivery module: the consumers that hold the delivery times, the statement
+// that selects them for some pull requests, and the parse of its rows. The stage-time query finds
+// the item's pull requests itself, so a deployment passes the module as the plug-in exports it.
 export interface DeliveryReads {
   readonly consumers: readonly OpaqueConsumer[];
-  readonly readDeliveries: (
-    db: QueryCall<unknown, StageTimeReads>['db'],
-    input: DeliveryInput,
-  ) => Promise<readonly DeliveryReadRow[]>;
+  readonly select: (options: DeliverySelectOptions) => DeliveryStatement;
+  readonly parse: (rows: readonly unknown[]) => readonly DeliveryReadRow[];
 }
 
 // The consumers of the GitHub and telemetry plug-ins that the two queries read.

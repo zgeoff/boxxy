@@ -9,8 +9,10 @@
 // `queries/build-cost-to-land-query.ts` and `queries/build-stage-time-query.ts`. A pure builder
 // (`queries/build-cost-to-land.ts`, `queries/build-stage-time.ts`) does the stretches, the caller
 // match, the sums and the time compares with `Date.parse`. The store runs no `julianday`, no
-// window function and no common table expression. The stage-time query calls the delivery read
-// that the deployment passes, in place of `selectPullRequestDelivery`. A review that settled
+// window function and no common table expression. The stage-time query reads the item's pull
+// requests through the `produced` links, then calls the `select` and `parse` of the delivery
+// module that the deployment passes (`DeliveryReads` in `queries/types.ts`); it calls no select for
+// an item with no pull request. A review that settled
 // `unsettleable` starts no merge step.
 
 import { defineQuery } from '@pepys/kit';

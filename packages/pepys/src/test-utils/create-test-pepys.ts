@@ -188,29 +188,33 @@ export async function createTestPepys(options: TestPepysOptions): Promise<TestPe
   };
 }
 
-// The merge of each pull request that an attempt of the item produced, read through the
-// `produced` links as the GitHub plug-in's delivery module reads it.
+const deliveryRowsSchema = z.array(
+  z.object({
+    pullRequest: z.string(),
+    mergedAt: z.string().nullable(),
+    release: z.null(),
+    deploy: z.null(),
+  }),
+);
+
+// The merge of each selected pull request, from the webhooks the stand-in took, with no release
+// and no deploy.
 function buildDeliveryReads(merges: ReadonlyMap<string, string | null>): DeliveryReads {
   return {
     consumers: [],
-    readDeliveries: async (db, input) => {
-      const produced = await db
-        .selectFrom('link_effective as produced')
-        .innerJoin('boxxy_attempt as attempt', 'attempt.id', 'produced.from_id')
-        .where('produced.type', '=', 'produced')
-        .where('attempt.item_id', '=', input.item)
-        .select('produced.to_id as id')
-        .distinct()
-        .orderBy('produced.to_id')
-        .execute();
-
-      return produced.map((row) => ({
-        pullRequest: row.id,
-        mergedAt: merges.get(row.id) ?? null,
+    select: (options) => {
+      const rows = options.pullRequests.map((id) => ({
+        pullRequest: id,
+        mergedAt: merges.get(id) ?? null,
         release: null,
         deploy: null,
       }));
+
+      const readRows = () => Promise.resolve({ rows });
+
+      return { execute: readRows };
     },
+    parse: (rows) => deliveryRowsSchema.parse(rows),
   };
 }
 

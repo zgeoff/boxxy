@@ -1,9 +1,10 @@
 export { buildBoxxyPlugin } from './build-boxxy-plugin.ts';
 
 export type {
-  DeliveryInput,
   DeliveryReadRow,
   DeliveryReads,
+  DeliverySelectOptions,
+  DeliveryStatement,
   ForeignReads,
   GithubPullRequestConsumer,
   OpaqueConsumer,

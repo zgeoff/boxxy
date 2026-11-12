@@ -5,7 +5,8 @@ import {
   defineSource,
   defineTable,
 } from '@pepys/kit';
-import type { DeliveryReadRow, ForeignReads } from '../queries/types.ts';
+import { z } from 'zod';
+import type { DeliveryReadRow, DeliverySelectOptions, ForeignReads } from '../queries/types.ts';
 
 // No fact reaches a stand-in consumer: a test writes its rows. Its entry is this file, which
 // exports no `applyFact`, so a fact sent to one fails the apply.
@@ -98,10 +99,24 @@ const githubPullRequestConsumer = defineConsumer({
   links: [],
 });
 
+const atSchema = z.object({ at: z.string() }).nullable();
+
+const deliveryRowsSchema = z.array(
+  z.object({
+    pullRequest: z.string(),
+    mergedAt: z.string().nullable(),
+    release: atSchema,
+    deploy: atSchema,
+  }),
+);
+
 // The telemetry and GitHub plug-ins as far as the queries read them: the three consumers with the
-// columns the queries name, and the GitHub delivery read as rows the test sets per item.
+// columns the queries name, and the GitHub delivery module as rows the test sets per pull request.
+// Each select it receives is kept, in order.
 export function buildForeignStandIn() {
-  const deliveries = new Map<string, readonly DeliveryReadRow[]>();
+  const deliveries = new Map<string, DeliveryReadRow>();
+
+  const selects: DeliverySelectOptions[] = [];
 
   const foreign: ForeignReads = {
     telemetryModelRequest: telemetryModelRequestConsumer,
@@ -109,7 +124,15 @@ export function buildForeignStandIn() {
     githubPullRequest: githubPullRequestConsumer,
     delivery: {
       consumers: [githubPullRequestConsumer],
-      readDeliveries: (_db, input) => Promise.resolve(deliveries.get(input.item) ?? []),
+      select: (options) => {
+        selects.push(options);
+
+        const rows = options.pullRequests.flatMap((id) => deliveries.get(id) ?? []);
+        const readRows = () => Promise.resolve({ rows });
+
+        return { execute: readRows };
+      },
+      parse: (rows) => deliveryRowsSchema.parse(rows),
     },
   };
 
@@ -132,8 +155,11 @@ export function buildForeignStandIn() {
       telemetryTurnCost: telemetryTurnCostConsumer,
       githubPullRequest: githubPullRequestConsumer,
     },
-    setDeliveries: (item: string, rows: readonly DeliveryReadRow[]) => {
-      deliveries.set(item, rows);
+    selects,
+    setDeliveries: (rows: readonly DeliveryReadRow[]) => {
+      for (const row of rows) {
+        deliveries.set(row.pullRequest, row);
+      }
     },
   };
 }

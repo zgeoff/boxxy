@@ -7,7 +7,8 @@ import { findItemEntityID } from './find-item-entity-id.ts';
 import type { DeliveryReads, StageTimeReads } from './types.ts';
 
 // The stage-time query: the item's attempts, and the delivery times of each pull request an
-// attempt produced. Two statements, so an item with no pull request still has its phase times.
+// attempt produced. The delivery module starts from pull requests, so the query finds them first
+// through the `produced` links, and an item with none still has its phase times.
 export function buildStageTimeQuery(delivery: DeliveryReads) {
   const reads: StageTimeReads = [boxxyWorkConsumer, ...delivery.consumers];
 
@@ -48,12 +49,30 @@ export function buildStageTimeQuery(delivery: DeliveryReads) {
         .orderBy('id')
         .execute();
 
-      const deliveries = await delivery.readDeliveries(call.db, {
-        item,
+      const produced = await call.db
+        .selectFrom('link_effective as produced')
+        .innerJoin('boxxy_attempt as attempt', 'attempt.id', 'produced.from_id')
+        .where('produced.type', '=', 'produced')
+        .where('attempt.item_id', '=', item)
+        .select('produced.to_id as id')
+        .distinct()
+        .orderBy('produced.to_id')
+        .execute();
+
+      const [first, ...rest] = produced.map((row) => row.id);
+
+      if (first === undefined) {
+        return buildStageTime({ ...parts, attempts, deliveries: [] });
+      }
+
+      const statement = delivery.select({
+        pullRequests: [first, ...rest],
         environment: call.input.environment,
       });
 
-      return buildStageTime({ ...parts, attempts, deliveries });
+      const result = await statement.execute(call.db);
+
+      return buildStageTime({ ...parts, attempts, deliveries: delivery.parse(result.rows) });
     },
   });
 }
