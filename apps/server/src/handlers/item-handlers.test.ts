@@ -195,8 +195,5 @@ test('#get returns the body, and #list leaves it out', async () => {
   const shown = await ctx.readAnswer('item.get', { item });
   const listed = await ctx.readAnswer('item.list', {});
 
-  expect([shown.shownBody, listed.listedKeys]).toStrictEqual([
-    'The body.',
-    expect.not.arrayContaining(['body']),
-  ]);
+  expect([shown.shownBody, listed.listedKeys.includes('body')]).toStrictEqual(['The body.', false]);
 });
