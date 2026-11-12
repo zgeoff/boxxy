@@ -76,7 +76,7 @@ interface PullRequestLinkedFact extends FactBase {
 }
 
 // the 14 fact types the fold passes over
-interface PassedOverFact extends FactBase {
+export interface PassedOverFact extends FactBase {
   type:
     | 'boxxy.item.noted'
     | 'boxxy.relation.added'

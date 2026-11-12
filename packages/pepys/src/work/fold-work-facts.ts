@@ -8,6 +8,7 @@ import type {
   ItemEditedFact,
   ItemFiledFact,
   ItemFold,
+  PassedOverFact,
   PullRequestFold,
   SessionFold,
   SleepStretch,
@@ -131,6 +132,10 @@ export function foldWorkFacts(facts: readonly WorkFact[]): WorkFold {
       const draft = getDraft(attempts, fact.payload.attempt, fact.at);
 
       linkPullRequest(draft, { id: fact.payload.pullRequestId, at: fact.at, evidence: fact.id });
+    } else {
+      // scriptc compiles a copy of `src` alone, so no `ts-pattern`: a new member of the union that
+      // no branch takes fails the type check here.
+      fact.type satisfies PassedOverFact['type'];
     }
   }
 
