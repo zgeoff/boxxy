@@ -16,7 +16,7 @@ async function setupTest() {
 
   const routes = makeControlHandler(harness);
 
-  const call = async (method: 'GET' | 'POST', path: string, body: unknown = null) => {
+  const callWithText = async (method: 'GET' | 'POST', path: string, text: string | null) => {
     const handler = routes[path]?.[method];
 
     if (handler === undefined) {
@@ -26,14 +26,20 @@ async function setupTest() {
     const response = await handler(
       new Request(`http://control.test${path}`, {
         method,
-        ...(body === null ? {} : { body: JSON.stringify(body) }),
+        ...(text === null ? {} : { body: text }),
       }),
     );
 
     return { status: response.status, json: await response.json() };
   };
 
-  return { harness, call };
+  const call = (method: 'GET' | 'POST', path: string, body: unknown = null) => {
+    const text = body === null ? null : JSON.stringify(body);
+
+    return callWithText(method, path, text);
+  };
+
+  return { harness, call, callWithText };
 }
 
 test('it answers the health route with the clock once the broker route answers', async () => {
@@ -68,6 +74,13 @@ test('it answers 400 to a body its schema refuses', async () => {
   const answer = await ctx.call('POST', '/control/clock', { minutes: 'soon' });
 
   expect(answer.status).toBe(400);
+});
+
+test('it answers 400 to a body that is not JSON', async () => {
+  const ctx = await setupTest();
+  const answer = await ctx.callWithText('POST', '/control/clock', '{');
+
+  expect(answer).toStrictEqual({ status: 400, json: { error: 'the body is not JSON' } });
 });
 
 test('it advances the clock by the minutes of the body', async () => {

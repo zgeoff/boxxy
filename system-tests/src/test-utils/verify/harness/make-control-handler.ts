@@ -111,7 +111,7 @@ interface RouteSchema<Request extends z.ZodType> {
 }
 
 // Parses the body with the route's schema, runs the step, and answers with the step's value, 400
-// for a body the schema refuses and 409 for a step whose state is wrong.
+// for a body that is not JSON or that the schema refuses, and 409 for a step whose state is wrong.
 function bindRoute<Request extends z.ZodType>(
   route: RouteSchema<Request>,
   run: (body: z.output<Request>) => Promise<unknown>,
@@ -119,8 +119,13 @@ function bindRoute<Request extends z.ZodType>(
   const handler: Handler = async (request) => {
     const text = await request.text();
 
-    const raw: unknown = text === '' ? null : JSON.parse(text);
-    const parsed = route.request.safeParse(raw);
+    const body = parseBodyText(text);
+
+    if (body.kind === 'invalid') {
+      return Response.json({ error: 'the body is not JSON' }, { status: 400 });
+    }
+
+    const parsed = route.request.safeParse(body.value);
 
     if (!parsed.success) {
       return Response.json({ error: parsed.error.message }, { status: 400 });
@@ -140,4 +145,20 @@ function bindRoute<Request extends z.ZodType>(
   };
 
   return { method: route.method, path: route.path, handler };
+}
+
+type BodyText = { readonly kind: 'json'; readonly value: unknown } | { readonly kind: 'invalid' };
+
+function parseBodyText(text: string): BodyText {
+  if (text === '') {
+    return { kind: 'json', value: null };
+  }
+
+  try {
+    const value: unknown = JSON.parse(text);
+
+    return { kind: 'json', value };
+  } catch {
+    return { kind: 'invalid' };
+  }
 }
