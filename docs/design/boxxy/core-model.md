@@ -111,8 +111,8 @@ An attempt records:
   sends the original payload. atc checks the payload hash.
 - **Its basis.** The item fields, the decisions it relies on, its recipe and its read positions at
   start ([changes while an attempt runs](#changes-while-an-attempt-runs)).
-- **Its close-out.** A typed outcome per phase kind. An attempt whose close-out doesn't parse fails
-  ([close-outs](./close-outs.md)).
+- **Its close-out.** A typed outcome per phase kind. boxxy rejects a close-out that doesn't parse,
+  and the attempt stays open for the agent to send it again ([close-outs](./close-outs.md)).
 - **Its commits and PRs.** boxxy links them from evidence, never by guess
   ([close-outs](./close-outs.md#linking-attempts-to-commits-and-prs)).
 
