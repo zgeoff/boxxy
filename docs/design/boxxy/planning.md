@@ -115,8 +115,8 @@ time ([rules](./rules.md#levers-as-facts)).
     build slot anywhere. It never stops running work.
   - It lifts defer, quiet hours and budget holds on the pulled work and its blockers. A gate declared
     unliftable, such as `blocked` or `attended`, still holds.
-  - It carries a reason and an optional expiry. Only the owner's sender kind can expedite, with a
-    confirmation bound to the person ([core model](./core-model.md#entry-points)). An owner pull
+  - It carries a reason and an optional expiry. Only a caller on the owner's path can expedite
+    ([API and auth](./v1-api-and-auth.md#the-two-paths)). An owner pull
     ranks ahead of a judgement phase's pull.
 - **Defer** hides an item from the frontier. `defer --until <time>` wakes it at that time. `defer`
   with no time keeps it out until `undefer`.

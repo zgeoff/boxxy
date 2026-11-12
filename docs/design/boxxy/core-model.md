@@ -157,14 +157,14 @@ Every entry point is a client of one command API: `item.file`, `item.edit`, `rel
 `item.close`, `steer`, `ask.answer` and the others. Entry points include the owner's own Claude Code
 session through a mod, the CLI, agents filing work, and later nixie.
 
-- **The actor comes from atc's sender kind** (`owner`, `session`, `connector`, `local`), set by the
-  daemon. It never comes from a value the caller supplies, such as an environment variable.
-- **The kernel binds the `session` kind.** The `owner` kind is a label, not a credential: any local
-  program that claims to be an atc build gets it.
-- **Risky owner commands need a confirmation bound to the person.** Expedite, answering an
-  `always_ask` and granting need a confirmation on a channel only the person can use, such as a
-  passkey approval or atc's interactive client. Low-risk commands, such as filing or ranking, accept
-  the `owner` label.
+- **The actor comes from the listener a call arrives on**
+  ([API and auth](./v1-api-and-auth.md#the-two-paths)). A call on the owner listener with no token
+  acts as the owner. A call with the worker token acts as a session, and its proven caller names
+  the session. The actor never comes from a value the caller supplies, such as an environment
+  variable.
+- **The owner's path is the only check on an owner command.** Any caller on that path can expedite,
+  file or rank, and boxxy never asks for a confirmation bound to the person
+  ([API and auth](./v1-api-and-auth.md#the-two-paths)).
 - An agent inside an attempt files work as that attempt, and the new item links `found-in` to it.
 - A steer reaches a running attempt as an atc message, and the next attempt through its input.
 
