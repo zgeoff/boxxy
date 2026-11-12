@@ -217,7 +217,7 @@ packages/pepys/src              @boxxy/pepys
 
 The pepys package sits at `packages/pepys`, so the workspace has a `packages/*` glob.
 
-The `Notifier` port is in `libs/model/src/ports/`, and its fake is in `libs/model/src/test-utils/`. v1 has no worker adapter for the review tool: the review is a session with a recipe, on the atc worker.
+The `Notifier` port is in `libs/model/src/ports/`, and its fake is in `libs/model/src/test-utils/`. v1 has no worker adapter for the review tool: the review is a session with a recipe, on the atc worker. In [review, verify and merge](./review-and-merge.md), the review stays a session on the atc worker, and the server checks and posts its result through the `ReviewGate` port.
 
 A name in the trees above differs from the v1 sketches where a lint rule needs it:
 

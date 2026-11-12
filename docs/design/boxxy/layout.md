@@ -22,12 +22,14 @@ boxxy/
 │   ├── closeout/                the phase kinds: close-out parse, settle, input; openItems dedupe
 │   ├── measurement/   (slice 2) experiments, assignment, verdict, metric + cohort plug-ins
 │   ├── capacity/      (slice 2) capacity sources, router, pacing gate
-│   └── train/         (later)   merge train rules
+│   └── train/         (next)    the merge rule; later the merge train
 ├── adapters/                    one package per outside system, named <port>-<system>
 │   ├── store-sqlite/            the only bun:sqlite + Kysely user; migrations
 │   ├── worker-atc/              spawns attempts through atc, reads back their session ids
 │   ├── notifier-atc/            sends a hold notice as an atc message
-│   ├── forge-github/            PR and commit links, later the train's merges
+│   ├── forge-github/            PR and commit links, checks, and (next) the merge
+│   ├── review-noslop/ (next)    checks and posts the review tool's result for the ReviewGate port
+│   ├── verifier-wringer/ (next) reads the verify tool's report for the Verifier port
 │   ├── caller-proof-imp/        proves a session's caller from the broker's identity token
 │   └── capacity-<provider>/   (slice 2) one per capacity source
 ├── libs/                        shared types, schemas and pure helpers; no I/O

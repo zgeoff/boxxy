@@ -142,7 +142,7 @@ Two interface layers sit under a runner, and neither reaches through the other:
 
 ```text
  runner
-   └─ worker kind: atc.session · noslop.cli · script · another vendor later
+   └─ worker kind: atc.session · a job (merge.forge) · script · another vendor later
         └─ atc.session uses atc's target providers: local-pty · imp · others later
              └─ capabilities flow up: suspend, resume, memory, network
 ```

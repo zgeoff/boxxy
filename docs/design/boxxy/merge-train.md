@@ -12,19 +12,20 @@ The decisions behind this doc are
 
 ## The merge gate
 
-A unit is ready to merge when its head has green required CI and a passing noslop check.
+The train merges a unit only when each of its heads passes the merge rule of
+[review, verify and merge](./review-and-merge.md#the-merge-step): every required check green, a
+passed review at that head, and a verified verify reading at that head.
 
-- **The gate reads noslop's check result, never a count of findings.** noslop's check fails on a
-  failed review call, an unreviewed file, a failed reporter, an unreadable marker or a rejected
-  merge resolution, even with zero findings.
-- **A clean rebase keeps the review.** noslop keys each file's review on a patch id that drops hunk
-  line numbers. A clean rebase, or a merge of the base that touches no line near the pull request's
-  hunks, leaves every patch id where it was, so the review holds at the new head with no new run.
-  Only a file whose patch id changes needs a new review.
+- **boxxy reads its own review record at the head, never the review tool's GitHub check.** The
+  review tool, noslop, passes its check at a head that no review has read, and after a failed
+  review call.
+- **A clean rebase makes the next review cheap.** noslop keys each file's review on a hash of the
+  file's patch with the hunk line numbers left out. A clean rebase, or a merge of the base that
+  touches no line near the pull request's hunks, keeps every key, so the review at the new head
+  reads no file. Only a file whose key changes needs a new review.
 
-boxxy treats both, the check contract and the patch-id carry-over, as the contract of the review
-worker kind (see [dispatch](./dispatch.md)). A reworked noslop must keep them, or the gate changes
-with it.
+The train replaces `decideMerge` and keeps its outcomes, so the pipeline's merge phase and its
+edges stay the same.
 
 ## Units
 
