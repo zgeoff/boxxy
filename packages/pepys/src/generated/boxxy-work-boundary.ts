@@ -221,11 +221,12 @@ export interface BoxxyDecisionRecordedPayload {
   pool: string;
   rulesVersion: string;
   snapshotHash: string;
-  storeVersion: number;
   pepysOffsets: unknown;
   faults: BoxxyDecisionRecordedPayloadFaultsItem[];
   limits: BoxxyDecisionRecordedPayloadLimitsItem[];
   at: number;
+  snapshotStoreVersion: number;
+  storeVersion: number;
 }
 
 export interface BoxxyDecisionRecordedPayloadFaultsItem {
@@ -1657,33 +1658,40 @@ function decodeBoxxyDecisionRecordedPayload(value: unknown): BoxxyDecisionRecord
     return undefined;
   }
 
-  const raw7 = 'storeVersion' in value ? value.storeVersion : undefined;
-  const field7 = typeof raw7 === 'number' ? raw7 : undefined;
+  const field7 = 'pepysOffsets' in value ? value.pepysOffsets : undefined;
 
-  if (field7 === undefined) {
+  const raw8 = 'faults' in value ? value.faults : undefined;
+  const field8 = decodeBoxxyDecisionRecordedPayloadFaults(raw8);
+
+  if (field8 === undefined) {
     return undefined;
   }
 
-  const field8 = 'pepysOffsets' in value ? value.pepysOffsets : undefined;
-
-  const raw9 = 'faults' in value ? value.faults : undefined;
-  const field9 = decodeBoxxyDecisionRecordedPayloadFaults(raw9);
+  const raw9 = 'limits' in value ? value.limits : undefined;
+  const field9 = decodeBoxxyDecisionRecordedPayloadLimits(raw9);
 
   if (field9 === undefined) {
     return undefined;
   }
 
-  const raw10 = 'limits' in value ? value.limits : undefined;
-  const field10 = decodeBoxxyDecisionRecordedPayloadLimits(raw10);
+  const raw10 = 'at' in value ? value.at : undefined;
+  const field10 = typeof raw10 === 'number' ? raw10 : undefined;
 
   if (field10 === undefined) {
     return undefined;
   }
 
-  const raw11 = 'at' in value ? value.at : undefined;
+  const raw11 = 'snapshotStoreVersion' in value ? value.snapshotStoreVersion : undefined;
   const field11 = typeof raw11 === 'number' ? raw11 : undefined;
 
   if (field11 === undefined) {
+    return undefined;
+  }
+
+  const raw12 = 'storeVersion' in value ? value.storeVersion : undefined;
+  const field12 = typeof raw12 === 'number' ? raw12 : undefined;
+
+  if (field12 === undefined) {
     return undefined;
   }
 
@@ -1695,11 +1703,12 @@ function decodeBoxxyDecisionRecordedPayload(value: unknown): BoxxyDecisionRecord
     pool: field4,
     rulesVersion: field5,
     snapshotHash: field6,
-    storeVersion: field7,
-    pepysOffsets: field8,
-    faults: field9,
-    limits: field10,
-    at: field11,
+    pepysOffsets: field7,
+    faults: field8,
+    limits: field9,
+    at: field10,
+    snapshotStoreVersion: field11,
+    storeVersion: field12,
   };
 }
 

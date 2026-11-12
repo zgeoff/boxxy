@@ -93,7 +93,9 @@ export const workFactSchemas = {
     skillsRef: brandSchemas.commitSha.nullable(),
     rulesVersion: brandSchemas.rulesVersion,
   }),
-  'boxxy.decision.recorded': decisionRowSchema,
+  'boxxy.decision.recorded': decisionRowSchema
+    .omit({ storeVersion: true })
+    .extend({ snapshotStoreVersion: countSchema }),
   'boxxy.attempt.started': z.object({
     ...ofAttempt,
     atcSession: brandSchemas.atcSessionId,

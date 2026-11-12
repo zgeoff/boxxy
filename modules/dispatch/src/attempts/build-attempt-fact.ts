@@ -50,7 +50,9 @@ export function buildAttemptFact(
     .with('boxxy.decision.recorded', (factType) => {
       invariant(parts.decision !== null, 'a move that records a decision carries one');
 
-      return wrap(factType, parts.decision);
+      const { storeVersion, ...decision } = parts.decision;
+
+      return wrap(factType, { ...decision, snapshotStoreVersion: storeVersion });
     })
     .with('boxxy.attempt.started', (factType) => {
       const started = event('started');

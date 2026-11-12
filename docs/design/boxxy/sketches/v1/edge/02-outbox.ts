@@ -114,7 +114,7 @@ await runSenderOnce({ store, sink: fake, clock, limits: outboxLimits }); // send
 //      dispatch does not depend on what pepys can hold.
 //      `outbox.retry` does not help such a row: its size is the same on every try. No accepted
 //      close-out can be such a row. A fact of another type that has no bound of its own can:
-//      `boxxy.decision.recorded` carries the whole `DecisionRow`.
+//      `boxxy.decision.recorded` carries the whole `DecisionRow`, with `storeVersion` renamed.
 //      Not checked: the size of the largest real fact. `boxxy.decision.recorded` is not
 //      measured at 5,000 open items. If it passes 256 KiB, the sender parks it.
 

@@ -121,7 +121,7 @@ test.each([
       pool: 'main',
       rulesVersion: '60303ae22b998861bce3b28f33eec1be758a213c86c93c076dbe9f558c11c752',
       snapshotHash: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
-      storeVersion: 42,
+      snapshotStoreVersion: 42,
       pepysOffsets: { 'facts.boxxy.work': 12 },
       faults: [],
       limits: [{ limit: 'workers', held: 3, max: 3 }],
@@ -323,6 +323,13 @@ test.each([
 ])[])('it rejects a %s payload with a bad %p', (type, path, payload) => {
   expect(workFactSchemas[type].safeParse(payload).error?.issues).toPartiallyContain({ path });
 });
+
+test.each(Object.entries(workFactSchemas))(
+  'it leaves the store version key of %s free for the sink',
+  (_type, schema) => {
+    expect(Object.keys(schema.shape)).not.toContain('storeVersion');
+  },
+);
 
 test.each(Object.entries(workFactSchemas))(
   'it lets the wire schema of %s add a store version',

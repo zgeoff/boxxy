@@ -126,7 +126,10 @@ export interface WorkFacts {
   };
 
   // written by: `claimNext`, for a start pick and for a wake pick
-  'boxxy.decision.recorded': DecisionRow; // holds `attempt`, `item`, `kind: 'start' | 'wake'`, `limits`
+  // The row holds `attempt`, `item`, `kind: 'start' | 'wake'` and `limits`. Its `storeVersion`, the
+  // version of the snapshot the decision read, goes out as `snapshotStoreVersion`: the sink's
+  // `storeVersion` would overwrite it.
+  'boxxy.decision.recorded': Omit<DecisionRow, 'storeVersion'> & { snapshotStoreVersion: number };
 
   // ── the session ──
 

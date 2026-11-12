@@ -133,7 +133,11 @@ export interface WorkFacts {
     readonly skillsRef: CommitSha | null;
     readonly rulesVersion: RulesVersion;
   };
-  'boxxy.decision.recorded': DecisionRow;
+
+  // The sink adds `storeVersion` to every payload, so the decision's own field takes another name.
+  'boxxy.decision.recorded': Omit<DecisionRow, 'storeVersion'> & {
+    readonly snapshotStoreVersion: number;
+  };
   'boxxy.attempt.started': OfAttempt & {
     readonly atcSession: AtcSessionId;
     readonly resumeFallback: boolean;

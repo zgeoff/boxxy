@@ -64,7 +64,7 @@ The `FactSink` port has three forms (section C): the pepys adapter, which uses t
 - **The fact ID on the wire** is `event:boxxy:<event>`, where the event is the outbox row's fact ID.
 - **A runner pause or resume writes no fact**, because it names no item.
 - **Three settle causes have no fact of their own.** `stalled`, `skill-missing` and a capacity refusal show on the `settled` fact.
-- **The schemas are declared once**, in `@boxxy/model`. The store checks each fact against them. The wire schema in `@boxxy/pepys` is the model's schema plus the store version, which the sink adds.
+- **The schemas are declared once**, in `@boxxy/model`. The store checks each fact against them. The wire schema in `@boxxy/pepys` is the model's schema plus the store version, which the sink adds. No model schema has a `storeVersion` field, so the decision fact carries the version of the snapshot it read as `snapshotStoreVersion`.
 - **The caller.** The `started`, `reconciled` and `resumed` facts carry the proven caller of the attempt's session. pepys counts a telemetry row for an attempt only when the row's proven origin is that caller.
 - **Pull requests.** boxxy stores GitHub's own ID of each pull request and sends it as a decimal string, because pepys builds its entity ID from it. The hook reads the forge before it writes. When the forge does not answer, the hook writes nothing, and the pull request watch links the pull request within 5 minutes ([the watch](./v1-lifecycle.md#the-pull-request-watch)).
 - **A merge.** boxxy records its own sighting of a merge, because the item's derived state reads it and boxxy must dispatch while pepys is down. pepys takes the merge time from the GitHub tables.

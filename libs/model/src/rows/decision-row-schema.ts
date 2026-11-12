@@ -17,7 +17,7 @@ const limitCountSchema = z.object({
   max: countSchema,
 });
 
-// A plain object, so that the wire schema of `boxxy.decision.recorded` can extend it.
+// A plain object, so that the schema of `boxxy.decision.recorded` can rename one field of it.
 export const decisionRowSchema = z.object({
   id: brandSchemas.decisionId,
   attempt: brandSchemas.attemptId,
