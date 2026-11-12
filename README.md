@@ -14,11 +14,8 @@
 Decides which task a fleet of coding agents works on next, and measures what each task costs in
 tokens and money.
 
-**Status: slice 1 in progress.** `@boxxy/model` and `@boxxy/content-hash` hold the shared types,
-schemas and hashes, `@boxxy/rules` loads the rules, and `@boxxy/store-sqlite` stores boxxy's state.
-`@boxxy/dispatch` holds only the store's memory fake and contract cases, and `@boxxy/cli` is a
-placeholder. The [first build spec](./docs/design/boxxy/slice-1.md) sets out the first working
-version, which the design calls slice 1.
+**Status: v1 in progress.** The [v1 design](./docs/design/boxxy/v1.md) sets out the version under
+build, and the [v1 work list](./docs/design/boxxy/v1-work-list.md) splits it into slices.
 
 ## What boxxy does
 
