@@ -285,7 +285,10 @@ test('#start answers unknown for a keyed spawn that ran before its session is li
 
   const outcome = await ctx.worker.start(ctx.buildSpawnRequest(attempt, 'box'));
 
-  expect(outcome).toMatchObject({ kind: 'unknown' });
+  expect(outcome).toStrictEqual({
+    kind: 'unknown',
+    reason: 'the spawn ran, and its session is not listed yet',
+  });
 });
 
 test('#start answers refused with the cause other for any other atc refusal', async () => {
@@ -341,7 +344,16 @@ test('#reconcile finds a session by its spawn name when the attempt holds no ses
 
   const reading = await ctx.worker.reconcile(attempt);
 
-  expect(reading).toMatchObject({ kind: 'running', atcSession: 's1-fake' });
+  expect(reading).toStrictEqual({
+    kind: 'running',
+    atcSession: brandSchemas.atcSessionId.parse('s1-fake'),
+    agentSession: brandSchemas.agentSessionId.parse('agent-1'),
+    caller: { issuer: 'https://broker.test', subject: 'imp-id-s1-fake' },
+    attention: 'working',
+    lastActivityAt: ctx.clock.now(),
+    lastOwnerAt: ctx.clock.now(),
+    usageLimitResetsAt: null,
+  });
 });
 
 test('#reconcile throws when atc does not answer, so no session reads absent by mistake', () => {
@@ -460,7 +472,11 @@ test('#resume answers refused when atc cannot ready the host to wake', async () 
 
   const outcome = await ctx.worker.resume(attempt);
 
-  expect(outcome).toMatchObject({ kind: 'refused', cause: 'other' });
+  expect(outcome).toStrictEqual({
+    kind: 'refused',
+    cause: 'other',
+    reason: 'host_unavailable: the fake atc refused the call',
+  });
 });
 
 test('#resume answers capacity when the host has no RAM budget to wake', async () => {
@@ -484,7 +500,11 @@ test('#resume answers capacity when the host has no RAM budget to wake', async (
 
   const outcome = await ctx.worker.resume(attempt);
 
-  expect(outcome).toMatchObject({ kind: 'refused', cause: 'capacity' });
+  expect(outcome).toStrictEqual({
+    kind: 'refused',
+    cause: 'capacity',
+    reason: 'host_unavailable (ram_budget_exceeded): the fake atc refused the call',
+  });
 });
 
 test('#resumeKept sends the prompt to the woken session as a message', async () => {
