@@ -41,7 +41,8 @@ BOXXY_URL=<server_url> boxxy item list --state ready
 
 `boxxy --help` prints the usage line of every command, and `boxxy --version` prints the version. A
 command prints the server's answer as JSON and exits 0, exits 1 on a refusal or an error, and exits
-2 on a wrong command line.
+2 on a wrong command line. `boxxy attempt evidence` and `boxxy attempt close-out` print only the ID
+of the fact they recorded.
 
 ## Features
 
