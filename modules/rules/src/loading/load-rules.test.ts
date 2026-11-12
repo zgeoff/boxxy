@@ -390,6 +390,29 @@ test('it rejects a rules file whose aliases expand past the alias limit', () => 
   });
 });
 
+test('it rejects a rules file whose alias holds itself as invalid at the alias', () => {
+  const result: unknown = loadRules({
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([['rules.yaml', new TextEncoder().encode('lead: &cycle [*cycle]\n')]]),
+    },
+    concepts: [],
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
+    pins: new Map(),
+  });
+
+  expect(result).toStrictEqual({
+    kind: 'rejected',
+    rejections: [
+      {
+        file: 'rules.yaml',
+        path: 'lead[0]',
+        reason: { kind: 'invalid', message: 'the value holds itself through an alias' },
+      },
+    ],
+  });
+});
+
 test('it rejects a rules file saved in Latin-1 as invalid', () => {
   const latin1 = new Uint8Array([
     ...new TextEncoder().encode('version: 1\nlead: [caf'),

@@ -671,8 +671,8 @@ the example uses bare names.
     file's schema (`invalid`). The schema refuses an unknown field, a pipeline phase with no
     `maxAttempts`, a concept pinned twice and two pools with one name. Two pinned concepts that
     register one plug-in name are `invalid` too, at the second concept's entry. Before the schema
-    check, the loader refuses each `__proto__` key, and a file with one gets only those
-    rejections;
+    check, the loader refuses a value that holds itself through a YAML alias, at the alias, and
+    then each `__proto__` key. A file with either gets only those rejections;
   - an unknown concept name, or a known name at a version no concept has;
   - a pool whose `order` or `lead` names a signal no pinned concept registers;
   - a plug-in reference whose parameters fail the plug-in's `params` schema (`bad-plugin-params`).

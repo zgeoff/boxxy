@@ -68,6 +68,19 @@ function toPlainValue(document: Document): Converted<unknown> {
 }
 
 function parseRulesValue(fileName: string, value: unknown): RulesFileParse {
+  // yaml builds an alias to its own anchor as a value that contains itself, and a walk of it
+  // never ends
+  const cyclePath = findCyclePath(value, [], []);
+
+  if (cyclePath !== null) {
+    return {
+      kind: 'rejected',
+      rejections: [
+        buildInvalid(fileName, formatKeyPath(cyclePath), 'the value holds itself through an alias'),
+      ],
+    };
+  }
+
   // zod's record schema drops a `__proto__` key with no issue, so the loader would miss its value
   const protoKeyPaths = collectProtoKeyPaths(value, []);
 
@@ -92,6 +105,34 @@ function parseRulesValue(fileName: string, value: unknown): RulesFileParse {
   }
 
   return { kind: 'parsed', file: checked.data };
+}
+
+function findCyclePath(
+  value: unknown,
+  ancestors: readonly object[],
+  path: readonly PropertyKey[],
+): PropertyKey[] | null {
+  if (typeof value !== 'object' || value === null) {
+    return null;
+  }
+
+  if (ancestors.includes(value)) {
+    return [...path];
+  }
+
+  const entries: [PropertyKey, unknown][] = Array.isArray(value)
+    ? value.map((item: unknown, index) => [index, item])
+    : Object.entries(value);
+
+  for (const [key, item] of entries) {
+    const found = findCyclePath(item, [...ancestors, value], [...path, key]);
+
+    if (found !== null) {
+      return found;
+    }
+  }
+
+  return null;
 }
 
 function collectProtoKeyPaths(value: unknown, path: readonly PropertyKey[]): PropertyKey[][] {
