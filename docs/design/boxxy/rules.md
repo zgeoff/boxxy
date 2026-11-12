@@ -18,12 +18,14 @@ merges it. Every decision records the rules version in force.
 | merge train rules | [merge train](./merge-train.md) |
 | plug-in versions | [the plug-in kinds registry](#the-plug-in-kinds-registry) |
 
-- **boxxy loads rules only from a merged commit,** and reloads them live. A git checkout loads
-  only when the server's rules ref, `origin/main` unless the config names another, holds its
-  commit. A commit off that ref, a missing ref or uncommitted changes fail the load, and a failed
-  reload keeps the rules in force. A rules folder with no `.git` loads as a plain folder, for
-  a local server and for tests: boxxy reads every file that is not hidden, and records the commit
-  as `folder`.
+- **boxxy loads rules from a git checkout only at a merged commit,** and reloads them live. The
+  server reads the files of HEAD's commit from git, never from the working tree, and only when the
+  server's rules ref, `origin/main` unless the config names another, holds that commit. A commit
+  off that ref, a missing ref, uncommitted changes or a symlink in the commit fail the load, and a
+  failed reload keeps the rules in force.
+- **A rules folder with no `.git` loads with no check.** boxxy reads every file that is not hidden,
+  and records the commit as `folder`. A deploy that uses a plain folder must build it only from the
+  reviewed rules branch.
 - **A change is a PR.** It is diffable and reviewed, and CI replays it (see
   [replay CI](#replay-ci)).
 - **A rules PR touches dispatch for the whole fleet,** so it takes the full review gate. A new rule

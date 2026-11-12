@@ -50,12 +50,12 @@ The `atc` section of the configuration names the gateway:
 | `noticeSession`  | optional: the atc session that gets the hold notices               |
 
 A git checkout in `rules.folder` loads only a commit that `rules.ref` holds, `origin/main` by
-default ([rules](../../docs/design/boxxy/rules.md#policy-in-git)). `spawn.repos` gives each repo a
-folder on the target, or a git source `{ url, ref, credentialRef? }` that atc clones
-([the atc worker](../../docs/design/boxxy/v1-lifecycle.md#the-atc-worker)).
-
-With a `pepys` section in the configuration, also set `BOXXY_PEPYS_SIGNING_SECRET`. With a `github`
-section, set `BOXXY_GITHUB_TOKEN` unless a broker adds the GitHub credential.
+default. A plain folder loads with no check, so build it only from the reviewed rules branch
+([rules](../../docs/design/boxxy/rules.md#policy-in-git)). `spawn.repos` gives each repo a folder on
+the target, or a git source `{ url, ref, credentialRef? }` that atc clones
+([the atc worker](../../docs/design/boxxy/v1-lifecycle.md#the-atc-worker)). With a `pepys` section
+in the configuration, also set `BOXXY_PEPYS_SIGNING_SECRET`. With a `github` section, set
+`BOXXY_GITHUB_TOKEN` unless a broker adds the GitHub credential.
 
 ## Features
 
