@@ -50,13 +50,19 @@ export async function createSQLiteClaimStore(path: string): Promise<SQLiteClaimS
     // Kysely holds the one connection of a handle from acquire to release, so two calls on this
     // store run one at a time, and the write lock makes another store's writer wait.
     exclusive: (work) =>
-      writerDB.connection().execute((db) =>
-        withTransaction(
-          db,
-          (locked) => takeWriteLock(locked, lockWaitLimitMs),
-          () => work(createSQLiteTx(db)),
-        ),
-      ),
+      Promise.try(() => {
+        if (isClosed) {
+          throw new Error('the store is closed');
+        }
+
+        return writerDB.connection().execute((db) =>
+          withTransaction(
+            db,
+            (locked) => takeWriteLock(locked, lockWaitLimitMs),
+            () => work(createSQLiteTx(db)),
+          ),
+        );
+      }),
 
     read: async (work) => {
       if (isClosed) {

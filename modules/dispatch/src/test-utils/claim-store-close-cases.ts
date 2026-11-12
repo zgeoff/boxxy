@@ -33,6 +33,36 @@ export const claimStoreCloseCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
+    '#exclusive rejects while the store closes',
+    async (store) => {
+      const entered = Promise.withResolvers<void>();
+      const gate = Promise.withResolvers<void>();
+
+      const reading = store.read(async () => {
+        entered.resolve();
+
+        await gate.promise;
+      });
+
+      await entered.promise;
+
+      const closing = store.close();
+
+      const settled = await store
+        .exclusive((transaction) => transaction.listLimits())
+        .then(
+          () => 'resolved',
+          () => 'rejected',
+        );
+
+      gate.resolve();
+
+      await Promise.all([reading, closing]);
+
+      return { received: settled, expected: 'rejected' };
+    },
+  ],
+  [
     '#close waits for a read that is running',
     async (store) => {
       const events: string[] = [];
