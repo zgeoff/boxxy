@@ -26,6 +26,7 @@
         "@boxxy/notifier-atc",
         "@boxxy/pepys",
         "@boxxy/planning",
+        "@boxxy/prompt-template",
         "@boxxy/review-noslop",
         "@boxxy/rules",
         "@boxxy/server",
@@ -65,6 +66,10 @@
     },
     "adapters/worker-atc": {
       "component": "@boxxy/worker-atc",
+      "initial-version": "0.1.0"
+    },
+    "libs/prompt-template": {
+      "component": "@boxxy/prompt-template",
       "initial-version": "0.1.0"
     },
     "libs/content-hash": {

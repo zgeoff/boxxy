@@ -2715,3 +2715,79 @@ sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 24
 
   expect(after.rules.version).not.toBe(before.rules.version);
 });
+
+test.each([
+  [
+    'an unknown placeholder',
+    'Build {{ title }}.\n\n{% if design %}{{ desgin }}{% endif %}\n',
+    'the template names "desgin", which is not a placeholder; the placeholders are ticket, title, outcome, body, acceptance, design, findings, notes, repo, attempt_id, input',
+  ],
+  [
+    'a syntax error',
+    'Build {{ title }}.\n\n{% if design %}## Design\n',
+    expect.stringMatching(/^the template does not parse: tag \{% if design %\} not closed/u),
+  ],
+  [
+    'an include',
+    "Build {{ title }}.\n\n{% include 'other.md' %}\n",
+    expect.stringMatching(/^the template does not parse: tag "include" not found/u),
+  ],
+])('it rejects a prompt template with %s', (_, template, message) => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+kinds:
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
+pools:
+  - { name: build, takes: {}, order: [oldest] }
+lead: []
+propagation: []
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode(template)],
+      ]),
+    },
+    concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
+    pins,
+  });
+
+  expect(result).toStrictEqual({
+    kind: 'rejected',
+    rejections: [
+      {
+        file: 'rules.yaml',
+        path: 'recipes.build-v1.prompt',
+        reason: { kind: 'bad-prompt', path: 'prompts/build-v1.md', message },
+      },
+    ],
+  });
+});

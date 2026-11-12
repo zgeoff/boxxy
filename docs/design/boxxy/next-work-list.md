@@ -1,6 +1,6 @@
 # Next work list
 
-Build three designs in the 14 slices below, in order: [review, verify and merge](./review-and-merge.md), [wringer journeys](./wringer-journeys.md) and [owner notices](./owner-notices.md). Each slice gives its outcome, the doc and sketch files it follows, what it needs first, and the check that proves it. Slices 1 to 12 need nothing outside this repo except wringer 0.2.0. Slices 13 and 14 change the cloud repo's deployment.
+Build three designs in slices 1 to 14 below, in order: [review, verify and merge](./review-and-merge.md), [wringer journeys](./wringer-journeys.md) and [owner notices](./owner-notices.md). Slice 15 renders the [launch prompt](./v1.md#the-launch-prompt) with Liquid. Each slice gives its outcome, the doc and sketch files it follows, what it needs first, and the check that proves it. Slices 1 to 12 need nothing outside this repo except wringer 0.2.0. Slices 13 and 14 change the cloud repo's deployment.
 
 Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and puts its code in the folders that the [folder layout](./layout-folders.md) sets. The sketches are in [`sketches/next/`](./sketches/next/): `review-and-merge/` and `wringer-journeys/`. The owner-notices sketches sit inside its doc.
 
@@ -114,3 +114,13 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 - **Follows:** [the review gate](./review-and-merge.md#the-review-gate); [owner notices](./owner-notices.md#the-review-tool-in-production).
 - **Needs:** slice 3.
 - **Check:** a live review round leaves noslop's check run at the pull request head, posted by the server. A live build session's environment holds no clone token.
+
+## Launch prompts
+
+### 15. Liquid launch prompts
+
+- **Outcome:** a recipe's prompt template is a Liquid template, so a prompt writes `{% if design %}## Design\n\n{{ design }}{% endif %}` and an empty section leaves no bare heading. The section values `acceptance`, `design`, `findings` and `notes` hold their content with no heading, and `ticket` keeps its headings. The rules loader rejects a template that does not parse, names a value that is no placeholder, or reads a field of one.
+- **Follows:** [the launch prompt](./v1.md#the-launch-prompt); [layout](./layout.md#import-pins).
+- **Needs:** nothing.
+- **Check:** a loader test per rejection (an unknown placeholder, a syntax error, an `include`), a render test of the example build prompt with no design and no findings, and a test that a value holding `{{ }}` or `{% %}` renders as written.
+- **Built:** `@boxxy/prompt-template` in `libs/prompt-template` is the only package that imports `liquidjs`. Its `findPromptTemplateFault` runs at load in `@boxxy/rules`, which refuses the rules as `bad-prompt`, and its `renderPromptTemplate` runs at claim in `@boxxy/dispatch`. The engine has no file system, no `include`, `render`, `layout` or `block` tag and no output escape, reads the empty string as false, and fails on an unknown variable or filter. The example prompts in `modules/rules/example/prompts/` spell out the title, outcome, body and each section under its heading.

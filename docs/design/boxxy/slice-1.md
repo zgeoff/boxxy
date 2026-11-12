@@ -720,9 +720,9 @@ the example uses bare names.
   takes regular files only and follows no links. `hashTree` writes each path relative to the folder
   with `/`, sorts by the paths' UTF-8 bytes, and hashes the canonical JSON list of
   `{ path, sha256, executable }`.
-- **The prompt template** is Markdown with `{{name}}` placeholders. The server replaces each with
-  its value. [The launch prompt](./v1.md#the-launch-prompt) lists the placeholders and their
-  values. `claimNext` renders it from the template text in `spawnContext`.
+- **The prompt template** is Markdown written as a Liquid template, with `{{name}}` placeholders.
+  The server renders it with each value. [The launch prompt](./v1.md#the-launch-prompt) lists the
+  placeholders and their values. `claimNext` renders it from the template text in `spawnContext`.
 - **The prompt tells each attempt to make its own git worktree** in the target repo, named after the
   attempt id, and to work only there. Two slots of one pool start their sessions in the same repo
   path, so without this they would share one working tree.

@@ -15,5 +15,6 @@
   "apps/server": "0.2.2",
   "adapters/worker-atc": "0.2.2",
   "adapters/auth-oauth": "0.2.2",
-  "adapters/review-noslop": "0.2.2"
+  "adapters/review-noslop": "0.2.2",
+  "libs/prompt-template": "0.2.2"
 }

@@ -286,6 +286,9 @@ export type LoadRejectionReason =
   | { readonly kind: 'signal-without-combine'; readonly signal: string }
   | { readonly kind: 'missing-recipe'; readonly itemKind: string; readonly phase: string }
   | { readonly kind: 'missing-prompt'; readonly path: string }
+
+  // the prompt template does not parse, names a value that is no placeholder, or reads a field of one
+  | { readonly kind: 'bad-prompt'; readonly path: string; readonly message: string }
   | { readonly kind: 'uncommitted-changes' }
 
   // a limit's `counts` or a pool's `takes` names a field that no concept registers

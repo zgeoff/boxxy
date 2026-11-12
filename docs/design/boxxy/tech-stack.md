@@ -40,6 +40,7 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | Migrations | Kysely's `Migrator` with an in-code migration provider | atc |
 | Validation | `zod` 4 | all five |
 | Rules files | `yaml` | boxxy's own choice |
+| Launch prompt templates | `liquidjs`, in `@boxxy/prompt-template` only | boxxy's own choice |
 | CLI | `node:util` `parseArgs`, with the command table of `apps/cli` | boxxy's own choice |
 | Control flow | `ts-pattern`, `tiny-invariant` | atc, pepys |
 | State machines | `xstate` 6 beta, for the attempt state table in `@boxxy/dispatch` only | boxxy's own choice |

@@ -36,7 +36,8 @@ boxxy/
 ├── libs/                        shared types, schemas and pure helpers; no I/O
 │   ├── model/                   every type 2+ packages share, the fact catalog, schemas, derived state
 │   ├── contract/                the oRPC contract the server serves and the CLI calls
-│   └── content-hash/            the ContentHash type and hashes for recipes, rules versions, verdicts
+│   ├── content-hash/            the ContentHash type and hashes for recipes, rules versions, verdicts
+│   └── prompt-template/         the launch prompt's placeholders, its load check and its Liquid render
 ├── packages/                    packages that another repo's deployment installs
 │   └── pepys/                   @boxxy/pepys: the pepys plug-in, the FactSink adapter and the pepys reader
 ├── system-tests/                @boxxy/system-tests: tests that run more than one app together
@@ -120,9 +121,13 @@ oRPC has an owner and no lint pin. Only `libs/contract` calls `oc` and `mcp.tool
 
 The OAuth libraries sit at the versions that atc uses, pinned once in the root catalog: `better-auth` and `@better-auth/*` at `1.7.15`, and `@simplewebauthn/server` at `14.0.3`.
 
-Two libraries have a pin of their own. Only `modules/rules` imports `yaml`, so every rules file
-reaches the other packages through `loadRules`. Only `modules/dispatch` imports `xstate`, for the
-attempt state table.
+Three libraries have a pin of their own:
+
+| Library    | Package                | Why                                                                                                     |
+| ---------- | ---------------------- | ------------------------------------------------------------------------------------------------------- |
+| `yaml`     | `modules/rules`        | every rules file reaches the other packages through `loadRules`                                         |
+| `xstate`   | `modules/dispatch`     | the attempt state table                                                                                 |
+| `liquidjs` | `libs/prompt-template` | `modules/rules` checks each prompt template at load and `modules/dispatch` renders it at claim, so the engine and its settings live in a lib that both import |
 
 The `zgeoff/import-zones` rule in `.oxlintrc.json` holds these pins. Its `oauth` rule holds the OAuth pin, and its `sqlite` rule allows both `store-sqlite` and `auth-oauth`. Its `pepys` edge holds the pin for `@boxxy/pepys`, and its `pepys-kit` rule the pin for the kit. Its `wringer` rule lets only `system-tests` import `@wringer/*`. Lint lets an adapter and a package under `packages/` call `fetch`, and can't tell which one a
 `fetch` reaches, so review checks that GitHub calls stay in `forge-github` and pepys calls in

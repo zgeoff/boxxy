@@ -33,17 +33,18 @@ compare models, prompts and rules on the same kind of task.
 boxxy is one [Bun](https://bun.sh) workspace. The [layout](./docs/design/boxxy/layout.md) sets which
 folder holds what, and which package may import which.
 
-| Package               | Folder                  | Holds                                              |
-| --------------------- | ----------------------- | -------------------------------------------------- |
-| `@boxxy/cli`          | `apps/cli`              | the `boxxy` command line                           |
-| `@boxxy/server`       | `apps/server`           | the API on two listeners, and the runner tick      |
-| `@boxxy/dispatch`     | `modules/dispatch`      | claiming the next task, and settling each attempt  |
-| `@boxxy/rules`        | `modules/rules`         | the rules loader and the rules version             |
-| `@boxxy/closeout`     | `modules/closeout`      | the four phase kinds and the `openItems` dedupe    |
-| `@boxxy/planning`     | `modules/planning`      | `buildFrame`, `decide` and the planning concepts   |
-| `@boxxy/store-sqlite` | `adapters/store-sqlite` | the store on SQLite                                |
-| `@boxxy/model`        | `libs/model`            | the types the packages share, and the fact catalog |
-| `@boxxy/content-hash` | `libs/content-hash`     | canonical JSON and the SHA-256 content hashes      |
+| Package                  | Folder                  | Holds                                              |
+| ------------------------ | ----------------------- | -------------------------------------------------- |
+| `@boxxy/cli`             | `apps/cli`              | the `boxxy` command line                           |
+| `@boxxy/server`          | `apps/server`           | the API on two listeners, and the runner tick      |
+| `@boxxy/dispatch`        | `modules/dispatch`      | claiming the next task, and settling each attempt  |
+| `@boxxy/rules`           | `modules/rules`         | the rules loader and the rules version             |
+| `@boxxy/closeout`        | `modules/closeout`      | the four phase kinds and the `openItems` dedupe    |
+| `@boxxy/planning`        | `modules/planning`      | `buildFrame`, `decide` and the planning concepts   |
+| `@boxxy/store-sqlite`    | `adapters/store-sqlite` | the store on SQLite                                |
+| `@boxxy/model`           | `libs/model`            | the types the packages share, and the fact catalog |
+| `@boxxy/content-hash`    | `libs/content-hash`     | canonical JSON and the SHA-256 content hashes      |
+| `@boxxy/prompt-template` | `libs/prompt-template`  | the launch prompt's load check and Liquid render   |
 
 Every package publishes to npm. The [releasing runbook](./docs/runbooks/releasing.md) covers a
 release.

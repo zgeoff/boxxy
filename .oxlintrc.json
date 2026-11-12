@@ -33,6 +33,7 @@
           "domain": ["modules/**", "libs/**"],
           "rules": ["modules/rules/**"],
           "dispatch": ["modules/dispatch/**"],
+          "prompt-template": ["libs/prompt-template/**"],
           "store-sqlite": ["adapters/store-sqlite/**"],
           "auth-oauth": ["adapters/auth-oauth/**"],
           "worker-atc": ["adapters/worker-atc/**"],
@@ -122,6 +123,12 @@
             "modules": ["yaml"],
             "allow": ["rules"],
             "reason": "only modules/rules parses YAML; load a rules checkout with its loadRules"
+          },
+          {
+            "name": "liquid",
+            "modules": ["liquidjs"],
+            "allow": ["prompt-template"],
+            "reason": "only libs/prompt-template parses and renders a launch prompt; use its findPromptTemplateFault and renderPromptTemplate"
           },
           {
             "name": "xstate",

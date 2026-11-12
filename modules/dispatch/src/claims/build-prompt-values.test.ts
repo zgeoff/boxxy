@@ -1,8 +1,9 @@
 import { expect, test } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockV1ItemView } from '@boxxy/model/test-utils/build-mock-v1-item-view';
+import { renderPromptTemplate } from '@boxxy/prompt-template';
+import { buildExampleLoadInput } from '@boxxy/rules/test-utils/build-example-load-input';
 import { buildPromptValues } from './build-prompt-values.ts';
-import { renderPrompt } from './render-prompt.ts';
 
 test('it builds every placeholder from the item, the notes and the phase input', () => {
   const item = buildMockV1ItemView({
@@ -48,17 +49,17 @@ test('it builds every placeholder from the item, the notes and the phase input',
     body: '## Scope\n\nThe upload row only.',
     repo: item.repo,
     attempt_id: 'att-1',
-    acceptance: '## Acceptance\n\n- a1: It retries',
-    design: '## Design\n\nOne button.\n\n```ts\nretry();\n```\n\nLocation: docs/design/retry.md',
+    acceptance: '- a1: It retries',
+    design: 'One button.\n\n```ts\nretry();\n```\n\nLocation: docs/design/retry.md',
     findings:
-      '## Findings to answer\n\nThe review at e83c5163316f89bfbde7d9ab23ca2e25604af290 left findings open: high 1, medium 2, low 0.\n\nReply to each open finding.',
-    notes: '## Notes from the owner\n\n- 1970-01-01: First\n- 1970-01-02: Second',
+      'The review at e83c5163316f89bfbde7d9ab23ca2e25604af290 left findings open: high 1, medium 2, low 0.\n\nReply to each open finding.',
+    notes: '- 1970-01-01: First\n- 1970-01-02: Second',
     ticket: expect.stringMatching(/^# Add a retry\n\nA failed upload sends again\.\n\n## Scope/u),
     input: expect.any(String),
   });
 });
 
-test('it joins the ticket in order, with each section that has content', () => {
+test('it joins the ticket in order, with each section that has content under its heading', () => {
   const item = buildMockV1ItemView({
     title: 'Add a retry',
     outcome: 'Done.',
@@ -81,7 +82,7 @@ test('it joins the ticket in order, with each section that has content', () => {
     input: { design: { text: 'The design.', location: null } },
   });
 
-  expect(values['ticket']).toBe(
+  expect(values.ticket).toBe(
     [
       '# Add a retry',
       'Done.',
@@ -93,7 +94,7 @@ test('it joins the ticket in order, with each section that has content', () => {
   );
 });
 
-test('it renders each empty section as nothing', () => {
+test('it builds each empty section as the empty string', () => {
   const item = buildMockV1ItemView({ title: 'T', outcome: 'O', body: '', acceptance: [] });
 
   const values = buildPromptValues({
@@ -104,21 +105,67 @@ test('it renders each empty section as nothing', () => {
   });
 
   expect([
-    values['body'],
-    values['acceptance'],
-    values['design'],
-    values['findings'],
-    values['notes'],
+    values.body,
+    values.acceptance,
+    values.design,
+    values.findings,
+    values.notes,
   ]).toStrictEqual(['', '', '', '', '']);
 
-  expect(values['ticket']).toBe('# T\n\nO');
+  expect(values.ticket).toBe('# T\n\nO');
 });
 
-test('it leaves the text of the template outside the placeholders as it is', () => {
-  const rendered = renderPrompt('Keep {{unknown}} and {{body}}.\n{{design}}\nEnd', {
-    body: 'has {{title}} in it',
-    design: '',
+test('it renders the example build prompt with no design and no findings sections', () => {
+  const item = buildMockV1ItemView({
+    title: 'Add a dark theme',
+    outcome: 'The app follows the system theme.',
+    body: '## Scope\n\nOnly the theme.',
+    acceptance: [
+      {
+        id: brandSchemas.criterionId.parse('a1'),
+        text: 'The theme follows the system',
+        evidence: [],
+      },
+    ],
   });
 
-  expect(rendered).toBe('Keep {{unknown}} and has {{title}} in it.\n\nEnd');
+  const values = buildPromptValues({ item, attempt: 'att-1', notes: [], input: { pr: null } });
+
+  const template = new TextDecoder().decode(
+    buildExampleLoadInput().checkout.files.get('prompts/build-v1.md'),
+  );
+
+  expect(renderPromptTemplate(template, values)).toStartWith(
+    [
+      'Build this item to its design and acceptance list, and open a pull request.',
+      '# Add a dark theme',
+      'The app follows the system theme.',
+      '## Scope',
+      'Only the theme.',
+      '## Acceptance',
+      '- a1: The theme follows the system',
+      "The attempt's input, as JSON, names the pull request when one exists:",
+      '{\n  "pr": null\n}',
+      'Run the checks',
+    ].join('\n\n'),
+  );
+});
+
+test('it renders a body that holds Liquid markup as written', () => {
+  const item = buildMockV1ItemView({
+    title: 'Fix the {{ title }} tag',
+    outcome: 'The tag renders.',
+    body: 'The page shows {% if design %}raw{% endif %} and {{ notes }}.',
+    acceptance: [],
+  });
+
+  const values = buildPromptValues({ item, attempt: 'att-1', notes: [], input: { pr: null } });
+
+  const template = new TextDecoder().decode(
+    buildExampleLoadInput().checkout.files.get('prompts/build-v1.md'),
+  );
+
+  expect(renderPromptTemplate(template, values)).toContain(
+    '# Fix the {{ title }} tag\n\nThe tag renders.\n\nThe page shows {% if design %}raw{% endif %} and {{ notes }}.\n\nThe attempt',
+  );
 });

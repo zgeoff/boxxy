@@ -35,6 +35,7 @@
   "dependencies": {
     "@boxxy/content-hash": "workspace:*",
     "@boxxy/model": "workspace:*",
+    "@boxxy/prompt-template": "workspace:*",
     "tiny-invariant": "catalog:",
     "ts-pattern": "catalog:",
     "yaml": "catalog:",

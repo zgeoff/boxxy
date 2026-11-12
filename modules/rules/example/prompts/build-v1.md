@@ -1,14 +1,44 @@
 Build this item to its design and acceptance list, and open a pull request.
 
-{{ticket}}
+# {{ title }}
+
+{{ outcome }}
+{%- if body %}
+
+{{ body }}
+{%- endif %}
+{%- if acceptance %}
+
+## Acceptance
+
+{{ acceptance }}
+{%- endif %}
+{%- if design %}
+
+## Design
+
+{{ design }}
+{%- endif %}
+{%- if findings %}
+
+## Findings to answer
+
+{{ findings }}
+{%- endif %}
+{%- if notes %}
+
+## Notes from the owner
+
+{{ notes }}
+{%- endif %}
 
 The attempt's input, as JSON, names the pull request when one exists:
 
-{{input}}
+{{ input }}
 
-Run the checks that the repo's own agent instructions name. Fix each finding under "Findings to
-fix", when there are any. Close out `built`, `blocked` with the question the owner must answer, or
-`abandoned`.
+Run the checks that the repo's own agent instructions name. Answer each finding under "Findings to
+answer", when there are any. Close out `built`, `blocked` with the question the owner must answer,
+or `abandoned`.
 
 Run `boxxy attempt current` for the attempt ID and the JSON Schema of the close-out body. To cite a
 test or a check, record it with

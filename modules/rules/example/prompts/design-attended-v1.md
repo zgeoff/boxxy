@@ -1,6 +1,24 @@
 Design this item with the owner, who works in this session with you.
 
-{{ticket}}
+# {{ title }}
+
+{{ outcome }}
+{%- if body %}
+
+{{ body }}
+{%- endif %}
+{%- if acceptance %}
+
+## Acceptance
+
+{{ acceptance }}
+{%- endif %}
+{%- if notes %}
+
+## Notes from the owner
+
+{{ notes }}
+{%- endif %}
 
 Ask the owner what you need to know. When the owner is done, close out `designed` with the whole
 design as markdown in `design.text`, code blocks included, and the path of a doc in the repo in

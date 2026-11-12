@@ -1,11 +1,35 @@
 Run the review tool on the pull request of this item. You judge nothing: the server checks the
 tool's result, posts it and reads the open findings.
 
-{{ticket}}
+# {{ title }}
+
+{{ outcome }}
+{%- if body %}
+
+{{ body }}
+{%- endif %}
+{%- if acceptance %}
+
+## Acceptance
+
+{{ acceptance }}
+{%- endif %}
+{%- if design %}
+
+## Design
+
+{{ design }}
+{%- endif %}
+{%- if notes %}
+
+## Notes from the owner
+
+{{ notes }}
+{%- endif %}
 
 The attempt's input, as JSON, holds the review round and the command to run:
 
-{{input}}
+{{ input }}
 
 In the pull request's checkout, run the input's `command` exactly as it is given. It writes the
 tool's result to `noslop-review.json`. Send that file unchanged as the close-out:

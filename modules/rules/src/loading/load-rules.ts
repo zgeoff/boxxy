@@ -22,6 +22,7 @@ import type {
   WorkerKindName,
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
+import { findPromptTemplateFault } from '@boxxy/prompt-template';
 import invariant from 'tiny-invariant';
 import { match } from 'ts-pattern';
 import { rulesFileName } from '../constants.ts';
@@ -252,8 +253,22 @@ function collectPrompts(
           path: recipe.prompt,
         }),
       );
-    } else {
+
+      continue;
+    }
+
+    const fault = findPromptTemplateFault(new TextDecoder().decode(bytes));
+
+    if (fault === null) {
       prompts.push({ name: brandSchemas.recipeName.parse(name), recipe, bytes });
+    } else {
+      rejections.push(
+        buildRejection(['recipes', name, 'prompt'], {
+          kind: 'bad-prompt',
+          path: recipe.prompt,
+          message: fault,
+        }),
+      );
     }
   }
 

@@ -229,6 +229,14 @@
         "@faker-js/faker",
       ],
     },
+    "libs/prompt-template": {
+      "name": "@boxxy/prompt-template",
+      "version": "0.2.2",
+      "dependencies": {
+        "liquidjs": "catalog:",
+        "tiny-invariant": "catalog:",
+      },
+    },
     "modules/closeout": {
       "name": "@boxxy/closeout",
       "version": "0.2.2",
@@ -258,6 +266,7 @@
         "@boxxy/content-hash": "workspace:*",
         "@boxxy/model": "workspace:*",
         "@boxxy/planning": "workspace:*",
+        "@boxxy/prompt-template": "workspace:*",
         "tiny-invariant": "catalog:",
         "ts-pattern": "catalog:",
         "xstate": "catalog:",
@@ -289,6 +298,7 @@
       "dependencies": {
         "@boxxy/content-hash": "workspace:*",
         "@boxxy/model": "workspace:*",
+        "@boxxy/prompt-template": "workspace:*",
         "tiny-invariant": "catalog:",
         "ts-pattern": "catalog:",
         "yaml": "catalog:",
@@ -394,6 +404,7 @@
     "knip": "6.44.1",
     "kysely": "0.29.8",
     "lefthook": "2.2.2",
+    "liquidjs": "10.30.1",
     "openapi-types": "12.1.3",
     "oxfmt": "0.75.0",
     "oxlint": "1.90.0",
@@ -458,6 +469,8 @@
     "@boxxy/pepys": ["@boxxy/pepys@workspace:packages/pepys"],
 
     "@boxxy/planning": ["@boxxy/planning@workspace:modules/planning"],
+
+    "@boxxy/prompt-template": ["@boxxy/prompt-template@workspace:libs/prompt-template"],
 
     "@boxxy/review-noslop": ["@boxxy/review-noslop@workspace:adapters/review-noslop"],
 
@@ -1021,6 +1034,8 @@
 
     "color-name": ["color-name@1.1.4", "", {}, "sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA=="],
 
+    "commander": ["commander@10.0.1", "", {}, "sha512-y4Mg2tXshplEbSGzx7amzPwKKOCGuoSRP/CjEdwwk0FOGlUbq6lKuoyDZTNZkmxHdJtp54hdfY/JUrdL7Xfdug=="],
+
     "conventional-changelog-angular": ["conventional-changelog-angular@9.4.0", "", { "dependencies": { "@conventional-changelog/template": "^1.4.0" } }, "sha512-HdxRxuS8bBXVIuo4V82gvSwAXT0vYQUizrjs/izmPg5JdDstr8v8I5hduGL3iQbG+o310dUDxC4+LetuS5hu9w=="],
 
     "conventional-changelog-conventionalcommits": ["conventional-changelog-conventionalcommits@10.4.1", "", { "dependencies": { "@conventional-changelog/template": "^1.4.0" } }, "sha512-jS1LRFSbRoAr6JbhhRy1JYfNNUj5LM3+v49hRE03CgccsiYqgdVj/RTmrw4J1rylrqijHwdOlJWiJa61JHOgHg=="],
@@ -1190,6 +1205,8 @@
     "levn": ["levn@0.4.1", "", { "dependencies": { "prelude-ls": "^1.2.1", "type-check": "~0.4.0" } }, "sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ=="],
 
     "lines-and-columns": ["lines-and-columns@1.2.4", "", {}, "sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg=="],
+
+    "liquidjs": ["liquidjs@10.30.1", "", { "dependencies": { "commander": "^10.0.0" }, "bin": { "liquid": "bin/liquid.js", "liquidjs": "bin/liquid.js" } }, "sha512-P1Iz14WUHZdfbOYwHOIhtl/iAWIOYk1ks5l9rPZlDM6vZo+6BLeYIuWHAPkIz+U8Mm8HKZKITIrjX7DQJO2fqA=="],
 
     "locate-path": ["locate-path@6.0.0", "", { "dependencies": { "p-locate": "^5.0.0" } }, "sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw=="],
 

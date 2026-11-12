@@ -1,6 +1,24 @@
 Design this item against its acceptance list.
 
-{{ticket}}
+# {{ title }}
+
+{{ outcome }}
+{%- if body %}
+
+{{ body }}
+{%- endif %}
+{%- if acceptance %}
+
+## Acceptance
+
+{{ acceptance }}
+{%- endif %}
+{%- if notes %}
+
+## Notes from the owner
+
+{{ notes }}
+{%- endif %}
 
 Close out `designed` with the whole design as markdown in `design.text`, code blocks included, and
 the path of a doc in the repo in `design.location` when one holds it too. Close out `blocked` with

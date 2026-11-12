@@ -24,6 +24,7 @@ import type {
 } from '@boxxy/model';
 import { brandSchemas, collectRetries, toJSONValue } from '@boxxy/model';
 import { buildFrame, decide } from '@boxxy/planning';
+import { renderPromptTemplate } from '@boxxy/prompt-template';
 import invariant from 'tiny-invariant';
 import type { AttemptChange } from '../attempts/build-attempt-change.ts';
 import { buildAttemptChange } from '../attempts/build-attempt-change.ts';
@@ -31,7 +32,6 @@ import type { ClaimedEvent, DecisionDraft } from '../attempts/types.ts';
 import { buildPromptValues } from './build-prompt-values.ts';
 import { buildSnapshotHash } from './build-snapshot-hash.ts';
 import { pickKeptSession } from './pick-kept-session.ts';
-import { renderPrompt } from './render-prompt.ts';
 import type { ClaimInput, SpawnSettings } from './types.ts';
 
 // A race that `decide` did not see: the change took no lease or no seat. The runner ends the
@@ -239,7 +239,7 @@ function buildSpawnRequest(parts: SpawnParts): SpawnRequest {
   return {
     target: parts.settings.target,
     ...(typeof checkout === 'string' ? { cwd: checkout } : { source: checkout }),
-    prompt: renderPrompt(
+    prompt: renderPromptTemplate(
       template,
       buildPromptValues({
         item: parts.item,
