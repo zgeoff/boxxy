@@ -47,15 +47,15 @@ The `atc` section of the configuration names the gateway:
 | `url`            | the gateway's MCP endpoint, such as its in-cluster Service address |
 | `host`           | optional: the gateway's public host name, sent as `Host`           |
 | `trustedFolders` | by worker target, the folders the agent trusts there               |
-| `noticeSession`  | optional: the atc session that gets the hold notices               |
 
 A git checkout in `rules.folder` loads only a commit that `rules.ref` holds, `origin/main` by
 default. A plain folder loads with no check, so build it only from the reviewed rules branch
 ([rules](../../docs/design/boxxy/rules.md#policy-in-git)). `spawn.repos` gives each repo a folder on
 the target, or a git source `{ url, ref, credentialRef? }` that atc clones
-([the atc worker](../../docs/design/boxxy/v1-lifecycle.md#the-atc-worker)). With a `pepys` section
-in the configuration, also set `BOXXY_PEPYS_SIGNING_SECRET`. With a `github` section, set
-`BOXXY_GITHUB_TOKEN` unless a broker adds the GitHub credential.
+([the atc worker](../../docs/design/boxxy/v1-lifecycle.md#the-atc-worker)). With a `pepys` section,
+also set `BOXXY_PEPYS_SIGNING_SECRET`. With a `github` section, set `BOXXY_GITHUB_TOKEN` unless a
+broker adds the GitHub credential. For hold notices, set `BOXXY_ATC_NOTICE_SESSION` and its token,
+`BOXXY_ATC_NOTICE_TOKEN` ([owner notices](../../docs/design/boxxy/owner-notices.md)).
 
 ## Features
 

@@ -11,12 +11,12 @@ import type { UncheckedQueryClient } from '@boxxy/pepys';
 import { createPepysReader } from '@boxxy/pepys/reader';
 import { createPepysFactSink } from '@boxxy/pepys/sink';
 import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
-import type { AtcClient } from '@boxxy/worker-atc';
 import { createAtcMcpClient, createAtcWorker } from '@boxxy/worker-atc';
 import { createORPCClient } from '@orpc/client';
 import { RPCLink } from '@orpc/client/fetch';
 import invariant from 'tiny-invariant';
 import { buildTokenDigest } from './auth/pick-request-scope.ts';
+import type { NoticeSecrets } from './config/pick-server-secrets.ts';
 import { pickServerSecrets } from './config/pick-server-secrets.ts';
 import { readCallerProof } from './config/read-caller-proof.ts';
 import { readServerConfig } from './config/read-server-config.ts';
@@ -83,6 +83,13 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
     return { kind: 'refused', message: `set these variables: ${secrets.names.join(', ')}` };
   }
 
+  if (secrets.kind === 'malformed') {
+    return {
+      kind: 'refused',
+      message: `set ${secrets.name} to the session's gateway ID, <daemon>.<incarnation>.<id>`,
+    };
+  }
+
   const rules = await createRulesHolder(config.rules, input.log);
 
   if (rules.kind !== 'loaded') {
@@ -115,7 +122,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
     credentialSources: collectCredentialSources(config.spawn.repos),
   });
 
-  const notifier = buildNotifier(config, atc);
+  const notifier = buildNotifier(config, secrets.secrets.notice);
 
   const pepys = startPepys({
     config,
@@ -269,14 +276,25 @@ function collectCredentialSources(repos: ServerConfig['spawn']['repos']): GitSou
   );
 }
 
-function buildNotifier(config: ServerConfig, atc: AtcClient): Notifier {
-  const session = config.atc.noticeSession;
-
-  if (session === undefined) {
+// The notifier gets an atc client of its own, with the notice token: the worker token never
+// reaches the owner's machine, where the notice session runs.
+function buildNotifier(config: ServerConfig, notice: NoticeSecrets | null): Notifier {
+  if (notice === null) {
     return createNullNotifier();
   }
 
-  return createAtcNotifier({ client: { sendMessage: atc.sendMessage }, session });
+  const client = createAtcMcpClient({
+    url: config.atc.url,
+    host: config.atc.host ?? null,
+    token: notice.token,
+    fetch,
+    timeoutMs: atcTimeoutMs,
+  });
+
+  return createAtcNotifier({
+    client: { sendMessage: client.sendMessage },
+    session: notice.session,
+  });
 }
 
 interface PepysWiring {

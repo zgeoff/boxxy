@@ -181,7 +181,6 @@ test('it reads the optional sections: trusted issuers, pepys and github', async 
       url: 'http://atc-gateway.example.test:8080/mcp',
       host: 'atc.example.test',
       trustedFolders: {},
-      noticeSession: 'owner-desk',
     },
     trustedIssuers: { folders: ['/tmp/boxxy-test/issuers'], audience: 'boxxy.example.test' },
     pepys: {

@@ -43,6 +43,7 @@ test('it reads the two tokens when the configuration has no pepys section', () =
       atcToken: 'atc-token-1',
       pepysSigningSecret: null,
       githubToken: null,
+      notice: null,
     },
   });
 });
@@ -63,6 +64,7 @@ test('it reads the GitHub token when one is set', () => {
       atcToken: 'atc-token-1',
       pepysSigningSecret: null,
       githubToken: 'github-token-1',
+      notice: null,
     },
   });
 });
@@ -83,6 +85,7 @@ test('it reads an empty GitHub token as none', () => {
       atcToken: 'atc-token-1',
       pepysSigningSecret: null,
       githubToken: null,
+      notice: null,
     },
   });
 });
@@ -113,6 +116,64 @@ test('it reads the signing secret when the configuration has a pepys section', (
       atcToken: 'atc-token-1',
       pepysSigningSecret: 'signing-secret-1',
       githubToken: null,
+      notice: null,
     },
   });
 });
+
+test('it reads the notice session and its own token when both are set', () => {
+  const ctx = setupTest();
+
+  const answer = pickServerSecrets(ctx.config, {
+    BOXXY_WORKER_TOKEN: 'worker-token-1',
+    BOXXY_ATC_TOKEN: 'atc-token-1',
+    BOXXY_ATC_NOTICE_SESSION: 'desk.3.s7',
+    BOXXY_ATC_NOTICE_TOKEN: 'notice-token-1',
+  });
+
+  expect(answer).toStrictEqual({
+    kind: 'found',
+    secrets: {
+      workerToken: 'worker-token-1',
+      atcToken: 'atc-token-1',
+      pepysSigningSecret: null,
+      githubToken: null,
+      notice: { session: 'desk.3.s7', token: 'notice-token-1' },
+    },
+  });
+});
+
+test.each([
+  { token: undefined, title: 'unset' },
+  { token: '', title: 'empty' },
+])(
+  'it names the notice token as missing when a notice session is set and the token is $title',
+  (row) => {
+    const ctx = setupTest();
+
+    const answer = pickServerSecrets(ctx.config, {
+      BOXXY_WORKER_TOKEN: 'worker-token-1',
+      BOXXY_ATC_TOKEN: 'atc-token-1',
+      BOXXY_ATC_NOTICE_SESSION: 'desk.3.s7',
+      BOXXY_ATC_NOTICE_TOKEN: row.token,
+    });
+
+    expect(answer).toStrictEqual({ kind: 'missing', names: ['BOXXY_ATC_NOTICE_TOKEN'] });
+  },
+);
+
+test.each(['owner-desk', 'desk.3', ''])(
+  'it names the notice session as malformed for a value that is no gateway ID: "%s"',
+  (session) => {
+    const ctx = setupTest();
+
+    const answer = pickServerSecrets(ctx.config, {
+      BOXXY_WORKER_TOKEN: 'worker-token-1',
+      BOXXY_ATC_TOKEN: 'atc-token-1',
+      BOXXY_ATC_NOTICE_SESSION: session,
+      BOXXY_ATC_NOTICE_TOKEN: 'notice-token-1',
+    });
+
+    expect(answer).toStrictEqual({ kind: 'malformed', name: 'BOXXY_ATC_NOTICE_SESSION' });
+  },
+);

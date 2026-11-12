@@ -89,6 +89,61 @@ test('it names each missing secret and prints no secret value', async () => {
   });
 });
 
+test('it refuses to start while the configuration file still holds noticeSession, and names the key', async () => {
+  const ctx = await setupTest();
+
+  await ctx.addConfigSections({
+    atc: { url: 'http://127.0.0.1:9/mcp', trustedFolders: {}, noticeSession: 'owner-desk' },
+  });
+
+  const answer = await ctx.start({});
+
+  expect(answer).toStrictEqual({
+    kind: 'refused',
+    message: expect.stringContaining('noticeSession'),
+  });
+});
+
+test('it refuses to start when the notice session is set and the notice token is empty', async () => {
+  const ctx = await setupTest();
+
+  const answer = await ctx.start({
+    BOXXY_ATC_NOTICE_SESSION: 'desk.3.s7',
+    BOXXY_ATC_NOTICE_TOKEN: '',
+  });
+
+  expect(answer).toStrictEqual({
+    kind: 'refused',
+    message: 'set these variables: BOXXY_ATC_NOTICE_TOKEN',
+  });
+});
+
+test('it refuses to start on a notice session that is no gateway ID, and prints no value', async () => {
+  const ctx = await setupTest();
+
+  const answer = await ctx.start({
+    BOXXY_ATC_NOTICE_SESSION: 'owner-desk',
+    BOXXY_ATC_NOTICE_TOKEN: 'notice-token-1',
+  });
+
+  expect(answer).toStrictEqual({
+    kind: 'refused',
+    message:
+      "set BOXXY_ATC_NOTICE_SESSION to the session's gateway ID, <daemon>.<incarnation>.<id>",
+  });
+});
+
+test('it starts and stops with a notice session and its token', async () => {
+  const ctx = await setupTest();
+
+  const answer = await ctx.start({
+    BOXXY_ATC_NOTICE_SESSION: 'desk.3.s7',
+    BOXXY_ATC_NOTICE_TOKEN: 'notice-token-1',
+  });
+
+  expect(answer.kind).toBe('started');
+});
+
 test('it refuses to start when the trusted issuers folders hold no document, and names them', async () => {
   const ctx = await setupTest();
 

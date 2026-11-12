@@ -31,9 +31,6 @@ const atcSection = z.strictObject({
 
   // by worker target: the folders the agent trusts, each with its subfolders
   trustedFolders: z.record(z.string(), z.array(name)),
-
-  // the session that gets the hold notices; with none, no notice is sent
-  noticeSession: name.optional(),
 });
 
 const folders = z.array(name).min(1);
