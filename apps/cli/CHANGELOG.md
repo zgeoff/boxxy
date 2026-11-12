@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.4](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.1.3...@boxxy/cli@0.1.4) (2026-11-12)
+
+
+### Bug Fixes
+
+* **pepys:** ship test-utils and check each export has a packed file ([b68d4b3](https://github.com/zgeoff/boxxy/commit/b68d4b3b15c05dabdf6406217a9874de37d46ebc))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/contract bumped to 0.1.4
+    * @boxxy/model bumped to 0.1.4
+
 ## [0.1.3](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.1.0...@boxxy/cli@0.1.3) (2026-11-11)
 
 ### Features
