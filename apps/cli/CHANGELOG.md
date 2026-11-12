@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.3](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.2.2...@boxxy/cli@0.2.3) (2026-11-12)
+
+
+### Miscellaneous Chores
+
+* **@boxxy/cli:** Synchronize boxxy versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/contract bumped to 0.2.3
+    * @boxxy/model bumped to 0.2.3
+
 ## [0.2.2](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.2.1...@boxxy/cli@0.2.2) (2026-11-12)
 
 ### Miscellaneous Chores

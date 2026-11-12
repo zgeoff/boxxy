@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.2.3](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.2...@boxxy/server@0.2.3) (2026-11-12)
+
+
+### Features
+
+* **dispatch:** run job attempts in the tick ([dbb6b5c](https://github.com/zgeoff/boxxy/commit/dbb6b5c63844557723fa82ffbf3762c1415dc1e9))
+
+
+### Bug Fixes
+
+* **server:** load the rules check's rules from the checkout alone ([3147e9e](https://github.com/zgeoff/boxxy/commit/3147e9e466d044b473103a541b78ee7ff6c94450))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/auth-oauth bumped to 0.2.3
+    * @boxxy/caller-proof-imp bumped to 0.2.3
+    * @boxxy/closeout bumped to 0.2.3
+    * @boxxy/content-hash bumped to 0.2.3
+    * @boxxy/contract bumped to 0.2.3
+    * @boxxy/dispatch bumped to 0.2.3
+    * @boxxy/forge-github bumped to 0.2.3
+    * @boxxy/model bumped to 0.2.3
+    * @boxxy/notifier-atc bumped to 0.2.3
+    * @boxxy/pepys bumped to 0.2.3
+    * @boxxy/planning bumped to 0.2.3
+    * @boxxy/review-noslop bumped to 0.2.3
+    * @boxxy/rules bumped to 0.2.3
+    * @boxxy/store-sqlite bumped to 0.2.3
+    * @boxxy/worker-atc bumped to 0.2.3
+
 ## [0.2.2](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.1...@boxxy/server@0.2.2) (2026-11-12)
 
 ### Features

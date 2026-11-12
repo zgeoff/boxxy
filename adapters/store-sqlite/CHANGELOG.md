@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.3](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.2.2...@boxxy/store-sqlite@0.2.3) (2026-11-12)
+
+
+### Features
+
+* **dispatch:** run job attempts in the tick ([dbb6b5c](https://github.com/zgeoff/boxxy/commit/dbb6b5c63844557723fa82ffbf3762c1415dc1e9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/content-hash bumped to 0.2.3
+    * @boxxy/model bumped to 0.2.3
+  * devDependencies
+    * @boxxy/dispatch bumped to 0.2.3
+  * peerDependencies
+    * @boxxy/dispatch bumped to 0.2.3
+
 ## [0.2.2](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.2.1...@boxxy/store-sqlite@0.2.2) (2026-11-12)
 
 ### Bug Fixes
