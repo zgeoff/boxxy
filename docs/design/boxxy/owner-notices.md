@@ -135,10 +135,11 @@ notices: {
 
 ## The review tool in production
 
-The review-and-merge design owns where noslop runs and who posts its check. Whichever it picks, the deployment needs these:
+The review gate in the review-and-merge design (`review-and-merge.md`, section "The review gate") runs noslop in a review session on a worker machine, and the server posts the result as the noslop GitHub App. The deployment needs these:
 
-- The noslop CLI in the image that runs the review, at a pinned version. Codex, noslop's default model CLI, has no sign-in on a worker machine, so a review there runs with `--adapter claude`.
-- The noslop GitHub App's keys only where the review-and-merge design posts the check, and never in a worker session that runs the pull request's code.
+- The noslop CLI in the worker image, at a pinned version. Codex, noslop's default model CLI, has no sign-in on a worker machine, so the review session runs noslop with `--adapter claude`.
+- A GitHub token in the review session, as `GH_TOKEN` or `GITHUB_TOKEN`, which noslop reads to fetch the pull request.
+- The App's keys in the server pod alone, and never in a worker session.
 - The App, installed on every repo that the server starts workers for.
 - The check: in the scratch repo of [the live proof](./v1-work-list.md#22-the-live-proof), a boxxy review round leaves a `noslop` check run, posted by the App, at the pull request's head.
 
