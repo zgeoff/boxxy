@@ -127,6 +127,12 @@ function setupTest() {
 
   return {
     loadExample: () =>
-      loadRules({ checkout: { commit: '3f2a1c0', files }, concepts, pins: conceptPins, phases }),
+      loadRules({
+        checkout: { commit: '3f2a1c0', files },
+        concepts,
+        pins: conceptPins,
+        phases,
+        workers: [brandSchemas.workerKindName.parse('atc.session')],
+      }),
   };
 }

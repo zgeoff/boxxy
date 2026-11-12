@@ -91,7 +91,10 @@ export interface PassedOverFact extends FactBase {
     | 'boxxy.evidence.recorded'
     | 'boxxy.commit.linked'
     | 'boxxy.pull_request.merged'
-    | 'boxxy.pull_request.closed';
+    | 'boxxy.pull_request.closed'
+    | 'boxxy.attempt.job_started'
+    | 'boxxy.merge.requested'
+    | 'boxxy.merge.answered';
   payload?: unknown;
 }
 

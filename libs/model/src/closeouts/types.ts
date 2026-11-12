@@ -1,4 +1,6 @@
 import type { JsonValue } from '@boxxy/content-hash';
+import type { MergeOutcome } from '../merge/types.ts';
+import type { GateReading, RoundCause, VerifyReading } from '../ports/types.ts';
 import type {
   AttemptId,
   CommitSha,
@@ -14,10 +16,15 @@ import type {
   RepoName,
 } from '../types.ts';
 
-// The four close-out bodies, one per v1 phase. Every body carries `friction` and
-// `frictionDropped`. The top-level keys of the four differ, so a stored close-out parses as one
-// of them only.
-export type CloseOut = TriageCloseOut | DesignCloseOut | BuildCloseOut | ReviewCloseOut;
+// The close-out bodies, one per phase. The top-level keys of each differ, so a stored close-out
+// parses as one of them only.
+export type CloseOut =
+  | TriageCloseOut
+  | DesignCloseOut
+  | BuildCloseOut
+  | ReviewCloseOut
+  | VerifyCloseOut
+  | MergeCloseOut;
 
 export interface TriageCloseOut {
   readonly result:
@@ -92,6 +99,57 @@ export interface NoslopSummary {
 
   // the whole result when `reportBytes` is within the close-out limit; else null, never a part
   readonly report: JsonValue | null;
+}
+
+// The review close-out that holds the review gate's reading. The server builds it from the
+// session's raw result with `ReviewGate.accept`, before the phase kind's parser reads it.
+export interface GateReviewCloseOut {
+  readonly round: number;
+  readonly cause: RoundCause;
+
+  // `ReviewGate.accept` matched its head to the pull request's head
+  readonly reading: GateReading;
+
+  // Every review after the first: the changed lines between the earlier review's head and this
+  // head, in files outside that review's `findingPaths`. Null for the first review, and when the
+  // earlier review read no head.
+  readonly unrelatedLines: number | null;
+}
+
+// The verify close-out, sent by the grading agent. The parser copies `session` from the recipe.
+export interface VerifyCloseOut {
+  readonly result:
+    | { readonly kind: 'verified' }
+    | { readonly kind: 'failed'; readonly features: readonly string[] }
+    | { readonly kind: 'blocked'; readonly question: string };
+  readonly session: 'builder' | 'fresh';
+  readonly friction: readonly Friction[];
+  readonly frictionDropped: number;
+}
+
+// The merge close-out, which the runner writes from the merge job's last step.
+export interface MergeCloseOut {
+  readonly outcome: MergeOutcome;
+  readonly head: CommitSha;
+
+  // the union of required checks that the job read
+  readonly required: readonly string[];
+
+  // `repair` only: the red checks, and none for a conflict
+  readonly failed: readonly string[];
+  readonly cause: 'conflict' | 'checks-red' | null;
+
+  // `merged` only
+  readonly mergeCommit: CommitSha | null;
+
+  // `refused` only: the forge's text for the refusal
+  readonly reason: string | null;
+
+  // `merged`: true when boxxy's own call merged this head
+  readonly byBoxxy: boolean;
+
+  // the reading the job used, so pepys keeps the feature list
+  readonly verify: VerifyReading;
 }
 
 export interface Finding {

@@ -1,4 +1,5 @@
 import type { JsonValue, LoadedRules } from '@boxxy/model';
+import { brandSchemas } from '@boxxy/model';
 import { buildMockPhaseKind } from '@boxxy/model/test-utils/build-mock-phase-kind';
 import invariant from 'tiny-invariant';
 import { loadRules } from '../loading/load-rules.ts';
@@ -66,6 +67,7 @@ export function loadMockRules(input: MockRulesInput): LoadedRules {
   const rulesFile: [string, Uint8Array] = ['rules.yaml', encoder.encode(JSON.stringify(file))];
 
   const result = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([rulesFile, ...promptFiles]),

@@ -48,7 +48,7 @@ The `FactSink` port has three forms (section C): the pepys adapter, which uses t
 
 ## The fact catalog
 
-[`04-facts.ts`](./sketches/v1/core/04-facts.ts) holds the 27 fact types on the stream `facts.boxxy.work`, each with its payload and its writer.
+The stream `facts.boxxy.work` carries 30 fact types. [`04-facts.ts`](./sketches/v1/core/04-facts.ts) holds 27 of them, each with its payload and its writer. The last section of the review and merge [`02-types.ts`](./sketches/next/review-and-merge/02-types.ts) holds the other three: `boxxy.attempt.job_started`, `boxxy.merge.requested` and `boxxy.merge.answered`.
 
 | Group | Types |
 | --- | --- |
@@ -59,6 +59,7 @@ The `FactSink` port has three forms (section C): the pepys adapter, which uses t
 | sleep and wake | `boxxy.attempt.slept`, `.wake_requested`, `.woken`, `.resumed` |
 | the end | `boxxy.attempt.closed_out`, `.timed_out`, `.turn_ended`, `.settled`, `boxxy.proposal.recorded` |
 | evidence and pull requests | `boxxy.evidence.recorded`, `boxxy.pull_request.linked`, `.merged`, `.closed`, `boxxy.commit.linked` |
+| jobs and the merge | `boxxy.attempt.job_started`, `boxxy.merge.requested`, `.answered` |
 
 - **Every fact names an item as its entity**, and a fact about an attempt carries the attempt in its payload. One scope in pepys then holds every fact of one item, so the consumer rebuilds an item from one read, in any arrival order. A relation fact names its source item.
 - **The fact ID on the wire** is `event:boxxy:<event>`, where the event is the outbox row's fact ID.
@@ -90,7 +91,7 @@ The consumer runs in scope mode, with one scope per item. From an item's facts i
 | `produced` | an attempt | the GitHub pull request, by GitHub's own ID |
 | `attempt_of` | an attempt | its item |
 
-- The consumer reads 13 of the 27 fact types and passes over the others.
+- The consumer reads 13 of the 30 fact types and passes over the others.
 - An attempt with no claimed fact in the scope yields no row and no link. The fact marks the scope dirty when it arrives, and the next run writes them.
 - The consumer's module does no date arithmetic. It copies each fact's time, and stores sleep as a list of stretches that the query adds up.
 - The entry file of the consumer compiles with scriptc, so it imports generated glue only. The package commits the glue, and a check in CI fails when the glue is stale.

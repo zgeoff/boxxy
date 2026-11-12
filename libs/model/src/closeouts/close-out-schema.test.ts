@@ -45,6 +45,29 @@ test.each([
       frictionDropped: 0,
     },
   ],
+  [
+    'verify',
+    {
+      result: { kind: 'blocked', question: 'Which upload page is in scope?' },
+      session: 'fresh',
+      friction: [],
+      frictionDropped: 0,
+    },
+  ],
+  [
+    'merge',
+    {
+      outcome: 'repair',
+      head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+      required: ['pr / checks', 'verify / gate'],
+      failed: ['pr / checks'],
+      cause: 'checks-red',
+      mergeCommit: null,
+      reason: null,
+      byBoxxy: false,
+      verify: { status: 'not-covered', head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290' },
+    },
+  ],
 ])('it keeps every field of a stored %s close-out', (_phase, closeOut) => {
   const parsed: unknown = closeOutSchema.safeParse(closeOut).data;
 

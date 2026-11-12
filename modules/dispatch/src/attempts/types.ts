@@ -92,9 +92,10 @@ export type MoveEffect =
   | AttemptFactType;
 
 // The facts that a move records: each attempt fact, and the decision of a claim or a wake.
-export type AttemptFactType = Extract<
-  FactType,
-  `boxxy.attempt.${string}` | 'boxxy.decision.recorded'
+// The table holds the moves of session attempts only, so it records no job's first read.
+export type AttemptFactType = Exclude<
+  Extract<FactType, `boxxy.attempt.${string}` | 'boxxy.decision.recorded'>,
+  'boxxy.attempt.job_started'
 >;
 
 // One row of the table of moves.

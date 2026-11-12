@@ -38,12 +38,14 @@ dispatch/         claims, settlement and the parts of a store change
                   types  build-applied-change  pick-seat-take  collect-seat-sync
 closeouts/        the close-out types and schemas
                   types  close-out-schema  triage-close-out-schema  design-close-out-schema
-                  build-close-out-schema  review-close-out-schema  friction-schema
-                  open-item-schema
+                  build-close-out-schema  review-close-out-schema  verify-close-out-schema
+                  merge-close-out-schema  friction-schema  open-item-schema
 facts/            the fact catalog and the outbox row
                   types  work-fact-schemas  outbox-fact-schema  parse-new-fact
+merge/            types: what the merge job reads and what a merge decides
 ports/            the interfaces that an adapter implements
-                  types: the store, the worker, the notifier, the pepys reader, the forge
+                  types: the store, the workers, the notifier, the pepys reader, the forge,
+                  the review gate, the verifier
 reports/          the output schemas of the pepys queries
                   cost-to-land-schema  stage-time-schema  types  constants (the step and basis lists)
                   outbox-status (the `runner.status` outbox type)

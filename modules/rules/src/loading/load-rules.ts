@@ -19,6 +19,7 @@ import type {
   RelationType,
   RelationTypeName,
   RulesVersion,
+  WorkerKindName,
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import invariant from 'tiny-invariant';
@@ -33,6 +34,7 @@ import { resolveSignalRef } from '../registry/resolve-signal-ref.ts';
 import type { Checked, PinnedConcept, ResolvedSignal } from '../types.ts';
 import { buildRejection } from './build-rejection.ts';
 import { collectFilterRejections } from './collect-filter-rejections.ts';
+import { collectMergeRejections } from './collect-merge-rejections.ts';
 import { collectRecipeRejections } from './collect-recipe-rejections.ts';
 import { collectStepRejections } from './collect-step-rejections.ts';
 import { toFilter } from './to-filter.ts';
@@ -47,6 +49,9 @@ interface LoadRulesInput {
 
   // the phase kinds the server registers, as it registers the concepts
   readonly phases: readonly PhaseKind[];
+
+  // the names of the workers the server built
+  readonly workers: readonly WorkerKindName[];
 }
 
 export function loadRules(input: LoadRulesInput): LoadResult {
@@ -108,7 +113,8 @@ function buildLoadResult(
     ...built.rejections,
     ...[...signals, ...gates].flatMap((checked) => checked.rejections),
     ...collectPropagationRejections(file, propagation),
-    ...collectStepRejections(file, phases),
+    ...collectStepRejections(file, phases, input.workers),
+    ...collectMergeRejections(file),
     ...collectRecipeRejections(file),
     ...collectFilterRejections(file, registry),
     ...collectSleepRejections(file),
@@ -171,6 +177,7 @@ function buildLoadResult(
       ),
       sleep: file.sleep,
       skills: file.skills ?? null,
+      merge: file.merge ?? null,
       relationTypes: new Map(
         file.relationTypes.map((name): [RelationTypeName, RelationType] => [name, { name }]),
       ),

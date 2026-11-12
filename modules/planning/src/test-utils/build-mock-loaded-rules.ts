@@ -1,5 +1,6 @@
 import { contentHash } from '@boxxy/content-hash';
 import type { Concept, ConceptPin, JsonValue, LoadedRules } from '@boxxy/model';
+import { brandSchemas } from '@boxxy/model';
 import { buildMockPhaseKind } from '@boxxy/model/test-utils/build-mock-phase-kind';
 import { loadRules } from '@boxxy/rules';
 import invariant from 'tiny-invariant';
@@ -56,6 +57,7 @@ export function buildMockLoadedRules(input: MockRulesInput = {}): LoadedRules {
   ]);
 
   const result = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([

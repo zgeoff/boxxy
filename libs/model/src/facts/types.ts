@@ -1,7 +1,7 @@
 import type { ContentHash, JsonValue } from '@boxxy/content-hash';
 import type { CloseOut, Effect, Friction } from '../closeouts/types.ts';
 import type { SeatRef } from '../planning/types.ts';
-import type { WakeSource } from '../ports/types.ts';
+import type { MergeAnswer, MergeMethod, WakeSource } from '../ports/types.ts';
 import type {
   ActorRef,
   AgentSessionId,
@@ -31,6 +31,7 @@ import type {
   RepoName,
   RulesVersion,
   SessionMode,
+  WorkerKindName,
 } from '../types.ts';
 
 // Every fact on the stream names an item; a fact about an attempt names the attempt in its
@@ -238,5 +239,24 @@ export interface WorkFacts {
     readonly repo: RepoName;
     readonly number: number;
     readonly pullRequestId: string;
+  };
+
+  // written on a job's first read, in place of `boxxy.attempt.started`, which names an atc session
+  'boxxy.attempt.job_started': OfAttempt & { readonly worker: WorkerKindName };
+
+  // written in the change that marks the merge request, before the forge call
+  'boxxy.merge.requested': OfAttempt & {
+    readonly repo: RepoName;
+    readonly number: number;
+    readonly head: CommitSha;
+    readonly method: MergeMethod;
+    readonly required: readonly string[];
+  };
+
+  // written in the change that records the forge's answer; a call with no answer writes none
+  'boxxy.merge.answered': OfAttempt & {
+    readonly head: CommitSha;
+    readonly answer: MergeAnswer['kind'];
+    readonly mergeCommit: CommitSha | null;
   };
 }

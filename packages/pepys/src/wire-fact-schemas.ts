@@ -38,4 +38,7 @@ export const wireFactSchemas = {
   'boxxy.commit.linked': workFactSchemas['boxxy.commit.linked'].extend(storeVersion),
   'boxxy.pull_request.merged': workFactSchemas['boxxy.pull_request.merged'].extend(storeVersion),
   'boxxy.pull_request.closed': workFactSchemas['boxxy.pull_request.closed'].extend(storeVersion),
+  'boxxy.attempt.job_started': workFactSchemas['boxxy.attempt.job_started'].extend(storeVersion),
+  'boxxy.merge.requested': workFactSchemas['boxxy.merge.requested'].extend(storeVersion),
+  'boxxy.merge.answered': workFactSchemas['boxxy.merge.answered'].extend(storeVersion),
 } satisfies Readonly<Record<FactType, z.ZodObject>>;

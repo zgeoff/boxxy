@@ -424,6 +424,10 @@ export interface Recipe {
 
   // the skills the phase needs; the recipe hash covers the list and the rules' pin
   readonly skills: readonly string[];
+
+  // Verify recipes only. `builder`: the claim wakes the build's kept session, so the builder
+  // grades its own work. `fresh`: a new session grades it.
+  readonly session?: 'builder' | 'fresh';
 }
 
 export interface RecipeMaterial {

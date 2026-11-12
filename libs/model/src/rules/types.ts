@@ -15,6 +15,7 @@ import type {
   View,
   Waiver,
 } from '../planning/types.ts';
+import type { JobAction, MergeMethod } from '../ports/types.ts';
 import type {
   AttemptRow,
   CommitSha,
@@ -114,7 +115,25 @@ export interface PhaseKind<
   // Called only with the attempt's valid close-out. A method's parameter is bivariant, so a
   // phase kind of any body still fits `PhaseKind`; a plain function property would refuse it.
   readonly settle: BivariantSettle<Body, Outcomes[number]>['settle'];
+
+  // a phase kind on a job worker: pure, called on each read of a running job
+  readonly drive?: (ctx: DriveContext) => JobStep;
 }
+
+export interface DriveContext {
+  readonly observed: JsonValue;
+  readonly attempt: AttemptRow;
+  readonly deadlinePassed: boolean;
+  readonly rules: LoadedRules;
+  readonly now: Instant;
+}
+
+// `wait`: `item get` shows the reason. `finish`: the runner records the close-out as the
+// attempt's, and the attempt settles by the normal path.
+export type JobStep =
+  | { readonly kind: 'wait'; readonly reason: string; readonly pending: readonly string[] }
+  | { readonly kind: 'act'; readonly action: JobAction }
+  | { readonly kind: 'finish'; readonly closeOut: JsonValue };
 
 interface BivariantSettle<Body, Outcome extends string> {
   // oxlint-disable-next-line typescript/method-signature-style -- the method form is what makes the parameter bivariant
@@ -224,6 +243,17 @@ export interface LoadedRules {
   // null when the rules file has no `skills` block
   readonly skills: SkillsPin | null;
   readonly relationTypes: ReadonlyMap<RelationTypeName, RelationType>;
+
+  // null when the rules file has no `merge` block
+  readonly merge: MergeRules | null;
+}
+
+export interface MergeRules {
+  readonly method: MergeMethod;
+
+  // Check names that must conclude `success` at the head. boxxy reads the union of this list and
+  // the base branch's required status checks, so the loader refuses an empty list.
+  readonly checks: readonly string[];
 }
 
 export interface LoadRejection {
@@ -284,7 +314,18 @@ export type LoadRejectionReason =
       readonly phase: PhaseName;
       readonly outcome: string;
       readonly reason: string;
-    };
+    }
+
+  // a step's phase kind names a worker that the server did not build
+  | { readonly kind: 'unknown-worker'; readonly phase: PhaseName; readonly worker: WorkerKindName }
+
+  // a pipeline has a `merge` step, and the file has no `merge` block
+  | { readonly kind: 'merge-without-rules' }
+  | { readonly kind: 'empty-merge-checks' }
+
+  // a `session: builder` recipe is mapped to a step with no build step before it, so no session
+  // is kept for it to wake
+  | { readonly kind: 'builder-session-not-kept'; readonly recipe: string };
 
 export type LoadResult =
   | { readonly kind: 'loaded'; readonly rules: LoadedRules; readonly warnings: readonly string[] }

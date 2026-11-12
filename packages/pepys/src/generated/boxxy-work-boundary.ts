@@ -428,6 +428,30 @@ export interface BoxxyPullRequestClosedPayload {
   storeVersion: number;
 }
 
+export interface BoxxyAttemptJobStartedPayload {
+  attempt: string;
+  worker: string;
+  storeVersion: number;
+}
+
+export interface BoxxyMergeRequestedPayload {
+  attempt: string;
+  repo: string;
+  number: number;
+  head: string;
+  method: 'merge' | 'squash' | 'rebase';
+  required: string[];
+  storeVersion: number;
+}
+
+export interface BoxxyMergeAnsweredPayload {
+  attempt: string;
+  head: string;
+  answer: 'merged' | 'queued' | 'head-moved' | 'not-mergeable';
+  mergeCommit: string | null;
+  storeVersion: number;
+}
+
 export type BoxxyWorkFact =
   | { id: string; type: 'boxxy.item.filed'; entity: string; at: string; payload: BoxxyItemFiledPayload }
   | { id: string; type: 'boxxy.item.noted'; entity: string; at: string; payload: BoxxyItemNotedPayload }
@@ -455,7 +479,10 @@ export type BoxxyWorkFact =
   | { id: string; type: 'boxxy.pull_request.linked'; entity: string; at: string; payload: BoxxyPullRequestLinkedPayload }
   | { id: string; type: 'boxxy.commit.linked'; entity: string; at: string; payload: BoxxyCommitLinkedPayload }
   | { id: string; type: 'boxxy.pull_request.merged'; entity: string; at: string; payload: BoxxyPullRequestMergedPayload }
-  | { id: string; type: 'boxxy.pull_request.closed'; entity: string; at: string; payload: BoxxyPullRequestClosedPayload };
+  | { id: string; type: 'boxxy.pull_request.closed'; entity: string; at: string; payload: BoxxyPullRequestClosedPayload }
+  | { id: string; type: 'boxxy.attempt.job_started'; entity: string; at: string; payload: BoxxyAttemptJobStartedPayload }
+  | { id: string; type: 'boxxy.merge.requested'; entity: string; at: string; payload: BoxxyMergeRequestedPayload }
+  | { id: string; type: 'boxxy.merge.answered'; entity: string; at: string; payload: BoxxyMergeAnsweredPayload };
 
 declare function readScopeFactsLength(scope: string): number;
 declare function readScopeFactsInto(scope: string, facts: Uint8Array): void;
@@ -761,6 +788,36 @@ function decodeBoxxyWorkFact(value: unknown): BoxxyWorkFact | undefined {
 
   if (type === 'boxxy.pull_request.closed') {
     const decoded = decodeBoxxyPullRequestClosedPayload(payload);
+
+    if (decoded === undefined) {
+      return undefined;
+    }
+
+    return { id, type, entity, at, payload: decoded };
+  }
+
+  if (type === 'boxxy.attempt.job_started') {
+    const decoded = decodeBoxxyAttemptJobStartedPayload(payload);
+
+    if (decoded === undefined) {
+      return undefined;
+    }
+
+    return { id, type, entity, at, payload: decoded };
+  }
+
+  if (type === 'boxxy.merge.requested') {
+    const decoded = decodeBoxxyMergeRequestedPayload(payload);
+
+    if (decoded === undefined) {
+      return undefined;
+    }
+
+    return { id, type, entity, at, payload: decoded };
+  }
+
+  if (type === 'boxxy.merge.answered') {
+    const decoded = decodeBoxxyMergeAnsweredPayload(payload);
 
     if (decoded === undefined) {
       return undefined;
@@ -3039,6 +3096,174 @@ function decodeBoxxyPullRequestClosedPayload(value: unknown): BoxxyPullRequestCl
     repo: field1,
     number: field2,
     pullRequestId: field3,
+    storeVersion: field4,
+  };
+}
+
+function decodeBoxxyAttemptJobStartedPayload(value: unknown): BoxxyAttemptJobStartedPayload | undefined {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const raw0 = 'attempt' in value ? value.attempt : undefined;
+  const field0 = typeof raw0 === 'string' ? raw0 : undefined;
+
+  if (field0 === undefined) {
+    return undefined;
+  }
+
+  const raw1 = 'worker' in value ? value.worker : undefined;
+  const field1 = typeof raw1 === 'string' ? raw1 : undefined;
+
+  if (field1 === undefined) {
+    return undefined;
+  }
+
+  const raw2 = 'storeVersion' in value ? value.storeVersion : undefined;
+  const field2 = typeof raw2 === 'number' ? raw2 : undefined;
+
+  if (field2 === undefined) {
+    return undefined;
+  }
+
+  return {
+    attempt: field0,
+    worker: field1,
+    storeVersion: field2,
+  };
+}
+
+function decodeBoxxyMergeRequestedPayload(value: unknown): BoxxyMergeRequestedPayload | undefined {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const raw0 = 'attempt' in value ? value.attempt : undefined;
+  const field0 = typeof raw0 === 'string' ? raw0 : undefined;
+
+  if (field0 === undefined) {
+    return undefined;
+  }
+
+  const raw1 = 'repo' in value ? value.repo : undefined;
+  const field1 = typeof raw1 === 'string' ? raw1 : undefined;
+
+  if (field1 === undefined) {
+    return undefined;
+  }
+
+  const raw2 = 'number' in value ? value.number : undefined;
+  const field2 = typeof raw2 === 'number' ? raw2 : undefined;
+
+  if (field2 === undefined) {
+    return undefined;
+  }
+
+  const raw3 = 'head' in value ? value.head : undefined;
+  const field3 = typeof raw3 === 'string' ? raw3 : undefined;
+
+  if (field3 === undefined) {
+    return undefined;
+  }
+
+  const raw4 = 'method' in value ? value.method : undefined;
+  const field4 = raw4 === 'merge' || raw4 === 'squash' || raw4 === 'rebase' ? raw4 : undefined;
+
+  if (field4 === undefined) {
+    return undefined;
+  }
+
+  const raw5 = 'required' in value ? value.required : undefined;
+  const field5 = decodeBoxxyMergeRequestedPayloadRequired(raw5);
+
+  if (field5 === undefined) {
+    return undefined;
+  }
+
+  const raw6 = 'storeVersion' in value ? value.storeVersion : undefined;
+  const field6 = typeof raw6 === 'number' ? raw6 : undefined;
+
+  if (field6 === undefined) {
+    return undefined;
+  }
+
+  return {
+    attempt: field0,
+    repo: field1,
+    number: field2,
+    head: field3,
+    method: field4,
+    required: field5,
+    storeVersion: field6,
+  };
+}
+
+function decodeBoxxyMergeRequestedPayloadRequired(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const items: string[] = [];
+
+  for (let index = 0; index < value.length; index += 1) {
+    const element: unknown = value[index];
+    const item = typeof element === 'string' ? element : undefined;
+
+    if (item === undefined) {
+      return undefined;
+    }
+
+    items.push(item);
+  }
+
+  return items;
+}
+
+function decodeBoxxyMergeAnsweredPayload(value: unknown): BoxxyMergeAnsweredPayload | undefined {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const raw0 = 'attempt' in value ? value.attempt : undefined;
+  const field0 = typeof raw0 === 'string' ? raw0 : undefined;
+
+  if (field0 === undefined) {
+    return undefined;
+  }
+
+  const raw1 = 'head' in value ? value.head : undefined;
+  const field1 = typeof raw1 === 'string' ? raw1 : undefined;
+
+  if (field1 === undefined) {
+    return undefined;
+  }
+
+  const raw2 = 'answer' in value ? value.answer : undefined;
+  const field2 = raw2 === 'merged' || raw2 === 'queued' || raw2 === 'head-moved' || raw2 === 'not-mergeable' ? raw2 : undefined;
+
+  if (field2 === undefined) {
+    return undefined;
+  }
+
+  const raw3 = 'mergeCommit' in value ? value.mergeCommit : undefined;
+  const field3 = raw3 === null ? null : typeof raw3 === 'string' ? raw3 : undefined;
+
+  if (field3 === undefined) {
+    return undefined;
+  }
+
+  const raw4 = 'storeVersion' in value ? value.storeVersion : undefined;
+  const field4 = typeof raw4 === 'number' ? raw4 : undefined;
+
+  if (field4 === undefined) {
+    return undefined;
+  }
+
+  return {
+    attempt: field0,
+    head: field1,
+    answer: field2,
+    mergeCommit: field3,
     storeVersion: field4,
   };
 }

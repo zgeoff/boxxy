@@ -139,7 +139,9 @@ export interface LoadedRules {
 //   | { kind: 'empty-merge-checks' }                  `merge.checks` is empty
 //   | { kind: 'builder-session-not-kept'; recipe }    `session: builder`, and the build step before it keeps no session
 
-// ── modules/train/src/types.ts: the merge decision ─────────────────────────────────────────────
+// ── libs/model/src/merge/types.ts: the merge decision ──────────────────────────────────────────
+// `JobAction` and `MergeCloseOut` name these types, and a lib imports no module, so they live in
+// the model. `decideMerge` lives in modules/train.
 
 // One pull request. The merge train makes it a stack or a batch, with the same outcomes.
 export interface MergeUnit { readonly members: readonly { readonly pullRequest: PullRequestRef; readonly head: CommitSha }[] }

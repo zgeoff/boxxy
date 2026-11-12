@@ -65,6 +65,15 @@ const recipeSchema = z.strictObject({
   }),
   source: brandSchemas.sourceName,
   skills: z.array(nameSchema),
+
+  // no default: the recipe hash covers the whole recipe, and a default would move every hash
+  session: z.enum(['builder', 'fresh']).exactOptional(),
+});
+
+// `checks` may be empty here so that the loader refuses an empty list by its own reason
+const mergeRulesSchema = z.strictObject({
+  method: z.enum(['merge', 'squash', 'rebase']),
+  checks: z.array(nameSchema),
 });
 
 const skillsPinSchema = z.strictObject({
@@ -91,6 +100,7 @@ export const rulesFileSchema = z
     skills: skillsPinSchema.optional(),
     relationTypes: z.array(brandSchemas.relationTypeName),
     recipes: z.record(brandSchemas.recipeName, recipeSchema),
+    merge: mergeRulesSchema.optional(),
     limits: z.array(limitSchema),
     pools: z.array(poolSchema),
     lead: z.array(pluginRefSchema).default([]),

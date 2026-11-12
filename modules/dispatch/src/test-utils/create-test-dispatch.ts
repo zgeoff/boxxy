@@ -129,13 +129,7 @@ export async function createTestDispatch(options: TestDispatchOptions = {}): Pro
   const newId = buildMockNewId();
   const runner = brandSchemas.runnerId.parse('runner-1');
   const example = buildExampleLoadInput();
-
-  const loaded = loadRules({
-    checkout: example.checkout,
-    concepts,
-    pins: conceptPins,
-    phases: phaseKinds,
-  });
+  const loaded = loadRules({ ...example, concepts, pins: conceptPins, phases: phaseKinds });
 
   invariant(loaded.kind === 'loaded', 'the example rules load');
 

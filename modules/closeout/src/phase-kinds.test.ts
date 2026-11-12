@@ -9,6 +9,7 @@ test('it loads the example rules file against the four phase kinds and the built
 
   const result = loadRules({
     checkout: example.checkout,
+    workers: example.workers,
     concepts,
     pins: conceptPins,
     phases: phaseKinds,

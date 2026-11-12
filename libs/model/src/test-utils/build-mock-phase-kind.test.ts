@@ -13,6 +13,18 @@ test('it builds a phase kind with the name and outcomes it is given', () => {
   });
 });
 
+test('it runs the phase kind on the atc worker when it is given no worker', () => {
+  const phase = buildMockPhaseKind({ name: 'build', outcomes: ['built'] });
+
+  expect(phase.worker).toBe(brandSchemas.workerKindName.parse('atc.session'));
+});
+
+test('it runs the phase kind on the worker it is given', () => {
+  const phase = buildMockPhaseKind({ name: 'merge', outcomes: ['merged'], worker: 'merge.forge' });
+
+  expect(phase.worker).toBe(brandSchemas.workerKindName.parse('merge.forge'));
+});
+
 test('it settles with the first outcome', () => {
   const phase = buildMockPhaseKind({ name: 'build', outcomes: ['built', 'blocked'] });
 

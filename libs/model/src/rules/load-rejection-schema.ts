@@ -42,6 +42,11 @@ const loadRejectionReasonSchema: z.ZodType<LoadRejectionReason> = z.discriminate
   }),
   z.object({ kind: z.literal('skills-without-pin'), recipe: z.string() }),
   z.object({ kind: z.literal('resume-on-forward-edge'), ...outcomeOfPhase }),
+  z.object({ kind: z.literal('engine-hold-reason'), ...outcomeOfPhase, reason: z.string() }),
+  z.object({ kind: z.literal('unknown-worker'), phase, worker: brandSchemas.workerKindName }),
+  z.object({ kind: z.literal('merge-without-rules') }),
+  z.object({ kind: z.literal('empty-merge-checks') }),
+  z.object({ kind: z.literal('builder-session-not-kept'), recipe: z.string() }),
 ]);
 
 export const loadRejectionSchema: z.ZodType<LoadRejection> = z.object({

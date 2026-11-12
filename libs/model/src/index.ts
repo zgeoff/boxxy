@@ -51,6 +51,8 @@ export { gitSourceSchema, spawnRequestSchema } from './rows/spawn-request-schema
 export { stageTimeSchema } from './reports/stage-time-schema.ts';
 export { toJSONValue } from './utils/to-json-value.ts';
 export { triageCloseOutSchema } from './closeouts/triage-close-out-schema.ts';
+export { verifyCloseOutSchema } from './closeouts/verify-close-out-schema.ts';
+export { mergeCloseOutSchema } from './closeouts/merge-close-out-schema.ts';
 export { workFactSchemas } from './facts/work-fact-schemas.ts';
 export { costBases, phaseSteps, stageSteps } from './reports/constants.ts';
 export { engineHoldReasons, engineOutcomes } from './pipeline/constants.ts';
@@ -156,6 +158,8 @@ export type {
   Finding,
   Friction,
   FrictionTargetKind,
+  GateReviewCloseOut,
+  MergeCloseOut,
   NoslopSummary,
   OpenItem,
   PullRequestLink,
@@ -163,7 +167,18 @@ export type {
   ReviewCloseOut,
   ReviewInput,
   TriageCloseOut,
+  VerifyCloseOut,
 } from './closeouts/types.ts';
+
+export type {
+  CheckState,
+  GateRecord,
+  MergeMember,
+  MergeObservation,
+  MergeOutcome,
+  MergeRequest,
+  MergeUnit,
+} from './merge/types.ts';
 
 export type { Claim } from './dispatch/types.ts';
 
@@ -226,10 +241,21 @@ export type {
   FactSink,
   ForgetOutcome,
   Forge,
+  GateCall,
+  GateCost,
+  GateReading,
+  GateRound,
+  GateRun,
   GitSource,
   HoldNotice,
   ItemDetailRows,
   ItemFilter,
+  JobActAnswer,
+  JobAction,
+  JobReading,
+  JobWorker,
+  MergeAnswer,
+  MergeMethod,
   NewId,
   NoticeOutcome,
   NoticeTryUpdate,
@@ -239,10 +265,13 @@ export type {
   PepysReader,
   SinkAnswer,
   PullRequestReading,
+  ReviewGate,
+  RoundCause,
   RowWrite,
   RunnerFault,
   SessionFault,
   SessionReading,
+  SeverityCounts,
   SpawnRequest,
   StartOutcome,
   StopOutcome,
@@ -252,9 +281,14 @@ export type {
   SuspendOutcome,
   TableName,
   Tables,
+  VerifiedFeature,
+  Verifier,
+  VerifyReading,
   WakeSource,
   WorkerKind,
   WorkerRefusal,
+  WorkerRegistry,
+  WorkerShape,
 } from './ports/types.ts';
 
 export type { CostToLand, StageTime } from './reports/types.ts';
@@ -265,14 +299,17 @@ export type {
   Concept,
   ConceptEntry,
   ConceptName,
+  DriveContext,
   Edge,
   FilterField,
   ItemRules,
+  JobStep,
   KindRules,
   LoadedRules,
   LoadRejection,
   LoadRejectionReason,
   LoadResult,
+  MergeRules,
   ParamKindName,
   ParamKinds,
   PhaseInputContext,

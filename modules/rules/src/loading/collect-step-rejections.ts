@@ -1,4 +1,4 @@
-import type { LoadRejection, PhaseKind, PhaseName } from '@boxxy/model';
+import type { LoadRejection, PhaseKind, PhaseName, WorkerKindName } from '@boxxy/model';
 import { engineHoldReasons, engineOutcomes } from '@boxxy/model';
 import { P, match } from 'ts-pattern';
 import type { ParsedRulesFile, ParsedStep } from '../parse/rules-file-schema.ts';
@@ -7,6 +7,7 @@ import { buildRejection } from './build-rejection.ts';
 export function collectStepRejections(
   file: ParsedRulesFile,
   phases: ReadonlyMap<PhaseName, PhaseKind>,
+  workers: readonly WorkerKindName[],
 ): LoadRejection[] {
   return Object.entries(file.pipelines).flatMap(([pipeline, steps]) =>
     steps.flatMap((step, index) => {
@@ -16,7 +17,18 @@ export function collectStepRejections(
       return [
         ...(phase === undefined
           ? [buildRejection([...path, 'phase'], { kind: 'unknown-phase', phase: step.phase })]
-          : collectOutcomeRejections(step, phase, path)),
+          : [
+              ...collectOutcomeRejections(step, phase, path),
+              ...(workers.includes(phase.worker)
+                ? []
+                : [
+                    buildRejection([...path, 'phase'], {
+                      kind: 'unknown-worker',
+                      phase: step.phase,
+                      worker: phase.worker,
+                    }),
+                  ]),
+            ]),
         ...(step.timeoutMinutes === undefined
           ? [buildRejection(path, { kind: 'step-without-timeout', phase: step.phase })]
           : []),

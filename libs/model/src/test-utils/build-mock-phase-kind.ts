@@ -5,6 +5,9 @@ import type { PhaseKind } from '../rules/types.ts';
 interface MockPhaseKindInput {
   readonly name: string;
   readonly outcomes: readonly string[];
+
+  // `atc.session` when left out
+  readonly worker?: string;
 }
 
 // A phase kind with only a name and an outcome list: its close-out is any value, and it settles
@@ -13,7 +16,7 @@ export function buildMockPhaseKind(input: MockPhaseKindInput): PhaseKind {
   return definePhase({
     name: brandSchemas.phaseName.parse(input.name),
     version: 1,
-    worker: brandSchemas.workerKindName.parse('atc.session'),
+    worker: brandSchemas.workerKindName.parse(input.worker ?? 'atc.session'),
     outcomes: input.outcomes,
     needsAcceptance: false,
     input: () => ({}),

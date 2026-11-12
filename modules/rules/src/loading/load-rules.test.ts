@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { contentHash, hashBytes } from '@boxxy/content-hash';
 import type { Concept, ConceptPin } from '@boxxy/model';
-import { defineGate, defineSignal, signalKey } from '@boxxy/model';
+import { brandSchemas, defineGate, defineSignal, signalKey } from '@boxxy/model';
 import { buildMockPhaseKind } from '@boxxy/model/test-utils/build-mock-phase-kind';
 import invariant from 'tiny-invariant';
 import { z } from 'zod';
@@ -134,6 +134,7 @@ test('it loads the example rules file', () => {
         ['duplicate-of', { name: 'duplicate-of' }],
         ['relates-to', { name: 'relates-to' }],
       ]),
+      merge: null,
     },
     warnings: [],
   });
@@ -190,6 +191,7 @@ test('it builds the registry from the pinned concepts only', () => {
   ]);
 
   const result = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -269,6 +271,7 @@ test('it hands a signal the parameters its plug-in reference gives', () => {
   ]);
 
   const result = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -338,6 +341,7 @@ test('it rejects a rules file that is not valid YAML', () => {
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -368,6 +372,7 @@ test('it rejects a rules file whose aliases expand past the alias limit', () => 
   const aliases = Array.from({ length: 200 }, () => '*lead').join(', ');
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -392,6 +397,7 @@ test('it rejects a rules file whose aliases expand past the alias limit', () => 
 
 test('it rejects a rules file whose alias holds itself as invalid at the alias', () => {
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([['rules.yaml', new TextEncoder().encode('lead: &cycle [*cycle]\n')]]),
@@ -421,6 +427,7 @@ test('it rejects a rules file saved in Latin-1 as invalid', () => {
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: { commit: '3f2a1c0', files: new Map([['rules.yaml', latin1]]) },
     concepts: [],
     phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
@@ -441,6 +448,7 @@ test('it rejects a rules file saved in Latin-1 as invalid', () => {
 
 test('it rejects a checkout with no rules file', () => {
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')]]),
@@ -505,6 +513,7 @@ test.each([
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -562,6 +571,7 @@ test.each(['build', 'constructor'])(
     ]);
 
     const result: unknown = loadRules({
+      workers: [brandSchemas.workerKindName.parse('atc.session')],
       checkout: {
         commit: '3f2a1c0',
         files: new Map([
@@ -622,6 +632,7 @@ test('it rejects the reserved key __proto__ as invalid', () => {
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -687,6 +698,7 @@ test('it rejects two pinned concepts that register one plug-in name as invalid',
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -746,6 +758,7 @@ test('it rejects a prompt path with a "." folder as invalid', () => {
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -818,6 +831,7 @@ test('it puts a signal that lead and a pool order both name once in the pool ord
   ]);
 
   const result = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -873,6 +887,7 @@ test('it rejects a concept pinned twice as invalid', () => {
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -948,6 +963,7 @@ test.each([
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -1007,6 +1023,7 @@ test('it rejects a pool order that names a signal no pinned concept registers', 
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -1066,6 +1083,7 @@ test('it rejects a lead that names a signal no pinned concept registers', () => 
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -1133,6 +1151,7 @@ test("it rejects a pool order reference whose parameters the signal's params sch
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -1210,6 +1229,7 @@ test('it rejects a pinned concept whose gate refuses empty parameters', () => {
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -1287,6 +1307,7 @@ test('it rejects a propagation line over an unknown relation type', () => {
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -1360,6 +1381,7 @@ test('it rejects a propagation line for a signal with no combine', () => {
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -1449,6 +1471,7 @@ test.each([
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -1508,6 +1531,7 @@ test('it rejects a recipe whose prompt file is missing', () => {
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -1587,6 +1611,7 @@ sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 24
 `);
 
   const before = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -1600,6 +1625,7 @@ sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 24
   });
 
   const after = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -1658,6 +1684,7 @@ sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 24
   ]);
 
   const before = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: { commit: '3f2a1c0', files },
     concepts,
     phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
@@ -1665,6 +1692,7 @@ sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 24
   });
 
   const after = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: { commit: '3f2a1c0', files },
     concepts,
     phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
@@ -1716,6 +1744,7 @@ sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 24
   const prompt = new TextEncoder().encode('Build {{title}}.\n');
 
   const before = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -1730,6 +1759,7 @@ sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 24
   });
 
   const after = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -1763,6 +1793,7 @@ test('it returns every rejection a rules file has in one result', () => {
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -1879,6 +1910,7 @@ test.each([
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -1933,6 +1965,7 @@ test('it rejects a step whose phase kind lists an engine outcome', () => {
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -1977,6 +2010,180 @@ sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 24
 });
 
 test.each([
+  {
+    title: 'a step whose phase kind names a worker the server did not build',
+    steps: `    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+    - { phase: merge, maxAttempts: 2, timeoutMinutes: 240, on: { merged: { end: merged } } }`,
+    recipes: '{ build: build-v1, merge: build-v1 }',
+    merge: "merge: { method: squash, checks: ['pr / checks'] }",
+    workers: ['atc.session'],
+    path: 'pipelines.standard[1].phase',
+    reason: { kind: 'unknown-worker', phase: 'merge', worker: 'merge.forge' },
+  },
+  {
+    title: 'a merge step in a file with no merge block',
+    steps: `    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+    - { phase: merge, maxAttempts: 2, timeoutMinutes: 240, on: { merged: { end: merged } } }`,
+    recipes: '{ build: build-v1, merge: build-v1 }',
+    merge: '',
+    workers: ['atc.session', 'merge.forge'],
+    path: 'pipelines.standard[1].phase',
+    reason: { kind: 'merge-without-rules' },
+  },
+  {
+    title: 'a merge block with no checks',
+    steps: `    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+    - { phase: merge, maxAttempts: 2, timeoutMinutes: 240, on: { merged: { end: merged } } }`,
+    recipes: '{ build: build-v1, merge: build-v1 }',
+    merge: 'merge: { method: squash, checks: [] }',
+    workers: ['atc.session', 'merge.forge'],
+    path: 'merge.checks',
+    reason: { kind: 'empty-merge-checks' },
+  },
+  {
+    title: 'a session: builder recipe on a step with no build step before it',
+    steps: `    - { phase: verify, maxAttempts: 2, timeoutMinutes: 90, on: { verified: next } }
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: { end: built } } }`,
+    recipes: '{ build: build-v1, verify: verify-builder }',
+    merge: '',
+    workers: ['atc.session'],
+    path: 'kinds["core.issue"].recipes.verify',
+    reason: { kind: 'builder-session-not-kept', recipe: 'verify-builder' },
+  },
+])('it rejects $title', (row) => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const result: unknown = loadRules({
+    workers: row.workers.map((name) => brandSchemas.workerKindName.parse(name)),
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+${row.steps}
+kinds:
+  core.issue: { pipeline: standard, recipes: ${row.recipes} }
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+  verify-builder: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [], session: builder }
+${row.merge}
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+pools:
+  - { name: build, takes: {}, order: [oldest] }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+      ]),
+    },
+    concepts,
+    phases: [
+      buildMockPhaseKind({ name: 'build', outcomes: ['built'] }),
+      buildMockPhaseKind({ name: 'verify', outcomes: ['verified'] }),
+      buildMockPhaseKind({ name: 'merge', outcomes: ['merged'], worker: 'merge.forge' }),
+    ],
+    pins,
+  });
+
+  expect(result).toStrictEqual({
+    kind: 'rejected',
+    rejections: [{ file: 'rules.yaml', path: row.path, reason: row.reason }],
+  });
+});
+
+test('it loads a merge block, and a session: builder recipe on a step after a build step', () => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const result = loadRules({
+    workers: [
+      brandSchemas.workerKindName.parse('atc.session'),
+      brandSchemas.workerKindName.parse('merge.forge'),
+    ],
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+    - { phase: verify, maxAttempts: 2, timeoutMinutes: 90, on: { verified: next, failed: { to: build, max: 2, resume: true } } }
+    - { phase: merge, maxAttempts: 2, timeoutMinutes: 240, on: { merged: { end: merged }, unverified: { to: verify, max: 2 } } }
+kinds:
+  core.issue: { pipeline: standard, recipes: { build: build-v1, verify: verify-builder, merge: build-v1 } }
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+  verify-builder: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [], session: builder }
+merge:
+  method: squash
+  checks: ['pr / checks', 'verify / gate']
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+pools:
+  - { name: build, takes: {}, order: [oldest] }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+      ]),
+    },
+    concepts,
+    phases: [
+      buildMockPhaseKind({ name: 'build', outcomes: ['built'] }),
+      buildMockPhaseKind({ name: 'verify', outcomes: ['verified', 'failed'] }),
+      buildMockPhaseKind({
+        name: 'merge',
+        outcomes: ['merged', 'unverified'],
+        worker: 'merge.forge',
+      }),
+    ],
+    pins,
+  });
+
+  invariant(result.kind === 'loaded', 'the rules load');
+
+  expect({
+    merge: result.rules.merge,
+    session: result.rules.recipes.get(brandSchemas.recipeName.parse('verify-builder'))?.recipe
+      .session,
+  }).toStrictEqual({
+    merge: { method: 'squash', checks: ['pr / checks', 'verify / gate'] },
+    session: 'builder',
+  });
+});
+
+test.each([
   [
     'afterQuietMinutes below afterIdleMinutes',
     '{ afterIdleMinutes: 30, afterQuietMinutes: 20, afterUnattendedMinutes: 240 }',
@@ -2003,6 +2210,7 @@ test.each([
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -2054,6 +2262,7 @@ test('it rejects a recipe that lists a skill when the rules pin no skills commit
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -2125,6 +2334,7 @@ test.each([
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -2183,6 +2393,7 @@ test.each([
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -2245,6 +2456,7 @@ test('it loads a pool whose takes are narrower than the counts of a limit', () =
   ]);
 
   const result = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -2336,6 +2548,7 @@ test.each([
   ]);
 
   const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -2395,6 +2608,7 @@ test.each(['main', '4f1c9e0'])(
     ]);
 
     const result: unknown = loadRules({
+      workers: [brandSchemas.workerKindName.parse('atc.session')],
       checkout: {
         commit: '3f2a1c0',
         files: new Map([
@@ -2478,6 +2692,7 @@ sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 24
   ]);
 
   const before = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: { commit: '3f2a1c0', files },
     concepts,
     phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
@@ -2485,6 +2700,7 @@ sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 24
   });
 
   const after = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
     checkout: { commit: '3f2a1c0', files },
     concepts,
     phases: [{ ...buildMockPhaseKind({ name: 'build', outcomes: ['built'] }), version: 2 }],

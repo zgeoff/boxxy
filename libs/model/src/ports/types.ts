@@ -1,6 +1,7 @@
 import type { JsonValue } from '@boxxy/content-hash';
 import type { AnyNewFact, OutboxFact } from '../facts/types.ts';
 import type { ItemWithLevers } from '../items/types.ts';
+import type { MergeUnit } from '../merge/types.ts';
 import type { HoldReason } from '../pipeline/types.ts';
 import type { Limit, LimitFill, SeatRelease, SeatTake, Snapshot } from '../planning/types.ts';
 import type { CostToLand, StageTime } from '../reports/types.ts';
@@ -37,6 +38,7 @@ import type {
   RepoName,
   RunnerId,
   RunnerRow,
+  WorkerKindName,
 } from '../types.ts';
 
 export interface ClaimStore {
@@ -449,6 +451,142 @@ export interface PullRequestReading {
   readonly mergeCommit: CommitSha | null;
   readonly commits: readonly { readonly sha: CommitSha; readonly message: string }[];
 }
+
+export type MergeMethod = 'merge' | 'squash' | 'rebase';
+
+// The forge's answer to a merge at a head. `queued`: a merge queue took the pull request, which a
+// direct merge never answers.
+export type MergeAnswer =
+  | { readonly kind: 'merged'; readonly mergeCommit: CommitSha }
+  | { readonly kind: 'queued' }
+  | { readonly kind: 'head-moved' }
+  | { readonly kind: 'not-mergeable'; readonly reason: string };
+
+// Why a review round runs. The core picks it from the item's settled attempts; the adapter maps it
+// to its own calls. `recheck`: after a repair, a moved head, a failed verify or a failed review.
+export type RoundCause = 'first' | 'rework' | 'recheck';
+
+export interface GateRound {
+  // the review attempt
+  readonly attempt: AttemptId;
+  readonly pullRequest: PullRequestRef;
+
+  // 1 to 4; the core counts it, never the adapter
+  readonly round: number;
+  readonly cause: RoundCause;
+}
+
+// The review port. The review runs in an agent session on an agent host; the server only checks
+// and posts its result.
+export interface ReviewGate {
+  // pure: the command line that the review session runs in the pull request's checkout
+  buildCommand: (round: GateRound) => string;
+
+  // Checks the session's result against the pull request's current head, posts it, and reads
+  // each finding's state. Throws only when the forge gives no answer, so the session sends again.
+  accept: (round: GateRound, result: JsonValue) => Promise<GateReading>;
+}
+
+// `not-covered`: the result is for another head than the pull request's current head, or it read
+// no part of that head. A tool check that passes at a head no review read is never `passed`.
+export type GateReading =
+  | ({ readonly status: 'passed' } & GateRun)
+  | ({
+      readonly status: 'blocked';
+      readonly why: 'open-findings' | 'failed-call' | 'unreadable';
+    } & GateRun)
+  | { readonly status: 'not-covered'; readonly head: CommitSha; readonly cost: GateCost };
+
+export interface GateRun {
+  readonly head: CommitSha;
+
+  // the findings still open at `head`, whatever round raised them
+  readonly open: SeverityCounts;
+
+  // findings closed by an answer that is not a confirmed fix
+  readonly closedWithoutFix: number;
+
+  // the files of the findings still open at `head`
+  readonly findingPaths: readonly string[];
+  readonly cost: GateCost;
+
+  // the tool's own ID of the run, for the owner to look up
+  readonly ref: string;
+
+  // text for the builder's input: where the findings are and how to answer them
+  readonly answerHint: string;
+}
+
+export interface SeverityCounts {
+  readonly high: number;
+  readonly medium: number;
+  readonly low: number;
+}
+
+// Tokens per model, as the tool reports them. boxxy stores no money; pepys prices the tokens.
+export interface GateCost {
+  readonly calls: readonly GateCall[];
+}
+
+export interface GateCall {
+  readonly model: string;
+  readonly input: number;
+  readonly cachedInput: number;
+  readonly cacheWrite: number;
+  readonly output: number;
+  readonly durationMs: number;
+}
+
+// The verify port: what the core reads about the grading at a head. An agent grades in the
+// `verify` phase; the tool scopes the features from the paths the pull request changed.
+export interface Verifier {
+  readAt: (pullRequest: PullRequestRef, head: CommitSha) => Promise<VerifyReading>;
+}
+
+// `not-covered`: no finished gate run at `head`, or no report in the pull request.
+export type VerifyReading =
+  | {
+      readonly status: 'verified' | 'incomplete';
+      readonly head: CommitSha;
+      readonly features: readonly VerifiedFeature[];
+    }
+  | { readonly status: 'not-covered'; readonly head: CommitSha };
+
+export interface VerifiedFeature {
+  readonly name: string;
+  readonly status: 'verified' | 'stale' | 'missing' | 'unchanged';
+}
+
+// The worker of a phase with no agent session and no host, such as the merge. It has no sleep,
+// wake, kept session or forget, and starts nothing: the first read moves the attempt to running.
+export interface JobWorker {
+  // throws when the outside system gives no answer
+  read: (attempt: AttemptRow) => Promise<JobReading>;
+
+  // the one effect that the phase kind's `drive` chose
+  act: (attempt: AttemptRow, action: JobAction) => Promise<JobActAnswer>;
+}
+
+// `observed`: what the phase kind's `drive` reads, such as a merge observation
+export interface JobReading {
+  readonly kind: 'running';
+  readonly observed: JsonValue;
+}
+
+export interface JobAction {
+  readonly kind: 'merge';
+  readonly unit: MergeUnit;
+  readonly method: MergeMethod;
+}
+
+export type JobActAnswer = MergeAnswer | { readonly kind: 'unknown'; readonly reason: string };
+
+export type WorkerShape =
+  | { readonly shape: 'session'; readonly worker: WorkerKind }
+  | { readonly shape: 'job'; readonly worker: JobWorker };
+
+// The workers that the server builds, by the name a phase kind's `worker` gives.
+export type WorkerRegistry = ReadonlyMap<WorkerKindName, WorkerShape>;
 
 export interface Clock {
   now: () => Instant;

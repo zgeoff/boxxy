@@ -29,8 +29,8 @@ test('it gives each fact type a schema whose output is its payload type', () => 
   expect(mismatched).toBe('none');
 });
 
-test('it has a schema for each of the 27 fact types', () => {
-  expect(Object.keys(workFactSchemas)).toHaveLength(27);
+test('it has a schema for each of the 30 fact types', () => {
+  expect(Object.keys(workFactSchemas)).toHaveLength(30);
 });
 
 test.each([
@@ -284,6 +284,30 @@ test.each([
       pullRequestId: '9001',
     },
   ],
+  [
+    'boxxy.attempt.job_started',
+    { attempt: '0192f0c5-1a2b-7c3d-8e4f-5a6b7c8d9e0f', worker: 'merge.forge' },
+  ],
+  [
+    'boxxy.merge.requested',
+    {
+      attempt: '0192f0c5-1a2b-7c3d-8e4f-5a6b7c8d9e0f',
+      repo: 'acme/widgets',
+      number: 41,
+      head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+      method: 'squash',
+      required: ['pr / checks', 'verify / gate'],
+    },
+  ],
+  [
+    'boxxy.merge.answered',
+    {
+      attempt: '0192f0c5-1a2b-7c3d-8e4f-5a6b7c8d9e0f',
+      head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+      answer: 'merged',
+      mergeCommit: '4b825dc642cb6eb9a060e54bf8d69288fbee4904',
+    },
+  ],
 ] satisfies readonly (readonly [FactType, Readonly<Record<string, unknown>>])[])(
   'it accepts an example %s payload',
   (type, payload) => {
@@ -321,6 +345,9 @@ test.each([
   ['boxxy.commit.linked', ['sha'], { pullRequestNumber: 41 }],
   ['boxxy.pull_request.merged', ['pullRequestId'], { pullRequestId: 'PR_9001' }],
   ['boxxy.pull_request.closed', ['pullRequestId'], { number: 41 }],
+  ['boxxy.attempt.job_started', ['worker'], { worker: '' }],
+  ['boxxy.merge.requested', ['method'], { method: 'fast-forward' }],
+  ['boxxy.merge.answered', ['answer'], { answer: 'unknown' }],
 ] satisfies readonly (readonly [
   FactType,
   readonly (string | number)[],

@@ -1,6 +1,6 @@
 import { contentHash } from '@boxxy/content-hash';
-import type { Concept, ConceptName, ConceptPin } from '@boxxy/model';
-import { defineGate, defineSignal } from '@boxxy/model';
+import type { Concept, ConceptName, ConceptPin, WorkerKindName } from '@boxxy/model';
+import { brandSchemas, defineGate, defineSignal } from '@boxxy/model';
 import { z } from 'zod';
 import buildPrompt from '../../example/prompts/build-v1.md' with { type: 'text' };
 import designAttendedPrompt from '../../example/prompts/design-attended-v1.md' with { type: 'text' };
@@ -16,10 +16,11 @@ interface ExampleLoadInput {
   };
   readonly concepts: readonly Concept[];
   readonly pins: ReadonlyMap<ConceptName, ConceptPin>;
+  readonly workers: readonly WorkerKindName[];
 }
 
-// The example rules file with its prompts, and stand-ins for the three concepts it pins. The
-// caller adds the phase kinds.
+// The example rules file with its prompts, stand-ins for the three concepts it pins, and the atc
+// worker that its phase kinds run on. The caller adds the phase kinds.
 export function buildExampleLoadInput(): ExampleLoadInput {
   const encoder = new TextEncoder();
 
@@ -48,6 +49,7 @@ export function buildExampleLoadInput(): ExampleLoadInput {
       ['defer', { ref: 'defer@1', sourceHash: contentHash('defer source') }],
       ['expedite', { ref: 'expedite@1', sourceHash: contentHash('expedite source') }],
     ]),
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
   };
 }
 

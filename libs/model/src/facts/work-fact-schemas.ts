@@ -204,4 +204,19 @@ export const workFactSchemas = {
     number: pullRequestNumberSchema,
     pullRequestId: pullRequestIdSchema,
   }),
+  'boxxy.attempt.job_started': z.object({ ...ofAttempt, worker: brandSchemas.workerKindName }),
+  'boxxy.merge.requested': z.object({
+    ...ofAttempt,
+    repo: brandSchemas.repoName,
+    number: pullRequestNumberSchema,
+    head: brandSchemas.commitSha,
+    method: z.enum(['merge', 'squash', 'rebase']),
+    required: z.array(z.string().min(1)),
+  }),
+  'boxxy.merge.answered': z.object({
+    ...ofAttempt,
+    head: brandSchemas.commitSha,
+    answer: z.enum(['merged', 'queued', 'head-moved', 'not-mergeable']),
+    mergeCommit: brandSchemas.commitSha.nullable(),
+  }),
 } satisfies { readonly [T in FactType]: z.ZodType<WorkFacts[T]> };
