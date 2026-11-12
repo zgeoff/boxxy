@@ -6,7 +6,7 @@ interface SenderMoveInput {
   readonly answer: SinkAnswer;
   readonly batchSize: number;
 
-  // rows parked since the last `stored`
+  // rows that pepys refused and the sender parked since the last `stored`
   readonly parkRun: number;
   readonly limits: OutboxLimits;
 }

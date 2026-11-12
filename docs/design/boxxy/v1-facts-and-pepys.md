@@ -40,7 +40,7 @@ A batch is the longest run of unsent rows, in order, that holds 100 facts or few
 
 Ingest answers 500 when a source throws, when it has no blob store, or when its log refuses an append. No split of the batch fixes those, so the sink reports a 500 as a refusal of the sink.
 
-After 25 rows parked in a row with none stored between, the sender stops parking and reports `blocked`: that pattern means the boxxy server and the deployed `@boxxy/pepys` differ in version. `boxxy outbox retry` clears every park mark.
+After pepys refuses 25 single rows in a row with none stored between, the sender stops parking and reports `blocked`: that pattern means the boxxy server and the deployed `@boxxy/pepys` differ in version. A row over the limit of one fact never counts toward the 25, because the sender parks it without sending it, so it cannot show a version difference. Such a row shows in the parked count of `runner.status`. `boxxy outbox retry` clears every park mark.
 
 The `FactSink` port has three forms (section C): the pepys adapter, which uses the kit's batch sender and holds no HTTP code of its own; a fake for tests; and no sink at all. With no sink, no loop runs and the rows stay unsent, so the whole history goes out when the owner adds pepys later. One contract suite runs against the fake and the pepys adapter.
 

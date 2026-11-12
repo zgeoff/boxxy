@@ -21,7 +21,8 @@ export interface OutboxLimits {
   };
   readonly blockedRetryMs: 300_000;
 
-  // this many rows parked in a row, with none stored between, reads as "pepys refuses everything"
+  // this many rows that pepys refused in a row, with none stored between, reads as "pepys refuses
+  // everything"; an oversize row is parked unsent and never counts
   readonly parkRun: 25;
 }
 
@@ -51,7 +52,7 @@ export interface SenderState {
   // consecutive `retry` answers
   readonly retries: number;
 
-  // rows parked since the last `stored`
+  // rows that pepys refused and the sender parked since the last `stored`
   readonly parkRun: number;
   readonly phase: SenderPhase;
   readonly failingSince: Instant | null;

@@ -141,7 +141,8 @@ export interface OutboxLimits {
   readonly backoff: { readonly firstMs: 1_000; readonly factor: 2; readonly maxMs: 300_000; readonly jitter: 0.2 };
   readonly blockedRetryMs: 300_000;
 
-  // this many rows parked in a row, with none stored between, reads as "pepys refuses everything"
+  // this many rows that pepys refused in a row, with none stored between, reads as "pepys refuses
+  // everything"; an oversize row is parked unsent and never counts
   readonly parkRun: 25;
 }
 export declare const outboxLimits: OutboxLimits;
@@ -347,9 +348,11 @@ async function turn(deps: SenderDeps & { sink: FactSink }, held: readonly Outbox
 //                                          nothing. State `blocked`. Tries the same batch again
 //                                          every 5 min, because the fix can be on the pepys side.
 //
-// After `parkRun` (25) rows parked in a row with none stored between, the sender stops parking
-// and goes to `blocked` with the reason "pepys refuses every fact". That is version skew between
-// the boxxy server and the boxxy pepys package in the pepys deployment, not 25 bad facts.
+// After pepys refuses `parkRun` (25) single rows in a row with none stored between, the sender
+// stops parking and goes to `blocked` with the reason "pepys refuses every fact". That is version
+// skew between the boxxy server and the boxxy pepys package in the pepys deployment, not 25 bad
+// facts. An oversize row never counts: `turn` parks it unsent, so it cannot show version skew, and
+// it shows in the parked count of the status.
 // `boxxy outbox retry` clears every park mark after the fix, and the rows go out in `seq` order.
 declare function settle(deps: SenderDeps, batch: readonly OutboxFact[], answer: SinkAnswer): Promise<SenderStep>;
 
