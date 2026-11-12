@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.1.9](https://github.com/zgeoff/boxxy/compare/@boxxy/worker-atc@0.1.8...@boxxy/worker-atc@0.1.9) (2026-11-12)
+
+
+### Features
+
+* **server:** name the clone token variable of a git source ([bb0c0d1](https://github.com/zgeoff/boxxy/commit/bb0c0d1ecdac12235afc70d1911845053b3adf89))
+
+
+### Bug Fixes
+
+* **server:** log the reason of a refused wake and atc's problem ([1f6ef46](https://github.com/zgeoff/boxxy/commit/1f6ef468e5ad74cad84490e3f4eec587e70873e3))
+* **worker-atc:** pair each clone token variable with its configured url ([c2ac3d7](https://github.com/zgeoff/boxxy/commit/c2ac3d75ef9f1a8ec944d3d52cdf6b6acc99aef3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/model bumped to 0.1.9
+  * devDependencies
+    * @boxxy/dispatch bumped to 0.1.9
+
 ## [0.1.8](https://github.com/zgeoff/boxxy/compare/@boxxy/worker-atc@0.1.7...@boxxy/worker-atc@0.1.8) (2026-11-12)
 
 ### Miscellaneous Chores
