@@ -43,7 +43,14 @@ export const runnerHandlers = {
         waitingSince: findAttemptWaitingSince(deps, entry.attempt),
       })),
       strays: read.strays,
-      notices: { unsent: read.notices.length },
+      notices: {
+        unsent: read.notices.length,
+        oldestUnsentAt:
+          read.notices.length === 0
+            ? null
+            : new Date(Math.min(...read.notices.map((notice) => notice.at))).toISOString(),
+        lastError: read.notices.length === 0 ? null : deps.noticeStatus.lastError,
+      },
       outbox,
       rules: {
         version: state.rules.version,

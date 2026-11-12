@@ -57,6 +57,9 @@ test('it numbers each notice insert after the last id', () => {
     at: brandSchemas.instant.parse(5000),
     tries: 0,
     sentAt: null,
+    keySeq: 0,
+    keyTries: 0,
+    nextTryAt: brandSchemas.instant.parse(5000),
   } as const;
 
   const applied = buildAppliedChange(

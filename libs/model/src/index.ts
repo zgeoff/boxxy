@@ -229,6 +229,7 @@ export type {
   ItemFilter,
   NewId,
   NoticeOutcome,
+  NoticeTryUpdate,
   Notifier,
   OutboxReader,
   PepysAnswer,

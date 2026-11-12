@@ -14,4 +14,7 @@ export const noticeRowSchema: z.ZodType<NoticeRow> = z.object({
   at: brandSchemas.instant,
   tries: countSchema,
   sentAt: brandSchemas.instant.nullable(),
+  keySeq: countSchema,
+  keyTries: countSchema,
+  nextTryAt: brandSchemas.instant,
 });

@@ -9,6 +9,7 @@ function setupTest() {
       item: brandSchemas.itemId.parse('0190a6f4-0000-7000-8000-0000000000a1'),
       reason: brandSchemas.rulesHoldReason.parse('blocked'),
       at: brandSchemas.instant.parse(1000),
+      key: 'boxxy-notice:1:0',
     }),
   };
 }
@@ -23,27 +24,28 @@ test('it records a sent notice', async () => {
   expect([outcome, notifier.told]).toStrictEqual([{ kind: 'sent' }, [notice]]);
 });
 
-test('it fails one call after failNext and records nothing for it', async () => {
+test('it ends one call with the outcome after failNext and records no sent notice for it', async () => {
   const ctx = setupTest();
   const notifier = ctx.notifier;
 
-  notifier.failNext('session offline');
+  notifier.failNext({ kind: 'refused', reason: 'session_dead' });
 
   const first = await notifier.tellHold(ctx.buildNotice());
   const second = await notifier.tellHold(ctx.buildNotice());
 
-  expect([first, second.kind, notifier.told]).toStrictEqual([
-    { kind: 'failed', reason: 'session offline' },
+  expect([first, second.kind, notifier.told, notifier.attempts.length]).toStrictEqual([
+    { kind: 'refused', reason: 'session_dead' },
     'sent',
     [ctx.buildNotice()],
+    2,
   ]);
 });
 
-test('it fails every call until it recovers', async () => {
+test('it ends every call with the outcome until it recovers', async () => {
   const ctx = setupTest();
   const notifier = ctx.notifier;
 
-  notifier.failAlways('session offline');
+  notifier.failAlways({ kind: 'uncertain', reason: 'outcome_unknown' });
 
   const failed = await notifier.tellHold(ctx.buildNotice());
 
@@ -51,5 +53,5 @@ test('it fails every call until it recovers', async () => {
 
   const sent = await notifier.tellHold(ctx.buildNotice());
 
-  expect([failed.kind, sent.kind, notifier.calls()]).toStrictEqual(['failed', 'sent', 2]);
+  expect([failed.kind, sent.kind, notifier.calls()]).toStrictEqual(['uncertain', 'sent', 2]);
 });

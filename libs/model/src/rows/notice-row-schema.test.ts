@@ -9,6 +9,9 @@ test.each(['attempts used up', 'declined'])('it accepts a notice of the hold %s'
     at: 1000,
     tries: 0,
     sentAt: null,
+    keySeq: 0,
+    keyTries: 0,
+    nextTryAt: 1000,
   };
 
   const parsed: unknown = noticeRowSchema.safeParse(row).data;

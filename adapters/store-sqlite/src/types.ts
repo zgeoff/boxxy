@@ -157,6 +157,9 @@ export interface StoreDatabase {
     at: number;
     tries: number;
     sent_at: number | null;
+    key_seq: number;
+    key_tries: number;
+    next_try_at: number;
   };
   outbox: {
     seq: Generated<number>;

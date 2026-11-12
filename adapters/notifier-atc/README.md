@@ -28,11 +28,11 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 - `createAtcNotifier({ client, session })` returns a `Notifier`. The message names the item and the
   reason, and says the owner next runs `boxxy item note` and `boxxy item retry`.
 - The client is one call, `sendMessage`. The app builds it from its atc connection.
-- A send that fails, or that atc refuses, returns the failed outcome and never throws. After a
-  refusal, the next try of the notice goes out under a fresh idempotency key. After a send that atc
-  may have run, such as one answered `outcome_unknown`, the next try keeps the key, so the owner
-  never gets the notice twice. A notice whose first send never ran then uses up its tries and shows
-  as stuck.
+- The adapter sends the key it gets from the notice as the idempotency key, and keeps no state.
+- A send that atc refuses with a code that ran nothing returns `refused`. Every other failure
+  returns `uncertain`. The adapter never throws.
+  [Notice delivery in production](../../docs/design/boxxy/owner-notices.md) lists the codes and says
+  what the server does with each outcome.
 
 ## Documentation
 

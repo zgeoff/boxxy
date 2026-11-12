@@ -4,46 +4,48 @@ export interface FakeNotifier extends Notifier {
   // each notice that was sent, in order
   readonly told: readonly HoldNotice[];
 
-  // the number of calls, sent or failed
+  // every call, sent or not, in order
+  readonly attempts: readonly HoldNotice[];
+
+  // the number of calls, sent or not
   readonly calls: () => number;
 
-  // the next call fails with the reason
-  failNext: (reason: string) => void;
+  // the next call ends with the outcome
+  failNext: (outcome: Exclude<NoticeOutcome, { kind: 'sent' }>) => void;
 
-  // every call fails with the reason until `recover`
-  failAlways: (reason: string) => void;
+  // every call ends with the outcome until `recover`
+  failAlways: (outcome: Exclude<NoticeOutcome, { kind: 'sent' }>) => void;
   recover: () => void;
 }
 
 export function createFakeNotifier(): FakeNotifier {
   const told: HoldNotice[] = [];
-  let calls = 0;
-  let next: string | null = null;
-  let always: string | null = null;
+  const attempts: HoldNotice[] = [];
+  let next: NoticeOutcome | null = null;
+  let always: NoticeOutcome | null = null;
 
   return {
     told,
-    calls: () => calls,
-    failNext: (reason) => {
-      next = reason;
+    attempts,
+    calls: () => attempts.length,
+    failNext: (outcome) => {
+      next = outcome;
     },
-    failAlways: (reason) => {
-      always = reason;
+    failAlways: (outcome) => {
+      always = outcome;
     },
     recover: () => {
       always = null;
     },
     tellHold: (notice) => {
-      calls += 1;
+      attempts.push(notice);
 
-      const reason = next ?? always;
+      const outcome = next ?? always;
 
       next = null;
 
-      if (reason !== null) {
-        const failed: NoticeOutcome = { kind: 'failed', reason };
-
-        return Promise.resolve(failed);
+      if (outcome !== null) {
+        return Promise.resolve(outcome);
       }
 
       told.push(notice);

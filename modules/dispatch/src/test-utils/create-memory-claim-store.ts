@@ -150,11 +150,17 @@ function buildMemoryTx(tables: MemoryTables): StoreTx {
 
       return Promise.resolve();
     },
-    markNoticeTried: (id, at, sent) => {
+    markNoticeTried: (id, update) => {
       const row = tables.notices.find((candidate) => candidate.id === id);
 
       if (row !== undefined) {
-        Object.assign(row, { tries: row.tries + 1, sentAt: sent ? at : row.sentAt });
+        Object.assign(row, {
+          tries: row.tries + 1,
+          sentAt: update.sentAt ?? row.sentAt,
+          keySeq: update.keySeq,
+          keyTries: update.keyTries,
+          nextTryAt: update.nextTryAt,
+        });
       }
 
       return Promise.resolve();

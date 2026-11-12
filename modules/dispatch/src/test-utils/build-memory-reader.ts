@@ -202,11 +202,11 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
           .toSorted((first, second) => first.id - second.id)
           .slice(0, limit),
       ),
-    listNoticesToSend: (maxTries, limit) =>
+    listNoticesDue: (now, limit) =>
       Promise.resolve(
         getTables()
-          .notices.filter((notice) => notice.sentAt === null && notice.tries < maxTries)
-          .toSorted((first, second) => first.id - second.id)
+          .notices.filter((notice) => notice.sentAt === null && notice.nextTryAt <= now)
+          .toSorted((first, second) => first.nextTryAt - second.nextTryAt || first.id - second.id)
           .slice(0, limit),
       ),
     listKeptSessions: () => {

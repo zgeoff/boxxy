@@ -606,8 +606,8 @@ export interface StoreReader {
   listLimits: () => Promise<LimitFill[]>;
   listLimitSeats: () => Promise<LimitSeatRow[]>;
   listItemNotes: (item: ItemId) => Promise<readonly NoteRow[]>; // oldest first
-  listUnsentNotices: (limit: number) => Promise<readonly NoticeRow[]>; // for `runner.status`, whatever their tries
-  listNoticesToSend: (maxTries: number, limit: number) => Promise<readonly NoticeRow[]>; // for the notice port, below: fewer than `maxTries` tries
+  listUnsentNotices: (limit: number) => Promise<readonly NoticeRow[]>; // for `runner.status`, whatever their `nextTryAt`
+  listNoticesDue: (now: Instant, limit: number) => Promise<readonly NoticeRow[]>; // for the notice port, below: unsent rows whose `nextTryAt` has passed, oldest `nextTryAt` first
   listKeptSessions: () => Promise<readonly { item: ItemId; kept: KeptSession }[]>; // for cleanup of kept sessions
   listSessionsToForget: (now: Instant) => Promise<readonly AttemptRow[]>; // for cleanup: the sessions that `forget` is due for
 }
@@ -657,7 +657,7 @@ export interface StoreReader {
 //   - The change that settles an attempt also writes one `notices` row when the item's position
 //     after it is a hold. The settle reads the position for this row only, and still stores none.
 //   - The runner tick sends each unsent row, marks it sent, and tries a failed one again on a
-//     later tick (5 tries, then it stays listed in `runner.status`).
+//     later tick, with no cap on tries (see owner-notices.md).
 //   - The rows are in a small table, not in the fact outbox. The outbox sends facts to pepys in order and
 //     parks on a failure; a notice has another target and must not hold facts back.
 //   - A hold that a rules change makes (no settle) gets no notice.
@@ -668,15 +668,13 @@ export interface StoreReader {
 // the close-out; the rules map `blocked` to a hold; the notice goes out; the owner answers with
 // a note (`item.note`) and `item.retry`, and the next attempt gets the note in its input.
 export interface Notifier {
-  tellHold: (notice: { readonly item: ItemId; readonly reason: HoldReason; readonly at: Instant }) => Promise<{ kind: 'sent' } | { kind: 'failed'; reason: string }>;
+  tellHold: (notice: { readonly item: ItemId; readonly reason: HoldReason; readonly at: Instant; readonly key: string }) => Promise<{ kind: 'sent' } | { kind: 'refused'; reason: string } | { kind: 'uncertain'; reason: string }>;
 }
 // Built: adapters/notifier-atc. The client is one structural call, `sendMessage({ session, text,
 // idempotencyKey })`, that resolves when atc takes the message and rejects when atc refuses it. A
-// rejection becomes `failed`, with the error's string `code` as the reason (`no_such_session`) or
-// `atc send failed`; the error text is never copied. The port's notice holds no row id or try
-// count, so the key is built from the item, the reason and the time. A try that atc answered and
-// refused, `outcome_unknown` included, gives the next try of the notice a fresh key, because atc
-// answers `outcome_unknown` to a repeat of a refused key; a try with no atc answer keeps its key.
+// rejection becomes `refused` for the codes in owner-notices.md and `uncertain` for every other,
+// with the error's string `code` as the reason (`no_such_session`) or `atc send failed`; the error
+// text is never copied. The notice carries its row's key, and the adapter keeps no state.
 
 export interface NoticeRow {
   readonly id: number;
@@ -685,6 +683,9 @@ export interface NoticeRow {
   readonly at: Instant;
   readonly tries: number;
   readonly sentAt: Instant | null;
+  readonly keySeq: number;
+  readonly keyTries: number;
+  readonly nextTryAt: Instant;
 }
 
 // `StoreTx` has no method that sets the suspend mark. The mark is attempt state, so it is a

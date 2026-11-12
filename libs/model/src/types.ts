@@ -386,7 +386,7 @@ export interface RunnerRow {
   readonly paused: boolean;
 }
 
-// A hold notice for the `Notifier` port. The tick tries it again until `tries` reaches 5.
+// A hold notice for the `Notifier` port. The tick tries it again, with no cap, until atc takes it.
 export interface NoticeRow {
   readonly id: number;
   readonly item: ItemId;
@@ -394,6 +394,15 @@ export interface NoticeRow {
   readonly at: Instant;
   readonly tries: number;
   readonly sentAt: Instant | null;
+
+  // the row's current key is `boxxy-notice:<id>:<keySeq>`
+  readonly keySeq: number;
+
+  // uncertain tries under the current key; 0 after each change of key
+  readonly keyTries: number;
+
+  // a tick sends the row once now >= nextTryAt; a new row holds its `at`
+  readonly nextTryAt: Instant;
 }
 
 export type Effort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';

@@ -475,7 +475,7 @@ export const contract = {
             }),
           ),
           strays: z.array(attemptRowSchema), // core `listStrayAttempts`
-          notices: z.object({ unsent: z.number().int() }), // hold notices that the notifier has not sent
+          notices: z.object({ unsent: z.number().int(), oldestUnsentAt: time.nullable(), lastError: z.string().nullable() }), // hold notices that the notifier has not sent
           outbox: z.custom<OutboxStatus>(), // 02-outbox.ts, section E
           rules: z.object({ version: z.string(), commit: z.string(), lastRejected: z.object({ commit: z.string(), rejections: z.array(loadRejectionSchema) }).nullable() }),
         }),

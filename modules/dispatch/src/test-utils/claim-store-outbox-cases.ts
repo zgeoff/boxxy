@@ -244,7 +244,7 @@ export const claimStoreOutboxCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
-    '#markNoticeTried counts a failed try and keeps the notice unsent',
+    '#markNoticeTried counts a try, writes the key state and next try, and marks a sent notice',
     async (store) => {
       const item = buildMockV1ItemRow();
 
@@ -255,6 +255,9 @@ export const claimStoreOutboxCases: readonly ClaimStoreCase[] = [
         at: brandSchemas.instant.parse(3000),
         tries: 0,
         sentAt: null,
+        keySeq: 0,
+        keyTries: 0,
+        nextTryAt: brandSchemas.instant.parse(3000),
       } as const;
 
       await store.exclusive(async (transaction) => {
@@ -269,17 +272,40 @@ export const claimStoreOutboxCases: readonly ClaimStoreCase[] = [
           facts: [],
         });
 
-        await transaction.markNoticeTried(1, brandSchemas.instant.parse(3500), false);
-        await transaction.markNoticeTried(2, brandSchemas.instant.parse(3500), true);
+        await transaction.markNoticeTried(1, {
+          sentAt: null,
+          keySeq: 2,
+          keyTries: 1,
+          nextTryAt: brandSchemas.instant.parse(8500),
+        });
+
+        await transaction.markNoticeTried(2, {
+          sentAt: brandSchemas.instant.parse(3500),
+          keySeq: 0,
+          keyTries: 0,
+          nextTryAt: brandSchemas.instant.parse(8500),
+        });
       });
 
       const unsent: unknown = await store.read((transaction) => transaction.listUnsentNotices(10));
 
-      return { received: unsent, expected: [{ ...notice, id: 1, tries: 1 }] };
+      return {
+        received: unsent,
+        expected: [
+          {
+            ...notice,
+            id: 1,
+            tries: 1,
+            keySeq: 2,
+            keyTries: 1,
+            nextTryAt: brandSchemas.instant.parse(8500),
+          },
+        ],
+      };
     },
   ],
   [
-    '#listNoticesToSend leaves out a sent notice and one that used all its tries',
+    '#listNoticesDue leaves out a sent notice and one before its next try, oldest next try first',
     async (store) => {
       const item = buildMockV1ItemRow();
 
@@ -290,6 +316,9 @@ export const claimStoreOutboxCases: readonly ClaimStoreCase[] = [
         at: brandSchemas.instant.parse(3000),
         tries: 0,
         sentAt: null,
+        keySeq: 0,
+        keyTries: 0,
+        nextTryAt: brandSchemas.instant.parse(3000),
       } as const;
 
       await store.exclusive(async (transaction) => {
@@ -298,26 +327,43 @@ export const claimStoreOutboxCases: readonly ClaimStoreCase[] = [
         await transaction.applyChange({
           at: notice.at,
           writes: [
-            { op: 'insert', table: 'notices', row: { ...notice, tries: 5 } },
-            { op: 'insert', table: 'notices', row: notice },
-            { op: 'insert', table: 'notices', row: { ...notice, tries: 4 } },
+            {
+              op: 'insert',
+              table: 'notices',
+              row: { ...notice, tries: 50, nextTryAt: brandSchemas.instant.parse(4000) },
+            },
+            {
+              op: 'insert',
+              table: 'notices',
+              row: { ...notice, nextTryAt: brandSchemas.instant.parse(5000) },
+            },
+            {
+              op: 'insert',
+              table: 'notices',
+              row: { ...notice, nextTryAt: brandSchemas.instant.parse(3500) },
+            },
             { op: 'insert', table: 'notices', row: notice },
           ],
           facts: [],
         });
 
-        await transaction.markNoticeTried(4, brandSchemas.instant.parse(3500), true);
+        await transaction.markNoticeTried(4, {
+          sentAt: brandSchemas.instant.parse(3500),
+          keySeq: 0,
+          keyTries: 0,
+          nextTryAt: brandSchemas.instant.parse(3500),
+        });
       });
 
-      const toSend: unknown = await store.read((transaction) =>
-        transaction.listNoticesToSend(5, 10),
+      const due: unknown = await store.read((transaction) =>
+        transaction.listNoticesDue(brandSchemas.instant.parse(4000), 10),
       );
 
       return {
-        received: toSend,
+        received: due,
         expected: [
-          { ...notice, id: 2 },
-          { ...notice, id: 3, tries: 4 },
+          { ...notice, id: 3, nextTryAt: brandSchemas.instant.parse(3500) },
+          { ...notice, id: 1, tries: 50, nextTryAt: brandSchemas.instant.parse(4000) },
         ],
       };
     },

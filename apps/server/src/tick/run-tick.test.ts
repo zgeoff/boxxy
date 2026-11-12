@@ -27,6 +27,7 @@ async function setupTest() {
     now: dispatch.clock.now(),
     newId: dispatch.newId,
     readings,
+    noticeStatus: { lastError: null },
     log: {
       warn: (message, fields) => {
         logged.push(message);
@@ -69,7 +70,7 @@ test('it claims a ready item and reads its session in the same tick', async () =
     read: 1,
     strays: 0,
     forgotten: 0,
-    notices: { sent: 0, failed: 0, stuck: 0 },
+    notices: { sent: 0, failed: 0, lastError: null },
   });
 
   const live = await ctx.dispatch.store.read((tx) => tx.listLiveAttempts());
