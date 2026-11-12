@@ -114,7 +114,7 @@ test('it leaves a starting job as it is when its first read throws', async () =>
 
   ctx.job.failNextRead(new Error('the forge did not answer'));
 
-  await expect(ctx.read(claimed)).rejects.toThrow('the forge did not answer');
+  expect(ctx.read(claimed)).rejects.toThrow('the forge did not answer');
 
   const row = await ctx.readAttempt(claimed.id);
 
