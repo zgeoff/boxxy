@@ -6,11 +6,11 @@ import {
   listSessionTools,
 } from './list-owner-procedures.ts';
 
-test('#listOwnerProcedures lists the 21 owner procedures', () => {
+test('#listOwnerProcedures lists the 27 owner procedures', () => {
   const rows = listOwnerProcedures();
 
   expect([rows.length, rows]).toStrictEqual([
-    21,
+    27,
     expect.arrayContaining([['item.close'], ['runner.pause'], ['rules.dryRun']]),
   ]);
 });

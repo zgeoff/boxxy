@@ -1,3 +1,4 @@
+import type { AuthAdmin } from '@boxxy/auth-oauth';
 import type {
   AtcSessionId,
   AttemptId,
@@ -66,6 +67,9 @@ export interface ServerDeps {
   // null: the configuration has no github section, so the pull request link answers `retry`
   readonly forge: Forge | null;
   readonly outbox: OutboxControl;
+
+  // null: the configuration has no public door, so the auth procedures answer AUTH_NOT_CONFIGURED
+  readonly auth: AuthAdmin | null;
 
   // the repos that the configuration's spawn section names; `item.file` refuses any other
   readonly repos: ReadonlySet<RepoName>;

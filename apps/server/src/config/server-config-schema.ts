@@ -50,6 +50,26 @@ const pepysSection = z.strictObject({
   environment: name,
 });
 
+// The public door: the owner's MCP endpoint behind OAuth, on a listener of its own.
+const publicDoorSection = z.strictObject({
+  // 0 asks the system for a free port
+  port: z.int().min(0).max(65_535),
+
+  // the address to bind; loopback by default, so a door that other machines reach is a choice
+  hostname: name.default('127.0.0.1'),
+
+  // the https origin that clients reach the door at: the OAuth issuer. Plain http is for a
+  // loopback address only.
+  publicURL: z.url(),
+
+  // the socket peers whose `CF-Connecting-IP` header a security event labels trusted, each exactly
+  // as the socket reports its address
+  trustForwardedFrom: z.array(name).default([]),
+
+  // the auth database; beside the store file when left out
+  authFile: name.optional(),
+});
+
 // The server's configuration file, as JSON, at the path in `BOXXY_CONFIG`. It holds no secret:
 // each token comes from the environment.
 export const serverConfigSchema = z.strictObject({
@@ -74,6 +94,9 @@ export const serverConfigSchema = z.strictObject({
 
   // with none, no fact is sent, and the two reports answer PEPYS_NOT_CONFIGURED
   pepys: pepysSection.optional(),
+
+  // with none, the server serves no public door
+  publicDoor: publicDoorSection.optional(),
 
   // GitHub's REST root, or the broker's; with none, the hook's link answers `retry`, and no
   // pull request watch runs

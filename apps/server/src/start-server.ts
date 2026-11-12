@@ -1,3 +1,6 @@
+import { dirname, join } from 'node:path';
+import { createPublicDoor } from '@boxxy/auth-oauth';
+import type { PublicDoor } from '@boxxy/auth-oauth';
 import { createNullNotifier, outboxLimits, watchPullRequests } from '@boxxy/dispatch';
 import type { SpawnSettings } from '@boxxy/dispatch';
 import { createGithubForge } from '@boxxy/forge-github';
@@ -12,17 +15,20 @@ import type { AtcClient } from '@boxxy/worker-atc';
 import { createAtcMcpClient, createAtcWorker } from '@boxxy/worker-atc';
 import { createORPCClient } from '@orpc/client';
 import { RPCLink } from '@orpc/client/fetch';
+import invariant from 'tiny-invariant';
 import { buildTokenDigest } from './auth/pick-request-scope.ts';
 import { pickServerSecrets } from './config/pick-server-secrets.ts';
 import { readCallerProof } from './config/read-caller-proof.ts';
 import { readServerConfig } from './config/read-server-config.ts';
 import type { ServerConfig } from './config/server-config-schema.ts';
 import { createCapacityBackoff } from './create-capacity-backoff.ts';
+import { formatErrorChain } from './format-error-chain.ts';
 import { createOffOutbox } from './outbox/create-off-outbox.ts';
 import type { OutboxSender } from './outbox/start-outbox-sender.ts';
 import { startOutboxSender } from './outbox/start-outbox-sender.ts';
 import { createRulesHolder } from './rules/create-rules-holder.ts';
-import { maxRequestBytes, serveApi } from './serve-api.ts';
+import { makePublicMcpServe, maxRequestBytes, serveApi } from './serve-api.ts';
+import { servePublicDoor } from './serve-public-door.ts';
 import { runTick } from './tick/run-tick.ts';
 import { startTickLoop } from './tick/start-tick-loop.ts';
 import type { NoticeStatus, ServerDeps, ServerLog } from './types.ts';
@@ -30,11 +36,18 @@ import type { NoticeStatus, ServerDeps, ServerLog } from './types.ts';
 export interface StartServerInput {
   readonly env: Readonly<Record<string, string | undefined>>;
   readonly log: ServerLog;
+
+  // receives one JSON line for each sign-in outcome and each refused token of the public door;
+  // stderr when left out
+  readonly writeSecurityLine?: (line: string) => void;
 }
 
 export interface RunningServer {
   readonly ownerPort: number;
   readonly workerPort: number;
+
+  // null: the configuration has no public door
+  readonly publicPort: number | null;
   readonly stop: () => Promise<void>;
 }
 
@@ -126,6 +139,24 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
   const noticeStatus: NoticeStatus = { lastError: null };
   const holder = rules.holder;
 
+  // the door needs the deps to serve MCP, and the deps hold the door's admin, so the door reads
+  // them when a request arrives
+  const depsHolder: { current: ServerDeps | null } = { current: null };
+
+  const doorStart = await startPublicDoor(config, input, () => {
+    invariant(depsHolder.current !== null, 'a request reached the public door before the deps');
+
+    return depsHolder.current;
+  });
+
+  if (doorStart.kind === 'refused') {
+    await store.close();
+
+    return doorStart;
+  }
+
+  const door = doorStart.door;
+
   const deps: ServerDeps = {
     store,
     runner,
@@ -144,7 +175,10 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
     readings,
     noticeStatus,
     log: input.log,
+    auth: door?.admin ?? null,
   };
+
+  depsHolder.current = deps;
 
   const listeners = serveApi(deps);
 
@@ -158,6 +192,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
     maxRequestBodySize: maxRequestBytes,
   });
 
+  const publicListener = door === null ? null : listenPublicDoor(door, doorStart.peers, config);
   const backoff = createCapacityBackoff();
 
   const ticks = startTickLoop({
@@ -212,12 +247,15 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
     server: {
       ownerPort: owner.server?.port ?? 0,
       workerPort: workerListener.server?.port ?? 0,
+      publicPort: publicListener?.server?.port ?? null,
       stop: async () => {
         await ticks.stop();
         await watch?.stop();
         await pepys?.sender.stop();
         await owner.stop();
         await workerListener.stop();
+        await publicListener?.stop();
+        await door?.stop();
         await store.close();
       },
     },
@@ -302,8 +340,74 @@ function toLinkTarget(address: string): { origin: string; url: `/${string}` } {
   return { origin: parsed.origin, url: `/${parsed.pathname.replace(/^\/+/u, '')}` };
 }
 
+// where the door reads the address of a request's socket, once its listener runs
+interface PeerSource {
+  current: { readonly requestIP: (request: Request) => { readonly address: string } | null } | null;
+}
+
+type DoorStart =
+  | { readonly kind: 'ready'; readonly door: PublicDoor | null; readonly peers: PeerSource }
+  | { readonly kind: 'refused'; readonly message: string };
+
+// null door: the configuration has no public door section
+async function startPublicDoor(
+  config: ServerConfig,
+  input: StartServerInput,
+  readDeps: () => ServerDeps,
+): Promise<DoorStart> {
+  const section = config.publicDoor;
+  const peers: PeerSource = { current: null };
+
+  if (section === undefined) {
+    return { kind: 'ready', door: null, peers };
+  }
+
+  const writeSecurityLine =
+    input.writeSecurityLine ??
+    ((line: string) => {
+      process.stderr.write(`${line}\n`);
+    });
+
+  try {
+    const door = await createPublicDoor({
+      publicURL: section.publicURL,
+      hostname: section.hostname,
+      dbPath: section.authFile ?? join(dirname(config.store.file), 'boxxy-auth.db'),
+      trustForwardedFrom: section.trustForwardedFrom,
+      writeSecurityLine,
+      readPeer: (request) => peers.current?.requestIP(request)?.address ?? null,
+      serveMCP: makePublicMcpServe(readDeps),
+    });
+
+    return { kind: 'ready', door, peers };
+  } catch (error) {
+    return {
+      kind: 'refused',
+      message: `the public door did not start: ${formatErrorChain(error)}`,
+    };
+  }
+}
+
 function newId(): string {
   return Bun.randomUUIDv7();
+}
+
+function listenPublicDoor(door: PublicDoor, peers: PeerSource, config: ServerConfig) {
+  const section = config.publicDoor;
+
+  invariant(section !== undefined, 'a door runs only with a public door section');
+
+  const listener = servePublicDoor(door).listen({
+    hostname: section.hostname,
+    port: section.port,
+    maxRequestBodySize: maxRequestBytes,
+  });
+
+  peers.current = listener.server ?? null;
+
+  door.addLocalPort(listener.server?.port ?? section.port);
+
+  return listener;
 }
 
 function buildSpawnSettings(

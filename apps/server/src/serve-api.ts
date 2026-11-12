@@ -1,3 +1,4 @@
+import type { McpServe } from '@boxxy/auth-oauth';
 import type { ProcedureName } from '@boxxy/contract';
 import { access } from '@boxxy/contract';
 import { McpServer, createMcpHandler } from '@modelcontextprotocol/server';
@@ -8,8 +9,10 @@ import { Elysia } from 'elysia';
 import invariant from 'tiny-invariant';
 import { isBrowserRequest } from './auth/is-browser-request.ts';
 import { pickRequestScope } from './auth/pick-request-scope.ts';
+import { pickToolScope } from './auth/pick-tool-scope.ts';
 import { api } from './handlers/api.ts';
 import { attemptHandlers } from './handlers/attempt-handlers.ts';
+import { authHandlers } from './handlers/auth-handlers.ts';
 import { itemHandlers } from './handlers/item-handlers.ts';
 import { outboxHandlers } from './handlers/outbox-handlers.ts';
 import { planHandlers } from './handlers/plan-handlers.ts';
@@ -35,6 +38,7 @@ const router = api.router({
   runner: runnerHandlers,
   outbox: outboxHandlers,
   rules: rulesHandlers,
+  auth: authHandlers,
   report: reportHandlers,
 });
 
@@ -46,11 +50,21 @@ const rpc = new RPCHandler(router, {
     PEPYS_NOT_CONFIGURED: 501,
     UNKNOWN_PHASE: 422,
     REPO_NOT_CONFIGURED: 422,
+    AUTH_NOT_CONFIGURED: 501,
   },
 });
 
 const ownerTools = new McpRegistrar(router, {
   filter: (_procedure, path) => getAccess(path).tool === 'owner',
+});
+
+// The public door lists the owner tools that have a scope, and no other
+const publicTools = new McpRegistrar(router, {
+  filter: (_procedure, path) => {
+    const row = getAccess(path);
+
+    return row.tool === 'owner' && row.scope !== 'none';
+  },
 });
 
 const sessionTools = new McpRegistrar(router, {
@@ -176,4 +190,34 @@ async function handleRPC(deps: ServerDeps, listener: Listener, request: Request)
 
 function answerNotFound(): Response {
   return Response.json({ error: 'not found' }, { status: 404 });
+}
+
+// The owner's MCP tools for the public door. The door verified the bearer token before it calls
+// this, so a request runs in the owner's scope; each tool call then needs the scope that the
+// access table gives its tool, and a token without it gets 403 with `insufficient_scope`.
+export function makePublicMcpServe(readDeps: () => ServerDeps): McpServe {
+  const handler = createMcpHandler(async (extra) => {
+    const requestInfo = extra.requestInfo;
+
+    invariant(requestInfo !== undefined, 'an HTTP request reaches the MCP door');
+
+    const server = new McpServer({ name: 'boxxy', version: '1.0.0' });
+
+    const registered = await publicTools.register(server, {
+      context: { deps: readDeps(), scope: 'owner', request: requestInfo },
+    });
+
+    for (const [name, tool] of Object.entries(registered.tools)) {
+      const scope = pickToolScope(name);
+
+      invariant(scope !== null, `the public door registered a tool with no scope: ${name}`);
+
+      tool.scopeChallenge = (context) =>
+        context.authInfo?.scopes.includes(scope) === true ? undefined : { scopes: [scope] };
+    }
+
+    return server;
+  });
+
+  return (request, authInfo) => handler.fetch(request, { authInfo });
 }
