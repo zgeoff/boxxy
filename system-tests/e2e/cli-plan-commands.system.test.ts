@@ -9,25 +9,23 @@ async function setupTest() {
   const leverSchema = z.object({ lever: z.number() });
   const leversSchema = z.object({ levers: z.array(z.number()) });
 
-  const first = await cli.server.dispatch.seedItem({});
-  const second = await cli.server.dispatch.seedItem({});
-
-  return { ...cli, leverSchema, leversSchema, first, second };
+  return { ...cli, leverSchema, leversSchema };
 }
 
 test('#defer records a lever and #undefer records the next one', async () => {
   const ctx = await setupTest();
+  const item = await ctx.server.dispatch.seedItem({});
 
   const deferred = await ctx.run([
     'defer',
-    ctx.first,
+    item,
     '--until',
     '2026-12-01T09:00:00Z',
     '--reason',
     'waits for the schema freeze to lift',
   ]);
 
-  const undeferred = await ctx.run(['undefer', ctx.first]);
+  const undeferred = await ctx.run(['undefer', item]);
 
   expect([
     deferred.exitCode,
@@ -39,7 +37,8 @@ test('#defer records a lever and #undefer records the next one', async () => {
 
 test('#defer exits 2 and records nothing when --reason is missing', async () => {
   const ctx = await setupTest();
-  const result = await ctx.run(['defer', ctx.first]);
+  const item = await ctx.server.dispatch.seedItem({});
+  const result = await ctx.run(['defer', item]);
 
   expect({ exitCode: result.exitCode, stderr: result.stderr }).toStrictEqual({
     exitCode: 2,
@@ -49,23 +48,18 @@ test('#defer exits 2 and records nothing when --reason is missing', async () => 
 
 test('#defer exits 1 when the server refuses the time', async () => {
   const ctx = await setupTest();
-  const result = await ctx.run(['defer', ctx.first, '--until', 'tomorrow', '--reason', 'later']);
+  const item = await ctx.server.dispatch.seedItem({});
+  const result = await ctx.run(['defer', item, '--until', 'tomorrow', '--reason', 'later']);
 
   expect(result.exitCode).toBe(1);
 });
 
 test('#expedite puts every item given at the front and #unexpedite ends one', async () => {
   const ctx = await setupTest();
-
-  const expedited = await ctx.run([
-    'expedite',
-    ctx.second,
-    ctx.first,
-    '--reason',
-    'release blocker',
-  ]);
-
-  const unexpedited = await ctx.run(['unexpedite', ctx.second]);
+  const first = await ctx.server.dispatch.seedItem({});
+  const second = await ctx.server.dispatch.seedItem({});
+  const expedited = await ctx.run(['expedite', second, first, '--reason', 'release blocker']);
+  const unexpedited = await ctx.run(['unexpedite', second]);
 
   expect([
     readJSONOutput(expedited, ctx.leversSchema).levers.length,
