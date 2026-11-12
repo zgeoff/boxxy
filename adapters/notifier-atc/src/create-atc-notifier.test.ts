@@ -66,8 +66,9 @@ test('it sends the same idempotency key for the same notice and another for anot
 
   const keys = ctx.sent.map((request) => request.idempotencyKey);
 
-  expect(keys[0]).toBe(keys[1]);
-  expect(keys[2]).not.toBe(keys[0]);
+  expect([keys.length, new Set(keys.slice(0, 2)).size, new Set(keys).size]).toStrictEqual([
+    3, 1, 2,
+  ]);
 });
 
 test('it sends a fresh idempotency key on the next try after atc refuses the send', async () => {
@@ -163,7 +164,9 @@ test('it repeats the idempotency key on the next try after a send that got no at
   await notifier.tellHold(ctx.notice);
   await notifier.tellHold(ctx.notice);
 
-  expect(ctx.sent[0]?.idempotencyKey).toBe(ctx.sent[1]?.idempotencyKey);
+  const keys = ctx.sent.map((request) => request.idempotencyKey);
+
+  expect([keys.length, new Set(keys).size]).toStrictEqual([2, 1]);
 });
 
 test('it returns failed with the atc error code when the session does not exist', async () => {
