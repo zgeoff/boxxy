@@ -369,7 +369,7 @@ export const contract = {
     // owner confirms with `item.close`, or sends the item back to triage with `item.retry`. An
     // `accepted` close-out must leave the item with an acceptance list (`set.acceptance`, or
     // the item's own), or the parser answers `no-acceptance`.
-    // Review. A review session in an imp runs `noslop review --report json` and sends this
+    // Review. A review session in an imp runs `noslop review --json --report json` and sends this
     // close-out itself: `passed`, or `changes-requested` with the findings as text, plus
     // noslop's raw result (`noslop`), which the parser checks for shape only.
     //

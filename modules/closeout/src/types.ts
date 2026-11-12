@@ -9,5 +9,5 @@ export interface CloseOutLimits {
   readonly noslopReportBytes: 32_768;
 }
 
-// What `noslop review --report json` printed, as the review session sends it
+// What `noslop review --json --report json` printed, as the review session sends it
 export type NoslopReport = z.output<typeof noslopReportSchema>;

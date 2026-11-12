@@ -406,7 +406,7 @@ export interface Recipe {
 // applies the effects. This sketch shows three parts: the review close-out, the triage
 // close-out, and the `set-acceptance` effect.
 
-// The review of v1. A review session in an imp runs `noslop review --report json` and sends
+// The review of v1. A review session in an imp runs `noslop review --json --report json` and sends
 // this close-out itself, with `boxxy attempt close-out`, as any other agent session does.
 // The review phase has `worker: 'atc.session'` and its attempt takes a `workers` seat; no
 // `reviews` limit exists. The findings are text in the close-out, not noslop facts. This is a
@@ -418,7 +418,7 @@ export interface ReviewCloseOut {
   // `passed`, or `changes-requested` with the findings as text (`Finding`: title, body, path?, line?)
   readonly verdict: { readonly kind: 'passed' } | { readonly kind: 'changes-requested'; readonly findings: readonly Finding[] };
 
-  // A summary of what `noslop review --report json` printed, not the whole result. The agent
+  // A summary of what `noslop review --json --report json` printed, not the whole result. The agent
   // SENDS the whole result in `noslop`; the parser checks the fields that the summary reads,
   // lets every other field through unread, then stores `NoslopSummary` in its place (the
   // raw body schema is in modules/closeout/src/phases/review.ts). The verdict above is what counts,
