@@ -28,8 +28,8 @@ await runVerify(createVerifyRegistry(), { skill: '.claude/skills/verify' });
 //     "ci:verify-gate": "bun scripts/ci/run-verify-gate.ts"
 //   },
 //   "devDependencies": {
-//     "@wringer/core", "@wringer/gunshi", "@wringer/http": exact, in the catalog, at the first
-//       release that has `.ignore(...)`;
+//     "@wringer/core", "@wringer/gunshi", "@wringer/http": "catalog:", pinned at 0.2.0, the
+//       release that adds `.ignore(...)`;
 //     "@boxxy/cli", "@boxxy/server", "@boxxy/system-tests", "@boxxy/store-sqlite",
 //       "@boxxy/pepys", "@boxxy/model": "workspace:*", because the isolated linker resolves
 //       only what the root lists
@@ -49,16 +49,10 @@ import { http } from '@wringer/http';
 import { z } from 'zod';
 import { expectEqual, runBoxxy } from './run-boxxy.ts';
 import { featurePaths, ignoredPaths } from './feature-paths.ts';
-import { pickDependencyIgnores } from './pick-dependency-ignores.ts';
-import { readDependencyChange } from './read-dependency-change.ts';
 import { landItem, runSession } from './harness/drive.ts';
 import { closeOutPresetSchema, costSchema, itemShowSchema, timesSchema } from './harness/types.ts';
 
 export function createVerifyRegistry(): Wringer {
-  // The same branch gives the same answer in the grader's clone and in CI, so both fingerprint the
-  // same paths (section C, "the dependency files").
-  const dependencyIgnores = pickDependencyIgnores(readDependencyChange({ base: 'origin/main' }));
-
   return (
     createWringer({ name: 'boxxy' })
       .use(http({}))
@@ -225,7 +219,7 @@ export function createVerifyRegistry(): Wringer {
           paths: featurePaths['report-cost'],
         },
       )
-      .ignore(...ignoredPaths, ...dependencyIgnores)
+      .ignore(...ignoredPaths)
       .build()
   );
 }
@@ -257,11 +251,6 @@ const everyJourney = [
 
   // the broker routing and pepys under test, which the harness reuses
   'system-tests/src/test-utils/**',
-
-  // the dependency files: ignored unless the branch makes a major change (the end of section C)
-  'package.json',
-  'bun.lock',
-  '.bun-version',
 ] as const;
 
 export const featurePaths = {
@@ -312,10 +301,12 @@ export const ignoredPaths = [
   'scripts/*.sh',
   'scripts/{ci,dependency-gates,publish,release,test-utils}/**',
 
-  // 3. The files release-please changes: each package's version and the manifest. The root
-  //    package.json is a dependency file, below.
-  '{apps,modules,adapters,libs,packages}/*/package.json',
-  'system-tests/package.json',
+  // 3. The files that Renovate (the root catalog, the lock file, the Bun pin) and release-please
+  //    (each package's version, the manifest) change. A patch or minor bump merges on green CI, and
+  //    a major bump or a new Bun version gets the owner's review, with the system tests in CI.
+  '**/package.json',
+  'bun.lock',
+  '.bun-version',
   '.release-please-manifest.json',
   'release-please-config.json',
 
@@ -332,41 +323,6 @@ export const ignoredPaths = [
   'apps/server/src/tick/start-tick-loop.ts',
   'apps/server/src/outbox/start-outbox-sender.ts',
 ] as const;
-
-// The dependency files: the root package.json (its catalog pins every outside version), bun.lock
-// and .bun-version. A branch that bumps a third-party package by a major version, or changes the
-// Bun version, needs fresh verdicts of every journey, as a major bump needs a review. Any other
-// change to them needs none, so a Renovate patch, minor or lock-file pull request passes the gate
-// with no agent.
-//
-// scripts/verify/read-dependency-change.ts reads the catalog and `packageManager` of the root
-// package.json, and .bun-version, at the merge base with `base` and in the working tree.
-
-export interface DependencyChange {
-  // by package name, the catalog's exact version at the merge base and now; null when absent
-  readonly catalog: ReadonlyMap<string, { readonly before: string | null; readonly after: string | null }>;
-  readonly bunBefore: string;
-  readonly bunAfter: string;
-}
-
-// scripts/verify/pick-dependency-ignores.ts
-export function pickDependencyIgnores(change: DependencyChange): readonly string[] {
-  const isMajor = [...change.catalog].some(
-    ([name, version]) => !isFirstParty(name) && isMajorChange(version.before, version.after),
-  );
-
-  return isMajor || change.bunBefore !== change.bunAfter
-    ? []
-    : ['package.json', 'bun.lock', '.bun-version'];
-}
-
-// A new or removed package, a higher major, or for a 0.x version a higher minor. A prerelease
-// counts by its major and minor, as semver orders it.
-declare function isMajorChange(before: string | null, after: string | null): boolean;
-
-// The owner's own packages, under @zgeoff/, @impz/, @pepys/ and @wringer/, merge on green CI at
-// any version level, so a bump of one never needs a verdict.
-declare function isFirstParty(name: string): boolean;
 
 // ── D. The feature map in the `verify` skill ───────────────────────────────────────────────────
 //
