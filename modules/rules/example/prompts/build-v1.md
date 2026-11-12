@@ -2,6 +2,10 @@ Build this item to its design and acceptance list, and open a pull request.
 
 {{ticket}}
 
+The attempt's input, as JSON, names the pull request when one exists:
+
+{{input}}
+
 Run the checks that the repo's own agent instructions name. Fix each finding under "Findings to
 fix", when there are any. Close out `built`, `blocked` with the question the owner must answer, or
 `abandoned`.

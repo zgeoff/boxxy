@@ -2,6 +2,10 @@ Review the pull request of this item against its acceptance list.
 
 {{ticket}}
 
+The attempt's input, as JSON, names the pull request when one exists:
+
+{{input}}
+
 Run `noslop review --json --report json`. Close out `passed`, or `changes-requested` with each
 finding as text.
 
