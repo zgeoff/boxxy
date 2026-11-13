@@ -31,10 +31,11 @@ const setSchema = z.strictObject({
   body: z.string().max(itemBodyMaxChars).exactOptional(),
 });
 
-const relationDraftSchema = z.object({
-  type: brandSchemas.relationTypeName,
-  target: brandSchemas.itemId,
-});
+// Strict, so a draft that names both ends is refused instead of read as one of them.
+const relationDraftSchema = z.union([
+  z.strictObject({ type: brandSchemas.relationTypeName, target: brandSchemas.itemId }),
+  z.strictObject({ type: brandSchemas.relationTypeName, source: brandSchemas.itemId }),
+]);
 
 export const triageCloseOutSchema = z.strictObject({
   result: z.discriminatedUnion('kind', [

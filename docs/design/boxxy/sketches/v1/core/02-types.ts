@@ -465,6 +465,13 @@ export interface TriageCloseOut {
   readonly frictionDropped: number;
 }
 
+// A relation goes from the triaged item to `target`, or from `source` to the triaged item. So
+// `{ type: 'blocks', source }` makes the item wait: it derives `blocked`, and no pool picks it,
+// until `source` is done or archived. A strict object each, so a draft with both ends is refused.
+export type RelationDraft =
+  | { readonly type: RelationTypeName; readonly target: ItemId }
+  | { readonly type: RelationTypeName; readonly source: ItemId };
+
 // Work a triage split, a design or a build files as a new item. `kind` is any kind the rules
 // know; the parser refuses another with `unknown-kind`. `security: true` gives the filed item the
 // security mark, `fields.security` (../../../v1.md, "The ledger"). The dedupe matches an entry to

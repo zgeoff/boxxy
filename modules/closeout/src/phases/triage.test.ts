@@ -135,6 +135,74 @@ test('it refuses a duplicate of an item the store does not have, and of the item
   });
 });
 
+test('it rejects a relation from an unknown item, and one from the item itself', () => {
+  const item = buildMockV1ItemView();
+  const missing = brandSchemas.itemId.parse('0192f0c5-3c4d-7e5f-a061-7b8c9d0e1f2a');
+
+  const raw = {
+    result: { kind: 'accepted' },
+    relations: [
+      { type: 'blocks', source: missing },
+      { type: 'blocks', source: item.id },
+    ],
+    friction: [],
+  };
+
+  const parsed: unknown = triage.closeOut.parse(raw, {
+    item,
+    attempt: buildMockV1AttemptRow().id,
+    evidence: [],
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set([brandSchemas.relationTypeName.parse('blocks')]),
+    },
+    input: null,
+  });
+
+  expect(parsed).toStrictEqual({
+    kind: 'invalid',
+    problems: [
+      { kind: 'unknown-item', item: missing },
+      { kind: 'refused-relation', type: 'blocks', target: item.id, reason: 'self' },
+    ],
+  });
+});
+
+test('it accepts a relation from another item and one to it, and refuses only a repeat', () => {
+  const item = buildMockV1ItemView();
+  const other = brandSchemas.itemId.parse('0192f0c5-3c4d-7e5f-a061-7b8c9d0e1f2a');
+
+  const raw = {
+    result: { kind: 'accepted' },
+    relations: [
+      { type: 'blocks', source: other },
+      { type: 'blocks', target: other },
+      { type: 'blocks', source: other },
+    ],
+    friction: [],
+  };
+
+  const parsed: unknown = triage.closeOut.parse(raw, {
+    item,
+    attempt: buildMockV1AttemptRow().id,
+    evidence: [],
+    world: {
+      items: new Set([item.id, other]),
+      kinds: new Set(),
+      relationTypes: new Set([brandSchemas.relationTypeName.parse('blocks')]),
+    },
+    input: null,
+  });
+
+  expect(parsed).toStrictEqual({
+    kind: 'invalid',
+    problems: [
+      { kind: 'phase-rule', message: `the close-out names blocks from ${other} more than once` },
+    ],
+  });
+});
+
 test('it rejects a split whose part is of a kind the rules lack', () => {
   const item = buildMockV1ItemView();
 

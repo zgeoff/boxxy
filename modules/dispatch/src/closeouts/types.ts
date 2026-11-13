@@ -36,7 +36,7 @@ export interface EffectContext {
   readonly item: ItemView;
   readonly rules: LoadedRules;
 
-  // the live relations of the attempt's item
+  // the live relations of the attempt's item, from it and to it
   readonly relations: readonly RelationRow[];
 
   // the rows of the pull requests that the item's attempts made, in any state

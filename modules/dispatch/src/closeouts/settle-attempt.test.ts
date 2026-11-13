@@ -5,6 +5,7 @@ import { buildMockPhaseKind } from '@boxxy/model/test-utils/build-mock-phase-kin
 import { createFakeNotifier } from '@boxxy/model/test-utils/create-fake-notifier';
 import invariant from 'tiny-invariant';
 import { sendNotices } from '../notices/send-notices.ts';
+import { buildMockRelationChange } from '../test-utils/build-mock-relation-change.ts';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
 import { closeOutAttempt } from './close-out-attempt.ts';
 import { settleAttempt } from './settle-attempt.ts';
@@ -259,6 +260,102 @@ test('it files each new open item of a designed close-out once and lists the ope
     {},
     { title: 'Cache the theme', foundInAttempt: attempt.id, acceptance: [] },
   ]);
+});
+
+test('it blocks an accepted item on the item a triage relation names as its source', async () => {
+  const ctx = await setupTest();
+  const other = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+  const attempt = await ctx.claimAt('triage');
+
+  await ctx.closeOut(attempt, {
+    result: { kind: 'accepted' },
+    relations: [{ type: 'blocks', source: other }],
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+
+  const received: unknown = [detail.item.derived, detail.relations];
+
+  expect(received).toStrictEqual([
+    { state: 'blocked' },
+    [expect.objectContaining({ source: other, target: attempt.item, type: 'blocks' })],
+  ]);
+});
+
+test('it readies an item that waits on another once that item closes', async () => {
+  const ctx = await setupTest();
+  const other = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+  const attempt = await ctx.claimAt('triage');
+
+  await ctx.closeOut(attempt, {
+    result: { kind: 'accepted' },
+    relations: [{ type: 'blocks', source: other }],
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+  await ctx.closeItem(other, 'done elsewhere');
+
+  const detail = await ctx.readItem(attempt.item);
+
+  expect(detail.item.derived).toStrictEqual({ state: 'ready' });
+});
+
+test('it adds no relation from another item when the rules hold the accepted item', async () => {
+  const ctx = await setupTest();
+  const other = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+  const attempt = await ctx.claimAt('triage');
+
+  ctx.setRules(
+    ctx.mapOutcome(ctx.rules(), 'triage', 'accepted', {
+      hold: brandSchemas.rulesHoldReason.parse('accepted'),
+    }),
+  );
+
+  await ctx.closeOut(attempt, {
+    result: { kind: 'accepted' },
+    relations: [{ type: 'blocks', source: other }],
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+  const [settled] = await ctx.listFacts('boxxy.attempt.settled');
+
+  expect(detail.relations).toStrictEqual([]);
+
+  expect(settled?.payload).toMatchObject({
+    skippedEffects: [{ effect: 'add-relation', reason: 'the item holds for the owner' }],
+  });
+});
+
+test('it skips a relation from another item that is live already, and still settles', async () => {
+  const ctx = await setupTest();
+  const other = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+  const attempt = await ctx.claimAt('triage');
+
+  await ctx.store.exclusive((tx) =>
+    tx.applyChange(buildMockRelationChange({ source: other, target: attempt.item })),
+  );
+
+  await ctx.closeOut(attempt, {
+    result: { kind: 'accepted' },
+    relations: [{ type: 'blocks', source: other }],
+    friction: [],
+  });
+
+  const result = await ctx.settle(attempt);
+  const [settled] = await ctx.listFacts('boxxy.attempt.settled');
+
+  expect(result).toStrictEqual({ kind: 'applied' });
+
+  expect(settled?.payload).toMatchObject({
+    skippedEffects: [{ effect: 'add-relation', reason: 'the relation is live already' }],
+  });
 });
 
 test('it files an open item as the kind it names, with the security mark it sets', async () => {

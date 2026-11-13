@@ -19,6 +19,36 @@ test('it accepts an accepted triage that sets the kind, the design mode and the 
   expect(parsed).toStrictEqual(closeOut);
 });
 
+test('it accepts a relation from another item to the triaged item', () => {
+  const closeOut = {
+    result: { kind: 'accepted' },
+    relations: [{ type: 'blocks', source: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77' }],
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  const parsed: unknown = triageCloseOutSchema.safeParse(closeOut).data;
+
+  expect(parsed).toStrictEqual(closeOut);
+});
+
+test('it rejects a relation that names both a source and a target', () => {
+  const closeOut = {
+    result: { kind: 'accepted' },
+    relations: [
+      {
+        type: 'blocks',
+        source: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77',
+        target: '0192f0c5-3c4d-7e5f-a061-7b8c9d0e1f2a',
+      },
+    ],
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  expect(triageCloseOutSchema.safeParse(closeOut).success).toBe(false);
+});
+
 test('it accepts a triage that sets a body of 40,000 characters', () => {
   const closeOut = {
     result: { kind: 'accepted' },

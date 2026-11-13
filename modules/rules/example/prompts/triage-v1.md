@@ -41,7 +41,9 @@ Decide whether boxxy takes it on, and close out with one of these results:
   question or to split an item.
 
 To rewrite the body, send the whole new body in `set.body`. Later phases get it in place of this
-one.
+one. When this item can start only after another item is done, add
+`{ "type": "blocks", "source": "<the other item's ID>" }` to `relations`: boxxy starts no work on
+this item until the other one is done.
 
 Run `boxxy attempt current` for the attempt ID and the JSON Schema of the close-out body. To cite a
 test or a check, record it with

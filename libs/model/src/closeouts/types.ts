@@ -149,11 +149,11 @@ export interface MergeCloseOut {
   readonly verify: VerifyReading | null;
 }
 
-// A relation that a close-out asks for, from the attempt's item to `target`.
-export interface RelationDraft {
-  readonly type: RelationTypeName;
-  readonly target: ItemId;
-}
+// A relation that a close-out asks for: from the attempt's item to `target`, or from `source` to
+// the attempt's item. `{ type: 'blocks', source }` makes the item wait until `source` is done.
+export type RelationDraft =
+  | { readonly type: RelationTypeName; readonly target: ItemId }
+  | { readonly type: RelationTypeName; readonly source: ItemId };
 
 // Work a close-out files as a new item, of any kind the rules know.
 export interface OpenItem {

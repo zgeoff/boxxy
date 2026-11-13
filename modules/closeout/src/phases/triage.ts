@@ -3,9 +3,17 @@ import type {
   CloseOutContext,
   CloseOutProblem,
   Effect,
+  ItemId,
+  RelationDraft,
   TriageCloseOut,
 } from '@boxxy/model';
-import { brandSchemas, definePhase, toJSONValue, triageCloseOutSchema } from '@boxxy/model';
+import {
+  brandSchemas,
+  definePhase,
+  getRelationEnds,
+  toJSONValue,
+  triageCloseOutSchema,
+} from '@boxxy/model';
 import { match } from 'ts-pattern';
 import type { z } from 'zod';
 import { buildSchemaParser } from '../build-schema-parser.ts';
@@ -52,9 +60,10 @@ function collectTriageProblems(closeOut: TriageCloseOut, ctx: CloseOutContext): 
   const duplicateOf = closeOut.result.kind === 'duplicate' ? [closeOut.result.of] : [];
   const parts = closeOut.result.kind === 'split' ? closeOut.result.openItems : [];
 
-  const named = [...duplicateOf, ...closeOut.relations.map((relation) => relation.target)].filter(
-    (item) => item !== ctx.item.id,
-  );
+  const named = [
+    ...duplicateOf,
+    ...closeOut.relations.map((relation) => getRelationEnds(relation, ctx.item.id).other),
+  ].filter((item) => item !== ctx.item.id);
 
   return [
     ...(closeOut.result.kind === 'accepted' && acceptance.length === 0
@@ -74,50 +83,64 @@ function collectTriageProblems(closeOut: TriageCloseOut, ctx: CloseOutContext): 
         message: 'an item is not a duplicate of itself',
       })),
     ...closeOut.relations.flatMap((relation) => collectRelationProblems(relation, ctx)),
-    ...collectRepeatedRelations(closeOut, duplicateOf),
+    ...collectRepeatedRelations(closeOut, duplicateOf, ctx.item.id),
   ];
 }
 
-function collectRelationProblems(
-  relation: TriageCloseOut['relations'][number],
-  ctx: CloseOutContext,
-): CloseOutProblem[] {
+// `target` of the problem is the other end, whichever way the draft points.
+function collectRelationProblems(relation: RelationDraft, ctx: CloseOutContext): CloseOutProblem[] {
+  const other = getRelationEnds(relation, ctx.item.id).other;
+
   const refused = (reason: 'unknown-type' | 'self'): CloseOutProblem => ({
     kind: 'refused-relation',
     type: relation.type,
-    target: relation.target,
+    target: other,
     reason,
   });
 
   return [
     ...(ctx.world.relationTypes.has(relation.type) ? [] : [refused('unknown-type')]),
-    ...(relation.target === ctx.item.id ? [refused('self')] : []),
+    ...(other === ctx.item.id ? [refused('self')] : []),
   ];
 }
 
-// Each relation is one row of the store, so a close-out names each pair of type and target once.
-// A duplicate's `of` names the `duplicate-of` relation already.
+// Each relation is one row of the store, so a close-out names each relation of a type, source and
+// target once. A duplicate's `of` names the `duplicate-of` relation already.
 function collectRepeatedRelations(
   closeOut: TriageCloseOut,
-  duplicateOf: readonly TriageCloseOut['relations'][number]['target'][],
+  duplicateOf: readonly ItemId[],
+  item: ItemId,
 ): CloseOutProblem[] {
-  const named = [
-    ...duplicateOf.map((target) => ({ type: 'duplicate-of', target })),
+  const named: RelationDraft[] = [
+    ...duplicateOf.map((target) => ({
+      type: brandSchemas.relationTypeName.parse('duplicate-of'),
+      target,
+    })),
     ...closeOut.relations,
   ];
 
-  return named.flatMap((relation, index) =>
-    named
-      .slice(0, index)
-      .some((earlier) => earlier.type === relation.type && earlier.target === relation.target)
+  const keyed = named.map((relation) => {
+    const ends = getRelationEnds(relation, item);
+
+    return { relation, key: JSON.stringify([relation.type, ends.source, ends.target]) };
+  });
+
+  return keyed.flatMap((entry, index) =>
+    keyed.slice(0, index).some((earlier) => earlier.key === entry.key)
       ? [
           {
             kind: 'phase-rule' as const,
-            message: `the close-out names ${relation.type} ${relation.target} more than once`,
+            message: `the close-out names ${formatRelationDraft(entry.relation)} more than once`,
           },
         ]
       : [],
   );
+}
+
+function formatRelationDraft(relation: RelationDraft): string {
+  return 'source' in relation
+    ? `${relation.type} from ${relation.source}`
+    : `${relation.type} ${relation.target}`;
 }
 
 function collectTriageEffects(closeOut: TriageCloseOut): Effect[] {

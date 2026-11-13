@@ -6,7 +6,7 @@ import type {
   RelationTypeName,
   RowWrite,
 } from '@boxxy/model';
-import { brandSchemas } from '@boxxy/model';
+import { brandSchemas, getRelationEnds } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { buildStateFact } from '../pull-requests/build-state-fact.ts';
 import type { EffectContext, EffectHandlers, EffectPlan } from './types.ts';
@@ -56,7 +56,11 @@ export const effectHandlers: EffectHandlers = {
     }
 
     // a relation that is live already, such as one an earlier effect adds, is not added again
-    const relation = effect.of === null ? null : buildRelationPlan(ctx, 'duplicate-of', effect.of);
+    const relation =
+      effect.of === null
+        ? null
+        : buildRelationPlan(ctx, 'duplicate-of', { source: ctx.item.id, target: effect.of });
+
     const duplicateOf = typeof relation === 'string' ? null : relation;
 
     return {
@@ -82,7 +86,11 @@ export const effectHandlers: EffectHandlers = {
       return { kind: 'skip', effect, reason: closed };
     }
 
-    const plan = buildRelationPlan(ctx, effect.relation.type, effect.relation.target);
+    const plan = buildRelationPlan(
+      ctx,
+      effect.relation.type,
+      getRelationEnds(effect.relation, ctx.item.id),
+    );
 
     return typeof plan === 'string'
       ? { kind: 'skip', effect, reason: plan }
@@ -219,10 +227,15 @@ function findClosedReason(ctx: EffectContext): string | null {
   return ctx.item.closedAt === null ? null : 'the item is closed';
 }
 
+interface Ends {
+  readonly source: ItemId;
+  readonly target: ItemId;
+}
+
 function buildRelationPlan(
   ctx: EffectContext,
   typeName: string,
-  target: ItemId,
+  ends: Ends,
 ): Pick<Extract<EffectPlan, { kind: 'apply' }>, 'writes' | 'facts'> | string {
   const type = ctx.rules.relationTypes.get(brandSchemas.relationTypeName.parse(typeName))?.name;
 
@@ -230,17 +243,17 @@ function buildRelationPlan(
     return `the rules have no relation type ${typeName}`;
   }
 
-  if (target === ctx.item.id) {
+  if (ends.source === ends.target) {
     return 'an item has no relation to itself';
   }
 
-  if (isLive(ctx.relations, target, type)) {
+  if (isLive(ctx.relations, ends, type)) {
     return 'the relation is live already';
   }
 
   const row: RelationRow = {
-    source: ctx.item.id,
-    target,
+    source: ends.source,
+    target: ends.target,
     type,
     addedBy: ctx.actor,
     addedAt: ctx.now,
@@ -252,20 +265,19 @@ function buildRelationPlan(
     facts: [
       buildItemFact(ctx, ctx.item.id, {
         type: 'boxxy.relation.added',
-        payload: { source: row.source, target, type },
+        payload: { source: row.source, target: row.target, type },
       }),
     ],
   };
 }
 
-function isLive(
-  relations: readonly RelationRow[],
-  target: ItemId,
-  type: RelationTypeName,
-): boolean {
+function isLive(relations: readonly RelationRow[], ends: Ends, type: RelationTypeName): boolean {
   return relations.some(
     (relation) =>
-      relation.target === target && relation.type === type && relation.removedAt === null,
+      relation.source === ends.source &&
+      relation.target === ends.target &&
+      relation.type === type &&
+      relation.removedAt === null,
   );
 }
 
