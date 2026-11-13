@@ -2,23 +2,23 @@
 
 ## [0.2.7](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.2.6...@boxxy/cli@0.2.7) (2026-11-13)
 
-
 ### Features
 
-* **auth:** move the mcp oauth server to @zgeoff/mcp-auth ([#103](https://github.com/zgeoff/boxxy/issues/103)) ([889da8e](https://github.com/zgeoff/boxxy/commit/889da8ec9bfceeb239e225c255d244054d2a9bda))
-
+- **auth:** move the mcp oauth server to @zgeoff/mcp-auth
+  ([#103](https://github.com/zgeoff/boxxy/issues/103))
+  ([889da8e](https://github.com/zgeoff/boxxy/commit/889da8ec9bfceeb239e225c255d244054d2a9bda))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/contract bumped to 0.2.7
-    * @boxxy/model bumped to 0.2.7
-  * devDependencies
-    * @boxxy/dispatch bumped to 0.2.7
-    * @boxxy/rules bumped to 0.2.7
-    * @boxxy/server bumped to 0.2.7
-    * @boxxy/store-sqlite bumped to 0.2.7
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/contract bumped to 0.2.7
+    - @boxxy/model bumped to 0.2.7
+  - devDependencies
+    - @boxxy/dispatch bumped to 0.2.7
+    - @boxxy/rules bumped to 0.2.7
+    - @boxxy/server bumped to 0.2.7
+    - @boxxy/store-sqlite bumped to 0.2.7
 
 ## [0.2.6](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.2.5...@boxxy/cli@0.2.6) (2026-11-13)
 
