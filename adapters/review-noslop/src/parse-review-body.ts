@@ -18,8 +18,9 @@ export type ParsedReviewBody =
       readonly kind: 'postable';
       readonly head: CommitSha;
       readonly review: ReviewResult;
+
+      // null when `noslop findings` failed or printed no list
       readonly list: FindingList | null;
-      readonly listExitCode: number | null;
     }
   | { readonly kind: 'not-covered'; readonly head: CommitSha; readonly cost: GateCost };
 
@@ -63,8 +64,7 @@ export function parseReviewBody(round: GateRound, body: JsonValue): ParsedReview
     kind: 'postable',
     head: head.data,
     review: review.data,
-    list: list.success ? list.data : null,
-    listExitCode: envelope.data.findings.exitCode,
+    list: list.success && envelope.data.findings.exitCode === 0 ? list.data : null,
   };
 }
 

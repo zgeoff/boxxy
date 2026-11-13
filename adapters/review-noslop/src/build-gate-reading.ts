@@ -10,9 +10,9 @@ export interface GateReadingInput {
   readonly head: CommitSha;
   readonly review: ReviewResult;
 
-  // the `noslop findings` output from before the post, and its exit code
+  // the `noslop findings` output from before the post; null when the session could not read it,
+  // as on a repo whose base branch config names no `github.app`
   readonly list: FindingList | null;
-  readonly listExitCode: number | null;
 
   // `check` after the post: the findings still open at the head
   readonly outcome: PullRequestCheck;
@@ -26,7 +26,8 @@ interface KnownFinding {
 const closedWithoutFixStates = new Set(['not-a-defect', 'deferred', 'accepted-risk']);
 
 // The noslop check run is never read: it passes at a head that no review read, and after a failed
-// call. Only `check`'s own answer, after the post, counts.
+// call. Only `check`'s own answer, made with the App's keys after the post, decides the status;
+// the session's list only adds severities, paths and the findings closed without a fix.
 export function buildGateReading(input: GateReadingInput): GateReading {
   const listed = input.list?.findings ?? [];
 
@@ -56,10 +57,6 @@ export function buildGateReading(input: GateReadingInput): GateReading {
     ref: input.review.reviewID,
     answerHint: `Run \`noslop findings --pr ${input.round.pullRequest.number} --repo ${input.round.pullRequest.repo} --json\`, and reply to each open finding with a disposition: fixed, not-a-defect, deferred or accepted-risk.`,
   };
-
-  if (input.listExitCode !== 0 || input.list === null) {
-    return { status: 'blocked', why: 'unreadable', ...run };
-  }
 
   if (input.review.failedCalls.length > 0) {
     return { status: 'blocked', why: 'failed-call', ...run };

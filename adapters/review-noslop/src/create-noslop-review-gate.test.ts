@@ -134,6 +134,36 @@ test('it reads a result for an old head as not covered, because noslop refuses t
   ]);
 });
 
+test('it reads the App check alone when the session could not list the findings', async () => {
+  const ctx = setupTest();
+
+  const client = createFakeNoslopClient({
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+    outcome: { conclusion: 'success', title: 'No open findings', summary: '', open: [] },
+  });
+
+  const review = buildMockReviewResult({
+    owner: 'example',
+    repo: 'app',
+    number: 7,
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+  });
+
+  // `noslop findings` with the session's token on a repo whose config names no `github.app`
+  const body = toJSONValue({
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+    review,
+    findings: { exitCode: 1, list: null },
+  });
+
+  const reading = await ctx.accept(client, body);
+
+  expect([reading, client.posted]).toStrictEqual([
+    expect.objectContaining({ status: 'passed', closedWithoutFix: 0 }),
+    [review],
+  ]);
+});
+
 test('it reads a check failure with no open finding as blocked unreadable', async () => {
   const ctx = setupTest();
 

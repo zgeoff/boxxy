@@ -7,7 +7,6 @@ import { buildMockReviewResult } from './test-utils/build-mock-review-result.ts'
 
 interface ReadingCase {
   readonly failedCalls: number;
-  readonly listExitCode: number | null;
   readonly list: FindingList | null;
   readonly outcome: PullRequestCheck;
 }
@@ -31,7 +30,6 @@ function setupTest() {
           failedCalls: input.failedCalls,
         }),
         list: input.list,
-        listExitCode: input.listExitCode,
         outcome: input.outcome,
       }),
   };
@@ -39,30 +37,27 @@ function setupTest() {
 
 test.each([
   {
-    title: 'a findings list that exited 1 as unreadable',
-    failedCalls: 1,
-    listExitCode: 1,
-    list: { findings: [] },
+    title: 'an open finding with no findings list as open-findings',
+    failedCalls: 0,
+    list: null,
     outcome: {
       conclusion: 'failure',
       title: '',
       summary: '',
       open: [{ id: '00000000000000a1', title: '', reason: '' }],
     },
-    expected: { status: 'blocked', why: 'unreadable' },
+    expected: { status: 'blocked', why: 'open-findings' },
   },
   {
-    title: 'a findings list that does not parse as unreadable',
+    title: 'a check success with no findings list as passed',
     failedCalls: 0,
-    listExitCode: 0,
     list: null,
     outcome: { conclusion: 'success', title: '', summary: '', open: [] },
-    expected: { status: 'blocked', why: 'unreadable' },
+    expected: { status: 'passed' },
   },
   {
     title: 'a failed call before an open finding as failed-call',
     failedCalls: 1,
-    listExitCode: 0,
     list: { findings: [] },
     outcome: {
       conclusion: 'failure',
@@ -75,7 +70,6 @@ test.each([
   {
     title: 'an open finding as open-findings',
     failedCalls: 0,
-    listExitCode: 0,
     list: { findings: [] },
     outcome: {
       conclusion: 'failure',
@@ -88,7 +82,6 @@ test.each([
   {
     title: 'a check failure with no open finding as unreadable',
     failedCalls: 0,
-    listExitCode: 0,
     list: { findings: [] },
     outcome: { conclusion: 'failure', title: '', summary: '', open: [] },
     expected: { status: 'blocked', why: 'unreadable' },
@@ -96,7 +89,6 @@ test.each([
   {
     title: 'a check success with no open finding as passed',
     failedCalls: 0,
-    listExitCode: 0,
     list: { findings: [] },
     outcome: { conclusion: 'success', title: '', summary: '', open: [] },
     expected: { status: 'passed' },
@@ -104,7 +96,6 @@ test.each([
 ] satisfies {
   title: string;
   failedCalls: number;
-  listExitCode: number;
   list: FindingList | null;
   outcome: PullRequestCheck;
   expected: object;
@@ -120,7 +111,6 @@ test('it counts the open findings by severity from the result and the list, and 
 
   const reading = ctx.read({
     failedCalls: 0,
-    listExitCode: 0,
     list: {
       findings: [
         {
@@ -188,6 +178,34 @@ test('it counts the open findings by severity from the result and the list, and 
       open: { high: 2, medium: 1, low: 1 },
       closedWithoutFix: 2,
       findingPaths: ['src/menu.ts', 'src/theme.ts'],
+    }),
+  );
+});
+
+test('it counts an open finding that only an earlier round named as high, when it has no list', () => {
+  const ctx = setupTest();
+
+  const reading = ctx.read({
+    failedCalls: 0,
+    list: null,
+    outcome: {
+      conclusion: 'failure',
+      title: '',
+      summary: '',
+      open: [
+        { id: '00000000000000a1', title: '', reason: '' },
+        { id: '00000000000000c9', title: '', reason: '' },
+      ],
+    },
+  });
+
+  expect(reading).toStrictEqual(
+    expect.objectContaining({
+      status: 'blocked',
+      why: 'open-findings',
+      open: { high: 1, medium: 1, low: 0 },
+      closedWithoutFix: 0,
+      findingPaths: ['src/menu.ts'],
     }),
   );
 });
