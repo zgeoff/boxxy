@@ -100,6 +100,25 @@ async function setupTest() {
 
       return dispatch.readAttempt(claim.attempt.id);
     },
+
+    // an item closed while its spawn got no answer, so the attempt settled as a stray with no session
+    strayWithoutSession: async () => {
+      await dispatch.seedItem({});
+
+      dispatch.worker.failNext('start', { kind: 'unknown', reason: 'the spawn did not answer' });
+
+      const claim = await dispatch.claim();
+
+      invariant(claim?.kind === 'start', 'the claim starts the seeded item');
+
+      await dispatch.closeItem(claim.attempt.item, 'Withdrawn.');
+
+      dispatch.clock.advance(10 * 60_000 + 1);
+
+      await dispatch.tick();
+
+      return { attempt: await dispatch.readAttempt(claim.attempt.id), spawn: claim.spawn };
+    },
     listStrays: () =>
       dispatch.store.read((tx) =>
         tx.listStrayAttempts(brandSchemas.instant.parse(dispatch.clock.now() - 24 * 3_600_000)),
@@ -308,4 +327,44 @@ test('it keeps a stray session whose late stop is refused and tries again on the
   ];
 
   expect(received).toStrictEqual([[ctx.getSession(stray)], 1, null, [ctx.getSession(stray)]]);
+});
+
+test('it stops and forgets the late session of a stray with none, unconfirmed after 24 hours', async () => {
+  const ctx = await setupTest();
+  const stray = await ctx.strayWithoutSession();
+  const late = await ctx.worker.start(stray.spawn);
+
+  invariant(late.kind === 'started', 'the late spawn lands');
+
+  ctx.clock.advance(24 * ctx.hourMs + 1000);
+
+  const report = await ctx.forget();
+  const after = await ctx.readAttempt(stray.attempt.id);
+
+  const received: unknown = [
+    stray.attempt.atcSession,
+    await ctx.listStrays(),
+    report.forgotten,
+    after.atcSession,
+    after.sessionForgottenAt,
+  ];
+
+  expect(received).toStrictEqual([null, [], [late.atcSession], late.atcSession, ctx.clock.now()]);
+});
+
+test('it closes the cleanup of a stray whose session never appeared in 24 hours', async () => {
+  const ctx = await setupTest();
+  const stray = await ctx.strayWithoutSession();
+
+  ctx.clock.advance(24 * ctx.hourMs + 1000);
+
+  const report = await ctx.forget();
+  const after = await ctx.readAttempt(stray.attempt.id);
+  const again = await ctx.forget();
+
+  expect([report, after.sessionForgottenAt, again]).toStrictEqual([
+    { forgotten: [], failed: [] },
+    ctx.clock.now(),
+    { forgotten: [], failed: [] },
+  ]);
 });

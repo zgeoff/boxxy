@@ -48,10 +48,10 @@ export async function forgetSessions(input: ForgetSessionsInput): Promise<Forget
   }
 
   for (const attempt of due) {
-    const done = await forgetAttempt(input, attempt);
+    const result = await forgetAttempt(input, attempt);
 
-    if (attempt.atcSession !== null) {
-      (done ? forgotten : failed).push(attempt.atcSession);
+    if (result.session !== null) {
+      (result.done ? forgotten : failed).push(result.session);
     }
   }
 
@@ -93,24 +93,34 @@ function buildBase(input: ForgetSessionsInput) {
   return { actor: input.actor, now: input.now, newId: input.newId };
 }
 
+interface AttemptForget {
+  readonly done: boolean;
+  readonly session: AtcSessionId | null;
+}
+
 // atc refuses the forget of a live session, so a stray whose stop the runner never confirmed is
 // stopped first, and the confirmed stop is recorded before the forget.
-async function forgetAttempt(input: ForgetSessionsInput, attempt: AttemptRow): Promise<boolean> {
+async function forgetAttempt(
+  input: ForgetSessionsInput,
+  attempt: AttemptRow,
+): Promise<AttemptForget> {
   const isStray = attempt.strayedAt !== null && attempt.sessionStoppedAt === null;
 
-  if (isStray) {
-    const stop = await input.worker.stop(attempt);
+  const session = await readAttemptSession(input, attempt);
+
+  if (isStray && session !== null) {
+    const stop = await input.worker.stop({ ...attempt, atcSession: session });
 
     if (stop.kind !== 'stopped' && stop.kind !== 'absent') {
-      return false;
+      return { done: false, session };
     }
   }
 
-  if (attempt.atcSession !== null) {
-    const outcome = await input.worker.forget(attempt.atcSession);
+  if (session !== null) {
+    const outcome = await input.worker.forget(session);
 
     if (outcome.kind !== 'forgotten' && outcome.kind !== 'absent') {
-      return false;
+      return { done: false, session };
     }
   }
 
@@ -119,7 +129,7 @@ async function forgetAttempt(input: ForgetSessionsInput, attempt: AttemptRow): P
       await writeAttemptMove(
         tx,
         attempt.id,
-        { kind: 'stray-stopped', atcSession: attempt.atcSession },
+        { kind: 'stray-stopped', atcSession: session },
         buildBase(input),
       );
     }
@@ -127,5 +137,20 @@ async function forgetAttempt(input: ForgetSessionsInput, attempt: AttemptRow): P
     await writeAttemptMove(tx, attempt.id, { kind: 'session-forgotten' }, buildBase(input));
   });
 
-  return true;
+  return { done: true, session };
+}
+
+// Only a stray whose spawn got no answer lacks a session; the worker finds it by the spawn name.
+// null: no session appeared in the stray window, so none is left to stop.
+async function readAttemptSession(
+  input: ForgetSessionsInput,
+  attempt: AttemptRow,
+): Promise<AtcSessionId | null> {
+  if (attempt.atcSession !== null) {
+    return attempt.atcSession;
+  }
+
+  const reading = await input.worker.reconcile(attempt);
+
+  return reading.kind === 'absent' ? null : reading.atcSession;
 }

@@ -237,22 +237,31 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
         ),
       );
 
+      const latest = collectLatestBySession(tables.attempts)
+        .filter((entry) => !kept.has(entry.session))
+        .map((entry) => entry.attempt);
+
+      const sessionless = tables.attempts.filter(
+        (attempt) =>
+          attempt.atcSession === null &&
+          attempt.strayedAt !== null &&
+          attempt.sessionStoppedAt === null &&
+          attempt.strayedAt < strayedBefore,
+      );
+
       return Promise.resolve(
-        collectLatestBySession(tables.attempts)
-          .filter((latest) => !kept.has(latest.session))
-          .map((latest) => latest.attempt)
-          .filter(
-            (attempt) =>
-              attempt.sessionForgottenAt === null &&
-              (attempt.strayedAt === null ||
-                attempt.sessionStoppedAt !== null ||
-                attempt.strayedAt < strayedBefore) &&
-              (attempt.state === 'succeeded' ||
-                (attempt.state === 'failed' && attempt.phase === 'review') ||
-                (attempt.state === 'failed' &&
-                  attempt.endedAt !== null &&
-                  attempt.endedAt <= failedEndedBefore)),
-          ),
+        sortAttempts([...latest, ...sessionless]).filter(
+          (attempt) =>
+            attempt.sessionForgottenAt === null &&
+            (attempt.strayedAt === null ||
+              attempt.sessionStoppedAt !== null ||
+              attempt.strayedAt < strayedBefore) &&
+            (attempt.state === 'succeeded' ||
+              (attempt.state === 'failed' && attempt.phase === 'review') ||
+              (attempt.state === 'failed' &&
+                attempt.endedAt !== null &&
+                attempt.endedAt <= failedEndedBefore)),
+        ),
       );
     },
     readRunner: (id) => Promise.resolve(getTables().runners.find((row) => row.id === id) ?? null),

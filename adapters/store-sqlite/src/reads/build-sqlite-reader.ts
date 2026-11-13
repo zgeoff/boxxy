@@ -418,7 +418,15 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
       const rows = await db
         .selectFrom('attempts')
         .selectAll()
-        .where('atc_session', 'is not', null)
+        .where((builder) =>
+          builder.or([
+            builder('atc_session', 'is not', null),
+            builder.and([
+              builder('session_stopped_at', 'is', null),
+              builder('strayed_at', '<', strayedBefore),
+            ]),
+          ]),
+        )
         .where('session_forgotten_at', 'is', null)
         .where((builder) => isLatestOfSession(builder))
         .where((builder) =>

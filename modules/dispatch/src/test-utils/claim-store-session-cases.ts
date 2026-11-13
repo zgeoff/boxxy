@@ -382,6 +382,52 @@ export const claimStoreSessionCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
+    '#listSessionsToForget lists a stray with no session only once it strayed before the cutoff',
+    async (store) => {
+      const old = buildMockV1AttemptRow({
+        state: 'failed',
+        atcSession: null,
+        endedAt: brandSchemas.instant.parse(1000),
+        strayedAt: brandSchemas.instant.parse(1000),
+        claimedAt: brandSchemas.instant.parse(500),
+      });
+
+      const recent = buildMockV1AttemptRow({
+        state: 'failed',
+        atcSession: null,
+        endedAt: brandSchemas.instant.parse(2000),
+        strayedAt: brandSchemas.instant.parse(2000),
+        claimedAt: brandSchemas.instant.parse(600),
+      });
+
+      const refused = buildMockV1AttemptRow({
+        state: 'failed',
+        atcSession: null,
+        endedAt: brandSchemas.instant.parse(1000),
+        claimedAt: brandSchemas.instant.parse(700),
+      });
+
+      await store.exclusive(async (transaction) => {
+        for (const attempt of [old, recent, refused]) {
+          await transaction.applyChange(
+            buildMockFileItemChange(buildMockV1ItemRow({ id: attempt.item })),
+          );
+
+          await transaction.applyChange(buildMockClaimChange(attempt));
+        }
+      });
+
+      const listed = await store.read((transaction) =>
+        transaction.listSessionsToForget(
+          brandSchemas.instant.parse(3000),
+          brandSchemas.instant.parse(2000),
+        ),
+      );
+
+      return { received: listed.map((attempt) => attempt.id), expected: [old.id] };
+    },
+  ],
+  [
     '#listStrayAttempts returns the strays since a time whose session has not stopped',
     async (store) => {
       const recent = buildMockV1AttemptRow({

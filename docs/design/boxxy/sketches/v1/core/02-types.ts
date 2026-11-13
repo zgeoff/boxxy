@@ -628,7 +628,8 @@ export interface StoreReader {
 //   - `listSessionsToForget(failedEndedBefore, strayedBefore)`: cleanup passes the cutoff of a
 //     failed attempt and of a stray, not the time now. A succeeded attempt or a failed review is due at once. Only
 //     the latest attempt of a session counts. A kept session is left out, and so is a stray
-//     session not yet stopped that strayed at `strayedBefore` or later.
+//     session not yet stopped that strayed at `strayedBefore` or later. An earlier unstopped
+//     stray is listed even with no session, so cleanup can look for it by its spawn name.
 //   - `findAttemptByAgentSession` gives the latest attempt bound to the agent session, and
 //     `findSessionByCaller` matches on each session's latest attempt alone.
 //   - `StoreReader` also has the outbox reads (../edge/02-outbox.ts, section B).
