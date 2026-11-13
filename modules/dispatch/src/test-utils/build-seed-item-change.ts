@@ -1,4 +1,12 @@
-import type { DesignMode, Instant, ItemRow, NewId, PhaseName, StoreChange } from '@boxxy/model';
+import type {
+  Criterion,
+  DesignMode,
+  Instant,
+  ItemRow,
+  NewId,
+  PhaseName,
+  StoreChange,
+} from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 
 export interface SeedItemInput {
@@ -6,6 +14,9 @@ export interface SeedItemInput {
   // stands at its pipeline's first phase and has no lever
   readonly phase?: PhaseName;
   readonly designMode?: DesignMode;
+
+  // the dark-theme criterion when left out
+  readonly acceptance?: readonly Criterion[];
 }
 
 // The filing of a dark-theme issue in the example repo, with its file fact, and the lever and its
@@ -75,7 +86,7 @@ function buildSeedItemRow(newId: NewId, now: Instant, input: SeedItemInput): Ite
     title: 'Add a dark theme',
     outcome: 'The app follows the system theme.',
     body: '',
-    acceptance: [
+    acceptance: input.acceptance ?? [
       {
         id: brandSchemas.criterionId.parse('a1'),
         text: 'The app reads dark when the system does.',

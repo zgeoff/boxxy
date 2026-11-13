@@ -438,8 +438,9 @@ export interface TriageCloseOut {
     readonly designMode?: DesignMode;
 
     // Required with `accepted` when the item has no acceptance list. The parser refuses
-    // `accepted` when neither the item nor this field holds one (`no-acceptance`), so no item
-    // reaches build without an acceptance list.
+    // `accepted` when neither the item nor this field holds one (`no-acceptance`). A design may
+    // replace the list, and a design phase starts without one; an item that stands at build,
+    // review or verify with no list derives `idea`, and no attempt of that phase starts.
     // Triage must not accept a criterion that only a release or a live run can prove. Such a
     // criterion belongs to QA after the merge; a build attempt cannot meet it. boxxy cannot
     // check this by code: it is a stated rule of the triage recipe.

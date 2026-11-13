@@ -13,7 +13,7 @@ export const design = definePhase({
   version: 1,
   worker: brandSchemas.workerKindName.parse('atc.session'),
   outcomes: ['designed', 'blocked', 'abandoned'],
-  needsAcceptance: true,
+  needsAcceptance: false,
   mode: (item) => (item.fields.designMode === 'attended' ? 'attended' : 'agent'),
   input: (ctx) =>
     toJSONValue({ acceptance: buildCriterionTexts(ctx.item) } satisfies AcceptanceInput),

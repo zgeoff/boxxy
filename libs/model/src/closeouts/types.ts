@@ -229,8 +229,7 @@ export interface CriterionText {
   readonly text: string;
 }
 
-// The input of a triage or a design attempt: the item's acceptance list, which may be empty
-// before triage.
+// The input of a triage or a design attempt: the item's acceptance list, which may be empty.
 export interface AcceptanceInput {
   readonly acceptance: readonly CriterionText[];
 }

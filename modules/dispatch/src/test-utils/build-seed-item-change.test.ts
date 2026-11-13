@@ -40,3 +40,11 @@ test('it files the item with a retry lever at the phase it is given', () => {
     { designMode: 'agent' },
   ]);
 });
+
+test('it files the item with the acceptance list it is given', () => {
+  const seeded = buildSeedItemChange(buildMockNewId(), brandSchemas.instant.parse(1000), {
+    acceptance: [],
+  });
+
+  expect(seeded.row.acceptance).toStrictEqual([]);
+});

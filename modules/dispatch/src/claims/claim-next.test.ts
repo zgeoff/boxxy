@@ -45,6 +45,15 @@ async function setupTest() {
         spawn: dispatch.spawn,
         claimed: new Set(claimed),
       }),
+    readItem: async (item: ItemId) => {
+      const view = await dispatch.store.read((tx) =>
+        tx.readItem(item, dispatch.clock.now(), dispatch.rules()),
+      );
+
+      invariant(view !== null, 'the item is stored');
+
+      return view;
+    },
   };
 }
 
@@ -252,6 +261,51 @@ test('it carries the body that triage set in the prompt of the next phase', asyn
   invariant(next?.kind === 'start', 'the claim starts the next phase');
 
   expect(next.spawn.prompt).toContain('\n\n## Scope\n\nThe settings page only.\n\n');
+});
+
+test('it claims the design of an item with no acceptance list', async () => {
+  const ctx = await setupTest();
+
+  const item = await ctx.seedItem({
+    phase: brandSchemas.phaseName.parse('design'),
+    acceptance: [],
+  });
+
+  const claim = await ctx.claimNext();
+
+  const received: unknown = [claim?.kind, claim?.attempt.item, claim?.attempt.phase];
+
+  expect(received).toStrictEqual(['start', item, 'design']);
+});
+
+test('it shows an item as an idea, and claims no build, when its design leaves no acceptance list', async () => {
+  const ctx = await setupTest();
+
+  const item = await ctx.seedItem({
+    phase: brandSchemas.phaseName.parse('design'),
+    acceptance: [],
+  });
+
+  const design = await ctx.claim();
+
+  invariant(design !== null, 'the design claims');
+
+  const designRow = await ctx.readAttempt(design.attempt.id);
+
+  await ctx.closeAndSettle(designRow, {
+    result: { kind: 'designed', design: { text: 'Follow the system theme.', location: null } },
+    friction: [],
+  });
+
+  const next = await ctx.claimNext();
+  const view = await ctx.readItem(item);
+
+  expect(next).toBeNull();
+
+  expect([view.position, view.derived]).toStrictEqual([
+    expect.objectContaining({ phase: 'build' }),
+    { state: 'idea' },
+  ]);
 });
 
 test('it carries the item body and the owner notes in the prompt of a claim', async () => {
