@@ -1,8 +1,9 @@
-import type { AcceptanceInput, DesignCloseOut } from '@boxxy/model';
+import type { AcceptanceInput, DesignCloseOut, Effect } from '@boxxy/model';
 import { brandSchemas, definePhase, designCloseOutSchema, toJSONValue } from '@boxxy/model';
 import { match } from 'ts-pattern';
 import type { z } from 'zod';
 import { buildSchemaParser } from '../build-schema-parser.ts';
+import { buildCriteria } from '../utils/build-criteria.ts';
 import { buildCriterionTexts } from '../utils/build-criterion-texts.ts';
 
 const designBodySchema = designCloseOutSchema.omit({ frictionDropped: true });
@@ -36,7 +37,23 @@ export const design = definePhase({
       }))
       .exhaustive(),
     outcome: input.closeOut.result.kind,
-    effects: input.closeOut.friction.map((friction) => ({ kind: 'record-proposal', friction })),
+    effects: collectDesignEffects(input.closeOut),
     frictionDropped: input.closeOut.frictionDropped,
   }),
 });
+
+function collectDesignEffects(closeOut: DesignCloseOut): Effect[] {
+  const designed = closeOut.result.kind === 'designed' ? closeOut.result : null;
+  const acceptance = designed?.set?.acceptance;
+
+  return [
+    ...(designed?.openItems ?? []).map((openItem) => ({
+      kind: 'file-item' as const,
+      item: openItem,
+    })),
+    ...(acceptance === undefined
+      ? []
+      : [{ kind: 'set-acceptance' as const, criteria: buildCriteria(acceptance) }]),
+    ...closeOut.friction.map((friction) => ({ kind: 'record-proposal' as const, friction })),
+  ];
+}

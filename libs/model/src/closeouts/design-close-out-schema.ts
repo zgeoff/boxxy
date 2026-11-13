@@ -1,5 +1,7 @@
 import { z } from 'zod';
+import { acceptanceDraftSchema } from './acceptance-draft-schema.ts';
 import { frictionSchema } from './friction-schema.ts';
+import { openItemSchema } from './open-item-schema.ts';
 import type { DesignCloseOut } from './types.ts';
 
 const reasonSchema = z.string().min(1);
@@ -12,9 +14,17 @@ const designSchema = z.preprocess(
   }),
 );
 
-const designedSchema = z.object({ kind: z.literal('designed'), design: designSchema });
-const blockedSchema = z.object({ kind: z.literal('blocked'), reason: reasonSchema });
-const abandonedSchema = z.object({ kind: z.literal('abandoned'), reason: reasonSchema });
+// Strict, so a session that sends `set` or `openItems` with a blocked or abandoned design hears
+// of it instead of losing them.
+const designedSchema = z.strictObject({
+  kind: z.literal('designed'),
+  design: designSchema,
+  set: z.strictObject({ acceptance: acceptanceDraftSchema.exactOptional() }).exactOptional(),
+  openItems: z.array(openItemSchema).exactOptional(),
+});
+
+const blockedSchema = z.strictObject({ kind: z.literal('blocked'), reason: reasonSchema });
+const abandonedSchema = z.strictObject({ kind: z.literal('abandoned'), reason: reasonSchema });
 
 export const designCloseOutSchema = z.strictObject({
   result: z.discriminatedUnion('kind', [designedSchema, blockedSchema, abandonedSchema]),

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { brandSchemas } from '../rows/brand-schemas.ts';
 import { itemBodyMaxChars } from '../rows/item-body-max-chars.ts';
+import { acceptanceDraftSchema } from './acceptance-draft-schema.ts';
 import { frictionSchema } from './friction-schema.ts';
 import type { TriageCloseOut } from './types.ts';
 
@@ -8,12 +9,11 @@ const acceptedSchema = z.object({ kind: z.literal('accepted') });
 const duplicateSchema = z.object({ kind: z.literal('duplicate'), of: brandSchemas.itemId });
 const declinedSchema = z.object({ kind: z.literal('declined'), reason: z.string().min(1) });
 const designModeSchema = z.enum(['agent', 'attended']);
-const criterionTextSchema = z.object({ text: z.string().min(1) });
 
 const setSchema = z.strictObject({
   kind: brandSchemas.itemKindName.exactOptional(),
   designMode: designModeSchema.exactOptional(),
-  acceptance: z.array(criterionTextSchema).exactOptional(),
+  acceptance: acceptanceDraftSchema.exactOptional(),
   body: z.string().max(itemBodyMaxChars).exactOptional(),
 });
 

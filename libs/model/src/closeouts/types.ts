@@ -49,7 +49,17 @@ export interface TriageCloseOut {
 
 export interface DesignCloseOut {
   readonly result:
-    | { readonly kind: 'designed'; readonly design: Design }
+    | {
+        readonly kind: 'designed';
+        readonly design: Design;
+        readonly set?: {
+          // the whole new list, in place of the item's list
+          readonly acceptance?: readonly { readonly text: string }[];
+        };
+
+        // the follow-up work the design found, filed as new items
+        readonly openItems?: readonly OpenItem[];
+      }
     | { readonly kind: 'blocked'; readonly reason: string }
     | { readonly kind: 'abandoned'; readonly reason: string };
   readonly friction: readonly Friction[];

@@ -74,6 +74,43 @@ test('it settles a designed close-out as succeeded, with a proposal for each fri
   });
 });
 
+test('it settles a designed close-out with an effect to file each open item and to set the acceptance list', () => {
+  const openItem = { kind: 'core.issue' as const, title: 'Cap the retry queue', body: 'Found.' };
+
+  const settlement: unknown = design.settle({
+    attempt: buildMockV1AttemptRow({ phase: brandSchemas.phaseName.parse('design') }),
+    item: buildMockV1ItemView(),
+    closeOut: {
+      result: {
+        kind: 'designed',
+        design: { text: 'Retry once', location: null },
+        set: { acceptance: [{ text: 'A failed upload retries once' }, { text: 'It is logged' }] },
+        openItems: [openItem],
+      },
+      friction: [],
+      frictionDropped: 0,
+    },
+    now: brandSchemas.instant.parse(1000),
+  });
+
+  expect(settlement).toStrictEqual({
+    state: 'succeeded',
+    failure: null,
+    outcome: 'designed',
+    effects: [
+      { kind: 'file-item', item: openItem },
+      {
+        kind: 'set-acceptance',
+        criteria: [
+          { id: 'a1', text: 'A failed upload retries once', evidence: [] },
+          { id: 'a2', text: 'It is logged', evidence: [] },
+        ],
+      },
+    ],
+    frictionDropped: 0,
+  });
+});
+
 test('it settles a blocked close-out as failed, with the outcome name as the failure', () => {
   const settlement: unknown = design.settle({
     attempt: buildMockV1AttemptRow({ phase: brandSchemas.phaseName.parse('design') }),

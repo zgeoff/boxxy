@@ -380,7 +380,7 @@ export const contract = {
     //   phase    body (core type)   outcomes                                      what it carries
     //   ───────  ─────────────────  ────────────────────────────────────────────  ──────────────────────────────────────────
     //   triage   TriageCloseOut     accepted, duplicate, declined                 the result; kind, designMode, acceptance, body; relations
-    //   design   DesignCloseOut     designed, blocked, abandoned                  the whole design and its location
+    //   design   DesignCloseOut     designed, blocked, abandoned                  the whole design and its location; acceptance; open items
     //   build    BuildCloseOut      built, blocked, abandoned                     evidence per criterion; open items
     //   review   the tool's result  passed, changes-requested, failed             the server stores ReviewCloseOut: the gate's reading
     //

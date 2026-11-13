@@ -51,3 +51,53 @@ test('it rejects a designed close-out with an empty design text', () => {
     path: ['result', 'design', 'text'],
   });
 });
+
+test('it accepts a designed close-out that sets the acceptance list and files open items', () => {
+  const closeOut = {
+    result: {
+      kind: 'designed',
+      design: { text: '## Plan\n\nOne retry per upload row.', location: null },
+      set: { acceptance: [{ text: 'A failed upload retries once' }] },
+      openItems: [{ kind: 'core.issue', title: 'Cap the retry queue', body: 'Found in design.' }],
+    },
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  const parsed: unknown = designCloseOutSchema.safeParse(closeOut).data;
+
+  expect(parsed).toStrictEqual(closeOut);
+});
+
+test('it rejects a designed close-out that sets a criterion with empty text', () => {
+  const closeOut = {
+    result: {
+      kind: 'designed',
+      design: { text: 'One retry per upload row.', location: null },
+      set: { acceptance: [{ text: '' }] },
+    },
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  expect(designCloseOutSchema.safeParse(closeOut).error?.issues).toPartiallyContain({
+    path: ['result', 'set', 'acceptance', 0, 'text'],
+  });
+});
+
+test('it rejects a blocked close-out that files open items', () => {
+  const closeOut = {
+    result: {
+      kind: 'blocked',
+      reason: 'Should a retry keep the old upload id?',
+      openItems: [{ kind: 'core.issue', title: 'Cap the retry queue', body: '' }],
+    },
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  expect(designCloseOutSchema.safeParse(closeOut).error?.issues).toPartiallyContain({
+    code: 'unrecognized_keys',
+    path: ['result'],
+  });
+});

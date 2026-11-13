@@ -2,7 +2,6 @@ import type {
   AcceptanceInput,
   CloseOutContext,
   CloseOutProblem,
-  Criterion,
   Effect,
   TriageCloseOut,
 } from '@boxxy/model';
@@ -10,6 +9,7 @@ import { brandSchemas, definePhase, toJSONValue, triageCloseOutSchema } from '@b
 import { match } from 'ts-pattern';
 import type { z } from 'zod';
 import { buildSchemaParser } from '../build-schema-parser.ts';
+import { buildCriteria } from '../utils/build-criteria.ts';
 import { buildCriterionTexts } from '../utils/build-criterion-texts.ts';
 
 const triageBodySchema = triageCloseOutSchema.omit({ frictionDropped: true });
@@ -128,15 +128,6 @@ function collectTriageEffects(closeOut: TriageCloseOut): Effect[] {
     ...buildCloseEffects(closeOut.result),
     ...closeOut.friction.map((friction) => ({ kind: 'record-proposal' as const, friction })),
   ];
-}
-
-// The list replaces the item's list whole, so its criteria are numbered from `a1`.
-function buildCriteria(acceptance: readonly { readonly text: string }[]): Criterion[] {
-  return acceptance.map((criterion, index) => ({
-    id: brandSchemas.criterionId.parse(`a${index + 1}`),
-    text: criterion.text,
-    evidence: [],
-  }));
 }
 
 function buildCloseEffects(result: TriageCloseOut['result']): Effect[] {

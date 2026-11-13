@@ -60,7 +60,7 @@ async function setupTest() {
           dispatch.rules(),
         ),
       ),
-    mapTriageOutcome: (rules: LoadedRules, outcome: string, edge: Edge): LoadedRules => ({
+    mapOutcome: (rules: LoadedRules, phase: string, outcome: string, edge: Edge): LoadedRules => ({
       ...rules,
       kinds: new Map(
         [...rules.kinds].map(([name, kind]) => [
@@ -70,7 +70,7 @@ async function setupTest() {
             pipeline: {
               ...kind.pipeline,
               steps: kind.pipeline.steps.map((step) =>
-                step.phase === 'triage' ? { ...step, on: { ...step.on, [outcome]: edge } } : step,
+                step.phase === phase ? { ...step, on: { ...step.on, [outcome]: edge } } : step,
               ),
             },
           },
@@ -196,6 +196,107 @@ test('it keeps the item body when the triage outcome holds the item', async () =
   });
 });
 
+test('it replaces the acceptance list with the list of a designed close-out and records the edit', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('design');
+
+  await ctx.closeOut(attempt, {
+    result: {
+      kind: 'designed',
+      design: { text: 'Follow the system theme.', location: null },
+      set: { acceptance: [{ text: 'The app reads dark at night.' }] },
+    },
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+  const edited = await ctx.listFacts('boxxy.item.edited');
+
+  const criteria = [{ id: 'a1', text: 'The app reads dark at night.', evidence: [] }];
+  const received: unknown = detail.item.acceptance;
+
+  expect(received).toStrictEqual(criteria);
+
+  expect(edited.map((fact) => [fact.entity, fact.payload])).toStrictEqual([
+    [`boxxy:item:${attempt.item}`, { acceptance: criteria, byAttempt: attempt.id }],
+  ]);
+});
+
+test('it files each new open item of a designed close-out once and lists the open issue that a title matches', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('design');
+  const [existing] = await ctx.listOpenIssues();
+
+  invariant(existing !== undefined, 'the design item is an open issue');
+
+  await ctx.closeOut(attempt, {
+    result: {
+      kind: 'designed',
+      design: { text: 'Follow the system theme.', location: null },
+      openItems: [
+        { kind: 'core.issue', title: '  ADD a dark   theme ', body: 'Found while designing.' },
+        { kind: 'core.issue', title: 'Cache the theme', body: 'Found while designing.' },
+        { kind: 'core.issue', title: 'cache the theme', body: 'Found again.' },
+      ],
+    },
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const [settled] = await ctx.listFacts('boxxy.attempt.settled');
+  const filed = await ctx.listFacts('boxxy.item.filed');
+
+  expect(settled?.payload).toMatchObject({
+    matched: [existing.id],
+    skippedEffects: [{ effect: 'file-item', reason: 'the close-out names this title already' }],
+  });
+
+  expect(filed.map((fact) => fact.payload)).toMatchObject([
+    {},
+    { title: 'Cache the theme', foundInAttempt: attempt.id, acceptance: [] },
+  ]);
+});
+
+test('it keeps the acceptance list, and still files the open items, when the rules hold a designed item', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('design');
+
+  ctx.setRules(
+    ctx.mapOutcome(ctx.rules(), 'design', 'designed', {
+      hold: brandSchemas.rulesHoldReason.parse('designed'),
+    }),
+  );
+
+  await ctx.closeOut(attempt, {
+    result: {
+      kind: 'designed',
+      design: { text: 'Follow the system theme.', location: null },
+      set: { acceptance: [{ text: 'A list the owner never saw.' }] },
+      openItems: [{ kind: 'core.issue', title: 'Cache the theme', body: 'Found.' }],
+    },
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+  const [settled] = await ctx.listFacts('boxxy.attempt.settled');
+  const filed = await ctx.listFacts('boxxy.item.filed');
+
+  expect(detail.item.acceptance.map((criterion) => criterion.text)).toStrictEqual([
+    'The app reads dark when the system does.',
+  ]);
+
+  expect(settled?.payload).toMatchObject({
+    skippedEffects: [{ effect: 'set-acceptance', reason: 'the item holds for the owner' }],
+  });
+
+  expect(filed.map((fact) => fact.payload)).toMatchObject([{}, { title: 'Cache the theme' }]);
+});
+
 test('it withholds the close of a declined triage, holds the item, and writes the notice', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.claimAt('triage');
@@ -264,7 +365,7 @@ test('it closes a duplicate and adds the relation when the rules end the outcome
   const other = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
   const attempt = await ctx.claimAt('triage');
 
-  ctx.setRules(ctx.mapTriageOutcome(ctx.rules(), 'duplicate', { end: 'duplicate' }));
+  ctx.setRules(ctx.mapOutcome(ctx.rules(), 'triage', 'duplicate', { end: 'duplicate' }));
 
   await ctx.closeOut(attempt, {
     result: { kind: 'duplicate', of: other },
