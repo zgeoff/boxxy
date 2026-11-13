@@ -114,7 +114,7 @@ test('it fails the session read with check-failed when the shown title differs',
 
   const read = readSessionItem(ctx.ctx, { text: 'theme from the desktop', title: 'Another title' });
 
-  await expect(read).rejects.toMatchObject({ code: 'check-failed' });
+  expect(read).rejects.toMatchObject({ code: 'check-failed' });
 });
 
 test('it reports 2 requests and 3 USD, a build of 30 minutes and a merge of 20 for a landed item', async () => {
