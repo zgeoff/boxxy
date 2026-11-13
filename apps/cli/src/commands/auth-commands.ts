@@ -13,7 +13,7 @@ export const authCommands: readonly Command[] = [
       const enrollment = await call.client.auth.enroll({});
 
       return buildTextResult(
-        `Enrollment link: ${enrollment.link}\nIt enrolls one passkey and expires at ${enrollment.expiresAt}. Open it in your browser.`,
+        `Enrollment link: ${enrollment.link}\nIt enrolls one passkey and expires soon. Open it in your browser now.`,
       );
     },
   },

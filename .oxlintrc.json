@@ -76,19 +76,9 @@
           },
           {
             "name": "oauth",
-            "modules": [
-              "better-auth",
-              "better-auth/api",
-              "better-auth/cookies",
-              "better-auth/crypto",
-              "better-auth/db/migration",
-              "@better-auth/mcp",
-              "@better-auth/oauth-provider",
-              "@simplewebauthn/server",
-              "reflect-metadata"
-            ],
+            "modules": ["@zgeoff/mcp-auth", "@zgeoff/mcp-auth/elysia", "@zgeoff/mcp-auth/testing"],
             "allow": ["auth-oauth"],
-            "reason": "only adapters/auth-oauth runs the OAuth server and its passkeys; take its public door"
+            "reason": "only adapters/auth-oauth opens the OAuth server of @zgeoff/mcp-auth; take its public door"
           },
           {
             "name": "atc",

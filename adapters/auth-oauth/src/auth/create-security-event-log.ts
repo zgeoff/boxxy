@@ -1,8 +1,6 @@
-// Copied from atc: packages/mcp/src/auth/create-security-event-log.ts at commit 4fe647cf.
-
+import type { SecurityEvent } from '@zgeoff/mcp-auth';
 import type { AuthClock } from '../utils/types.ts';
 import { formatSecurityEvent } from './format-security-event.ts';
-import type { SecurityEvent } from './types.ts';
 
 interface SecurityEventLogOptions {
   // Receives each `{json}` line.

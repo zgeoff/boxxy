@@ -12,11 +12,7 @@ export const authHandlers = {
       options.errors.AUTH_NOT_CONFIGURED,
     ).enroll();
 
-    return {
-      token: enrollment.token,
-      link: enrollment.link,
-      expiresAt: new Date(enrollment.expiresAt).toISOString(),
-    };
+    return { token: enrollment.token, link: enrollment.link };
   }),
   addClient: api.auth.addClient.handler(async (options) => {
     const added = await readAdmin(
@@ -25,8 +21,12 @@ export const authHandlers = {
     ).addClient(options.input.name, options.input.redirectURIs);
 
     if (added.kind === 'refused') {
-      throw new ORPCError('BAD_REQUEST', {
-        message: `'${added.redirectURI}' is not a redirect URI the door accepts; use https, or http on a loopback host, with no fragment`,
+      throw new ORPCError('BAD_REQUEST', { message: added.message });
+    }
+
+    if (added.kind === 'conflict') {
+      throw new ORPCError('CONFLICT', {
+        message: `a client is already named '${added.name}'; pick another name`,
       });
     }
 
@@ -47,11 +47,20 @@ export const authHandlers = {
       })),
     };
   }),
-  removeClient: api.auth.removeClient.handler(async (options) => ({
-    removed: await readAdmin(options.context.deps, options.errors.AUTH_NOT_CONFIGURED).removeClient(
-      options.input.client,
-    ),
-  })),
+  removeClient: api.auth.removeClient.handler(async (options) => {
+    const answer = await readAdmin(
+      options.context.deps,
+      options.errors.AUTH_NOT_CONFIGURED,
+    ).removeClient(options.input.client);
+
+    if (answer.kind === 'ambiguous') {
+      throw new ORPCError('CONFLICT', {
+        message: `another client is also named '${answer.name}', and the door removes a client by its name`,
+      });
+    }
+
+    return { removed: answer.kind === 'removed' };
+  }),
   listGrants: api.auth.listGrants.handler(async (options) => {
     const grants = await readAdmin(
       options.context.deps,

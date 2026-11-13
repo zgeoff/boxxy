@@ -1,5 +1,3 @@
-// Copied from atc: packages/mcp/src/http/normalize-public-url.test.ts at commit 4fe647cf.
-
 import { expect, test } from 'bun:test';
 import { normalizePublicURL } from './normalize-public-url.ts';
 

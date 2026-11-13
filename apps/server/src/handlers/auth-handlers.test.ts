@@ -40,9 +40,8 @@ test('it answers a link on the public origin for auth.enroll', async () => {
     status: 200,
     body: {
       json: {
-        token: expect.stringMatching(/^boxxy-enroll-/u),
-        link: expect.stringMatching(/^https:\/\/boxxy\.test\/enroll\?token=boxxy-enroll-/u),
-        expiresAt: expect.any(String),
+        token: expect.stringMatching(/^enroll-/u),
+        link: expect.stringMatching(/^https:\/\/boxxy\.test\/enroll\?token=enroll-/u),
       },
     },
   });
@@ -90,6 +89,22 @@ test('it refuses a redirect URI that is not https or loopback with 400', async (
   });
 
   expect(answer.status).toBe(400);
+});
+
+test('it answers 409 when auth.addClient names a client that exists', async () => {
+  const ctx = await setupTest(true);
+
+  await ctx.callOwner('auth.addClient', {
+    name: 'Dots',
+    redirectURIs: ['https://dots.example/callback'],
+  });
+
+  const answer = await ctx.callOwner('auth.addClient', {
+    name: 'Dots',
+    redirectURIs: ['https://other.example/callback'],
+  });
+
+  expect(answer.status).toBe(409);
 });
 
 test('it answers removed false for a client it does not hold', async () => {

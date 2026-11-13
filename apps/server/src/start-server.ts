@@ -459,6 +459,11 @@ async function startPublicDoor(
       dbPath: section.authFile ?? join(dirname(config.store.file), 'boxxy-auth.db'),
       trustForwardedFrom: section.trustForwardedFrom,
       writeSecurityLine,
+      onSweepError: (error) => {
+        input.log.warn('the public door did not sweep its expired tokens', {
+          error: formatErrorChain(error),
+        });
+      },
       readPeer: (request) => peers.current?.requestIP(request)?.address ?? null,
       serveMCP: makePublicMcpServe(readDeps),
     });

@@ -215,14 +215,14 @@ adapters/forge-github/src       @boxxy/forge-github
                   mock-network  reset-mock-network: the mock network that the test preload starts
                   fixtures/: recorded GitHub answers, with invented values
 
-adapters/auth-oauth/src          @boxxy/auth-oauth: the public door's OAuth server, copied from atc
+adapters/auth-oauth/src          @boxxy/auth-oauth: the public door, on the OAuth server of @zgeoff/mcp-auth
   index                         create-public-door and the types the server reads
-  auth/           the OAuth server on better-auth, the passkey sign-in, enrollment, consent and
-                  the security events, and `create-auth-admin` for the owner's commands
-  http/           create-public-door  create-mcp-http-app  public-door-paths  answer-mcp-request
-                  and the Host, origin and bearer checks
-  utils/          is-record  parse-json-strings  types
-  test-utils/     authorize-test-client  build-stub-authenticator  build-stub-clock  seed-passkey
+  auth/           open-auth-database, the security event log, and `create-auth-admin` for the
+                  owner's commands
+  http/           create-public-door  normalize-public-url  is-loopback-host  types
+  migrations/     run-auth-migrations  grant-rows-migration
+  utils/          types
+  test-utils/     authorize-test-client  build-stub-clock  seed-pre-package-auth
 
 adapters/caller-proof-imp/src   @boxxy/caller-proof-imp
   index  types  imp-identity-caller-proof
