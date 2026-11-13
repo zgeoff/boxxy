@@ -115,6 +115,8 @@ The security rule at the top of section E of [`01-api.ts`](./sketches/v1/edge/01
 
 One root middleware does this from the access table, for the RPC route and both MCP endpoints, and no handler repeats the check. A session therefore cannot close an item, retry one or pause the runner, although the broker carries any path.
 
+The same middleware logs each call that fails with an internal error, which oRPC answers with `INTERNAL_SERVER_ERROR` and status 500. The warning names the procedure, the `item` and `attempt` IDs of the input when it has them, and the error with its chain of causes. It holds no other part of the input, so it never logs a close-out body or a token. A typed error, such as `NOT_FOUND` or `PEPYS_UNAVAILABLE`, logs nothing.
+
 A session reads other items through its own two procedures, `attempt.listItems` and `attempt.getItem`, and never through `item.list` or `item.get`, so the rule above holds with no exception.
 
 A session on a local worker target reaches the server on the owner's path and can call every owner procedure. v1 accepts that, because v1 workers run on the cloud target. Such a session can call no session or hook procedure, because it has no proven caller.
