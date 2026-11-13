@@ -115,7 +115,7 @@ notices: {
 - The server never gives up on a notice. A row stays unsent until atc takes it, with at most 15 minutes between tries.
 - The server never wakes the notice session. While the notice waits, `boxxy item list` still shows the hold. atc answers `session_dead` while the session is stopped or asleep, and `daemon_unavailable` while the owner's machine is off.
 - A notice tried while no session is registered waits the same way, so it reaches a session that registers later, at most 15 minutes after the registration.
-- A registration changes no key. A row whose last try at the old session was `uncertain` repeats its key at the new session. When atc took that first send, the repeat comes back `sent` and the notice stays with the old session, like any notice sent before the registration. Otherwise the row gets a new key after its third uncertain try, and the notice goes to the new session.
+- A registration changes no key. A row whose last try at the old session was `uncertain` repeats its key at the new session. When atc answers the repeat with the first send's result, the row is marked sent and the notice stays with the old session, like any notice sent before the registration. When atc answers the repeat as `uncertain`, the row gets a new key after its third uncertain try, and the notice goes to the new session.
 - A server restart changes no key, because each key comes from its row.
 - The owner gets each notice once, with two exceptions:
   - When a first send reached the session and every repeat of its key still comes back `uncertain`, the change of key after 3 tries sends the notice a second time.
