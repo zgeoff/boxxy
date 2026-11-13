@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/train",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "boxxy's merge rule: decides each read of a merge from the pull request, its checks, its review and its verify reading",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/modules/train#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",
