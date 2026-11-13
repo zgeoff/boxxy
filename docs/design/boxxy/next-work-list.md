@@ -51,6 +51,7 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 - **Follows:** [wringer journeys](./wringer-journeys.md); `wringer-journeys/03-flow.ts`.
 - **Needs:** slice 5.
 - **Check:** a pull request that changes a mapped path fails with no report and passes with one. A pull request that changes only a README passes, and so does one that changes only the lock file.
+- **Built:** `.github/workflows/verify.yml` runs the `verify / gate` job on each pull request event of the types `opened`, `synchronize`, `reopened` and `edited`. The job runs `verify:lint`, then `ci:verify-gate`. `scripts/ci/run-verify-gate.ts` writes the body from the event to a file, runs `bun verify gate` against `origin/<base>`, and prints one `::error::` annotation per failing feature and per unmapped path. The `run-verify-gate` tests run the script on fixture git repos with boxxy's real map. A mapped change fails with no report, passes with a verdict of each feature at the fingerprint, and fails with verdicts at an older one. A README-only change passes, and so does a lock-file-only change, while an unmapped path fails.
 
 ### 7. The Verifier adapter
 

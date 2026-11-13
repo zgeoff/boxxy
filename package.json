@@ -105,6 +105,7 @@
     "ci:dispatch-publish": "bun scripts/publish/dispatch-release-publish.ts",
     "ci:publish-packages": "bun scripts/publish/publish-packages.ts",
     "ci:release-cli-assets": "bun scripts/publish/release-cli-assets.ts",
+    "ci:verify-gate": "bun scripts/ci/run-verify-gate.ts",
     "test:e2e": "rig e2e",
     "test:system": "rig system",
     "verify": "bun system-tests/src/test-utils/verify/verify.ts",

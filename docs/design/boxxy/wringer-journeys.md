@@ -149,7 +149,7 @@ jobs:
 - The gate has a workflow of its own because `pr.yml`, which repo-sync copies from zgeoff/tools, has no `edited` trigger. The shared `bun-checks.yml` that `pr.yml` calls runs every static check, so a body edit there would rerun them all.
 - The job pins each action to the commit that `bun-checks.yml` pins.
 - `bun verify lint` fails on a glob that matches no file, and on a journey line that calls no command of the registry.
-- `ci:verify-gate` writes the body from the event to a file, then runs `bun verify gate --base origin/main --body-file <file>`. It prints one `::error::` annotation for each failing feature and each unmapped path (section D of `03-flow.ts`). Neither step starts boxxy or runs a journey.
+- `ci:verify-gate` writes the body from the event to a file, then runs `bun verify gate --base origin/main --body-file <file>`. It prints one `::error::` annotation for each failing feature and each unmapped path (section D of `03-flow.ts`), and one with the gate's message when the gate fails for another reason, such as a base that git cannot find. Neither step starts boxxy or runs a journey.
 - The job checks out GitHub's merge ref, so the gate fingerprints the change as it would land on the tip of `main`. The patch id uses 3 lines of context. A change to `main` within 3 lines of the pull request's hunks makes the verdict read stale, and the change is graded again.
 - The timeout is 5 minutes, the floor that the repo's CI rules set for a job with no tests.
 

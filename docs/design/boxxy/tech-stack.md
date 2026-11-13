@@ -83,7 +83,8 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | `.github/workflows/main.yml`                                                      | checks on each push to `main`, then release-please, then a dispatched publish at the release tag                  | wringer        |
 | `.github/workflows/npm-packages.yml`                                              | packs each published package and dry-runs its publish                                                             | wringer        |
 | `.github/workflows/repo-sync.yml`                                                 | calls zgeoff/tools's repo-sync, pinned to the newest green tools commit                                           | zgeoff/tools   |
-| `scripts/publish/`, `scripts/release/`, `scripts/ci/` | the publish dispatch and the package publish; `scripts/test-utils/` holds their stubs | wringer        |
+| `.github/workflows/verify.yml`                                                    | the `verify / gate` check, which [wringer journeys](./wringer-journeys.md#the-ci-check) owns                      | wringer        |
+| `scripts/publish/`, `scripts/release/`, `scripts/ci/` | the publish dispatch, the package publish and the verify gate's step; `scripts/test-utils/` holds their stubs | wringer        |
 
 The `BUN_CHECK_SCRIPTS` repo variable gives CI its list of root scripts:
 `audit deadcode format:check lint:full typecheck boundaries check:test-layout prose test test:system`.
