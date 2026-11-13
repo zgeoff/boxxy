@@ -183,6 +183,9 @@ export type {
   MergeOutcome,
   MergeRequest,
   MergeUnit,
+  VerifiedFeature,
+  Verifier,
+  VerifyReading,
 } from './merge/types.ts';
 
 export type { Claim, KeptPick } from './dispatch/types.ts';
@@ -287,9 +290,6 @@ export type {
   SuspendOutcome,
   TableName,
   Tables,
-  VerifiedFeature,
-  Verifier,
-  VerifyReading,
   WakeSource,
   WorkerKind,
   WorkerRefusal,

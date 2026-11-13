@@ -1,5 +1,6 @@
 import type {
   ChangedFile,
+  CheckState,
   CommitSha,
   Forge,
   PullRequestReading,
@@ -12,6 +13,16 @@ export interface SeededPullRequest {
   readonly ref: PullRequestRef;
   readonly githubId: number;
   readonly reading: Omit<PullRequestReading, 'githubId' | 'url'>;
+
+  // the description; none reads as empty
+  readonly body?: string;
+}
+
+// The latest run of each check name at a head, as a test puts them on a forge.
+export interface SeededChecks {
+  readonly repo: RepoName;
+  readonly head: CommitSha;
+  readonly checks: Readonly<Record<string, CheckState>>;
 }
 
 // A compare of two heads as a test puts it on a forge.
@@ -35,6 +46,9 @@ export interface FakeForge extends Forge {
   // the files that the compare of `from` and `to` in the repo gives
   seedCompare: (compare: SeededCompare) => void;
 
+  // the checks at a head; a head with none seeded has no runs
+  seedChecks: (checks: SeededChecks) => void;
+
   // while down, every call rejects, as a forge that does not answer
   setDown: (isDown: boolean) => void;
 
@@ -47,6 +61,7 @@ export interface FakeForge extends Forge {
 export function createFakeForge(): FakeForge {
   const pullRequests = new Map<string, SeededPullRequest>();
   const compares = new Map<string, readonly ChangedFile[]>();
+  const checksByHead = new Map<string, ReadonlyMap<string, CheckState>>();
 
   const calls: string[] = [];
   let isDown = false;
@@ -77,6 +92,11 @@ export function createFakeForge(): FakeForge {
     },
     seedCompare: (compare) => {
       compares.set(toCompareKey(compare.repo, compare.from, compare.to), compare.files);
+    },
+    seedChecks: (seeded) => {
+      const checks = new Map(Object.entries(seeded.checks));
+
+      checksByHead.set(toHeadKey(seeded.repo, seeded.head), checks);
     },
     setDown: (down) => {
       isDown = down;
@@ -145,6 +165,31 @@ export function createFakeForge(): FakeForge {
         ? Promise.reject(new Error(`the fake forge holds no compare of ${from}...${to}`))
         : Promise.resolve([...files]);
     },
+    readPullRequestBody: (ref) => {
+      calls.push(`readPullRequestBody ${toKey(ref)}`);
+
+      if (isDown) {
+        return Promise.reject(new Error('the fake forge is down'));
+      }
+
+      const found = pullRequests.get(toKey(ref));
+
+      // GitHub answers 404 to a pull request it does not hold
+      return found === undefined
+        ? Promise.reject(new Error(`the fake forge holds no pull request ${toKey(ref)}`))
+        : Promise.resolve(found.body ?? '');
+    },
+    readChecks: (repo, head) => {
+      calls.push(`readChecks ${repo} ${head}`);
+
+      if (isDown) {
+        return Promise.reject(new Error('the fake forge is down'));
+      }
+
+      const checks = new Map(checksByHead.get(toHeadKey(repo, head)));
+
+      return Promise.resolve(checks);
+    },
   };
 }
 
@@ -155,4 +200,8 @@ function toKey(ref: PullRequestRef): string {
 
 function toCompareKey(repo: RepoName, from: CommitSha, to: CommitSha): string {
   return `${repo.toLowerCase()} ${from}...${to}`;
+}
+
+function toHeadKey(repo: RepoName, head: CommitSha): string {
+  return `${repo.toLowerCase()} ${head}`;
 }

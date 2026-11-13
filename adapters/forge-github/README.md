@@ -11,8 +11,8 @@
   </p>
 </div>
 
-boxxy's `Forge` port on GitHub: it reads a pull request, its commits and the open pull requests of a
-repo over the REST API.
+boxxy's `Forge` port on GitHub: it reads a pull request, its commits, its body and the checks at a
+head, the open pull requests of a repo, and the compare of two heads over the REST API.
 
 ## Install
 
@@ -33,6 +33,10 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 - A pull request carries GitHub's own `id`, which pepys builds its entity ID from.
 - A missing pull request reads as `not-found`. Any other failure throws, and the caller reads that
   as "the forge did not answer".
+- `readChecks(repo, head)` gives the state of the newest run of each check name at `head`, from the
+  check runs and the commit statuses.
+- `src/test-utils/github-handlers.ts` holds the MSW handlers that answer the GitHub REST API in
+  tests, from `@msw/data` collections that a test seeds.
 
 ## Documentation
 

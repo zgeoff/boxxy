@@ -1,6 +1,6 @@
 import type { JsonValue } from '@boxxy/content-hash';
-import type { MergeOutcome } from '../merge/types.ts';
-import type { GateReading, RoundCause, SeverityCounts, VerifyReading } from '../ports/types.ts';
+import type { MergeOutcome, VerifyReading } from '../merge/types.ts';
+import type { GateReading, RoundCause, SeverityCounts } from '../ports/types.ts';
 import type {
   AttemptId,
   CommitSha,

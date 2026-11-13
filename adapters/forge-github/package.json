@@ -34,13 +34,28 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@boxxy/dispatch": "workspace:*"
+    "@boxxy/dispatch": "workspace:*",
+    "@faker-js/faker": "catalog:",
+    "@msw/data": "catalog:",
+    "msw": "catalog:"
   },
   "peerDependencies": {
-    "@boxxy/dispatch": "workspace:*"
+    "@boxxy/dispatch": "workspace:*",
+    "@faker-js/faker": "catalog:",
+    "@msw/data": "catalog:",
+    "msw": "catalog:"
   },
   "peerDependenciesMeta": {
     "@boxxy/dispatch": {
+      "optional": true
+    },
+    "@faker-js/faker": {
+      "optional": true
+    },
+    "@msw/data": {
+      "optional": true
+    },
+    "msw": {
       "optional": true
     }
   },

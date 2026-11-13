@@ -1,0 +1,52 @@
+{
+  "name": "@boxxy/verifier-wringer",
+  "version": "0.2.3",
+  "description": "boxxy's verifier on wringer: reads the verify gate check and the report in a pull request",
+  "homepage": "https://github.com/zgeoff/boxxy/tree/main/adapters/verifier-wringer#readme",
+  "bugs": "https://github.com/zgeoff/boxxy/issues",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zgeoff/boxxy.git",
+    "directory": "adapters/verifier-wringer"
+  },
+  "files": [
+    "src",
+    "!src/**/*.test.ts",
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsrs -p tsconfig.build.json",
+    "typecheck": "tsrs --noEmit"
+  },
+  "dependencies": {
+    "@boxxy/model": "workspace:*",
+    "@wringer/core": "catalog:"
+  },
+  "devDependencies": {
+    "@boxxy/dispatch": "workspace:*",
+    "@faker-js/faker": "catalog:"
+  },
+  "peerDependencies": {
+    "@faker-js/faker": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@faker-js/faker": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "bun": ">=1.3",
+    "node": ">=24"
+  }
+}

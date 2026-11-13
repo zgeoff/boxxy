@@ -39,6 +39,7 @@
           "worker-atc": ["adapters/worker-atc/**"],
           "caller-proof-imp": ["adapters/caller-proof-imp/**"],
           "review-noslop": ["adapters/review-noslop/**"],
+          "verifier-wringer": ["adapters/verifier-wringer/**"],
           "pepys-package": ["packages/pepys/**"],
           "system-tests": ["system-tests/**"]
         },
@@ -109,7 +110,6 @@
             "name": "wringer",
             "modules": [
               "@wringer/browser",
-              "@wringer/core",
               "@wringer/db",
               "@wringer/gunshi",
               "@wringer/http",
@@ -117,6 +117,12 @@
             ],
             "allow": ["system-tests"],
             "reason": "only system-tests builds the verify CLI; the registry lives in system-tests/src/test-utils/verify/"
+          },
+          {
+            "name": "wringer-core",
+            "modules": ["@wringer/core"],
+            "allow": ["system-tests", "verifier-wringer"],
+            "reason": "system-tests builds the verify CLI on it, and only adapters/verifier-wringer reads its report for the server; take the Verifier port"
           },
           {
             "name": "yaml",

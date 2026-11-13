@@ -217,7 +217,8 @@ const rules = loadRules(text, { phases: [...phaseKinds, createReviewPhase(review
 //   gate check at `head`   report in the body        reading
 //   ────────────────────   ───────────────────────   ────────────────────────────────────────
 //   none, or pending       any                       not-covered
-//   success                parses                    verified, with the report's features
+//   other (cancelled ...)  any                       not-covered
+//   success             parses                    verified, with the report's features
 //   failure                parses                    incomplete, with the report's features
 //   success or failure     absent or does not parse  incomplete, with no features
 //

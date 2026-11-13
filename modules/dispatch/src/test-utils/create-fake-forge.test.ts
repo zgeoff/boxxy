@@ -68,3 +68,65 @@ test('it holds the next read until the test releases it', async () => {
 
   expect([whileHeld, await read]).toStrictEqual(['held', 'not-found']);
 });
+
+test('#readPullRequestBody reads the seeded body of a pull request', async () => {
+  const forge = createFakeForge();
+  const repo = brandSchemas.repoName.parse('acme/lamps');
+
+  forge.seed({
+    ref: { repo, number: 5 },
+    githubId: 9_000_005,
+    reading: { state: 'open', mergedAt: null, mergeCommit: null, commits: [] },
+    body: 'Fix the lamp switch.',
+  });
+
+  const body = await forge.readPullRequestBody({ repo, number: 5 });
+
+  expect(body).toBe('Fix the lamp switch.');
+});
+
+test('#readPullRequestBody reads a pull request seeded with no body as empty', async () => {
+  const forge = createFakeForge();
+  const repo = brandSchemas.repoName.parse('acme/lamps');
+
+  forge.seed({
+    ref: { repo, number: 6 },
+    githubId: 9_000_006,
+    reading: { state: 'open', mergedAt: null, mergeCommit: null, commits: [] },
+  });
+
+  const body = await forge.readPullRequestBody({ repo, number: 6 });
+
+  expect(body).toBe('');
+});
+
+test('#readPullRequestBody rejects for a pull request it does not hold', () => {
+  const forge = createFakeForge();
+  const repo = brandSchemas.repoName.parse('acme/lamps');
+
+  expect(forge.readPullRequestBody({ repo, number: 404 })).rejects.toThrow();
+});
+
+test('#readChecks reads the checks seeded at the head, and none at another head', async () => {
+  const forge = createFakeForge();
+  const repo = brandSchemas.repoName.parse('acme/lamps');
+  const head = brandSchemas.commitSha.parse('a'.repeat(40));
+  const otherHead = brandSchemas.commitSha.parse('b'.repeat(40));
+
+  forge.seedChecks({
+    repo,
+    head,
+    checks: { 'pr / checks': 'success', 'verify / gate': 'pending' },
+  });
+
+  const atHead = await forge.readChecks(repo, head);
+  const atOtherHead = await forge.readChecks(repo, otherHead);
+
+  expect([atHead, atOtherHead]).toStrictEqual([
+    new Map([
+      ['pr / checks', 'success'],
+      ['verify / gate', 'pending'],
+    ]),
+    new Map(),
+  ]);
+});

@@ -1,7 +1,7 @@
 import type { PullRequestReading } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import type { z } from 'zod';
-import type { githubSchemas } from './github-schemas.ts';
+import type { githubSchemas } from '../github-schemas.ts';
 
 // A merged pull request is one with a merge time; GitHub reports it as `closed`.
 export function toPullRequestReading(

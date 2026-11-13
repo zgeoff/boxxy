@@ -1,7 +1,7 @@
 import type { JsonValue } from '@boxxy/content-hash';
 import type { AnyNewFact, OutboxFact } from '../facts/types.ts';
 import type { ItemRevision, ItemWithLevers } from '../items/types.ts';
-import type { MergeUnit } from '../merge/types.ts';
+import type { CheckState, MergeUnit } from '../merge/types.ts';
 import type { HoldReason } from '../pipeline/types.ts';
 import type { Limit, LimitFill, SeatRelease, SeatTake, Snapshot } from '../planning/types.ts';
 import type { CostToLand, StageTime } from '../reports/types.ts';
@@ -443,6 +443,12 @@ export interface Forge {
   readPullRequest: (ref: PullRequestRef) => Promise<PullRequestReading | 'not-found'>;
   listOpenPullRequests: (repo: RepoName) => Promise<PullRequestRef[]>;
 
+  // the description of the pull request, empty when it has none
+  readPullRequestBody: (ref: PullRequestRef) => Promise<string>;
+
+  // the latest run of each check name at `head`, from check runs and commit statuses
+  readChecks: (repo: RepoName, head: CommitSha) => Promise<ReadonlyMap<string, CheckState>>;
+
   // the forge's compare of two heads: each changed file with its added and deleted lines
   readChangedFiles: (repo: RepoName, from: CommitSha, to: CommitSha) => Promise<ChangedFile[]>;
 }
@@ -546,26 +552,6 @@ export interface GateCall {
   readonly cacheWrite: number;
   readonly output: number;
   readonly durationMs: number;
-}
-
-// The verify port: what the core reads about the grading at a head. An agent grades in the
-// `verify` phase; the tool scopes the features from the paths the pull request changed.
-export interface Verifier {
-  readAt: (pullRequest: PullRequestRef, head: CommitSha) => Promise<VerifyReading>;
-}
-
-// `not-covered`: no finished gate run at `head`, or no report in the pull request.
-export type VerifyReading =
-  | {
-      readonly status: 'verified' | 'incomplete';
-      readonly head: CommitSha;
-      readonly features: readonly VerifiedFeature[];
-    }
-  | { readonly status: 'not-covered'; readonly head: CommitSha };
-
-export interface VerifiedFeature {
-  readonly name: string;
-  readonly status: 'verified' | 'stale' | 'missing' | 'unchanged';
 }
 
 // The worker of a phase with no agent session and no host, such as the merge. It has no sleep,

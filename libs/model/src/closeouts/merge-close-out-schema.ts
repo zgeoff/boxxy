@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { VerifyReading } from '../ports/types.ts';
+import type { VerifyReading } from '../merge/types.ts';
 import { brandSchemas } from '../rows/brand-schemas.ts';
 import type { MergeCloseOut } from './types.ts';
 

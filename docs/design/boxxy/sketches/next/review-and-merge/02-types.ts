@@ -59,7 +59,7 @@ export interface GateCost {
   readonly calls: readonly { readonly model: string; readonly input: number; readonly cachedInput: number; readonly cacheWrite: number; readonly output: number; readonly durationMs: number }[];
 }
 
-// ── libs/model/src/ports/types.ts: the verifier ────────────────────────────────────────────────
+// ── libs/model/src/merge/types.ts: the verifier ────────────────────────────────────────────────
 
 // What the core reads about the grading at a head. The grading itself is an agent's work in the
 // `verify` phase. The scope is the tool's: the features whose paths the pull request changed.
@@ -69,7 +69,7 @@ export interface Verifier {
 
 export type VerifyReading =
   | { readonly status: 'verified' | 'incomplete'; readonly head: CommitSha; readonly features: readonly VerifiedFeature[] }
-  // no finished gate run at `head`, or no report in the pull request
+  // no gate run at `head` that passed or failed; a finished run with no report reads `incomplete`
   | { readonly status: 'not-covered'; readonly head: CommitSha };
 
 export interface VerifiedFeature {
@@ -177,10 +177,7 @@ export declare function decideMerge(input: { observed: MergeObservation; rules: 
 // ── libs/model/src/ports/types.ts: the forge gains ────────────────────────────────────────────
 
 export interface Forge {
-  // ...readPullRequest, listOpenPullRequests, and:
-  readPullRequestBody: (ref: PullRequestRef) => Promise<string>;
-  // The latest run of each check name at `head`, from check runs and commit statuses.
-  readChecks: (repo: RepoName, head: CommitSha) => Promise<ReadonlyMap<string, 'success' | 'failure' | 'pending' | 'other'>>;
+  // ...readPullRequest, listOpenPullRequests, readPullRequestBody, readChecks, and:
   readRequiredChecks: (repo: RepoName, branch: string) => Promise<readonly string[]>;
   readMergeable: (ref: PullRequestRef) => Promise<'clean' | 'conflict' | 'unknown'>;
   // GitHub's compare of two heads: each changed file with its added and deleted lines.

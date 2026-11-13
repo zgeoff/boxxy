@@ -28,9 +28,9 @@ boxxy/
 │   ├── auth-oauth/              the other bun:sqlite + Kysely user: the public door's OAuth server and its auth database
 │   ├── worker-atc/              spawns attempts through atc, reads back their session ids
 │   ├── notifier-atc/            sends a hold notice as an atc message
-│   ├── forge-github/            PR and commit links, checks, and (next) the merge
+│   ├── forge-github/            PR and commit links, the PR body, checks, and (next) the merge
 │   ├── review-noslop/           checks and posts the review tool's result for the ReviewGate port
-│   ├── verifier-wringer/ (next) reads the verify tool's report for the Verifier port
+│   ├── verifier-wringer/        reads the verify gate check and report for the Verifier port
 │   ├── caller-proof-imp/        proves a session's caller from the broker's identity token
 │   └── capacity-<provider>/   (slice 2) one per capacity source
 ├── libs/                        shared types, schemas and pure helpers; no I/O
@@ -113,7 +113,8 @@ Each outside system has one package that may talk to it:
 | noslop         | `adapters/review-noslop` | only it imports `@noslop/cli`, `@noslop/cli/post` or `@noslop/cli/check`, to check and post a review result with the noslop App's keys |
 | GitHub         | `adapters/forge-github` | only an adapter or a package calls `fetch`                            |
 | pepys          | `packages/pepys`        | only it imports `@pepys/kit`, `@pepys/testing`, `@pepys/ingest`, `@pepys/api`, `@pepys/source-github` or `@pepys/source-telemetry`; no module and no lib imports `@boxxy/pepys` |
-| wringer        | `system-tests`          | only it imports `@wringer/core`, `@wringer/gunshi`, `@wringer/http` or another `@wringer/*` package; the verify CLI lives in `system-tests/src/test-utils/verify/` |
+| wringer        | `system-tests`          | only it imports `@wringer/gunshi`, `@wringer/http` or another `@wringer/*` package; the verify CLI lives in `system-tests/src/test-utils/verify/` |
+| wringer report | `adapters/verifier-wringer` | only it and `system-tests` import `@wringer/core`; the adapter parses the report in a pull request with its `parseReportBlock` |
 
 oRPC has an owner and no lint pin. Only `libs/contract` calls `oc` and `mcp.tool` to define a procedure. `apps/server` imports `@orpc/server`, `@orpc/mcp` and `@modelcontextprotocol/server` to serve the contract, and `@orpc/client` to call the pepys query API. The atc stand-in in `adapters/worker-atc/src/test-utils/` imports `@modelcontextprotocol/server` too, to serve atc's tools on the library the atc gateway uses; the package lists it as an optional peer. `apps/cli` imports `@orpc/client` to call the server, and the real-pepys test deployment of `packages/pepys` imports it to call the pepys query API in process. Only `apps/server` and `adapters/auth-oauth` import `elysia`, and each lists Elysia's peers `exact-mirror`, `openapi-types` and `typebox` as its own dependencies.
 
@@ -129,7 +130,7 @@ Three libraries have a pin of their own:
 | `xstate`   | `modules/dispatch`     | the attempt state table                                                                                 |
 | `liquidjs` | `libs/prompt-template` | `modules/rules` checks each prompt template at load and `modules/dispatch` renders it at claim, so the engine and its settings live in a lib that both import |
 
-The `zgeoff/import-zones` rule in `.oxlintrc.json` holds these pins. Its `oauth` rule holds the OAuth pin, and its `sqlite` rule allows both `store-sqlite` and `auth-oauth`. Its `pepys` edge holds the pin for `@boxxy/pepys`, and its `pepys-kit` rule the pin for the kit. Its `wringer` rule lets only `system-tests` import `@wringer/*`. Lint lets an adapter and a package under `packages/` call `fetch`, and can't tell which one a
+The `zgeoff/import-zones` rule in `.oxlintrc.json` holds these pins. Its `oauth` rule holds the OAuth pin, and its `sqlite` rule allows both `store-sqlite` and `auth-oauth`. Its `pepys` edge holds the pin for `@boxxy/pepys`, and its `pepys-kit` rule the pin for the kit. Its `wringer` rule lets only `system-tests` import `@wringer/*`, and its `wringer-core` rule lets `adapters/verifier-wringer` import `@wringer/core` too. Lint lets an adapter and a package under `packages/` call `fetch`, and can't tell which one a
 `fetch` reaches, so review checks that GitHub calls stay in `forge-github` and pepys calls in
 `packages/pepys`.
 

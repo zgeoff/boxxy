@@ -1,5 +1,26 @@
-import type { GateReading, MergeAnswer, VerifyReading } from '../ports/types.ts';
+import type { GateReading, MergeAnswer } from '../ports/types.ts';
 import type { AttemptId, CommitSha, Instant, PullRequestRef } from '../types.ts';
+
+// The verify port: what the core reads about the grading at a head. An agent grades in the
+// `verify` phase; the tool scopes the features from the paths the pull request changed.
+export interface Verifier {
+  readAt: (pullRequest: PullRequestRef, head: CommitSha) => Promise<VerifyReading>;
+}
+
+// `not-covered`: no gate run at `head` that passed or failed. A passed or failed run with no
+// readable report in the pull request reads `incomplete`, with no features.
+export type VerifyReading =
+  | {
+      readonly status: 'verified' | 'incomplete';
+      readonly head: CommitSha;
+      readonly features: readonly VerifiedFeature[];
+    }
+  | { readonly status: 'not-covered'; readonly head: CommitSha };
+
+export interface VerifiedFeature {
+  readonly name: string;
+  readonly status: 'verified' | 'stale' | 'missing' | 'unchanged';
+}
 
 // The pull requests that one merge takes, each at the head boxxy read. A direct merge holds one;
 // a merge train holds a stack or a batch, with the same outcomes.

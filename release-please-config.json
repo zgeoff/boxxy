@@ -31,6 +31,7 @@
         "@boxxy/rules",
         "@boxxy/server",
         "@boxxy/store-sqlite",
+        "@boxxy/verifier-wringer",
         "@boxxy/worker-atc"
       ]
     }
@@ -86,6 +87,10 @@
     },
     "adapters/review-noslop": {
       "component": "@boxxy/review-noslop",
+      "initial-version": "0.1.0"
+    },
+    "adapters/verifier-wringer": {
+      "component": "@boxxy/verifier-wringer",
       "initial-version": "0.1.0"
     },
     "adapters/auth-oauth": {

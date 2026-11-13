@@ -80,6 +80,10 @@ minimumReleaseAgeExcludes = [
 ]
 
 [test]
-# registers the jest-extended matchers, and seeds faker so a rerun of the same files gives the same
-# test data
-preload = ["@zgeoff/bun-test-extended", "./libs/model/src/test-utils/pin-faker-seed.ts"]
+# registers the jest-extended matchers, seeds faker so a rerun of the same files gives the same
+# test data, and answers GitHub requests from the MSW handlers
+preload = [
+  "@zgeoff/bun-test-extended",
+  "./libs/model/src/test-utils/pin-faker-seed.ts",
+  "./scripts/test-preload/reset-mock-network.ts",
+]
