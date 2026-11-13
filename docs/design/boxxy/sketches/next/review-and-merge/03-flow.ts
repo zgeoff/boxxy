@@ -206,7 +206,9 @@ export async function runJobAction(deps: JobDeps, action: { kind: 'merge' }): Pr
 //   - A verify attempt with `session: builder` is claimed through `worker.resumeKept`, as a rework
 //     build is. When the wake fails or the item keeps no session, it falls back to a fresh
 //     session, and `started` says `resumeFallback: true`, so pepys can drop the attempt from the
-//     comparison of graders.
+//     comparison of graders. When that start's reply is lost, the reconcile picks the kept
+//     session again, and `reconciled` says `resumeFallback: true` when the running session is not
+//     the kept one.
 //   - A `session: builder` verify attempt that settles `verified` or `failed` keeps its session
 //     again, so a repair or a rework that follows wakes the builder that wrote and graded the
 //     code. A `session: fresh` verify leaves the build's kept session on the item.

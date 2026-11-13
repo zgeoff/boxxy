@@ -147,8 +147,10 @@ export interface WorkFacts {
   // written by: `startClaim` on an `unknown` outcome
   'boxxy.attempt.spawn_unanswered': OfAttempt & { readonly reason: string };
 
-  // written by: the runner, reading `running` × `reconciling`. `caller`: see `.started`
-  'boxxy.attempt.reconciled': OfAttempt & { readonly atcSession: AtcSessionId; readonly caller: CallerIdentity | null };
+  // written by: the runner, reading `running` × `reconciling`. `caller`: see `.started`.
+  // `resumeFallback`: as on `.started`, for a start whose reply was lost; a fact written before
+  // the field existed reads as false.
+  'boxxy.attempt.reconciled': OfAttempt & { readonly atcSession: AtcSessionId; readonly resumeFallback: boolean; readonly caller: CallerIdentity | null };
 
   // written by: the runner (a `started` outcome of start or resume, any reading), the procedure
   // `attempt.bindSession` (the SessionStart hook), and any `attempt.*` call that carries a new id.

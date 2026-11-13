@@ -232,7 +232,7 @@ export interface MergeCloseOut {
 // `BuildInput` gains `sentBack`, in place of the review's findings as text:
 //   | { from: 'review'; head; open: SeverityCounts; answerHint: string }
 //   | { from: 'merge'; head; cause: 'conflict' | 'checks-red'; failed: readonly string[] }
-//   | { from: 'verify'; head; features: readonly string[] }
+//   | { from: 'verify'; head: CommitSha | null; features: readonly string[] } // the verify input's head
 //   | null
 
 // ── modules/dispatch: the attempt machine gains ────────────────────────────────────────────────
