@@ -303,6 +303,15 @@ async function runForget(deps: TickDeps): Promise<number> {
       });
     }
 
+    if (report.unread.length > 0) {
+      deps.log.warn('the lookup of stray sessions by their spawn names failed', {
+        strays: report.unread.map((stray) => ({
+          attempt: stray.attempt,
+          error: formatErrorChain(stray.error),
+        })),
+      });
+    }
+
     return report.forgotten.length;
   } catch (error) {
     deps.log.warn('the forget of the done sessions failed', { error: formatErrorChain(error) });

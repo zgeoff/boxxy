@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { AttemptRow } from '@boxxy/model';
+import type { AttemptRow, WorkerKind } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { settleAttempt } from '../closeouts/settle-attempt.ts';
@@ -21,6 +21,15 @@ async function setupTest() {
       forgetSessions({
         store: dispatch.store,
         worker: dispatch.worker,
+        rules: dispatch.rules(),
+        actor: `boxxy:runner:${dispatch.runner}`,
+        now: dispatch.clock.now(),
+        newId: dispatch.newId,
+      }),
+    forgetWith: (worker: WorkerKind) =>
+      forgetSessions({
+        store: dispatch.store,
+        worker,
         rules: dispatch.rules(),
         actor: `boxxy:runner:${dispatch.runner}`,
         now: dispatch.clock.now(),
@@ -275,7 +284,7 @@ test('it forgets a session once', async () => {
 
   const again = await ctx.forget();
 
-  expect(again).toStrictEqual({ forgotten: [], failed: [] });
+  expect(again).toStrictEqual({ forgotten: [], failed: [], unread: [] });
 });
 
 test('it stops and forgets a stray session whose stop is still unconfirmed after 24 hours', async () => {
@@ -352,6 +361,30 @@ test('it stops and forgets the late session of a stray with none, unconfirmed af
   expect(received).toStrictEqual([null, [], [late.atcSession], late.atcSession, ctx.clock.now()]);
 });
 
+test('it forgets the later sessions when the lookup of a stray with no session throws', async () => {
+  const ctx = await setupTest();
+  const sessionless = await ctx.strayWithoutSession();
+  const stray = await ctx.strayBuild();
+
+  const fault = new Error('atc gave no answer');
+
+  const silent: WorkerKind = { ...ctx.worker, reconcile: () => Promise.reject(fault) };
+
+  ctx.clock.advance(24 * ctx.hourMs + 1000);
+
+  const report = await ctx.forgetWith(silent);
+  const after = await ctx.readAttempt(sessionless.attempt.id);
+
+  expect([report, after.sessionForgottenAt]).toStrictEqual([
+    {
+      forgotten: [ctx.getSession(stray)],
+      failed: [],
+      unread: [{ attempt: sessionless.attempt.id, error: fault }],
+    },
+    null,
+  ]);
+});
+
 test('it closes the cleanup of a stray whose session never appeared in 24 hours', async () => {
   const ctx = await setupTest();
   const stray = await ctx.strayWithoutSession();
@@ -363,8 +396,8 @@ test('it closes the cleanup of a stray whose session never appeared in 24 hours'
   const again = await ctx.forget();
 
   expect([report, after.sessionForgottenAt, again]).toStrictEqual([
-    { forgotten: [], failed: [] },
+    { forgotten: [], failed: [], unread: [] },
     ctx.clock.now(),
-    { forgotten: [], failed: [] },
+    { forgotten: [], failed: [], unread: [] },
   ]);
 });

@@ -1,6 +1,7 @@
 import type {
   ActorRef,
   AtcSessionId,
+  AttemptId,
   AttemptRow,
   ClaimStore,
   Instant,
@@ -25,6 +26,14 @@ export interface ForgetSessionsInput {
 export interface ForgetReport {
   readonly forgotten: readonly AtcSessionId[];
   readonly failed: readonly AtcSessionId[];
+
+  // the strays with no session whose lookup by the spawn name threw; tried again on the next tick
+  readonly unread: readonly UnreadStray[];
+}
+
+export interface UnreadStray {
+  readonly attempt: AttemptId;
+  readonly error: unknown;
 }
 
 export interface KeptForgetInput {

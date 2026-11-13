@@ -4,7 +4,7 @@ import { writeAttemptMove } from '../attempts/write-attempt-move.ts';
 import { timeouts } from '../timeouts.ts';
 import { buildKeptClear } from './build-kept-clear.ts';
 import { isKeptDue } from './is-kept-due.ts';
-import type { ForgetReport, ForgetSessionsInput } from './types.ts';
+import type { ForgetReport, ForgetSessionsInput, UnreadStray } from './types.ts';
 
 const hourMs = 3_600_000;
 
@@ -29,6 +29,7 @@ export async function forgetSessions(input: ForgetSessionsInput): Promise<Forget
   const due = rows.due;
   const forgotten: AtcSessionId[] = [];
   const failed: AtcSessionId[] = [];
+  const unread: UnreadStray[] = [];
 
   for (const entry of kept) {
     const isDue = await input.store.read(async (tx) =>
@@ -50,12 +51,14 @@ export async function forgetSessions(input: ForgetSessionsInput): Promise<Forget
   for (const attempt of due) {
     const result = await forgetAttempt(input, attempt);
 
-    if (result.session !== null) {
-      (result.done ? forgotten : failed).push(result.session);
+    if (result.kind === 'unread') {
+      unread.push({ attempt: attempt.id, error: result.error });
+    } else if (result.session !== null) {
+      (result.kind === 'done' ? forgotten : failed).push(result.session);
     }
   }
 
-  return { forgotten, failed };
+  return { forgotten, failed, unread };
 }
 
 async function forgetKept(
@@ -93,10 +96,14 @@ function buildBase(input: ForgetSessionsInput) {
   return { actor: input.actor, now: input.now, newId: input.newId };
 }
 
-interface AttemptForget {
-  readonly done: boolean;
-  readonly session: AtcSessionId | null;
+interface SessionUnread {
+  readonly kind: 'unread';
+  readonly error: unknown;
 }
+
+type AttemptForget =
+  | { readonly kind: 'done' | 'failed'; readonly session: AtcSessionId | null }
+  | SessionUnread;
 
 // atc refuses the forget of a live session, so a stray whose stop the runner never confirmed is
 // stopped first, and the confirmed stop is recorded before the forget.
@@ -106,13 +113,19 @@ async function forgetAttempt(
 ): Promise<AttemptForget> {
   const isStray = attempt.strayedAt !== null && attempt.sessionStoppedAt === null;
 
-  const session = await readAttemptSession(input, attempt);
+  const read = await readAttemptSession(input, attempt);
+
+  if (read.kind === 'unread') {
+    return read;
+  }
+
+  const session = read.session;
 
   if (isStray && session !== null) {
     const stop = await input.worker.stop({ ...attempt, atcSession: session });
 
     if (stop.kind !== 'stopped' && stop.kind !== 'absent') {
-      return { done: false, session };
+      return { kind: 'failed', session };
     }
   }
 
@@ -120,7 +133,7 @@ async function forgetAttempt(
     const outcome = await input.worker.forget(session);
 
     if (outcome.kind !== 'forgotten' && outcome.kind !== 'absent') {
-      return { done: false, session };
+      return { kind: 'failed', session };
     }
   }
 
@@ -137,20 +150,31 @@ async function forgetAttempt(
     await writeAttemptMove(tx, attempt.id, { kind: 'session-forgotten' }, buildBase(input));
   });
 
-  return { done: true, session };
+  return { kind: 'done', session };
+}
+
+interface SessionRead {
+  readonly kind: 'read';
+
+  // null: no session appeared in the stray window, so none is left to stop
+  readonly session: AtcSessionId | null;
 }
 
 // Only a stray whose spawn got no answer lacks a session; the worker finds it by the spawn name.
-// null: no session appeared in the stray window, so none is left to stop.
+// That lookup throws when atc gives no answer, and one lost answer must not end the tick's cleanup.
 async function readAttemptSession(
   input: ForgetSessionsInput,
   attempt: AttemptRow,
-): Promise<AtcSessionId | null> {
+): Promise<SessionRead | SessionUnread> {
   if (attempt.atcSession !== null) {
-    return attempt.atcSession;
+    return { kind: 'read', session: attempt.atcSession };
   }
 
-  const reading = await input.worker.reconcile(attempt);
+  try {
+    const reading = await input.worker.reconcile(attempt);
 
-  return reading.kind === 'absent' ? null : reading.atcSession;
+    return { kind: 'read', session: reading.kind === 'absent' ? null : reading.atcSession };
+  } catch (error) {
+    return { kind: 'unread', error };
+  }
 }
