@@ -7,8 +7,8 @@ import { buildKeptClear } from '../sessions/build-kept-clear.ts';
 import type { StartedSession } from './types.ts';
 
 // Records a started session inside `tx`: the `started` move, which clears the item's kept session
-// when the claim woke one, then the bind of the agent session, which the attempt of a woken kept
-// session takes over. A move that does not apply binds nothing. Returns the bind's fault, or null.
+// when the claim woke one, then the bind of the agent session when the answer carries it. A move
+// that does not apply binds nothing. Returns the bind's fault, or null.
 export async function writeStartedSession(
   tx: StoreTx,
   attempt: Pick<AttemptRow, 'id' | 'item'>,
@@ -36,11 +36,7 @@ export async function writeStartedSession(
     ? writeSessionBind(
         tx,
         row,
-        {
-          atcSession: session.atcSession,
-          agentSession: session.agentSession,
-          keptFrom: session.resumeFallback || kept === null ? null : kept.attempt,
-        },
+        { atcSession: session.atcSession, agentSession: session.agentSession },
         { actor: base.actor, now: base.now, newId: base.newId },
       )
     : null;

@@ -770,6 +770,159 @@ test('it clears the kept session and hands its agent session to the rework when 
   expect([item.keptSession, after]).toStrictEqual([null, second.id]);
 });
 
+test('it hands the agent session to the rework when a reading first shows it after a wake that answered none', async () => {
+  const ctx = await setupTest();
+  const first = await ctx.seedBuild();
+  const kept = await ctx.worker.reconcile(first);
+
+  invariant(kept.kind !== 'absent' && kept.agentSession !== null, 'the session is kept');
+
+  const agentSession = kept.agentSession;
+
+  ctx.worker.setSession(first.id, { state: 'suspended', agentSession: null });
+
+  const second = await ctx.seedReworkAfter(first);
+  const before = await ctx.store.read((tx) => tx.findAttemptByAgentSession(agentSession));
+
+  invariant(second.atcSession === first.atcSession, 'the rework runs on the kept session');
+  invariant(before === first.id, 'the first build holds the agent session');
+
+  ctx.worker.setSession(second.id, { state: 'running', agentSession });
+
+  const reading = await ctx.worker.reconcile(second);
+
+  const faults = await actOnReading({
+    store: ctx.store,
+    worker: ctx.worker,
+    rules: ctx.rules(),
+    backoff: ctx.backoff,
+    attempt: second,
+    reading,
+    action: pickReadingAction({
+      attempt: second,
+      reading,
+      step: null,
+      sleep: ctx.rules().sleep,
+      now: ctx.clock.now(),
+    }),
+    now: ctx.clock.now(),
+    newId: ctx.newId,
+  });
+
+  const holder = await ctx.store.read((tx) => tx.findAttemptByAgentSession(agentSession));
+
+  expect(faults).toStrictEqual([]);
+  expect(holder).toBe(second.id);
+});
+
+test('it hands the agent session to the rework when a reading first shows it after a reconciled wake that showed none', async () => {
+  const ctx = await setupTest();
+  const first = await ctx.seedBuild();
+  const kept = await ctx.worker.reconcile(first);
+
+  invariant(kept.kind !== 'absent' && kept.agentSession !== null, 'the session is kept');
+
+  const agentSession = kept.agentSession;
+
+  ctx.worker.failNext('resumeKept', { kind: 'unknown', reason: 'the reply did not arrive' });
+
+  const second = await ctx.seedReworkAfter(first);
+
+  ctx.worker.setSession(first.id, { state: 'running', agentSession: null });
+
+  const unbound = await ctx.worker.reconcile(first);
+
+  const input = {
+    store: ctx.store,
+    worker: ctx.worker,
+    rules: ctx.rules(),
+    backoff: ctx.backoff,
+    now: ctx.clock.now(),
+    newId: ctx.newId,
+  };
+
+  await actOnReading({
+    ...input,
+    attempt: second,
+    reading: unbound,
+    action: { kind: 'move-to-running', via: 'reconcile' },
+  });
+
+  const running = await ctx.readAttempt(second.id);
+
+  invariant(running.state === 'running', 'the table moved the rework to running');
+
+  ctx.worker.setSession(first.id, { state: 'running', agentSession });
+
+  const reading = await ctx.worker.reconcile(first);
+
+  const faults = await actOnReading({
+    ...input,
+    attempt: running,
+    reading,
+    action: pickReadingAction({
+      attempt: running,
+      reading,
+      step: null,
+      sleep: ctx.rules().sleep,
+      now: ctx.clock.now(),
+    }),
+  });
+
+  const holder = await ctx.store.read((tx) => tx.findAttemptByAgentSession(agentSession));
+
+  expect(faults).toStrictEqual([]);
+  expect(holder).toBe(second.id);
+});
+
+test('it refuses the agent session of the kept session to a rework that runs on a fresh session', async () => {
+  const ctx = await setupTest();
+  const first = await ctx.seedBuild();
+  const kept = await ctx.worker.reconcile(first);
+
+  invariant(kept.kind !== 'absent' && kept.agentSession !== null, 'the session is kept');
+
+  const agentSession = kept.agentSession;
+
+  ctx.worker.failNext('resumeKept', { kind: 'refused', cause: 'other', reason: 'wake refused' });
+
+  const second = await ctx.seedReworkAfter(first);
+
+  invariant(second.atcSession !== first.atcSession, 'the rework runs on a fresh session');
+
+  ctx.worker.setSession(second.id, { state: 'running', agentSession });
+
+  const reading = await ctx.worker.reconcile(second);
+
+  const faults = await actOnReading({
+    store: ctx.store,
+    worker: ctx.worker,
+    rules: ctx.rules(),
+    backoff: ctx.backoff,
+    attempt: second,
+    reading,
+    action: pickReadingAction({
+      attempt: second,
+      reading,
+      step: null,
+      sleep: ctx.rules().sleep,
+      now: ctx.clock.now(),
+    }),
+    now: ctx.clock.now(),
+    newId: ctx.newId,
+  });
+
+  expect(faults).toStrictEqual([
+    {
+      kind: 'fault',
+      fault: 'agent-session-owned',
+      agentSession,
+      attempt: second.id,
+      holder: first.id,
+    },
+  ]);
+});
+
 test('it wakes the kept session again for a builder verify whose wake reply was lost after the grader changed', async () => {
   const ctx = await setupTest();
 

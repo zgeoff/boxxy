@@ -1,9 +1,10 @@
-import type { AttemptRow, SessionFault, StoreTx } from '@boxxy/model';
+import type { AttemptId, AttemptRow, SessionFault, StoreTx } from '@boxxy/model';
 import type { MoveBase, SeenSession } from './types.ts';
 import { writeAttemptMove } from './write-attempt-move.ts';
 
 // Binds the agent session to the attempt, once. An agent session that another attempt holds
-// writes nothing and gives the fault, which the server logs.
+// writes nothing and gives the fault, which the server logs. The one exception is an attempt that
+// succeeded on the same atc session: its kept session was woken, and the new attempt takes over.
 export async function writeSessionBind(
   tx: StoreTx,
   attempt: AttemptRow,
@@ -16,7 +17,7 @@ export async function writeSessionBind(
     return null;
   }
 
-  if (holder !== null && holder !== session.keptFrom) {
+  if (holder !== null && !(await probeKeptHolder(tx, holder, session))) {
     return {
       kind: 'fault',
       fault: 'agent-session-owned',
@@ -44,4 +45,14 @@ export async function writeSessionBind(
   );
 
   return null;
+}
+
+async function probeKeptHolder(
+  tx: StoreTx,
+  holder: AttemptId,
+  session: SeenSession,
+): Promise<boolean> {
+  const row = await tx.readAttempt(holder);
+
+  return row?.state === 'succeeded' && row.atcSession === session.atcSession;
 }

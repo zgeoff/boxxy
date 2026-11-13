@@ -53,8 +53,7 @@ export async function actOnReading(input: ActOnReadingInput): Promise<RunnerFaul
 function writeReadingBind(input: ActOnReadingInput, base: MoveBase): Promise<SessionFault | null> {
   const reading = input.reading;
 
-  // a reconciled start binds after its move, in the same lock, as the start does: the attempt of a
-  // woken kept session holds the agent session until the new attempt takes it over
+  // a reconciled start binds after its move, in the same lock, as the start does
   if (
     reading.kind === 'absent' ||
     reading.agentSession === null ||

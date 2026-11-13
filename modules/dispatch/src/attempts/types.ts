@@ -252,9 +252,6 @@ export type MoveResult =
 export interface SeenSession {
   readonly atcSession: AtcSessionId;
   readonly agentSession: AgentSessionId;
-
-  // the attempt whose kept session this one resumed; it holds the same agent session
-  readonly keptFrom?: AttemptId | null;
 }
 
 export interface FactEnvelopeParts {

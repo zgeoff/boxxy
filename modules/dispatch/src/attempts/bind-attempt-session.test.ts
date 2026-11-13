@@ -44,6 +44,29 @@ test('it binds the agent session to the attempt of the calling session', async (
   );
 });
 
+test('it hands the agent session of a woken kept session to the rework that the hook binds', async () => {
+  const ctx = await setupTest();
+  const first = await ctx.seedBuild();
+  const kept = await ctx.worker.reconcile(first);
+
+  invariant(kept.kind !== 'absent' && kept.agentSession !== null, 'the session is kept');
+
+  ctx.worker.setSession(first.id, { state: 'suspended', agentSession: null });
+
+  const second = await ctx.seedReworkAfter(first);
+
+  const answer = await bindAttemptSession({
+    store: ctx.store,
+    call: ctx.buildCallRef(second),
+    agentSession: kept.agentSession,
+    missingSkills: [],
+    now: ctx.clock.now(),
+    newId: ctx.newId,
+  });
+
+  expect(answer).toStrictEqual({ kind: 'bound' });
+});
+
 test('it moves the attempt to closing when a listed skill is missing', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.claimBuild();
