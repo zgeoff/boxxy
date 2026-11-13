@@ -4,6 +4,7 @@ import { actorRefSchema } from './actor-ref-schema.ts';
 import { brandSchemas } from './brand-schemas.ts';
 import { callerIdentitySchema } from './caller-identity-schema.ts';
 import { criterionSchema } from './criterion-schema.ts';
+import { itemFieldsSchema } from './item-fields-schema.ts';
 
 // A plain object, so that the fact schema of `boxxy.item.filed` can omit `keptSession`.
 export const itemRowSchema = z.object({
@@ -14,7 +15,7 @@ export const itemRowSchema = z.object({
   outcome: z.string().min(1),
   body: z.string(),
   acceptance: z.array(criterionSchema),
-  fields: z.object({ designMode: z.enum(['agent', 'attended']).exactOptional() }),
+  fields: itemFieldsSchema,
   labels: z.array(z.string().min(1)),
   foundInAttempt: brandSchemas.attemptId.nullable(),
   filedBy: actorRefSchema,

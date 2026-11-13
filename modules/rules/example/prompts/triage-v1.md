@@ -35,7 +35,8 @@ Decide whether boxxy takes it on, and close out with one of these results:
   of scope or a missing fact. The item waits for the owner's answer. The next triage gets your
   question under "Where the last attempt stopped", and the answer under the notes or in the body.
 - `split`, with each part in `openItems`, when the item holds several pieces of work that can each
-  be done alone. boxxy files each part as a new item, and this item ends.
+  be done alone. boxxy files each part as a new item, and this item ends. Give each part its item
+  `kind`, such as `core.issue`, and `security: true` when its work concerns a security weakness.
 - `declined`, with the reason, when boxxy should not do the work at all. Never decline to ask a
   question or to split an item.
 

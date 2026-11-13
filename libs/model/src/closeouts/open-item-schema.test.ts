@@ -8,8 +8,17 @@ test('it accepts an issue with a title and a body', () => {
   expect(parsed).toStrictEqual(item);
 });
 
-test('it rejects an open item of another kind', () => {
-  const item = { kind: 'core.epic', title: 'Uploads', body: '' };
+test('it accepts an open item of another kind with the security mark', () => {
+  const item = { kind: 'core.bug', title: 'Escape the upload name', body: '', security: true };
+  const parsed: unknown = openItemSchema.safeParse(item).data;
 
-  expect(openItemSchema.safeParse(item).error?.issues).toPartiallyContain({ path: ['kind'] });
+  expect(parsed).toStrictEqual(item);
+});
+
+test('it rejects a security mark that is not a boolean', () => {
+  const item = { kind: 'core.issue', title: 'Uploads', body: '', security: 'yes' };
+
+  expect(openItemSchema.safeParse(item).error?.issues).toPartiallyContain({
+    path: ['security'],
+  });
 });

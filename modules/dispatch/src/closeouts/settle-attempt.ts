@@ -44,7 +44,13 @@ export function settleAttempt(input: SettleAttemptInput): Promise<MoveResult> {
       now: input.now,
     });
 
-    const hasFileItem = settlement.effects.some((effect) => effect.kind === 'file-item');
+    const filedKinds = [
+      ...new Set(
+        settlement.effects.flatMap((effect) =>
+          effect.kind === 'file-item' ? [effect.item.kind] : [],
+        ),
+      ),
+    ];
 
     const settled = buildSettlePlans({
       effects: settlement.effects,
@@ -58,7 +64,10 @@ export function settleAttempt(input: SettleAttemptInput): Promise<MoveResult> {
         now: input.now,
         newId: input.newId,
       },
-      openIssues: hasFileItem ? await tx.listOpenIssues(item.repo, input.now, input.rules) : [],
+      openItems:
+        filedKinds.length === 0
+          ? []
+          : await tx.listOpenItems(item.repo, filedKinds, input.now, input.rules),
       held: isHoldEdge(input.rules, item, attempt, settlement.outcome),
     });
 

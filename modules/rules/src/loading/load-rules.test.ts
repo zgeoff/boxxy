@@ -2892,7 +2892,7 @@ test.each([
   [
     'an unknown placeholder',
     'Build {{ title }}.\n\n{% if design %}{{ desgin }}{% endif %}\n',
-    'the template names "desgin", which is not a placeholder; the placeholders are ticket, title, outcome, body, acceptance, design, findings, stopped, notes, repo, attempt_id, input',
+    'the template names "desgin", which is not a placeholder; the placeholders are ticket, title, outcome, body, acceptance, design, findings, stopped, notes, security, repo, attempt_id, input',
   ],
   [
     'a syntax error',

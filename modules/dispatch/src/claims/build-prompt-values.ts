@@ -47,6 +47,7 @@ export function buildPromptValues(parts: PromptValueParts): PromptValues {
     findings,
     stopped,
     notes,
+    security: item.fields.security === true ? 'true' : '',
     ticket,
     input: JSON.stringify(parts.input, null, 2),
   };

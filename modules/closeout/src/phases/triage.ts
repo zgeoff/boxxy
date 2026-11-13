@@ -11,6 +11,7 @@ import type { z } from 'zod';
 import { buildSchemaParser } from '../build-schema-parser.ts';
 import { buildCriteria } from '../utils/build-criteria.ts';
 import { buildCriterionTexts } from '../utils/build-criterion-texts.ts';
+import { collectOpenItemProblems } from '../utils/collect-open-item-problems.ts';
 import { findStoppedReason } from '../utils/find-stopped-reason.ts';
 
 const triageBodySchema = triageCloseOutSchema.omit({ frictionDropped: true });
@@ -49,6 +50,7 @@ function collectTriageProblems(closeOut: TriageCloseOut, ctx: CloseOutContext): 
   const acceptance = closeOut.set?.acceptance ?? ctx.item.acceptance;
   const kind = closeOut.set?.kind;
   const duplicateOf = closeOut.result.kind === 'duplicate' ? [closeOut.result.of] : [];
+  const parts = closeOut.result.kind === 'split' ? closeOut.result.openItems : [];
 
   const named = [...duplicateOf, ...closeOut.relations.map((relation) => relation.target)].filter(
     (item) => item !== ctx.item.id,
@@ -61,6 +63,7 @@ function collectTriageProblems(closeOut: TriageCloseOut, ctx: CloseOutContext): 
     ...(kind !== undefined && !ctx.world.kinds.has(kind)
       ? [{ kind: 'unknown-kind' as const, itemKind: kind }]
       : []),
+    ...collectOpenItemProblems(parts, ctx),
     ...[...new Set(named)]
       .filter((item) => !ctx.world.items.has(item))
       .map((item) => ({ kind: 'unknown-item' as const, item })),

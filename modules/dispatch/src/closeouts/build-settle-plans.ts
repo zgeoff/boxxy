@@ -10,8 +10,8 @@ interface SettlePlansInput {
   readonly effects: readonly Effect[];
   readonly ctx: EffectContext;
 
-  // the open `core.issue` items of the item's repo, for the dedupe of filed items
-  readonly openIssues: readonly ItemView[];
+  // the open items of the item's repo of each kind the effects file, for the dedupe of filed items
+  readonly openItems: readonly ItemView[];
 
   // the rules map the outcome to a `{ hold: reason }` edge
   readonly held: boolean;
@@ -32,14 +32,14 @@ export function buildSettlePlans(input: SettlePlansInput): SettlePlans {
     effect.kind === 'file-item' ? [effect.item] : [],
   );
 
-  // an item that this settle closes is no open issue a filed item can match
+  // an item that this settle closes is no open item a filed item can match
   const closes = !input.held && input.effects.some((effect) => effect.kind === 'close-item');
 
-  const openIssues = closes
-    ? input.openIssues.filter((issue) => issue.id !== input.ctx.item.id)
-    : input.openIssues;
+  const openItems = closes
+    ? input.openItems.filter((open) => open.id !== input.ctx.item.id)
+    : input.openItems;
 
-  const deduped = dedupeOpenItems(fileItems, openIssues);
+  const deduped = dedupeOpenItems(fileItems, openItems);
 
   const toFile = new Set(deduped.file);
 

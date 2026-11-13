@@ -971,10 +971,10 @@ dedupe.
 - **The first valid close-out is final.** It writes `boxxy.attempt.closed_out`, and the attempt
   moves to `closing`. The same body again answers as a repeat and writes nothing, and another body
   is refused ([close-outs and their limits](./v1-lifecycle.md#close-outs-and-their-limits)).
-- **Dedupe matches an `openItems` entry** to an open `core.issue` in the same repo whose title is
+- **Dedupe matches an `openItems` entry** to an open item of the same repo and kind whose title is
   equal after lowercasing, trimming, and collapsing each run of whitespace to one space. Settle reads
-  the open `core.issue` items of the attempt's repo with `listOpenIssues` and passes them to
-  `dedupeOpenItems`, which compares titles only. A match files no new item. It links the existing item to the attempt: the attempt's
+  the open items of the attempt's repo of each kind the entries name with `listOpenItems` and passes
+  them to `dedupeOpenItems`, which compares kinds and titles. A match files no new item. It links the existing item to the attempt: the attempt's
   `boxxy.attempt.settled` fact lists it in `matched`. With no match, settle files a new item with
   the entry's `body` as its outcome, the repo of the attempt's item, and an empty acceptance list,
   so it starts as an `idea`, with `found_in_attempt` set. When two entries of one close-out have

@@ -55,6 +55,7 @@ test('it builds every placeholder from the item, the notes and the phase input',
       'The review at e83c5163316f89bfbde7d9ab23ca2e25604af290 left findings open: high 1, medium 2, low 0.\n\nReply to each open finding.',
     stopped: '',
     notes: '- 1970-01-01: First\n- 1970-01-02: Second',
+    security: '',
     ticket: expect.stringMatching(/^# Add a retry\n\nA failed upload sends again\.\n\n## Scope/u),
     input: expect.any(String),
   });
@@ -141,6 +142,13 @@ test('it builds each empty section as the empty string', () => {
   ]).toStrictEqual(['', '', '', '', '', '']);
 
   expect(values.ticket).toBe('# T\n\nO');
+});
+
+test('it gives the security placeholder the text true for an item with the security mark', () => {
+  const item = buildMockV1ItemView({ fields: { security: true } });
+  const values = buildPromptValues({ item, attempt: 'att-1', notes: [], input: {} });
+
+  expect(values.security).toBe('true');
 });
 
 test('it gives the reason the last design stopped at, and puts it in the ticket before the notes', () => {

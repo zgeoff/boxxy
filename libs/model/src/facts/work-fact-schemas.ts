@@ -6,6 +6,7 @@ import { brandSchemas } from '../rows/brand-schemas.ts';
 import { callerIdentitySchema } from '../rows/caller-identity-schema.ts';
 import { criterionSchema } from '../rows/criterion-schema.ts';
 import { decisionRowSchema } from '../rows/decision-row-schema.ts';
+import { itemFieldsSchema } from '../rows/item-fields-schema.ts';
 import { itemRowSchema } from '../rows/item-row-schema.ts';
 import { leverRowSchema } from '../rows/lever-row-schema.ts';
 import type { FactType, WorkFacts } from './types.ts';
@@ -17,7 +18,6 @@ const pullRequestIdSchema = z.string().regex(/^[1-9]\d*$/u);
 const ofAttempt = { attempt: brandSchemas.attemptId };
 const seatsSchema = z.array(z.object({ limit: brandSchemas.limitName }));
 const designModeSchema = z.enum(['agent', 'attended']);
-const editedFieldsSchema = z.object({ designMode: designModeSchema.exactOptional() });
 const fieldValuesSchema = z.record(z.string(), z.array(z.string()));
 
 const relationSchema = z.object({
@@ -74,7 +74,7 @@ export const workFactSchemas = {
     body: z.string().exactOptional(),
     acceptance: z.array(criterionSchema).exactOptional(),
     kind: brandSchemas.itemKindName.exactOptional(),
-    fields: editedFieldsSchema.exactOptional(),
+    fields: itemFieldsSchema.exactOptional(),
     labels: z.array(z.string().min(1)).exactOptional(),
     byAttempt: brandSchemas.attemptId.nullable(),
   }),

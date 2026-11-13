@@ -75,13 +75,11 @@ test('it rejects a blocked result with no reason', () => {
   });
 });
 
-test('it rejects an open item of a kind other than core.issue', () => {
+test('it rejects an open item whose kind is no kind name', () => {
   const closeOut = {
     result: { kind: 'built' },
     criteria: [],
-    openItems: [
-      { kind: 'core.idea', title: 'Retry a failed download', body: 'Downloads fail too' },
-    ],
+    openItems: [{ kind: '', title: 'Retry a failed download', body: 'Downloads fail too' }],
     friction: [],
     frictionDropped: 0,
   };

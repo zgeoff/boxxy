@@ -113,6 +113,9 @@ export type Product = 'claude_code' | 'codex';
 // that sets none runs in agent mode.
 export interface ItemFields {
   readonly designMode?: DesignMode;
+
+  // the security mark: the item's work concerns a security weakness
+  readonly security?: true;
 }
 
 export interface ItemRow {

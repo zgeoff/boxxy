@@ -24,6 +24,7 @@ import type { z } from 'zod';
 import { buildSchemaParser } from '../build-schema-parser.ts';
 import { missingCriteria } from '../missing-criteria.ts';
 import { buildCriterionTexts } from '../utils/build-criterion-texts.ts';
+import { collectOpenItemProblems } from '../utils/collect-open-item-problems.ts';
 import { findLatestCloseOut } from '../utils/find-latest-close-out.ts';
 import { findLatestDesign } from '../utils/find-latest-design.ts';
 import { findPullRequestLink } from '../utils/find-pull-request-link.ts';
@@ -129,6 +130,7 @@ function collectBuildProblems(closeOut: BuildCloseOut, ctx: CloseOutContext): Cl
     ...[...unknownCriteria].map((criterion) => ({ kind: 'unknown-criterion' as const, criterion })),
     ...[...foreignEvidence].map((evidence) => ({ kind: 'foreign-evidence' as const, evidence })),
     ...(missing.length > 0 ? [{ kind: 'built-without-evidence' as const, criteria: missing }] : []),
+    ...collectOpenItemProblems(closeOut.openItems, ctx),
   ];
 }
 

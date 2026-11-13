@@ -135,6 +135,33 @@ test('it refuses a duplicate of an item the store does not have, and of the item
   });
 });
 
+test('it rejects a split whose part is of a kind the rules lack', () => {
+  const item = buildMockV1ItemView();
+
+  const raw = {
+    result: { kind: 'split', openItems: [{ kind: 'core.epic', title: 'Export as CSV', body: '' }] },
+    relations: [],
+    friction: [],
+  };
+
+  const parsed: unknown = triage.closeOut.parse(raw, {
+    item,
+    attempt: buildMockV1AttemptRow().id,
+    evidence: [],
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set([brandSchemas.itemKindName.parse('core.issue')]),
+      relationTypes: new Set(),
+    },
+    input: null,
+  });
+
+  expect(parsed).toStrictEqual({
+    kind: 'invalid',
+    problems: [{ kind: 'unknown-kind', itemKind: 'core.epic' }],
+  });
+});
+
 test('it refuses each repeat of a relation, the duplicate-of relation of a duplicate among them', () => {
   const item = buildMockV1ItemView();
   const other = brandSchemas.itemId.parse('0192f0c5-3c4d-7e5f-a061-7b8c9d0e1f2a');

@@ -20,6 +20,7 @@ import type {
   FactId,
   Instant,
   ItemId,
+  ItemKindName,
   ItemRow,
   ItemState,
   ItemView,
@@ -52,7 +53,14 @@ export interface StoreReader extends OutboxReader {
   readItem: (id: ItemId, now: Instant, rules: ItemRules) => Promise<ItemView | null>;
   readItemDetail: (id: ItemId, now: Instant, rules: ItemRules) => Promise<ItemDetailRows | null>;
   listItems: (filter: ItemFilter, now: Instant, rules: ItemRules) => Promise<ItemWithLevers[]>;
-  listOpenIssues: (repo: RepoName, now: Instant, rules: ItemRules) => Promise<ItemView[]>;
+
+  // the open items of one repo whose kind is one of `kinds`, for the dedupe of filed items
+  listOpenItems: (
+    repo: RepoName,
+    kinds: readonly ItemKindName[],
+    now: Instant,
+    rules: ItemRules,
+  ) => Promise<ItemView[]>;
 
   // 0 when the item phase has no lease
   readLastLeaseGen: (item: ItemId, phase: PhaseName) => Promise<number>;

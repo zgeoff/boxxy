@@ -155,10 +155,14 @@ export interface RelationDraft {
   readonly target: ItemId;
 }
 
+// Work a close-out files as a new item, of any kind the rules know.
 export interface OpenItem {
-  readonly kind: 'core.issue';
+  readonly kind: ItemKindName;
   readonly title: string;
   readonly body: string;
+
+  // true sets the security mark on the filed item
+  readonly security?: boolean;
 }
 
 export type FrictionTargetKind = 'skill' | 'rule' | 'lint' | 'agents-md' | 'tool';

@@ -131,6 +131,7 @@ export interface BoxxyItemFiledPayloadAcceptanceItem {
 
 export interface BoxxyItemFiledPayloadFields {
   designMode?: 'agent' | 'attended';
+  security?: true;
 }
 
 export interface BoxxyItemNotedPayload {
@@ -159,6 +160,7 @@ export interface BoxxyItemEditedPayloadAcceptanceItem {
 
 export interface BoxxyItemEditedPayloadFields {
   designMode?: 'agent' | 'attended';
+  security?: true;
 }
 
 export interface BoxxyItemClosedPayload {
@@ -1057,8 +1059,16 @@ function decodeBoxxyItemFiledPayloadFields(value: unknown): BoxxyItemFiledPayloa
     return undefined;
   }
 
+  const raw1 = 'security' in value ? value.security : undefined;
+  const field1 = raw1 === undefined ? undefined : raw1 === true ? raw1 : undefined;
+
+  if (raw1 !== undefined && field1 === undefined) {
+    return undefined;
+  }
+
   return {
     ...(field0 === undefined ? {} : { designMode: field0 }),
+    ...(field1 === undefined ? {} : { security: field1 }),
   };
 }
 
@@ -1284,8 +1294,16 @@ function decodeBoxxyItemEditedPayloadFields(value: unknown): BoxxyItemEditedPayl
     return undefined;
   }
 
+  const raw1 = 'security' in value ? value.security : undefined;
+  const field1 = raw1 === undefined ? undefined : raw1 === true ? raw1 : undefined;
+
+  if (raw1 !== undefined && field1 === undefined) {
+    return undefined;
+  }
+
   return {
     ...(field0 === undefined ? {} : { designMode: field0 }),
+    ...(field1 === undefined ? {} : { security: field1 }),
   };
 }
 

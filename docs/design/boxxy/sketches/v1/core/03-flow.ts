@@ -567,8 +567,8 @@ export function settleAttempt(input: SettleAttemptInput): Promise<MoveResult> {
     //    with a reason. A handler that throws gives `skip` too. Every skip is listed in the
     //    `settled` fact's `skippedEffects`.
     //    `file-item` entries are first deduped (`dedupeOpenItems` from @boxxy/closeout) against
-    //    the item's repo's open issues: a matched title files nothing and is listed in
-    //    `matched`. `close-item` plans last, so the other effects see the item still open. A
+    //    the open items of the item's repo of each kind the entries file: an entry whose kind and
+    //    title match files nothing and is listed in `matched`. `close-item` plans last, so the other effects see the item still open. A
     //    `duplicate` close adds the `duplicate-of` relation in the same plan.
     //    Each plan sees the relations and the close that the plans before it write: a relation
     //    named twice skips with `the relation is live already`, a relation to the item itself

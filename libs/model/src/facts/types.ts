@@ -13,11 +13,11 @@ import type {
   Criterion,
   CriterionId,
   DecisionRow,
-  DesignMode,
   EvidenceKind,
   FactId,
   FieldValues,
   Instant,
+  ItemFields,
   ItemId,
   ItemKindName,
   ItemRow,
@@ -102,7 +102,7 @@ export interface WorkFacts {
     readonly body?: string;
     readonly acceptance?: readonly Criterion[];
     readonly kind?: ItemKindName;
-    readonly fields?: { readonly designMode?: DesignMode };
+    readonly fields?: ItemFields;
 
     // the whole new list
     readonly labels?: readonly string[];

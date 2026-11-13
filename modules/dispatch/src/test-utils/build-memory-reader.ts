@@ -96,10 +96,10 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
             (filter.repo === undefined || item.repo === filter.repo),
         ),
       ),
-    listOpenIssues: (repo, now, rules) =>
+    listOpenItems: (repo, kinds, now, rules) =>
       Promise.resolve(
         buildViews(now, rules)
-          .filter((item) => item.kind === 'core.issue' && item.repo === repo && isOpen(item))
+          .filter((item) => kinds.includes(item.kind) && item.repo === repo && isOpen(item))
           .map((item) => toItemView(item)),
       ),
     readLastLeaseGen: (item, phase) => {

@@ -15,7 +15,7 @@ import type { EffectContext, EffectHandlers, EffectPlan } from './types.ts';
 // `skip` rather than throw, so a settle never fails on stored data.
 export const effectHandlers: EffectHandlers = {
   'file-item': (effect, ctx) => {
-    const kind = brandSchemas.itemKindName.parse(effect.item.kind);
+    const kind = effect.item.kind;
 
     if (!ctx.rules.kinds.has(kind)) {
       return { kind: 'skip', effect, reason: `the rules have no kind ${kind}` };
@@ -29,7 +29,7 @@ export const effectHandlers: EffectHandlers = {
       outcome: effect.item.body,
       body: '',
       acceptance: [],
-      fields: {},
+      fields: effect.item.security === true ? { security: true } : {},
       labels: [],
       foundInAttempt: ctx.attempt.id,
       filedBy: ctx.actor,

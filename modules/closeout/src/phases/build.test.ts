@@ -28,13 +28,49 @@ test('it accepts a built close-out that cites the attempt evidence for every cri
     item,
     attempt: row.attempt,
     evidence: [row],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set([brandSchemas.itemKindName.parse('core.issue')]),
+      relationTypes: new Set(),
+    },
     input: null,
   });
 
   expect(parsed).toStrictEqual({
     kind: 'valid',
     closeOut: { ...raw, frictionDropped: 0 },
+  });
+});
+
+test('it rejects an open item of a kind the rules lack, once for each kind', () => {
+  const item = buildMockV1ItemView({ acceptance: [] });
+  const row = buildMockEvidenceRow();
+
+  const raw = {
+    result: { kind: 'blocked', reason: 'The upload service is down' },
+    criteria: [],
+    openItems: [
+      { kind: 'core.epic', title: 'Show upload progress', body: '' },
+      { kind: 'core.epic', title: 'Show download progress', body: '' },
+    ],
+    friction: [],
+  };
+
+  const parsed: unknown = build.closeOut.parse(raw, {
+    item,
+    attempt: row.attempt,
+    evidence: [row],
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set([brandSchemas.itemKindName.parse('core.issue')]),
+      relationTypes: new Set(),
+    },
+    input: null,
+  });
+
+  expect(parsed).toStrictEqual({
+    kind: 'invalid',
+    problems: [{ kind: 'unknown-kind', itemKind: 'core.epic' }],
   });
 });
 
@@ -219,7 +255,7 @@ test('it returns every schema problem of a close-out at once', () => {
   const raw = {
     result: { kind: 'blocked' },
     criteria: [{ criterion: 'b1', evidence: row.factId }],
-    openItems: [{ kind: 'core.idea', title: 'Show upload progress', body: 'Uploads look stuck' }],
+    openItems: [{ kind: '', title: 'Show upload progress', body: 'Uploads look stuck' }],
     friction: [],
   };
 

@@ -1,10 +1,17 @@
-import type { AcceptanceInput, DesignCloseOut, Effect } from '@boxxy/model';
+import type {
+  AcceptanceInput,
+  CloseOutContext,
+  CloseOutProblem,
+  DesignCloseOut,
+  Effect,
+} from '@boxxy/model';
 import { brandSchemas, definePhase, designCloseOutSchema, toJSONValue } from '@boxxy/model';
 import { match } from 'ts-pattern';
 import type { z } from 'zod';
 import { buildSchemaParser } from '../build-schema-parser.ts';
 import { buildCriteria } from '../utils/build-criteria.ts';
 import { buildCriterionTexts } from '../utils/build-criterion-texts.ts';
+import { collectOpenItemProblems } from '../utils/collect-open-item-problems.ts';
 import { findStoppedReason } from '../utils/find-stopped-reason.ts';
 
 const designBodySchema = designCloseOutSchema.omit({ frictionDropped: true });
@@ -29,7 +36,7 @@ export const design = definePhase({
       ...raw,
       frictionDropped,
     }),
-    check: () => [],
+    check: collectDesignProblems,
   }),
 
   // A blocked or abandoned design did not reach its goal, so its attempt fails. The failure is
@@ -47,6 +54,12 @@ export const design = definePhase({
     frictionDropped: input.closeOut.frictionDropped,
   }),
 });
+
+function collectDesignProblems(closeOut: DesignCloseOut, ctx: CloseOutContext): CloseOutProblem[] {
+  const openItems = closeOut.result.kind === 'designed' ? (closeOut.result.openItems ?? []) : [];
+
+  return collectOpenItemProblems(openItems, ctx);
+}
 
 function collectDesignEffects(closeOut: DesignCloseOut): Effect[] {
   const designed = closeOut.result.kind === 'designed' ? closeOut.result : null;

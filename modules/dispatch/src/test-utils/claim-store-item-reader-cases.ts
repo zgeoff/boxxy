@@ -353,34 +353,43 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
-    '#listOpenIssues returns the open core.issue items of one repo',
+    '#listOpenItems returns the open items of one repo whose kind is one of the kinds',
     async (store) => {
       const repo = brandSchemas.repoName.parse('acme/lamps');
       const open = buildMockV1ItemRow({ repo });
       const closed = buildMockV1ItemRow({ repo, closedAt: brandSchemas.instant.parse(1500) });
       const elsewhere = buildMockV1ItemRow({ repo: brandSchemas.repoName.parse('acme/fans') });
       const task = buildMockV1ItemRow({ repo, kind: brandSchemas.itemKindName.parse('core.task') });
+      const idea = buildMockV1ItemRow({ repo, kind: brandSchemas.itemKindName.parse('core.idea') });
 
       await store.exclusive(async (transaction) => {
         await transaction.applyChange(buildMockFileItemChange(open));
         await transaction.applyChange(buildMockFileItemChange(closed));
         await transaction.applyChange(buildMockFileItemChange(elsewhere));
         await transaction.applyChange(buildMockFileItemChange(task));
+        await transaction.applyChange(buildMockFileItemChange(idea));
       });
 
       const listed: unknown = await store.read((transaction) =>
-        transaction.listOpenIssues(repo, brandSchemas.instant.parse(5000), buildMockItemRules()),
+        transaction.listOpenItems(
+          repo,
+          [
+            brandSchemas.itemKindName.parse('core.issue'),
+            brandSchemas.itemKindName.parse('core.task'),
+          ],
+          brandSchemas.instant.parse(5000),
+          buildMockItemRules(),
+        ),
       );
+
+      const position = { kind: 'phase', phase: 'build', round: 1 };
 
       return {
         received: listed,
-        expected: [
-          {
-            ...open,
-            derived: { state: 'ready' },
-            position: { kind: 'phase', phase: 'build', round: 1 },
-          },
-        ],
+        expected: expect.toIncludeSameMembers([
+          { ...open, derived: { state: 'ready' }, position },
+          { ...task, derived: { state: 'ready' }, position },
+        ]),
       };
     },
   ],

@@ -465,6 +465,17 @@ export interface TriageCloseOut {
   readonly frictionDropped: number;
 }
 
+// Work a triage split, a design or a build files as a new item. `kind` is any kind the rules
+// know; the parser refuses another with `unknown-kind`. `security: true` gives the filed item the
+// security mark, `fields.security` (../../../v1.md, "The ledger"). The dedupe matches an entry to
+// an open item of the same repo and kind whose title is equal after normalising.
+export interface OpenItem {
+  readonly kind: ItemKindName;
+  readonly title: string;
+  readonly body: string;
+  readonly security?: boolean;
+}
+
 export type CloseOutProblem =
   // ...the four that `libs/model` has, and `unknown-item`, `unknown-kind`, `refused-relation`,
   // `phase-rule` (this sketch does not show their shapes; the build designs them). The build
@@ -600,7 +611,7 @@ export interface StoreReader {
 // store held to one contract (modules/dispatch/src/test-utils/claim-store-contract.ts). Where
 // the build differs from this sketch:
 //   - The item reads (`readSnapshot`, `readItem`, `readItemDetail`, `listItems`,
-//     `listOpenIssues`) take `ItemRules`, the part of `LoadedRules` they read: each kind's
+//     `listOpenItems`) take `ItemRules`, the part of `LoadedRules` they read: each kind's
 //     pipeline and each phase's `needsAcceptance`. One pure function, `buildItemViews`, folds
 //     each item's settled attempts and `item.retry` levers with `findPosition`, then derives
 //     its state with `deriveItemState`.

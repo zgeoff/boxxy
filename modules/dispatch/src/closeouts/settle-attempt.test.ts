@@ -54,8 +54,9 @@ async function setupTest() {
     listNotices: () => dispatch.store.read((tx) => tx.listUnsentNotices(10)),
     listOpenIssues: () =>
       dispatch.store.read((tx) =>
-        tx.listOpenIssues(
+        tx.listOpenItems(
           brandSchemas.repoName.parse('example/app'),
+          [brandSchemas.itemKindName.parse('core.issue')],
           dispatch.clock.now(),
           dispatch.rules(),
         ),
@@ -258,6 +259,79 @@ test('it files each new open item of a designed close-out once and lists the ope
     {},
     { title: 'Cache the theme', foundInAttempt: attempt.id, acceptance: [] },
   ]);
+});
+
+test('it files an open item as the kind it names, with the security mark it sets', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('design');
+
+  await ctx.closeOut(attempt, {
+    result: {
+      kind: 'designed',
+      design: { text: 'Follow the system theme.', location: null },
+      openItems: [
+        { kind: 'core.idea', title: 'Escape the theme name', body: 'Found.', security: true },
+      ],
+    },
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const filed = await ctx.listFacts('boxxy.item.filed');
+
+  expect(filed.map((fact) => fact.payload)).toMatchObject([
+    { kind: 'core.issue', fields: {} },
+    { kind: 'core.idea', title: 'Escape the theme name', fields: { security: true } },
+  ]);
+});
+
+test('it files an open item whose title matches an open item of another kind', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('design');
+  const [existing] = await ctx.listOpenIssues();
+
+  invariant(existing !== undefined, 'the design item is an open issue');
+
+  await ctx.closeOut(attempt, {
+    result: {
+      kind: 'designed',
+      design: { text: 'Follow the system theme.', location: null },
+      openItems: [{ kind: 'core.idea', title: existing.title, body: 'Found while designing.' }],
+    },
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const [settled] = await ctx.listFacts('boxxy.attempt.settled');
+  const filed = await ctx.listFacts('boxxy.item.filed');
+
+  expect(settled?.payload).toMatchObject({ matched: [] });
+
+  expect(filed.map((fact) => fact.payload)).toMatchObject([
+    { kind: 'core.issue' },
+    { kind: 'core.idea', title: existing.title },
+  ]);
+});
+
+test('it rejects a close-out that files an open item of a kind the rules lack', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('design');
+
+  const answer = await ctx.closeOut(attempt, {
+    result: {
+      kind: 'designed',
+      design: { text: 'Follow the system theme.', location: null },
+      openItems: [{ kind: 'core.epic', title: 'Theme every screen', body: 'Found.' }],
+    },
+    friction: [],
+  });
+
+  expect(answer).toStrictEqual({
+    kind: 'rejected',
+    problems: [{ kind: 'unknown-kind', itemKind: 'core.epic' }],
+  });
 });
 
 test('it keeps the acceptance list, and still files the open items, when the rules hold a designed item', async () => {

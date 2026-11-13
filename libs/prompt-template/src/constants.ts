@@ -9,6 +9,7 @@ export const promptPlaceholders = [
   'findings',
   'stopped',
   'notes',
+  'security',
   'repo',
   'attempt_id',
   'input',

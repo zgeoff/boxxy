@@ -27,11 +27,7 @@ to the fact that shows it. boxxy never reads this evidence to decide that an ite
 
 ### openItems
 
-Each open item is work the agent found and did not do. boxxy files it through dedupe. When an open
-item matches an open item already filed, boxxy files nothing and links the existing item to the
-attempt: in slice 1, the attempt's settle fact lists it. An item filed from an open item records
-the attempt that reported it as `found-in`
-([slice 1](./slice-1.md#the-build-close-out)).
+Each open item is work the agent found and did not do. It holds `kind`, `title`, `body` and an optional `security`. `kind` is any item kind the rules know, and the parser refuses another as `unknown-kind`. `security: true` gives the filed item the [security mark](./v1.md#the-ledger-labels-notes-and-relations). boxxy files each open item through dedupe. When an open item matches an open item of the same repo and kind whose title is equal after normalising, boxxy files nothing and links the existing item to the attempt: the attempt's settle fact lists it. An item filed from an open item records the attempt that reported it as `found-in` ([slice 1](./slice-1.md#the-build-close-out)).
 
 ### friction
 
@@ -66,9 +62,9 @@ The parser cuts no list. A cut finding or open item would be work lost with no c
 
 | Phase | The parser refuses | The settle |
 | --- | --- | --- |
-| triage | `accepted` that leaves the item with no acceptance list; a `split` with no part; an unknown item, kind or relation type; a relation to the item itself; a relation named twice, counting the `duplicate-of` relation of a `duplicate` | succeeded. Asks to set the kind, the design mode, the acceptance list, numbered from `a1`, and the body, to add each relation, to file each part of a `split`, and to close a `duplicate`, `declined` or `split` item |
-| design | nothing past the schema | `designed`: succeeded. Asks to file each open item, and to set the acceptance list, numbered from `a1`. `blocked`, `abandoned`: failed, with the outcome as the failure |
-| build | a criterion the item lacks; evidence of another attempt; `built` with a criterion that has no evidence | as design. Asks to file each open item, and, when `built`, to add the cited evidence to the acceptance list |
+| triage | `accepted` that leaves the item with no acceptance list; a `split` with no part; an unknown item, kind or relation type, the kind of each part of a `split` among them; a relation to the item itself; a relation named twice, counting the `duplicate-of` relation of a `duplicate` | succeeded. Asks to set the kind, the design mode, the acceptance list, numbered from `a1`, and the body, to add each relation, to file each part of a `split`, and to close a `duplicate`, `declined` or `split` item |
+| design | an open item of a kind the rules lack | `designed`: succeeded. Asks to file each open item, and to set the acceptance list, numbered from `a1`. `blocked`, `abandoned`: failed, with the outcome as the failure |
+| build | a criterion the item lacks; evidence of another attempt; `built` with a criterion that has no evidence; an open item of a kind the rules lack | as design. Asks to file each open item, and, when `built`, to add the cited evidence to the acceptance list |
 | review | a body that is not the `ReviewCloseOut` the server built from the gate's reading | passed: succeeded `passed`. Blocked on open findings: succeeded `changes-requested`. Any other reading: failed, with the failure `review-failed` |
 | verify | a body that names its own `session`; the parser copies `session` from the attempt's input | `verified`, `failed`: succeeded, because the grader graded the work. `blocked`, `abandoned`: failed, with the outcome as the failure |
 | merge | a body with a field that `MergeCloseOut` lacks, or one that lacks a field | `merged`: succeeded. Asks to record the merge of the input's pull request. Any other outcome: failed, with the outcome as the failure |

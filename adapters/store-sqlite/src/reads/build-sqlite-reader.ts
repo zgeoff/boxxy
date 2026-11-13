@@ -144,12 +144,16 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         (item) => filter.state === undefined || item.derived.state === filter.state,
       );
     },
-    listOpenIssues: async (repo, now, rules) => {
+    listOpenItems: async (repo, kinds, now, rules) => {
+      if (kinds.length === 0) {
+        return [];
+      }
+
       const views = await readItemViews(
         db,
         (builder) =>
           builder.and([
-            builder('kind', '=', 'core.issue'),
+            builder('kind', 'in', kinds),
             builder('repo', '=', repo),
             builder('closed_at', 'is', null),
           ]),
