@@ -427,7 +427,7 @@
     "@types/bun": "1.4.4",
     "@wringer/core": "0.2.0",
     "@wringer/gunshi": "0.2.0",
-    "@wringer/http": "0.1.1",
+    "@wringer/http": "0.1.2",
     "@zgeoff/bun-test-extended": "0.2.3",
     "@zgeoff/chex": "0.3.4",
     "@zgeoff/commitlint-config": "0.1.0",
@@ -1058,7 +1058,7 @@
 
     "@wringer/gunshi": ["@wringer/gunshi@0.2.0", "", { "dependencies": { "gunshi": "0.37.3", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2", "zod": "4.6.7" }, "peerDependencies": { "@wringer/core": "0.2.0" }, "bin": { "wringer-gunshi": "src/wringer-gunshi.ts" } }, "sha512-bXOnEI42WWRVNtHfz3DoLou6Vod0WLnMzkaAzikoQDd6AmExS6njkeDSwLifEa/YvoSIrt3vF8T5s4OT89RoQg=="],
 
-    "@wringer/http": ["@wringer/http@0.1.1", "", { "dependencies": { "zod": "4.6.7" }, "peerDependencies": { "@wringer/core": "0.1.2" } }, "sha512-TW/I336oOveL8ZJtx2fYczVhvUiGw2ouDlEEQcCPz27fmnkb+nCCdqjW+9ClBXS/EeffAT7DVKPpTbgKyR+pvw=="],
+    "@wringer/http": ["@wringer/http@0.1.2", "", { "dependencies": { "zod": "4.6.7" }, "peerDependencies": { "@wringer/core": "0.2.0" } }, "sha512-skGn2/A8bc+oNeg7apd7w8I59L9trFCS1Ggppg88J5gyzaaPP0Xhv69sz6/ooBfTF9jyfMdc8bSJKUTssgWr4w=="],
 
     "@zgeoff/agent-hooks": ["@zgeoff/agent-hooks@0.2.12", "", { "bin": { "agent-hooks": "dist/cli.js" } }, "sha512-bMEmXGtNICFNvR/e9lF9p+N4BwyIPqnG7IZ/m78vz3i5ZUZbgtSVLWgw3k5/d0cE6OXGLBW4sJ3twKd2kYzRSQ=="],
 
