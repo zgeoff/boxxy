@@ -202,10 +202,14 @@ adapters/verifier-wringer/src   @boxxy/verifier-wringer
 
 adapters/forge-github/src       @boxxy/forge-github
   index  types  constants  create-github-forge  create-github-client  github-schemas
-  to-pull-path  to-pull-request-reading  read-pull-request-body  read-checks
-  collect-check-states  github-forge-error
-  test-utils/     create-fake-github-fetch  github-handlers: the MSW handlers on @msw/data
+  github-forge-error
+  pull-requests/  to-pull-path  to-pull-request-reading  read-pull-request-body  read-mergeable
+                  merge-at-head
+  checks/         read-checks  collect-check-states
+  branches/       read-required-checks  collect-required-checks
+  test-utils/     build-github-seeders  github-handlers: the MSW handlers on @msw/data
                   mock-network  reset-mock-network: the mock network that the test preload starts
+                  fixtures/: recorded GitHub answers, with invented values
 
 adapters/auth-oauth/src          @boxxy/auth-oauth: the public door's OAuth server, copied from atc
   index                         create-public-door and the types the server reads

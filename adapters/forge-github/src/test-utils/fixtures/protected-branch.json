@@ -1,0 +1,24 @@
+{
+  "name": "main",
+  "commit": {
+    "sha": "0000000000000000000000000000000000000abc",
+    "url": "https://api.github.test/repos/acme/lamps/commits/0000000000000000000000000000000000000abc"
+  },
+  "_links": {
+    "self": "https://api.github.test/repos/acme/lamps/branches/main",
+    "html": "https://github.com/acme/lamps/tree/main"
+  },
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "non_admins",
+      "contexts": ["build", "preview"],
+      "checks": [
+        { "context": "build", "app_id": 4200001 },
+        { "context": "preview", "app_id": null }
+      ]
+    }
+  },
+  "protection_url": "https://api.github.test/repos/acme/lamps/branches/main/protection"
+}

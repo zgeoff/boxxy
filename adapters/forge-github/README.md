@@ -11,8 +11,9 @@
   </p>
 </div>
 
-boxxy's `Forge` port on GitHub: it reads a pull request, its commits, its body and the checks at a
-head, the open pull requests of a repo, and the compare of two heads over the REST API.
+boxxy's `Forge` port on GitHub: over the REST API it reads a pull request, its commits, its body,
+its mergeable state and the checks at a head, the open pull requests of a repo, the compare of two
+heads and the checks a branch requires, and it merges a pull request at a head.
 
 ## Install
 
@@ -35,9 +36,14 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
   as "the forge did not answer".
 - `readChecks(repo, head)` gives the state and the source of the newest run of each check name at
   `head`, from the check runs and the commit statuses.
+- `readRequiredChecks(repo, branch)` gives the union of the checks that the branch's rulesets
+  require and the checks that its classic protection enforces.
+- `mergeAtHead(ref, head, method)` sends one merge call with `sha: head`, so GitHub merges only
+  while the head is still `head`. It answers `head-moved` to a 409 and `not-mergeable` to a 405.
 - `src/test-utils/github-handlers.ts` holds the MSW handlers that answer the GitHub REST API in
-  tests, from `@msw/data` collections that a test seeds. The repo's test preload runs
-  `src/test-utils/reset-mock-network.ts`, which starts the one mock network of each test process.
+  tests, from `@msw/data` collections that a test seeds, and `build-github-seeders.ts` seeds them
+  for the forge contract. The repo's test preload runs `src/test-utils/reset-mock-network.ts`, which
+  starts the one mock network of each test process.
 
 ## Documentation
 

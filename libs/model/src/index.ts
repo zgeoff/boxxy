@@ -179,6 +179,7 @@ export type {
   CheckReading,
   CheckState,
   GateRecord,
+  MergeableState,
   MergeMember,
   MergeObservation,
   MergeOutcome,

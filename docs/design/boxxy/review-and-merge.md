@@ -145,7 +145,7 @@ The merge phase runs on the job worker `merge.forge`. On each read, at most once
 - **A webhook never changes boxxy state.** A replayed webhook reaches pepys only.
 - **A merge by hand ends the item.** The merge job reads `merged` and settles. When the item held before the merge, `boxxy item retry <item> --phase merge` runs the merge job, which reads the merge.
 
-The GitHub adapter needs `Contents: write` and `Pull requests: write` to merge, `Checks: read` and `Commit statuses: read` for the checks, and `Metadata: read` for the branch's rules.
+The GitHub adapter needs `Contents: write` and `Pull requests: write` to merge, `Checks: read` and `Commit statuses: read` for the checks, and `Metadata: read` for the branch and its rules. The base branch's required checks are the union of the checks that its rulesets require and the checks that its classic branch protection enforces. The adapter reads the classic checks from the branch itself, and a required-checks rule it cannot parse makes the read throw.
 
 ### The merge train
 
@@ -197,9 +197,8 @@ Section 5 of [`01-usage.ts`](./sketches/next/review-and-merge/01-usage.ts) shows
 - The folder names of the two adapters, inside the layout's rule of one package per outside system.
 - The shell form of the review command, and the name of the file it writes.
 - The wording of `answerHint`, the wait reasons and the `runner.status` lines.
-- How the GitHub adapter reads required checks: from the branch's rules, from branch protection, or both.
 
 ## Open questions
 
 - **Whether a second post of one result is safe.** When the server crashes after `accept` posts and before the close-out is stored, the session sends the close-out again, and `accept` posts again. noslop's docs do not say whether a repeat post adds comments. The owner checks it in the first live run on a real repo. The verdict stays right either way, because it comes from the open findings.
-- **The GitHub permissions.** The owner checks in the first live run that the permissions in [Races and repeats](#races-and-repeats) are enough to merge and to read rules, checks and statuses.
+- **The GitHub permissions.** The owner checks in the first live run that the permissions in [Races and repeats](#races-and-repeats) are enough to merge and to read rules, classic branch protection, checks and statuses.

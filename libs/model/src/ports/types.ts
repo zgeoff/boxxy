@@ -1,7 +1,7 @@
 import type { JsonValue } from '@boxxy/content-hash';
 import type { AnyNewFact, OutboxFact } from '../facts/types.ts';
 import type { ItemRevision, ItemWithLevers } from '../items/types.ts';
-import type { CheckReading, MergeUnit } from '../merge/types.ts';
+import type { CheckReading, MergeUnit, MergeableState } from '../merge/types.ts';
 import type { HoldReason } from '../pipeline/types.ts';
 import type { Limit, LimitFill, SeatRelease, SeatTake, Snapshot } from '../planning/types.ts';
 import type { CostToLand, StageTime } from '../reports/types.ts';
@@ -451,6 +451,13 @@ export interface Forge {
 
   // the forge's compare of two heads: each changed file with its added and deleted lines
   readChangedFiles: (repo: RepoName, from: CommitSha, to: CommitSha) => Promise<ChangedFile[]>;
+
+  // the checks that the branch requires, by name; empty for a branch that requires none
+  readRequiredChecks: (repo: RepoName, branch: string) => Promise<readonly string[]>;
+  readMergeable: (ref: PullRequestRef) => Promise<MergeableState>;
+
+  // merges only while the pull request's head is still `head`, and sends one call
+  mergeAtHead: (ref: PullRequestRef, head: CommitSha, method: MergeMethod) => Promise<MergeAnswer>;
 }
 
 export interface ChangedFile {

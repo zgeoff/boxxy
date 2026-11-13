@@ -1,6 +1,9 @@
 interface ForgeRequestInit {
-  readonly method: 'GET';
+  readonly method: 'GET' | 'PUT';
   readonly headers: Readonly<Record<string, string>>;
+
+  // JSON text; only a merge sends a body
+  readonly body?: string;
 }
 
 // The one call the adapter needs, shaped as the platform's `fetch` takes it.

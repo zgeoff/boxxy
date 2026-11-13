@@ -1,0 +1,29 @@
+{
+  "merged": {
+    "sha": "c0ffee0000000000000000000000000000000007",
+    "merged": true,
+    "message": "Pull Request successfully merged"
+  },
+  "notMergeable": {
+    "message": "Pull Request is not mergeable",
+    "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+    "status": "405"
+  },
+  "headMoved": {
+    "message": "Head branch was modified. Review and try the merge again.",
+    "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+    "status": "409"
+  },
+  "invalidMethod": {
+    "message": "Validation Failed",
+    "errors": [
+      {
+        "resource": "PullRequest",
+        "field": "merge_method",
+        "code": "invalid"
+      }
+    ],
+    "documentation_url": "https://docs.github.com/rest/pulls/pulls#merge-a-pull-request",
+    "status": "422"
+  }
+}

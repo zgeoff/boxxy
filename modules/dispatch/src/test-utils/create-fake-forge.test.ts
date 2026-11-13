@@ -6,7 +6,13 @@ import { forgeContract } from './forge-contract.ts';
 test.each(forgeContract)('it keeps the forge contract: %s', async (_title, check) => {
   const forge = createFakeForge();
 
-  const outcome = await check({ forge, seed: forge.seed, seedCompare: forge.seedCompare });
+  const outcome = await check({
+    forge,
+    seed: forge.seed,
+    seedCompare: forge.seedCompare,
+    seedRequiredChecks: forge.seedRequiredChecks,
+    seedMergeable: forge.seedMergeable,
+  });
 
   expect(outcome.received).toStrictEqual(outcome.expected);
 });
@@ -151,4 +157,45 @@ test('#readChecks reads a seeded status as a commit status, under a check run of
       ['deploy/preview', { state: 'pending', source: 'commit-status' }],
     ]),
   );
+});
+
+test('#mergeAtHead logs the call with its head and method, and rejects while the forge is down', async () => {
+  const forge = createFakeForge();
+  const ref = { repo: brandSchemas.repoName.parse('acme/lamps'), number: 5 };
+  const head = brandSchemas.commitSha.parse('b'.repeat(40));
+
+  forge.seed({
+    ref,
+    githubId: 9_000_005,
+    reading: {
+      state: 'open',
+      mergedAt: null,
+      mergeCommit: null,
+      commits: [{ sha: head, message: 'Fix the lamp' }],
+    },
+  });
+
+  forge.setDown(true);
+
+  const whileDown = await Promise.allSettled([forge.mergeAtHead(ref, head, 'squash')]);
+
+  expect([whileDown.map((result) => result.status), forge.calls]).toStrictEqual([
+    ['rejected'],
+    [`mergeAtHead acme/lamps#5 ${head} squash`],
+  ]);
+});
+
+test('#readMergeable reads a pull request with no seeded state as clean', async () => {
+  const forge = createFakeForge();
+  const ref = { repo: brandSchemas.repoName.parse('acme/lamps'), number: 6 };
+
+  forge.seed({
+    ref,
+    githubId: 9_000_006,
+    reading: { state: 'open', mergedAt: null, mergeCommit: null, commits: [] },
+  });
+
+  const mergeable = await forge.readMergeable(ref);
+
+  expect(mergeable).toBe('clean');
 });

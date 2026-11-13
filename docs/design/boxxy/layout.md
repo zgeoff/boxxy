@@ -28,7 +28,7 @@ boxxy/
 │   ├── auth-oauth/              the other bun:sqlite + Kysely user: the public door's OAuth server and its auth database
 │   ├── worker-atc/              spawns attempts through atc, reads back their session ids
 │   ├── notifier-atc/            sends a hold notice as an atc message
-│   ├── forge-github/            PR and commit links, the PR body, checks, and (next) the merge
+│   ├── forge-github/            PR and commit links, the PR body, checks, and the merge
 │   ├── review-noslop/           checks and posts the review tool's result for the ReviewGate port
 │   ├── verifier-wringer/        reads the verify gate check and report for the Verifier port
 │   ├── caller-proof-imp/        proves a session's caller from the broker's identity token

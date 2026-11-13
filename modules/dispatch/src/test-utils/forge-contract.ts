@@ -1,13 +1,20 @@
-import type { Forge, PullRequestRef } from '@boxxy/model';
+import type { CommitSha, Forge, PullRequestRef } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
-import type { SeededCompare, SeededPullRequest } from './create-fake-forge.ts';
+import type {
+  SeededCompare,
+  SeededMergeable,
+  SeededPullRequest,
+  SeededRequiredChecks,
+} from './create-fake-forge.ts';
 
-// What a forge adapter's test gives each case: the forge, and a way to put a pull request on the
-// service behind it.
+// What a forge adapter's test gives each case: the forge, and a way to put state on the service
+// behind it. A seed may be async, as a mock service's store is.
 export interface ForgeHarness {
   readonly forge: Forge;
-  seed: (pullRequest: SeededPullRequest) => void;
-  seedCompare: (compare: SeededCompare) => void;
+  seed: (pullRequest: SeededPullRequest) => void | Promise<void>;
+  seedCompare: (compare: SeededCompare) => void | Promise<void>;
+  seedRequiredChecks: (required: SeededRequiredChecks) => void | Promise<void>;
+  seedMergeable: (mergeable: SeededMergeable) => void | Promise<void>;
 }
 
 export interface ForgeContractOutcome {
@@ -28,7 +35,7 @@ export const forgeContract: readonly ForgeContractCase[] = [
   [
     '#readPullRequest reads an open pull request with its GitHub id, url and commits',
     async (harness) => {
-      harness.seed(buildOpen(7, 2));
+      await harness.seed(buildOpen(7, 2));
 
       const reading = await harness.forge.readPullRequest(buildRef(7));
 
@@ -60,7 +67,7 @@ export const forgeContract: readonly ForgeContractCase[] = [
       const mergedAt = brandSchemas.instant.parse(1_800_000_000_000);
       const open = buildOpen(8);
 
-      harness.seed({
+      await harness.seed({
         ...open,
         reading: { ...open.reading, state: 'merged', mergedAt, mergeCommit: buildSha(99) },
       });
@@ -81,7 +88,7 @@ export const forgeContract: readonly ForgeContractCase[] = [
     async (harness) => {
       const open = buildOpen(9);
 
-      harness.seed({ ...open, reading: { ...open.reading, state: 'closed' } });
+      await harness.seed({ ...open, reading: { ...open.reading, state: 'closed' } });
 
       const reading = await harness.forge.readPullRequest(buildRef(9));
 
@@ -97,7 +104,7 @@ export const forgeContract: readonly ForgeContractCase[] = [
   [
     '#readPullRequest reads every commit of a pull request over one page',
     async (harness) => {
-      harness.seed(buildOpen(10, 130));
+      await harness.seed(buildOpen(10, 130));
 
       const reading = await harness.forge.readPullRequest(buildRef(10));
 
@@ -119,10 +126,10 @@ export const forgeContract: readonly ForgeContractCase[] = [
     async (harness) => {
       const merged = buildOpen(2);
 
-      harness.seed(buildOpen(3));
-      harness.seed(buildOpen(1));
-      harness.seed({ ...merged, reading: { ...merged.reading, state: 'closed' } });
-      harness.seed(buildOpen(1, 0, otherRepo));
+      await harness.seed(buildOpen(3));
+      await harness.seed(buildOpen(1));
+      await harness.seed({ ...merged, reading: { ...merged.reading, state: 'closed' } });
+      await harness.seed(buildOpen(1, 0, otherRepo));
 
       return {
         received: await harness.forge.listOpenPullRequests(repo),
@@ -134,7 +141,7 @@ export const forgeContract: readonly ForgeContractCase[] = [
     '#listOpenPullRequests lists every open pull request over one page',
     async (harness) => {
       for (let number = 1; number <= 105; number += 1) {
-        harness.seed(buildOpen(number));
+        await harness.seed(buildOpen(number));
       }
 
       const listed = await harness.forge.listOpenPullRequests(repo);
@@ -153,13 +160,138 @@ export const forgeContract: readonly ForgeContractCase[] = [
         { path: 'docs/lamp.md', changedLines: 3 },
       ];
 
-      harness.seedCompare({ repo, from: buildSha(1), to: buildSha(2), files });
+      await harness.seedCompare({ repo, from: buildSha(1), to: buildSha(2), files });
 
       return {
         received: await harness.forge.readChangedFiles(repo, buildSha(1), buildSha(2)),
         expected: files,
       };
     },
+  ],
+  [
+    '#readRequiredChecks reads the checks that the branch requires',
+    async (harness) => {
+      await harness.seedRequiredChecks({
+        repo,
+        branch: 'main',
+        checks: ['build', 'verify / gate'],
+      });
+
+      return {
+        received: await harness.forge.readRequiredChecks(repo, 'main'),
+        expected: ['build', 'verify / gate'],
+      };
+    },
+  ],
+  [
+    '#readRequiredChecks reads no checks for a branch with a slash in its name that requires none',
+    async (harness) => {
+      await harness.seedRequiredChecks({ repo, branch: 'release/2', checks: [] });
+
+      return { received: await harness.forge.readRequiredChecks(repo, 'release/2'), expected: [] };
+    },
+  ],
+  [
+    '#readRequiredChecks rejects for a branch that does not exist',
+    async (harness) => ({
+      received: await toSettled(harness.forge.readRequiredChecks(repo, 'gone')),
+      expected: 'rejected',
+    }),
+  ],
+  [
+    '#readMergeable reads a pull request with no conflict as clean',
+    async (harness) => {
+      await harness.seed(buildOpen(11, 1));
+      await harness.seedMergeable({ ref: buildRef(11), mergeable: 'clean' });
+
+      return { received: await harness.forge.readMergeable(buildRef(11)), expected: 'clean' };
+    },
+  ],
+  [
+    '#readMergeable reads a pull request that conflicts with its base as conflict',
+    async (harness) => {
+      await harness.seed(buildOpen(12, 1));
+      await harness.seedMergeable({ ref: buildRef(12), mergeable: 'conflict' });
+
+      return { received: await harness.forge.readMergeable(buildRef(12)), expected: 'conflict' };
+    },
+  ],
+  [
+    '#readMergeable reads a pull request whose merge the forge has not worked out as unknown',
+    async (harness) => {
+      await harness.seed(buildOpen(13, 1));
+      await harness.seedMergeable({ ref: buildRef(13), mergeable: 'unknown' });
+
+      return { received: await harness.forge.readMergeable(buildRef(13)), expected: 'unknown' };
+    },
+  ],
+  [
+    '#readMergeable rejects for a pull request that does not exist',
+    async (harness) => ({
+      received: await toSettled(harness.forge.readMergeable(buildRef(404))),
+      expected: 'rejected',
+    }),
+  ],
+  [
+    '#mergeAtHead merges a clean pull request at its head, which then reads merged at that commit',
+    async (harness) => {
+      await harness.seed(buildOpen(14, 2));
+
+      const answer = await harness.forge.mergeAtHead(buildRef(14), buildSha(2), 'squash');
+      const reading = await harness.forge.readPullRequest(buildRef(14));
+
+      return {
+        received: [
+          answer.kind,
+          reading === 'not-found' ? reading : [reading.state, reading.mergeCommit],
+        ],
+        expected: ['merged', ['merged', answer.kind === 'merged' ? answer.mergeCommit : null]],
+      };
+    },
+  ],
+  [
+    '#mergeAtHead answers head-moved and merges nothing when the head is no longer the one given',
+    async (harness) => {
+      await harness.seed(buildOpen(15, 2));
+
+      const answer = await harness.forge.mergeAtHead(buildRef(15), buildSha(1), 'merge');
+      const reading = await harness.forge.readPullRequest(buildRef(15));
+
+      return {
+        received: [answer, reading === 'not-found' ? reading : reading.state],
+        expected: [{ kind: 'head-moved' }, 'open'],
+      };
+    },
+  ],
+  [
+    '#mergeAtHead answers not-mergeable for a pull request that conflicts with its base',
+    async (harness) => {
+      await harness.seed(buildOpen(16, 1));
+      await harness.seedMergeable({ ref: buildRef(16), mergeable: 'conflict' });
+
+      const answer = await harness.forge.mergeAtHead(buildRef(16), buildSha(1), 'rebase');
+
+      return { received: answer.kind, expected: 'not-mergeable' };
+    },
+  ],
+  [
+    '#mergeAtHead answers not-mergeable for a pull request closed with no merge',
+    async (harness) => {
+      const open = buildOpen(17, 1);
+
+      await harness.seed({ ...open, reading: { ...open.reading, state: 'closed' } });
+
+      const answer = await harness.forge.mergeAtHead(buildRef(17), buildSha(1), 'squash');
+
+      return { received: answer.kind, expected: 'not-mergeable' };
+    },
+  ],
+  [
+    '#mergeAtHead rejects for a pull request that does not exist',
+    async (harness) => ({
+      received: await toSettled(harness.forge.mergeAtHead(buildRef(404), buildSha(1), 'squash')),
+      expected: 'rejected',
+    }),
   ],
 ];
 
@@ -183,6 +315,13 @@ function buildRef(number: number, inRepo = repo): PullRequestRef {
   return { repo: inRepo, number };
 }
 
-function buildSha(index: number): ReturnType<typeof brandSchemas.commitSha.parse> {
+function buildSha(index: number): CommitSha {
   return brandSchemas.commitSha.parse(index.toString(16).padStart(40, '0'));
+}
+
+function toSettled(promise: Promise<unknown>): Promise<'resolved' | 'rejected'> {
+  return promise.then(
+    () => 'resolved',
+    () => 'rejected',
+  );
 }

@@ -42,6 +42,9 @@ export interface CheckReading {
   readonly source: 'check-run' | 'commit-status';
 }
 
+// `unknown`: the forge has not worked out yet whether the head merges into the base.
+export type MergeableState = 'clean' | 'conflict' | 'unknown';
+
 // What the merge job reads on each read. The job decides nothing.
 export interface MergeObservation {
   readonly pullRequest: PullRequestRef;
@@ -49,7 +52,7 @@ export interface MergeObservation {
   readonly head: CommitSha;
 
   // GitHub works the mergeable state out late, so `unknown` waits
-  readonly mergeable: 'clean' | 'conflict' | 'unknown';
+  readonly mergeable: MergeableState;
 
   // the latest run of each check name at `head`
   readonly checks: ReadonlyMap<string, CheckState>;

@@ -232,7 +232,7 @@ A pull request that merged before the watch ever listed it is not found by step 
 
 ## The GitHub adapter
 
-`@boxxy/forge-github` implements the forge port with `fetch`, a REST root and an optional token. A deployment whose broker adds the credential leaves the token out. The server builds the adapter from the `github.baseUrl` of its configuration and the optional `BOXXY_GITHUB_TOKEN`. With no `github` section, the hook's link answers `retry` and no watch runs. The adapter reads GitHub's own `id` of the pull request. A 404 for a pull request reads as `not-found`, and every other failure throws.
+`@boxxy/forge-github` implements the forge port with `fetch`, a REST root and an optional token. A deployment whose broker adds the credential leaves the token out. The server builds the adapter from the `github.baseUrl` of its configuration and the optional `BOXXY_GITHUB_TOKEN`. With no `github` section, the hook's link answers `retry` and no watch runs. The adapter reads GitHub's own `id` of the pull request. A 404 for `readPullRequest` reads as `not-found`. `mergeAtHead` reads GitHub's 409 as `head-moved`, and its 405 as `not-mergeable` with GitHub's message as the reason. Every other failure throws.
 
 | Call | Endpoint |
 | --- | --- |
@@ -241,11 +241,14 @@ A pull request that merged before the watch ever listed it is not found by step 
 | `readPullRequestBody` | `GET /repos/{owner}/{repo}/pulls/{number}` |
 | `readChecks` | `GET /repos/{owner}/{repo}/commits/{head}/check-runs?filter=latest` and `GET /repos/{owner}/{repo}/commits/{head}/status` |
 | `readChangedFiles` | `GET /repos/{owner}/{repo}/compare/{from}...{to}` |
+| `readRequiredChecks` | `GET /repos/{owner}/{repo}/rules/branches/{branch}` and `GET /repos/{owner}/{repo}/branches/{branch}` |
+| `readMergeable` | `GET /repos/{owner}/{repo}/pulls/{number}` |
+| `mergeAtHead` | `PUT /repos/{owner}/{repo}/pulls/{number}/merge` with `sha` and `merge_method` |
 
-A fine-grained token or an app needs these permissions on the repos, and a classic token needs `public_repo` or `repo`:
+A fine-grained token or an app needs these permissions on the repos for the watch, and a classic token needs `public_repo` or `repo`:
 
-- `Pull requests: read`, for the three pull request reads;
+- `Pull requests: read`, for the pull request reads;
 - `Checks: read` and `Commit statuses: read`, for `readChecks`;
 - `Contents: read`, for `readChangedFiles`.
 
-The merge step needs more permissions ([review, verify and merge](./review-and-merge.md#the-merge-step)). The adapter reads at most 2,000 open pull requests of a repo, 250 commits of a pull request and 300 check runs and 300 commit statuses at a head. `readChecks` gives each check name the state of its newest run and its source, a check run or a commit status. A check run wins over a commit status of the same name. A run that ended with no pass and no failure, such as `cancelled` or `skipped`, reads `other`.
+`readRequiredChecks` and `mergeAtHead` serve the merge step, which needs more permissions ([review, verify and merge](./review-and-merge.md#the-merge-step)). The adapter reads at most 2,000 open pull requests of a repo, 250 commits of a pull request and 300 check runs and 300 commit statuses at a head. `readChecks` gives each check name the state of its newest run and its source, a check run or a commit status. A check run wins over a commit status of the same name. A run that ended with no pass and no failure, such as `cancelled` or `skipped`, reads `other`.

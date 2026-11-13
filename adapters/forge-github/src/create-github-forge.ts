@@ -1,16 +1,20 @@
 import type { Forge } from '@boxxy/model';
+import { readRequiredChecks } from './branches/read-required-checks.ts';
 import { readChecks } from './checks/read-checks.ts';
 import { forgeLimits } from './constants.ts';
 import { createGithubClient } from './create-github-client.ts';
 import { GithubForgeError } from './github-forge-error.ts';
 import { githubSchemas } from './github-schemas.ts';
+import { mergeAtHead } from './pull-requests/merge-at-head.ts';
+import { readMergeable } from './pull-requests/read-mergeable.ts';
 import { readPullRequestBody } from './pull-requests/read-pull-request-body.ts';
 import { toPullPath } from './pull-requests/to-pull-path.ts';
 import { toPullRequestReading } from './pull-requests/to-pull-request-reading.ts';
 import type { GithubForgeOptions } from './types.ts';
 
 // The `Forge` port on the GitHub REST API. A call that fails for any reason but a missing pull
-// request throws, and the caller reads that as "the forge did not answer".
+// request or a merge that GitHub refused throws, and the caller reads that as "the forge did not
+// answer".
 export function createGithubForge(options: GithubForgeOptions): Forge {
   const client = createGithubClient(options);
 
@@ -43,6 +47,9 @@ export function createGithubForge(options: GithubForgeOptions): Forge {
     },
     readPullRequestBody: (ref) => readPullRequestBody(client, ref),
     readChecks: (repo, head) => readChecks(client, repo, head),
+    readRequiredChecks: (repo, branch) => readRequiredChecks(client, repo, branch),
+    readMergeable: (ref) => readMergeable(client, ref),
+    mergeAtHead: (ref, head, method) => mergeAtHead(client, ref, head, method),
 
     // GitHub's compare lists at most 300 files, and a paged compare lists them on its first page
     // only, so one call reads every file it gives

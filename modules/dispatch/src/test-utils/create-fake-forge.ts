@@ -4,10 +4,12 @@ import type {
   CheckState,
   CommitSha,
   Forge,
+  MergeableState,
   PullRequestReading,
   PullRequestRef,
   RepoName,
 } from '@boxxy/model';
+import { brandSchemas } from '@boxxy/model';
 
 // A pull request as a test puts it on a forge. The url is the one GitHub gives.
 export interface SeededPullRequest {
@@ -36,6 +38,20 @@ export interface SeededCompare {
   readonly files: readonly ChangedFile[];
 }
 
+// The checks that a branch requires, as a test puts them on a forge. A branch with none seeded
+// does not exist.
+export interface SeededRequiredChecks {
+  readonly repo: RepoName;
+  readonly branch: string;
+  readonly checks: readonly string[];
+}
+
+// Whether a pull request merges into its base; a pull request with none seeded is `clean`.
+export interface SeededMergeable {
+  readonly ref: PullRequestRef;
+  readonly mergeable: MergeableState;
+}
+
 export interface ReadHold {
   readonly entered: Promise<void>;
   readonly release: () => void;
@@ -51,6 +67,8 @@ export interface FakeForge extends Forge {
 
   // the checks at a head; a head with none seeded has no runs
   seedChecks: (checks: SeededChecks) => void;
+  seedRequiredChecks: (required: SeededRequiredChecks) => void;
+  seedMergeable: (mergeable: SeededMergeable) => void;
 
   // while down, every call rejects, as a forge that does not answer
   setDown: (isDown: boolean) => void;
@@ -60,14 +78,20 @@ export interface FakeForge extends Forge {
   holdNextRead: () => ReadHold;
 }
 
+// a fixed time, because a module reads no clock
+const mergedAtMs = brandSchemas.instant.parse(1_900_000_000_000);
+
 // A forge that keeps the pull requests a test seeds and answers as the `Forge` contract says.
 export function createFakeForge(): FakeForge {
   const pullRequests = new Map<string, SeededPullRequest>();
   const compares = new Map<string, readonly ChangedFile[]>();
   const checksByHead = new Map<string, ReadonlyMap<string, CheckReading>>();
+  const requiredByBranch = new Map<string, readonly string[]>();
+  const mergeableByPullRequest = new Map<string, MergeableState>();
 
   const calls: string[] = [];
   let isDown = false;
+  let mergeCount = 0;
   let hold: { readonly entered: () => void; readonly released: Promise<void> } | null = null;
 
   const answerRead = (ref: PullRequestRef): Promise<PullRequestReading | 'not-found'> => {
@@ -109,6 +133,12 @@ export function createFakeForge(): FakeForge {
         toHeadKey(seeded.repo, seeded.head),
         new Map<string, CheckReading>([...statuses, ...runs]),
       );
+    },
+    seedRequiredChecks: (required) => {
+      requiredByBranch.set(toBranchKey(required.repo, required.branch), required.checks);
+    },
+    seedMergeable: (seeded) => {
+      mergeableByPullRequest.set(toKey(seeded.ref), seeded.mergeable);
     },
     setDown: (down) => {
       isDown = down;
@@ -202,6 +232,65 @@ export function createFakeForge(): FakeForge {
 
       return Promise.resolve(checks);
     },
+    readRequiredChecks: (repo, branch) => {
+      calls.push(`readRequiredChecks ${repo} ${branch}`);
+
+      if (isDown) {
+        return Promise.reject(new Error('the fake forge is down'));
+      }
+
+      const required = requiredByBranch.get(toBranchKey(repo, branch));
+
+      // GitHub answers 404 to a branch it does not hold
+      return required === undefined
+        ? Promise.reject(new Error(`the fake forge holds no branch ${branch}`))
+        : Promise.resolve([...required]);
+    },
+    readMergeable: (ref) => {
+      calls.push(`readMergeable ${toKey(ref)}`);
+
+      if (isDown) {
+        return Promise.reject(new Error('the fake forge is down'));
+      }
+
+      return pullRequests.has(toKey(ref))
+        ? Promise.resolve(mergeableByPullRequest.get(toKey(ref)) ?? 'clean')
+        : Promise.reject(new Error(`the fake forge holds no pull request ${toKey(ref)}`));
+    },
+    mergeAtHead: (ref, head, method) => {
+      calls.push(`mergeAtHead ${toKey(ref)} ${head} ${method}`);
+
+      if (isDown) {
+        return Promise.reject(new Error('the fake forge is down'));
+      }
+
+      const found = pullRequests.get(toKey(ref));
+
+      if (found === undefined) {
+        return Promise.reject(new Error(`the fake forge holds no pull request ${toKey(ref)}`));
+      }
+
+      if (found.reading.commits.at(-1)?.sha !== head) {
+        return Promise.resolve({ kind: 'head-moved' });
+      }
+
+      const mergeable = mergeableByPullRequest.get(toKey(ref)) ?? 'clean';
+
+      if (found.reading.state !== 'open' || mergeable !== 'clean') {
+        return Promise.resolve({ kind: 'not-mergeable', reason: 'Pull Request is not mergeable' });
+      }
+
+      mergeCount += 1;
+
+      const mergeCommit = brandSchemas.commitSha.parse(mergeCount.toString(16).padStart(40, 'e'));
+
+      pullRequests.set(toKey(ref), {
+        ...found,
+        reading: { ...found.reading, state: 'merged', mergedAt: mergedAtMs, mergeCommit },
+      });
+
+      return Promise.resolve({ kind: 'merged', mergeCommit });
+    },
   };
 }
 
@@ -216,4 +305,9 @@ function toCompareKey(repo: RepoName, from: CommitSha, to: CommitSha): string {
 
 function toHeadKey(repo: RepoName, head: CommitSha): string {
   return `${repo.toLowerCase()} ${head}`;
+}
+
+// a branch name is case-sensitive on GitHub
+function toBranchKey(repo: RepoName, branch: string): string {
+  return `${repo.toLowerCase()} ${branch}`;
 }

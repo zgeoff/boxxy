@@ -1,0 +1,36 @@
+[
+  {
+    "type": "deletion",
+    "ruleset_source_type": "Repository",
+    "ruleset_source": "acme/lamps",
+    "ruleset_id": 3100001
+  },
+  {
+    "type": "pull_request",
+    "ruleset_source_type": "Repository",
+    "ruleset_source": "acme/lamps",
+    "ruleset_id": 3100001,
+    "parameters": {
+      "required_approving_review_count": 0,
+      "dismiss_stale_reviews_on_push": false,
+      "require_code_owner_review": false,
+      "require_last_push_approval": false,
+      "required_review_thread_resolution": false,
+      "allowed_merge_methods": ["squash"]
+    }
+  },
+  {
+    "type": "required_status_checks",
+    "ruleset_source_type": "Organization",
+    "ruleset_source": "acme",
+    "ruleset_id": 3100002,
+    "parameters": {
+      "strict_required_status_checks_policy": false,
+      "do_not_enforce_on_create": false,
+      "required_status_checks": [
+        { "context": "build", "integration_id": 4200001 },
+        { "context": "verify / gate", "integration_id": 4200001 }
+      ]
+    }
+  }
+]

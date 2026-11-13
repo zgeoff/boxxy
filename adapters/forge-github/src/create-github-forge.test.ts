@@ -1,96 +1,132 @@
 import { expect, test } from 'bun:test';
 import { forgeContract } from '@boxxy/dispatch/test-utils/forge-contract';
 import { brandSchemas } from '@boxxy/model';
+import { HttpResponse, http } from 'msw';
 import { createGithubForge } from './create-github-forge.ts';
 import { GithubForgeError } from './github-forge-error.ts';
-import { createFakeGithubFetch } from './test-utils/create-fake-github-fetch.ts';
+import { buildGithubSeeders } from './test-utils/build-github-seeders.ts';
+import { GITHUB_API_URL } from './test-utils/github-handlers.ts';
+import { mockNetwork } from './test-utils/mock-network.ts';
 
-function setupTest(token?: string) {
-  const github = createFakeGithubFetch();
-
-  const forge = createGithubForge({
-    fetch: github.fetch,
-    baseUrl: 'https://api.github.test/',
-    ...(token === undefined ? {} : { token }),
-  });
-
+function setupTest() {
+  const forge = createGithubForge({ fetch: globalThis.fetch, baseUrl: GITHUB_API_URL });
   const repo = brandSchemas.repoName.parse('acme/lamps');
 
-  return { github, forge, repo, ref: { repo, number: 7 } };
+  return {
+    forge,
+    repo,
+    ref: { repo, number: 7 },
+    harness: { forge, ...buildGithubSeeders() },
+  };
 }
 
 test.each(forgeContract)('it keeps the forge contract: %s', async (_title, check) => {
   const ctx = setupTest();
 
-  const outcome = await check({
-    forge: ctx.forge,
-    seed: ctx.github.seed,
-    seedCompare: ctx.github.seedCompare,
-  });
+  const outcome = await check(ctx.harness);
 
   expect(outcome.received).toStrictEqual(outcome.expected);
 });
 
 test('it sends the token as a bearer token when it has one', async () => {
-  const ctx = setupTest('token-for-tests');
+  const ctx = setupTest();
+  const sent: (string | null)[] = [];
 
-  await ctx.forge.readPullRequest(ctx.ref);
+  const forge = createGithubForge({
+    fetch: globalThis.fetch,
+    baseUrl: GITHUB_API_URL,
+    token: 'token-for-tests',
+  });
 
-  expect(ctx.github.requests.map((request) => request.headers['authorization'])).toStrictEqual([
-    'Bearer token-for-tests',
-  ]);
+  mockNetwork.use(
+    http.get(`${GITHUB_API_URL}/repos/acme/lamps/pulls/7`, (info) => {
+      sent.push(info.request.headers.get('authorization'));
+
+      return HttpResponse.json({ message: 'Not Found' }, { status: 404 });
+    }),
+  );
+
+  await forge.readPullRequest(ctx.ref);
+
+  expect(sent).toStrictEqual(['Bearer token-for-tests']);
 });
 
 test('it sends no authorization header without a token', async () => {
   const ctx = setupTest();
+  const sent: boolean[] = [];
+
+  mockNetwork.use(
+    http.get(`${GITHUB_API_URL}/repos/acme/lamps/pulls/7`, (info) => {
+      sent.push(info.request.headers.has('authorization'));
+
+      return HttpResponse.json({ message: 'Not Found' }, { status: 404 });
+    }),
+  );
 
   await ctx.forge.readPullRequest(ctx.ref);
 
-  expect(ctx.github.requests.map((request) => 'authorization' in request.headers)).toStrictEqual([
-    false,
-  ]);
+  expect(sent).toStrictEqual([false]);
 });
 
 test('it asks for the pull request at the base URL without a double slash', async () => {
   const ctx = setupTest();
+  const urls: string[] = [];
+  const forge = createGithubForge({ fetch: globalThis.fetch, baseUrl: `${GITHUB_API_URL}/` });
 
-  await ctx.forge.readPullRequest(ctx.ref);
+  mockNetwork.use(
+    http.get(`${GITHUB_API_URL}/*`, (info) => {
+      urls.push(info.request.url);
 
-  expect(ctx.github.requests.map((request) => request.url)).toStrictEqual([
-    'https://api.github.test/repos/acme/lamps/pulls/7',
-  ]);
+      return HttpResponse.json({ message: 'Not Found' }, { status: 404 });
+    }),
+  );
+
+  await forge.readPullRequest(ctx.ref);
+
+  expect(urls).toStrictEqual(['https://api.github.test/repos/acme/lamps/pulls/7']);
 });
 
-test('it throws an error that names the status and holds no token for a server error', async () => {
-  const ctx = setupTest('token-for-tests');
+test('it throws an error that names the status and holds no token for a server error', () => {
+  const ctx = setupTest();
 
-  ctx.github.answerWith(503, 'unavailable');
+  const forge = createGithubForge({
+    fetch: globalThis.fetch,
+    baseUrl: GITHUB_API_URL,
+    token: 'token-for-tests',
+  });
 
-  const failure = await ctx.forge.readPullRequest(ctx.ref).catch((error: unknown) => error);
+  mockNetwork.use(
+    http.get(`${GITHUB_API_URL}/repos/acme/lamps/pulls/7`, () =>
+      HttpResponse.text('unavailable', { status: 503 }),
+    ),
+  );
 
-  expect(failure).toBeInstanceOf(GithubForgeError);
-
-  expect(String(failure)).toBe(
-    'GithubForgeError: GitHub answered 503 to GET /repos/acme/lamps/pulls/7',
+  expect(forge.readPullRequest(ctx.ref)).rejects.toThrowWithMessage(
+    GithubForgeError,
+    'GitHub answered 503 to GET /repos/acme/lamps/pulls/7',
   );
 });
 
-test('it throws for a body that is not a pull request', async () => {
+test('it throws for a body that is not a pull request', () => {
   const ctx = setupTest();
 
-  ctx.github.answerWith(200, JSON.stringify({ id: 'seven' }));
+  mockNetwork.use(
+    http.get(`${GITHUB_API_URL}/repos/acme/lamps/pulls/7`, () =>
+      HttpResponse.json({ id: 'seven' }),
+    ),
+  );
 
-  const failure = await ctx.forge.readPullRequest(ctx.ref).catch((error: unknown) => error);
-
-  expect(String(failure)).toMatch(/unknown body/u);
+  expect(ctx.forge.readPullRequest(ctx.ref)).rejects.toThrow(/unknown body/u);
 });
 
-test('it throws for an open pull request list of a repo GitHub does not know', async () => {
+test('it throws for an open pull request list of a repo GitHub does not know', () => {
   const ctx = setupTest();
 
-  ctx.github.answerWith(404, '{}');
+  mockNetwork.use(
+    http.get(`${GITHUB_API_URL}/repos/acme/lamps/pulls`, () =>
+      HttpResponse.json({ message: 'Not Found' }, { status: 404 }),
+    ),
+  );
 
-  const failure = await ctx.forge.listOpenPullRequests(ctx.repo).catch((error: unknown) => error);
-
-  expect(String(failure)).toMatch(/did not find/u);
+  expect(ctx.forge.listOpenPullRequests(ctx.repo)).rejects.toThrow(/did not find/u);
 });
