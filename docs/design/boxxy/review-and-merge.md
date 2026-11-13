@@ -106,7 +106,6 @@ The verdict reaches the merge in three steps, and only the last one decides the 
 3. The merge job calls `Verifier.readAt(pullRequest, head)`. The wringer adapter builds the `VerifyReading` from the latest `verify / gate` run at the head and the report in the body. A head with no gate check run that passed or failed reads `not-covered`, never `verified`; a cancelled or skipped run gave no verdict. A commit status of the gate's name never counts, because any token that may write statuses can post one. `decideMerge` reads only this reading, so a `verified` close-out with no green gate never merges.
 
 [wringer journeys](./wringer-journeys.md) owns what the grading agent does, the report, and the `verify / gate` workflow. The workflow runs on `pull_request` with the types `opened`, `synchronize`, `reopened` and `edited`, because the report lives in the body.
-- **pepys compares the two graders by recipe.** The owner gives one item kind the `session: builder` recipe and another the `session: fresh` recipe. When the build's kept session is gone, a `session: builder` attempt runs on a fresh session, and its `started` fact carries `resumeFallback: true`, so a comparison can leave it out. When the fresh start's reply is lost, the runner's reconcile writes `reconciled` in place of `started`, and that fact carries the same flag.
 
 ## The merge step
 
@@ -174,6 +173,8 @@ The fact catalog of 30 types holds three for these steps: `boxxy.attempt.job_sta
 - each merge close-out, with the verify reading.
 
 pepys's stage-time query reads the review outcomes `passed` and `changes-requested`. For an item with a merge phase, the query starts the merge step when the runner claims the item's first merge attempt after its latest passed review. For an item with no merge attempt after that review, the merge step starts at the review's end. The query also returns the sum of the item's `unrelatedLines` ([`boxxy_stage_time`](./v1-facts-and-pepys.md#boxxy_stage_time)). A review's close-out carries tokens per model, and pepys prices them as it prices telemetry.
+
+pepys compares the two graders by recipe. The owner gives one item kind the `session: builder` recipe and another the `session: fresh` recipe. When the build's kept session is gone, a `session: builder` attempt runs on a fresh session, and its `started` fact carries `resumeFallback: true`, so a comparison can leave it out. When the fresh start's reply is lost, the runner's reconcile writes `reconciled` in place of `started`, and that fact carries the same flag.
 
 ## What the owner sees
 
