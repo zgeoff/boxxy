@@ -14,7 +14,13 @@ export const stageTimeSchema = z.object({
 
   // always one per stage step, in the order of `stageSteps`
   steps: z.array(stepSchema),
-  rework: z.object({ count: z.number().int(), minutes: z.number() }),
+  rework: z.object({
+    count: z.number().int(),
+    minutes: z.number(),
+
+    // the sum of `unrelatedLines` over the item's reviews; null when no review recorded one
+    unrelatedLines: z.number().int().nullable(),
+  }),
   reviewWaitMinutes: z.number().nullable(),
   sleepMinutes: z.number(),
   pullRequests: z.array(z.string()),

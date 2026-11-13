@@ -31,6 +31,7 @@ CREATE TABLE "boxxy_attempt" (
   "started_at" TEXT,
   "closed_out_at" TEXT,
   "ended_at" TEXT,
+  "unrelated_lines" INTEGER,
   "sleeps" TEXT NOT NULL,
   "updated_at" TEXT NOT NULL,
   PRIMARY KEY ("id")

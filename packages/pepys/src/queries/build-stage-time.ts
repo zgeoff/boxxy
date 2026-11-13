@@ -2,12 +2,12 @@ import { phaseSteps } from '@boxxy/model';
 import type { StageTime } from '@boxxy/model';
 import { z } from 'zod';
 import { noCapacityFailure, outcomeNames } from './constants.ts';
-import type { AttemptReadRow, DeliveryReadRow } from './types.ts';
+import type { DeliveryReadRow, StageAttemptReadRow } from './types.ts';
 
 interface StageParts {
   readonly item: string;
   readonly environment: string;
-  readonly attempts: readonly AttemptReadRow[];
+  readonly attempts: readonly StageAttemptReadRow[];
   readonly deliveries: readonly DeliveryReadRow[];
 }
 
@@ -31,7 +31,7 @@ export function buildStageTime(parts: StageParts): StageTime {
   return {
     item: parts.item,
     environment: parts.environment,
-    steps: [...phases, ...buildDeliverySteps(settled, parts.deliveries)],
+    steps: [...phases, ...buildDeliverySteps(attempts, settled, parts.deliveries)],
     rework: {
       count: settled.filter(
         (attempt) =>
@@ -42,6 +42,7 @@ export function buildStageTime(parts: StageParts): StageTime {
           .filter((attempt) => attempt.round > 1)
           .map((attempt) => measureAttemptMinutes(attempt)),
       ),
+      unrelatedLines: sumUnrelatedLines(attempts),
     },
     reviewWaitMinutes: measureReviewWait(attempts),
     sleepMinutes: sumOf(
@@ -56,11 +57,11 @@ interface SleepStretch {
   readonly to: string | null;
 }
 
-interface MeasuredAttempt extends AttemptReadRow {
+interface MeasuredAttempt extends StageAttemptReadRow {
   readonly stretches: readonly SleepStretch[];
 }
 
-function toMeasuredAttempt(attempt: AttemptReadRow): MeasuredAttempt {
+function toMeasuredAttempt(attempt: StageAttemptReadRow): MeasuredAttempt {
   return { ...attempt, stretches: parseSleeps(attempt.sleeps) };
 }
 
@@ -130,10 +131,10 @@ function pickTime(
   return best;
 }
 
-// Merge starts at the latest end of a review that passed. A review that settled `unsettleable`
-// starts no merge step: boxxy could not read whether it passed. Release and deploy start at the
-// step before. An item with two pull requests takes the earliest of each time.
+// A review that settled `unsettleable` starts no merge step: boxxy could not read whether it
+// passed. An item with two pull requests takes the earliest of each time.
 function buildDeliverySteps(
+  attempts: readonly MeasuredAttempt[],
   settled: readonly MeasuredAttempt[],
   deliveries: readonly DeliveryReadRow[],
 ): Step[] {
@@ -143,15 +144,30 @@ function buildDeliverySteps(
       .map((attempt) => attempt.ended_at),
   );
 
+  const mergeStart = passed === null ? null : pickMergeStart(attempts, passed);
   const mergedAt = findEarliest(deliveries.map((delivery) => delivery.mergedAt));
   const releasedAt = findEarliest(deliveries.map((delivery) => delivery.release?.at ?? null));
   const deployedAt = findEarliest(deliveries.map((delivery) => delivery.deploy?.at ?? null));
 
   return [
-    buildDeliveryStep('merge', passed, mergedAt),
+    buildDeliveryStep('merge', mergeStart, mergedAt),
     buildDeliveryStep('release', mergedAt, releasedAt),
     buildDeliveryStep('deploy', releasedAt, deployedAt),
   ];
+}
+
+// A merge attempt claimed before the review passed belongs to an earlier head, and a live one
+// counts too: its claim is the start.
+function pickMergeStart(attempts: readonly MeasuredAttempt[], passed: string): string {
+  const claimed = findEarliest(
+    attempts
+      .filter(
+        (attempt) => attempt.phase === 'merge' && measureMinutes(passed, attempt.claimed_at) >= 0,
+      )
+      .map((attempt) => attempt.claimed_at),
+  );
+
+  return claimed ?? passed;
 }
 
 function findEarliest(times: readonly (string | null)[]): string | null {
@@ -164,6 +180,15 @@ function buildDeliveryStep(step: Step['step'], from: string | null, to: string |
     minutes: from === null || to === null ? null : Math.max(0, measureMinutes(from, to)),
     endedAt: to,
   };
+}
+
+// The first review of an item counts no unrelated lines, so it records null.
+function sumUnrelatedLines(attempts: readonly MeasuredAttempt[]): number | null {
+  const counts = attempts.flatMap((attempt) =>
+    attempt.phase === 'review' && attempt.unrelated_lines !== null ? [attempt.unrelated_lines] : [],
+  );
+
+  return counts.length === 0 ? null : sumOf(counts);
 }
 
 interface SettledAttempt extends MeasuredAttempt {

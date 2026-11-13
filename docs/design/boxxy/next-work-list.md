@@ -85,6 +85,7 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 - **Follows:** [facts and pepys](./review-and-merge.md#facts-and-pepys).
 - **Needs:** slices 3 and 8.
 - **Check:** a stage-time query test, and a query test that reads `unrelatedLines` from two review close-outs.
+- **Built:** `buildStageTime` in `@boxxy/pepys` starts the merge step at the claim of the first `merge` attempt claimed at or after the latest end of a passed review, a live attempt too, and at that review's end when no such attempt exists. The `boxxy_work` consumer gains the `unrelated_lines` column on `boxxy_attempt`, which the fold copies from a review close-out's `unrelatedLines`, and the package's glue is regenerated. `stageTimeSchema` in `@boxxy/model` gains `rework.unrelatedLines`, the sum over the item's reviews, null when no review recorded one. A boxxy server with this reader refuses the answer of an older `@boxxy/pepys`, so the pepys deployment takes the new package first. The `build-stage-time` tests cover the merge start, its fallback and the sum, the `build-stage-time-query` test reads two review close-outs and a merge claim from applied facts, and the item-to-merge system test reads the sum through the CLI. No pepys query reads `resumeFallback`: [the verifier](./review-and-merge.md#the-verifier) names the grader comparison and specifies no query for it.
 
 ### 10. The merge-and-hold journey
 

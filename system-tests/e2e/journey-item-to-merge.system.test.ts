@@ -460,7 +460,7 @@ test('it takes an item through triage, design, build, review, one rework round a
         { step: 'release', minutes: null, endedAt: null },
         { step: 'deploy', minutes: null, endedAt: null },
       ],
-      rework: { count: 1, minutes: 12 + 6 },
+      rework: { count: 1, minutes: 12 + 6, unrelatedLines: 3 },
       reviewWaitMinutes: 3 + 2,
       sleepMinutes: 0,
       pullRequests: ['github:pull_request:9000007'],

@@ -68,7 +68,7 @@ export const pepysReaderContract: readonly PepysReaderCase[] = [
               { step: 'release', ...empty },
               { step: 'deploy', ...empty },
             ],
-            rework: { count: 0, minutes: 0 },
+            rework: { count: 0, minutes: 0, unrelatedLines: null },
             reviewWaitMinutes: null,
             sleepMinutes: 0,
             pullRequests: [],

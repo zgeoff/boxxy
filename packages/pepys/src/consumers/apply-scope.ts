@@ -81,6 +81,7 @@ function buildAttemptOperations(item: BoxxyItemID, attempt: AttemptFold): BoxxyW
           started_at: attempt.started_at,
           closed_out_at: attempt.closed_out_at,
           ended_at: attempt.ended_at,
+          unrelated_lines: attempt.unrelated_lines,
           sleeps: attempt.sleeps,
           updated_at: attempt.updated_at,
         },

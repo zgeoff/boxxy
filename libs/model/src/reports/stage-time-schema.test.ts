@@ -9,7 +9,7 @@ test('it accepts the stage times of an item that has not reached deploy', () => 
       { step: 'triage', minutes: 4, endedAt: '2026-01-05T02:04:00.000Z' },
       { step: 'deploy', minutes: null, endedAt: null },
     ],
-    rework: { count: 1, minutes: 38 },
+    rework: { count: 1, minutes: 38, unrelatedLines: 12 },
     reviewWaitMinutes: null,
     sleepMinutes: 0,
     pullRequests: ['github:pull_request:9001'],

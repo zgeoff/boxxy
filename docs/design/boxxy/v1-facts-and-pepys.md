@@ -119,13 +119,14 @@ Each query reads plain rows of its tables with one statement per table, and a bu
 
 ### `boxxy_stage_time`
 
-The query returns seven steps: triage, design, build, review, merge, release and deploy. It also returns the rework count and minutes, the wait for review, and the time the item's attempts slept. A step that has not happened has null minutes.
+The query returns seven steps: triage, design, build, review, merge, release and deploy. It also returns the rework count, minutes and unrelated lines, the wait for review, and the time the item's attempts slept. A step that has not happened has null minutes.
 
 - The four phases come from the item's attempts. A phase's minutes are the sum over its settled attempts of the time from claim to end, less the attempt's sleep.
-- Merge, release and deploy come from the GitHub plug-in's delivery module, reached through the `produced` link. In v1, boxxy starts none of them.
-- Merge starts at the latest end of a review that passed. With a merge phase, it starts at the claim of the first merge attempt after that review ([review, verify and merge](./review-and-merge.md#facts-and-pepys)). A review that settled `unsettleable` starts no merge step, because boxxy could not read whether it passed, so such an item has null merge minutes after its pull request merged. Release starts at the merge, and deploy at the release. An item with two pull requests takes the earliest time of each step.
+- The ends of merge, release and deploy come from the GitHub plug-in's delivery module, reached through the `produced` link. The minutes of verify and merge attempts count in no phase step.
+- Merge starts at the claim of the first merge attempt claimed at or after the latest end of a review that passed, a live attempt too. With no such attempt, as for an item with no merge phase, merge starts at that review's end ([review, verify and merge](./review-and-merge.md#facts-and-pepys)). A review that settled `unsettleable` starts no merge step, because boxxy could not read whether it passed, so such an item has null merge minutes after its pull request merged. Release starts at the merge, and deploy at the release. An item with two pull requests takes the earliest time of each step.
 - An attempt that failed with `no-capacity` is in no measure. Every other attempt counts, a `usage-limit` one too.
 - The rework count is the number of reviews that asked for changes. The highest round less one is a different number.
+- The unrelated lines are the sum of `unrelatedLines` over the item's review close-outs, which the consumer copies into `boxxy_attempt`. The first review records null, so an item with no later review has null unrelated lines ([the review gate](./review-and-merge.md#the-review-gate)).
 - The wait for review of a build that was built runs from its end to the claim of the first review claimed after that end. The claim times give the order, because an attempt's number counts within its own phase.
 - An open sleep counts 0 minutes, because the query reads no clock.
 - The query names three outcome names of the phase kinds. A phase kind that renames one must change the query.

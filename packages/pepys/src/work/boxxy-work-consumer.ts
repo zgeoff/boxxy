@@ -44,6 +44,9 @@ export const boxxyWorkConsumer = defineConsumer({
         closed_out_at: { kind: 'timestamp', nullable: true },
         ended_at: { kind: 'timestamp', nullable: true },
 
+        // a review's count of changed lines outside the files of the earlier review's findings
+        unrelated_lines: { kind: 'integer', nullable: true },
+
         // the stretches of sleep, `{ from, to }` with `to` null while asleep: the entry file does
         // no date arithmetic, so the queries add them up
         sleeps: { kind: 'json' },

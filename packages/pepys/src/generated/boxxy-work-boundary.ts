@@ -3323,6 +3323,7 @@ export interface BoxxyAttemptRow {
   started_at: string | null;
   closed_out_at: string | null;
   ended_at: string | null;
+  unrelated_lines: number | null;
   sleeps: unknown;
   updated_at: string;
 }

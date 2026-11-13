@@ -59,12 +59,8 @@ const sessionTypes = z.enum([
 ]);
 
 const markPayload = z.object(ofAttempt);
-
-const markTypes = z.enum([
-  'boxxy.attempt.slept',
-  'boxxy.attempt.woken',
-  'boxxy.attempt.closed_out',
-]);
+const markTypes = z.enum(['boxxy.attempt.slept', 'boxxy.attempt.woken']);
+const closedOutPayload = z.object({ ...ofAttempt, closeOut: z.unknown() });
 
 const scopeFactSchema: z.ZodType<WorkFact> = z.discriminatedUnion('type', [
   z.object({ ...base, type: z.literal('boxxy.item.filed'), payload: filedPayload }),
@@ -74,6 +70,7 @@ const scopeFactSchema: z.ZodType<WorkFact> = z.discriminatedUnion('type', [
   z.object({ ...base, type: sessionTypes, payload: sessionPayload }),
   z.object({ ...base, type: z.literal('boxxy.attempt.session_bound'), payload: boundPayload }),
   z.object({ ...base, type: markTypes, payload: markPayload }),
+  z.object({ ...base, type: z.literal('boxxy.attempt.closed_out'), payload: closedOutPayload }),
   z.object({ ...base, type: z.literal('boxxy.attempt.settled'), payload: settledPayload }),
   z.object({ ...base, type: z.literal('boxxy.pull_request.linked'), payload: linkedPayload }),
 ]);

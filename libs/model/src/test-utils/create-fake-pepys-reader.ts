@@ -65,7 +65,7 @@ function buildEmptyStageTime(item: ItemId, environment: string): StageTime {
     item: `boxxy:item:${item}`,
     environment,
     steps: stageSteps.map((step) => ({ step, minutes: null, endedAt: null })),
-    rework: { count: 0, minutes: 0 },
+    rework: { count: 0, minutes: 0, unrelatedLines: null },
     reviewWaitMinutes: null,
     sleepMinutes: 0,
     pullRequests: [],

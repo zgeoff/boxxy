@@ -47,6 +47,7 @@ test('it folds the facts of an item into its rows, its session rows and its link
     started_at: '2026-11-11T02:10:05.000Z',
     closed_out_at: '2026-11-11T03:09:00.000Z',
     ended_at: '2026-11-11T03:10:00.000Z',
+    unrelated_lines: null,
     sleeps: [{ from: '2026-11-11T02:30:00.000Z', to: '2026-11-11T02:50:00.000Z' }],
     updated_at: '2026-11-11T03:10:00.000Z',
     claimedFact: 'event:boxxy:f05',

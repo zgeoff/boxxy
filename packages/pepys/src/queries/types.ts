@@ -25,6 +25,11 @@ export interface AttemptReadRow {
   sleeps: unknown;
 }
 
+// the stage-time query reads a review's unrelated lines too
+export interface StageAttemptReadRow extends AttemptReadRow {
+  unrelated_lines: number | null;
+}
+
 // A row of `boxxy_attempt_session` for every session that an attempt of the item used, with the
 // rows of the other attempts, of any item, that used the same session.
 export interface BindingReadRow {

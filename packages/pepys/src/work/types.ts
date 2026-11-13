@@ -53,10 +53,17 @@ interface SessionBoundFact extends FactBase {
   payload: { attempt: string; atcSession: string; agentSession: string; product: string };
 }
 
-// `slept`, `woken` and `closed_out`: the fold reads the attempt and the time
+// `slept` and `woken`: the fold reads the attempt and the time
 export interface AttemptMarkFact extends FactBase {
-  type: 'boxxy.attempt.slept' | 'boxxy.attempt.woken' | 'boxxy.attempt.closed_out';
+  type: 'boxxy.attempt.slept' | 'boxxy.attempt.woken';
   payload: { attempt: string };
+}
+
+// The glue types the close-out as `unknown`, so the fold narrows it to a review's
+// `unrelatedLines`.
+export interface AttemptClosedOutFact extends FactBase {
+  type: 'boxxy.attempt.closed_out';
+  payload: { attempt: string; closeOut?: unknown };
 }
 
 export interface AttemptSettledFact extends FactBase {
@@ -106,6 +113,7 @@ export type WorkFact =
   | AttemptSessionFact
   | SessionBoundFact
   | AttemptMarkFact
+  | AttemptClosedOutFact
   | AttemptSettledFact
   | PullRequestLinkedFact
   | PassedOverFact;
@@ -148,6 +156,7 @@ export interface AttemptFold {
   started_at: string | null;
   closed_out_at: string | null;
   ended_at: string | null;
+  unrelated_lines: number | null;
   sleeps: SleepStretch[];
   updated_at: string;
 

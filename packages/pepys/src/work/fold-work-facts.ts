@@ -1,7 +1,7 @@
 import type {
   AttemptClaimedFact,
+  AttemptClosedOutFact,
   AttemptFold,
-  AttemptMarkFact,
   AttemptSessionFact,
   AttemptSettledFact,
   ItemClosedFact,
@@ -45,7 +45,7 @@ interface AttemptDraft {
 
   // the latest `started`, `reconciled` or `resumed`: the caller
   caller: AttemptSessionFact | undefined;
-  closedOut: AttemptMarkFact | undefined;
+  closedOut: AttemptClosedOutFact | undefined;
   settled: AttemptSettledFact | undefined;
   slept: Stamp[];
   woken: Stamp[];
@@ -284,7 +284,7 @@ function toTelemetrySession(atcSession: string): string {
   return atcSession.slice(atcSession.lastIndexOf('.') + 1);
 }
 
-function layClosedOut(draft: AttemptDraft, fact: AttemptMarkFact): void {
+function layClosedOut(draft: AttemptDraft, fact: AttemptClosedOutFact): void {
   if (draft.closedOut === undefined || isEarlier(fact, draft.closedOut)) {
     draft.closedOut = fact;
   }
@@ -395,12 +395,24 @@ function buildAttemptFold(draft: AttemptDraft, claimed: AttemptClaimedFact): Att
     started_at: draft.started === undefined ? null : draft.started.at,
     closed_out_at: draft.closedOut === undefined ? null : draft.closedOut.at,
     ended_at: settled === undefined ? null : settled.at,
+    unrelated_lines: findUnrelatedLines(draft.closedOut),
     sleeps: pairSleeps(draft.slept, draft.woken, settled),
     updated_at: draft.updatedAt,
     claimedFact: claimed.id,
     sessions: collectSessionFolds(draft.sessions, caller),
     pullRequests: collectPullRequestFolds(draft.pullRequests),
   };
+}
+
+// Only a review close-out holds the count, and the first review of an item holds null.
+function findUnrelatedLines(closedOut: AttemptClosedOutFact | undefined): number | null {
+  const closeOut = closedOut === undefined ? undefined : closedOut.payload.closeOut;
+
+  if (typeof closeOut !== 'object' || closeOut === null || !('unrelatedLines' in closeOut)) {
+    return null;
+  }
+
+  return typeof closeOut.unrelatedLines === 'number' ? closeOut.unrelatedLines : null;
 }
 
 // Each sleep pairs with the earliest wake at or after it. The last sleep with no wake ends at the

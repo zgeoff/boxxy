@@ -43,6 +43,7 @@ export function buildStageTimeQuery(delivery: DeliveryReads) {
           'failure',
           'claimed_at',
           'ended_at',
+          'unrelated_lines',
           'sleeps',
         ])
         .orderBy('number')

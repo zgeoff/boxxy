@@ -71,7 +71,7 @@ test('it gives the minutes of all seven steps, the rework, the review wait and t
       { step: 'release', minutes: 30, endedAt: '2026-11-11T05:30:00Z' },
       { step: 'deploy', minutes: 40, endedAt: '2026-11-11T06:10:00Z' },
     ],
-    rework: { count: 1, minutes: 48 },
+    rework: { count: 1, minutes: 48, unrelatedLines: null },
     reviewWaitMinutes: 8,
     sleepMinutes: 20,
     pullRequests: ['github:pull_request:9001'],
@@ -151,7 +151,7 @@ test('it counts the time of an unsettleable, a timed-out and a closed attempt in
     sleepMinutes: times.sleepMinutes,
   }).toStrictEqual({
     minutes: [null, 60, 25, 10, null, null, null],
-    rework: { count: 0, minutes: 0 },
+    rework: { count: 0, minutes: 0, unrelatedLines: null },
     reviewWaitMinutes: null,
     sleepMinutes: 30,
   });
@@ -187,6 +187,157 @@ test('it starts no merge step from a review that settled unsettleable, after its
     minutes: null,
     endedAt: '2026-11-11T05:40:00Z',
   });
+});
+
+test('it starts the merge step at the claim of the first merge attempt after the latest passed review', () => {
+  const times = buildStageTime({
+    item: 'boxxy:item:0193a1b2-0000-7000-8000-000000000001',
+    environment: 'production',
+    attempts: [
+      buildMockAttemptReadRow({
+        id: 'boxxy:attempt:a1',
+        number: 1,
+        phase: 'review',
+        outcome: 'passed',
+        claimed_at: '2026-11-11T04:00:00.000Z',
+        ended_at: '2026-11-11T04:10:00.000Z',
+      }),
+      buildMockAttemptReadRow({
+        id: 'boxxy:attempt:a2',
+        number: 1,
+        phase: 'merge',
+        outcome: 'stale',
+        claimed_at: '2026-11-11T04:12:00.000Z',
+        ended_at: '2026-11-11T04:20:00.000Z',
+      }),
+      buildMockAttemptReadRow({
+        id: 'boxxy:attempt:a3',
+        number: 2,
+        phase: 'review',
+        round: 2,
+        outcome: 'passed',
+        claimed_at: '2026-11-11T04:25:00.000Z',
+        ended_at: '2026-11-11T04:35:00.000Z',
+      }),
+      buildMockAttemptReadRow({
+        id: 'boxxy:attempt:a4',
+        number: 3,
+        phase: 'merge',
+        state: 'live',
+        claimed_at: '2026-11-11T04:50:00.000Z',
+      }),
+      buildMockAttemptReadRow({
+        id: 'boxxy:attempt:a5',
+        number: 2,
+        phase: 'merge',
+        outcome: 'unverified',
+        claimed_at: '2026-11-11T04:40:00.000Z',
+        ended_at: '2026-11-11T04:45:00.000Z',
+      }),
+    ],
+    deliveries: [
+      {
+        pullRequest: 'github:pull_request:9001',
+        mergedAt: '2026-11-11T05:00:00Z',
+        release: null,
+        deploy: null,
+      },
+    ],
+  });
+
+  expect(times.steps[4]).toStrictEqual({
+    step: 'merge',
+    minutes: 20,
+    endedAt: '2026-11-11T05:00:00Z',
+  });
+});
+
+test('it starts the merge step at the end of the latest passed review when no merge attempt follows it', () => {
+  const times = buildStageTime({
+    item: 'boxxy:item:0193a1b2-0000-7000-8000-000000000001',
+    environment: 'production',
+    attempts: [
+      buildMockAttemptReadRow({
+        id: 'boxxy:attempt:a1',
+        number: 1,
+        phase: 'merge',
+        outcome: 'stale',
+        claimed_at: '2026-11-11T04:00:00.000Z',
+        ended_at: '2026-11-11T04:05:00.000Z',
+      }),
+      buildMockAttemptReadRow({
+        id: 'boxxy:attempt:a2',
+        number: 1,
+        phase: 'review',
+        outcome: 'passed',
+        claimed_at: '2026-11-11T04:10:00.000Z',
+        ended_at: '2026-11-11T04:30:00.000Z',
+      }),
+    ],
+    deliveries: [
+      {
+        pullRequest: 'github:pull_request:9001',
+        mergedAt: '2026-11-11T05:00:00Z',
+        release: null,
+        deploy: null,
+      },
+    ],
+  });
+
+  expect(times.steps[4]).toStrictEqual({
+    step: 'merge',
+    minutes: 30,
+    endedAt: '2026-11-11T05:00:00Z',
+  });
+});
+
+test('it sums the unrelated lines that the later reviews of an item recorded', () => {
+  const times = buildStageTime({
+    item: 'boxxy:item:0193a1b2-0000-7000-8000-000000000001',
+    environment: 'production',
+    attempts: [
+      buildMockAttemptReadRow({
+        id: 'boxxy:attempt:a1',
+        number: 1,
+        phase: 'review',
+        outcome: 'changes-requested',
+        claimed_at: '2026-11-11T03:00:00.000Z',
+        ended_at: '2026-11-11T03:10:00.000Z',
+      }),
+      buildMockAttemptReadRow({
+        id: 'boxxy:attempt:a2',
+        number: 2,
+        phase: 'review',
+        round: 2,
+        outcome: 'changes-requested',
+        claimed_at: '2026-11-11T03:30:00.000Z',
+        ended_at: '2026-11-11T03:40:00.000Z',
+        unrelated_lines: 7,
+      }),
+      buildMockAttemptReadRow({
+        id: 'boxxy:attempt:a3',
+        number: 3,
+        phase: 'review',
+        round: 3,
+        outcome: 'passed',
+        claimed_at: '2026-11-11T04:00:00.000Z',
+        ended_at: '2026-11-11T04:10:00.000Z',
+        unrelated_lines: 0,
+      }),
+      buildMockAttemptReadRow({
+        id: 'boxxy:attempt:a4',
+        number: 4,
+        phase: 'review',
+        round: 4,
+        state: 'live',
+        claimed_at: '2026-11-11T04:20:00.000Z',
+        unrelated_lines: 5,
+      }),
+    ],
+    deliveries: [],
+  });
+
+  expect(times.rework.unrelatedLines).toBe(12);
 });
 
 test('it leaves a no-capacity attempt out of every measure, and counts a usage-limit attempt', () => {
@@ -239,7 +390,7 @@ test('it leaves a no-capacity attempt out of every measure, and counts a usage-l
     reviewWaitMinutes: times.reviewWaitMinutes,
   }).toStrictEqual({
     review: { step: 'review', minutes: 10, endedAt: '2026-11-11T02:55:00.000Z' },
-    rework: { count: 0, minutes: 0 },
+    rework: { count: 0, minutes: 0, unrelatedLines: null },
     reviewWaitMinutes: 15,
   });
 });
