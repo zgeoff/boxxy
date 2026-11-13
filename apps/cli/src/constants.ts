@@ -4,6 +4,9 @@ import manifest from '../package.json' with { type: 'json' };
 // which has no package.json beside it.
 export const packageVersion: string = manifest.version;
 
+// the evidence kinds that `attempt evidence --kind` takes, which the session guide names too
+export const evidenceKinds = ['test', 'ci-run', 'live-check'] as const;
+
 // 2 means the command line is wrong, or the server has no attempt for this session yet
 export const exitCodes = { ok: 0, failed: 1, usage: 2, retryLater: 2 } as const;
 

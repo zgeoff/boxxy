@@ -32,7 +32,13 @@ Each procedure of the contract has one command. The usage line of a command is t
 1. Calls `attempt.current` until the server has an attempt for the session: 6 tries, 5 seconds apart. The runner stores a session's caller after the worker answers the start, and the hook can run first. With no attempt it exits 1.
 2. Installs each skill that `attempt.current` lists, at the rules' pin, into `<cwd>/.claude/skills/<name>`. [Installing skills](#installing-skills) says how.
 3. Calls `attempt.bindSession` with the agent session ID, `claude_code` and, when a skill is absent, `missingSkills`.
-4. On a `bound` answer, prints the [SessionStart hook JSON](https://code.claude.com/docs/en/hooks#sessionstart-decision-control) of Claude Code. Its `hookSpecificOutput.additionalContext` tells the agent how to close out, whatever the recipe prompt says: that the task is in the launch prompt, the phase, the outcome names from `attempt.current`, the commands `boxxy attempt current`, `boxxy attempt evidence` and `boxxy attempt close-out`, the reads `boxxy attempt list-items` and `boxxy attempt show-item` for finding items of the repo that ask for the same work or overlap, and that a session that ends without a valid close-out fails. Its `reloadSkills` is `true` when the recipe lists a skill, because Claude Code looks for skills before the hook ends.
+4. On a `bound` answer, prints the [SessionStart hook JSON](https://code.claude.com/docs/en/hooks#sessionstart-decision-control) of Claude Code. Its `reloadSkills` is `true` when the recipe lists a skill, because Claude Code looks for skills before the hook ends. Its `hookSpecificOutput.additionalContext` tells the agent how to close out, whatever the recipe prompt says:
+   - that the task is in the launch prompt, the phase, and the outcome names from `attempt.current`;
+   - that the agent's input is the `input` field of what `boxxy attempt current` prints;
+   - the commands `boxxy attempt current`, `boxxy attempt evidence` and `boxxy attempt close-out`, and the reads `boxxy attempt list-items` and `boxxy attempt show-item` for finding items of the repo that ask for the same work or overlap;
+   - the `--kind` values that `attempt evidence` takes, from the list its parser reads, what `--ref` and `--observed` take, and that `attempt close-out` takes no `--ref` because its body cites the evidence ID;
+   - that a screenshot and a measurement are a `live-check`, or a `test` when a test asserts the measurement, and that a diff is no evidence kind;
+   - that a session that ends without a valid close-out fails.
 
 A bind answer of `skill-missing` makes the server move the attempt to `closing`, and the runner settles it as failed with `skill-missing`. The hook then exits 1 and names the skills. The hook exits 0 for `bound` and exits 1 for every other answer.
 

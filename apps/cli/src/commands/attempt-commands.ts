@@ -6,11 +6,9 @@ import {
   buildTextResult,
 } from '../cli/build-answer-result.ts';
 import { UsageError } from '../cli/usage-error.ts';
-import { exitCodes } from '../constants.ts';
+import { evidenceKinds, exitCodes } from '../constants.ts';
 import type { CLIResult, Command } from '../types.ts';
 import { describeCloseOutProblem } from './describe-close-out-problem.ts';
-
-const evidenceKinds = ['test', 'ci-run', 'live-check'] as const;
 
 // every state but `held`: a session never sees a held item
 const listStates = ['idea', 'ready', 'blocked', 'running', 'waiting', 'done', 'archived'] as const;
