@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/forge-github",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "boxxy's forge port on GitHub: reads a pull request and its checks, and merges it, over the REST API",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/adapters/forge-github#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",

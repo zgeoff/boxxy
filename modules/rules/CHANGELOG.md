@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.6](https://github.com/zgeoff/boxxy/compare/@boxxy/rules@0.2.5...@boxxy/rules@0.2.6) (2026-11-13)
+
+### Bug Fixes
+
+- **rules:** forbid attribution trailers in the example build prompt
+  ([5f1c82b](https://github.com/zgeoff/boxxy/commit/5f1c82b15ae60ab9eb1835410811b98c1352e335))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.2.6
+    - @boxxy/model bumped to 0.2.6
+    - @boxxy/prompt-template bumped to 0.2.6
+
 ## [0.2.5](https://github.com/zgeoff/boxxy/compare/@boxxy/rules@0.2.4...@boxxy/rules@0.2.5) (2026-11-13)
 
 ### Features

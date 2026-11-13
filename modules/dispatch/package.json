@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/dispatch",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "boxxy's dispatch: claims the next task for an agent",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/modules/dispatch#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",
