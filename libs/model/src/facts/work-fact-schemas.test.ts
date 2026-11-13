@@ -148,7 +148,12 @@ test.each([
   ],
   [
     'boxxy.attempt.reconciled',
-    { attempt: '0192f0c5-1a2b-7c3d-8e4f-5a6b7c8d9e0f', atcSession: 'sess-01', caller: null },
+    {
+      attempt: '0192f0c5-1a2b-7c3d-8e4f-5a6b7c8d9e0f',
+      atcSession: 'sess-01',
+      resumeFallback: true,
+      caller: null,
+    },
   ],
   [
     'boxxy.attempt.session_bound',
@@ -390,6 +395,18 @@ test('it reads a filed fact stored before the body existed as one with an empty 
   const parsed: unknown = workFactSchemas['boxxy.item.filed'].safeParse(stored).data;
 
   expect(parsed).toStrictEqual({ ...stored, body: '' });
+});
+
+test('it reads a reconciled fact stored before the fallback flag existed as one with no fallback', () => {
+  const stored = {
+    attempt: '0192f0c5-1a2b-7c3d-8e4f-5a6b7c8d9e0f',
+    atcSession: 'sess-01',
+    caller: null,
+  };
+
+  const parsed: unknown = workFactSchemas['boxxy.attempt.reconciled'].safeParse(stored).data;
+
+  expect(parsed).toStrictEqual({ ...stored, resumeFallback: false });
 });
 
 test('it reads the close-out fact of a v1 review as one with the reading of its head', () => {

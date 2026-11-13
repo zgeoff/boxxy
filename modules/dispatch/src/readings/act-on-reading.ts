@@ -1,5 +1,6 @@
 import type {
   ActorRef,
+  AtcSessionId,
   AttemptRow,
   Instant,
   JsonValue,
@@ -85,12 +86,14 @@ function runAction(
     .with({ kind: 'move-to-running', via: 'reconcile' }, async () => {
       const running = getRunningReading(input.reading);
 
+      const kept = await readClaimKept(input);
+
       await writeMove({
         kind: 'started',
         via: 'reconcile',
         atcSession: running.atcSession,
         caller: running.caller,
-        resumeFallback: false,
+        resumeFallback: isResumeFallback(kept, running.atcSession),
       });
     })
     .with({ kind: 'move-to-running', via: 'resume' }, async () => {
@@ -109,7 +112,7 @@ function runAction(
           kind: 'start',
           attempt: input.attempt,
           spawn: spawnRequestSchema.parse(input.attempt.spawnRequest),
-          kept: await readRespawnKept(input),
+          kept: await readClaimKept(input),
         },
       });
 
@@ -218,28 +221,10 @@ function getRunningReading(reading: SessionReading) {
   return reading;
 }
 
-// The worker call of a respawn or a resume runs outside the lock, so it checks the row first: a
-// row that moved since the reading makes the call wait for the next tick.
-async function probeSeenRow(input: ActOnReadingInput): Promise<boolean> {
-  const row = await readRow(input);
-
-  return isSameGuard(input.attempt, row);
-}
-
-function readRow(input: ActOnReadingInput): Promise<AttemptRow> {
-  return input.store.read(async (tx) => {
-    const row = await tx.readAttempt(input.attempt.id);
-
-    invariant(row !== null, `the runner read a stored attempt: ${input.attempt.id}`);
-
-    return row;
-  });
-}
-
 // The kept session that the claim woke, picked again as the claim picked it, with the grader from
 // the stored input in case the rules reloaded. A wake whose reply was lost leaves the kept session
 // on the item, and a fresh spawn would then run beside the woken session.
-function readRespawnKept(input: ActOnReadingInput): Promise<KeptPick> {
+function readClaimKept(input: ActOnReadingInput): Promise<KeptPick> {
   return input.store.read(async (tx) => {
     const detail = await tx.readItemDetail(input.attempt.item, input.now, input.rules);
 
@@ -274,6 +259,34 @@ function findInputSession(phaseInput: JsonValue): 'builder' | 'fresh' | null {
   const parsed = verifyInputSchema.safeParse(phaseInput);
 
   return parsed.success ? parsed.data.session : null;
+}
+
+// The session that a start whose reply was lost runs on is a fallback when the claim wanted a kept
+// session and the session is not that kept one: the kept session was gone, or refused the wake.
+function isResumeFallback(kept: KeptPick, atcSession: AtcSessionId): boolean {
+  return match(kept)
+    .with({ kind: 'none' }, () => false)
+    .with({ kind: 'gone' }, () => true)
+    .with({ kind: 'kept' }, (pick) => pick.session.atcSession !== atcSession)
+    .exhaustive();
+}
+
+// The worker call of a respawn or a resume runs outside the lock, so it checks the row first: a
+// row that moved since the reading makes the call wait for the next tick.
+async function probeSeenRow(input: ActOnReadingInput): Promise<boolean> {
+  const row = await readRow(input);
+
+  return isSameGuard(input.attempt, row);
+}
+
+function readRow(input: ActOnReadingInput): Promise<AttemptRow> {
+  return input.store.read(async (tx) => {
+    const row = await tx.readAttempt(input.attempt.id);
+
+    invariant(row !== null, `the runner read a stored attempt: ${input.attempt.id}`);
+
+    return row;
+  });
 }
 
 interface SleepTimes {

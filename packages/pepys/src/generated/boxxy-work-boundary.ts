@@ -270,6 +270,7 @@ export interface BoxxyAttemptSpawnUnansweredPayload {
 export interface BoxxyAttemptReconciledPayload {
   attempt: string;
   atcSession: string;
+  resumeFallback?: boolean;
   caller: BoxxyAttemptReconciledPayloadCaller | null;
   storeVersion: number;
 }
@@ -2045,25 +2046,33 @@ function decodeBoxxyAttemptReconciledPayload(value: unknown): BoxxyAttemptReconc
     return undefined;
   }
 
-  const raw2 = 'caller' in value ? value.caller : undefined;
-  const field2 = raw2 === null ? null : decodeBoxxyAttemptReconciledPayloadCaller(raw2);
+  const raw2 = 'resumeFallback' in value ? value.resumeFallback : undefined;
+  const field2 = raw2 === undefined ? undefined : typeof raw2 === 'boolean' ? raw2 : undefined;
 
-  if (field2 === undefined) {
+  if (raw2 !== undefined && field2 === undefined) {
     return undefined;
   }
 
-  const raw3 = 'storeVersion' in value ? value.storeVersion : undefined;
-  const field3 = typeof raw3 === 'number' ? raw3 : undefined;
+  const raw3 = 'caller' in value ? value.caller : undefined;
+  const field3 = raw3 === null ? null : decodeBoxxyAttemptReconciledPayloadCaller(raw3);
 
   if (field3 === undefined) {
+    return undefined;
+  }
+
+  const raw4 = 'storeVersion' in value ? value.storeVersion : undefined;
+  const field4 = typeof raw4 === 'number' ? raw4 : undefined;
+
+  if (field4 === undefined) {
     return undefined;
   }
 
   return {
     attempt: field0,
     atcSession: field1,
-    caller: field2,
-    storeVersion: field3,
+    ...(field2 === undefined ? {} : { resumeFallback: field2 }),
+    caller: field3,
+    storeVersion: field4,
   };
 }
 

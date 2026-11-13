@@ -68,7 +68,12 @@ export function buildAttemptFact(
     .with('boxxy.attempt.reconciled', (factType) => {
       const started = event('started');
 
-      return wrap(factType, { attempt, atcSession: started.atcSession, caller: started.caller });
+      return wrap(factType, {
+        attempt,
+        atcSession: started.atcSession,
+        resumeFallback: started.resumeFallback,
+        caller: started.caller,
+      });
     })
     .with('boxxy.attempt.spawn_unanswered', (factType) =>
       wrap(factType, { attempt, reason: event('spawn-unanswered').reason }),

@@ -50,9 +50,9 @@ test.each<
       via: 'reconcile',
       atcSession: brandSchemas.atcSessionId.parse('atc-1'),
       caller: null,
-      resumeFallback: false,
+      resumeFallback: true,
     },
-    { atcSession: 'atc-1', caller: null },
+    { atcSession: 'atc-1', resumeFallback: true, caller: null },
   ],
   [
     'spawn_unanswered',

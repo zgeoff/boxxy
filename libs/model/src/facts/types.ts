@@ -150,6 +150,7 @@ export interface WorkFacts {
   'boxxy.attempt.spawn_unanswered': OfAttempt & { readonly reason: string };
   'boxxy.attempt.reconciled': OfAttempt & {
     readonly atcSession: AtcSessionId;
+    readonly resumeFallback: boolean;
     readonly caller: CallerIdentity | null;
   };
   'boxxy.attempt.session_bound': OfAttempt & {

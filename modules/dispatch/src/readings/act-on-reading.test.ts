@@ -8,6 +8,7 @@ import { claimNext } from '../claims/claim-next.ts';
 import { requestWake } from '../claims/request-wake.ts';
 import { resumeClaim } from '../claims/resume-claim.ts';
 import { closeOutAttempt } from '../closeouts/close-out-attempt.ts';
+import { forgetSessions } from '../sessions/forget-sessions.ts';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
 import { loadVerifyRules } from '../test-utils/load-verify-rules.ts';
 import { actOnReading } from './act-on-reading.ts';
@@ -76,6 +77,46 @@ async function setupTest() {
         unrelatedLines: null,
       });
     },
+
+    // a claim whose start got no reply, so its attempt stays starting
+    claimStarting: async () => {
+      const claim = await dispatch.claim();
+
+      invariant(claim !== null, 'the item claims');
+
+      return dispatch.readAttempt(claim.attempt.id);
+    },
+
+    // the host shows the attempt's session running, and the runner reconciles it
+    reconcileRunning: async (attempt: AttemptRow) => {
+      dispatch.worker.setSession(attempt.id, { state: 'running' });
+
+      await actOnReading({
+        store: dispatch.store,
+        worker: dispatch.worker,
+        rules: dispatch.rules(),
+        backoff: dispatch.backoff,
+        attempt,
+        reading: await dispatch.worker.reconcile(attempt),
+        action: { kind: 'move-to-running', via: 'reconcile' },
+        now: dispatch.clock.now(),
+        newId: dispatch.newId,
+      });
+    },
+    listReconciled: async () => {
+      const facts = await dispatch.listFacts('boxxy.attempt.reconciled');
+
+      return facts.map((fact) => fact.payload);
+    },
+    forgetSessions: () =>
+      forgetSessions({
+        store: dispatch.store,
+        worker: dispatch.worker,
+        rules: dispatch.rules(),
+        actor: `boxxy:runner:${dispatch.runner}`,
+        now: dispatch.clock.now(),
+        newId: dispatch.newId,
+      }),
     readItem: async (item: ItemId) => {
       const view = await dispatch.store.read((tx) =>
         tx.readItem(item, dispatch.clock.now(), dispatch.rules()),
@@ -725,4 +766,117 @@ test('it wakes the kept session again for a builder verify whose wake reply was 
     .map((call) => call.method);
 
   expect(calls).toStrictEqual(['resumeKept', 'resumeKept']);
+});
+
+test('it records a fallback in the reconciled fact of a builder verify whose fresh start lost its reply after the build session was gone', async () => {
+  const ctx = await setupTest();
+
+  ctx.setRules(loadVerifyRules({ session: 'builder', resume: false }));
+
+  await ctx.seedBuild();
+  await ctx.passReview();
+
+  ctx.clock.advance(25 * 3_600_000);
+
+  await ctx.forgetSessions();
+
+  ctx.worker.failNext('start', { kind: 'unknown', reason: 'the reply did not arrive' });
+
+  const verify = await ctx.claimStarting();
+
+  await ctx.reconcileRunning(verify);
+
+  const reconciled = await ctx.listReconciled();
+
+  expect(reconciled).toStrictEqual([
+    expect.objectContaining({ attempt: verify.id, resumeFallback: true }),
+  ]);
+});
+
+test('it records a fallback in the reconciled fact of a builder verify whose fresh start lost its reply after the kept session refused the wake', async () => {
+  const ctx = await setupTest();
+
+  ctx.setRules(loadVerifyRules({ session: 'builder', resume: false }));
+
+  await ctx.seedBuild();
+  await ctx.passReview();
+
+  ctx.worker.failNext('resumeKept', { kind: 'refused', cause: 'other', reason: 'no such session' });
+  ctx.worker.failNext('start', { kind: 'unknown', reason: 'the reply did not arrive' });
+
+  const verify = await ctx.claimStarting();
+
+  await ctx.reconcileRunning(verify);
+
+  const reconciled = await ctx.listReconciled();
+
+  expect(reconciled).toStrictEqual([
+    expect.objectContaining({ attempt: verify.id, resumeFallback: true }),
+  ]);
+});
+
+test('it records no fallback in the reconciled fact of a builder verify whose wake of the kept session lost its reply', async () => {
+  const ctx = await setupTest();
+
+  ctx.setRules(loadVerifyRules({ session: 'builder', resume: false }));
+
+  const build = await ctx.seedBuild();
+
+  invariant(build.atcSession !== null, 'the build ran on a session');
+
+  await ctx.passReview();
+
+  ctx.worker.failNext('resumeKept', { kind: 'unknown', reason: 'the reply did not arrive' });
+
+  const verify = await ctx.claimStarting();
+
+  const now = ctx.clock.now();
+
+  await actOnReading({
+    store: ctx.store,
+    worker: ctx.worker,
+    rules: ctx.rules(),
+    backoff: ctx.backoff,
+    attempt: verify,
+    reading: {
+      kind: 'running',
+      atcSession: build.atcSession,
+      agentSession: null,
+      caller: { issuer: 'fake-worker', subject: build.atcSession },
+      attention: 'working',
+      lastActivityAt: now,
+      lastOwnerAt: now,
+      usageLimitResetsAt: null,
+    },
+    action: { kind: 'move-to-running', via: 'reconcile' },
+    now,
+    newId: ctx.newId,
+  });
+
+  const reconciled = await ctx.listReconciled();
+
+  expect(reconciled).toStrictEqual([
+    expect.objectContaining({ attempt: verify.id, resumeFallback: false }),
+  ]);
+});
+
+test('it records no fallback in the reconciled fact of a fresh verify whose start lost its reply', async () => {
+  const ctx = await setupTest();
+
+  ctx.setRules(loadVerifyRules({ session: 'fresh', resume: false }));
+
+  await ctx.seedBuild();
+  await ctx.passReview();
+
+  ctx.worker.failNext('start', { kind: 'unknown', reason: 'the reply did not arrive' });
+
+  const verify = await ctx.claimStarting();
+
+  await ctx.reconcileRunning(verify);
+
+  const reconciled = await ctx.listReconciled();
+
+  expect(reconciled).toStrictEqual([
+    expect.objectContaining({ attempt: verify.id, resumeFallback: false }),
+  ]);
 });

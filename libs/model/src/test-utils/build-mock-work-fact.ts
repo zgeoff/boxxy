@@ -75,6 +75,7 @@ const defaultPayloads: { readonly [Type in MockedFactType]: () => WorkFacts[Type
   'boxxy.attempt.reconciled': () => ({
     attempt: buildAttemptId(),
     atcSession: buildAtcSession(),
+    resumeFallback: false,
     caller: null,
   }),
   'boxxy.attempt.resumed': () => ({

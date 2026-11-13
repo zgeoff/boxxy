@@ -110,6 +110,9 @@ export const workFactSchemas = {
   'boxxy.attempt.reconciled': z.object({
     ...ofAttempt,
     atcSession: brandSchemas.atcSessionId,
+
+    // a fact written before the field existed reads as no fallback
+    resumeFallback: z.boolean().default(false),
     caller: callerIdentitySchema.nullable(),
   }),
   'boxxy.attempt.session_bound': z.object({
