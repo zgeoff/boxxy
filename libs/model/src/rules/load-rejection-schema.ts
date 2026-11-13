@@ -59,6 +59,11 @@ const loadRejectionReasonSchema: z.ZodType<LoadRejectionReason> = z.discriminate
     itemKind: z.string(),
     recipe: z.string(),
   }),
+  z.object({
+    kind: z.literal('review-builder-session'),
+    itemKind: z.string(),
+    recipe: z.string(),
+  }),
   z.object({ kind: z.literal('review-session-resumed'), ...outcomeOfPhase }),
 ]);
 

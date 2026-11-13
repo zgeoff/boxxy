@@ -2148,6 +2148,15 @@ test.each([
     path: 'pipelines.standard[2].on.failed',
     reason: { kind: 'review-session-resumed', phase: 'verify', outcome: 'failed' },
   },
+  {
+    title: 'a review recipe with session: builder',
+    steps: `    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+    - { phase: review, maxAttempts: 2, timeoutMinutes: 45, on: { passed: { end: reviewed } } }`,
+    recipes: '{ build: build-v1, review: review-builder }',
+    reviewAgents: ['claude-review'],
+    path: 'kinds["core.issue"].recipes.review',
+    reason: { kind: 'review-builder-session', itemKind: 'core.issue', recipe: 'review-builder' },
+  },
 ])('it rejects $title when the server names review agents', (row) => {
   const concepts: Concept[] = [
     {
@@ -2180,6 +2189,7 @@ kinds:
 recipes:
   build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
   review-run: { agent: claude-review, model: example-model, effort: low, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+  review-builder: { agent: claude-review, model: example-model, effort: low, prompt: prompts/build-v1.md, source: subscription, skills: [], session: builder }
 relationTypes: [blocks]
 limits:
   - { name: workers, max: 7, counts: {} }

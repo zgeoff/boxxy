@@ -18,6 +18,7 @@ test.each([
     recipe: 'build-v1',
   },
   { kind: 'review-without-review-agent', itemKind: 'core.issue', recipe: 'review-run' },
+  { kind: 'review-builder-session', itemKind: 'core.issue', recipe: 'review-builder' },
   { kind: 'review-session-resumed', phase: 'verify', outcome: 'failed' },
 ])('it accepts a rejection for the reason $kind', (reason) => {
   const rejection = { file: 'rules.yaml', path: 'phases.review', reason };

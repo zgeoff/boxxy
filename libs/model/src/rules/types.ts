@@ -361,6 +361,14 @@ export type LoadRejectionReason =
       readonly recipe: string;
     }
 
+  // the server names review agents, and a kind's review recipe has `session: builder`, so the
+  // review runs in the build's session, or the item keeps a review session for the next build
+  | {
+      readonly kind: 'review-builder-session';
+      readonly itemKind: string;
+      readonly recipe: string;
+    }
+
   // the server names review agents, and an edge with `resume: true` goes to the review step, so
   // the item would keep a review session that a later resume wakes for another phase
   | {

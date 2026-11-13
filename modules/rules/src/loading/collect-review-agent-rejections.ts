@@ -51,6 +51,12 @@ function collectRecipeAgentRejections(
         return [buildRejection(path, { kind: 'review-without-review-agent', itemKind, recipe })];
       }
 
+      // a review that wakes the build's session runs with no token, and one that finds none starts
+      // fresh on the review agent, whose session the item then keeps for the next build
+      if (isReview && file.recipes[recipe]?.session === 'builder') {
+        return [buildRejection(path, { kind: 'review-builder-session', itemKind, recipe })];
+      }
+
       return [];
     }),
   );
