@@ -423,7 +423,7 @@
     "@wringer/gunshi": "0.2.0",
     "@wringer/http": "0.1.2",
     "@zgeoff/bun-test-extended": "0.2.3",
-    "@zgeoff/chex": "0.3.4",
+    "@zgeoff/chex": "0.3.5",
     "@zgeoff/commitlint-config": "0.1.0",
     "@zgeoff/format-codemod": "0.3.5",
     "@zgeoff/kysely-bun-sqlite": "0.3.2",
@@ -1058,7 +1058,7 @@
 
     "@zgeoff/bun-test-extended": ["@zgeoff/bun-test-extended@0.2.3", "", { "dependencies": { "jest-extended": "7.0.0", "jest-matcher-utils": "30.5.2" } }, "sha512-4ZNPft3LunVKp+s2esoJXSe64EaEywsu3z6Cg5/s/MJcdygmrQeAyfECioePCo5RuAIcaPfgF3lhYsPKcmVJ4w=="],
 
-    "@zgeoff/chex": ["@zgeoff/chex@0.3.4", "", { "dependencies": { "@zgeoff/std": "0.4.3", "oxc-parser": "0.157.0", "ts-pattern": "5.9.2" }, "bin": { "chex": "src/cli.ts" } }, "sha512-VqBKWvce9vnPfJo4HMGWFoqX+2PTT6o0NKrvSkUkZNQ79zifJDQfYDfumg+TusFIPIH5gR6lhByhCKFXAj5MCw=="],
+    "@zgeoff/chex": ["@zgeoff/chex@0.3.5", "", { "dependencies": { "@zgeoff/std": "0.4.3", "oxc-parser": "0.157.0", "ts-pattern": "5.9.2" }, "bin": { "chex": "src/cli.ts" } }, "sha512-CAPsp5R43KBirFe2QDGGXzxKfRwD1cLDNc4NXTkjgRaCOleYxgFQgEDOFuduhvYKAhym0lUXvScjGxtOGM3CuA=="],
 
     "@zgeoff/commitlint-config": ["@zgeoff/commitlint-config@0.1.0", "", { "peerDependencies": { "@commitlint/cli": ">=21.0.0" } }, "sha512-HEx06TxSmccoaQDNH8Honuv/pxp6I4GU8XpBvWGnibPLf3EKTskc9gJVdKMy43dox4t2i288vTC/mWHmWufUkg=="],
 
