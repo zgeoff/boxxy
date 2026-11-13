@@ -1,8 +1,15 @@
 import { expect, test } from 'bun:test';
+import { generateKeyPairSync } from 'node:crypto';
 import { pickServerSecrets } from './pick-server-secrets.ts';
 import type { ServerConfig } from './server-config-schema.ts';
 
 function setupTest() {
+  // the parse checks the key's form only, so a small key keeps each test fast
+  const privateKey = generateKeyPairSync('rsa', { modulusLength: 1024 }).privateKey.export({
+    type: 'pkcs1',
+    format: 'pem',
+  });
+
   const config: ServerConfig = {
     runner: 'runner-1',
     store: { file: '/tmp/boxxy-test/boxxy.db' },
@@ -17,6 +24,7 @@ function setupTest() {
 
   return {
     config,
+    privateKey,
     withPepys: {
       ...config,
       pepys: {
@@ -56,7 +64,7 @@ test('it reads the three boxxy App keys when they are set', () => {
     BOXXY_WORKER_TOKEN: 'worker-token-1',
     BOXXY_ATC_TOKEN: 'atc-token-1',
     BOXXY_GITHUB_APP_CLIENT_ID: 'Iv23liTestClient0001',
-    BOXXY_GITHUB_APP_PRIVATE_KEY: 'test-private-key',
+    BOXXY_GITHUB_APP_PRIVATE_KEY: ctx.privateKey,
     BOXXY_GITHUB_APP_INSTALLATION_ID: '4242',
   });
 
@@ -68,7 +76,7 @@ test('it reads the three boxxy App keys when they are set', () => {
       pepysSigningSecret: null,
       githubApp: {
         clientID: 'Iv23liTestClient0001',
-        privateKey: 'test-private-key',
+        privateKey: ctx.privateKey,
         installationID: 4242,
       },
       notice: null,
@@ -96,8 +104,8 @@ test('it names the other boxxy App keys as missing when only one is set, an empt
   });
 });
 
-test.each(['0', '42a', '-7', '4.2'])(
-  'it names the App installation ID as malformed for a value that is no positive integer: "%s"',
+test.each(['0', '42a', '-7', '4.2', '99999999999999999999', '9007199254740993'])(
+  'it names the App installation ID as malformed for a value that is no safe positive integer: "%s"',
   (installation) => {
     const ctx = setupTest();
 
@@ -105,7 +113,7 @@ test.each(['0', '42a', '-7', '4.2'])(
       BOXXY_WORKER_TOKEN: 'worker-token-1',
       BOXXY_ATC_TOKEN: 'atc-token-1',
       BOXXY_GITHUB_APP_CLIENT_ID: 'Iv23liTestClient0001',
-      BOXXY_GITHUB_APP_PRIVATE_KEY: 'test-private-key',
+      BOXXY_GITHUB_APP_PRIVATE_KEY: ctx.privateKey,
       BOXXY_GITHUB_APP_INSTALLATION_ID: installation,
     });
 
@@ -116,6 +124,51 @@ test.each(['0', '42a', '-7', '4.2'])(
     });
   },
 );
+
+test.each([' ', 'Iv23li Test', ' Iv23liTestClient0001'])(
+  'it names the App client ID as malformed for a value with white space: "%s"',
+  (clientID) => {
+    const ctx = setupTest();
+
+    const answer = pickServerSecrets(ctx.config, {
+      BOXXY_WORKER_TOKEN: 'worker-token-1',
+      BOXXY_ATC_TOKEN: 'atc-token-1',
+      BOXXY_GITHUB_APP_CLIENT_ID: clientID,
+      BOXXY_GITHUB_APP_PRIVATE_KEY: ctx.privateKey,
+      BOXXY_GITHUB_APP_INSTALLATION_ID: '4242',
+    });
+
+    expect(answer).toStrictEqual({
+      kind: 'malformed',
+      name: 'BOXXY_GITHUB_APP_CLIENT_ID',
+      expected: "the App's client ID",
+    });
+  },
+);
+
+test.each([
+  { key: 'test-private-key', title: 'no PEM' },
+  {
+    key: '-----BEGIN RSA PRIVATE KEY-----\nbm90IGEga2V5\n-----END RSA PRIVATE KEY-----',
+    title: 'a PEM that holds no key',
+  },
+])('it names the App private key as malformed for $title, and prints no value', (row) => {
+  const ctx = setupTest();
+
+  const answer = pickServerSecrets(ctx.config, {
+    BOXXY_WORKER_TOKEN: 'worker-token-1',
+    BOXXY_ATC_TOKEN: 'atc-token-1',
+    BOXXY_GITHUB_APP_CLIENT_ID: 'Iv23liTestClient0001',
+    BOXXY_GITHUB_APP_PRIVATE_KEY: row.key,
+    BOXXY_GITHUB_APP_INSTALLATION_ID: '4242',
+  });
+
+  expect(answer).toStrictEqual({
+    kind: 'malformed',
+    name: 'BOXXY_GITHUB_APP_PRIVATE_KEY',
+    expected: "the App's private key, in PEM form",
+  });
+});
 
 test('it names each missing variable, an empty one included', () => {
   const ctx = setupTest();

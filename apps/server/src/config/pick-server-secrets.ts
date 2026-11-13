@@ -1,3 +1,4 @@
+import { createPrivateKey } from 'node:crypto';
 import type { GithubAppKeys } from '@boxxy/forge-github';
 import type { ServerConfig } from './server-config-schema.ts';
 
@@ -52,8 +53,6 @@ const githubAppNames = [
   'BOXXY_GITHUB_APP_INSTALLATION_ID',
 ];
 
-const installationID = /^[1-9]\d*$/u;
-
 // The secrets come from the environment only. An empty token counts as missing. The notice
 // session is unset only when its variable is absent; an empty one has the wrong shape. The noslop
 // App's keys go together, and so do the boxxy App's: once one is set, each is needed.
@@ -89,13 +88,10 @@ export function pickServerSecrets(
   }
 
   const githubInstallation = env['BOXXY_GITHUB_APP_INSTALLATION_ID'] ?? '';
+  const githubMalformed = hasGithubApp ? findMalformedGithubApp(env) : null;
 
-  if (hasGithubApp && !installationID.test(githubInstallation)) {
-    return {
-      kind: 'malformed',
-      name: 'BOXXY_GITHUB_APP_INSTALLATION_ID',
-      expected: "the App installation's numeric ID",
-    };
+  if (githubMalformed !== null) {
+    return githubMalformed;
   }
 
   return {
@@ -121,4 +117,51 @@ export function pickServerSecrets(
         : null,
     },
   };
+}
+
+const installationID = /^[1-9]\d*$/u;
+const clientID = /^\S+$/u;
+
+// The App's keys are checked here so that a bad one stops the start, where the first mint would
+// only fail later; the answer names the variable and never its value.
+function findMalformedGithubApp(
+  env: Readonly<Record<string, string | undefined>>,
+): Extract<SecretsAnswer, { kind: 'malformed' }> | null {
+  const installation = env['BOXXY_GITHUB_APP_INSTALLATION_ID'] ?? '';
+
+  if (!installationID.test(installation) || !Number.isSafeInteger(Number(installation))) {
+    return {
+      kind: 'malformed',
+      name: 'BOXXY_GITHUB_APP_INSTALLATION_ID',
+      expected: "the App installation's numeric ID",
+    };
+  }
+
+  if (!clientID.test(env['BOXXY_GITHUB_APP_CLIENT_ID'] ?? '')) {
+    return {
+      kind: 'malformed',
+      name: 'BOXXY_GITHUB_APP_CLIENT_ID',
+      expected: "the App's client ID",
+    };
+  }
+
+  if (!isPrivateKey(env['BOXXY_GITHUB_APP_PRIVATE_KEY'] ?? '')) {
+    return {
+      kind: 'malformed',
+      name: 'BOXXY_GITHUB_APP_PRIVATE_KEY',
+      expected: "the App's private key, in PEM form",
+    };
+  }
+
+  return null;
+}
+
+function isPrivateKey(pem: string): boolean {
+  try {
+    createPrivateKey(pem);
+
+    return true;
+  } catch {
+    return false;
+  }
 }

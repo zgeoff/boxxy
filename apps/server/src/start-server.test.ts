@@ -1,4 +1,5 @@
 import { expect, onTestFinished, test } from 'bun:test';
+import { generateKeyPairSync } from 'node:crypto';
 import { cp, mkdir, mkdtemp, rm, stat, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -215,9 +216,14 @@ test('it starts and stops with a github section and the boxxy App keys', async (
 
   await ctx.addConfigSections({ github: { baseUrl: 'http://127.0.0.1:9' } });
 
+  const privateKey = generateKeyPairSync('rsa', { modulusLength: 1024 }).privateKey.export({
+    type: 'pkcs1',
+    format: 'pem',
+  });
+
   const answer = await ctx.start({
     BOXXY_GITHUB_APP_CLIENT_ID: 'Iv23liTestClient0001',
-    BOXXY_GITHUB_APP_PRIVATE_KEY: 'test-private-key',
+    BOXXY_GITHUB_APP_PRIVATE_KEY: privateKey,
     BOXXY_GITHUB_APP_INSTALLATION_ID: '4242',
   });
 
