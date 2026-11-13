@@ -19,12 +19,12 @@ import type { CloseOutPreset, VerifyHarness } from './types.ts';
 // The test helpers the harness imports, declared here so the sketch imports no test helper.
 declare function createSkillsRepo(options: { folder: string; skills: Record<string, Record<string, string>> }): Promise<{ source: string; ref: string; baseURL: string }>; // @boxxy/cli/test-utils/create-skills-repo
 declare function createTestServer(options: object): Promise<VerifyHarness['server']>; // @boxxy/server/test-utils/create-test-server
-declare function makeBrokerSend(server: VerifyHarness['server']): (request: Request) => Promise<Response>; // @boxxy/system-tests/test-utils/make-broker-send
-declare function startPepysUnderTest(): Promise<VerifyHarness['pepys']>; // @boxxy/system-tests/test-utils/start-pepys-under-test
+declare function makeBrokerSend(server: VerifyHarness['server']): (request: Request) => Promise<Response>; // @boxxy/server/test-utils/make-broker-send
+declare function startPepysUnderTest(): Promise<VerifyHarness['pepys']>; // @boxxy/server/test-utils/start-pepys-under-test
 
 // ── A. The harness process ─────────────────────────────────────────────────────────────────────
 //
-// system-tests/src/test-utils/verify/harness/main.ts
+// apps/cli/src/test-utils/verify/harness/main.ts
 
 const directory = process.env['BOXXY_VERIFY_DIR'];
 

@@ -40,7 +40,6 @@ boxxy/
 │   └── prompt-template/         the launch prompt's placeholders, its load check and its Liquid render
 ├── packages/                    packages that another repo's deployment installs
 │   └── pepys/                   @boxxy/pepys: the pepys plug-in, the FactSink adapter and the pepys reader
-├── system-tests/                @boxxy/system-tests: tests that run more than one app together
 ├── docs/                        design/ and decisions/
 └── scripts/                     repo tooling; may do I/O and import any workspace package
 ```
@@ -64,19 +63,13 @@ doesn't allow:
 
 | Tag     | May import                   |
 | ------- | ---------------------------- |
-| app     | module, adapter, lib, package |
+| app     | module, adapter, lib, package, `@boxxy/server` |
 | module  | module, lib                  |
 | adapter | module, lib                  |
 | lib     | lib                          |
 | package | lib                          |
-| system-test | app, module, adapter, lib, package |
 
-`system-tests` is the only package tagged `system-test`. A test of two apps together, such as the CLI
-against the real server, belongs to neither app, and an app may not import another app. So the test
-lives in `@boxxy/system-tests`, which is private and not published. It has no release entry, and no
-package imports it. Its tests import each app through the app's `index.ts` and its `./test-utils/*`
-entry. A test of one app alone stays beside that app's code and uses a fake `fetch`. An
-end-to-end test that starts two apps lives here too.
+The CLI's code reaches the server only through `@boxxy/contract`. The CLI's tests run the CLI against the real server, in the test process, so they need the server's code. So the CLI lists `@boxxy/server` in its `devDependencies`, and only `apps/cli/e2e/**` and `apps/cli/src/test-utils/**` import it, through the server's `./test-utils/*` entry. The `app` tag allows `@boxxy/server` by name for that import. The import-zones `cli-server` edge in `.oxlintrc.json` fails the import in any other file of the CLI. The server never imports the CLI, so the two apps never depend on each other in a cycle. A test that drives both apps therefore lives in `apps/cli/e2e/`, even when it checks the server's behaviour, such as a merge journey. A test of the server alone lives in `apps/server/e2e/`. A test of the CLI alone stays beside its module and uses a fake `fetch`.
 
 A module never imports an adapter. A module that needs an outside system declares a port, such as
 `ClaimStore`; an adapter implements it; the app builds the adapter and passes it in. This keeps
@@ -113,8 +106,8 @@ Each outside system has one package that may talk to it:
 | noslop         | `adapters/review-noslop` | only it imports `@noslop/cli`, `@noslop/cli/post` or `@noslop/cli/check`, to check and post a review result with the noslop App's keys |
 | GitHub         | `adapters/forge-github` | only an adapter or a package calls `fetch`; only it imports `@octokit/auth-app` or `@octokit/request`, to mint the boxxy App's installation token |
 | pepys          | `packages/pepys`        | only it imports `@pepys/kit`, `@pepys/testing`, `@pepys/ingest`, `@pepys/api`, `@pepys/source-github` or `@pepys/source-telemetry`; no module and no lib imports `@boxxy/pepys` |
-| wringer        | `system-tests`          | only it imports `@wringer/gunshi`, `@wringer/http` or another `@wringer/*` package; the verify CLI lives in `system-tests/src/test-utils/verify/` |
-| wringer report | `adapters/verifier-wringer` | only it and `system-tests` import `@wringer/core`; the adapter parses the report in a pull request with its `parseReportBlock` |
+| wringer        | the CLI's tests         | only `apps/cli/e2e/**` and `apps/cli/src/test-utils/**` import `@wringer/gunshi`, `@wringer/http` or another `@wringer/*` package; the verify CLI lives in `apps/cli/src/test-utils/verify/` |
+| wringer report | `adapters/verifier-wringer` | only it and the CLI's tests import `@wringer/core`; the adapter parses the report in a pull request with its `parseReportBlock` |
 
 oRPC has an owner and no lint pin. Only `libs/contract` calls `oc` and `mcp.tool` to define a procedure. `apps/server` imports `@orpc/server`, `@orpc/mcp` and `@modelcontextprotocol/server` to serve the contract, and `@orpc/client` to call the pepys query API. The atc stand-in in `adapters/worker-atc/src/test-utils/` imports `@modelcontextprotocol/server` too, to serve atc's tools on the library the atc gateway uses; the package lists it as an optional peer. `apps/cli` imports `@orpc/client` to call the server, and the real-pepys test deployment of `packages/pepys` imports it to call the pepys query API in process. Only `apps/server` and `adapters/auth-oauth` import `elysia`, and each lists Elysia's peers `exact-mirror`, `openapi-types` and `typebox` as its own dependencies.
 
@@ -130,7 +123,7 @@ Three libraries have a pin of their own:
 | `xstate`   | `modules/dispatch`     | the attempt state table                                                                                 |
 | `liquidjs` | `libs/prompt-template` | `modules/rules` checks each prompt template at load and `modules/dispatch` renders it at claim, so the engine and its settings live in a lib that both import |
 
-The `zgeoff/import-zones` rule in `.oxlintrc.json` holds these pins. Its `oauth` rule holds the OAuth pin, and its `sqlite` rule allows both `store-sqlite` and `auth-oauth`. Its `pepys` edge holds the pin for `@boxxy/pepys`, and its `pepys-kit` rule the pin for the kit. Its `github-app` rule holds the pin for the two Octokit packages. Its `wringer` rule lets only `system-tests` import `@wringer/*`, and its `wringer-core` rule lets `adapters/verifier-wringer` import `@wringer/core` too. Lint lets an adapter and a package under `packages/` call `fetch`, and can't tell which one a
+The `zgeoff/import-zones` rule in `.oxlintrc.json` holds these pins. Its `oauth` rule holds the OAuth pin, and its `sqlite` rule allows both `store-sqlite` and `auth-oauth`. Its `pepys` edge holds the pin for `@boxxy/pepys`, and its `pepys-kit` rule the pin for the kit. Its `github-app` rule holds the pin for the two Octokit packages. Its `wringer` rule lets only the CLI's `cli-tests` zone import `@wringer/*`, and its `wringer-core` rule lets `adapters/verifier-wringer` import `@wringer/core` too. Its `cli-server` edge holds the CLI's test-only import of `@boxxy/server`, as [Dependency rules](#dependency-rules) says. Lint lets an adapter and a package under `packages/` call `fetch`, and can't tell which one a
 `fetch` reaches, so review checks that GitHub calls stay in `forge-github` and pepys calls in
 `packages/pepys`.
 
@@ -174,11 +167,11 @@ modules/planning/
   which the package exports as `./test-utils/*` for other packages' tests. A helper that two or more
   packages' tests use lives in the package that owns what it starts, builds or fakes.
 - An end-to-end test lives in the `e2e/` folder of the package that builds the program it runs, such
-  as `apps/server/e2e/`. A test that needs two apps lives in `system-tests`, as
-  [Dependency rules](#dependency-rules) says, at `system-tests/e2e/<name>.system.test.ts`. It runs
-  both apps in the test process, so it takes the `.system` suffix of the `system` test lane in
-  `rig.config.ts`, which `bun run test:system` runs, and never the `e2e` lane, which needs a built
-  program. The repo root holds no `test-utils/` or `e2e/` folder, and
+  as `apps/server/e2e/`. A test that needs both apps lives in `apps/cli/e2e/`, as
+  [Dependency rules](#dependency-rules) says. Each test in `apps/cli/e2e/` and `apps/server/e2e/`
+  runs its apps in the test process, so it is named `<name>.system.test.ts` and takes the `.system`
+  suffix of the `system` test lane in `rig.config.ts`, which `bun run test:system` runs. It never
+  takes the `e2e` lane, which needs a built program. The repo root holds no `test-utils/` or `e2e/` folder, and
   `bun run check:test-layout` fails a test or a helper outside this layout.
 
 The folders inside each package's `src/` are in [folder layout](./layout-folders.md).

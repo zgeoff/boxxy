@@ -11,10 +11,10 @@ metadata:
 
 ## Facts
 
-| Fact          | Where                                                                                                                                                                                                                             |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Test commands | [`rig.config.ts`](../../../rig.config.ts), which adds the `system` lane for the tests of two apps together, and the `test`, `test:system`, `test:related` and `bench` scripts in the root [`package.json`](../../../package.json) |
-| Test utils    | `src/test-utils/` of the package that owns what the helper starts, builds or fakes                                                                                                                                                |
+| Fact          | Where                                                                                                                                                                                                                                    |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Test commands | [`rig.config.ts`](../../../rig.config.ts), which adds the `system` lane for the tests in the apps' `e2e/` folders, and the `test`, `test:system`, `test:related` and `bench` scripts in the root [`package.json`](../../../package.json) |
+| Test utils    | `src/test-utils/` of the package that owns what the helper starts, builds or fakes                                                                                                                                                       |
 
 ## Departures
 
@@ -22,10 +22,12 @@ metadata:
   its logic in `src/test-utils/`. [Benchmarks](../testing/references/system-tests.md#benchmarks)
   puts a module benchmark in `src/`, but `rig bench` runs only the files in a `bench/` folder.
 
-- Name a test of two apps together `system-tests/e2e/<name>.system.test.ts`, and run it with
-  `bun run test:system`. It runs both apps in the test process, so the `e2e` lane, which
+- Name each test in an app's `e2e/` folder `<name>.system.test.ts`, and run it with
+  `bun run test:system`. It runs the app in the test process, so the `e2e` lane, which
   [End-to-end suites](../testing/references/system-tests.md#end-to-end-suites) gives a built
-  program, refuses it.
+  program, refuses it. Put a test that drives the CLI and the server together in `apps/cli/e2e/`,
+  even when it checks the server: only the CLI's tests may import `@boxxy/server`, as
+  [layout](../../../docs/design/boxxy/layout.md#dependency-rules) says.
 
 ## Stand-ins
 

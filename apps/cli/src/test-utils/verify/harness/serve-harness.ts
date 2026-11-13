@@ -1,4 +1,4 @@
-import { makeBrokerSend } from '../../make-broker-send.ts';
+import { makeBrokerSend } from '@boxxy/server/test-utils/make-broker-send';
 import { makeControlHandler } from './make-control-handler.ts';
 import type { VerifyHarness } from './types.ts';
 

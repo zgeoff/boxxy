@@ -41,6 +41,16 @@
     "ts-pattern": "catalog:",
     "zod": "catalog:"
   },
+  "devDependencies": {
+    "@boxxy/dispatch": "workspace:*",
+    "@boxxy/rules": "workspace:*",
+    "@boxxy/server": "workspace:*",
+    "@boxxy/store-sqlite": "workspace:*",
+    "@wringer/core": "catalog:",
+    "@wringer/gunshi": "catalog:",
+    "@wringer/http": "catalog:",
+    "tiny-invariant": "catalog:"
+  },
   "engines": {
     "bun": ">=1.3",
     "node": ">=24"

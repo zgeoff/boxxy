@@ -1,9 +1,9 @@
 import { join } from 'node:path';
-import { createSkillsRepo } from '@boxxy/cli/test-utils/create-skills-repo';
 import { brandSchemas } from '@boxxy/model';
 import { createTestServer } from '@boxxy/server/test-utils/create-test-server';
+import { startPepysUnderTest } from '@boxxy/server/test-utils/start-pepys-under-test';
 import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
-import { startPepysUnderTest } from '../../start-pepys-under-test.ts';
+import { createSkillsRepo } from '../../create-skills-repo.ts';
 import type { VerifyHarness } from './types.ts';
 
 // The parts of the system test `journey-item-to-merge`, built the same way: the real server on the

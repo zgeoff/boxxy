@@ -10,8 +10,10 @@
   },
   "boundaries": {
     "tags": {
+      // the CLI's tests run it against the real server, so an app may import @boxxy/server; the
+      // import-zones `cli-server` edge keeps that import in the CLI's e2e tests and test helpers
       "app": {
-        "dependencies": { "allow": ["module", "adapter", "lib", "package"] }
+        "dependencies": { "allow": ["module", "adapter", "lib", "package", "@boxxy/server"] }
       },
       // a module never imports an adapter; the app passes each adapter in
       "module": {
@@ -27,10 +29,6 @@
       // imports it
       "package": {
         "dependencies": { "allow": ["lib"] }
-      },
-      // a test of two apps together belongs to neither; nothing imports it
-      "system-test": {
-        "dependencies": { "allow": ["app", "module", "adapter", "lib", "package"] }
       }
     }
   }

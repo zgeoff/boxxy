@@ -18,7 +18,7 @@ async function setupTest() {
   const runnerTemp = join(directory, 'runner-temp');
   const eventPath = join(directory, 'event.json');
   const scriptPath = join(import.meta.dir, 'run-verify-gate.ts');
-  const verifyPath = join(import.meta.dir, '../../system-tests/src/test-utils/verify/verify.ts');
+  const verifyPath = join(import.meta.dir, '../../apps/cli/src/test-utils/verify/verify.ts');
 
   await mkdir(runnerTemp);
 

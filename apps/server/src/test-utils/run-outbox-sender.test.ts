@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { createFakeFactSink } from '@boxxy/dispatch/test-utils/create-fake-fact-sink';
-import { createTestServer } from '@boxxy/server/test-utils/create-test-server';
+import { createTestServer } from './create-test-server.ts';
 import { runOutboxSender } from './run-outbox-sender.ts';
 
 async function setupTest() {

@@ -1,8 +1,8 @@
 import { brandSchemas } from '@boxxy/model';
 import { buildRPCRequest } from '@boxxy/server/test-utils/build-rpc-request';
+import { makeBrokerSend } from '@boxxy/server/test-utils/make-broker-send';
 import invariant from 'tiny-invariant';
 import type { z } from 'zod';
-import { makeBrokerSend } from '../../make-broker-send.ts';
 import { ControlConflictError } from './control-conflict-error.ts';
 import { controlRoutes } from './control-routes.ts';
 import { drainOutbox } from './drain-outbox.ts';

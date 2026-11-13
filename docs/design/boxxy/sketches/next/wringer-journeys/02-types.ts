@@ -8,10 +8,9 @@
 //   C. The real CLI as a process, and the word `@current`.
 //   D. The close-out presets and the shapes the reads check.
 //
-// All of it lives in system-tests/src/test-utils/verify/, a test helper folder, because the harness
-// imports the system tests' parts as they are: `createTestServer` (@boxxy/server/test-utils),
-// `startPepysUnderTest` and `runOutboxSender` (@boxxy/system-tests/test-utils), `createSkillsRepo`
-// (@boxxy/cli/test-utils). It adds one: the broker routing that `createTestCLI` holds moves to its
+// All of it lives in apps/cli/src/test-utils/verify/, a test helper folder, because the harness
+// imports the system tests' parts as they are: `createTestServer`, `startPepysUnderTest` and
+// `runOutboxSender` (@boxxy/server/test-utils), and `createSkillsRepo` (the CLI's test-utils). It adds one: the broker routing that `createTestCLI` holds moves to its
 // own export, `makeBrokerSend`, so the test and the harness route the same way.
 
 import type { AttemptId, AttemptRow, ItemId, PhaseName } from '@boxxy/model';
@@ -23,7 +22,7 @@ type TestServer = Awaited<ReturnType<typeof createTestServer>>;
 type PepysUnderTest = Awaited<ReturnType<typeof startPepysUnderTest>>;
 
 declare function createTestServer(options: object): Promise<object>; // @boxxy/server/test-utils/create-test-server
-declare function startPepysUnderTest(): Promise<object>; // @boxxy/system-tests/test-utils/start-pepys-under-test
+declare function startPepysUnderTest(): Promise<object>; // @boxxy/server/test-utils/start-pepys-under-test
 
 // ── A. The launch ──────────────────────────────────────────────────────────────────────────────
 
@@ -152,7 +151,7 @@ export declare function expectEqual(label: string, actual: unknown, expected: un
 // The broker routing, the one part the harness adds to what the system tests have. It stands in for
 // the broker of a deployment: a session or hook procedure goes to the worker listener with the
 // worker token, and any other to the owner listener. The CLI sends no token, as in a session.
-// @boxxy/system-tests/test-utils/make-broker-send, moved out of createTestCLI, which then calls it.
+// @boxxy/server/test-utils/make-broker-send, moved out of createTestCLI, which then calls it.
 export declare function makeBrokerSend(server: TestServer): (request: Request) => Promise<Response>;
 
 // ── D. The close-out presets and the read shapes ───────────────────────────────────────────────
