@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/auth-oauth",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "boxxy's public door: an OAuth server for the owner's MCP endpoint, with passkey sign-in",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/adapters/auth-oauth#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",

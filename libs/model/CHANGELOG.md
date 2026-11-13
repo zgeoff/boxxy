@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.2.3...@boxxy/model@0.2.4) (2026-11-13)
+
+
+### Features
+
+* **closeout:** send a failed verify's features to the rework build ([c5222b0](https://github.com/zgeoff/boxxy/commit/c5222b0cecfc49b52198e2e9353f351e658f4908))
+* **dispatch:** file, list and release held items ([8b43b30](https://github.com/zgeoff/boxxy/commit/8b43b305c89d1f3dcced47779634441830f3f3fd))
+* **rules:** keep the read-only clone token to review sessions ([9bd4803](https://github.com/zgeoff/boxxy/commit/9bd4803e3e27cf641b8b2403dae4618e0458a592))
+* **verifier:** read the verify gate and report at a head ([2097016](https://github.com/zgeoff/boxxy/commit/209701609ac965621fd22e3ee4ebb03b244b7b99))
+
+
+### Bug Fixes
+
+* **dispatch:** carry the fallback flag on a reconciled start ([e64b901](https://github.com/zgeoff/boxxy/commit/e64b901ef13eecf3e607bbdbf87fd06445930ea9))
+* **rules:** refuse a review recipe that wakes the build's session ([887a596](https://github.com/zgeoff/boxxy/commit/887a596b146b308b0ade4ea7090c5b9eb1fdeb0c))
+* **verifier:** require the gate as a check run and page the statuses ([d124c96](https://github.com/zgeoff/boxxy/commit/d124c96bb819e85c7cbbce9fde89e23ebd2dd504))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/content-hash bumped to 0.2.4
+
 ## [0.2.3](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.2.2...@boxxy/model@0.2.3) (2026-11-12)
 
 ### Features

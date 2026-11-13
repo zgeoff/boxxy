@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/notifier-atc",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "boxxy's hold notice sent as an atc message to one session, by its ID",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/adapters/notifier-atc#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",

@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/rules@0.2.3...@boxxy/rules@0.2.4) (2026-11-13)
+
+
+### Features
+
+* **rules:** keep the read-only clone token to review sessions ([9bd4803](https://github.com/zgeoff/boxxy/commit/9bd4803e3e27cf641b8b2403dae4618e0458a592))
+
+
+### Bug Fixes
+
+* **rules:** refuse a review recipe that wakes the build's session ([887a596](https://github.com/zgeoff/boxxy/commit/887a596b146b308b0ade4ea7090c5b9eb1fdeb0c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/content-hash bumped to 0.2.4
+    * @boxxy/model bumped to 0.2.4
+    * @boxxy/prompt-template bumped to 0.2.4
+
 ## [0.2.3](https://github.com/zgeoff/boxxy/compare/@boxxy/rules@0.2.2...@boxxy/rules@0.2.3) (2026-11-12)
 
 ### Features

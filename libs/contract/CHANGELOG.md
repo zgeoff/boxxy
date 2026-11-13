@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/contract@0.2.3...@boxxy/contract@0.2.4) (2026-11-13)
+
+
+### Features
+
+* **dispatch:** file, list and release held items ([8b43b30](https://github.com/zgeoff/boxxy/commit/8b43b305c89d1f3dcced47779634441830f3f3fd))
+
+
+### Bug Fixes
+
+* **dispatch:** refuse a retry of a held item so release starts at triage ([6e00400](https://github.com/zgeoff/boxxy/commit/6e0040069efcebbb958f4dbb248b423302bdc506))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/model bumped to 0.2.4
+
 ## [0.2.3](https://github.com/zgeoff/boxxy/compare/@boxxy/contract@0.2.2...@boxxy/contract@0.2.3) (2026-11-12)
 
 ### Miscellaneous Chores

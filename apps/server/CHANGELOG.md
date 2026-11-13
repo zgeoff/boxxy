@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.3...@boxxy/server@0.2.4) (2026-11-13)
+
+
+### Features
+
+* **dispatch:** file, list and release held items ([8b43b30](https://github.com/zgeoff/boxxy/commit/8b43b305c89d1f3dcced47779634441830f3f3fd))
+* **rules:** keep the read-only clone token to review sessions ([9bd4803](https://github.com/zgeoff/boxxy/commit/9bd4803e3e27cf641b8b2403dae4618e0458a592))
+
+
+### Bug Fixes
+
+* **dispatch:** refuse a retry of a held item so release starts at triage ([6e00400](https://github.com/zgeoff/boxxy/commit/6e0040069efcebbb958f4dbb248b423302bdc506))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/auth-oauth bumped to 0.2.4
+    * @boxxy/caller-proof-imp bumped to 0.2.4
+    * @boxxy/closeout bumped to 0.2.4
+    * @boxxy/content-hash bumped to 0.2.4
+    * @boxxy/contract bumped to 0.2.4
+    * @boxxy/dispatch bumped to 0.2.4
+    * @boxxy/forge-github bumped to 0.2.4
+    * @boxxy/model bumped to 0.2.4
+    * @boxxy/notifier-atc bumped to 0.2.4
+    * @boxxy/pepys bumped to 0.2.4
+    * @boxxy/planning bumped to 0.2.4
+    * @boxxy/review-noslop bumped to 0.2.4
+    * @boxxy/rules bumped to 0.2.4
+    * @boxxy/store-sqlite bumped to 0.2.4
+    * @boxxy/worker-atc bumped to 0.2.4
+
 ## [0.2.3](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.2...@boxxy/server@0.2.3) (2026-11-12)
 
 ### Features
