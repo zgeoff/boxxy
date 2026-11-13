@@ -1,13 +1,14 @@
 # Review, verify and merge
 
-After a build, boxxy reviews the pull request, has an agent grade the work on the real app, and merges the pull request through GitHub when every required check is green at its head. An agent comes back only for work that needs one: findings to answer, a conflict, a red check or a failed feature. The item holds for the owner in six cases:
+After a build, boxxy reviews the pull request, has an agent grade the work on the real app, and merges the pull request through GitHub when every required check is green at its head. An agent comes back only for work that needs one: findings to answer, a conflict, a red check or a failed feature. The item holds for the owner in seven cases:
 
 - a loop has used all its send-backs;
 - a review or a verify failed twice in a row;
 - the verify agent asks a question;
 - the pull request closed with no merge;
 - a required check stayed pending past the merge's time limit;
-- GitHub refused the merge of a clean, green head.
+- GitHub refused the merge of a clean, green head;
+- the merge has no pull request to read, or no head in it.
 
 ```mermaid
 flowchart LR
@@ -120,6 +121,7 @@ The merge phase runs on the job worker `merge.forge`. The server builds that wor
 
 | What the job reads | Result | Then |
 | --- | --- | --- |
+| no pull request on the item, none on the forge at the link, or one with no commit | `blocked`, with the reason | hold |
 | merged, by boxxy or anyone | `merged` | the item ends |
 | closed with no merge | `closed` | hold |
 | the latest review did not pass at this head | `stale` | back to review, `max: 3` |
@@ -134,6 +136,7 @@ The merge phase runs on the job worker `merge.forge`. The server builds that wor
 | every check green and the verify reading `verified` | merge request | read again |
 
 - **The time limit is 240 minutes per merge attempt, from its claim.** A send-back ends the attempt, so the next merge attempt starts its own 240 minutes. The send-back caps bound the total.
+- **A read that no later read can change ends the attempt `blocked`.** When the item has no pull request, the forge answers not-found for the link, or the pull request has no commit, the job reads that as an unreadable merge, and `decideMerge` finishes `blocked` with the reason. The close-out holds no head and no verify reading. A forge call that throws is different: the read throws, and the next tick reads again.
 - **Only `success` is green.** A check counts as green only when its latest run at the head concluded `success`. A skipped, neutral or cancelled run never counts.
 
 ### Races and repeats
@@ -156,7 +159,7 @@ The GitHub adapter calls GitHub as the boxxy App, whose [permissions](./v1-lifec
 A merge attempt uses the attempt states `starting`, `running`, `closing`, `succeeded` and `failed`, and the one module that writes attempt state. Section A of [`03-flow.ts`](./sketches/next/review-and-merge/03-flow.ts) holds the changes of state.
 
 - **The runner routes each attempt by its worker.** The claim stores the phase kind's worker on the attempt row. On each tick the runner looks the name up in the server's `WorkerRegistry`: a session worker's attempt goes through the reconcile table, and a job's attempt goes through `runJobReading` in `modules/dispatch/src/jobs/`. The claim of a job attempt starts nothing.
-- **A job reads, then moves.** Its first read moves it from `starting` to running and writes `boxxy.attempt.job_started`. A read that throws moves nothing. A `wait` sets `readAt` and `waitReason`, an `act` sets `actedAt`, `actedHead` and `readAt`, and the job reads again only `jobReadSeconds` (30) after `readAt`. The `act` mark is a compare-and-set on `readAt` and `actedAt` of the row the drive decided on: when another runner's read or mark changed either one, the mark fails and the runner sends no call, so two runners that read one job at once send one call. The drive gets `actRetryMinutes` (5) in its context, for the wait before it sends an unanswered action again.
+- **A job reads, then moves.** Its first read moves it from `starting` to running and writes `boxxy.attempt.job_started`. A read that throws moves nothing, so a job throws only when the outside system gave no answer. A read that can never succeed returns a reading that the drive finishes on, such as the merge's unreadable merge. A `wait` sets `readAt` and `waitReason`, an `act` sets `actedAt`, `actedHead` and `readAt`, and the job reads again only `jobReadSeconds` (30) after `readAt`. The `act` mark is a compare-and-set on `readAt` and `actedAt` of the row the drive decided on: when another runner's read or mark changed either one, the mark fails and the runner sends no call, so two runners that read one job at once send one call. The drive gets `actRetryMinutes` (5) in its context, for the wait before it sends an unanswered action again.
 - **A finished job settles in the same tick.** The drive's close-out goes through the phase kind's parser. When the parser refuses it, the attempt settles `closeout-unsettleable`, and the runner logs the problems.
 - **A merge holds a `jobs` seat.** The `workers` limit, at 7, counts the phases that run agent sessions, review included. The `jobs` limit, at 20, counts merges, so a merge that waits on CI never holds a session's seat.
 - **The runner writes the merge close-out.** Its actor is `boxxy:runner:<runner_id>`, and it goes through the phase kind's parser and the `closed_out` fact, as an agent's close-out does.
@@ -182,6 +185,7 @@ Section 5 of [`01-usage.ts`](./sketches/next/review-and-merge/01-usage.ts) shows
 | --- | --- |
 | An item whose required checks are green at its head merges with no person. | An e2e journey in `system-tests/e2e/` with a fake forge: the merge job calls `mergeAtHead` at the head it read, and the store holds `boxxy.merge.requested`, `boxxy.merge.answered` and one `boxxy.pull_request.merged`. |
 | A red check sends the item to a repair build, and a fourth repair holds it with a notice. | The same journey with a red check, and a `decideMerge` test row for each row of the merge table. |
+| A merge with no pull request, a pull request the forge does not hold, or one with no commit holds the item with the reason, and a forge that does not answer is read again. | Tick tests in `apps/server` with the merge job and a fake forge, one per case: after two ticks the attempt settled `blocked` with the reason and the item waits on `merge-blocked`; with the forge down it stays `starting`. |
 | Each loop holds after its last send-back, with a notice. | An `advance` test over the rules lines in section 1 of `01-usage.ts`, one row per backward edge. |
 | A refused merge of a clean, green head holds the item, and a request with no answer is sent again. | `decideMerge` test rows with `acted` set: `not-mergeable` gives `refused`, no answer after 5 minutes gives a new request, and past the time limit gives `stalled`. |
 | Each review after the first records the changed lines outside the files that had findings. | `countUnrelatedLines` test rows, a close-out procedure test with a fake forge compare, and a pepys query test that reads `unrelatedLines`. |

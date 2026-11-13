@@ -21,6 +21,45 @@ function setupTest() {
   };
 }
 
+test.each([
+  [{ state: 'unreadable', problem: 'no-pull-request' } as const, 'the item has no pull request'],
+  [
+    {
+      state: 'unreadable',
+      problem: 'pull-request-not-found',
+      pullRequest: { repo: brandSchemas.repoName.parse('acme/lamps'), number: 7 },
+    } as const,
+    'the forge holds no pull request acme/lamps#7',
+  ],
+  [
+    {
+      state: 'unreadable',
+      problem: 'no-commit',
+      pullRequest: { repo: brandSchemas.repoName.parse('acme/lamps'), number: 7 },
+    } as const,
+    'the pull request acme/lamps#7 has no commit',
+  ],
+])('it finishes blocked with the reason for an unreadable merge: %o', (observed, reason) => {
+  const ctx = setupTest();
+
+  expect(ctx.decide({ observed })).toStrictEqual({
+    kind: 'finish',
+    closeOut: toJSONValue(
+      buildMockMergeCloseOut({
+        outcome: 'blocked',
+        head: null,
+        required: [],
+        failed: [],
+        cause: null,
+        mergeCommit: null,
+        reason,
+        byBoxxy: false,
+        verify: null,
+      }),
+    ),
+  });
+});
+
 test('it finishes merged, not by boxxy, for a pull request that someone else merged', () => {
   const ctx = setupTest();
   const mergeCommit = brandSchemas.commitSha.parse('ffeeddccbbaa99887766554433221100ffeeddcc');

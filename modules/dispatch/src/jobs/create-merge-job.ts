@@ -2,32 +2,50 @@ import type {
   AttemptRow,
   CheckState,
   GateRecord,
+  JobReading,
   JobWorker,
   MergeObservation,
   PullRequestReading,
   PullRequestRef,
+  UnreadableMerge,
 } from '@boxxy/model';
-import { mergeInputSchema, storedReviewCloseOutSchema, toMergeObservationJSON } from '@boxxy/model';
+import {
+  mergeInputSchema,
+  storedReviewCloseOutSchema,
+  toJSONValue,
+  toMergeObservationJSON,
+} from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import type { MergeJobDeps } from './types.ts';
 
 // The job worker of the merge phase. Each read observes the pull request and decides nothing. A
-// forge call that throws makes the read throw, and the tick reads again later.
+// forge call that throws makes the read throw, and the tick reads again later. A read that no
+// later read can change, such as no pull request, gives an unreadable reading in place of a throw.
 export function createMergeJob(deps: MergeJobDeps): JobWorker {
   return {
     read: async (attempt) => {
-      const ref = getPullRequestRef(attempt);
+      const link = mergeInputSchema.parse(attempt.input).pullRequest;
+
+      if (link === null) {
+        return buildUnreadable({ state: 'unreadable', problem: 'no-pull-request' });
+      }
+
+      const ref: PullRequestRef = { repo: link.repo, number: link.number };
 
       const reading = await deps.forge.readPullRequest(ref);
 
       if (reading === 'not-found') {
-        throw new Error(`the forge holds no pull request ${ref.repo}#${ref.number}`);
+        return buildUnreadable({
+          state: 'unreadable',
+          problem: 'pull-request-not-found',
+          pullRequest: ref,
+        });
       }
 
       const head = reading.commits.at(-1)?.sha;
 
       if (head === undefined) {
-        throw new Error(`the pull request ${ref.repo}#${ref.number} has no commit`);
+        return buildUnreadable({ state: 'unreadable', problem: 'no-commit', pullRequest: ref });
       }
 
       const attempts = await deps.store.read((tx) => tx.listItemAttempts(attempt.item));
@@ -56,15 +74,8 @@ export function createMergeJob(deps: MergeJobDeps): JobWorker {
   };
 }
 
-// A merge with no pull request has nothing to read, and its read throws until the owner acts.
-function getPullRequestRef(attempt: AttemptRow): PullRequestRef {
-  const link = mergeInputSchema.parse(attempt.input).pullRequest;
-
-  if (link === null) {
-    throw new Error(`the merge attempt ${attempt.id} names no pull request`);
-  }
-
-  return { repo: link.repo, number: link.number };
+function buildUnreadable(unreadable: UnreadableMerge): JobReading {
+  return { kind: 'running', observed: toJSONValue(unreadable) };
 }
 
 // The latest review attempt with a close-out, of any outcome; a lost review has none.

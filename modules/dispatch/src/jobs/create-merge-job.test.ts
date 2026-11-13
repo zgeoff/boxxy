@@ -388,7 +388,7 @@ test('it settles repair when a required check is red at the head', async () => {
   expect(seen).toStrictEqual({ state: 'failed', outcome: 'repair', mergeCalls: [] });
 });
 
-test('it throws on the read of a merge whose item has no pull request', async () => {
+test('it settles blocked, with no forge call, a merge whose item has no pull request', async () => {
   const ctx = await setupTest();
 
   await ctx.seedItem({ phase: brandSchemas.phaseName.parse('merge') });
@@ -397,5 +397,25 @@ test('it throws on the read of a merge whose item has no pull request', async ()
 
   invariant(claim !== null, 'the seeded merge claims');
 
-  expect(ctx.read(claim.attempt)).rejects.toThrow(/names no pull request/u);
+  await ctx.read(claim.attempt);
+
+  const row = await ctx.readAttempt(claim.attempt.id);
+
+  const seen: unknown = { state: row.state, outcome: row.outcome, calls: ctx.forge.calls };
+
+  expect(seen).toStrictEqual({ state: 'failed', outcome: 'blocked', calls: [] });
+});
+
+test('it reads a merge again, unsettled, when the forge does not answer', async () => {
+  const ctx = await setupTest();
+
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+
+  await ctx.seedBuildWithPullRequest(ctx.forge, 7);
+
+  const merge = await ctx.claimMergeAfterReview(head);
+
+  ctx.forge.setDown(true);
+
+  expect(ctx.read(merge)).rejects.toThrow(/the fake forge is down/u);
 });

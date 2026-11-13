@@ -125,7 +125,9 @@ export interface VerifyCloseOut {
 // The merge close-out, which the runner writes from the merge job's last step.
 export interface MergeCloseOut {
   readonly outcome: MergeOutcome;
-  readonly head: CommitSha;
+
+  // null for a `blocked` merge, whose job read no head
+  readonly head: CommitSha | null;
 
   // the union of required checks that the job read
   readonly required: readonly string[];
@@ -137,14 +139,14 @@ export interface MergeCloseOut {
   // `merged` only
   readonly mergeCommit: CommitSha | null;
 
-  // `refused` only: the forge's text for the refusal
+  // `refused`: the forge's text for the refusal; `blocked`: why the job could read no head
   readonly reason: string | null;
 
   // `merged`: true when boxxy's own call merged this head
   readonly byBoxxy: boolean;
 
-  // the reading the job used, so pepys keeps the feature list
-  readonly verify: VerifyReading;
+  // the reading the job used, so pepys keeps the feature list; null for a `blocked` merge
+  readonly verify: VerifyReading | null;
 }
 
 // A relation that a close-out asks for, from the attempt's item to `target`.

@@ -68,6 +68,19 @@ export interface MergeObservation {
   readonly verify: VerifyReading;
 }
 
+// What the merge job reads when no later read can give an observation: the item has no pull
+// request, the forge holds none at the link, or the pull request has no commit. A forge that gives
+// no answer is no such read: the read throws, and the next tick reads again.
+export type UnreadableMerge =
+  | { readonly state: 'unreadable'; readonly problem: 'no-pull-request' }
+  | {
+      readonly state: 'unreadable';
+      readonly problem: 'pull-request-not-found' | 'no-commit';
+      readonly pullRequest: PullRequestRef;
+    };
+
+export type MergeReading = MergeObservation | UnreadableMerge;
+
 export interface GateRecord {
   readonly head: CommitSha;
   readonly status: GateReading['status'];
@@ -81,7 +94,8 @@ export type MergeOutcome =
   | 'unverified'
   | 'closed'
   | 'stalled'
-  | 'refused';
+  | 'refused'
+  | 'blocked';
 
 // The last merge request boxxy sent, from the attempt row. `answer` is null when the call got no
 // answer.

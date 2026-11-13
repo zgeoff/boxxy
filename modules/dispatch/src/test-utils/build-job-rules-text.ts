@@ -17,6 +17,7 @@ const replacements: readonly (readonly [string, string])[] = [
       '        closed: { hold: pull-request-closed }\n',
       '        stalled: { hold: checks-stalled }\n',
       '        refused: { hold: merge-refused }\n',
+      '        blocked: { hold: merge-blocked }\n',
     ].join(''),
   ],
   ['      review: review-run\n', '      review: review-run\n      merge: merge-v1\n'],

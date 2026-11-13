@@ -23,6 +23,24 @@ test('it accepts a merge that boxxy merged, with the verify reading it used', ()
   expect(parsed).toStrictEqual(closeOut);
 });
 
+test('it accepts a blocked merge with no head, no verify reading and the reason', () => {
+  const closeOut = {
+    outcome: 'blocked',
+    head: null,
+    required: [],
+    failed: [],
+    cause: null,
+    mergeCommit: null,
+    reason: 'the item has no pull request',
+    byBoxxy: false,
+    verify: null,
+  };
+
+  const parsed: unknown = mergeCloseOutSchema.safeParse(closeOut).data;
+
+  expect(parsed).toStrictEqual(closeOut);
+});
+
 test('it rejects a merge outcome that the merge step never gives', () => {
   const closeOut = {
     outcome: 'abandoned',

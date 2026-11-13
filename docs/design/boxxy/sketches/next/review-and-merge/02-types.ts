@@ -164,15 +164,23 @@ export interface MergeObservation {
   readonly verify: VerifyReading; // `Verifier.readAt` at `head`
 }
 
+// What the job reads when no later read can give an observation. A forge that gives no answer is
+// no such read: the read throws, and the next tick reads again.
+export type UnreadableMerge =
+  | { readonly state: 'unreadable'; readonly problem: 'no-pull-request' }
+  | { readonly state: 'unreadable'; readonly problem: 'pull-request-not-found' | 'no-commit'; readonly pullRequest: PullRequestRef };
+
+export type MergeReading = MergeObservation | UnreadableMerge;
+
 export interface GateRecord { readonly head: CommitSha; readonly status: GateReading['status']; readonly attempt: AttemptId }
 
-export type MergeOutcome = 'merged' | 'repair' | 'stale' | 'unverified' | 'closed' | 'stalled' | 'refused';
+export type MergeOutcome = 'merged' | 'repair' | 'stale' | 'unverified' | 'closed' | 'stalled' | 'refused' | 'blocked';
 
 // `acted` comes from the attempt row: the last request boxxy sent, and the forge's answer to it,
 // or null when that call got no answer.
 export interface MergeRequest { readonly at: Instant; readonly head: CommitSha; readonly answer: MergeAnswer | null }
 
-export declare function decideMerge(input: { observed: MergeObservation; rules: MergeRules; deadlinePassed: boolean; acted: MergeRequest | null; now: Instant; actRetryMinutes: number }): JobStep;
+export declare function decideMerge(input: { observed: MergeReading; rules: MergeRules; deadlinePassed: boolean; acted: MergeRequest | null; now: Instant; actRetryMinutes: number }): JobStep;
 
 // ── libs/model/src/ports/types.ts: the forge gains ────────────────────────────────────────────
 
@@ -223,14 +231,14 @@ export interface VerifyCloseOut {
 // The merge close-out, written by the runner from the drive's `finish`.
 export interface MergeCloseOut {
   readonly outcome: MergeOutcome;
-  readonly head: CommitSha;
+  readonly head: CommitSha | null; // null for `blocked`, whose job read no head
   readonly required: readonly string[]; // the union the drive read
   readonly failed: readonly string[]; // `repair`: the red checks; empty for a conflict
   readonly cause: 'conflict' | 'checks-red' | null; // `repair` only
   readonly mergeCommit: CommitSha | null; // `merged` only
-  readonly reason: string | null; // `refused` only: GitHub's text for the refusal
+  readonly reason: string | null; // `refused`: GitHub's text for the refusal; `blocked`: why the job read no head
   readonly byBoxxy: boolean; // `merged`: true when boxxy's own call merged this head
-  readonly verify: VerifyReading; // the reading the drive used, so pepys keeps the feature list
+  readonly verify: VerifyReading | null; // the reading the drive used, so pepys keeps the feature list; null for `blocked`
 }
 
 // `Effect` gains the effect of a `merged` settle. Its handler moves the open pull request row to

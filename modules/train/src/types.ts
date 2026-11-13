@@ -1,7 +1,7 @@
-import type { Instant, MergeObservation, MergeRequest, MergeRules } from '@boxxy/model';
+import type { Instant, MergeReading, MergeRequest, MergeRules } from '@boxxy/model';
 
 export interface DecideMergeInput {
-  readonly observed: MergeObservation;
+  readonly observed: MergeReading;
   readonly rules: MergeRules;
 
   // the merge step's time limit, from the attempt's claim, has passed

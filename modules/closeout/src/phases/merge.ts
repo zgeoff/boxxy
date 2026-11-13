@@ -4,7 +4,7 @@ import {
   definePhase,
   mergeCloseOutSchema,
   mergeInputSchema,
-  mergeObservationSchema,
+  mergeReadingSchema,
   toJSONValue,
 } from '@boxxy/model';
 import { decideMerge } from '@boxxy/train';
@@ -18,7 +18,7 @@ export const merge = definePhase({
   name: brandSchemas.phaseName.parse('merge'),
   version: 1,
   worker: brandSchemas.workerKindName.parse('merge.forge'),
-  outcomes: ['merged', 'repair', 'stale', 'unverified', 'closed', 'stalled', 'refused'],
+  outcomes: ['merged', 'repair', 'stale', 'unverified', 'closed', 'stalled', 'refused', 'blocked'],
   needsAcceptance: true,
   input: (ctx) => {
     const input: MergeInput = { pullRequest: findPullRequestLink(ctx.pullRequests) };
@@ -29,7 +29,7 @@ export const merge = definePhase({
     invariant(ctx.rules.merge !== null, 'the loader refuses a merge step with no merge block');
 
     return decideMerge({
-      observed: mergeObservationSchema.parse(ctx.observed),
+      observed: mergeReadingSchema.parse(ctx.observed),
       rules: ctx.rules.merge,
       deadlinePassed: ctx.deadlinePassed,
       acted: findMergeRequest(ctx.attempt),

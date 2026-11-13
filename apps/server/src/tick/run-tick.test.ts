@@ -2,12 +2,23 @@ import { expect, onTestFinished, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { closeOutAttempt, requestWake, settleAttempt } from '@boxxy/dispatch';
+import { closeOutAttempt, createMergeJob, requestWake, settleAttempt } from '@boxxy/dispatch';
+import type { FakeForge } from '@boxxy/dispatch/test-utils/create-fake-forge';
+import { createFakeForge } from '@boxxy/dispatch/test-utils/create-fake-forge';
 import { createFakeJob } from '@boxxy/dispatch/test-utils/create-fake-job';
+import { createFakeVerifier } from '@boxxy/dispatch/test-utils/create-fake-verifier';
 import { createTestDispatch } from '@boxxy/dispatch/test-utils/create-test-dispatch';
 import { loadJobRules } from '@boxxy/dispatch/test-utils/load-job-rules';
-import type { AttemptId, ClaimStore, SessionReading, WorkerKind } from '@boxxy/model';
+import type {
+  AttemptId,
+  ClaimStore,
+  CommitSha,
+  ItemId,
+  SessionReading,
+  WorkerKind,
+} from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
+import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
 import { buildMockMergeAction } from '@boxxy/model/test-utils/build-mock-merge-action';
 import { createFakeNotifier } from '@boxxy/model/test-utils/create-fake-notifier';
 import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
@@ -92,6 +103,54 @@ async function setupTest() {
       gate.beforeNextWrite = hook;
     },
     readRunner: () => dispatch.store.read((tx) => tx.readRunner(dispatch.runner)),
+
+    // the example rules with a merge step on `merge.forge`, with their limits synced
+    useJobRules: async () => {
+      const rules = loadJobRules();
+
+      dispatch.setRules(rules);
+
+      await dispatch.store.exclusive((tx) => tx.syncLimits(rules.limits, dispatch.clock.now()));
+    },
+
+    // a tick whose merges run on the merge job, reading this forge
+    tickMerge: (forge: FakeForge) => {
+      const deps = buildDeps();
+      const job = createMergeJob({ forge, verifier: createFakeVerifier(), store: dispatch.store });
+
+      return runTick({
+        ...deps,
+        workers: new Map([
+          ...deps.workers,
+          [brandSchemas.workerKindName.parse('merge.forge'), { shape: 'job', worker: job }],
+        ]),
+      });
+    },
+
+    // the item's review passes at the head, so the next tick claims its merge
+    passReview: async (head: CommitSha) => {
+      const review = await dispatch.claim();
+
+      invariant(review?.attempt.phase === 'review', 'the review claims');
+
+      const row = await dispatch.readAttempt(review.attempt.id);
+
+      await dispatch.closeAndSettle(row, {
+        round: 1,
+        cause: 'first',
+        reading: buildMockGateReading({ status: 'passed', head }),
+        unrelatedLines: null,
+      });
+    },
+    readMerge: async (item: ItemId) => {
+      const attempts = await dispatch.store.read((tx) => tx.listItemAttempts(item));
+
+      const view = await dispatch.store.read((tx) =>
+        tx.readItem(item, dispatch.clock.now(), dispatch.rules()),
+      );
+
+      return { attempt: attempts.find((attempt) => attempt.phase === 'merge'), view };
+    },
   };
 }
 
@@ -460,4 +519,144 @@ test('it sends one merge call when a second runner ticks between the first runne
   const requested = await ctx.dispatch.listFacts('boxxy.merge.requested');
 
   expect([job.acts.length, requested.length]).toStrictEqual([1, 1]);
+});
+
+test('it holds a merge whose item has no pull request, with the reason in its close-out', async () => {
+  const ctx = await setupTest();
+
+  const forge = createFakeForge();
+
+  await ctx.useJobRules();
+
+  const item = await ctx.dispatch.seedItem({ phase: brandSchemas.phaseName.parse('merge') });
+
+  await ctx.tickMerge(forge);
+
+  ctx.dispatch.clock.advance(30_000);
+
+  await ctx.tickMerge(forge);
+
+  const merge = await ctx.readMerge(item);
+
+  const seen: unknown = {
+    state: merge.attempt?.state,
+    closeOut: merge.attempt?.closeOut,
+    item: merge.view?.derived,
+  };
+
+  expect(seen).toStrictEqual({
+    state: 'failed',
+    closeOut: expect.objectContaining({
+      outcome: 'blocked',
+      reason: 'the item has no pull request',
+    }),
+    item: { state: 'waiting', reason: 'merge-blocked' },
+  });
+});
+
+test('it holds a merge whose pull request the forge does not hold, with the reason in its close-out', async () => {
+  const ctx = await setupTest();
+
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+
+  await ctx.useJobRules();
+
+  const build = await ctx.dispatch.seedBuildWithPullRequest(createFakeForge(), 7);
+
+  await ctx.passReview(head);
+
+  const emptyForge = createFakeForge();
+
+  await ctx.tickMerge(emptyForge);
+
+  ctx.dispatch.clock.advance(30_000);
+
+  await ctx.tickMerge(emptyForge);
+
+  const merge = await ctx.readMerge(build.item);
+
+  const seen: unknown = {
+    state: merge.attempt?.state,
+    closeOut: merge.attempt?.closeOut,
+    item: merge.view?.derived,
+  };
+
+  expect(seen).toStrictEqual({
+    state: 'failed',
+    closeOut: expect.objectContaining({
+      outcome: 'blocked',
+      reason: 'the forge holds no pull request example/app#7',
+    }),
+    item: { state: 'waiting', reason: 'merge-blocked' },
+  });
+});
+
+test('it holds a merge whose pull request has no commit, with the reason in its close-out', async () => {
+  const ctx = await setupTest();
+
+  const forge = createFakeForge();
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+
+  await ctx.useJobRules();
+
+  const build = await ctx.dispatch.seedBuildWithPullRequest(forge, 7);
+
+  await ctx.passReview(head);
+  await ctx.tickMerge(forge);
+
+  ctx.dispatch.clock.advance(30_000);
+
+  await ctx.tickMerge(forge);
+
+  const merge = await ctx.readMerge(build.item);
+
+  const seen: unknown = {
+    state: merge.attempt?.state,
+    closeOut: merge.attempt?.closeOut,
+    item: merge.view?.derived,
+  };
+
+  expect(seen).toStrictEqual({
+    state: 'failed',
+    closeOut: expect.objectContaining({
+      outcome: 'blocked',
+      reason: 'the pull request example/app#7 has no commit',
+    }),
+    item: { state: 'waiting', reason: 'merge-blocked' },
+  });
+});
+
+test('it reads a merge again on the next tick when the forge does not answer', async () => {
+  const ctx = await setupTest();
+
+  const forge = createFakeForge();
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+
+  await ctx.useJobRules();
+
+  const build = await ctx.dispatch.seedBuildWithPullRequest(forge, 7);
+
+  await ctx.passReview(head);
+
+  forge.setDown(true);
+
+  await ctx.tickMerge(forge);
+
+  ctx.dispatch.clock.advance(30_000);
+
+  await ctx.tickMerge(forge);
+
+  const merge = await ctx.readMerge(build.item);
+
+  const seen: unknown = {
+    state: merge.attempt?.state,
+    item: merge.view?.derived,
+    logged: ctx.logged,
+  };
+
+  expect(seen).toStrictEqual({
+    state: 'starting',
+    item: { state: 'running' },
+    logged: ['the reading of an attempt failed', 'the reading of an attempt failed'],
+  });
 });

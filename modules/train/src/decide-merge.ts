@@ -5,6 +5,7 @@ import type {
   MergeCloseOut,
   MergeObservation,
   MergeOutcome,
+  UnreadableMerge,
 } from '@boxxy/model';
 import { toJSONValue } from '@boxxy/model';
 import type { DecideMergeInput } from './types.ts';
@@ -15,6 +16,12 @@ const minuteMs = 60_000;
 // table from the top, and the first match wins. Every green answer needs a record at the head.
 export function decideMerge(input: DecideMergeInput): JobStep {
   const observed = input.observed;
+
+  // no later read can give a head, so only the owner moves the merge on
+  if (observed.state === 'unreadable') {
+    return buildBlocked(observed);
+  }
+
   const required = [...new Set([...input.rules.checks, ...observed.baseRequired])];
 
   const finish = (outcome: MergeOutcome, fields: Partial<MergeCloseOut> = {}): JobStep =>
@@ -89,6 +96,34 @@ export function decideMerge(input: DecideMergeInput): JobStep {
       required,
     },
   };
+}
+
+function buildBlocked(observed: UnreadableMerge): JobStep {
+  const closeOut: MergeCloseOut = {
+    outcome: 'blocked',
+    head: null,
+    required: [],
+    failed: [],
+    cause: null,
+    mergeCommit: null,
+    reason: formatReadProblem(observed),
+    byBoxxy: false,
+    verify: null,
+  };
+
+  return { kind: 'finish', closeOut: toJSONValue(closeOut) };
+}
+
+function formatReadProblem(observed: UnreadableMerge): string {
+  if (observed.problem === 'no-pull-request') {
+    return 'the item has no pull request';
+  }
+
+  const name = `${observed.pullRequest.repo}#${observed.pullRequest.number}`;
+
+  return observed.problem === 'no-commit'
+    ? `the pull request ${name} has no commit`
+    : `the forge holds no pull request ${name}`;
 }
 
 function buildFinish(

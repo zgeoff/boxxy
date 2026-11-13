@@ -11,7 +11,7 @@
 //   F. The kept session, widened for the verify phase.
 //   G. The caps, from the engine as it is.
 
-import type { AttemptRow, CommitSha, Forge, GateReading, GateRecord, Instant, JobReading, JobStep, JobWorker, JsonValue, MergeObservation, MergeRequest, MergeRules, ReviewCloseOut, ReviewGate, RoundCause, Settled } from '@boxxy/model';
+import type { AttemptRow, CommitSha, Forge, GateReading, GateRecord, Instant, JobReading, JobStep, JobWorker, JsonValue, MergeObservation, MergeReading, MergeRequest, MergeRules, ReviewCloseOut, ReviewGate, RoundCause, Settled, UnreadableMerge } from '@boxxy/model';
 import { match } from 'ts-pattern';
 
 // ── A. A job attempt on each tick (modules/dispatch/src/jobs/run-job-reading.ts) ───────────────
@@ -115,8 +115,15 @@ export function buildRoundCause(history: readonly Settled[]): RoundCause {
 //
 // Pure. First match wins. Every green answer needs a record at `observed.head`.
 
-export function decideMerge(input: { observed: MergeObservation; rules: MergeRules; deadlinePassed: boolean; acted: MergeRequest | null; now: Instant; actRetryMinutes: number }): JobStep {
+export function decideMerge(input: { observed: MergeReading; rules: MergeRules; deadlinePassed: boolean; acted: MergeRequest | null; now: Instant; actRetryMinutes: number }): JobStep {
   const { observed } = input;
+
+  // 0. No pull request on the item, none on the forge at the link, or one with no commit: no
+  //    later read gives a head, so the item holds for the owner, with the reason in the close-out.
+  if (observed.state === 'unreadable') {
+    return { kind: 'finish', closeOut: { outcome: 'blocked', head: null, required: [], failed: [], cause: null, mergeCommit: null, reason: formatReadProblem(observed), byBoxxy: false, verify: null } };
+  }
+
   const required = [...new Set([...input.rules.checks, ...observed.baseRequired])];
   // the full `MergeCloseOut`: its schema is strict, so each finish carries every field
   const finish = (outcome: MergeOutcome, extra: Partial<MergeCloseOut> = {}): JobStep => ({
@@ -180,7 +187,9 @@ function isPassedAt(review: GateRecord | null, head: CommitSha): boolean {
 // The job starts nothing. Each `read` makes the observation: the pull request, its
 // mergeable state, the checks at its head, the base branch's required checks, the verify reading
 // at the head, and the item's latest settled review from the store. Each forge call throws on no
-// answer, and the tick reads again later.
+// answer, and the tick reads again later. A read that no later read can change gives an
+// `UnreadableMerge` in place of a throw: no pull request in the input, `not-found` from the
+// forge, or a pull request with no commit. Step 0 of the rule finishes it `blocked`.
 //
 // The action, in three moves, the order of the sleep's:
 //   1. In the lock, under the attempt's lease: the move `acted` sets `actedAt` and `actedHead`,
@@ -249,5 +258,7 @@ interface JobDeps {
   readonly readSeconds: number;
 }
 
+// 'the item has no pull request', 'the forge holds no pull request <repo>#<n>', or 'the pull request <repo>#<n> has no commit'
+declare function formatReadProblem(observed: UnreadableMerge): string;
 declare function applyJobMove(deps: JobDeps, move: unknown): Promise<'applied' | 'refused'>;
 declare function parseRoundInput(input: unknown): { pullRequest: never; round: number; cause: RoundCause };

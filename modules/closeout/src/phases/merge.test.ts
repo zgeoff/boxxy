@@ -49,7 +49,7 @@ test('it settles a merged merge as succeeded, and asks to record the merge of it
   });
 });
 
-test.each(['repair', 'stale', 'unverified', 'closed', 'stalled', 'refused'] as const)(
+test.each(['repair', 'stale', 'unverified', 'closed', 'stalled', 'refused', 'blocked'] as const)(
   'it settles a %s merge as failed with that outcome and no effect',
   (outcome) => {
     const settlement: unknown = merge.settle({

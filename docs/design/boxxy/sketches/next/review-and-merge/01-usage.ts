@@ -49,6 +49,7 @@ import { decideMerge } from '@boxxy/train';
 //           closed: { hold: pull-request-closed }
 //           stalled: { hold: checks-stalled }
 //           refused: { hold: merge-refused }
+//           blocked: { hold: merge-blocked }              # no pull request, none on the forge, or no commit
 //
 //   kinds:
 //     core.issue: { pipeline: standard, recipes: { ..., build: build-v2, review: review-run, verify: verify-builder, merge: merge-direct } }
@@ -115,11 +116,11 @@ export const merge = definePhase({
   name: brandSchemas.phaseName.parse('merge'),
   version: 1,
   worker: brandSchemas.workerKindName.parse('merge.forge'),
-  outcomes: ['merged', 'repair', 'stale', 'unverified', 'closed', 'stalled', 'refused'],
+  outcomes: ['merged', 'repair', 'stale', 'unverified', 'closed', 'stalled', 'refused', 'blocked'],
   needsAcceptance: true,
   input: (ctx) => toJSONValue({ pullRequest: findPullRequestLink(ctx.pullRequests) }),
   // No agent decides the merge: the runner calls this pure rule on each read of the job.
-  drive: (ctx) => decideMerge({ observed: mergeObservationSchema.parse(ctx.observed), rules: ctx.rules.merge, deadlinePassed: ctx.deadlinePassed, acted: findMergeRequest(ctx.attempt), now: ctx.now, actRetryMinutes: ctx.actRetryMinutes }),
+  drive: (ctx) => decideMerge({ observed: mergeReadingSchema.parse(ctx.observed), rules: ctx.rules.merge, deadlinePassed: ctx.deadlinePassed, acted: findMergeRequest(ctx.attempt), now: ctx.now, actRetryMinutes: ctx.actRetryMinutes }),
   closeOut: mergeCloseOutParser,
   // `merged` with a pull request in the input asks for one effect, `record-merge`: the pull
   // request row moves to merged and `boxxy.pull_request.merged` is written at the settle's time,

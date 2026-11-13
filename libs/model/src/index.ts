@@ -61,6 +61,7 @@ export { verifyInputSchema } from './closeouts/verify-input-schema.ts';
 export { mergeCloseOutSchema } from './closeouts/merge-close-out-schema.ts';
 export { mergeInputSchema } from './closeouts/merge-input-schema.ts';
 export { mergeObservationSchema } from './merge/merge-observation-schema.ts';
+export { mergeReadingSchema } from './merge/merge-reading-schema.ts';
 export { toMergeObservationJSON } from './merge/to-merge-observation-json.ts';
 export { workFactSchemas } from './facts/work-fact-schemas.ts';
 export { costBases, phaseSteps, stageSteps } from './reports/constants.ts';
@@ -187,8 +188,10 @@ export type {
   MergeMember,
   MergeObservation,
   MergeOutcome,
+  MergeReading,
   MergeRequest,
   MergeUnit,
+  UnreadableMerge,
   VerifiedFeature,
   Verifier,
   VerifyReading,
