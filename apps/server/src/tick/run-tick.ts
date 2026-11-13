@@ -229,6 +229,12 @@ function logJobFault(deps: TickDeps, fault: JobFault | null): void {
         phase: missing.phase,
       });
     })
+    .with({ fault: 'job-timed-out' }, (timedOut) => {
+      deps.log.warn('a job read failed past its time limit; the attempt timed out', {
+        attempt: timedOut.attempt,
+        error: formatErrorChain(timedOut.error),
+      });
+    })
     .with({ fault: 'job-close-out-refused' }, (refused) => {
       deps.log.warn('a job phase refused its own close-out', {
         attempt: refused.attempt,

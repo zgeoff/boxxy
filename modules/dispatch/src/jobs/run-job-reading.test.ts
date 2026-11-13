@@ -357,6 +357,31 @@ test('it tells the drive that the deadline passed after the step time limit', as
   expect(row.outcome).toBe(brandSchemas.outcomeName.parse('stalled'));
 });
 
+test('it settles a starting job timed out and reports the fault when its read throws past the step time limit', async () => {
+  const ctx = await setupTest();
+  const claimed = await ctx.claimMerge();
+
+  const error = new Error('the forge did not answer');
+
+  ctx.job.failNextRead(error);
+  ctx.clock.advance(240 * 60_000 + 1);
+
+  const fault = await ctx.read(claimed);
+  const row = await ctx.readAttempt(claimed.id);
+
+  const seen: unknown = {
+    fault,
+    attempt: [row.state, row.failure, row.outcome],
+    started: await ctx.listFacts('boxxy.attempt.job_started'),
+  };
+
+  expect(seen).toStrictEqual({
+    fault: { fault: 'job-timed-out', attempt: claimed.id, error },
+    attempt: ['failed', 'timed-out', 'lost'],
+    started: [],
+  });
+});
+
 test('it gives the drive the time after which an unanswered action is sent again', async () => {
   const ctx = await setupTest();
   const claimed = await ctx.claimMerge();

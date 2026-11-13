@@ -23,6 +23,7 @@ import { match } from 'ts-pattern';
 //   claimed ─▶ starting ──job-started──▶ running ──job-finished──▶ closing ──settled──▶ succeeded | failed
 //   starting: the first read moves it to running; a job starts nothing outside boxxy
 //   running ──acted, answered, waited──▶ running
+//   starting | running ──timed-out──▶ closing: a read that throws past the step's time limit
 //   closing ─▶ settle in the same tick: a job holds no session to stop
 //
 // The lease and a `jobs` seat are held from the claim to the settle, so one item never runs two
@@ -40,11 +41,22 @@ export async function runJobReading(deps: JobDeps): Promise<void> {
     return;
   }
 
-  const reading: JobReading = await job.read(attempt); // throws on no answer: the attempt stays as it is
+  const deadlinePassed = deps.now - attempt.claimedAt > deps.step.timeoutMinutes * 60_000;
+
+  // throws on no answer: the attempt stays as it is. Past the step's time limit it times out as a
+  // session does, and settles `lost` in the same tick: `again`, then `attempts used up`.
+  const reading: JobReading | null = await job.read(attempt).catch((error: unknown) => {
+    if (!deadlinePassed) throw error;
+    return null;
+  });
+
+  if (reading === null) {
+    await applyJobMove(deps, { kind: 'timed-out', afterMinutes: deps.step.timeoutMinutes });
+    return applyJobMove(deps, { kind: 'settle', forced: 'timed-out' });
+  }
 
   if (attempt.state === 'starting') await applyJobMove(deps, { kind: 'job-started' });
 
-  const deadlinePassed = deps.now - attempt.claimedAt > deps.step.timeoutMinutes * 60_000;
   const step = deps.phase.drive({ observed: reading.observed, attempt, deadlinePassed, rules: deps.rules, now: deps.now });
 
   return match(step)

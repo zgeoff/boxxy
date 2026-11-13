@@ -151,6 +151,17 @@ async function setupTest() {
 
       return { attempt: attempts.find((attempt) => attempt.phase === 'merge'), view };
     },
+
+    // each merge attempt of the item in claim order, and the item's state
+    readMerges: async (item: ItemId) => {
+      const attempts = await dispatch.store.read((tx) => tx.listItemAttempts(item));
+
+      const view = await dispatch.store.read((tx) =>
+        tx.readItem(item, dispatch.clock.now(), dispatch.rules()),
+      );
+
+      return { attempts: attempts.filter((attempt) => attempt.phase === 'merge'), view };
+    },
   };
 }
 
@@ -658,5 +669,103 @@ test('it reads a merge again on the next tick when the forge does not answer', a
     state: 'starting',
     item: { state: 'running' },
     logged: ['the reading of an attempt failed', 'the reading of an attempt failed'],
+  });
+});
+
+test('it times out each merge whose read throws past the step time limit, and holds the item after the last attempt', async () => {
+  const ctx = await setupTest();
+
+  const forge = createFakeForge();
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+
+  await ctx.useJobRules();
+
+  const build = await ctx.dispatch.seedBuildWithPullRequest(forge, 7);
+
+  await ctx.passReview(head);
+
+  forge.setDown(true);
+
+  await ctx.tickMerge(forge);
+
+  ctx.dispatch.clock.advance(241 * 60_000);
+
+  await ctx.tickMerge(forge);
+
+  ctx.dispatch.clock.advance(30_000);
+
+  await ctx.tickMerge(forge);
+
+  ctx.dispatch.clock.advance(241 * 60_000);
+
+  await ctx.tickMerge(forge);
+
+  const merges = await ctx.readMerges(build.item);
+  const timedOut = await ctx.dispatch.listFacts('boxxy.attempt.timed_out');
+
+  const seen: unknown = {
+    attempts: merges.attempts.map((attempt) => [attempt.state, attempt.failure, attempt.outcome]),
+    item: merges.view?.derived,
+    timedOut: timedOut.map((fact) => fact.payload),
+  };
+
+  expect(seen).toStrictEqual({
+    attempts: [
+      ['failed', 'timed-out', 'lost'],
+      ['failed', 'timed-out', 'lost'],
+    ],
+    item: { state: 'waiting', reason: 'attempts used up' },
+    timedOut: [
+      { attempt: merges.attempts[0]?.id, phase: 'merge', afterMinutes: 240 },
+      { attempt: merges.attempts[1]?.id, phase: 'merge', afterMinutes: 240 },
+    ],
+  });
+});
+
+test('it times out a running merge whose reads start to throw and stay throwing past the step time limit', async () => {
+  const ctx = await setupTest();
+
+  const forge = createFakeForge();
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+
+  await ctx.useJobRules();
+
+  const build = await ctx.dispatch.seedBuildWithPullRequest(forge, 7);
+
+  forge.seed({
+    ref: { repo: brandSchemas.repoName.parse('example/app'), number: 7 },
+    githubId: 9_000_007,
+    reading: {
+      state: 'open',
+      mergedAt: null,
+      mergeCommit: null,
+      commits: [{ sha: head, message: 'Dim the lamp' }],
+    },
+  });
+
+  forge.seedRequiredChecks({
+    repo: brandSchemas.repoName.parse('example/app'),
+    branch: 'main',
+    checks: [],
+  });
+
+  await ctx.passReview(head);
+  await ctx.tickMerge(forge);
+
+  forge.setDown(true);
+  ctx.dispatch.clock.advance(241 * 60_000);
+
+  await ctx.tickMerge(forge);
+
+  const merges = await ctx.readMerges(build.item);
+
+  const seen: unknown = {
+    attempts: merges.attempts.map((attempt) => [attempt.state, attempt.failure, attempt.outcome]),
+    logged: ctx.logged,
+  };
+
+  expect(seen).toStrictEqual({
+    attempts: [['failed', 'timed-out', 'lost']],
+    logged: ['a job read failed past its time limit; the attempt timed out'],
   });
 });

@@ -135,7 +135,7 @@ An attempt fails with one of ten forced failures, or with `closeout-missing` or 
 | `spawn-lost` | no session appeared 10 minutes after the claim | yes |
 | `session-lost` | the session is absent | yes |
 | `resume-lost` | the session did not run 10 minutes after the wake | yes |
-| `timed-out` | an agent-mode attempt passed its step's time limit | yes |
+| `timed-out` | an agent-mode attempt passed its step's time limit, or a job attempt's read threw past it ([job attempts](./review-and-merge.md#job-attempts)) | yes |
 | `stalled` | an agent-mode session showed no activity for 30 minutes | yes |
 | `skill-missing` | a skill the recipe lists was not there after the fetch | yes |
 | `item-closed` | the owner closed the item | the item is archived |

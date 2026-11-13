@@ -42,6 +42,9 @@ export interface MergeJobDeps {
 export type JobFault =
   | { readonly fault: 'job-without-drive'; readonly attempt: AttemptId; readonly phase: PhaseName }
 
+  // the read threw past the step's time limit, so the attempt settled timed out
+  | { readonly fault: 'job-timed-out'; readonly attempt: AttemptId; readonly error: unknown }
+
   // the phase kind's parser refused the close-out that its own `drive` gave
   | {
       readonly fault: 'job-close-out-refused';

@@ -215,6 +215,15 @@ export const attemptMoves: readonly AttemptMove[] = [
     effects: ['boxxy.attempt.job_started'],
   },
   {
+    // a job whose read throws past the step's time limit, before or after its first read
+    event: 'timed-out',
+    from: ['starting', 'running'],
+    when: (context) => !context.hasSession,
+    to: 'closing',
+    effects: ['boxxy.attempt.timed_out'],
+    context: () => ({ closing: 'timed-out' }),
+  },
+  {
     // marked under the lease before the call, so a refused mark sends no call
     event: 'acted',
     from: ['running'],

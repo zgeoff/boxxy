@@ -5,6 +5,7 @@ import type {
   CloseOutProblem,
   ForcedFailure,
   JobAction,
+  JobReading,
   JobStep,
   JsonValue,
   PhaseKind,
@@ -22,7 +23,7 @@ import type { JobFault, JobReadingInput } from './types.ts';
 
 // One tick's read of a live job attempt. The first read moves it from starting to running, and
 // the phase kind's `drive` then finishes it, has it wait, or picks its one action. A read that
-// throws leaves the attempt as it is, and the next tick reads it again.
+// throws within the step's time limit leaves the attempt as it is for the next tick.
 export async function runJobReading(input: JobReadingInput): Promise<JobFault | null> {
   const attempt = input.attempt;
 
@@ -43,7 +44,11 @@ export async function runJobReading(input: JobReadingInput): Promise<JobFault | 
     return { fault: 'job-without-drive', attempt: attempt.id, phase: attempt.phase };
   }
 
-  const reading = await input.job.read(attempt);
+  const reading = await readJob(input);
+
+  if (reading.kind === 'timed-out') {
+    return { fault: 'job-timed-out', attempt: attempt.id, error: reading.error };
+  }
 
   if (attempt.state === 'starting') {
     const started = await writeJobMove(input, { kind: 'job-started' });
@@ -95,6 +100,43 @@ function isReadDue(input: JobReadingInput): boolean {
   return readAt === null || input.now - readAt >= timeouts.jobReadSeconds * secondMs;
 }
 
+type JobReadResult = JobReading | { readonly kind: 'timed-out'; readonly error: unknown };
+
+// A read that throws within the step's time limit throws on, and the next tick reads again. Past
+// the limit, the attempt settles timed out, as a session attempt's does, so a forge that never
+// answers holds the item once the step's attempts are used up.
+async function readJob(input: JobReadingInput): Promise<JobReadResult> {
+  try {
+    return await input.job.read(input.attempt);
+  } catch (error) {
+    const step = input.step;
+
+    if (step === null || !isDeadlinePassed(input)) {
+      throw error;
+    }
+
+    const moved = await writeJobMove(input, {
+      kind: 'timed-out',
+      afterMinutes: step.timeoutMinutes,
+    });
+
+    if (moved.kind === 'applied') {
+      await settleJob(input, 'timed-out');
+    }
+
+    return { kind: 'timed-out', error };
+  }
+}
+
+const minuteMs = 60_000;
+
+function isDeadlinePassed(input: JobReadingInput): boolean {
+  return (
+    input.step !== null &&
+    input.now - input.attempt.claimedAt > input.step.timeoutMinutes * minuteMs
+  );
+}
+
 function writeJobMove(input: JobReadingInput, event: MoveEvent): Promise<MoveResult> {
   return input.store.exclusive((tx) =>
     writeAttemptMove(tx, input.attempt.id, event, buildBase(input)),
@@ -107,15 +149,6 @@ async function readJobAttempt(input: JobReadingInput): Promise<AttemptRow> {
   invariant(row !== null, `a live attempt stays stored: ${input.attempt.id}`);
 
   return row;
-}
-
-const minuteMs = 60_000;
-
-function isDeadlinePassed(input: JobReadingInput): boolean {
-  return (
-    input.step !== null &&
-    input.now - input.attempt.claimedAt > input.step.timeoutMinutes * minuteMs
-  );
 }
 
 function runJobStep(
