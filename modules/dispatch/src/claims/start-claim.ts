@@ -2,12 +2,11 @@ import type { ActorRef, RunnerFault, StartOutcome } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { match } from 'ts-pattern';
 import { writeAttemptMove } from '../attempts/write-attempt-move.ts';
-import { writeSessionBind } from '../attempts/write-session-bind.ts';
 import { settleAttempt } from '../closeouts/settle-attempt.ts';
-import { buildKeptClear } from '../sessions/build-kept-clear.ts';
 import { resumeKeptSession } from '../sessions/resume-kept-session.ts';
 import { timeouts } from '../timeouts.ts';
 import type { StartClaimInput } from './types.ts';
+import { writeStartedSession } from './write-started-session.ts';
 
 const secondMs = 1000;
 
@@ -30,41 +29,23 @@ export async function startClaim(input: StartClaimInput): Promise<RunnerFault | 
         }
       : await resumeKeptSession(input.worker, kept, input.claim.spawn);
 
-  const outcome = woken.outcome;
-  const resumeFallback = woken.resumeFallback;
-  const keptClear = kept === null ? [] : [buildKeptClear(attempt.item, kept)];
-
-  return match<StartOutcome, Promise<RunnerFault | null>>(outcome)
+  return match<StartOutcome, Promise<RunnerFault | null>>(woken.outcome)
     .with({ kind: 'started' }, (started) =>
-      input.store.exclusive(async (tx) => {
-        const moved = await writeAttemptMove(
+      input.store.exclusive((tx) =>
+        writeStartedSession(
           tx,
-          attempt.id,
+          attempt,
           {
-            kind: 'started',
             via: 'start',
             atcSession: started.atcSession,
+            agentSession: started.agentSession,
             caller: started.caller,
-            resumeFallback,
+            kept,
+            resumeFallback: woken.resumeFallback,
           },
-          { ...base, also: keptClear },
-        );
-
-        const row = await tx.readAttempt(attempt.id);
-
-        return moved.kind === 'applied' && row !== null && started.agentSession !== null
-          ? writeSessionBind(
-              tx,
-              row,
-              {
-                atcSession: started.atcSession,
-                agentSession: started.agentSession,
-                keptFrom: resumeFallback || kept === null ? null : kept.attempt,
-              },
-              base,
-            )
-          : null;
-      }),
+          base,
+        ),
+      ),
     )
     .with({ kind: 'unknown' }, async (unknown) => {
       await input.store.exclusive((tx) =>

@@ -59,6 +59,22 @@ test('it records the started session, its caller and its agent session', async (
   ]);
 });
 
+test('it clears the kept session and hands its agent session to the rework that wakes it', async () => {
+  const ctx = await setupTest();
+  const first = await ctx.seedBuild();
+  const reading = await ctx.worker.reconcile(first);
+
+  invariant(reading.kind !== 'absent' && reading.agentSession !== null, 'the session is kept');
+
+  const agentSession = reading.agentSession;
+
+  const second = await ctx.seedReworkAfter(first);
+  const item = await ctx.store.read((tx) => tx.readItem(second.item, ctx.clock.now(), ctx.rules()));
+  const holder = await ctx.store.read((tx) => tx.findAttemptByAgentSession(agentSession));
+
+  expect([item?.keptSession, holder]).toStrictEqual([null, second.id]);
+});
+
 test('it hands an unanswered spawn to the reconcile table', async () => {
   const ctx = await setupTest();
   const claim = await ctx.claimBuild();

@@ -21,6 +21,7 @@ import { buildSnapshotHash } from '../claims/build-snapshot-hash.ts';
 import { pickKeptSession } from '../claims/pick-kept-session.ts';
 import { resumeClaim } from '../claims/resume-claim.ts';
 import { startClaim } from '../claims/start-claim.ts';
+import { writeStartedSession } from '../claims/write-started-session.ts';
 import { settleAttempt } from '../closeouts/settle-attempt.ts';
 import { isBuilderSession } from '../sessions/is-builder-session.ts';
 import { timeouts } from '../timeouts.ts';
@@ -52,7 +53,13 @@ export async function actOnReading(input: ActOnReadingInput): Promise<RunnerFaul
 function writeReadingBind(input: ActOnReadingInput, base: MoveBase): Promise<SessionFault | null> {
   const reading = input.reading;
 
-  if (reading.kind === 'absent' || reading.agentSession === null) {
+  // a reconciled start binds after its move, in the same lock, as the start does: the attempt of a
+  // woken kept session holds the agent session until the new attempt takes it over
+  if (
+    reading.kind === 'absent' ||
+    reading.agentSession === null ||
+    isReconciledStart(input.action)
+  ) {
     return Promise.resolve(null);
   }
 
@@ -65,6 +72,10 @@ function writeReadingBind(input: ActOnReadingInput, base: MoveBase): Promise<Ses
 
     return writeSessionBind(tx, row, { atcSession: reading.atcSession, agentSession }, base);
   });
+}
+
+function isReconciledStart(action: ReadingAction): boolean {
+  return action.kind === 'move-to-running' && action.via === 'reconcile';
 }
 
 const hourMs = 3_600_000;
@@ -86,15 +97,27 @@ function runAction(
     .with({ kind: 'move-to-running', via: 'reconcile' }, async () => {
       const running = getRunningReading(input.reading);
 
-      const kept = await readClaimKept(input);
+      const pick = await readClaimKept(input);
 
-      await writeMove({
-        kind: 'started',
-        via: 'reconcile',
-        atcSession: running.atcSession,
-        caller: running.caller,
-        resumeFallback: isResumeFallback(kept, running.atcSession),
-      });
+      const fault = await input.store.exclusive((tx) =>
+        writeStartedSession(
+          tx,
+          input.attempt,
+          {
+            via: 'reconcile',
+            atcSession: running.atcSession,
+            agentSession: running.agentSession,
+            caller: running.caller,
+            kept: pick.kind === 'kept' ? pick.session : null,
+            resumeFallback: isResumeFallback(pick, running.atcSession),
+          },
+          seen,
+        ),
+      );
+
+      if (fault !== null) {
+        faults.push(fault);
+      }
     })
     .with({ kind: 'move-to-running', via: 'resume' }, async () => {
       const running = getRunningReading(input.reading);

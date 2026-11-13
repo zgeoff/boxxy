@@ -1,12 +1,16 @@
 import type {
   ActorRef,
+  AgentSessionId,
+  AtcSessionId,
   AttemptId,
+  CallerIdentity,
   CapacityBackoff,
   Claim,
   ClaimStore,
   GitSource,
   Instant,
   ItemId,
+  KeptSession,
   LoadedRules,
   NewId,
   RepoName,
@@ -51,6 +55,20 @@ export interface StartClaimInput {
   readonly now: Instant;
   readonly newId: NewId;
   readonly backoff: CapacityBackoff;
+}
+
+// A session that the worker started for a claim, as the start's answer or a reading shows it.
+export interface StartedSession {
+  readonly via: 'start' | 'reconcile';
+  readonly atcSession: AtcSessionId;
+  readonly agentSession: AgentSessionId | null;
+  readonly caller: CallerIdentity | null;
+
+  // the kept session that the claim woke; null when the claim wanted none or found none
+  readonly kept: KeptSession | null;
+
+  // true when the claim wanted a kept session and the session is a fresh one
+  readonly resumeFallback: boolean;
 }
 
 export interface ResumeClaimInput {
