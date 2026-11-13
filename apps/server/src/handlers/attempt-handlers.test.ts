@@ -355,6 +355,81 @@ test('#getItem answers NOT_FOUND for an item that does not exist', async () => {
   });
 });
 
+test.each([['attempt.listItems'], ['attempt.getItem']])(
+  'it leaves the kept session of another item out of %s',
+  async (procedure) => {
+    const ctx = await setupTest();
+    const built = await ctx.dispatch.seedBuild();
+    const attempt = await ctx.seedStartedAttempt(brandSchemas.phaseName.parse('triage'));
+
+    ctx.callerProof.setCaller(attempt.caller);
+
+    const answer = await ctx.callSession(procedure, { item: built.item });
+
+    const text = JSON.stringify(answer.body);
+
+    expect({ status: answer.status, text }).toStrictEqual({
+      status: 200,
+      text: expect.not.stringContaining('keptSession'),
+    });
+  },
+);
+
+test.each([
+  ['a held item of the same repo', 'example/app', { reason: 'still a draft' }],
+  ['an item of another repo', 'example/site', undefined],
+])('#getItem leaves out a relation to %s', async (_label, repo, held) => {
+  const ctx = await setupTest();
+  const attempt = await ctx.seedStartedAttempt(brandSchemas.phaseName.parse('triage'));
+
+  const hidden = await ctx.fileItem({
+    repo,
+    title: 'Add an export format',
+    outcome: 'The export takes another format.',
+    ...(held === undefined ? {} : { held }),
+  });
+
+  await ctx.owner(
+    buildRPCRequest({
+      procedure: 'relation.add',
+      input: { source: attempt.item, type: 'relates-to', target: hidden },
+    }),
+  );
+
+  ctx.callerProof.setCaller(attempt.caller);
+
+  const answer = await ctx.callSession('attempt.getItem', { item: attempt.item });
+
+  expect(answer).toMatchObject({ status: 200, body: { json: { kind: 'item', relations: [] } } });
+});
+
+test('#getItem keeps a relation to a visible item of the same repo', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.seedStartedAttempt(brandSchemas.phaseName.parse('triage'));
+
+  const toggle = await ctx.fileItem({
+    repo: 'example/app',
+    title: 'Add a theme toggle',
+    outcome: 'The header has a theme toggle.',
+  });
+
+  await ctx.owner(
+    buildRPCRequest({
+      procedure: 'relation.add',
+      input: { source: toggle, type: 'relates-to', target: attempt.item },
+    }),
+  );
+
+  ctx.callerProof.setCaller(attempt.caller);
+
+  const answer = await ctx.callSession('attempt.getItem', { item: attempt.item });
+
+  expect(answer).toMatchObject({
+    status: 200,
+    body: { json: { relations: [{ source: toggle, target: attempt.item, type: 'relates-to' }] } },
+  });
+});
+
 test('it answers a bind with exactly the kinds that the bind of dispatch gives', () => {
   type WireBind = Awaited<ReturnType<BoxxyClient['attempt']['bindSession']>>;
 

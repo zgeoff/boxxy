@@ -9,7 +9,9 @@ import type {
   AttemptRow,
   EvidenceKind,
   ItemKindName,
+  ItemView,
   LoadedRules,
+  RepoName,
   StoreChange,
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
@@ -70,7 +72,18 @@ export const attemptHandlers = {
       return noAttempt;
     }
 
-    return { kind: 'items' as const, repo: listed.repo, ...collectItemPage(listed.entries, input) };
+    const page = collectItemPage(listed.entries, input);
+
+    return {
+      kind: 'items' as const,
+      repo: listed.repo,
+      items: page.items.map((item) => {
+        const { keptSession: _keptSession, ...view } = item;
+
+        return view;
+      }),
+      next: page.next,
+    };
   }),
   getItem: api.attempt.getItem.handler(async (options) => {
     const input = options.input;
@@ -92,32 +105,40 @@ export const attemptHandlers = {
 
       const detail = item.success ? await tx.readItemDetail(item.data, now, rules) : null;
 
-      return { own, detail };
+      // the other end of each relation, so a relation to an item the session cannot see stays out
+      const ends = await Promise.all(
+        (detail?.relations ?? []).map((relation) => {
+          const other = relation.source === detail?.item.id ? relation.target : relation.source;
+
+          return tx.readItem(other, now, rules);
+        }),
+      );
+
+      return { own, detail, ends };
     });
 
     if (read.own === null) {
       return noAttempt;
     }
 
+    const own = read.own;
     const detail = read.detail;
 
     // a held item or one of another repo answers as an item that does not exist, so the answer
     // never shows that it exists
-    if (
-      detail === null ||
-      detail.item.repo !== read.own.repo ||
-      detail.item.derived.state === 'held'
-    ) {
+    if (detail === null || !isSessionVisible(detail.item, own.repo)) {
       throw notFound({ data: { item: input.item } });
     }
 
-    const { levers: _levers, ...view } = detail.item;
+    const { levers: _levers, keptSession: _keptSession, ...view } = detail.item;
 
     return {
       kind: 'item' as const,
       item: view,
       notes: [...detail.notes],
-      relations: [...detail.relations],
+      relations: detail.relations.filter((_relation, index) =>
+        isSessionVisible(read.ends[index] ?? null, own.repo),
+      ),
       pullRequests: [...detail.pullRequests],
     };
   }),
@@ -267,6 +288,11 @@ function collectSkillNames(rules: LoadedRules, kind: ItemKindName, attempt: Atte
     recipes[attempt.phase];
 
   return name === undefined ? [] : [...(rules.recipes.get(name)?.recipe.skills ?? [])];
+}
+
+// A session sees an item of its own repo that is not held.
+function isSessionVisible(item: ItemView | null, repo: RepoName): boolean {
+  return item !== null && item.repo === repo && item.derived.state !== 'held';
 }
 
 // an attempt ID that no store holds, so `pickCallAttempt` answers `not-current`

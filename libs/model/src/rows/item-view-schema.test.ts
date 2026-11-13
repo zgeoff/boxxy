@@ -1,5 +1,9 @@
 import { expect, test } from 'bun:test';
-import { itemViewSchema } from './item-view-schema.ts';
+import {
+  itemViewSchema,
+  sessionItemListViewSchema,
+  sessionItemViewSchema,
+} from './item-view-schema.ts';
 
 test.each([{ state: 'running' }, { state: 'waiting', reason: 'pull request open' }])(
   'it accepts an item view in the state $state',
@@ -54,4 +58,37 @@ test('it rejects a waiting item view with no reason', () => {
   expect(itemViewSchema.safeParse(view).error?.issues).toPartiallyContain({
     path: ['derived', 'reason'],
   });
+});
+
+test.each([
+  ['sessionItemViewSchema', sessionItemViewSchema],
+  ['sessionItemListViewSchema', sessionItemListViewSchema],
+])('it drops the kept session of an item view with %s', (_name, schema) => {
+  const view = {
+    id: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77',
+    kind: 'core.issue',
+    repo: 'acme/widgets',
+    title: 'Add a retry button',
+    outcome: 'A failed upload can be sent again',
+    body: '',
+    acceptance: [],
+    fields: {},
+    labels: [],
+    foundInAttempt: null,
+    filedBy: 'boxxy:owner:local',
+    filedAt: 1000,
+    closedAt: null,
+    closeReason: null,
+    keptSession: {
+      atcSession: 'atc-7',
+      target: 'worker-host',
+      attempt: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b78',
+      keptAt: 2000,
+      caller: { issuer: 'https://imp.example', subject: 'imp-7' },
+    },
+    derived: { state: 'running' },
+    position: { kind: 'phase', phase: 'build', round: 1 },
+  };
+
+  expect(Object.keys(schema.parse(view))).not.toContain('keptSession');
 });

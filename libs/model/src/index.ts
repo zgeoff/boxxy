@@ -31,7 +31,14 @@ export { formatKeyPath } from './utils/format-key-path.ts';
 export { frictionSchema } from './closeouts/friction-schema.ts';
 export { isFilterMatch } from './planning/is-filter-match.ts';
 export { itemBodyMaxChars } from './rows/item-body-max-chars.ts';
-export { itemListViewSchema, itemViewSchema } from './rows/item-view-schema.ts';
+
+export {
+  itemListViewSchema,
+  itemViewSchema,
+  sessionItemListViewSchema,
+  sessionItemViewSchema,
+} from './rows/item-view-schema.ts';
+
 export { itemRevisionSchema } from './rows/item-revision-schema.ts';
 export { itemRowSchema } from './rows/item-row-schema.ts';
 export { leverRowSchema } from './rows/lever-row-schema.ts';
@@ -135,6 +142,8 @@ export type {
   RulesVersion,
   RunnerId,
   RunnerRow,
+  SessionItemListView,
+  SessionItemView,
   SessionMode,
   SnapshotHash,
   SourceName,

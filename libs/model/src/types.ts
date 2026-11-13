@@ -187,6 +187,12 @@ export type DerivedState =
 // A row of `item.list`: the view without the body, which can be long.
 export type ItemListView = Omit<ItemView, 'body'>;
 
+// What a worker session sees of an item: the view without the kept session, which holds the
+// caller and the atc session of another session.
+export type SessionItemView = Omit<ItemView, 'keptSession'>;
+
+export type SessionItemListView = Omit<ItemView, 'keptSession' | 'body'>;
+
 export interface ItemView extends ItemRow {
   readonly derived: DerivedState;
   readonly position: Position;

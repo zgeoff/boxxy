@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { positionSchema } from '../pipeline/position-schema.ts';
-import type { ItemListView, ItemView } from '../types.ts';
+import type { ItemListView, ItemView, SessionItemListView, SessionItemView } from '../types.ts';
 import { brandSchemas } from './brand-schemas.ts';
 import { itemRowSchema } from './item-row-schema.ts';
 
@@ -35,5 +35,15 @@ export const itemViewSchema: z.ZodType<ItemView> = itemViewObjectSchema;
 
 // A row of `item.list` leaves out the body, which can be long.
 export const itemListViewSchema: z.ZodType<ItemListView> = itemViewObjectSchema.omit({
+  body: true,
+});
+
+// A worker session's views leave out the kept session, which names another session.
+export const sessionItemViewSchema: z.ZodType<SessionItemView> = itemViewObjectSchema.omit({
+  keptSession: true,
+});
+
+export const sessionItemListViewSchema: z.ZodType<SessionItemListView> = itemViewObjectSchema.omit({
+  keptSession: true,
   body: true,
 });

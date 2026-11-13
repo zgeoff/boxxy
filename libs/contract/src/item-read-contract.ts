@@ -1,9 +1,9 @@
 import {
-  itemListViewSchema,
-  itemViewSchema,
   noteRowSchema,
   pullRequestRowSchema,
   relationRowSchema,
+  sessionItemListViewSchema,
+  sessionItemViewSchema,
 } from '@boxxy/model';
 import { oc } from '@orpc/contract';
 import { mcp } from '@orpc/mcp';
@@ -36,7 +36,7 @@ const listItemsOutput = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('items'),
     repo: z.string(),
-    items: z.array(itemListViewSchema),
+    items: z.array(sessionItemListViewSchema),
     next: id.nullable(),
   }),
   noAttempt,
@@ -45,7 +45,7 @@ const listItemsOutput = z.discriminatedUnion('kind', [
 const getItemOutput = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('item'),
-    item: itemViewSchema,
+    item: sessionItemViewSchema,
     notes: z.array(noteRowSchema),
     relations: z.array(relationRowSchema),
     pullRequests: z.array(pullRequestRowSchema),
@@ -53,9 +53,9 @@ const getItemOutput = z.discriminatedUnion('kind', [
   noAttempt,
 ]);
 
-// The reads of other items that a session may make, for triage to find a duplicate or an
-// overlap. The server takes the repo from the item of the session's attempt, and answers a held
-// item or one of another repo as NOT_FOUND, the same as an item that does not exist.
+// A session's reads of other items, for triage to find a duplicate or an overlap. The repo is
+// that of the session's own item, and a held item or one of another repo answers NOT_FOUND;
+// v1-api-and-auth.md holds the whole rule.
 export const itemReadContract = {
   listItems: oc
     .meta(

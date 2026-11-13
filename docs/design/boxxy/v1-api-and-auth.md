@@ -125,7 +125,7 @@ A session sees the items of one repo: the repo of the item that its current atte
 
 - **Held items.** A held item is the owner's draft, so a session never sees one: `attempt.listItems` leaves it out and takes no `held` state, and `attempt.getItem` answers `NOT_FOUND`.
 - **Refusals.** `attempt.getItem` answers `NOT_FOUND` for an item of another repo, a held item and a missing item alike, so the answer never shows that an item exists. A caller whose session has no attempt gets `refused: no-attempt`, and a request with no proven caller gets 401.
-- **What an answer holds.** A listed item has the fields of an `item.list` row. `attempt.getItem` returns the item with its body, its notes, its relations and its pull requests. It leaves out the attempts, the evidence and the revisions, because an attempt row holds another session's caller and atc session.
+- **What an answer holds.** A listed item has the fields of an `item.list` row. `attempt.getItem` returns the item with its body, its notes, its relations and its pull requests. Both leave out the item's kept session, and `attempt.getItem` leaves out the attempts, the evidence and the revisions, because a kept session and an attempt row hold another session's caller and atc session. `attempt.getItem` also leaves out each relation whose other item the session cannot see, so a relation never shows a held item or an item of another repo.
 - **No writes.** Both procedures write nothing, and a session still has no edit, note, retry, hold or release. A test sends each owner command with a proven session's call and checks that the answer is `FORBIDDEN` and that the item is unchanged.
 
 ## The proven caller
