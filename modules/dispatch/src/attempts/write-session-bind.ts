@@ -3,8 +3,8 @@ import type { MoveBase, SeenSession } from './types.ts';
 import { writeAttemptMove } from './write-attempt-move.ts';
 
 // Binds the agent session to the attempt, once. An agent session that another attempt holds
-// writes nothing and gives the fault, which the server logs. The one exception is an attempt that
-// succeeded on the same atc session: its kept session was woken, and the new attempt takes over.
+// gives the fault, which the server logs, unless that attempt succeeded on the same atc session
+// and this one is live: this one woke the kept session, and takes the agent session over.
 export async function writeSessionBind(
   tx: StoreTx,
   attempt: AttemptRow,
@@ -17,7 +17,7 @@ export async function writeSessionBind(
     return null;
   }
 
-  if (holder !== null && !(await probeKeptHolder(tx, holder, session))) {
+  if (holder !== null && !(await probeKeptHolder(tx, attempt, holder, session))) {
     return {
       kind: 'fault',
       fault: 'agent-session-owned',
@@ -47,11 +47,17 @@ export async function writeSessionBind(
   return null;
 }
 
+// a settled attempt never takes the agent session back from the attempt that took it over
 async function probeKeptHolder(
   tx: StoreTx,
+  attempt: AttemptRow,
   holder: AttemptId,
   session: SeenSession,
 ): Promise<boolean> {
+  if (attempt.state === 'succeeded' || attempt.state === 'failed') {
+    return false;
+  }
+
   const row = await tx.readAttempt(holder);
 
   return row?.state === 'succeeded' && row.atcSession === session.atcSession;
