@@ -823,6 +823,8 @@ test('#buildAttemptChange settles a stray attempt under its live lease and marks
             strayedAt: null,
             sessionStoppedAt: null,
             sessionForgottenAt: null,
+            readAt: null,
+            actedAt: null,
           },
           set: {
             state: 'succeeded',

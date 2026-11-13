@@ -22,6 +22,14 @@ test('it refuses a row whose session was recorded since the caller read it', () 
   expect(isSameGuard({ atcSession: null }, row)).toBeFalse();
 });
 
+test('it refuses a job row that another read marked since the caller read it', () => {
+  const seen = buildMockV1AttemptRow({ state: 'running' });
+  const marked = brandSchemas.instant.parse(30_000);
+  const row = { ...seen, readAt: marked, actedAt: marked };
+
+  expect(isSameGuard({ readAt: seen.readAt, actedAt: seen.actedAt }, row)).toBeFalse();
+});
+
 test('it checks only the columns a caller names', () => {
   const row = buildMockV1AttemptRow({ state: 'closing', closing: 'item-closed', atcSession: null });
 

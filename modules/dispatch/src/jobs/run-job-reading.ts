@@ -203,7 +203,15 @@ async function runJobAction(
   row: AttemptRow,
   action: JobAction,
 ): Promise<void> {
-  const marked = await writeJobMove(input, { kind: 'acted', action });
+  // a mark from a row that another runner's read or mark moved is refused, so one call goes out
+  const marked = await input.store.exclusive((tx) =>
+    writeAttemptMove(
+      tx,
+      row.id,
+      { kind: 'acted', action },
+      { ...buildBase(input), seen: { readAt: row.readAt, actedAt: row.actedAt } },
+    ),
+  );
 
   if (marked.kind !== 'applied') {
     return;

@@ -1,17 +1,53 @@
-import { expect, test } from 'bun:test';
+import { expect, onTestFinished, test } from 'bun:test';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { closeOutAttempt, requestWake, settleAttempt } from '@boxxy/dispatch';
 import { createFakeJob } from '@boxxy/dispatch/test-utils/create-fake-job';
 import { createTestDispatch } from '@boxxy/dispatch/test-utils/create-test-dispatch';
 import { loadJobRules } from '@boxxy/dispatch/test-utils/load-job-rules';
-import type { AttemptId, SessionReading, WorkerKind } from '@boxxy/model';
+import type { AttemptId, ClaimStore, SessionReading, WorkerKind } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
+import { buildMockMergeAction } from '@boxxy/model/test-utils/build-mock-merge-action';
 import { createFakeNotifier } from '@boxxy/model/test-utils/create-fake-notifier';
+import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
 import invariant from 'tiny-invariant';
 import type { TickDeps } from './run-tick.ts';
 import { runTick } from './run-tick.ts';
 
 async function setupTest() {
-  const dispatch = await createTestDispatch();
+  const folder = await mkdtemp(path.join(tmpdir(), 'boxxy-test-tick-'));
+
+  onTestFinished(() => rm(folder, { recursive: true, force: true }));
+
+  const file = path.join(folder, 'boxxy.db');
+
+  const store = await createSQLiteClaimStore(file);
+
+  onTestFinished(() => store.close());
+
+  // a second runner's handle on the same store file, as a second server opens it
+  const secondStore = await createSQLiteClaimStore(file);
+
+  onTestFinished(() => secondStore.close());
+
+  // the runner's next write waits for this hook, as a write that loses the race for the lock does
+  const gate: { beforeNextWrite: (() => Promise<unknown>) | null } = { beforeNextWrite: null };
+
+  const gatedStore: ClaimStore = {
+    read: store.read,
+    exclusive: async (work) => {
+      const hook = gate.beforeNextWrite;
+
+      gate.beforeNextWrite = null;
+
+      await hook?.();
+
+      return store.exclusive(work);
+    },
+  };
+
+  const dispatch = await createTestDispatch({ store });
 
   const readings = new Map<AttemptId, SessionReading>();
 
@@ -19,7 +55,7 @@ async function setupTest() {
   const loggedFields: Readonly<Record<string, unknown>>[] = [];
 
   const buildDeps = (worker: WorkerKind = dispatch.worker): TickDeps => ({
-    store: dispatch.store,
+    store: gatedStore,
     runner: dispatch.runner,
     workers: new Map([
       [brandSchemas.workerKindName.parse('atc.session'), { shape: 'session', worker }],
@@ -46,6 +82,15 @@ async function setupTest() {
     logged,
     loggedFields,
     buildDeps,
+    buildSecondRunnerDeps: (): TickDeps => ({
+      ...buildDeps(),
+      store: secondStore,
+      runner: brandSchemas.runnerId.parse('runner-2'),
+      readings: new Map(),
+    }),
+    holdNextWrite: (hook: () => Promise<unknown>) => {
+      gate.beforeNextWrite = hook;
+    },
     readRunner: () => dispatch.store.read((tx) => tx.readRunner(dispatch.runner)),
   };
 }
@@ -379,4 +424,40 @@ test('it claims a merge with no session start and reads it through its job worke
   };
 
   expect(seen).toStrictEqual({ claimed: 1, state: 'running', calls: [], reads: [attempt?.id] });
+});
+
+test('it sends one merge call when a second runner ticks between the first runner’s job read and mark', async () => {
+  const ctx = await setupTest();
+
+  const job = createFakeJob();
+  const rules = loadJobRules(job.drive);
+
+  await ctx.dispatch.store.exclusive((tx) => tx.syncLimits(rules.limits, ctx.dispatch.clock.now()));
+  await ctx.dispatch.seedItem({ phase: brandSchemas.phaseName.parse('merge') });
+
+  const withJob = (deps: TickDeps): TickDeps => ({
+    ...deps,
+    rules,
+    workers: new Map([
+      ...deps.workers,
+      [brandSchemas.workerKindName.parse('merge.forge'), { shape: 'job', worker: job.worker }],
+    ]),
+  });
+
+  await runTick(withJob(ctx.buildDeps()));
+
+  ctx.dispatch.clock.advance(30_000);
+  job.setStep({ kind: 'act', action: buildMockMergeAction() });
+
+  job.beforeNextRead(() => {
+    ctx.holdNextWrite(() => runTick(withJob(ctx.buildSecondRunnerDeps())));
+
+    return Promise.resolve();
+  });
+
+  await runTick(withJob(ctx.buildDeps()));
+
+  const requested = await ctx.dispatch.listFacts('boxxy.merge.requested');
+
+  expect([job.acts.length, requested.length]).toStrictEqual([1, 1]);
 });

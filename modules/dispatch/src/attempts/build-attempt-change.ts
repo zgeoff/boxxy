@@ -482,6 +482,8 @@ function toAttemptGuard(attempt: AttemptRow): AttemptGuard {
     strayedAt: attempt.strayedAt,
     sessionStoppedAt: attempt.sessionStoppedAt,
     sessionForgottenAt: attempt.sessionForgottenAt,
+    readAt: attempt.readAt,
+    actedAt: attempt.actedAt,
   };
 }
 

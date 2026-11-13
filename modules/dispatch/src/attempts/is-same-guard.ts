@@ -1,6 +1,7 @@
 import type { AttemptRow } from '@boxxy/model';
 
-// The columns the machine's guards read.
+// The columns a move is decided on: the ones the machine's guards read, and a job's read and
+// mark times.
 const attemptGuardColumns = [
   'state',
   'holdGen',
@@ -11,6 +12,8 @@ const attemptGuardColumns = [
   'strayedAt',
   'sessionStoppedAt',
   'sessionForgottenAt',
+  'readAt',
+  'actedAt',
 ] as const satisfies readonly (keyof AttemptRow)[];
 
 export type AttemptGuard = Pick<AttemptRow, (typeof attemptGuardColumns)[number]>;

@@ -261,6 +261,22 @@ test('it sends no call when the store refuses the mark because the lease is gone
   expect([ctx.job.acts, await ctx.listFacts('boxxy.merge.requested')]).toStrictEqual([[], []]);
 });
 
+test('it sends one call when two runners read the same unmarked job at once', async () => {
+  const ctx = await setupTest();
+  const claimed = await ctx.claimMerge();
+
+  await ctx.read(claimed);
+
+  ctx.clock.advance(timeouts.jobReadSeconds * 1000);
+  ctx.job.setStep({ kind: 'act', action: buildMockMergeAction() });
+
+  await Promise.all([ctx.read(claimed), ctx.read(claimed)]);
+
+  const requested = await ctx.listFacts('boxxy.merge.requested');
+
+  expect([ctx.job.acts.length, requested.length]).toStrictEqual([1, 1]);
+});
+
 test('it records the close-out the drive built and settles the job in the same read', async () => {
   const ctx = await setupTest();
   const claimed = await ctx.claimMerge();
