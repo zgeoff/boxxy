@@ -20,6 +20,7 @@ import { mcp } from '@orpc/mcp';
 import { z } from 'zod';
 import { authContract } from './auth-contract.ts';
 import { itemReadContract } from './item-read-contract.ts';
+import { outboxStatusSchema } from './outbox-status-schema.ts';
 
 // The wire rules are in section B of the API sketch: no transform in an input, times as ISO 8601,
 // a maximum on every string and list, and a release that removes or renames nothing.
@@ -81,25 +82,6 @@ const itemDetail = z.object({
   revisions: z.array(itemRevisionSchema),
 });
 
-const outboxLastError = z.object({
-  kind: z.enum(['retry', 'refused-batch', 'refused-sink']),
-  status: count.nullable(),
-  message: z.string(),
-  at: z.number(),
-});
-
-const outboxStatus = z.object({
-  sink: z.enum(['pepys', 'none']),
-  state: z.enum(['idle', 'sending', 'backing-off', 'blocked', 'off']),
-  unsent: count,
-  parked: count,
-  lag: instantOrNull,
-  failingSince: instantOrNull,
-  nextTryAt: instantOrNull,
-  lastError: outboxLastError.nullable(),
-  lastStoredAt: instantOrNull,
-});
-
 // How many facts of one item the outbox has not sent yet.
 const behind = z.object({ facts: count, oldestAt: instantOrNull });
 
@@ -136,6 +118,7 @@ const itemFileInput = z.object({
   designMode: designMode
     .optional()
     .describe('attended: the owner works with the agent in the design session.'),
+  security: z.boolean().optional().describe('true sets the security mark.'),
   blockedBy: z.array(itemId).max(20).default([]),
   labels: z.array(text50).max(20).default([]).describe('Free labels, such as "infra".'),
   held: z.object({ reason }).optional().describe('Held: no phase runs until item_release.'),
@@ -148,6 +131,7 @@ const itemEditInput = z.object({
   body: itemBody.optional().describe('The whole new body.'),
   acceptance: z.array(criterionInput).max(30).optional(),
   designMode: designMode.optional(),
+  security: z.boolean().optional().describe('true sets the security mark; false clears it.'),
   labels: z.array(text50).max(20).optional().describe('The whole new list of labels.'),
 });
 
@@ -311,7 +295,7 @@ const runnerStatusOutput = z.object({
     oldestUnsentAt: time.nullable(),
     lastError: z.string().nullable(),
   }),
-  outbox: outboxStatus,
+  outbox: outboxStatusSchema,
   rules: rulesStatus,
 });
 

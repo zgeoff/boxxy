@@ -2,6 +2,8 @@ import { endItemAttempts, measureNewFactBytes, outboxLimits, requestWake } from 
 import type {
   AnyNewFact,
   Criterion,
+  DesignMode,
+  ItemFields,
   ItemId,
   ItemKindName,
   ItemRow,
@@ -63,7 +65,7 @@ export const itemHandlers = {
         outcome: input.outcome,
         body: input.body,
         acceptance: input.acceptance.map((text, index) => buildCriterion(index + 1, text)),
-        fields: input.designMode === undefined ? {} : { designMode: input.designMode },
+        fields: buildEditedFields({}, input) ?? {},
         labels: input.labels,
         foundInAttempt: null,
         filedBy: owner,
@@ -123,14 +125,14 @@ export const itemHandlers = {
         throw new ORPCError('BAD_REQUEST', { message: 'an acceptance entry names no criterion' });
       }
 
+      const fields = buildEditedFields(item.fields, input);
+
       const set = {
         ...(input.title === undefined ? {} : { title: input.title }),
         ...(input.outcome === undefined ? {} : { outcome: input.outcome }),
         ...(input.body === undefined ? {} : { body: input.body }),
         ...(acceptance === undefined ? {} : { acceptance }),
-        ...(input.designMode === undefined
-          ? {}
-          : { fields: { ...item.fields, designMode: input.designMode } }),
+        ...(fields === null ? {} : { fields }),
         ...(input.labels === undefined ? {} : { labels: input.labels }),
       };
 
@@ -406,6 +408,28 @@ function parseKnownKind(deps: ServerDeps, raw: string): ItemKindName | null {
 
 function buildCriterion(index: number, text: string): Criterion {
   return { id: brandSchemas.criterionId.parse(`a${index}`), text, evidence: [] };
+}
+
+interface FieldsInput {
+  readonly designMode?: DesignMode | undefined;
+  readonly security?: boolean | undefined;
+}
+
+// The item's fields after the owner's change, or null when the change names none. False clears
+// the security mark, since the mark is stored only as true.
+function buildEditedFields(fields: ItemFields, input: FieldsInput): ItemFields | null {
+  if (input.designMode === undefined && input.security === undefined) {
+    return null;
+  }
+
+  const { security: _security, ...rest } = fields;
+  const security = input.security ?? fields.security === true;
+
+  return {
+    ...rest,
+    ...(input.designMode === undefined ? {} : { designMode: input.designMode }),
+    ...(security ? { security: true } : {}),
+  };
 }
 
 function buildBlocksRow(source: ItemId, target: ItemId, at: ItemRow['filedAt']): RelationRow {

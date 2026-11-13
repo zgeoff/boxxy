@@ -964,7 +964,7 @@ export interface Procedures {
   // The owner's wake (../edge/01-api.ts names it `item.wake`). The runner's own wake sources
   // call `requestWake` directly, never this procedure.
   'item.wake': { input: { item: ItemId }; output: { kind: 'requested'; attempt: AttemptId; atcSession: AtcSessionId | null } | { kind: 'not-sleeping' } };
-  'item.file': { input: { /* ...the input that the existing procedure has, and */ kind?: ItemKindName; designMode?: DesignMode; labels?: readonly string[]; held?: { reason: string } }; output: { item: ItemId } };
+  'item.file': { input: { /* ...the input that the existing procedure has, and */ kind?: ItemKindName; designMode?: DesignMode; security?: boolean; labels?: readonly string[]; held?: { reason: string } }; output: { item: ItemId } };
   // Writes an `item.release` lever. Refuses an item whose derived state is not `held`.
   'item.release': { input: { item: ItemId }; output: { kind: 'released'; item: ItemId } | { kind: 'refused'; reason: 'not-held' } };
   'item.retry': { input: { item: ItemId; phase?: PhaseName }; output: { lever: number } };

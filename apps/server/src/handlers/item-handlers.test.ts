@@ -270,6 +270,62 @@ test('#edit leaves the body as it is when the call has none', async () => {
   expect(stored?.body).toBe('Kept.');
 });
 
+test('#file sets the security mark with the design mode', async () => {
+  const ctx = await setupTest();
+
+  const answer = await ctx.readAnswer('item.file', {
+    repo: 'example/app',
+    title: 'Escape the widget name',
+    outcome: 'The widget name is escaped.',
+    designMode: 'attended',
+    security: true,
+  });
+
+  const stored = await ctx.readItem(brandSchemas.itemId.parse(answer.item));
+
+  expect(stored?.fields).toStrictEqual({ designMode: 'attended', security: true });
+});
+
+test('#edit sets the security mark and keeps the design mode', async () => {
+  const ctx = await setupTest();
+  const item = await ctx.dispatch.seedItem({});
+
+  await ctx.callOwner('item.edit', { item, designMode: 'attended' });
+  await ctx.callOwner('item.edit', { item, security: true });
+
+  const stored = await ctx.readItem(item);
+  const facts = await ctx.dispatch.listFacts('boxxy.item.edited');
+
+  expect([stored?.fields, facts.at(-1)?.payload]).toStrictEqual([
+    { designMode: 'attended', security: true },
+    expect.objectContaining({ fields: { designMode: 'attended', security: true } }),
+  ]);
+});
+
+test('#edit clears the security mark when the call gives false', async () => {
+  const ctx = await setupTest();
+  const item = await ctx.dispatch.seedItem({});
+
+  await ctx.callOwner('item.edit', { item, security: true });
+  await ctx.callOwner('item.edit', { item, security: false });
+
+  const stored = await ctx.readItem(item);
+
+  expect(stored?.fields).toStrictEqual({});
+});
+
+test('#edit leaves the security mark as it is when the call names other fields only', async () => {
+  const ctx = await setupTest();
+  const item = await ctx.dispatch.seedItem({});
+
+  await ctx.callOwner('item.edit', { item, security: true });
+  await ctx.callOwner('item.edit', { item, title: 'A new title' });
+
+  const stored = await ctx.readItem(item);
+
+  expect(stored?.fields).toStrictEqual({ security: true });
+});
+
 test('#get returns the body, and #list leaves it out', async () => {
   const ctx = await setupTest();
   const item = await ctx.dispatch.seedItem({});

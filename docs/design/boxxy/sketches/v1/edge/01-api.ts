@@ -206,6 +206,7 @@ export const contract = {
           acceptance: z.array(text(1000)).max(30).default([]).describe('One check per entry. Triage writes the list when it is empty.'),
           kind: id.optional().describe('The item kind. Triage sets it when absent.'),
           designMode: z.enum(['agent', 'attended']).optional().describe('attended: the owner works with the agent in the design session.'),
+          security: z.boolean().optional().describe('true sets the security mark.'),
           blockedBy: z.array(itemId).max(20).default([]),
           labels: z.array(text(50)).max(20).default([]).describe('Free labels, such as "infra".'),
           // With `held`, the same change writes an `item.held` lever with the reason, so no tick
@@ -215,7 +216,8 @@ export const contract = {
       )
       .output(z.object({ item: id })),
 
-    // Writes `boxxy.item.edited`. The edit does not change a field that is absent.
+    // Writes `boxxy.item.edited`. The edit does not change a field that is absent. `security: false`
+    // removes the mark from `fields`, which holds it only as true.
     edit: tool('item_edit', 'Replaces the given fields of an item. A field that is left out does not change.')
       .errors({ ...notFound, FACT_TOO_LARGE: { message: 'the change makes a fact larger than the outbox sends', data: z.object({ bytes: z.number().int(), max: z.number().int() }) } })
       .input(
@@ -226,6 +228,7 @@ export const contract = {
           body: z.string().max(40_000).optional().describe('The whole new body.'),
           acceptance: z.array(criterionInputSchema).max(30).optional(),
           designMode: z.enum(['agent', 'attended']).optional(),
+          security: z.boolean().optional().describe('true sets the security mark; false clears it.'),
           labels: z.array(text(50)).max(20).optional().describe('The whole new list of labels.'),
         }),
       )
@@ -612,8 +615,8 @@ export const access = {
   // The owner's agent files and steers work on the owner's behalf, so it gets every command on an
   // item and every read: 20 tools, the runner pause and resume among them. One read is not among
   // them, `rules.dryRun` (below), which is CLI only.
-  'item.file': ownerWrite('boxxy item file --repo --title --outcome [--body | --body-file] [--acceptance]… [--kind] [--design-mode] [--blocked-by]… [--label]… [--held <reason>]'),
-  'item.edit': ownerWrite('boxxy item edit <item> [--title] [--outcome] [--body | --body-file] [--acceptance]… [--design-mode] [--label]…'),
+  'item.file': ownerWrite('boxxy item file --repo --title --outcome [--body | --body-file] [--acceptance]… [--kind] [--design-mode] [--security] [--blocked-by]… [--label]… [--held <reason>]'),
+  'item.edit': ownerWrite('boxxy item edit <item> [--title] [--outcome] [--body | --body-file] [--acceptance]… [--design-mode] [--security | --no-security] [--label]…'),
   'item.close': ownerWrite('boxxy item close <item> --reason [--of]'),
   'item.retry': ownerWrite('boxxy item retry <item> [--phase]'),
   'item.wake': ownerWrite('boxxy item wake <item>'),

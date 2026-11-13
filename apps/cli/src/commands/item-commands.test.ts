@@ -61,6 +61,40 @@ test('it sends the body of item edit from a file', async () => {
   expect(ctx.bodies).toStrictEqual([{ json: { item: 'i-1', body: 'Body of body.md' } }]);
 });
 
+test('it sends the security mark of item file given --security', async () => {
+  const ctx = setupTest();
+
+  await ctx.run([...ctx.fileFlags, '--security']);
+
+  expect(ctx.bodies).toStrictEqual([{ json: expect.objectContaining({ security: true }) }]);
+});
+
+test.each([
+  ['--security', true],
+  ['--no-security', false],
+])('it sends the security mark of item edit given %s', async (flag, expected) => {
+  const ctx = setupTest();
+
+  await ctx.run(['item', 'edit', 'i-1', flag]);
+
+  expect(ctx.bodies).toStrictEqual([{ json: { item: 'i-1', security: expected } }]);
+});
+
+test('it exits 2 when item edit gets both --security and --no-security', async () => {
+  const ctx = setupTest();
+
+  const result = await ctx.run(['item', 'edit', 'i-1', '--security', '--no-security']);
+
+  expect([result, ctx.bodies]).toStrictEqual([
+    {
+      exitCode: 2,
+      stdout: '',
+      stderr: 'error: --security and --no-security contradict each other; give one\n',
+    },
+    [],
+  ]);
+});
+
 test('it exits 2 when item file gets both --body and --body-file', async () => {
   const ctx = setupTest();
 

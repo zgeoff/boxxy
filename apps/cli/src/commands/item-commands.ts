@@ -31,12 +31,14 @@ export const itemCommands: readonly Command[] = [
       acceptance: { type: 'string', multiple: true },
       kind: { type: 'string' },
       'design-mode': { type: 'string' },
+      security: { type: 'boolean' },
       'blocked-by': { type: 'string', multiple: true },
       label: { type: 'string', multiple: true },
       held: { type: 'string' },
     },
     run: makeAnswerRun(async (call) => {
       const held = call.args.string('held');
+      const security = call.args.flag('security') ? true : undefined;
 
       return call.client.item.file({
         repo: call.args.requireString('repo'),
@@ -48,6 +50,7 @@ export const itemCommands: readonly Command[] = [
         labels: call.args.strings('label'),
         kind: call.args.string('kind'),
         designMode: call.args.oneOf('design-mode', designModes),
+        security,
         held: held === undefined ? undefined : { reason: held },
       });
     }),
@@ -63,11 +66,14 @@ export const itemCommands: readonly Command[] = [
       'body-file': { type: 'string' },
       acceptance: { type: 'string', multiple: true },
       'design-mode': { type: 'string' },
+      security: { type: 'boolean' },
+      'no-security': { type: 'boolean' },
       label: { type: 'string', multiple: true },
     },
     run: makeAnswerRun(async (call) => {
       const acceptance = call.args.strings('acceptance');
       const labels = call.args.strings('label');
+      const security = pickSecurityEdit(call.args);
 
       return call.client.item.edit({
         item: call.args.positional(0, 'item'),
@@ -75,6 +81,7 @@ export const itemCommands: readonly Command[] = [
         outcome: call.args.string('outcome'),
         body: await readItemBody(call),
         designMode: call.args.oneOf('design-mode', designModes),
+        security,
         acceptance:
           acceptance.length === 0
             ? undefined
@@ -171,6 +178,22 @@ export const itemCommands: readonly Command[] = [
     ),
   },
 ];
+
+// `--security` sets the mark and `--no-security` clears it; neither leaves it as it is.
+function pickSecurityEdit(args: CommandArgs): boolean | undefined {
+  const isSet = args.flag('security');
+  const isCleared = args.flag('no-security');
+
+  if (isSet && isCleared) {
+    throw new UsageError('--security and --no-security contradict each other; give one');
+  }
+
+  if (isSet) {
+    return true;
+  }
+
+  return isCleared ? false : undefined;
+}
 
 type ItemListState = (typeof itemStates)[number];
 
