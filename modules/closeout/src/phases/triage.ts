@@ -11,6 +11,7 @@ import type { z } from 'zod';
 import { buildSchemaParser } from '../build-schema-parser.ts';
 import { buildCriteria } from '../utils/build-criteria.ts';
 import { buildCriterionTexts } from '../utils/build-criterion-texts.ts';
+import { findStoppedReason } from '../utils/find-stopped-reason.ts';
 
 const triageBodySchema = triageCloseOutSchema.omit({ frictionDropped: true });
 
@@ -21,7 +22,12 @@ export const triage = definePhase({
   outcomes: ['accepted', 'duplicate', 'declined', 'needs-owner', 'split'],
   needsAcceptance: false,
   input: (ctx) =>
-    toJSONValue({ acceptance: buildCriterionTexts(ctx.item) } satisfies AcceptanceInput),
+    toJSONValue({
+      acceptance: buildCriterionTexts(ctx.item),
+      stopped: findStoppedReason(ctx.history, 'triage', triageCloseOutSchema, (body) =>
+        body.result.kind === 'needs-owner' ? body.result.question : null,
+      ),
+    } satisfies AcceptanceInput),
   closeOut: buildSchemaParser({
     schema: triageBodySchema,
     toBody: (raw: z.output<typeof triageBodySchema>, frictionDropped): TriageCloseOut => ({

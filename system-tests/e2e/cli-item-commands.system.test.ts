@@ -176,40 +176,66 @@ test('#item retry sends the item to the given phase', async () => {
   });
 });
 
-test('#item retry starts a design whose prompt holds the reason the blocked design stopped at', async () => {
-  const ctx = await setupTest();
-  const blocked = await ctx.server.seedStartedAttempt(brandSchemas.phaseName.parse('design'));
-
-  ctx.server.callerProof.setCaller(blocked.caller);
-
-  await ctx.run(['attempt', 'close-out'], {
-    stdin: JSON.stringify({
+test.each([
+  [
+    'triage',
+    {
+      result: { kind: 'needs-owner', question: 'Light or dark by default? The toggle is settled.' },
+      relations: [],
+      friction: [],
+    },
+  ],
+  [
+    'design',
+    {
       result: { kind: 'blocked', reason: 'Light or dark by default? The toggle is settled.' },
       friction: [],
-    }),
-  });
+    },
+  ],
+  [
+    'build',
+    {
+      result: { kind: 'blocked', reason: 'Light or dark by default? The toggle is settled.' },
+      criteria: [],
+      openItems: [],
+      friction: [],
+    },
+  ],
+])(
+  '#item retry starts a %s whose prompt holds where the last attempt stopped',
+  async (phase, body) => {
+    const ctx = await setupTest();
+    const blocked = await ctx.server.seedStartedAttempt(brandSchemas.phaseName.parse(phase));
 
-  ctx.server.dispatch.worker.setSession(blocked.id, { state: 'running', attention: 'turn-ended' });
+    ctx.server.callerProof.setCaller(blocked.caller);
 
-  await ctx.server.tick();
-  await ctx.server.tick();
-  await ctx.run(['item', 'note', blocked.item, '--text', 'Dark by default.']);
-  await ctx.run(['item', 'retry', blocked.item]);
-  await ctx.server.tick();
+    await ctx.run(['attempt', 'close-out'], { stdin: JSON.stringify(body) });
 
-  const shown = await ctx.run(['item', 'show', blocked.item]);
+    ctx.server.dispatch.worker.setSession(blocked.id, {
+      state: 'running',
+      attention: 'turn-ended',
+    });
 
-  const attempts = readJSONOutput(shown, ctx.shownAttemptsSchema).attempts;
+    await ctx.server.tick();
+    await ctx.server.tick();
+    await ctx.run(['item', 'note', blocked.item, '--text', 'Dark by default.']);
+    await ctx.run(['item', 'retry', blocked.item]);
+    await ctx.server.tick();
 
-  expect(attempts.at(-1)?.spawnRequest.prompt).toContain(
-    [
-      '## Where the last attempt stopped',
-      'Light or dark by default? The toggle is settled.',
-      '## Notes from the owner',
-      '- 1970-01-01: Dark by default.',
-    ].join('\n\n'),
-  );
-});
+    const shown = await ctx.run(['item', 'show', blocked.item]);
+
+    const attempts = readJSONOutput(shown, ctx.shownAttemptsSchema).attempts;
+
+    expect(attempts.at(-1)?.spawnRequest.prompt).toContain(
+      [
+        '## Where the last attempt stopped',
+        'Light or dark by default? The toggle is settled.',
+        '## Notes from the owner',
+        '- 1970-01-01: Dark by default.',
+      ].join('\n\n'),
+    );
+  },
+);
 
 test('#item retry exits 1 and names the code for a phase the pipeline lacks', async () => {
   const ctx = await setupTest();

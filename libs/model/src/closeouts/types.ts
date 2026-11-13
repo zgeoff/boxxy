@@ -243,15 +243,13 @@ export interface CriterionText {
   readonly text: string;
 }
 
-// The input of a triage attempt: the item's acceptance list, which may be empty.
+// The input of a triage or a design attempt: the item's acceptance list, which may be empty, and
+// where the last attempt of the phase stopped.
 export interface AcceptanceInput {
   readonly acceptance: readonly CriterionText[];
-}
 
-// The input of a design attempt. When the item's latest design that closed out closed out
-// `blocked`, `stopped` holds its reason, so the next design carries on from it.
-export interface DesignInput {
-  readonly acceptance: readonly CriterionText[];
+  // the reason, or the triage question, of the item's latest attempt of the phase that closed
+  // out, when it closed out `blocked` or `needs-owner`; null otherwise
   readonly stopped: string | null;
 }
 
@@ -262,6 +260,9 @@ export interface BuildInput {
   readonly acceptance: readonly CriterionText[];
   readonly design: Design | null;
   readonly sentBack: SentBack | null;
+
+  // the reason of the item's latest build that closed out, when it closed out `blocked`
+  readonly stopped: string | null;
 
   // the item's latest pull request, which a build of round 2 pushes to
   readonly pullRequest: PullRequestLink | null;

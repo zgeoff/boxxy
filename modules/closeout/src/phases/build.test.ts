@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { brandSchemas, closeOutSchema } from '@boxxy/model';
+import type { BuildCloseOut } from '@boxxy/model';
 import { buildMockEvidenceRow } from '@boxxy/model/test-utils/build-mock-evidence-row';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
 import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
@@ -533,6 +534,7 @@ test('it gives a build of round 2 the design, the send-back of the review and th
       open: { high: 1, medium: 2, low: 0 },
       answerHint: 'Reply to each open finding.',
     },
+    stopped: null,
     pullRequest: { repo: pullRequest.repo, number: pullRequest.number, url: pullRequest.url },
   });
 });
@@ -559,7 +561,13 @@ test.each([
     session: null,
   });
 
-  expect(input).toStrictEqual({ acceptance: [], design: null, sentBack: null, pullRequest: null });
+  expect(input).toStrictEqual({
+    acceptance: [],
+    design: null,
+    sentBack: null,
+    stopped: null,
+    pullRequest: null,
+  });
 });
 
 test('it sends a build the findings of a v1 review that asked for changes, as the store reads it', () => {
@@ -608,6 +616,7 @@ test('it sends a build the findings of a v1 review that asked for changes, as th
       answerHint:
         'Fix each of these findings:\n\n### The retry runs twice\nsrc/upload.ts\nGuard it.',
     },
+    stopped: null,
     pullRequest: null,
   });
 });
@@ -655,6 +664,7 @@ test.each([
     acceptance: [],
     design: null,
     sentBack: { from: 'verify', head, features: ['upload-retry', 'upload-progress'] },
+    stopped: null,
     pullRequest: null,
   });
 });
@@ -695,7 +705,13 @@ test('it gives a build after a verified verify no send-back, though an earlier r
     session: null,
   });
 
-  expect(input).toStrictEqual({ acceptance: [], design: null, sentBack: null, pullRequest: null });
+  expect(input).toStrictEqual({
+    acceptance: [],
+    design: null,
+    sentBack: null,
+    stopped: null,
+    pullRequest: null,
+  });
 });
 
 test('it sends a build the findings of a review that asked for changes after an earlier verify failed', () => {
@@ -751,6 +767,55 @@ test('it sends a build the findings of a review that asked for changes after an 
       open: { high: 0, medium: 1, low: 0 },
       answerHint: 'Reply to each open finding.',
     },
+    stopped: null,
+    pullRequest: null,
+  });
+});
+
+test.each<[string, (BuildCloseOut['result'] | null)[], string | null]>([
+  [
+    'a latest build that closed out blocked',
+    [{ kind: 'blocked', reason: 'Which queue owns a retry? The guard is pushed.' }],
+    'Which queue owns a retry? The guard is pushed.',
+  ],
+  [
+    'a blocked build and then one that ended with no close-out',
+    [{ kind: 'blocked', reason: 'Which queue owns a retry?' }, null],
+    'Which queue owns a retry?',
+  ],
+  [
+    'a blocked build and then a built one',
+    [{ kind: 'blocked', reason: 'Which queue owns a retry?' }, { kind: 'built' }],
+    null,
+  ],
+])('it carries the blocked reason, or none, into a build after %s', (_title, results, stopped) => {
+  const history = results.map((result, index) =>
+    buildMockSettledAttemptRow({
+      phase: 'build',
+      outcome: result?.kind ?? 'timed-out',
+      state: result?.kind === 'built' ? 'succeeded' : 'failed',
+      endedAt: 1000 * (index + 1),
+      closeOut:
+        result === null
+          ? null
+          : { result, criteria: [], openItems: [], friction: [], frictionDropped: 0 },
+    }),
+  );
+
+  const input = build.input({
+    item: buildMockV1ItemView({ acceptance: [] }),
+    attempt: buildMockV1AttemptRow().id,
+    history,
+    retries: [],
+    pullRequests: [],
+    session: null,
+  });
+
+  expect(input).toStrictEqual({
+    acceptance: [],
+    design: null,
+    sentBack: null,
+    stopped,
     pullRequest: null,
   });
 });

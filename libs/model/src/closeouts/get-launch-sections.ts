@@ -36,9 +36,9 @@ export interface LaunchSections {
   readonly stopped: string | null;
 }
 
-// The design, the send-back and the reason the last design stopped at, that a phase input carries
-// into the launch prompt. A build input holds the first two, a design input the last, and a
-// triage input none.
+// The design, the send-back and where the last attempt of the phase stopped, that a phase input
+// carries into the launch prompt. A build input holds all three, and a triage or a design input
+// only the last.
 export function getLaunchSections(input: JsonValue): LaunchSections {
   const parsed = launchInputSchema.safeParse(input);
 

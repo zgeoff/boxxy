@@ -651,8 +651,8 @@ export interface StoreReader {
 // An agent's question takes the same path: the agent closes out `blocked` with the question in
 // the close-out; the rules map `blocked` to a hold; the notice goes out; the owner answers with
 // a note (`item.note`) and `item.retry`, and the next attempt gets the note in its launch prompt.
-// A design's input also holds the reason of the latest design that closed out `blocked`, in
-// `stopped`.
+// A triage, design or build input also holds the question of the phase's latest attempt that
+// closed out `needs-owner` or `blocked`, in `stopped`.
 export interface Notifier {
   tellHold: (notice: { readonly item: ItemId; readonly reason: HoldReason; readonly at: Instant; readonly key: string }) => Promise<{ kind: 'sent' } | { kind: 'refused'; reason: string } | { kind: 'uncertain'; reason: string }>;
 }

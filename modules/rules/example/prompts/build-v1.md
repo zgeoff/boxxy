@@ -25,6 +25,12 @@ Build this item to its design and acceptance list, and open a pull request.
 
 {{ findings }}
 {%- endif %}
+{%- if stopped %}
+
+## Where the last attempt stopped
+
+{{ stopped }}
+{%- endif %}
 {%- if notes %}
 
 ## Notes from the owner
@@ -37,8 +43,8 @@ The attempt's input, as JSON, names the pull request when one exists:
 {{ input }}
 
 Run the checks that the repo's own agent instructions name. Answer each finding under "Findings to
-answer", when there are any. Close out `built`, `blocked` with the question the owner must answer,
-or `abandoned`.
+answer", when there are any. Close out `built`, or `blocked` with the question the owner must answer
+and what you finished so far in `reason`: the next build gets that reason. Or close out `abandoned`.
 
 Run `boxxy attempt current` for the attempt ID and the JSON Schema of the close-out body. To cite a
 test or a check, record it with

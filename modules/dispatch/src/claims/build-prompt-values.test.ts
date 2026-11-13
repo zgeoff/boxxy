@@ -167,28 +167,35 @@ test('it gives the reason the last design stopped at, and puts it in the ticket 
   ]);
 });
 
-test.each(['prompts/design-v1.md', 'prompts/design-attended-v1.md'])(
-  'it renders the reason the last design stopped at in the example prompt %s',
-  (path) => {
-    const item = buildMockV1ItemView({ title: 'T', outcome: 'O', body: '', acceptance: [] });
+test.each([
+  'prompts/triage-v1.md',
+  'prompts/design-v1.md',
+  'prompts/design-attended-v1.md',
+  'prompts/build-v1.md',
+])('it renders where the last attempt stopped in the example prompt %s', (path) => {
+  const item = buildMockV1ItemView({ title: 'T', outcome: 'O', body: '', acceptance: [] });
 
-    const values = buildPromptValues({
-      item,
-      attempt: 'att-1',
-      notes: [],
-      input: { acceptance: [], stopped: 'Should the default be light or dark?' },
-    });
+  const values = buildPromptValues({
+    item,
+    attempt: 'att-1',
+    notes: [],
+    input: { acceptance: [], stopped: 'Should the default be light or dark?' },
+  });
 
-    const template = new TextDecoder().decode(buildExampleLoadInput().checkout.files.get(path));
+  const template = new TextDecoder().decode(buildExampleLoadInput().checkout.files.get(path));
 
-    expect(renderPromptTemplate(template, values)).toContain(
-      '# T\n\nO\n\n## Where the last attempt stopped\n\nShould the default be light or dark?\n\n',
-    );
-  },
-);
+  expect(renderPromptTemplate(template, values)).toContain(
+    '# T\n\nO\n\n## Where the last attempt stopped\n\nShould the default be light or dark?\n\n',
+  );
+});
 
-test.each(['prompts/design-v1.md', 'prompts/design-attended-v1.md'])(
-  'it renders the example prompt %s with no stopped section when no design stopped blocked',
+test.each([
+  'prompts/triage-v1.md',
+  'prompts/design-v1.md',
+  'prompts/design-attended-v1.md',
+  'prompts/build-v1.md',
+])(
+  'it renders the example prompt %s with no stopped section when the last attempt did not stop',
   (path) => {
     const item = buildMockV1ItemView({ title: 'T', outcome: 'O', body: '', acceptance: [] });
 
@@ -201,7 +208,9 @@ test.each(['prompts/design-v1.md', 'prompts/design-attended-v1.md'])(
 
     const template = new TextDecoder().decode(buildExampleLoadInput().checkout.files.get(path));
 
-    expect(renderPromptTemplate(template, values)).not.toContain('Where the last attempt stopped');
+    expect(renderPromptTemplate(template, values)).not.toContain(
+      '## Where the last attempt stopped',
+    );
   },
 );
 

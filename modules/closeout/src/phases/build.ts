@@ -27,6 +27,7 @@ import { buildCriterionTexts } from '../utils/build-criterion-texts.ts';
 import { findLatestCloseOut } from '../utils/find-latest-close-out.ts';
 import { findLatestDesign } from '../utils/find-latest-design.ts';
 import { findPullRequestLink } from '../utils/find-pull-request-link.ts';
+import { findStoppedReason } from '../utils/find-stopped-reason.ts';
 
 const buildBodySchema = buildCloseOutSchema.omit({ frictionDropped: true });
 
@@ -68,6 +69,9 @@ function buildBuildInput(ctx: PhaseInputContext): BuildInput {
     acceptance: buildCriterionTexts(ctx.item),
     design: findLatestDesign(ctx.history),
     sentBack: findSentBack(ctx.history),
+    stopped: findStoppedReason(ctx.history, 'build', buildCloseOutSchema, (body) =>
+      body.result.kind === 'blocked' ? body.result.reason : null,
+    ),
     pullRequest: findPullRequestLink(ctx.pullRequests),
   };
 }

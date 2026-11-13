@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
+import type { TriageCloseOut } from '@boxxy/model';
+import { buildMockSettledAttemptRow } from '@boxxy/model/test-utils/build-mock-settled-attempt-row';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import { buildMockV1ItemView } from '@boxxy/model/test-utils/build-mock-v1-item-view';
 import { triage } from './triage.ts';
@@ -331,5 +333,46 @@ test('it gives a triage attempt the item acceptance list as its input', () => {
     triage.input({ item, attempt, history: [], retries: [], pullRequests: [], session: null }),
   ).toStrictEqual({
     acceptance: [{ id: 'a1', text: 'A failed upload retries once' }],
+    stopped: null,
   });
+});
+
+test.each<[string, (TriageCloseOut['result'] | null)[], string | null]>([
+  [
+    'a latest triage that closed out needs-owner',
+    [{ kind: 'needs-owner', question: 'Is the old upload page in scope?' }],
+    'Is the old upload page in scope?',
+  ],
+  [
+    'a needs-owner triage and then one that ended with no close-out',
+    [{ kind: 'needs-owner', question: 'Is the old upload page in scope?' }, null],
+    'Is the old upload page in scope?',
+  ],
+  [
+    'a needs-owner triage and then an accepted one',
+    [{ kind: 'needs-owner', question: 'Is the old upload page in scope?' }, { kind: 'accepted' }],
+    null,
+  ],
+])('it carries the owner question, or none, into a triage after %s', (_title, results, stopped) => {
+  const history = results.map((result, index) =>
+    buildMockSettledAttemptRow({
+      phase: 'triage',
+      outcome: result?.kind ?? 'timed-out',
+      state: result === null ? 'failed' : 'succeeded',
+      endedAt: 1000 * (index + 1),
+      closeOut:
+        result === null ? null : { result, relations: [], friction: [], frictionDropped: 0 },
+    }),
+  );
+
+  const input = triage.input({
+    item: buildMockV1ItemView({ acceptance: [] }),
+    attempt: buildMockV1AttemptRow().id,
+    history,
+    retries: [],
+    pullRequests: [],
+    session: null,
+  });
+
+  expect(input).toStrictEqual({ acceptance: [], stopped });
 });

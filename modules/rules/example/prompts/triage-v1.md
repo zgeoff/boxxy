@@ -13,6 +13,12 @@ Triage this item.
 
 {{ acceptance }}
 {%- endif %}
+{%- if stopped %}
+
+## Where the last attempt stopped
+
+{{ stopped }}
+{%- endif %}
 {%- if notes %}
 
 ## Notes from the owner
@@ -26,8 +32,8 @@ Decide whether boxxy takes it on, and close out with one of these results:
   criterion that only a release or a live run can prove.
 - `duplicate`, with the other item in `of`, when another item asks for the same work.
 - `needs-owner`, with the question in `question`, when only the owner can decide, such as a choice
-  of scope or a missing fact. The item waits for the owner's answer, and the next triage reads it
-  under the notes or in the body.
+  of scope or a missing fact. The item waits for the owner's answer. The next triage gets your
+  question under "Where the last attempt stopped", and the answer under the notes or in the body.
 - `split`, with each part in `openItems`, when the item holds several pieces of work that can each
   be done alone. boxxy files each part as a new item, and this item ends.
 - `declined`, with the reason, when boxxy should not do the work at all. Never decline to ask a
