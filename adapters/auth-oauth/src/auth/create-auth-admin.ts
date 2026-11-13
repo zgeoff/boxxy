@@ -1,7 +1,7 @@
 import type { GrantScope } from '@boxxy/contract';
 import { grantScopes } from '@boxxy/contract';
 import { MCPAuthError } from '@zgeoff/mcp-auth';
-import type { ClientView, GrantID, GrantView, MCPAuth } from '@zgeoff/mcp-auth';
+import type { ClientView, GrantID, GrantView, MCPAuth, OAuthClientID } from '@zgeoff/mcp-auth';
 import { toTagged } from '@zgeoff/std';
 
 export interface AuthAdminInput {
@@ -16,12 +16,7 @@ export type AddClientAnswer =
   | { readonly kind: 'refused'; readonly message: string }
   | { readonly kind: 'conflict'; readonly name: string };
 
-export type RemoveClientAnswer =
-  | { readonly kind: 'removed' }
-  | { readonly kind: 'not-found' }
-
-  // another client has the same name, and the OAuth server removes a client by its name
-  | { readonly kind: 'ambiguous'; readonly name: string };
+export type RemoveClientAnswer = { readonly kind: 'removed' } | { readonly kind: 'not-found' };
 
 export interface EnrollmentLink {
   readonly token: string;
@@ -72,17 +67,13 @@ export function createAuthAdmin(input: AuthAdminInput): AuthAdmin {
     },
     listClients: () => auth.clients.list(),
     removeClient: async (clientID) => {
-      const clients = await auth.clients.list();
-
-      const answer = pickClientToRemove(clients, clientID);
-
-      if (answer.kind === 'remove') {
-        await auth.clients.remove(answer.name);
+      try {
+        await auth.clients.remove(toTagged<OAuthClientID>(clientID));
 
         return { kind: 'removed' };
+      } catch (error) {
+        return pickRemoveRefusal(error);
       }
-
-      return answer;
     },
     listGrants: async () => {
       const grants = await auth.grants.list();
@@ -114,24 +105,14 @@ function pickAddRefusal(error: unknown, name: string): AddClientAnswer {
   throw error;
 }
 
-type ClientToRemove =
-  | { readonly kind: 'remove'; readonly name: string }
-  | Exclude<RemoveClientAnswer, { readonly kind: 'removed' }>;
-
-function pickClientToRemove(clients: readonly ClientView[], clientID: string): ClientToRemove {
-  const client = clients.find((view) => view.clientID === clientID);
-
-  if (client === undefined) {
+// The package refuses an unknown client ID with a coded error; any other error is not the owner's
+// input.
+function pickRemoveRefusal(error: unknown): RemoveClientAnswer {
+  if (error instanceof MCPAuthError && error.code === 'not-found') {
     return { kind: 'not-found' };
   }
 
-  const isShared = clients.some(
-    (view) => view.name === client.name && view.clientID !== client.clientID,
-  );
-
-  return isShared
-    ? { kind: 'ambiguous', name: client.name }
-    : { kind: 'remove', name: client.name };
+  throw error;
 }
 
 function toAuthGrantView(grant: GrantView): AuthGrantView {

@@ -305,22 +305,51 @@ test('it opens a new database, and opens it again once it holds the tables', asy
   expect(door.auth.resource).toBe('https://boxxy.example/mcp');
 });
 
-test('it refuses to remove a migrated client whose name another client shares', async () => {
+test('it answers not-found and removes no client for a name that two migrated clients clean to', async () => {
   const ctx = setupTest();
 
-  const [first] = ctx.seed.oldAuth({
+  const [spaced, plain] = ctx.seed.oldAuth({
     grants: [
-      { clientName: 'Alpha assistant', scopes: ['read'], refreshes: 0, lastUsedAt: null },
-      { clientName: 'Alpha assistant', scopes: ['read'], refreshes: 0, lastUsedAt: null },
+      { clientName: '  Spaced\tOrchard  ', scopes: ['read'], refreshes: 0, lastUsedAt: null },
+      { clientName: 'Spaced Orchard', scopes: ['read'], refreshes: 0, lastUsedAt: null },
     ],
     passkeyID: 'passkey-1',
     now: Date.now(),
   });
 
   const door = await ctx.openDoor();
-  const answer = await door.admin.removeClient(first?.clientID ?? '');
+  const answer = await door.admin.removeClient('Spaced Orchard');
 
-  expect(answer).toStrictEqual({ kind: 'ambiguous', name: 'Alpha assistant' });
+  expect(answer).toStrictEqual({ kind: 'not-found' });
+
+  const clients = await door.admin.listClients();
+
+  expect(clients.map((client): string => client.clientID)).toIncludeSameMembers([
+    spaced?.clientID ?? '',
+    plain?.clientID ?? '',
+  ]);
+});
+
+test('it removes only the migrated client with the ID when another client name cleans alike', async () => {
+  const ctx = setupTest();
+
+  const [spaced, plain] = ctx.seed.oldAuth({
+    grants: [
+      { clientName: '  Spaced\tOrchard  ', scopes: ['read'], refreshes: 0, lastUsedAt: null },
+      { clientName: 'Spaced Orchard', scopes: ['read'], refreshes: 0, lastUsedAt: null },
+    ],
+    passkeyID: 'passkey-1',
+    now: Date.now(),
+  });
+
+  const door = await ctx.openDoor();
+  const answer = await door.admin.removeClient(plain?.clientID ?? '');
+
+  expect(answer).toStrictEqual({ kind: 'removed' });
+
+  const clients = await door.admin.listClients();
+
+  expect(clients.map((client): string => client.clientID)).toStrictEqual([spaced?.clientID ?? '']);
 });
 
 test('it revokes a migrated grant whose refresh token expired while its access token lives', async () => {
