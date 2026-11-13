@@ -45,7 +45,7 @@
       "@wringer/gunshi": "0.2.0",
       "@wringer/http": "0.1.2",
       "@zgeoff/bun-test-extended": "0.2.3",
-      "@zgeoff/chex": "0.3.4",
+      "@zgeoff/chex": "0.3.5",
       "@zgeoff/commitlint-config": "0.1.0",
       "@zgeoff/format-codemod": "0.3.5",
       "@zgeoff/kysely-bun-sqlite": "0.3.2",
