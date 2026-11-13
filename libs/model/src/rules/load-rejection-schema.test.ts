@@ -11,6 +11,14 @@ test.each([
   { kind: 'merge-without-rules' },
   { kind: 'empty-merge-checks' },
   { kind: 'builder-session-not-kept', recipe: 'verify-builder' },
+  {
+    kind: 'review-agent-outside-review',
+    itemKind: 'core.issue',
+    phase: 'build',
+    recipe: 'build-v1',
+  },
+  { kind: 'review-without-review-agent', itemKind: 'core.issue', recipe: 'review-run' },
+  { kind: 'review-session-resumed', phase: 'verify', outcome: 'failed' },
 ])('it accepts a rejection for the reason $kind', (reason) => {
   const rejection = { file: 'rules.yaml', path: 'phases.review', reason };
   const parsed: unknown = loadRejectionSchema.safeParse(rejection).data;

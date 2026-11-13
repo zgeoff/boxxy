@@ -115,7 +115,15 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 - **Outcome:** the agent image ships noslop and runs in production, and the review recipe text runs the command that slice 3 builds. Review sessions alone get the read-only clone token (`Contents: read`, `Pull requests: read`), the one the atc daemon clones with, through a path of their own such as a broker profile for the review recipe; build and design sessions never get it. The noslop App keys sit only in the boxxy server's Secret, and the App is installed on each repo that boxxy starts workers for.
 - **Follows:** [the review gate](./review-and-merge.md#the-review-gate); [owner notices](./owner-notices.md#the-review-tool-in-production).
 - **Needs:** slice 3.
-- **Check:** a live review round leaves noslop's check run at the pull request head, posted by the server. A live build session's environment holds no clone token.
+- **Check:** a live review round leaves noslop's check run at the pull request head, posted by the server. A live build session runs on an agent whose broker profiles leave out the read-only clone token.
+- **Built:** the boxxy side is built; the cloud side waits. The example review recipe names the review agent `claude-review`, and its prompt runs the input's command in the session's clone. The server reads its review agents from `spawn.reviewAgents`, and the rules loader refuses `review-agent-outside-review`, `review-without-review-agent` and `review-session-resumed` when any is listed, at start and on each reload. `loadServerRules` takes the same list as its second argument. The `load-rules`, `load-server-rules` and `start-server` tests cover the refusals, and a `build-prompt-values` test renders the review prompt with its command. The cloud side must then:
+  1. Ship in the agent image the noslop CLI at the version of boxxy's `@noslop/cli` pin, with Bun and git on the `PATH`.
+  2. Add the read-only clone token, with `Contents: read` and `Pull requests: read`, to the broker as a `github` secret, and make it grantable to the worker target.
+  3. In the atc config, add a `github` auth profile for that secret, and a stock Claude agent entry for reviews that selects the subscription profile and that profile, and no other GitHub profile. No build or design agent selects it.
+  4. In the boxxy server config, list that agent in `spawn.reviewAgents`, and set the `github` section.
+  5. In the rules repo, name that agent in the review recipe, and pass the same list to `loadServerRules` in the rules check.
+  6. Put `NOSLOP_GITHUB_APP_ID`, `NOSLOP_GITHUB_APP_PRIVATE_KEY` and `NOSLOP_GITHUB_APP_INSTALLATION_ID` in the server's Secret alone, and install the App on each repo in `spawn.repos`.
+  7. Run the two live checks above.
 
 ## Launch prompts
 

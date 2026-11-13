@@ -343,7 +343,31 @@ export type LoadRejectionReason =
 
   // a `session: builder` recipe is mapped to a step with no build step before it, so no session
   // is kept for it to wake
-  | { readonly kind: 'builder-session-not-kept'; readonly recipe: string };
+  | { readonly kind: 'builder-session-not-kept'; readonly recipe: string }
+
+  // A review agent is an atc agent whose broker profile holds the read-only clone token. The
+  // recipe of a step other than review names one, so its session would get the token.
+  | {
+      readonly kind: 'review-agent-outside-review';
+      readonly itemKind: string;
+      readonly phase: string;
+      readonly recipe: string;
+    }
+
+  // the server names review agents, and a kind's review recipe names another agent
+  | {
+      readonly kind: 'review-without-review-agent';
+      readonly itemKind: string;
+      readonly recipe: string;
+    }
+
+  // the server names review agents, and an edge with `resume: true` goes to the review step, so
+  // the item would keep a review session that a later resume wakes for another phase
+  | {
+      readonly kind: 'review-session-resumed';
+      readonly phase: PhaseName;
+      readonly outcome: string;
+    };
 
 export type LoadResult =
   | { readonly kind: 'loaded'; readonly rules: LoadedRules; readonly warnings: readonly string[] }

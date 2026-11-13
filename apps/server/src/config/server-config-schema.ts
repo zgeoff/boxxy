@@ -16,6 +16,10 @@ const spawnSection = z.strictObject({
   // by repo: its folder on a target on the atc daemon's own host, or the git source that atc
   // clones for a target that gives each session a fresh machine
   repos: z.record(z.string(), z.union([name, gitSourceSchema])),
+
+  // the atc agents whose broker profile holds the read-only clone token; the rules load only when
+  // review recipes alone name them
+  reviewAgents: z.array(name).default([]),
 });
 
 const atcSection = z.strictObject({

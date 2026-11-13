@@ -55,7 +55,7 @@ the target, or a git source `{ url, ref, credentialRef? }` that atc clones
 ([the atc worker](../../docs/design/boxxy/v1-lifecycle.md#the-atc-worker)). With a `pepys` section,
 also set `BOXXY_PEPYS_SIGNING_SECRET`. With a `github` section, set `BOXXY_GITHUB_TOKEN` unless a
 broker adds the GitHub credential. [Hold notices](../../docs/design/boxxy/owner-notices.md) and
-[reviews](../../docs/design/boxxy/review-and-merge.md#the-review-gate) need their own variables.
+[reviews](../../docs/design/boxxy/review-and-merge.md#the-review-gate) need their own settings.
 
 ## Features
 

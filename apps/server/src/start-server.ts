@@ -121,7 +121,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
   const rules = await createRulesHolder(
     config.rules,
     input.log,
-    buildServerRegistrations(reviewGate),
+    buildServerRegistrations(reviewGate, config.spawn.reviewAgents),
   );
 
   if (rules.kind !== 'loaded') {

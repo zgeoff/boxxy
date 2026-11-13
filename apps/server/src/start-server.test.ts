@@ -144,6 +144,33 @@ test('it starts and stops with a notice session and its token', async () => {
   expect(answer.kind).toBe('started');
 });
 
+test('it starts with a review agent that only the review recipe names', async () => {
+  const ctx = await setupTest();
+
+  await ctx.addConfigSections({
+    spawn: { target: 'cloud', repos: {}, reviewAgents: ['claude-review'] },
+  });
+
+  const answer = await ctx.start({});
+
+  expect(answer.kind).toBe('started');
+});
+
+test('it refuses to start when a build recipe names a review agent', async () => {
+  const ctx = await setupTest();
+
+  await ctx.addConfigSections({
+    spawn: { target: 'cloud', repos: {}, reviewAgents: ['claude-review', 'claude'] },
+  });
+
+  const answer = await ctx.start({});
+
+  expect(answer).toStrictEqual({
+    kind: 'refused',
+    message: expect.stringContaining('review-agent-outside-review'),
+  });
+});
+
 test('it refuses to start when the trusted issuers folders hold no document, and names them', async () => {
   const ctx = await setupTest();
 

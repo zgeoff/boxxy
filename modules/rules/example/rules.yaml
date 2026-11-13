@@ -87,7 +87,7 @@ recipes: # the pin and each recipe's skills are part of the recipe hash
     source: subscription
     skills: []
   review-run: # the agent runs one command and sends its output; it judges nothing
-    agent: claude
+    agent: claude-review # the atc agent whose broker profile holds the read-only clone token
     model: claude-haiku-5-5
     effort: low
     prompt: prompts/review-run.md

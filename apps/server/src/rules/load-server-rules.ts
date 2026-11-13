@@ -12,11 +12,15 @@ export interface RulesCheckout {
 }
 
 // Loads a checkout as the server does, for the rules repository's check. A load reads only the
-// gate's command builder, so a gate with no App keys loads what the server's own gate loads.
-export function loadServerRules(checkout: RulesCheckout): LoadResult {
+// gate's command builder, so a gate with no App keys loads what the server's own gate loads. The
+// check passes the review agents of the server's `spawn.reviewAgents`.
+export function loadServerRules(
+  checkout: RulesCheckout,
+  reviewAgents: readonly string[] = [],
+): LoadResult {
   return loadRegisteredRules(
     checkout,
-    buildServerRegistrations(createNoslopReviewGate({ appEnv: {} })),
+    buildServerRegistrations(createNoslopReviewGate({ appEnv: {} }), reviewAgents),
   );
 }
 

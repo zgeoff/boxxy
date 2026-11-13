@@ -490,7 +490,7 @@ export interface GateRound {
 // The review port. The review runs in an agent session on an agent host; the server only checks
 // and posts its result.
 export interface ReviewGate {
-  // pure: the command line that the review session runs in the pull request's checkout
+  // pure: the command line that the review session runs in its clone of the pull request's repo
   buildCommand: (round: GateRound) => string;
 
   // Checks the session's result against the pull request's current head, posts it, and reads

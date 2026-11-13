@@ -137,7 +137,7 @@ notices: {
 [The review gate](./review-and-merge.md#the-review-gate) runs noslop in a review session on a worker machine, and the server posts the result as the noslop GitHub App. The deployment needs these:
 
 - The noslop CLI in the worker image, at a pinned version. Codex, noslop's default model CLI, has no sign-in on a worker machine, so the review session runs noslop with `--adapter claude`.
-- The read-only clone token in the review session, as `GH_TOKEN`, which noslop reads to fetch the pull request. It is the token the atc daemon clones with, with `Contents: read` and `Pull requests: read`. atc withholds the daemon's variables from sessions, so the review recipe reaches it through a path of its own, such as a broker profile. Build and design sessions never get it.
+- The read-only clone token in the review session, as `GH_TOKEN`, which noslop reads to fetch the pull request. It is the token the atc daemon clones with, with `Contents: read` and `Pull requests: read`. atc withholds the daemon's variables from sessions, so the review recipe names a review agent, an atc agent whose broker profile holds the token, and the server lists it in `spawn.reviewAgents`. Build and design sessions never get it: [the review gate](./review-and-merge.md#the-review-gate) holds the load rules that keep it to review sessions.
 - The App's keys in the server pod alone, and never in a worker session.
 - The App, installed on every repo that the server starts workers for.
 - The check: in the scratch repo of [the live proof](./v1-work-list.md#22-the-live-proof), a boxxy review round leaves a `noslop` check run, posted by the App, at the pull request's head.

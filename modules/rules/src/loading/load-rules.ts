@@ -37,6 +37,7 @@ import { buildRejection } from './build-rejection.ts';
 import { collectFilterRejections } from './collect-filter-rejections.ts';
 import { collectMergeRejections } from './collect-merge-rejections.ts';
 import { collectRecipeRejections } from './collect-recipe-rejections.ts';
+import { collectReviewAgentRejections } from './collect-review-agent-rejections.ts';
 import { collectStepRejections } from './collect-step-rejections.ts';
 import { toFilter } from './to-filter.ts';
 
@@ -53,6 +54,10 @@ interface LoadRulesInput {
 
   // the names of the workers the server built
   readonly workers: readonly WorkerKindName[];
+
+  // the atc agents whose broker profile holds the read-only clone token; with none, any recipe
+  // may name any agent
+  readonly reviewAgents?: readonly string[];
 }
 
 export function loadRules(input: LoadRulesInput): LoadResult {
@@ -117,6 +122,7 @@ function buildLoadResult(
     ...collectStepRejections(file, phases, input.workers),
     ...collectMergeRejections(file),
     ...collectRecipeRejections(file),
+    ...collectReviewAgentRejections(file, input.reviewAgents ?? []),
     ...collectFilterRejections(file, registry),
     ...collectSleepRejections(file),
     ...prompts.rejections,

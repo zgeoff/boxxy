@@ -25,7 +25,11 @@ test('it reads a configuration file that passes the schema', async () => {
       listen: { hostname: '127.0.0.1', port: 4400 },
       workerListen: { hostname: '127.0.0.1', port: 4401 },
     },
-    spawn: { target: 'cloud', repos: { 'example/app': '/tmp/boxxy-test/app' } },
+    spawn: {
+      target: 'cloud',
+      repos: { 'example/app': '/tmp/boxxy-test/app' },
+      reviewAgents: ['claude-review'],
+    },
     atc: { url: 'http://127.0.0.1:7777/mcp', trustedFolders: { cloud: ['/tmp/boxxy-test'] } },
   };
 
@@ -59,6 +63,28 @@ test('it defaults the rules ref to origin/main', async () => {
     folder: '/tmp/boxxy-test/rules',
     ref: 'origin/main',
   });
+});
+
+test('it reads a spawn section with no review agents as an empty list', async () => {
+  const ctx = await setupTest();
+
+  await ctx.writeConfig(
+    JSON.stringify({
+      runner: 'runner-1',
+      store: { file: '/tmp/boxxy-test/boxxy.db' },
+      rules: { folder: '/tmp/boxxy-test/rules' },
+      api: {
+        listen: { hostname: '127.0.0.1', port: 4400 },
+        workerListen: { hostname: '127.0.0.1', port: 4401 },
+      },
+      spawn: { target: 'cloud', repos: {} },
+      atc: { url: 'http://127.0.0.1:7777/mcp', trustedFolders: {} },
+    }),
+  );
+
+  const answer = await readServerConfig(ctx.file);
+
+  expect(answer.kind === 'read' && answer.config.spawn.reviewAgents).toStrictEqual([]);
 });
 
 test('it reads a repo as a git source of a URL and a ref', async () => {
@@ -176,7 +202,7 @@ test('it reads the optional sections: trusted issuers, pepys and github', async 
       listen: { hostname: '127.0.0.1', port: 4400 },
       workerListen: { hostname: '127.0.0.1', port: 4401 },
     },
-    spawn: { target: 'cloud', repos: {} },
+    spawn: { target: 'cloud', repos: {}, reviewAgents: [] },
     atc: {
       url: 'http://atc-gateway.example.test:8080/mcp',
       host: 'atc.example.test',

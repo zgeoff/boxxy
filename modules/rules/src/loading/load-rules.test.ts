@@ -69,14 +69,17 @@ test('it loads the example rules file', () => {
     review: 'review-run',
   };
 
-  const opus = { model: 'claude-opus-5-5', effort: 'medium' };
+  const opus = { agent: 'claude', model: 'claude-opus-5-5', effort: 'medium' };
 
   const settingsByRecipe = new Map([
     ['triage-v1', { ...opus, skills: [] }],
     ['design-v1', { ...opus, skills: ['bake-off'] }],
     ['design-attended-v1', { ...opus, skills: ['bake-off'] }],
     ['build-v1', { ...opus, skills: [] }],
-    ['review-run', { model: 'claude-haiku-5-5', effort: 'low', skills: [] }],
+    [
+      'review-run',
+      { agent: 'claude-review', model: 'claude-haiku-5-5', effort: 'low', skills: [] },
+    ],
   ]);
 
   expect(result).toStrictEqual({
@@ -118,7 +121,7 @@ test('it loads the example rules file', () => {
           {
             name,
             recipe: {
-              agent: 'claude',
+              agent: settingsByRecipe.get(name)?.agent,
               model: settingsByRecipe.get(name)?.model,
               effort: settingsByRecipe.get(name)?.effort,
               prompt: `prompts/${name}.md`,
@@ -2109,6 +2112,156 @@ sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 24
     kind: 'rejected',
     rejections: [{ file: 'rules.yaml', path: row.path, reason: row.reason }],
   });
+});
+
+test.each([
+  {
+    title: 'a build recipe that names a review agent',
+    steps: `    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+    - { phase: review, maxAttempts: 2, timeoutMinutes: 45, on: { passed: { end: reviewed } } }`,
+    recipes: '{ build: review-run, review: review-run }',
+    reviewAgents: ['claude-review'],
+    path: 'kinds["core.issue"].recipes.build',
+    reason: {
+      kind: 'review-agent-outside-review',
+      itemKind: 'core.issue',
+      phase: 'build',
+      recipe: 'review-run',
+    },
+  },
+  {
+    title: 'a review recipe that names no review agent',
+    steps: `    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+    - { phase: review, maxAttempts: 2, timeoutMinutes: 45, on: { passed: { end: reviewed } } }`,
+    recipes: '{ build: build-v1, review: build-v1 }',
+    reviewAgents: ['claude-review'],
+    path: 'kinds["core.issue"].recipes.review',
+    reason: { kind: 'review-without-review-agent', itemKind: 'core.issue', recipe: 'build-v1' },
+  },
+  {
+    title: 'an edge with resume: true to the review step',
+    steps: `    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+    - { phase: review, maxAttempts: 2, timeoutMinutes: 45, on: { passed: next } }
+    - { phase: verify, maxAttempts: 2, timeoutMinutes: 90, on: { verified: { end: verified }, failed: { to: review, max: 2, resume: true } } }`,
+    recipes: '{ build: build-v1, review: review-run, verify: build-v1 }',
+    reviewAgents: ['claude-review'],
+    path: 'pipelines.standard[2].on.failed',
+    reason: { kind: 'review-session-resumed', phase: 'verify', outcome: 'failed' },
+  },
+])('it rejects $title when the server names review agents', (row) => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
+    reviewAgents: row.reviewAgents,
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+${row.steps}
+kinds:
+  core.issue: { pipeline: standard, recipes: ${row.recipes} }
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+  review-run: { agent: claude-review, model: example-model, effort: low, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+pools:
+  - { name: build, takes: {}, order: [oldest] }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+      ]),
+    },
+    concepts,
+    phases: [
+      buildMockPhaseKind({ name: 'build', outcomes: ['built'] }),
+      buildMockPhaseKind({ name: 'review', outcomes: ['passed'] }),
+      buildMockPhaseKind({ name: 'verify', outcomes: ['verified', 'failed'] }),
+    ],
+    pins,
+  });
+
+  expect(result).toStrictEqual({
+    kind: 'rejected',
+    rejections: [{ file: 'rules.yaml', path: row.path, reason: row.reason }],
+  });
+});
+
+test.each([
+  { title: 'names review agents', reviewAgents: ['claude-review'], build: 'build-v1' },
+  { title: 'names no review agent', reviewAgents: [], build: 'review-run' },
+])('it loads a review recipe on a review agent when the server $title', (row) => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const result = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
+    reviewAgents: row.reviewAgents,
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+    - { phase: review, maxAttempts: 2, timeoutMinutes: 45, on: { passed: { end: reviewed }, failed: { to: build, max: 3, resume: true } } }
+kinds:
+  core.issue: { pipeline: standard, recipes: { build: ${row.build}, review: review-run } }
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+  review-run: { agent: claude-review, model: example-model, effort: low, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+pools:
+  - { name: build, takes: {}, order: [oldest] }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+      ]),
+    },
+    concepts,
+    phases: [
+      buildMockPhaseKind({ name: 'build', outcomes: ['built'] }),
+      buildMockPhaseKind({ name: 'review', outcomes: ['passed', 'failed'] }),
+    ],
+    pins,
+  });
+
+  expect(result.kind).toBe('loaded');
 });
 
 test('it loads a merge block, and a session: builder recipe on a step after a build step', () => {

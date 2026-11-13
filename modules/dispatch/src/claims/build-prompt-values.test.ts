@@ -151,6 +151,35 @@ test('it renders the example build prompt with no design and no findings section
   );
 });
 
+test('it renders the example review prompt with the command of the review input', () => {
+  const item = buildMockV1ItemView({
+    title: 'Add a dark theme',
+    outcome: 'The app follows the system theme.',
+    acceptance: [],
+  });
+
+  const input = {
+    pullRequest: { repo: 'example/widget', number: 7 },
+    round: 1,
+    cause: 'first',
+    command: "bun -e 'review'",
+  };
+
+  const values = buildPromptValues({ item, attempt: 'att-1', notes: [], input });
+
+  const template = new TextDecoder().decode(
+    buildExampleLoadInput().checkout.files.get('prompts/review-run.md'),
+  );
+
+  expect(renderPromptTemplate(template, values)).toContain(
+    [
+      "The attempt's input, as JSON, holds the review round and the command to run:",
+      JSON.stringify(input, null, 2),
+      "In the folder the session starts in, run the input's `command` exactly as it is given.",
+    ].join('\n\n'),
+  );
+});
+
 test('it renders a body that holds Liquid markup as written', () => {
   const item = buildMockV1ItemView({
     title: 'Fix the {{ title }} tag',

@@ -139,7 +139,7 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
     rulesState: () => ({ rules: dispatch.rules(), lastRejected: null }),
     loadProposedRules: makeProposedRulesLoader(
       buildExampleLoadInput().checkout,
-      buildServerRegistrations(dispatch.reviewGate),
+      buildServerRegistrations(dispatch.reviewGate, []),
     ),
     clock: dispatch.clock,
     newId: dispatch.newId,

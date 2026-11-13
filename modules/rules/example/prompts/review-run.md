@@ -31,8 +31,10 @@ The attempt's input, as JSON, holds the review round and the command to run:
 
 {{ input }}
 
-In the pull request's checkout, run the input's `command` exactly as it is given. It writes the
-tool's result to `noslop-review.json`. Send that file unchanged as the close-out:
+In the folder the session starts in, run the input's `command` exactly as it is given. The folder is
+a clone of the repo, and the command fetches the pull request's base and head itself, with the
+read-only token that this session holds as `GH_TOKEN`. The command writes the tool's result to
+`noslop-review.json`. Send that file unchanged as the close-out:
 `boxxy attempt close-out < noslop-review.json`. Never edit the file, and never write a close-out of
 your own.
 
