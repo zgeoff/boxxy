@@ -2,26 +2,29 @@
 
 ## [0.2.5](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.2.4...@boxxy/pepys@0.2.5) (2026-11-13)
 
-
 ### Features
 
-* **closeout:** let a triage close-out set the item body ([9eb8f5b](https://github.com/zgeoff/boxxy/commit/9eb8f5b5f7dd3bb7172a2e4a6d31ff83b03100e9))
-* **closeout:** let an open item name its kind and the security mark ([63a2df4](https://github.com/zgeoff/boxxy/commit/63a2df4d995057017eb12a272f47d480cf395919))
-* **pepys:** port the plug-in to pepys 0.4.0 ([9d3f46c](https://github.com/zgeoff/boxxy/commit/9d3f46cd4eb4d432e61e0b82efe630c1375dbea3))
-* **pepys:** start merge at the merge claim and sum unrelated lines ([6664249](https://github.com/zgeoff/boxxy/commit/66642490f633a183f0ac9425e0ffcf07122f2956))
-* **train:** merge a reviewed, green, verified pull request at its head ([3f09760](https://github.com/zgeoff/boxxy/commit/3f09760bad1cb9d409dd2930a5dacdb7679f11d8))
-
+- **closeout:** let a triage close-out set the item body
+  ([9eb8f5b](https://github.com/zgeoff/boxxy/commit/9eb8f5b5f7dd3bb7172a2e4a6d31ff83b03100e9))
+- **closeout:** let an open item name its kind and the security mark
+  ([63a2df4](https://github.com/zgeoff/boxxy/commit/63a2df4d995057017eb12a272f47d480cf395919))
+- **pepys:** port the plug-in to pepys 0.4.0
+  ([9d3f46c](https://github.com/zgeoff/boxxy/commit/9d3f46cd4eb4d432e61e0b82efe630c1375dbea3))
+- **pepys:** start merge at the merge claim and sum unrelated lines
+  ([6664249](https://github.com/zgeoff/boxxy/commit/66642490f633a183f0ac9425e0ffcf07122f2956))
+- **train:** merge a reviewed, green, verified pull request at its head
+  ([3f09760](https://github.com/zgeoff/boxxy/commit/3f09760bad1cb9d409dd2930a5dacdb7679f11d8))
 
 ### Bug Fixes
 
-* **pepys:** stop exporting the unused mark fact type ([949bf88](https://github.com/zgeoff/boxxy/commit/949bf88458fc4451217dc5b30538bc3a621b051d))
-
+- **pepys:** stop exporting the unused mark fact type
+  ([949bf88](https://github.com/zgeoff/boxxy/commit/949bf88458fc4451217dc5b30538bc3a621b051d))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.2.5
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.5
 
 ## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.2.3...@boxxy/pepys@0.2.4) (2026-11-13)
 

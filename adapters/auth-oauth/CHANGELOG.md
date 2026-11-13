@@ -2,17 +2,15 @@
 
 ## [0.2.5](https://github.com/zgeoff/boxxy/compare/@boxxy/auth-oauth@0.2.4...@boxxy/auth-oauth@0.2.5) (2026-11-13)
 
-
 ### Miscellaneous Chores
 
-* **@boxxy/auth-oauth:** Synchronize boxxy versions
-
+- **@boxxy/auth-oauth:** Synchronize boxxy versions
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/contract bumped to 0.2.5
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/contract bumped to 0.2.5
 
 ## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/auth-oauth@0.2.3...@boxxy/auth-oauth@0.2.4) (2026-11-13)
 

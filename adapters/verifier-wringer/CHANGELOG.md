@@ -2,19 +2,17 @@
 
 ## [0.2.5](https://github.com/zgeoff/boxxy/compare/@boxxy/verifier-wringer@0.2.4...@boxxy/verifier-wringer@0.2.5) (2026-11-13)
 
-
 ### Miscellaneous Chores
 
-* **@boxxy/verifier-wringer:** Synchronize boxxy versions
-
+- **@boxxy/verifier-wringer:** Synchronize boxxy versions
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.2.5
-  * devDependencies
-    * @boxxy/dispatch bumped to 0.2.5
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.5
+  - devDependencies
+    - @boxxy/dispatch bumped to 0.2.5
 
 ## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/verifier-wringer@0.2.3...@boxxy/verifier-wringer@0.2.4) (2026-11-13)
 

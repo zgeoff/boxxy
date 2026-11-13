@@ -2,46 +2,54 @@
 
 ## [0.2.5](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.4...@boxxy/server@0.2.5) (2026-11-13)
 
-
 ### Features
 
-* **api:** let a session list and read the items of its repo ([c1ff07c](https://github.com/zgeoff/boxxy/commit/c1ff07c940a9b3554e454c973c246cf671b093ec))
-* **dispatch:** let design and build close-outs record a wait on an item ([f07d757](https://github.com/zgeoff/boxxy/commit/f07d7579ae4b8574895ffede061942a84f2422fd))
-* **forge:** call github as the boxxy app with an installation token ([4164945](https://github.com/zgeoff/boxxy/commit/4164945e21f27d3908f3d8d1495b194b8b2e3a73))
-* **server:** let the owner set and clear the security mark ([baa4439](https://github.com/zgeoff/boxxy/commit/baa4439a5d98eea4b177bf7e3d9b33db153627e8))
-* **train:** merge a reviewed, green, verified pull request at its head ([3f09760](https://github.com/zgeoff/boxxy/commit/3f09760bad1cb9d409dd2930a5dacdb7679f11d8))
-
+- **api:** let a session list and read the items of its repo
+  ([c1ff07c](https://github.com/zgeoff/boxxy/commit/c1ff07c940a9b3554e454c973c246cf671b093ec))
+- **dispatch:** let design and build close-outs record a wait on an item
+  ([f07d757](https://github.com/zgeoff/boxxy/commit/f07d7579ae4b8574895ffede061942a84f2422fd))
+- **forge:** call github as the boxxy app with an installation token
+  ([4164945](https://github.com/zgeoff/boxxy/commit/4164945e21f27d3908f3d8d1495b194b8b2e3a73))
+- **server:** let the owner set and clear the security mark
+  ([baa4439](https://github.com/zgeoff/boxxy/commit/baa4439a5d98eea4b177bf7e3d9b33db153627e8))
+- **train:** merge a reviewed, green, verified pull request at its head
+  ([3f09760](https://github.com/zgeoff/boxxy/commit/3f09760bad1cb9d409dd2930a5dacdb7679f11d8))
 
 ### Bug Fixes
 
-* **api:** hide kept sessions and hidden relations from session reads ([0c141ce](https://github.com/zgeoff/boxxy/commit/0c141ce62d9920318996444f0c08f8749799bd77))
-* **dispatch:** compare-and-set a job's action mark on the row it read ([84b4bd2](https://github.com/zgeoff/boxxy/commit/84b4bd2aa5803acf015e88b00b9a8e0819b37091))
-* **dispatch:** time out a job attempt whose read throws past its limit ([06d8303](https://github.com/zgeoff/boxxy/commit/06d830391eb9596d3883779d3d4c4e202a09e364))
-* **server:** refuse a boxxy app key that is not rsa ([6a94338](https://github.com/zgeoff/boxxy/commit/6a9433889d7ea239b7bf342fdba47136090d3a76))
-* **server:** refuse malformed boxxy app keys at start ([a80197b](https://github.com/zgeoff/boxxy/commit/a80197bb5e88aa56074bfee2201700e1862a9fa9))
-* **train:** hold a merge that has no pull request or head to read ([635679a](https://github.com/zgeoff/boxxy/commit/635679adcf42020d8022f4c1b843c15e96b7d21d))
-
+- **api:** hide kept sessions and hidden relations from session reads
+  ([0c141ce](https://github.com/zgeoff/boxxy/commit/0c141ce62d9920318996444f0c08f8749799bd77))
+- **dispatch:** compare-and-set a job's action mark on the row it read
+  ([84b4bd2](https://github.com/zgeoff/boxxy/commit/84b4bd2aa5803acf015e88b00b9a8e0819b37091))
+- **dispatch:** time out a job attempt whose read throws past its limit
+  ([06d8303](https://github.com/zgeoff/boxxy/commit/06d830391eb9596d3883779d3d4c4e202a09e364))
+- **server:** refuse a boxxy app key that is not rsa
+  ([6a94338](https://github.com/zgeoff/boxxy/commit/6a9433889d7ea239b7bf342fdba47136090d3a76))
+- **server:** refuse malformed boxxy app keys at start
+  ([a80197b](https://github.com/zgeoff/boxxy/commit/a80197bb5e88aa56074bfee2201700e1862a9fa9))
+- **train:** hold a merge that has no pull request or head to read
+  ([635679a](https://github.com/zgeoff/boxxy/commit/635679adcf42020d8022f4c1b843c15e96b7d21d))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/auth-oauth bumped to 0.2.5
-    * @boxxy/caller-proof-imp bumped to 0.2.5
-    * @boxxy/closeout bumped to 0.2.5
-    * @boxxy/content-hash bumped to 0.2.5
-    * @boxxy/contract bumped to 0.2.5
-    * @boxxy/dispatch bumped to 0.2.5
-    * @boxxy/forge-github bumped to 0.2.5
-    * @boxxy/model bumped to 0.2.5
-    * @boxxy/notifier-atc bumped to 0.2.5
-    * @boxxy/pepys bumped to 0.2.5
-    * @boxxy/planning bumped to 0.2.5
-    * @boxxy/review-noslop bumped to 0.2.5
-    * @boxxy/rules bumped to 0.2.5
-    * @boxxy/store-sqlite bumped to 0.2.5
-    * @boxxy/verifier-wringer bumped to 0.2.5
-    * @boxxy/worker-atc bumped to 0.2.5
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/auth-oauth bumped to 0.2.5
+    - @boxxy/caller-proof-imp bumped to 0.2.5
+    - @boxxy/closeout bumped to 0.2.5
+    - @boxxy/content-hash bumped to 0.2.5
+    - @boxxy/contract bumped to 0.2.5
+    - @boxxy/dispatch bumped to 0.2.5
+    - @boxxy/forge-github bumped to 0.2.5
+    - @boxxy/model bumped to 0.2.5
+    - @boxxy/notifier-atc bumped to 0.2.5
+    - @boxxy/pepys bumped to 0.2.5
+    - @boxxy/planning bumped to 0.2.5
+    - @boxxy/review-noslop bumped to 0.2.5
+    - @boxxy/rules bumped to 0.2.5
+    - @boxxy/store-sqlite bumped to 0.2.5
+    - @boxxy/verifier-wringer bumped to 0.2.5
+    - @boxxy/worker-atc bumped to 0.2.5
 
 ## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.3...@boxxy/server@0.2.4) (2026-11-13)
 

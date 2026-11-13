@@ -2,28 +2,29 @@
 
 ## [0.2.5](https://github.com/zgeoff/boxxy/compare/@boxxy/forge-github@0.2.4...@boxxy/forge-github@0.2.5) (2026-11-13)
 
-
 ### Features
 
-* **forge:** call github as the boxxy app with an installation token ([4164945](https://github.com/zgeoff/boxxy/commit/4164945e21f27d3908f3d8d1495b194b8b2e3a73))
-* **forge:** read a pull request's base branch ([33e8cc7](https://github.com/zgeoff/boxxy/commit/33e8cc7cda8c40ad248fb672b5affa2e98dde702))
-* **forge:** read required checks and merge a pull request at its head ([40a38dd](https://github.com/zgeoff/boxxy/commit/40a38dd71e5ad1ab9f3b8915084067fe95f944a4))
-
+- **forge:** call github as the boxxy app with an installation token
+  ([4164945](https://github.com/zgeoff/boxxy/commit/4164945e21f27d3908f3d8d1495b194b8b2e3a73))
+- **forge:** read a pull request's base branch
+  ([33e8cc7](https://github.com/zgeoff/boxxy/commit/33e8cc7cda8c40ad248fb672b5affa2e98dde702))
+- **forge:** read required checks and merge a pull request at its head
+  ([40a38dd](https://github.com/zgeoff/boxxy/commit/40a38dd71e5ad1ab9f3b8915084067fe95f944a4))
 
 ### Bug Fixes
 
-* **forge:** refuse a branch past the rules limit, read closed as unknown ([e64d471](https://github.com/zgeoff/boxxy/commit/e64d471f41e331a27e2981b889e1050f88c4c1ee))
-
+- **forge:** refuse a branch past the rules limit, read closed as unknown
+  ([e64d471](https://github.com/zgeoff/boxxy/commit/e64d471f41e331a27e2981b889e1050f88c4c1ee))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.2.5
-  * devDependencies
-    * @boxxy/dispatch bumped to 0.2.5
-  * peerDependencies
-    * @boxxy/dispatch bumped to 0.2.5
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.5
+  - devDependencies
+    - @boxxy/dispatch bumped to 0.2.5
+  - peerDependencies
+    - @boxxy/dispatch bumped to 0.2.5
 
 ## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/forge-github@0.2.3...@boxxy/forge-github@0.2.4) (2026-11-13)
 
