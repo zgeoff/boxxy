@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.7](https://github.com/zgeoff/boxxy/compare/@boxxy/notifier-atc@0.2.6...@boxxy/notifier-atc@0.2.7) (2026-11-13)
+
+### Miscellaneous Chores
+
+- **@boxxy/notifier-atc:** Synchronize boxxy versions
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.7
+
 ## [0.2.6](https://github.com/zgeoff/boxxy/compare/@boxxy/notifier-atc@0.2.5...@boxxy/notifier-atc@0.2.6) (2026-11-13)
 
 ### Features

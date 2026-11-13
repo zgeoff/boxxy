@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.2.7](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.6...@boxxy/server@0.2.7) (2026-11-13)
+
+### Features
+
+- **auth:** move the mcp oauth server to @zgeoff/mcp-auth
+  ([#103](https://github.com/zgeoff/boxxy/issues/103))
+  ([889da8e](https://github.com/zgeoff/boxxy/commit/889da8ec9bfceeb239e225c255d244054d2a9bda))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/auth-oauth bumped to 0.2.7
+    - @boxxy/caller-proof-imp bumped to 0.2.7
+    - @boxxy/closeout bumped to 0.2.7
+    - @boxxy/content-hash bumped to 0.2.7
+    - @boxxy/contract bumped to 0.2.7
+    - @boxxy/dispatch bumped to 0.2.7
+    - @boxxy/forge-github bumped to 0.2.7
+    - @boxxy/model bumped to 0.2.7
+    - @boxxy/notifier-atc bumped to 0.2.7
+    - @boxxy/pepys bumped to 0.2.7
+    - @boxxy/planning bumped to 0.2.7
+    - @boxxy/review-noslop bumped to 0.2.7
+    - @boxxy/rules bumped to 0.2.7
+    - @boxxy/store-sqlite bumped to 0.2.7
+    - @boxxy/verifier-wringer bumped to 0.2.7
+    - @boxxy/worker-atc bumped to 0.2.7
+
 ## [0.2.6](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.5...@boxxy/server@0.2.6) (2026-11-13)
 
 ### Features

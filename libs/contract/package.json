@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/contract",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "The oRPC contract of the boxxy API and the table of who may call each procedure",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/libs/contract#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",

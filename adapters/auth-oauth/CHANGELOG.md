@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.7](https://github.com/zgeoff/boxxy/compare/@boxxy/auth-oauth@0.2.6...@boxxy/auth-oauth@0.2.7) (2026-11-13)
+
+### Features
+
+- **auth:** move the mcp oauth server to @zgeoff/mcp-auth
+  ([#103](https://github.com/zgeoff/boxxy/issues/103))
+  ([889da8e](https://github.com/zgeoff/boxxy/commit/889da8ec9bfceeb239e225c255d244054d2a9bda))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/contract bumped to 0.2.7
+
 ## [0.2.6](https://github.com/zgeoff/boxxy/compare/@boxxy/auth-oauth@0.2.5...@boxxy/auth-oauth@0.2.6) (2026-11-13)
 
 ### Miscellaneous Chores
