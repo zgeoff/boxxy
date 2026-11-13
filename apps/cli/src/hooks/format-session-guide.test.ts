@@ -33,7 +33,7 @@ test('it names only flags that the session commands take', () => {
   const options = new Set(attemptCommands.flatMap((command) => Object.keys(command.options)));
 
   expect([...flags]).toStrictEqual(['text', 'kind', 'ref', 'observed'].map((name) => `--${name}`));
-  expect([...flags].map((flag) => flag.slice(2))).toSatisfyAll((name) => options.has(name));
+  expect([...flags].filter((flag) => !options.has(flag.slice(2)))).toStrictEqual([]);
 });
 
 test('it says that a session without a valid close-out fails', () => {
