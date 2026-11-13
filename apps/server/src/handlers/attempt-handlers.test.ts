@@ -28,7 +28,9 @@ async function setupTest() {
       buildRPCRequest({ procedure, input, token: server.workerToken }),
     );
 
-    return { status: response.status, body: await response.json() };
+    const body: unknown = await response.json();
+
+    return { status: response.status, body };
   };
 
   return {
