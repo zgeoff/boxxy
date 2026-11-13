@@ -25,6 +25,30 @@ test.each([
   expect(findForgeRefusal(error)).toBeNull();
 });
 
+test.each([
+  { header: 'retry-after', value: '60' },
+  { header: 'x-ratelimit-remaining', value: '0' },
+])('it finds no reason in a 403 whose $header header marks a rate limit', (row) => {
+  const error = Object.assign(buildMockRequestError(403, 'Forbidden'), {
+    response: { headers: { [row.header]: row.value } },
+  });
+
+  expect(findForgeRefusal(error)).toBeNull();
+});
+
+test('it finds the reason in a 403 with requests left in the window', () => {
+  const error = Object.assign(
+    buildMockRequestError(403, 'Resource not accessible by integration'),
+    {
+      response: { headers: { 'x-ratelimit-remaining': '4999' } },
+    },
+  );
+
+  expect(findForgeRefusal(error)).toBe(
+    'GitHub answered 403 to the noslop App: Resource not accessible by integration',
+  );
+});
+
 test('it finds the status in the cause of the error noslop wraps', () => {
   const error = new Error(
     'noslop posts only a verified result, so it refuses this one: Not Found',
