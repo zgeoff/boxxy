@@ -184,7 +184,7 @@ Section 5 of [`01-usage.ts`](./sketches/next/review-and-merge/01-usage.ts) shows
 
 | Behaviour | Evidence |
 | --- | --- |
-| An item whose required checks are green at its head merges with no person. | An e2e journey in `system-tests/e2e/` with a fake forge: the merge job calls `mergeAtHead` at the head it read, and the store holds `boxxy.merge.requested`, `boxxy.merge.answered` and one `boxxy.pull_request.merged`. |
+| An item whose required checks are green at its head merges with no person. | A journey test of the CLI against the real server with a fake forge: the merge job calls `mergeAtHead` at the head it read, and the store holds `boxxy.merge.requested`, `boxxy.merge.answered` and one `boxxy.pull_request.merged`. |
 | A red check sends the item to a repair build, and a fourth repair holds it with a notice. | The same journey with a red check, and a `decideMerge` test row for each row of the merge table. |
 | A merge with no pull request, a pull request the forge does not hold, or one with no commit holds the item with the reason, and a forge that does not answer is read again. | Tick tests in `apps/server` with the merge job and a fake forge, one per case: after two ticks the attempt settled `blocked` with the reason and the item waits on `merge-blocked`; with the forge down it stays `starting`. |
 | A merge whose read throws past the time limit times out, and the item holds after the step's last attempt. | Tick tests with the forge down: each merge attempt settles `timed-out` with the outcome `lost`, and after two the item waits on `attempts used up`; a running merge whose reads start to throw times out too. |
@@ -193,7 +193,7 @@ Section 5 of [`01-usage.ts`](./sketches/next/review-and-merge/01-usage.ts) shows
 | Each review after the first records the changed lines outside the files that had findings. | `countUnrelatedLines` test rows, a close-out procedure test with a fake forge compare, and a pepys query test that reads `unrelatedLines`. |
 | Only a review session gets the read-only clone token. | A recipe test: the review recipe names the token's path, and the build and design recipes name none. |
 | A review never passes a head that it did not read. | Review adapter tests: the later-review command runs a plain review after a `--fixes-only` run that judged no fix; `accept` reads such a run as `not-covered` and posts nothing; and a result for an old head reads `not-covered`. |
-| A server restart during a review never holds the item or starts a second review. | A system test that stops the server after `accept` posts and before the close-out is stored: the session's second close-out settles the same attempt. A second test repeats a stored close-out, and `accept` does not run. |
+| A server restart during a review never holds the item or starts a second review. | A CLI test that stops the server after `accept` posts and before the close-out is stored: the session's second close-out settles the same attempt. A second test repeats a stored close-out, and `accept` does not run. |
 | A passed review needs noslop's check to pass. | A review adapter test: `check` answers `failure` with no open finding, and the reading is blocked `unreadable`. |
 | A review close-out from any other session is refused. | The close-out procedure's caller test, as for every attempt. |
 | The core holds no tool name. | `turbo boundaries` and the import-zones lint: no file in `modules/` or `libs/` imports a review or verify adapter. |

@@ -174,7 +174,9 @@ apps/server/src                 @boxxy/server
                   and the helpers they share
   tick/           run-tick  start-tick-loop
   outbox/         start-outbox-sender  create-off-outbox
-  test-utils/     create-test-server  create-fake-caller-proof  and the request builders
+  test-utils/     create-test-server  create-fake-caller-proof  and the request builders;
+                  make-broker-send  run-outbox-sender  start-pepys-under-test, which the CLI's
+                  tests use to drive the real server
 
 apps/cli/src                    @boxxy/cli
   index  main  types  constants  create-client  run-git
@@ -184,11 +186,9 @@ apps/cli/src                    @boxxy/cli
                   and the helpers they share
   hooks/          run-session-start-hook  run-post-tool-use-hook  install-skills
                   parse-hook-payload  pick-pull-request-url  wait-for-attempt
-  test-utils/     create-skills-repo  build-mock-cli-deps
-system-tests/src                @boxxy/system-tests: the CLI against the real server
-  test-utils/     create-test-cli  make-broker-send  read-json-output
+  test-utils/     create-skills-repo  build-mock-cli-deps  read-json-output
+                  create-test-cli (the CLI against the real server, for the CLI's tests)
                   verify/  the verify CLI, its registry and its harness: wringer-journeys.md
-system-tests/e2e                one cli-<group>.system.test.ts file per command group and per hook
 apps/cli/hook-plugin            the Claude Code plug-in that the agent image installs
 
 adapters/notifier-atc/src       @boxxy/notifier-atc

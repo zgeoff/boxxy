@@ -1,7 +1,7 @@
 import type { ItemId } from '@boxxy/model';
 import type { TestServer } from '@boxxy/server/test-utils/create-test-server';
+import type { PepysUnderTest } from '@boxxy/server/test-utils/start-pepys-under-test';
 import { z } from 'zod';
-import type { PepysUnderTest } from '../../start-pepys-under-test.ts';
 
 // What the harness holds for one run. State lives here and in the run folder's store; `down` stops
 // the process, and the next `up` starts from nothing.

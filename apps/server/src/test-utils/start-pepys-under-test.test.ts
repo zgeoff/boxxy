@@ -1,5 +1,5 @@
 import { expect, onTestFinished, test } from 'bun:test';
-import { createTestServer } from '@boxxy/server/test-utils/create-test-server';
+import { createTestServer } from './create-test-server.ts';
 import { runOutboxSender } from './run-outbox-sender.ts';
 import { startPepysUnderTest } from './start-pepys-under-test.ts';
 

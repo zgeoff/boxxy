@@ -18,16 +18,13 @@
     "zgeoff/import-zones": [
       "error",
       {
-        "workspaces": ["apps/*", "modules/*", "adapters/*", "libs/*", "packages/*", "system-tests"],
+        "workspaces": ["apps/*", "modules/*", "adapters/*", "libs/*", "packages/*"],
         "zones": {
-          "packages": [
-            "apps/**",
-            "modules/**",
-            "adapters/**",
-            "libs/**",
-            "packages/**",
-            "system-tests/**"
-          ],
+          "packages": ["apps/**", "modules/**", "adapters/**", "libs/**", "packages/**"],
+          "cli": ["apps/cli/**"],
+          "server": ["apps/server", "apps/server/**"],
+          // the rule resolves a package import to its export path, such as apps/server/test-utils/x
+          "server-test-utils": ["apps/server/test-utils/**"],
           "adapters": ["adapters/**"],
           "deployed": ["packages/**"],
           "domain": ["modules/**", "libs/**"],
@@ -42,9 +39,27 @@
           "verifier-wringer": ["adapters/verifier-wringer/**"],
           "forge-github": ["adapters/forge-github/**"],
           "pepys-package": ["packages/pepys/**"],
-          "system-tests": ["system-tests/**"]
+          "verify-cli": ["apps/cli/src/test-utils/verify/**"],
+          "merge-journeys": [
+            "apps/cli/src/commands/attempt-commands.test.ts",
+            "apps/cli/src/commands/item-commands.test.ts"
+          ]
         },
         "edges": [
+          {
+            "name": "server-test-utils",
+            "from": ["cli"],
+            "to": ["server"],
+            "allow": ["server-test-utils"],
+            "reason": "the CLI reaches the server only through @boxxy/server/test-utils/*, to drive the real server in its tests"
+          },
+          {
+            "name": "server-in-tests",
+            "from": ["cli"],
+            "to": ["server"],
+            "ignore": ["apps/cli/src/**/*.test.ts", "apps/cli/src/test-utils/**"],
+            "reason": "every test outside e2e/, evals/ and bench/ is a unit test, so a test of the CLI against the real server is a CLI test; the CLI itself never imports the server"
+          },
           {
             "name": "pepys",
             "from": ["domain"],
@@ -116,8 +131,8 @@
               "@wringer/http",
               "@wringer/stream"
             ],
-            "allow": ["system-tests"],
-            "reason": "only system-tests builds the verify CLI; the registry lives in system-tests/src/test-utils/verify/"
+            "allow": ["verify-cli"],
+            "reason": "only the verify CLI imports wringer; the CLI, its registry and its harness live in apps/cli/src/test-utils/verify/"
           },
           {
             "name": "github-app",
@@ -128,8 +143,8 @@
           {
             "name": "wringer-core",
             "modules": ["@wringer/core"],
-            "allow": ["system-tests", "verifier-wringer"],
-            "reason": "system-tests builds the verify CLI on it, and only adapters/verifier-wringer reads its report for the server; take the Verifier port"
+            "allow": ["verify-cli", "merge-journeys", "verifier-wringer"],
+            "reason": "the verify CLI is built on it, the merge journey tests render a report with it, and only adapters/verifier-wringer reads its report for the server; take the Verifier port"
           },
           {
             "name": "yaml",

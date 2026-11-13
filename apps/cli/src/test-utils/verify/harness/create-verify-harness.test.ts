@@ -1,25 +1,27 @@
 import { expect, onTestFinished, test } from 'bun:test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { runProcess } from '@wringer/core';
 import type { HttpClient } from '@wringer/http';
 import invariant from 'tiny-invariant';
 import { z } from 'zod';
-import { createVerifyHarness } from '../src/test-utils/verify/harness/create-verify-harness.ts';
-import { fileClosedItem } from '../src/test-utils/verify/harness/file-closed-item.ts';
-import { fileItem } from '../src/test-utils/verify/harness/file-item.ts';
-import { landItem } from '../src/test-utils/verify/harness/land-item.ts';
-import { makeControlHandler } from '../src/test-utils/verify/harness/make-control-handler.ts';
-import { readSessionItem } from '../src/test-utils/verify/harness/read-session-item.ts';
-import { runSession } from '../src/test-utils/verify/harness/run-session.ts';
-import { serveHarness } from '../src/test-utils/verify/harness/serve-harness.ts';
-import { costSchema, itemShowSchema, timesSchema } from '../src/test-utils/verify/harness/types.ts';
-import { runBoxxy } from '../src/test-utils/verify/run-boxxy.ts';
-import type { VerifyContext } from '../src/test-utils/verify/verify-context.ts';
+import { runCLI } from '../../../cli/run-cli.ts';
+import { runGit } from '../../../run-git.ts';
+import { runBoxxy } from '../run-boxxy.ts';
+import type { VerifyContext } from '../verify-context.ts';
+import { createVerifyHarness } from './create-verify-harness.ts';
+import { fileClosedItem } from './file-closed-item.ts';
+import { fileItem } from './file-item.ts';
+import { landItem } from './land-item.ts';
+import { makeControlHandler } from './make-control-handler.ts';
+import { readSessionItem } from './read-session-item.ts';
+import { runSession } from './run-session.ts';
+import { serveHarness } from './serve-harness.ts';
+import { costSchema, itemShowSchema, timesSchema } from './types.ts';
 
 // The journeys of the verify CLI, run against the harness in this process. The CLI steps run the
-// real CLI as a process, as `bun verify` does.
+// real CLI in this process too, on the argv that `bun verify` runs as a process: `env BOXXY_URL=…
+// BOXXY_SKILLS_URL=… bun <cli> <args>`, since a process start per step outruns the test's limit.
 async function setupTest() {
   const folder = await mkdtemp(join(tmpdir(), 'boxxy-test-verify-'));
 
@@ -54,8 +56,27 @@ async function setupTest() {
   onTestFinished(() => listeners.stop());
 
   const ctx: VerifyContext = {
-    exec: (argv, options) =>
-      runProcess({ argv, ...(options?.stdin === undefined ? {} : { stdin: options.stdin }) }),
+    exec: (argv, options) => {
+      const words = argv.slice(1);
+
+      const env = Object.fromEntries(
+        words
+          .slice(0, 2)
+          .map((word) => [word.slice(0, word.indexOf('=')), word.slice(word.indexOf('=') + 1)]),
+      );
+
+      return runCLI(
+        {
+          env,
+          readStdin: () => Promise.resolve(options?.stdin ?? ''),
+          readFile: (path) => readFile(path, 'utf8'),
+          runGit,
+          sleep: () => Promise.resolve(),
+          now: () => Date.now(),
+        },
+        words.slice(4),
+      );
+    },
     endpoints: { web: listeners.control, boxxy: listeners.boxxy, skills: harness.skillsURL },
     drivers: { http: { request: sendControlRequest } },
   };

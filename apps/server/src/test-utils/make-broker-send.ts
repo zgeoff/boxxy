@@ -1,6 +1,6 @@
 import { access } from '@boxxy/contract';
 import type { ProcedureName } from '@boxxy/contract';
-import type { TestServer } from '@boxxy/server/test-utils/create-test-server';
+import type { TestServer } from './create-test-server.ts';
 
 // The broker of a deployment, in front of the server's two listeners: a request for a session or
 // hook procedure goes to the worker listener with the worker token, and any other request goes to

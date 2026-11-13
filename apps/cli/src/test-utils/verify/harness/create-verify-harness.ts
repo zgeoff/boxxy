@@ -1,12 +1,12 @@
 import { join } from 'node:path';
-import { createSkillsRepo } from '@boxxy/cli/test-utils/create-skills-repo';
 import { brandSchemas } from '@boxxy/model';
 import { createTestServer } from '@boxxy/server/test-utils/create-test-server';
+import { startPepysUnderTest } from '@boxxy/server/test-utils/start-pepys-under-test';
 import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
-import { startPepysUnderTest } from '../../start-pepys-under-test.ts';
+import { createSkillsRepo } from '../../create-skills-repo.ts';
 import type { VerifyHarness } from './types.ts';
 
-// The parts of the system test `journey-item-to-merge`, built the same way: the real server on the
+// The parts of the CLI's item-to-merge journey test, built the same way: the real server on the
 // SQLite store in the run folder, the fake clock, worker, forge, caller proof and notifier, pepys
 // under test, and a local skills repo that the rules pin.
 export async function createVerifyHarness(runDirectory: string): Promise<VerifyHarness> {

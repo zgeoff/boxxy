@@ -16,6 +16,8 @@
   "files": [
     "src",
     "!src/**/*.test.ts",
+    "!src/test-utils/create-test-cli.ts",
+    "!src/test-utils/verify/**",
     "hook-plugin",
     "dist"
   ],
@@ -40,6 +42,16 @@
     "@orpc/client": "catalog:",
     "ts-pattern": "catalog:",
     "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@boxxy/dispatch": "workspace:*",
+    "@boxxy/rules": "workspace:*",
+    "@boxxy/server": "workspace:*",
+    "@boxxy/store-sqlite": "workspace:*",
+    "@wringer/core": "catalog:",
+    "@wringer/gunshi": "catalog:",
+    "@wringer/http": "catalog:",
+    "tiny-invariant": "catalog:"
   },
   "engines": {
     "bun": ">=1.3",

@@ -2,10 +2,10 @@ import { expect, onTestFinished, test } from 'bun:test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createSkillsRepo } from '@boxxy/cli/test-utils/create-skills-repo';
 import { brandSchemas } from '@boxxy/model';
 import type { SkillsPin } from '@boxxy/model';
-import { createTestCLI } from '../src/test-utils/create-test-cli.ts';
+import { createSkillsRepo } from '../test-utils/create-skills-repo.ts';
+import { createTestCLI } from '../test-utils/create-test-cli.ts';
 
 async function setupTest() {
   const cli = await createTestCLI();

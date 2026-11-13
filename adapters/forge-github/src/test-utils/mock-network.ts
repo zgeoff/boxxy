@@ -18,7 +18,7 @@ export const mockNetwork = defineNetwork({
   handlers: [...githubHandlers],
   context: { quiet: true },
 
-  // The server, CLI and system tests call servers they start on ephemeral loopback ports, so a
+  // The server and CLI tests call servers they start on ephemeral loopback ports, so a
   // loopback request passes. A request to any other host that no handler matches rejects.
   onUnhandledFrame: (unhandled) => {
     const frame = unhandled.frame;

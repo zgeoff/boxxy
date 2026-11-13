@@ -13,8 +13,7 @@
       "modules/*",
       "adapters/*",
       "libs/*",
-      "packages/*",
-      "system-tests"
+      "packages/*"
     ],
     "catalog": {
       "@better-auth/mcp": "1.7.15",
@@ -112,9 +111,8 @@
     "ci:release-cli-assets": "bun scripts/publish/release-cli-assets.ts",
     "ci:verify-gate": "bun scripts/ci/run-verify-gate.ts",
     "test:e2e": "rig e2e",
-    "test:system": "rig system",
-    "verify": "bun system-tests/src/test-utils/verify/verify.ts",
-    "verify:lint": "bun system-tests/src/test-utils/verify/verify.ts lint"
+    "verify": "bun apps/cli/src/test-utils/verify/verify.ts",
+    "verify:lint": "bun apps/cli/src/test-utils/verify/verify.ts lint"
   },
   "devDependencies": {
     "@boxxy/content-hash": "workspace:*",

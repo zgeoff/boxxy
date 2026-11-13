@@ -16,10 +16,6 @@ const everyJourney = [
   // the phase kinds, which the server loads with the rules, and the merge rule of one of them
   'modules/closeout/**',
   'modules/train/**',
-
-  // the verify CLI and its harness, the broker routing and pepys under test: a change here changes
-  // what a journey proves
-  'system-tests/src/test-utils/**',
 ] as const;
 
 export const featurePaths = {
@@ -41,7 +37,6 @@ export const ignoredPaths = [
   '**/LICENSE',
   '**/*.test.ts',
   '**/bench/**',
-  'system-tests/e2e/**',
 
   // 2. Build, lint and repo wiring, which Bun never reads when it runs the source.
   '**/tsconfig*.json',
@@ -71,7 +66,7 @@ export const ignoredPaths = [
 
   // 3. The files that Renovate (the root catalog, the lock file, the Bun pin) and release-please
   //    (each package's version, the manifest) change. A patch or minor bump merges on green CI, and
-  //    a major bump or a new Bun version gets the owner's review, with the system tests in CI.
+  //    a major bump or a new Bun version gets the owner's review, with the full test suite in CI.
   '**/package.json',
   'bun.lock',
   '.bun-version',

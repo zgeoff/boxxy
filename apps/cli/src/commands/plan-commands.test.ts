@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { z } from 'zod';
-import { createTestCLI } from '../src/test-utils/create-test-cli.ts';
-import { readJSONOutput } from '../src/test-utils/read-json-output.ts';
+import { createTestCLI } from '../test-utils/create-test-cli.ts';
+import { readJSONOutput } from '../test-utils/read-json-output.ts';
 
 async function setupTest() {
   const cli = await createTestCLI();

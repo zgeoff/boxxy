@@ -11,10 +11,10 @@ metadata:
 
 ## Facts
 
-| Fact          | Where                                                                                                                                                                                                                             |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Test commands | [`rig.config.ts`](../../../rig.config.ts), which adds the `system` lane for the tests of two apps together, and the `test`, `test:system`, `test:related` and `bench` scripts in the root [`package.json`](../../../package.json) |
-| Test utils    | `src/test-utils/` of the package that owns what the helper starts, builds or fakes                                                                                                                                                |
+| Fact          | Where                                                                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Test commands | the `test`, `test:related` and `bench` scripts in the root [`package.json`](../../../package.json); [`rig.config.ts`](../../../rig.config.ts) adds no lane to `rig`'s own |
+| Test utils    | `src/test-utils/` of the package that owns what the helper starts, builds or fakes                                                                                        |
 
 ## Departures
 
@@ -22,10 +22,11 @@ metadata:
   its logic in `src/test-utils/`. [Benchmarks](../testing/references/system-tests.md#benchmarks)
   puts a module benchmark in `src/`, but `rig bench` runs only the files in a `bench/` folder.
 
-- Name a test of two apps together `system-tests/e2e/<name>.system.test.ts`, and run it with
-  `bun run test:system`. It runs both apps in the test process, so the `e2e` lane, which
-  [End-to-end suites](../testing/references/system-tests.md#end-to-end-suites) gives a built
-  program, refuses it.
+- When a CLI test file needs more than one wiring of the real server, give its one `setupTest()` a
+  member for each extra wiring, such as `mergeAtHead`. In a test of that wiring, write
+  `const setup = await setupTest();` and then `const ctx = setup.mergeAtHead;`.
+  [setupTest](../testing/SKILL.md#setuptest) binds the result to `ctx` itself. Here a CLI module has
+  one test file, and two wirings collide on names such as `run`.
 
 ## Stand-ins
 
@@ -34,3 +35,9 @@ metadata:
   the example rules. Search there for `create-fake-` and `build-mock-` before you write a new one.
 - Test a new store against the claim store contract, as the SQLite store's own test does. Then the
   memory store and the real store stay in step.
+- Test the CLI against the real server with `createTestCLI` from `apps/cli/src/test-utils/`, in a
+  unit test beside the CLI module the test drives. It runs both apps in the test process, and
+  `bun run test` runs it, as it runs every test outside `e2e/`, `evals/` and `bench/`.
+- Import the server only from a CLI test or a CLI test util, and only through
+  `@boxxy/server/test-utils/*`, such as `make-broker-send`. Lint fails any other import of the
+  server from the CLI, as the [layout](../../../docs/design/boxxy/layout.md#dependency-rules) says.

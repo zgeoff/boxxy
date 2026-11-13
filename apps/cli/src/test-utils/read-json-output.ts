@@ -1,5 +1,5 @@
-import type { CLIResult } from '@boxxy/cli';
 import type { z } from 'zod';
+import type { CLIResult } from '../types.ts';
 
 // What a command printed, parsed as JSON and then by the schema. The schema keeps the fields a
 // test decides on.

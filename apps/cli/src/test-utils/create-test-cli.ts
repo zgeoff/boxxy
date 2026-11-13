@@ -1,9 +1,10 @@
 import { readFile } from 'node:fs/promises';
-import { runCLI, runGit } from '@boxxy/cli';
-import type { CLIDeps, CLIResult } from '@boxxy/cli';
 import type { TestServer, TestServerOptions } from '@boxxy/server/test-utils/create-test-server';
 import { createTestServer } from '@boxxy/server/test-utils/create-test-server';
-import { makeBrokerSend } from './make-broker-send.ts';
+import { makeBrokerSend } from '@boxxy/server/test-utils/make-broker-send';
+import { runCLI } from '../cli/run-cli.ts';
+import { runGit } from '../run-git.ts';
+import type { CLIDeps, CLIResult } from '../types.ts';
 
 interface RunInput {
   readonly stdin?: string;

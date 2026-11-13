@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { buildExampleLoadInput } from '@boxxy/rules/test-utils/build-example-load-input';
 import { z } from 'zod';
-import { createTestCLI } from '../src/test-utils/create-test-cli.ts';
-import { readJSONOutput } from '../src/test-utils/read-json-output.ts';
+import { createTestCLI } from '../test-utils/create-test-cli.ts';
+import { readJSONOutput } from '../test-utils/read-json-output.ts';
 
 async function setupTest() {
   const cli = await createTestCLI();

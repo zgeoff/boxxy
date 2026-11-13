@@ -167,9 +167,8 @@ feature's `paths` nor the registry's `.ignore` globs: add it to one of them.
 
 <!-- repo: registry -->
 
-The registry is
-[`verify-registry.ts`](../../../system-tests/src/test-utils/verify/verify-registry.ts), and the map
-from paths to features is `feature-paths.ts` beside it.
+The registry is [`verify-registry.ts`](../../../apps/cli/src/test-utils/verify/verify-registry.ts),
+and the map from paths to features is `feature-paths.ts` beside it.
 [Wringer journeys](../../../docs/design/boxxy/wringer-journeys.md) owns what each journey proves.
 
 <!-- /repo -->

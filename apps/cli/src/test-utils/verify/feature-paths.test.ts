@@ -5,7 +5,7 @@ import { featurePaths, ignoredPaths } from './feature-paths.ts';
 
 test('it maps or ignores every path of the repo, so the gate fails on no unmapped path', async () => {
   const listed = await Bun.$`git ls-files -co --exclude-standard`
-    .cwd(join(import.meta.dir, '..', '..', '..', '..'))
+    .cwd(join(import.meta.dir, '..', '..', '..', '..', '..'))
     .text();
 
   const paths = listed.split('\n').filter((path) => path !== '');

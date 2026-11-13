@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
-import { createTestCLI } from '../src/test-utils/create-test-cli.ts';
+import { createTestCLI } from '../test-utils/create-test-cli.ts';
 
 async function setupTest() {
   const cli = await createTestCLI();

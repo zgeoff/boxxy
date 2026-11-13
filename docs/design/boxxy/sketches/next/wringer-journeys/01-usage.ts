@@ -9,9 +9,9 @@
 //
 // The harness that `bun verify up` launches, and its control routes, are in 02-types.ts and
 // 03-flow.ts. The entry, the registry, the map and the harness live in
-// system-tests/src/test-utils/verify/. `chex test-layout` lets only a test or a test helper import
+// apps/cli/src/test-utils/verify/. `chex test-layout` lets only a test or a test helper import
 // a `test-utils` entry, and the harness imports four, so the whole verify CLI is a test helper of
-// @boxxy/system-tests. Paths below are relative to that folder.
+// @boxxy/cli. Paths below are relative to that folder.
 
 // ── A. The entry point ─────────────────────────────────────────────────────────────────────────
 //
@@ -25,17 +25,17 @@ await runVerify(createVerifyRegistry(), { skill: '.claude/skills/verify' });
 // The root package.json gains:
 //
 //   "scripts": {
-//     "verify": "bun system-tests/src/test-utils/verify/verify.ts",
-//     "verify:lint": "bun system-tests/src/test-utils/verify/verify.ts lint",
+//     "verify": "bun apps/cli/src/test-utils/verify/verify.ts",
+//     "verify:lint": "bun apps/cli/src/test-utils/verify/verify.ts lint",
 //     "ci:verify-gate": "bun scripts/ci/run-verify-gate.ts"
 //   }
 //
-// system-tests/package.json gains "@wringer/core", "@wringer/gunshi" and "@wringer/http" as
-// "catalog:", pinned at 0.2.0, the release that adds `.ignore(...)`. It already lists the @boxxy
-// packages the harness imports.
+// apps/cli/package.json lists "@wringer/core", "@wringer/gunshi" and "@wringer/http" as
+// "catalog:" devDependencies, pinned at 0.2.0, the release that adds `.ignore(...)`, beside the
+// @boxxy packages the harness imports.
 //
-// .gitignore gains `.wringer/`. The `zgeoff/import-zones` pins gain one edge: only
-// @boxxy/system-tests imports `@wringer/*`.
+// .gitignore gains `.wringer/`. The `zgeoff/import-zones` pins gain one edge: only the verify CLI
+// folder imports `@wringer/*`.
 
 // ── B. The registry ────────────────────────────────────────────────────────────────────────────
 //
@@ -277,10 +277,6 @@ const everyJourney = [
   // the phase kinds, which the server loads with the rules, and the merge rule they drive
   'modules/closeout/**',
   'modules/train/**',
-
-  // the verify CLI and its harness, the broker routing and pepys under test: a change here changes
-  // what a journey proves
-  'system-tests/src/test-utils/**',
 ] as const;
 
 export const featurePaths = {
@@ -301,7 +297,6 @@ export const ignoredPaths = [
   '**/LICENSE',
   '**/*.test.ts',
   '**/bench/**',
-  'system-tests/e2e/**',
 
   // 2. Build, lint and repo wiring, which Bun never reads when it runs the source.
   '**/tsconfig*.json',
@@ -331,7 +326,7 @@ export const ignoredPaths = [
 
   // 3. The files that Renovate (the root catalog, the lock file, the Bun pin) and release-please
   //    (each package's version, the manifest) change. A patch or minor bump merges on green CI, and
-  //    a major bump or a new Bun version gets the owner's review, with the system tests in CI.
+  //    a major bump or a new Bun version gets the owner's review, with the full test suite in CI.
   '**/package.json',
   'bun.lock',
   '.bun-version',
