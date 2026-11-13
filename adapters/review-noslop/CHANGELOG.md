@@ -2,19 +2,20 @@
 
 ## [0.2.6](https://github.com/zgeoff/boxxy/compare/@boxxy/review-noslop@0.2.5...@boxxy/review-noslop@0.2.6) (2026-11-13)
 
-
 ### Bug Fixes
 
-* **review-noslop:** fail a review the forge refuses, with the reason ([b7be80f](https://github.com/zgeoff/boxxy/commit/b7be80fd6b9e8c5acb14912bcc937536a19a8c88))
-* **review-noslop:** read the review without the session's findings list ([adfd9e6](https://github.com/zgeoff/boxxy/commit/adfd9e6c75ac70679f153f5226aedad1a401e97f))
-* **review-noslop:** send again on a 403 that marks a rate limit ([422a1af](https://github.com/zgeoff/boxxy/commit/422a1af84a2cfbeb5ea39f9309876c0cdcc0e148))
-
+- **review-noslop:** fail a review the forge refuses, with the reason
+  ([b7be80f](https://github.com/zgeoff/boxxy/commit/b7be80fd6b9e8c5acb14912bcc937536a19a8c88))
+- **review-noslop:** read the review without the session's findings list
+  ([adfd9e6](https://github.com/zgeoff/boxxy/commit/adfd9e6c75ac70679f153f5226aedad1a401e97f))
+- **review-noslop:** send again on a 403 that marks a rate limit
+  ([422a1af](https://github.com/zgeoff/boxxy/commit/422a1af84a2cfbeb5ea39f9309876c0cdcc0e148))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.2.6
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.6
 
 ## [0.2.5](https://github.com/zgeoff/boxxy/compare/@boxxy/review-noslop@0.2.4...@boxxy/review-noslop@0.2.5) (2026-11-13)
 

@@ -2,24 +2,24 @@
 
 ## [0.2.6](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.2.5...@boxxy/cli@0.2.6) (2026-11-13)
 
-
 ### Features
 
-* **cli:** name the evidence kind of a long log in the session guide ([ef764d7](https://github.com/zgeoff/boxxy/commit/ef764d7a3b408ba35b8ce333c512a16031d9a43d))
-* **server:** let the notice session register itself ([97140bc](https://github.com/zgeoff/boxxy/commit/97140bc254b2c34adf5ebda91799991aa4cffcd1))
-
+- **cli:** name the evidence kind of a long log in the session guide
+  ([ef764d7](https://github.com/zgeoff/boxxy/commit/ef764d7a3b408ba35b8ce333c512a16031d9a43d))
+- **server:** let the notice session register itself
+  ([97140bc](https://github.com/zgeoff/boxxy/commit/97140bc254b2c34adf5ebda91799991aa4cffcd1))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/contract bumped to 0.2.6
-    * @boxxy/model bumped to 0.2.6
-  * devDependencies
-    * @boxxy/dispatch bumped to 0.2.6
-    * @boxxy/rules bumped to 0.2.6
-    * @boxxy/server bumped to 0.2.6
-    * @boxxy/store-sqlite bumped to 0.2.6
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/contract bumped to 0.2.6
+    - @boxxy/model bumped to 0.2.6
+  - devDependencies
+    - @boxxy/dispatch bumped to 0.2.6
+    - @boxxy/rules bumped to 0.2.6
+    - @boxxy/server bumped to 0.2.6
+    - @boxxy/store-sqlite bumped to 0.2.6
 
 ## [0.2.5](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.2.4...@boxxy/cli@0.2.5) (2026-11-13)
 
