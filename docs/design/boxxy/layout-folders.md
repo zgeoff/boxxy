@@ -157,7 +157,8 @@ libs/contract/src               @boxxy/contract
 
 apps/server/src                 @boxxy/server
   main                          the process entry: starts the server, stops it on a signal
-  start-server                  reads the configuration, builds the adapters, starts it all
+  start-server                  reads the configuration, builds the adapters, starts it all; its
+                                test spawns and sends a hold notice through the atc stand-in
   serve-api                     one router behind four doors on the owner, worker and public listeners
   read-limited-request          the body cap, counted while the body streams in
   serve-public-door             the public door's listener: forwards each request to the door
@@ -187,9 +188,7 @@ apps/cli/src                    @boxxy/cli
 system-tests/src                @boxxy/system-tests: the CLI against the real server
   test-utils/     create-test-cli  make-broker-send  read-json-output
                   verify/  the verify CLI, its registry and its harness: wringer-journeys.md
-system-tests/e2e                one cli-<group>.system.test.ts file per command group and per hook,
-                                start-server-atc-spawn: the server's spawn through the atc stand-in,
-                                and start-server-atc-notice: a hold notice through the atc stand-in
+system-tests/e2e                one cli-<group>.system.test.ts file per command group and per hook
 apps/cli/hook-plugin            the Claude Code plug-in that the agent image installs
 
 adapters/notifier-atc/src       @boxxy/notifier-atc

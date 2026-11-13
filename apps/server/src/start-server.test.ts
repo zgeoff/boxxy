@@ -4,9 +4,16 @@ import { cp, mkdir, mkdtemp, rm, stat, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { buildJobRulesText } from '@boxxy/dispatch/test-utils/build-job-rules-text';
+import { createFakeClock } from '@boxxy/dispatch/test-utils/create-fake-clock';
+import { createTestDispatch } from '@boxxy/dispatch/test-utils/create-test-dispatch';
+import { brandSchemas } from '@boxxy/model';
+import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
+import { createFakeAtc } from '@boxxy/worker-atc/test-utils/create-fake-atc';
+import { createFakeAtcServer } from '@boxxy/worker-atc/test-utils/create-fake-atc-server';
 import invariant from 'tiny-invariant';
 import { startServer } from './start-server.ts';
 import { readHttpStatus } from './test-utils/read-http-status.ts';
+import { waitFor } from './test-utils/wait-for.ts';
 
 async function setupTest() {
   const folder = await mkdtemp(path.join(tmpdir(), 'boxxy-test-server-'));
@@ -350,5 +357,163 @@ test('it refuses to start a public door that listens beyond loopback with a plai
   expect(answer).toStrictEqual({
     kind: 'refused',
     message: expect.stringContaining('the public door needs an https public URL'),
+  });
+});
+
+test('it spawns a filed item on atc over MCP with the host name and the bearer and no warning', async () => {
+  const ctx = await setupTest();
+
+  const atc = createFakeAtc({ clock: createFakeClock(), targets: { cloud: 'suspending' } });
+  const atcServer = createFakeAtcServer({ atc, token: 'atcs_test-token-0123', host: 'atc.test' });
+
+  onTestFinished(() => atcServer.stop());
+
+  await ctx.addConfigSections({
+    spawn: { target: 'cloud', repos: { 'example/app': '/tmp/boxxy-test/repos/app' } },
+    atc: {
+      url: atcServer.url,
+      host: 'atc.test',
+      trustedFolders: { cloud: ['/tmp/boxxy-test/repos'] },
+    },
+  });
+
+  const store = await createSQLiteClaimStore(path.join(ctx.folder, 'boxxy.db'));
+  const dispatch = await createTestDispatch({ store });
+
+  await dispatch.seedItem({});
+  await store.close();
+
+  const answer = await ctx.start({ BOXXY_ATC_TOKEN: 'atcs_test-token-0123' });
+
+  invariant(answer.kind === 'started', 'the server starts on the stand-in atc');
+
+  await waitFor(() => atc.calls.some((call) => call.tool === 'atc_session_spawn'), 4000);
+
+  expect([
+    atc.calls.find((call) => call.tool === 'atc_session_spawn')?.args,
+    atcServer.requests.every(
+      (request) =>
+        request.host === 'atc.test' && request.authorization === 'Bearer atcs_test-token-0123',
+    ),
+    ctx.logged,
+  ]).toStrictEqual([
+    expect.objectContaining({
+      target: 'cloud',
+      cwd: '/tmp/boxxy-test/repos/app',
+      name: expect.stringMatching(/^boxxy\//u),
+    }),
+    true,
+    [],
+  ]);
+});
+
+test('it spawns a repo with a git source as an atc workspace that atc trusts, with no cwd', async () => {
+  const ctx = await setupTest();
+
+  const atc = createFakeAtc({ clock: createFakeClock(), targets: { cloud: 'suspending' } });
+  const atcServer = createFakeAtcServer({ atc, token: 'atcs_test-token-0123', host: 'atc.test' });
+
+  onTestFinished(() => atcServer.stop());
+
+  await ctx.addConfigSections({
+    spawn: {
+      target: 'cloud',
+      repos: { 'example/app': { url: 'https://git.example.test/example/app.git', ref: 'main' } },
+    },
+    atc: {
+      url: atcServer.url,
+      host: 'atc.test',
+      trustedFolders: { cloud: ['/tmp/boxxy-test/repos'] },
+    },
+  });
+
+  const store = await createSQLiteClaimStore(path.join(ctx.folder, 'boxxy.db'));
+  const dispatch = await createTestDispatch({ store });
+
+  await dispatch.seedItem({});
+  await store.close();
+
+  const answer = await ctx.start({ BOXXY_ATC_TOKEN: 'atcs_test-token-0123' });
+
+  invariant(answer.kind === 'started', 'the server starts on the stand-in atc');
+
+  await waitFor(() => atc.calls.some((call) => call.tool === 'atc_session_spawn'), 4000);
+
+  expect(atc.calls.find((call) => call.tool === 'atc_session_spawn')?.args).toStrictEqual({
+    target: 'cloud',
+    workspace: { kind: 'git', url: 'https://git.example.test/example/app.git', ref: 'main' },
+    trustClonedWorkspace: true,
+    name: expect.stringMatching(/^boxxy\//u),
+    prompt: expect.any(String),
+    agent: expect.any(String),
+    model: expect.any(String),
+    effort: expect.any(String),
+    idempotencyKey: expect.any(String),
+  });
+});
+
+test('it sends a hold notice to the notice session by its ID with the notice token', async () => {
+  const ctx = await setupTest();
+
+  const atc = createFakeAtc({ clock: createFakeClock(), targets: { cloud: 'suspending' } });
+
+  // the gateway takes the notice token alone, with the message scope alone
+  const atcServer = createFakeAtcServer({
+    atc,
+    token: 'atcs_notice-token-0123',
+    host: 'atc.test',
+    scopes: ['message'],
+  });
+
+  onTestFinished(() => atcServer.stop());
+
+  await ctx.addConfigSections({
+    atc: { url: atcServer.url, host: 'atc.test', trustedFolders: {} },
+  });
+
+  const store = await createSQLiteClaimStore(path.join(ctx.folder, 'boxxy.db'));
+
+  const at = brandSchemas.instant.parse(0);
+
+  await store.exclusive((tx) =>
+    tx.applyChange({
+      at,
+      writes: [
+        {
+          op: 'insert',
+          table: 'notices',
+          row: {
+            id: 1,
+            item: brandSchemas.itemId.parse('0190a6f4-0000-7000-8000-0000000000a1'),
+            reason: brandSchemas.rulesHoldReason.parse('blocked'),
+            at,
+            tries: 0,
+            sentAt: null,
+            keySeq: 0,
+            keyTries: 0,
+            nextTryAt: at,
+          },
+        },
+      ],
+      facts: [],
+    }),
+  );
+
+  await store.close();
+
+  const answer = await ctx.start({
+    BOXXY_ATC_TOKEN: 'atcs_worker-token-0123',
+    BOXXY_ATC_NOTICE_SESSION: 'desk.3.s7',
+    BOXXY_ATC_NOTICE_TOKEN: 'atcs_notice-token-0123',
+  });
+
+  invariant(answer.kind === 'started', 'the server starts on the stand-in atc');
+
+  await waitFor(() => atc.calls.some((call) => call.tool === 'atc_message_send'), 4000);
+
+  expect(atc.calls.find((call) => call.tool === 'atc_message_send')?.args).toStrictEqual({
+    session: 'desk.3.s7',
+    text: expect.stringContaining('0190a6f4-0000-7000-8000-0000000000a1'),
+    idempotencyKey: 'boxxy-notice:1:0',
   });
 });

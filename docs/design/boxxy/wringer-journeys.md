@@ -97,7 +97,7 @@ The ignore list's groups, each with its reason in the sketch:
 1. Prose, tests and benches: `docs/**`, each `README.md`, `CHANGELOG.md` and `LICENSE`, `AGENTS.md`, `CLAUDE.md`, `**/*.test.ts`, `**/bench/**` and `system-tests/e2e/**`.
 2. Build, lint and repo wiring that Bun never reads when it runs the source: the TypeScript, turbo, lint, format, commit and hook configs, `.claude/**`, `.github/**`, and `scripts/**`.
 3. The files that Renovate and release-please change: each `package.json`, `bun.lock`, `.bun-version`, `.release-please-manifest.json` and `release-please-config.json`.
-4. Code that no journey runs: the adapters behind the fakes, the public door's `adapters/auth-oauth` among them, and the server's own start, config, timers and rules loader, which the harness replaces with `createTestServer`. The system tests `start-server-atc-spawn` and `start-server-atc-notice`, each adapter's tests and contract suite, and the [live proof](./v1-work-list.md#22-the-live-proof) cover them.
+4. Code that no journey runs: the adapters behind the fakes, the public door's `adapters/auth-oauth` among them, and the server's own start, config, timers and rules loader, which the harness replaces with `createTestServer`. The tests of `startServer` on the atc stand-in, each adapter's tests and contract suite, and the [live proof](./v1-work-list.md#22-the-live-proof) cover them.
 
 The map keeps these rules:
 

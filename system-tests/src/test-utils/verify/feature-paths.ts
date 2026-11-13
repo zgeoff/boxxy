@@ -80,7 +80,7 @@ export const ignoredPaths = [
 
   // 4. Code that no journey runs: the harness runs fakes in place of the adapters, and composes
   //    the server itself, so the server's own start, config, timers and rules loader never run.
-  //    Their own tests, the system test of the server's start and the live proof cover them.
+  //    Their own tests, the server's start tests on the atc stand-in and the live proof cover them.
   'adapters/worker-atc/**',
   'adapters/auth-oauth/**',
   'adapters/caller-proof-imp/**',

@@ -19,7 +19,6 @@
     "@boxxy/rules": "workspace:*",
     "@boxxy/server": "workspace:*",
     "@boxxy/store-sqlite": "workspace:*",
-    "@boxxy/worker-atc": "workspace:*",
     "@wringer/core": "catalog:",
     "@wringer/gunshi": "catalog:",
     "@wringer/http": "catalog:",
