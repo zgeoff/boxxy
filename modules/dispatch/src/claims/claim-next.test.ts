@@ -229,6 +229,31 @@ test('it carries the failed features of the verify in the prompt of the rework b
   });
 });
 
+test('it carries the body that triage set in the prompt of the next phase', async () => {
+  const ctx = await setupTest();
+
+  await ctx.seedItem({ phase: brandSchemas.phaseName.parse('triage') });
+
+  const triage = await ctx.claim();
+
+  invariant(triage !== null, 'the triage claims');
+
+  const triageRow = await ctx.readAttempt(triage.attempt.id);
+
+  await ctx.closeAndSettle(triageRow, {
+    result: { kind: 'accepted' },
+    set: { body: '## Scope\n\nThe settings page only.' },
+    relations: [],
+    friction: [],
+  });
+
+  const next = await ctx.claimNext();
+
+  invariant(next?.kind === 'start', 'the claim starts the next phase');
+
+  expect(next.spawn.prompt).toContain('\n\n## Scope\n\nThe settings page only.\n\n');
+});
+
 test('it carries the item body and the owner notes in the prompt of a claim', async () => {
   const ctx = await setupTest();
   const item = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });

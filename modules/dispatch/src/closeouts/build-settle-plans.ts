@@ -103,6 +103,7 @@ const itemChanges: ReadonlySet<Effect['kind']> = new Set([
   'set-kind',
   'set-field',
   'set-acceptance',
+  'set-body',
 ]);
 
 function isItemChange(effect: Effect): boolean {
@@ -128,6 +129,7 @@ function pickHandler(effect: Effect): (ctx: EffectContext) => EffectPlan {
     .with({ kind: 'set-kind' }, (set) => (ctx) => effectHandlers['set-kind'](set, ctx))
     .with({ kind: 'set-field' }, (set) => (ctx) => effectHandlers['set-field'](set, ctx))
     .with({ kind: 'set-acceptance' }, (set) => (ctx) => effectHandlers['set-acceptance'](set, ctx))
+    .with({ kind: 'set-body' }, (set) => (ctx) => effectHandlers['set-body'](set, ctx))
     .with(
       { kind: 'record-proposal' },
       (record) => (ctx) => effectHandlers['record-proposal'](record, ctx),

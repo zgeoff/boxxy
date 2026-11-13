@@ -29,8 +29,8 @@ export interface ItemRow {
   // no index signature: an open record would let a fact carry a field that no schema checks.
   readonly fields: { readonly designMode?: DesignMode };
 
-  // Markdown for the agent, 40,000 characters at most, empty by default. The owner's words: triage
-  // does not change it, and the launch prompt passes it on.
+  // Markdown for the agent, 40,000 characters at most, empty by default. The owner writes it,
+  // triage may rewrite it with `set.body`, and the launch prompt passes it on.
   readonly body: string;
 
   // boxxy is the ledger. Free labels, set by `item.file` and replaced by `item.edit`. No
@@ -444,6 +444,10 @@ export interface TriageCloseOut {
     // criterion belongs to QA after the merge; a build attempt cannot meet it. boxxy cannot
     // check this by code: it is a stated rule of the triage recipe.
     readonly acceptance?: readonly { readonly text: string }[];
+
+    // The whole new body, of `itemBodyMaxChars` (40,000) or fewer, in place of the item's body.
+    // Settle writes it with `set-body`, which records `boxxy.item.edited` with `byAttempt`.
+    readonly body?: string;
   };
   readonly relations: readonly RelationDraft[];
   readonly friction: readonly Friction[];
@@ -459,8 +463,9 @@ export type CloseOutProblem =
   // so the agent knows how much to cut. No write; send again.
   | { readonly kind: 'too-large'; readonly bytes: number; readonly max: number };
 
-// `Effect` has this member, with the `item.edit` builder as its handler:
+// `Effect` has these members, with the `item.edit` builder as their handler:
 //   | { readonly kind: 'set-acceptance'; readonly criteria: readonly Criterion[] }
+//   | { readonly kind: 'set-body'; readonly body: string }
 
 // ── libs/model/src/ports/types.ts: the worker port ─────────────────────────────────────────────
 

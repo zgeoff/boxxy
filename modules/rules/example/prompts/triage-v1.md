@@ -22,8 +22,8 @@ Triage this item.
 
 Decide whether boxxy takes it on: close out `accepted`, `duplicate` with the other item, or
 `declined` with the reason. An accepted item needs an acceptance list. Accept no criterion that only
-a release or a live run can prove. Triage does not change the body: it holds the owner's words, and
-the owner's permissions in it stand as written.
+a release or a live run can prove. To rewrite the body, send the whole new body in `set.body`. Later
+phases get it in place of this one.
 
 Run `boxxy attempt current` for the attempt ID and the JSON Schema of the close-out body. To cite a
 test or a check, record it with

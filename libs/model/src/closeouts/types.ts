@@ -38,6 +38,9 @@ export interface TriageCloseOut {
 
     // required with `accepted` when the item has no acceptance list (`no-acceptance`)
     readonly acceptance?: readonly { readonly text: string }[];
+
+    // the whole new body, in place of the item's body
+    readonly body?: string;
   };
   readonly relations: readonly RelationDraft[];
   readonly friction: readonly Friction[];
@@ -156,6 +159,7 @@ export type Effect =
   | { readonly kind: 'set-kind'; readonly itemKind: ItemKindName }
   | { readonly kind: 'set-field'; readonly field: 'designMode'; readonly value: DesignMode }
   | { readonly kind: 'set-acceptance'; readonly criteria: readonly Criterion[] }
+  | { readonly kind: 'set-body'; readonly body: string }
   | { readonly kind: 'record-proposal'; readonly friction: Friction };
 
 export type CloseOutProblem =

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { brandSchemas } from '../rows/brand-schemas.ts';
+import { itemBodyMaxChars } from '../rows/item-body-max-chars.ts';
 import { frictionSchema } from './friction-schema.ts';
 import type { TriageCloseOut } from './types.ts';
 
@@ -13,6 +14,7 @@ const setSchema = z.strictObject({
   kind: brandSchemas.itemKindName.exactOptional(),
   designMode: designModeSchema.exactOptional(),
   acceptance: z.array(criterionTextSchema).exactOptional(),
+  body: z.string().max(itemBodyMaxChars).exactOptional(),
 });
 
 const relationDraftSchema = z.object({

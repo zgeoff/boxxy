@@ -145,6 +145,57 @@ test('it applies the item changes of an accepted triage in the settle change', a
   ]);
 });
 
+test('it replaces the item body with the body of an accepted triage and records the edit', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('triage');
+
+  await ctx.closeOut(attempt, {
+    result: { kind: 'accepted' },
+    set: { body: '## Scope\n\nThe dark theme only.' },
+    relations: [],
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+  const edited = await ctx.listFacts('boxxy.item.edited');
+
+  expect(detail.item.body).toBe('## Scope\n\nThe dark theme only.');
+
+  expect(edited.map((fact) => [fact.entity, fact.payload])).toStrictEqual([
+    [
+      `boxxy:item:${attempt.item}`,
+      { body: '## Scope\n\nThe dark theme only.', byAttempt: attempt.id },
+    ],
+  ]);
+});
+
+test('it keeps the item body when the triage outcome holds the item', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('triage');
+
+  await ctx.closeOut(attempt, {
+    result: { kind: 'declined', reason: 'Out of scope.' },
+    set: { body: 'A body the owner never saw.' },
+    relations: [],
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+  const [settled] = await ctx.listFacts('boxxy.attempt.settled');
+
+  expect(detail.item.body).toBe('');
+
+  expect(settled?.payload).toMatchObject({
+    skippedEffects: expect.arrayContaining([
+      { effect: 'set-body', reason: 'the item holds for the owner' },
+    ]),
+  });
+});
+
 test('it withholds the close of a declined triage, holds the item, and writes the notice', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.claimAt('triage');

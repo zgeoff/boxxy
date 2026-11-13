@@ -19,6 +19,34 @@ test('it accepts an accepted triage that sets the kind, the design mode and the 
   expect(parsed).toStrictEqual(closeOut);
 });
 
+test('it accepts a triage that sets a body of 40,000 characters', () => {
+  const closeOut = {
+    result: { kind: 'accepted' },
+    set: { body: 'b'.repeat(40_000) },
+    relations: [],
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  const parsed: unknown = triageCloseOutSchema.safeParse(closeOut).data;
+
+  expect(parsed).toStrictEqual(closeOut);
+});
+
+test('it rejects a triage that sets a body of 40,001 characters', () => {
+  const closeOut = {
+    result: { kind: 'accepted' },
+    set: { body: 'b'.repeat(40_001) },
+    relations: [],
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  expect(triageCloseOutSchema.safeParse(closeOut).error?.issues).toPartiallyContain({
+    path: ['set', 'body'],
+  });
+});
+
 test('it rejects a duplicate with no item it duplicates', () => {
   const closeOut = {
     result: { kind: 'duplicate' },

@@ -581,7 +581,7 @@ export function settleAttempt(input: SettleAttemptInput): Promise<MoveResult> {
     //    an edge; it stores no position.
     //    The hold withholds every effect that CHANGES AN ITEM, each listed as a skip with the
     //    reason `the item holds for the owner`: `close-item`, `add-relation`, `set-kind`,
-    //    `set-field` and `set-acceptance`. `file-item` still files (a new item, not this one),
+    //    `set-field`, `set-acceptance` and `set-body`. `file-item` still files (a new item, not this one),
     //    and friction still records (`record-proposal`), because it is a fact about the
     //    attempt only.
     //    The `settled` fact's `criteria` lists the evidence that an applied `set-acceptance`
@@ -958,7 +958,7 @@ export function findPosition(input: { pipeline: Pipeline | null; attempts: reado
 declare function findStep(pipeline: Pipeline, phase: PhaseName): PipelineStep; // undefined when the pipeline lacks the phase
 declare function findEdge(rules: LoadedRules, item: ItemView, phase: PhaseName, outcome: string): Edge | undefined; // the edge of the item's pipeline under the rules loaded at the call
 declare function isHoldEdge(edge: Edge | undefined): boolean; // true for a `{ hold: reason }` edge
-declare function changesItem(effect: Effect): boolean; // true for `close-item`, a relation, `set-kind`, `set-acceptance` and the design mode; false for `record-proposal`
+declare function changesItem(effect: Effect): boolean; // true for `close-item`, a relation, `set-kind`, `set-acceptance`, `set-body` and the design mode; false for `record-proposal`
 declare function countTrailing(list: readonly Settled[], test: (settled: Settled) => boolean): number;
 // at equal times a settled attempt comes before a retry lever, so a lever filed at the instant an attempt ended acts on the position that attempt gave
 declare function mergeByTime(attempts: readonly Settled[], retries: readonly RetryLever[]): ({ kind: 'settled'; settled: Settled } | { kind: 'retry'; lever: RetryLever })[];

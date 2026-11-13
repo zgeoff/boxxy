@@ -66,7 +66,7 @@ The parser cuts no list. A cut finding or open item would be work lost with no c
 
 | Phase | The parser refuses | The settle |
 | --- | --- | --- |
-| triage | `accepted` that leaves the item with no acceptance list; an unknown item, kind or relation type; a relation to the item itself; a relation named twice, counting the `duplicate-of` relation of a `duplicate` | succeeded. Asks to set the kind, the design mode and the acceptance list, numbered from `a1`, to add each relation, and to close a `duplicate` or `declined` item |
+| triage | `accepted` that leaves the item with no acceptance list; an unknown item, kind or relation type; a relation to the item itself; a relation named twice, counting the `duplicate-of` relation of a `duplicate` | succeeded. Asks to set the kind, the design mode, the acceptance list, numbered from `a1`, and the body, to add each relation, and to close a `duplicate` or `declined` item |
 | design | nothing past the schema | `designed`: succeeded. `blocked`, `abandoned`: failed, with the outcome as the failure |
 | build | a criterion the item lacks; evidence of another attempt; `built` with a criterion that has no evidence | as design. Asks to file each open item, and, when `built`, to add the cited evidence to the acceptance list |
 | review | a body that is not the `ReviewCloseOut` the server built from the gate's reading | passed: succeeded `passed`. Blocked on open findings: succeeded `changes-requested`. Any other reading: failed, with the failure `review-failed` |
@@ -92,7 +92,7 @@ Triage, design and build get the item's acceptance list in their input. A build 
 
 The design close-out holds `{ text, location }`. `text` is the whole design in markdown, code blocks included, and the limit of the whole close-out bounds it. `location` is a pointer to a doc in the repo, or null. A design close-out stored with `summary` in place of `text` reads as `text`, with no change to the stored data.
 
-Triage does not change the body. The body holds the owner's words, `## Permissions` among them, and the launch prompt passes them to the agent as the owner's. A triage close-out may still set the kind, the design mode, the acceptance list and the relations, and close a duplicate or a declined item.
+A triage close-out may set the kind, the design mode, the acceptance list, the body and the relations, and close a duplicate or a declined item. `set.body` is the whole new body, of 40,000 characters or fewer, and replaces the item's body. The settle records it in a `boxxy.item.edited` fact with the attempt in `byAttempt`, so the item's revisions show triage as the author, and the launch prompt of each later phase carries the new body.
 
 ## Derived from facts
 

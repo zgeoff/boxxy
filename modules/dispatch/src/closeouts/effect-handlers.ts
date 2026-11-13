@@ -119,6 +119,15 @@ export const effectHandlers: EffectHandlers = {
 
     return buildEditPlan(effect, ctx, { acceptance: effect.criteria });
   },
+  'set-body': (effect, ctx) => {
+    const closed = findClosedReason(ctx);
+
+    if (closed !== null) {
+      return { kind: 'skip', effect, reason: closed };
+    }
+
+    return buildEditPlan(effect, ctx, { body: effect.body });
+  },
 
   // a fact about the attempt only, so it records on a closed item too
   'record-proposal': (effect, ctx) => ({
@@ -217,7 +226,7 @@ function buildItemUpdate(ctx: EffectContext, set: Partial<ItemRow>): RowWrite {
 function buildEditPlan(
   effect: Extract<EffectPlan, { kind: 'apply' }>['effect'],
   ctx: EffectContext,
-  set: Pick<Partial<ItemRow>, 'kind' | 'fields' | 'acceptance'>,
+  set: Pick<Partial<ItemRow>, 'kind' | 'fields' | 'acceptance' | 'body'>,
 ): EffectPlan {
   return {
     kind: 'apply',

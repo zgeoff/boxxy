@@ -22,8 +22,8 @@ An item is a typed node. Its kind comes from the item kind registry, and the cor
 
 An item also holds a title, an outcome, an acceptance list and a body. The body is markdown of at
 most 40,000 characters, by convention under `## Context`, `## Scope`, `## Permissions` and
-`## Notes for the agent`. It holds the owner's words, and the [launch prompt](./v1.md#the-launch-prompt)
-passes them to the agent. boxxy does not parse it.
+`## Notes for the agent`. The owner writes it, triage may rewrite it, and the
+[launch prompt](./v1.md#the-launch-prompt) passes it to the agent. boxxy does not parse it.
 
 [Planning](./planning.md) adds `core.project` and `core.goal`. A new kind is a registry entry with
 its pipeline and typed fields, not new core code. Free tags are refused: a kind declares typed

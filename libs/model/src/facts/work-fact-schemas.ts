@@ -53,6 +53,7 @@ const effectKindSchema = z.enum([
   'set-kind',
   'set-field',
   'set-acceptance',
+  'set-body',
   'record-proposal',
 ]);
 

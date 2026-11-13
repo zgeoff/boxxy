@@ -373,7 +373,7 @@ export interface BoxxyAttemptSettledPayloadCriteriaItem {
 }
 
 export interface BoxxyAttemptSettledPayloadSkippedEffectsItem {
-  effect: 'file-item' | 'close-item' | 'add-relation' | 'set-kind' | 'set-field' | 'set-acceptance' | 'record-proposal';
+  effect: 'file-item' | 'close-item' | 'add-relation' | 'set-kind' | 'set-field' | 'set-acceptance' | 'set-body' | 'record-proposal';
   reason: string;
 }
 
@@ -2763,7 +2763,7 @@ function decodeBoxxyAttemptSettledPayloadSkippedEffectsItem(value: unknown): Box
   }
 
   const raw0 = 'effect' in value ? value.effect : undefined;
-  const field0 = raw0 === 'file-item' || raw0 === 'close-item' || raw0 === 'add-relation' || raw0 === 'set-kind' || raw0 === 'set-field' || raw0 === 'set-acceptance' || raw0 === 'record-proposal' ? raw0 : undefined;
+  const field0 = raw0 === 'file-item' || raw0 === 'close-item' || raw0 === 'add-relation' || raw0 === 'set-kind' || raw0 === 'set-field' || raw0 === 'set-acceptance' || raw0 === 'set-body' || raw0 === 'record-proposal' ? raw0 : undefined;
 
   if (field0 === undefined) {
     return undefined;

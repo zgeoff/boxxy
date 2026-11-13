@@ -123,6 +123,7 @@ function collectTriageEffects(closeOut: TriageCloseOut): Effect[] {
     ...(set.acceptance === undefined
       ? []
       : [{ kind: 'set-acceptance' as const, criteria: buildCriteria(set.acceptance) }]),
+    ...(set.body === undefined ? [] : [{ kind: 'set-body' as const, body: set.body }]),
     ...closeOut.relations.map((relation) => ({ kind: 'add-relation' as const, relation })),
     ...buildCloseEffects(closeOut.result),
     ...closeOut.friction.map((friction) => ({ kind: 'record-proposal' as const, friction })),
