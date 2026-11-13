@@ -53,12 +53,6 @@ export const authHandlers = {
       options.errors.AUTH_NOT_CONFIGURED,
     ).removeClient(options.input.client);
 
-    if (answer.kind === 'ambiguous') {
-      throw new ORPCError('CONFLICT', {
-        message: `another client is also named '${answer.name}', and the door removes a client by its name`,
-      });
-    }
-
     return { removed: answer.kind === 'removed' };
   }),
   listGrants: api.auth.listGrants.handler(async (options) => {
