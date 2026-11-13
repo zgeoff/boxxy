@@ -223,6 +223,7 @@ export interface AcceptanceInput {
 
 // The input of a build attempt. After a review that asked for changes, `sentBack` holds that
 // review's open counts and where to answer its findings; the core never reads a finding's text.
+// After a failed verify, it holds the features that failed.
 export interface BuildInput {
   readonly acceptance: readonly CriterionText[];
   readonly design: Design | null;
@@ -232,12 +233,20 @@ export interface BuildInput {
   readonly pullRequest: PullRequestLink | null;
 }
 
-export interface SentBack {
-  readonly from: 'review';
-  readonly head: CommitSha;
-  readonly open: SeverityCounts;
-  readonly answerHint: string;
-}
+// A verify send-back's `head` is the head that the verify's input named, null when no passed
+// review read one.
+export type SentBack =
+  | {
+      readonly from: 'review';
+      readonly head: CommitSha;
+      readonly open: SeverityCounts;
+      readonly answerHint: string;
+    }
+  | {
+      readonly from: 'verify';
+      readonly head: CommitSha | null;
+      readonly features: readonly string[];
+    };
 
 // The input of a review attempt. `command` is the review gate's command line for the round. With
 // no pull request, the round has nothing to review, and both are null.

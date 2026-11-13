@@ -1,8 +1,10 @@
 import { expect, test } from 'bun:test';
 import type { ItemId } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
+import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
 import invariant from 'tiny-invariant';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
+import { loadVerifyRules } from '../test-utils/load-verify-rules.ts';
 import { claimNext } from './claim-next.ts';
 import { requestWake } from './request-wake.ts';
 import type { SpawnSettings } from './types.ts';
@@ -179,6 +181,50 @@ test('it carries the open counts and the answer hint of the review in the prompt
   expect(rework.claimed.spawnRequest).toMatchObject({
     prompt: expect.stringMatching(
       /## Findings to answer\n\nThe review at [0-9a-f]{40} left findings open: high 1, medium 0, low 0\.\n\nReply to each open finding with a disposition\./u,
+    ),
+  });
+});
+
+test('it carries the failed features of the verify in the prompt of the rework build', async () => {
+  const ctx = await setupTest();
+
+  ctx.setRules(loadVerifyRules({ session: 'fresh', resume: false }));
+
+  await ctx.seedBuild();
+
+  const review = await ctx.claim();
+
+  invariant(review !== null, 'the review claims');
+
+  const reviewRow = await ctx.readAttempt(review.attempt.id);
+
+  await ctx.closeAndSettle(reviewRow, {
+    round: 1,
+    cause: 'first',
+    reading: buildMockGateReading({ status: 'passed' }),
+    unrelatedLines: null,
+  });
+
+  const verify = await ctx.claim();
+
+  invariant(verify !== null, 'the verify claims');
+
+  const verifyRow = await ctx.readAttempt(verify.attempt.id);
+
+  await ctx.closeAndSettle(verifyRow, {
+    result: { kind: 'failed', features: ['upload-retry'] },
+    friction: [],
+  });
+
+  const rework = await ctx.claimNext();
+
+  invariant(rework !== null, 'the rework build claims');
+
+  const row = await ctx.readAttempt(rework.attempt.id);
+
+  expect(row.spawnRequest).toMatchObject({
+    prompt: expect.stringMatching(
+      /## Findings to answer\n\nThe verify at [0-9a-f]{40} failed these features:\n\n- upload-retry/u,
     ),
   });
 });

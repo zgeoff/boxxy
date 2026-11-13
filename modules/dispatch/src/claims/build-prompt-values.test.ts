@@ -59,6 +59,32 @@ test('it builds every placeholder from the item, the notes and the phase input',
   });
 });
 
+test.each([
+  [
+    'the head it read',
+    'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+    'The verify at e83c5163316f89bfbde7d9ab23ca2e25604af290 failed these features:\n\n- upload-retry\n- upload-progress',
+  ],
+  ['no head', null, 'The verify failed these features:\n\n- upload-retry\n- upload-progress'],
+])('it lists the failed features of a verify send-back, with %s', (_title, head, findings) => {
+  const item = buildMockV1ItemView({ title: 'T', outcome: 'O', body: '', acceptance: [] });
+
+  const values = buildPromptValues({
+    item,
+    attempt: 'att-1',
+    notes: [],
+    input: {
+      design: null,
+      sentBack: { from: 'verify', head, features: ['upload-retry', 'upload-progress'] },
+    },
+  });
+
+  expect([values.findings, values.ticket]).toStrictEqual([
+    findings,
+    `# T\n\nO\n\n## Findings to answer\n\n${findings}`,
+  ]);
+});
+
 test('it joins the ticket in order, with each section that has content under its heading', () => {
   const item = buildMockV1ItemView({
     title: 'Add a retry',

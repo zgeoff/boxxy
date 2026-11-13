@@ -1,6 +1,7 @@
 import { getLaunchSections } from '@boxxy/model';
 import type { Design, ItemView, JsonValue, NoteRow, SentBack } from '@boxxy/model';
 import type { PromptValues } from '@boxxy/prompt-template';
+import { match } from 'ts-pattern';
 import { formatUTCDate } from './format-utc-date.ts';
 
 interface PromptValueParts {
@@ -67,12 +68,20 @@ function buildFindings(sentBack: SentBack | null): string {
     return '';
   }
 
-  const open = sentBack.open;
-
-  return [
-    `The review at ${sentBack.head} left findings open: high ${open.high}, medium ${open.medium}, low ${open.low}.`,
-    sentBack.answerHint,
-  ].join('\n\n');
+  return match(sentBack)
+    .with({ from: 'review' }, (review) =>
+      [
+        `The review at ${review.head} left findings open: high ${review.open.high}, medium ${review.open.medium}, low ${review.open.low}.`,
+        review.answerHint,
+      ].join('\n\n'),
+    )
+    .with({ from: 'verify' }, (verify) =>
+      [
+        `The verify${verify.head === null ? '' : ` at ${verify.head}`} failed these features:`,
+        verify.features.map((feature) => `- ${feature}`).join('\n'),
+      ].join('\n\n'),
+    )
+    .exhaustive();
 }
 
 function buildNotes(notes: readonly NoteRow[]): string {

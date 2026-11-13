@@ -8,6 +8,17 @@ test('it builds a succeeded attempt with the outcome and end it is given', () =>
   expect(received).toStrictEqual(['review', 'succeeded', 'passed', 3000, null]);
 });
 
+test('it keeps the phase input it is given', () => {
+  const row = buildMockSettledAttemptRow({
+    phase: 'verify',
+    outcome: 'failed',
+    endedAt: 3000,
+    input: { session: 'fresh' },
+  });
+
+  expect(row.input).toStrictEqual({ session: 'fresh' });
+});
+
 test('it keeps the state it is given', () => {
   const row = buildMockSettledAttemptRow({
     phase: 'review',

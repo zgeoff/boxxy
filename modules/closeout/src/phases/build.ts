@@ -1,4 +1,5 @@
 import type {
+  AttemptRow,
   BuildCloseOut,
   BuildInput,
   CloseOutContext,
@@ -15,6 +16,8 @@ import {
   definePhase,
   storedReviewCloseOutSchema,
   toJSONValue,
+  verifyCloseOutSchema,
+  verifyInputSchema,
 } from '@boxxy/model';
 import { match } from 'ts-pattern';
 import type { z } from 'zod';
@@ -64,18 +67,40 @@ function buildBuildInput(ctx: PhaseInputContext): BuildInput {
   return {
     acceptance: buildCriterionTexts(ctx.item),
     design: findLatestDesign(ctx.history),
-    sentBack: findReviewSentBack(ctx),
+    sentBack: findSentBack(ctx.history),
     pullRequest: findPullRequestLink(ctx.pullRequests),
   };
 }
 
-// Only a latest review that asked for changes sends the build its findings: a build after a
-// passed review, sent back by the owner, gets none.
-function findReviewSentBack(ctx: PhaseInputContext): SentBack | null {
-  const reading = findLatestCloseOut(ctx.history, 'review', storedReviewCloseOutSchema)?.reading;
+// The latest grading of the work decides the send-back: a review that asked for changes sends
+// its findings, and a failed verify sends its features. A build after a passed review or a
+// verified verify, sent back by the owner, gets none.
+function findSentBack(history: readonly AttemptRow[]): SentBack | null {
+  const graded = history.findLast(
+    (row) => (row.phase === 'review' || row.phase === 'verify') && row.state === 'succeeded',
+  );
+
+  if (graded?.phase === 'verify') {
+    return findVerifySentBack(graded);
+  }
+
+  const reading = findLatestCloseOut(history, 'review', storedReviewCloseOutSchema)?.reading;
 
   return reading?.status === 'blocked' && reading.why === 'open-findings'
     ? { from: 'review', head: reading.head, open: reading.open, answerHint: reading.answerHint }
+    : null;
+}
+
+function findVerifySentBack(verify: AttemptRow): SentBack | null {
+  const closeOut = verifyCloseOutSchema.safeParse(verify.closeOut);
+  const input = verifyInputSchema.safeParse(verify.input);
+
+  return closeOut.success && closeOut.data.result.kind === 'failed'
+    ? {
+        from: 'verify',
+        head: input.success ? input.data.head : null,
+        features: closeOut.data.result.features,
+      }
     : null;
 }
 

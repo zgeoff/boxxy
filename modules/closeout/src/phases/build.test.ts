@@ -611,3 +611,146 @@ test('it sends a build the findings of a v1 review that asked for changes, as th
     pullRequest: null,
   });
 });
+
+test.each([
+  ['the head its review passed', 'e83c5163316f89bfbde7d9ab23ca2e25604af290'],
+  ['no head', null],
+])('it sends a build the failed features of the latest verify, with %s', (_title, head) => {
+  const history = [
+    buildMockSettledAttemptRow({
+      phase: 'review',
+      outcome: 'passed',
+      endedAt: 2000,
+      closeOut: {
+        round: 1,
+        cause: 'first',
+        reading: buildMockGateReading({ status: 'passed' }),
+        unrelatedLines: null,
+      },
+    }),
+    buildMockSettledAttemptRow({
+      phase: 'verify',
+      outcome: 'failed',
+      endedAt: 3000,
+      input: { pullRequest: null, head, session: 'fresh' },
+      closeOut: {
+        result: { kind: 'failed', features: ['upload-retry', 'upload-progress'] },
+        session: 'fresh',
+        friction: [],
+        frictionDropped: 0,
+      },
+    }),
+  ];
+
+  const input = build.input({
+    item: buildMockV1ItemView({ acceptance: [] }),
+    attempt: buildMockV1AttemptRow().id,
+    history,
+    retries: [],
+    pullRequests: [],
+    session: null,
+  });
+
+  expect(input).toStrictEqual({
+    acceptance: [],
+    design: null,
+    sentBack: { from: 'verify', head, features: ['upload-retry', 'upload-progress'] },
+    pullRequest: null,
+  });
+});
+
+test('it gives a build after a verified verify no send-back, though an earlier review asked for changes', () => {
+  const history = [
+    buildMockSettledAttemptRow({
+      phase: 'review',
+      outcome: 'changes-requested',
+      endedAt: 2000,
+      closeOut: {
+        round: 1,
+        cause: 'first',
+        reading: buildMockGateReading({ status: 'blocked', why: 'open-findings' }),
+        unrelatedLines: null,
+      },
+    }),
+    buildMockSettledAttemptRow({
+      phase: 'verify',
+      outcome: 'verified',
+      endedAt: 3000,
+      input: { pullRequest: null, head: null, session: 'fresh' },
+      closeOut: {
+        result: { kind: 'verified' },
+        session: 'fresh',
+        friction: [],
+        frictionDropped: 0,
+      },
+    }),
+  ];
+
+  const input = build.input({
+    item: buildMockV1ItemView({ acceptance: [] }),
+    attempt: buildMockV1AttemptRow().id,
+    history,
+    retries: [],
+    pullRequests: [],
+    session: null,
+  });
+
+  expect(input).toStrictEqual({ acceptance: [], design: null, sentBack: null, pullRequest: null });
+});
+
+test('it sends a build the findings of a review that asked for changes after an earlier verify failed', () => {
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+
+  const history = [
+    buildMockSettledAttemptRow({
+      phase: 'verify',
+      outcome: 'failed',
+      endedAt: 2000,
+      input: { pullRequest: null, head: null, session: 'fresh' },
+      closeOut: {
+        result: { kind: 'failed', features: ['upload-retry'] },
+        session: 'fresh',
+        friction: [],
+        frictionDropped: 0,
+      },
+    }),
+    buildMockSettledAttemptRow({
+      phase: 'review',
+      outcome: 'changes-requested',
+      endedAt: 3000,
+      closeOut: {
+        round: 2,
+        cause: 'rework',
+        reading: buildMockGateReading({
+          status: 'blocked',
+          why: 'open-findings',
+          head,
+          open: { high: 0, medium: 1, low: 0 },
+          answerHint: 'Reply to each open finding.',
+        }),
+        unrelatedLines: null,
+      },
+    }),
+  ];
+
+  const input = build.input({
+    item: buildMockV1ItemView({ acceptance: [] }),
+    attempt: buildMockV1AttemptRow().id,
+    history,
+    retries: [],
+    pullRequests: [],
+    session: null,
+  });
+
+  expect(input).toStrictEqual({
+    acceptance: [],
+    design: null,
+    sentBack: {
+      from: 'review',
+      head,
+      open: { high: 0, medium: 1, low: 0 },
+      answerHint: 'Reply to each open finding.',
+    },
+    pullRequest: null,
+  });
+});

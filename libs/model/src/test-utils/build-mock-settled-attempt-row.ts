@@ -8,6 +8,7 @@ interface MockSettledAttemptRowInput {
   readonly endedAt: number;
   readonly state?: 'succeeded' | 'failed';
   readonly closeOut?: AttemptRow['closeOut'];
+  readonly input?: AttemptRow['input'];
 }
 
 // An attempt row that settled with the outcome at `endedAt`, succeeded unless the test says not.
@@ -18,5 +19,6 @@ export function buildMockSettledAttemptRow(input: MockSettledAttemptRowInput): A
     outcome: brandSchemas.outcomeName.parse(input.outcome),
     endedAt: brandSchemas.instant.parse(input.endedAt),
     closeOut: input.closeOut ?? null,
+    input: input.input ?? {},
   });
 }
