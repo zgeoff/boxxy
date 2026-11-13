@@ -47,7 +47,7 @@
       "@types/bun": "1.4.4",
       "@wringer/core": "0.2.0",
       "@wringer/gunshi": "0.2.0",
-      "@wringer/http": "0.1.1",
+      "@wringer/http": "0.1.2",
       "@zgeoff/bun-test-extended": "0.2.3",
       "@zgeoff/chex": "0.3.4",
       "@zgeoff/commitlint-config": "0.1.0",
