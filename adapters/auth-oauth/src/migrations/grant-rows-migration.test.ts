@@ -36,6 +36,29 @@ function setupTest() {
 
       sqlite.close();
     },
+
+    // A row the migration leaves as it is, whose key points at no row, fails its foreign key check.
+    writeDanglingRow: () => {
+      const sqlite = new Database(dbPath);
+
+      sqlite.run(
+        `INSERT INTO oauthClientResource (id, clientId, resourceId) VALUES ('dangling', 'no-such-client', 'no-such-resource')`,
+      );
+
+      sqlite.close();
+    },
+    readOldRows: () => {
+      const sqlite = new Database(dbPath, { readonly: true });
+
+      registerTestCleanup(() => {
+        sqlite.close();
+      });
+
+      return {
+        users: sqlite.query('SELECT id FROM "user"').all(),
+        grantUses: sqlite.query('SELECT grant_id FROM boxxy_grant_use').all(),
+      };
+    },
     openDoor: async () => {
       const door = await createPublicDoor({
         publicURL: origin,
@@ -318,4 +341,30 @@ test('it revokes a migrated grant whose refresh token expired while its access t
   const access = await door.auth.verify(grant?.accessToken ?? '');
 
   expect(access).toBeNull();
+});
+
+test('it rolls the whole migration back when its foreign key check fails', async () => {
+  const ctx = setupTest();
+
+  ctx.seed.oldAuth({
+    grants: [
+      {
+        clientName: 'Alpha assistant',
+        scopes: ['read'],
+        refreshes: 0,
+        lastUsedAt: '2026-11-10T08:00:00.000Z',
+      },
+    ],
+    passkeyID: 'passkey-1',
+    now: Date.now(),
+  });
+
+  ctx.writeDanglingRow();
+
+  await ctx.openDoor().catch(() => null);
+
+  expect(ctx.readOldRows()).toStrictEqual({
+    users: [{ id: 'owner-user-row' }],
+    grantUses: [{ grant_id: 'code-0' }],
+  });
 });
