@@ -370,10 +370,9 @@ test.each([['attempt.listItems'], ['attempt.getItem']])(
 
     const text = JSON.stringify(answer.body);
 
-    expect({ status: answer.status, text }).toStrictEqual({
-      status: 200,
-      text: expect.not.stringContaining('keptSession'),
-    });
+    expect({ status: answer.status, holdsKeptSession: text.includes('keptSession') }).toStrictEqual(
+      { status: 200, holdsKeptSession: false },
+    );
   },
 );
 
