@@ -60,6 +60,19 @@ test('#runBoxxy runs the CLI with both URLs and the current item in place of @cu
   });
 });
 
+test('#runBoxxy runs the entry file of the CLI', async () => {
+  const ctx = setupTest({ exitCode: 0, stdout: '', stderr: '' });
+
+  await runBoxxy(ctx.ctx, { argv: ['item', 'list'], schema: z.null() });
+
+  const script = ctx.calls[0]?.argv[4] ?? '';
+
+  expect({ script, exists: await Bun.file(script).exists() }).toStrictEqual({
+    script: expect.stringMatching(/\/apps\/cli\/src\/main\.ts$/u),
+    exists: true,
+  });
+});
+
 test('#runBoxxy passes stdin to the CLI', async () => {
   const ctx = setupTest({ exitCode: 0, stdout: '', stderr: '' });
 
