@@ -33,7 +33,12 @@ export const gateReadingSchema = z.discriminatedUnion('status', [
     why: z.enum(['open-findings', 'failed-call', 'unreadable']),
     ...runShape,
   }),
-  z.object({ status: z.literal('not-covered'), head: brandSchemas.commitSha, cost: costSchema }),
+  z.object({
+    status: z.literal('not-covered'),
+    head: brandSchemas.commitSha,
+    cost: costSchema,
+    reason: z.string().min(1).exactOptional(),
+  }),
 ]) satisfies z.ZodType<GateReading>;
 
 // The stored form, which the server builds from the session's raw result with the review gate.

@@ -52,6 +52,24 @@ test('it accepts a first review that covered no head, with no unrelated lines', 
   expect(parsed).toStrictEqual(closeOut);
 });
 
+test('it keeps the reason of a review that the forge refused', () => {
+  const closeOut = {
+    round: 1,
+    cause: 'first',
+    reading: {
+      status: 'not-covered',
+      head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+      cost: { calls: [] },
+      reason: 'GitHub answered 404 to the noslop App: Not Found',
+    },
+    unrelatedLines: null,
+  };
+
+  const parsed: unknown = reviewCloseOutSchema.safeParse(closeOut).data;
+
+  expect(parsed).toStrictEqual(closeOut);
+});
+
 test('it rejects a blocked reading with no reason', () => {
   const closeOut = {
     round: 1,

@@ -30,17 +30,20 @@ export interface ReviewGate {
   buildCommand: (round: GateRound) => string;
   // Runs in the server when the review session closes out with that result. It checks the result
   // against the pull request's current head, posts it to the pull request, and reads every
-  // finding's state. Throws only when the forge gives no answer; the session then sends again.
+  // finding's state. Throws only when the forge gives no answer; the session then sends again. A
+  // forge that answers with a refusal, such as a 404 for a repo the App is not installed on, gives
+  // a `not-covered` reading with the refusal in `reason`.
   accept: (round: GateRound, result: JsonValue) => Promise<GateReading>;
 }
 
 // A reading always names the head it covers. `not-covered`: the result is for another head than
-// the pull request's current head, or it read no part of that head. A tool check that passes at
-// a head no review read is `not-covered`, never `passed`.
+// the pull request's current head, it read no part of that head, or the forge refused the gate's
+// read or post (`reason`). A tool check that passes at a head no review read is `not-covered`,
+// never `passed`.
 export type GateReading =
   | ({ readonly status: 'passed' } & GateRun)
   | ({ readonly status: 'blocked'; readonly why: 'open-findings' | 'failed-call' | 'unreadable' } & GateRun)
-  | { readonly status: 'not-covered'; readonly head: CommitSha; readonly cost: GateCost };
+  | { readonly status: 'not-covered'; readonly head: CommitSha; readonly cost: GateCost; readonly reason?: string };
 
 export interface GateRun {
   readonly head: CommitSha;

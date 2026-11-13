@@ -63,3 +63,37 @@ test('it fails a check with a network failure when GitHub is down', () => {
 
   expect(checked).rejects.toThrowWithMessage(Error, /fetch failed/u);
 });
+
+test('it refuses a post with the HTTP status that GitHub answers the App', () => {
+  const client = createFakeNoslopClient({
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+    outcome: { conclusion: 'success', title: '', summary: '', open: [] },
+    refuses: { status: 404, on: 'post' },
+  });
+
+  const review = buildMockReviewResult({
+    owner: 'example',
+    repo: 'app',
+    number: 7,
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+  });
+
+  const sent = client.sendResult(review, { env: {}, verify: true });
+
+  expect(sent).rejects.toMatchObject({ cause: { name: 'HttpError', status: 404 } });
+});
+
+test('it fails a check with the HTTP status that GitHub answers the App', () => {
+  const client = createFakeNoslopClient({
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+    outcome: { conclusion: 'success', title: '', summary: '', open: [] },
+    refuses: { status: 404, on: 'check' },
+  });
+
+  const checked = client.check(
+    { owner: 'example', repo: 'app', number: 7 },
+    { env: {}, readOnly: true },
+  );
+
+  expect(checked).rejects.toMatchObject({ name: 'HttpError', status: 404 });
+});

@@ -223,6 +223,82 @@ test('it throws when GitHub gives no answer, so the session sends again', () => 
   expect(accepted).rejects.toThrowWithMessage(Error, /fetch failed/u);
 });
 
+test('it reads a post that GitHub refuses the App as not covered with the reason', async () => {
+  const ctx = setupTest();
+
+  const client = createFakeNoslopClient({
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+    outcome: { conclusion: 'success', title: '', summary: '', open: [] },
+    refuses: { status: 404, on: 'post' },
+  });
+
+  const review = buildMockReviewResult({
+    owner: 'example',
+    repo: 'app',
+    number: 7,
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+  });
+
+  const reading = await ctx.accept(client, ctx.buildBody(review));
+
+  expect([reading, client.posted]).toStrictEqual([
+    {
+      status: 'not-covered',
+      head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+      cost: expect.any(Object),
+      reason: expect.stringMatching(/^GitHub answered 404 to the noslop App: .*Not Found/u),
+    },
+    [],
+  ]);
+});
+
+test('it reads a check that GitHub refuses the App as not covered with the reason', async () => {
+  const ctx = setupTest();
+
+  const client = createFakeNoslopClient({
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+    outcome: { conclusion: 'success', title: '', summary: '', open: [] },
+    refuses: { status: 403, on: 'check' },
+  });
+
+  const review = buildMockReviewResult({
+    owner: 'example',
+    repo: 'app',
+    number: 7,
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+  });
+
+  const reading = await ctx.accept(client, ctx.buildBody(review));
+
+  expect(reading).toStrictEqual({
+    status: 'not-covered',
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+    cost: expect.any(Object),
+    reason: expect.stringMatching(/^GitHub answered 403 to the noslop App/u),
+  });
+});
+
+test('it throws when GitHub rate limits the App, so the session sends again', () => {
+  const ctx = setupTest();
+
+  const client = createFakeNoslopClient({
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+    outcome: { conclusion: 'success', title: '', summary: '', open: [] },
+    refuses: { status: 429, on: 'post' },
+  });
+
+  const review = buildMockReviewResult({
+    owner: 'example',
+    repo: 'app',
+    number: 7,
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+  });
+
+  const accepted = ctx.accept(client, ctx.buildBody(review));
+
+  expect(accepted).rejects.toThrowWithMessage(Error, /Refused/u);
+});
+
 test('it builds the review command for the round', () => {
   const ctx = setupTest();
 

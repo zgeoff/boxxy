@@ -2,6 +2,7 @@ import type { ReviewResult } from '@noslop/cli';
 import { reviewResultSchema } from '@noslop/cli';
 import type { PullRequestCheck } from '@noslop/cli/check';
 import type { NoslopClient } from '../types.ts';
+import { buildMockRequestError } from './build-mock-request-error.ts';
 
 interface FakeNoslopClientInput {
   // the pull request's head on the forge
@@ -12,6 +13,10 @@ interface FakeNoslopClientInput {
 
   // true: GitHub gives no answer, so every call fails as a network failure does
   readonly down?: boolean;
+
+  // GitHub answers this HTTP status to the App's reads, as it answers 404 for a repo the App is
+  // not installed on; `on` names the call that gets it
+  readonly refuses?: { readonly status: number; readonly on: 'post' | 'check' };
 }
 
 export interface FakeNoslopClient extends NoslopClient {
@@ -41,6 +46,19 @@ export function createFakeNoslopClient(input: FakeNoslopClientInput): FakeNoslop
         );
       }
 
+      if (input.refuses?.on === 'post') {
+        const answer = buildRequestError(input.refuses.status);
+
+        return Promise.reject(
+          new Error(
+            `noslop posts only a verified result, so it refuses this one: ${answer.message}`,
+            {
+              cause: answer,
+            },
+          ),
+        );
+      }
+
       if (review.head !== input.head) {
         const reason = `the result does not verify: it reviews ${review.head.slice(0, 12)}, but the head of the pull request is ${input.head.slice(0, 12)}`;
 
@@ -60,9 +78,23 @@ export function createFakeNoslopClient(input: FakeNoslopClientInput): FakeNoslop
         return Promise.reject(new Error('fetch failed'));
       }
 
+      if (input.refuses?.on === 'check') {
+        return Promise.reject(buildRequestError(input.refuses.status));
+      }
+
       checked += 1;
 
       return Promise.resolve(input.outcome);
     },
   };
+}
+
+// The shape of Octokit's request error, which noslop throws for an HTTP answer it does not expect
+function buildRequestError(status: number): Error {
+  const text = status === 404 ? 'Not Found' : 'Refused';
+
+  return buildMockRequestError(
+    status,
+    `${text} - https://docs.github.com/rest/pulls/pulls#get-a-pull-request`,
+  );
 }
