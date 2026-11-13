@@ -11,7 +11,8 @@ export const forgeLimits = {
   // 300 check runs and 300 commit statuses at one head; a head with more reads the first 300
   maxCheckPages: 3,
 
-  // 300 rules on one branch, from every ruleset that targets it
+  // 300 rules on one branch, from every ruleset that targets it; a branch with more throws, because
+  // a rule past the limit can be a required check
   maxRulePages: 3,
 } as const;
 

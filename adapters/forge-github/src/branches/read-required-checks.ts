@@ -18,15 +18,21 @@ export async function readRequiredChecks(
     .join('/');
 
   const branchPath = `/repos/${repo}/branches/${encoded}`;
+  const rulesPath = `/repos/${repo}/rules/branches/${encoded}`;
+  const maxRules = forgeLimits.maxRulePages * forgeLimits.pageSize;
 
+  // one page past the limit shows whether GitHub holds more rules than the adapter reads
   const [rules, found] = await Promise.all([
-    client.readPages(
-      `/repos/${repo}/rules/branches/${encoded}`,
-      forgeLimits.maxRulePages,
-      githubSchemas.branchRulePage,
-    ),
+    client.readPages(rulesPath, forgeLimits.maxRulePages + 1, githubSchemas.branchRulePage),
     client.readJson(branchPath, githubSchemas.branch),
   ]);
+
+  if (rules.length > maxRules) {
+    throw new GithubForgeError(
+      `GitHub gave more than ${maxRules} rules for GET ${rulesPath}`,
+      null,
+    );
+  }
 
   if (found === null) {
     throw new GithubForgeError(`GitHub did not find GET ${branchPath}`, 404);

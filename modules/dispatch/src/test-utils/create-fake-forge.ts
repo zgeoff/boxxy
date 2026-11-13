@@ -253,9 +253,19 @@ export function createFakeForge(): FakeForge {
         return Promise.reject(new Error('the fake forge is down'));
       }
 
-      return pullRequests.has(toKey(ref))
-        ? Promise.resolve(mergeableByPullRequest.get(toKey(ref)) ?? 'clean')
-        : Promise.reject(new Error(`the fake forge holds no pull request ${toKey(ref)}`));
+      const found = pullRequests.get(toKey(ref));
+
+      if (found === undefined) {
+        return Promise.reject(new Error(`the fake forge holds no pull request ${toKey(ref)}`));
+      }
+
+      // GitHub answers `mergeable: null` for a pull request that is no longer open
+      const mergeable: MergeableState =
+        found.reading.state === 'open'
+          ? (mergeableByPullRequest.get(toKey(ref)) ?? 'clean')
+          : 'unknown';
+
+      return Promise.resolve(mergeable);
     },
     mergeAtHead: (ref, head, method) => {
       calls.push(`mergeAtHead ${toKey(ref)} ${head} ${method}`);

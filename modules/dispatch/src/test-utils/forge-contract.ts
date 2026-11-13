@@ -226,6 +226,15 @@ export const forgeContract: readonly ForgeContractCase[] = [
     },
   ],
   [
+    '#readMergeable reads a merged pull request as unknown',
+    async (harness) => {
+      await harness.seed(buildOpen(18, 1));
+      await harness.forge.mergeAtHead(buildRef(18), buildSha(1), 'squash');
+
+      return { received: await harness.forge.readMergeable(buildRef(18)), expected: 'unknown' };
+    },
+  ],
+  [
     '#readMergeable rejects for a pull request that does not exist',
     async (harness) => ({
       received: await toSettled(harness.forge.readMergeable(buildRef(404))),
