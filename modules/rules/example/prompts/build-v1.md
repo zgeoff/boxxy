@@ -55,6 +55,9 @@ The attempt's input, as JSON, names the pull request when one exists:
 
 {{ input }}
 
+Add no attribution to a commit message, a pull request title or a pull request body: no
+`Co-Authored-By` trailer, and no line that names the tool or the model that wrote the change.
+
 Run the checks that the repo's own agent instructions name. Answer each finding under "Findings to
 answer", when there are any. Close out `built`, or `blocked` with the question the owner must answer
 and what you finished so far in `reason`: the next build gets that reason. When the build can go on

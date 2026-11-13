@@ -164,6 +164,19 @@ test('it renders the conclusion of the design in the example build prompt', () =
   );
 });
 
+test('it renders the rule against attribution trailers in the example build prompt', () => {
+  const item = buildMockV1ItemView({ title: 'T', outcome: 'O', body: '', acceptance: [] });
+  const values = buildPromptValues({ item, attempt: 'att-1', notes: [], input: {} });
+
+  const template = new TextDecoder().decode(
+    buildExampleLoadInput().checkout.files.get('prompts/build-v1.md'),
+  );
+
+  expect(renderPromptTemplate(template, values)).toContain(
+    'Add no attribution to a commit message, a pull request title or a pull request body: no\n`Co-Authored-By` trailer, and no line that names the tool or the model that wrote the change.',
+  );
+});
+
 test('it builds each empty section as the empty string', () => {
   const item = buildMockV1ItemView({ title: 'T', outcome: 'O', body: '', acceptance: [] });
 
@@ -296,6 +309,7 @@ test('it renders the example build prompt with no design and no findings section
       '- a1: The theme follows the system',
       "The attempt's input, as JSON, names the pull request when one exists:",
       '{\n  "pr": null\n}',
+      'Add no attribution to a commit message, a pull request title or a pull request body: no\n`Co-Authored-By` trailer, and no line that names the tool or the model that wrote the change.',
       'Run the checks',
     ].join('\n\n'),
   );
