@@ -16,7 +16,11 @@ test('it gives the design and the send-back of a build input', () => {
 
   const sections: unknown = getLaunchSections(input);
 
-  expect(sections).toStrictEqual({ design: input.design, sentBack: input.sentBack });
+  expect(sections).toStrictEqual({
+    design: input.design,
+    sentBack: input.sentBack,
+    stopped: null,
+  });
 });
 
 test.each([
@@ -32,19 +36,34 @@ test.each([
 
   const sections: unknown = getLaunchSections(input);
 
-  expect(sections).toStrictEqual({ design: null, sentBack: input.sentBack });
+  expect(sections).toStrictEqual({ design: null, sentBack: input.sentBack, stopped: null });
 });
 
 test('it gives the design of a v1 build input, which holds no send-back', () => {
   const input = { acceptance: [], design: { text: 'The design.', location: null } };
 
-  expect(getLaunchSections(input)).toStrictEqual({ design: input.design, sentBack: null });
+  expect(getLaunchSections(input)).toStrictEqual({
+    design: input.design,
+    sentBack: null,
+    stopped: null,
+  });
+});
+
+test('it gives the reason the last design stopped at of a design input', () => {
+  const input = { acceptance: [], stopped: 'Should the default be light or dark?' };
+
+  expect(getLaunchSections(input)).toStrictEqual({
+    design: null,
+    sentBack: null,
+    stopped: 'Should the default be light or dark?',
+  });
 });
 
 test.each([
   ['a triage input', { acceptance: [] }],
   ['a build input with no design', { design: null, sentBack: null }],
+  ['a design input after a design that did not stop blocked', { acceptance: [], stopped: null }],
   ['an input of another shape', 'text'],
-])('it gives no design and no send-back for %s', (_title, input) => {
-  expect(getLaunchSections(input)).toStrictEqual({ design: null, sentBack: null });
+])('it gives no section for %s', (_title, input) => {
+  expect(getLaunchSections(input)).toStrictEqual({ design: null, sentBack: null, stopped: null });
 });

@@ -27,20 +27,24 @@ const sentBackSchema = z.discriminatedUnion('from', [
 const launchInputSchema = z.object({
   design: designSchema.nullable().optional(),
   sentBack: sentBackSchema.nullable().optional(),
+  stopped: z.string().nullable().optional(),
 });
 
 export interface LaunchSections {
   readonly design: Design | null;
   readonly sentBack: SentBack | null;
+  readonly stopped: string | null;
 }
 
-// The design and the send-back that a phase input carries into the launch prompt. A triage or a
-// design input holds neither, and gives none.
+// The design, the send-back and the reason the last design stopped at, that a phase input carries
+// into the launch prompt. A build input holds the first two, a design input the last, and a
+// triage input none.
 export function getLaunchSections(input: JsonValue): LaunchSections {
   const parsed = launchInputSchema.safeParse(input);
 
   return {
     design: parsed.success ? (parsed.data.design ?? null) : null,
     sentBack: parsed.success ? (parsed.data.sentBack ?? null) : null,
+    stopped: parsed.success ? (parsed.data.stopped ?? null) : null,
   };
 }

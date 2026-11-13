@@ -53,6 +53,7 @@ test('it builds every placeholder from the item, the notes and the phase input',
     design: 'One button.\n\n```ts\nretry();\n```\n\nLocation: docs/design/retry.md',
     findings:
       'The review at e83c5163316f89bfbde7d9ab23ca2e25604af290 left findings open: high 1, medium 2, low 0.\n\nReply to each open finding.',
+    stopped: '',
     notes: '- 1970-01-01: First\n- 1970-01-02: Second',
     ticket: expect.stringMatching(/^# Add a retry\n\nA failed upload sends again\.\n\n## Scope/u),
     input: expect.any(String),
@@ -135,11 +136,74 @@ test('it builds each empty section as the empty string', () => {
     values.acceptance,
     values.design,
     values.findings,
+    values.stopped,
     values.notes,
-  ]).toStrictEqual(['', '', '', '', '']);
+  ]).toStrictEqual(['', '', '', '', '', '']);
 
   expect(values.ticket).toBe('# T\n\nO');
 });
+
+test('it gives the reason the last design stopped at, and puts it in the ticket before the notes', () => {
+  const item = buildMockV1ItemView({ title: 'T', outcome: 'O', body: '', acceptance: [] });
+
+  const values = buildPromptValues({
+    item,
+    attempt: 'att-1',
+    notes: [
+      {
+        item: item.id,
+        seq: 1,
+        text: 'Dark.',
+        by: 'boxxy:owner:local',
+        at: brandSchemas.instant.parse(0),
+      },
+    ],
+    input: { acceptance: [], stopped: 'Should the default be light or dark?' },
+  });
+
+  expect([values.stopped, values.ticket]).toStrictEqual([
+    'Should the default be light or dark?',
+    '# T\n\nO\n\n## Where the last attempt stopped\n\nShould the default be light or dark?\n\n## Notes from the owner\n\n- 1970-01-01: Dark.',
+  ]);
+});
+
+test.each(['prompts/design-v1.md', 'prompts/design-attended-v1.md'])(
+  'it renders the reason the last design stopped at in the example prompt %s',
+  (path) => {
+    const item = buildMockV1ItemView({ title: 'T', outcome: 'O', body: '', acceptance: [] });
+
+    const values = buildPromptValues({
+      item,
+      attempt: 'att-1',
+      notes: [],
+      input: { acceptance: [], stopped: 'Should the default be light or dark?' },
+    });
+
+    const template = new TextDecoder().decode(buildExampleLoadInput().checkout.files.get(path));
+
+    expect(renderPromptTemplate(template, values)).toContain(
+      '# T\n\nO\n\n## Where the last attempt stopped\n\nShould the default be light or dark?\n\n',
+    );
+  },
+);
+
+test.each(['prompts/design-v1.md', 'prompts/design-attended-v1.md'])(
+  'it renders the example prompt %s with no stopped section when no design stopped blocked',
+  (path) => {
+    const item = buildMockV1ItemView({ title: 'T', outcome: 'O', body: '', acceptance: [] });
+
+    const values = buildPromptValues({
+      item,
+      attempt: 'att-1',
+      notes: [],
+      input: { acceptance: [], stopped: null },
+    });
+
+    const template = new TextDecoder().decode(buildExampleLoadInput().checkout.files.get(path));
+
+    expect(renderPromptTemplate(template, values)).not.toContain('Where the last attempt stopped');
+  },
+);
 
 test('it renders the example build prompt with no design and no findings sections', () => {
   const item = buildMockV1ItemView({

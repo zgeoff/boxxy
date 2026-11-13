@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { brandSchemas } from '@boxxy/model';
 import { z } from 'zod';
 import { createTestCLI } from '../src/test-utils/create-test-cli.ts';
 import { readJSONOutput } from '../src/test-utils/read-json-output.ts';
@@ -20,6 +21,8 @@ async function setupTest() {
     relations: z.array(relation),
   });
 
+  const shownAttempt = z.object({ spawnRequest: z.object({ prompt: z.string() }) });
+  const shownAttemptsSchema = z.object({ attempts: z.array(shownAttempt) });
   const listedItem = z.object({ labels });
   const listedSchema = z.object({ items: z.array(listedItem), next: z.string().nullable() });
 
@@ -39,7 +42,7 @@ async function setupTest() {
     return { result, item: readJSONOutput(result, filedSchema).item };
   };
 
-  return { ...cli, fileItem, filedSchema, shownSchema, listedSchema };
+  return { ...cli, fileItem, filedSchema, shownSchema, shownAttemptsSchema, listedSchema };
 }
 
 test('#item file files an item that #item show then reads back', async () => {
@@ -171,6 +174,41 @@ test('#item retry sends the item to the given phase', async () => {
     phase: 'build',
     round: 2,
   });
+});
+
+test('#item retry starts a design whose prompt holds the reason the blocked design stopped at', async () => {
+  const ctx = await setupTest();
+  const blocked = await ctx.server.seedStartedAttempt(brandSchemas.phaseName.parse('design'));
+
+  ctx.server.callerProof.setCaller(blocked.caller);
+
+  await ctx.run(['attempt', 'close-out'], {
+    stdin: JSON.stringify({
+      result: { kind: 'blocked', reason: 'Light or dark by default? The toggle is settled.' },
+      friction: [],
+    }),
+  });
+
+  ctx.server.dispatch.worker.setSession(blocked.id, { state: 'running', attention: 'turn-ended' });
+
+  await ctx.server.tick();
+  await ctx.server.tick();
+  await ctx.run(['item', 'note', blocked.item, '--text', 'Dark by default.']);
+  await ctx.run(['item', 'retry', blocked.item]);
+  await ctx.server.tick();
+
+  const shown = await ctx.run(['item', 'show', blocked.item]);
+
+  const attempts = readJSONOutput(shown, ctx.shownAttemptsSchema).attempts;
+
+  expect(attempts.at(-1)?.spawnRequest.prompt).toContain(
+    [
+      '## Where the last attempt stopped',
+      'Light or dark by default? The toggle is settled.',
+      '## Notes from the owner',
+      '- 1970-01-01: Dark by default.',
+    ].join('\n\n'),
+  );
 });
 
 test('#item retry exits 1 and names the code for a phase the pipeline lacks', async () => {

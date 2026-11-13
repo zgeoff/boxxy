@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
+import type { DesignCloseOut } from '@boxxy/model';
+import { buildMockSettledAttemptRow } from '@boxxy/model/test-utils/build-mock-settled-attempt-row';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import { buildMockV1ItemView } from '@boxxy/model/test-utils/build-mock-v1-item-view';
 import { design } from './design.ts';
@@ -140,6 +142,57 @@ test.each([
   const picked: unknown = design.mode?.(buildMockV1ItemView({ fields }));
 
   expect(picked).toBe(mode);
+});
+
+test.each<[string, (DesignCloseOut['result'] | null)[], string | null]>([
+  ['no earlier design', [], null],
+  [
+    'a latest design that closed out blocked',
+    [{ kind: 'blocked', reason: 'Light or dark by default? The toggle is settled.' }],
+    'Light or dark by default? The toggle is settled.',
+  ],
+  [
+    'a blocked design and then one that ended with no close-out',
+    [{ kind: 'blocked', reason: 'Light or dark by default?' }, null],
+    'Light or dark by default?',
+  ],
+  [
+    'a blocked design and then an abandoned one',
+    [
+      { kind: 'blocked', reason: 'Light or dark by default?' },
+      { kind: 'abandoned', reason: 'The theme moved to another item.' },
+    ],
+    null,
+  ],
+  [
+    'a blocked design and then a designed one',
+    [
+      { kind: 'blocked', reason: 'Light or dark by default?' },
+      { kind: 'designed', design: { text: 'Dark by default.', location: null } },
+    ],
+    null,
+  ],
+])('it carries the blocked reason, or none, into a design after %s', (_title, results, stopped) => {
+  const history = results.map((result, index) =>
+    buildMockSettledAttemptRow({
+      phase: 'design',
+      state: result?.kind === 'designed' ? 'succeeded' : 'failed',
+      outcome: result?.kind ?? 'timed-out',
+      endedAt: 1000 * (index + 1),
+      closeOut: result === null ? null : { result, friction: [], frictionDropped: 0 },
+    }),
+  );
+
+  const input = design.input({
+    item: buildMockV1ItemView({ acceptance: [] }),
+    attempt: buildMockV1AttemptRow().id,
+    history,
+    retries: [],
+    pullRequests: [],
+    session: null,
+  });
+
+  expect(input).toStrictEqual({ acceptance: [], stopped });
 });
 
 test('it gives the agent a close-out schema that names the design text', () => {

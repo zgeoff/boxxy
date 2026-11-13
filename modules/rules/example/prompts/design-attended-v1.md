@@ -13,6 +13,12 @@ Design this item with the owner, who works in this session with you.
 
 {{ acceptance }}
 {%- endif %}
+{%- if stopped %}
+
+## Where the last attempt stopped
+
+{{ stopped }}
+{%- endif %}
 {%- if notes %}
 
 ## Notes from the owner
@@ -26,7 +32,8 @@ design as markdown in `design.text`, code blocks included, and the path of a doc
 `result.set.acceptance`. When the item has no acceptance list, send one: the build does not start
 without it. Send each follow-up item the design leaves for later in `result.openItems`, and leave it
 out of the design text: boxxy files it as an item of its own. Close out `blocked` with the open
-question, or `abandoned`.
+question and what you settled so far in `reason`: the next design gets that reason. Or close out
+`abandoned`.
 
 Run `boxxy attempt current` for the attempt ID and the JSON Schema of the close-out body. To cite a
 test or a check, record it with

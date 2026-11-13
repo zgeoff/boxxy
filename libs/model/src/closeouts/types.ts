@@ -243,9 +243,16 @@ export interface CriterionText {
   readonly text: string;
 }
 
-// The input of a triage or a design attempt: the item's acceptance list, which may be empty.
+// The input of a triage attempt: the item's acceptance list, which may be empty.
 export interface AcceptanceInput {
   readonly acceptance: readonly CriterionText[];
+}
+
+// The input of a design attempt. When the item's latest design that closed out closed out
+// `blocked`, `stopped` holds its reason, so the next design carries on from it.
+export interface DesignInput {
+  readonly acceptance: readonly CriterionText[];
+  readonly stopped: string | null;
 }
 
 // The input of a build attempt. After a review that asked for changes, `sentBack` holds that

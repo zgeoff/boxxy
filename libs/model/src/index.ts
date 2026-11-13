@@ -162,6 +162,7 @@ export type {
   CloseOutWorld,
   CriterionText,
   DesignCloseOut,
+  DesignInput,
   Design,
   Effect,
   Friction,

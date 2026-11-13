@@ -7,6 +7,7 @@ export const promptPlaceholders = [
   'acceptance',
   'design',
   'findings',
+  'stopped',
   'notes',
   'repo',
   'attempt_id',

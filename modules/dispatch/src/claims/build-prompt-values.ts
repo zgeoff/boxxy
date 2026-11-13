@@ -20,6 +20,7 @@ export function buildPromptValues(parts: PromptValueParts): PromptValues {
   const acceptance = buildAcceptance(item);
   const design = buildDesign(sections.design);
   const findings = buildFindings(sections.sentBack);
+  const stopped = sections.stopped ?? '';
   const notes = buildNotes(parts.notes);
 
   const ticket = [
@@ -29,6 +30,7 @@ export function buildPromptValues(parts: PromptValueParts): PromptValues {
     formatSection('Acceptance', acceptance),
     formatSection('Design', design),
     formatSection('Findings to answer', findings),
+    formatSection('Where the last attempt stopped', stopped),
     formatSection('Notes from the owner', notes),
   ]
     .filter((part) => part !== '')
@@ -43,6 +45,7 @@ export function buildPromptValues(parts: PromptValueParts): PromptValues {
     acceptance,
     design,
     findings,
+    stopped,
     notes,
     ticket,
     input: JSON.stringify(parts.input, null, 2),
