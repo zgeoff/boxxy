@@ -1591,7 +1591,7 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
 
 ### S1-13: The trial on pepys
 
-- **Delivers:** the trial: the private rules repo `zgeoff/boxxy-rules`, which this unit creates,
+- **Delivers:** the trial: the rules repo `zgeoff/boxxy-rules`, which this unit creates,
   with the slice 1 rules and a tuned `prompts/build-v1.md`; the server running on the owner's
   machine; and real pepys work filed in boxxy. The rules repo's own PR holds the rules and the
   prompt. The boxxy PR holds any doc fixes, and its description names the rules repo.

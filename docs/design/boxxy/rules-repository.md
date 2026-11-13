@@ -2,14 +2,14 @@
 
 - **Status:** draft
 
-The deployed server loads its rules from a private git repository, the rules repository, in place of the copy baked into its image. A merged pull request reaches the live rules within 2 minutes, with no image build and no deploy. A git-sync sidecar in the server's pod fetches `main` into the pod's volume, and the server loads the new commit on its next tick, as [rules](./rules.md#policy-in-git) says it loads any checkout.
+The deployed server loads its rules from a public git repository, the rules repository `github.com/zgeoff/boxxy-rules`, in place of the copy baked into its image. A merged pull request reaches the live rules within 2 minutes, with no image build and no deploy. A git-sync sidecar in the server's pod fetches `main` into the pod's volume, and the server loads the new commit on its next tick, as [rules](./rules.md#policy-in-git) says it loads any checkout.
 
 ## Shape
 
 ```mermaid
 flowchart LR
   pr["pull request"] -->|"rules check passes"| main["rules repository main"]
-  main -->|"SSH, deploy key, every 30 s"| sync["git-sync sidecar"]
+  main -->|"HTTPS, no credential, every 30 s"| sync["git-sync sidecar"]
   sync -->|"worktree + symlink swap"| vol["data volume: rules/root"]
   vol -->|"read-only mount"| server["boxxy server: reload each tick"]
   server -->|"rules.version, rules.commit, lastRejected"| status["runner.status"]
@@ -44,7 +44,7 @@ const rulesSync: input.core.v1.Container = {
   image: 'registry.k8s.io/git-sync/git-sync:v4.8.0@sha256:a20644562fba94773e594885cb001aadb5a3172175f13ac1215e5b2033c9200e',
   restartPolicy: 'Always', // a native sidecar: it starts before the server and restarts on its own
   args: [
-    '--repo=$(RULES_REPO_URL)', // ssh://git@ssh.github.com:443/<owner>/<rules repository>.git
+    '--repo=https://github.com/zgeoff/boxxy-rules.git', // public: an anonymous clone, with no credential
     '--ref=main',
     '--root=/git/root', // git-sync makes this folder, so git-sync owns it
     '--link=current',
@@ -54,18 +54,14 @@ const rulesSync: input.core.v1.Container = {
     '--stale-worktree-timeout=10m', // a server read that spans a swap still finds the old worktree
     '--http-bind=:2020',
     '--http-metrics',
-    '--ssh-key-file=/etc/git-secret/ssh',
-    '--ssh-known-hosts-file=/etc/git-secret/known_hosts',
   ],
-  env: [{ name: 'RULES_REPO_URL', valueFrom: { secretKeyRef: { name: rulesSecret, key: 'url' } } }],
   startupProbe: { exec: { command: ['test', '-d', '/git/root/current'] }, periodSeconds: 2, failureThreshold: 150 },
   volumeMounts: [
     { name: 'data', subPath: 'rules', mountPath: '/git' },
-    { name: 'rules-key', mountPath: '/etc/git-secret', readOnly: true },
     { name: 'rules-sync-tmp', mountPath: '/tmp' }, // HOME: git-sync writes its global git config here
   ],
   securityContext: {
-    runAsUser: 65_533, // the image's own user: ssh exits with "No user exists for uid" for any uid with no passwd entry
+    runAsUser: 65_533, // the image's own user
     runAsGroup: 65_533,
     allowPrivilegeEscalation: false,
     readOnlyRootFilesystem: true,
@@ -87,12 +83,11 @@ const serverChanges = {
 
 // pod volumes; …existing volumes
 const volumes = [
-  { name: 'rules-key', secret: { secretName: rulesSecret, defaultMode: 0o440, items: [{ key: 'ssh', path: 'ssh' }, { key: 'known_hosts', path: 'known_hosts' }] } },
   { name: 'rules-sync-tmp', emptyDir: { medium: 'Memory', sizeLimit: '4Mi' } },
 ];
 ```
 
-The Secret holds three keys: `ssh`, the deploy key's private half; `known_hosts`, GitHub's host keys for `[ssh.github.com]:443`, from GitHub's published meta; `url`, the rules repository's SSH URL. The repository's name is private, so the URL comes from a secret stack config value, as `boxxySpawnRepos` does.
+The pod gains no Secret: the sidecar clones the public repository over HTTPS, and neither container holds a credential for it.
 
 ### The server image
 
@@ -197,10 +192,9 @@ Once the image holds no rules, `rules.yaml` opens with this comment:
 
 ## Constraints
 
-- The server container never mounts the deploy key. Only the sidecar mounts the `rules-key` volume.
+- Neither container holds a credential for the rules repository. The sidecar fetches it anonymously over HTTPS on port 443.
 - The server mounts the rules folder read-only.
 - The sidecar writes below `rules/` on the volume through the pod's `fsGroup`, 65532, which Kubernetes adds to the groups of every container in the pod.
-- The deploy key is a read-only deploy key on the rules repository alone.
 - The sync root lives on the server's `data` volume under `rules/`, so a pod restart while GitHub is unreachable starts on the last synced commit. The backup job copies only `*.db`, so the checkout stays out of the backups.
 - The server container starts only after the sidecar's startup probe finds the `current` link. On a fresh volume with GitHub unreachable, the pod waits 5 minutes, then the kubelet restarts the sidecar.
 - A merged commit reaches `runner.status` within 30 s of fetch period plus one 5 s tick, plus the fetch time.
@@ -217,7 +211,7 @@ Once the image holds no rules, `rules.yaml` opens with this comment:
 ## Decisions
 
 - **A git-sync sidecar fetches the rules.** The server never holds a credential and never fetches, as [rules](./rules.md#policy-in-git) designs it. git-sync swaps the checkout with one symlink rename, so the server never reads a half-written tree. Its idle memory measured 6.4 MiB, and the checkout of the current rules takes 308 KiB.
-- **The credential is a read-only deploy key, used over SSH on port 443.** GitHub scopes a deploy key to one repository and enforces read-only access, and the key needs no token refresh. The pod already reaches GitHub on port 443.
+- **The rules repository is public, so the sidecar fetches it over HTTPS with no credential.** The pod needs no key, no `known_hosts` and no Secret, and nothing in the pod can write to the repository. A public repository gives up nothing for confidentiality, because the rules files hold phases, limits, pools and prompts, and no secret. git-sync fetches with git, so the REST API's anonymous limit of 60 requests an hour does not apply to its 120 fetches an hour, and GitHub publishes no fixed limit on anonymous git fetches. A refused fetch fails like any other, and the stale-checkout alert fires. The pod already reaches GitHub on port 443.
 - **The sync root lives on the existing `data` volume.** A restart keeps the last synced rules when GitHub is down. A StatefulSet's volume claim templates are immutable, so a volume of its own would mean replacing the StatefulSet.
 - **`ref` is `git-sync`.** It is the only ref in git-sync's layout that names the fetched `main`. The ancestor check adds no trust here: the ruleset and the sidecar's `--ref=main` keep unmerged commits out.
 - **The rules check runs `@boxxy/server` from npm.** The server package already exports `readRulesCheckout` and `loadServerRules`, so the check runs the code the pod runs, and boxxy needs no new command.
@@ -225,7 +219,6 @@ Once the image holds no rules, `rules.yaml` opens with this comment:
 
 ## Builder decides
 
-- The Secret's and the stack config value's names.
 - The alert's name, its labels and its runbook entry.
 - How the cloud repo's image test builds a git-sync layout for its checkout case.
 - The rules check's Bun version.
@@ -267,10 +260,10 @@ Once the image holds no rules, `rules.yaml` opens with this comment:
 
 ### 4. The sidecar
 
-- **Outcome:** the server's pod runs the sidecar, mounts the synced folder read-only, and loads its rules from the rules repository; the deploy key is on the rules repository; the alert exists.
+- **Outcome:** the server's pod runs the sidecar, mounts the synced folder read-only, and loads its rules from the rules repository; the alert exists.
 - **Follows:** [the pod](#the-pod), [the server's rules section](#the-servers-rules-section), [constraints](#constraints).
-- **Needs:** slices 2 and 3; the owner adds the deploy key to the rules repository and its private half to the deploy's secrets.
-- **Check:** the cloud repo's spec tests show the key mounted only in the sidecar and `/rules` read-only in the server. After the deploy, `runner.status` shows `rules.commit` equal to the rules repository's `main`.
+- **Needs:** slices 2 and 3.
+- **Check:** the cloud repo's spec tests show the sidecar's mounts, `/rules` read-only in the server, and no Secret for the rules repository. After the deploy, `runner.status` shows `rules.commit` equal to the rules repository's `main`.
 
 ### 5. Retire the image's rules
 
