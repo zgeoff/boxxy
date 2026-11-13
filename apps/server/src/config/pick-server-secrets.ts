@@ -1,3 +1,4 @@
+import type { GithubAppKeys } from '@boxxy/forge-github';
 import type { ServerConfig } from './server-config-schema.ts';
 
 export interface NoticeSecrets {
@@ -15,8 +16,9 @@ interface ServerSecrets {
   // null: the configuration has no pepys section
   readonly pepysSigningSecret: string | null;
 
-  // null: unset or empty, for a broker that adds the GitHub credential on the way out
-  readonly githubToken: string | null;
+  // the boxxy App's keys, which the forge mints its installation token from; null: none is set,
+  // for a broker that adds the GitHub credential on the way out
+  readonly githubApp: GithubAppKeys | null;
 
   // null: no notice session is set, so the server sends no notice
   readonly notice: NoticeSecrets | null;
@@ -32,8 +34,8 @@ export type SecretsAnswer =
   // the name of each variable that is unset or empty, never a value
   | { readonly kind: 'missing'; readonly names: readonly string[] }
 
-  // the name of a variable whose value has the wrong shape, never the value
-  | { readonly kind: 'malformed'; readonly name: string };
+  // the name of a variable whose value has the wrong shape and the shape it needs, never the value
+  | { readonly kind: 'malformed'; readonly name: string; readonly expected: string };
 
 // atc addresses a session only by its gateway ID, and answers `no_such_session` to a name
 const gatewayID = /^[^.]+\.[^.]+\..+$/u;
@@ -44,15 +46,24 @@ const reviewNames = [
   'NOSLOP_GITHUB_APP_INSTALLATION_ID',
 ];
 
+const githubAppNames = [
+  'BOXXY_GITHUB_APP_CLIENT_ID',
+  'BOXXY_GITHUB_APP_PRIVATE_KEY',
+  'BOXXY_GITHUB_APP_INSTALLATION_ID',
+];
+
+const installationID = /^[1-9]\d*$/u;
+
 // The secrets come from the environment only. An empty token counts as missing. The notice
 // session is unset only when its variable is absent; an empty one has the wrong shape. The noslop
-// App's keys go together: once one is set, each is needed.
+// App's keys go together, and so do the boxxy App's: once one is set, each is needed.
 export function pickServerSecrets(
   config: ServerConfig,
   env: Readonly<Record<string, string | undefined>>,
 ): SecretsAnswer {
   const noticeSession = env['BOXXY_ATC_NOTICE_SESSION'];
   const hasReview = reviewNames.some((name) => env[name] !== undefined);
+  const hasGithubApp = githubAppNames.some((name) => env[name] !== undefined);
 
   const needed = [
     'BOXXY_WORKER_TOKEN',
@@ -60,6 +71,7 @@ export function pickServerSecrets(
     ...(config.pepys === undefined ? [] : ['BOXXY_PEPYS_SIGNING_SECRET']),
     ...(noticeSession === undefined ? [] : ['BOXXY_ATC_NOTICE_TOKEN']),
     ...(hasReview ? reviewNames : []),
+    ...(hasGithubApp ? githubAppNames : []),
   ];
 
   const names = needed.filter((name) => (env[name] ?? '') === '');
@@ -69,7 +81,21 @@ export function pickServerSecrets(
   }
 
   if (noticeSession !== undefined && !gatewayID.test(noticeSession)) {
-    return { kind: 'malformed', name: 'BOXXY_ATC_NOTICE_SESSION' };
+    return {
+      kind: 'malformed',
+      name: 'BOXXY_ATC_NOTICE_SESSION',
+      expected: "the session's gateway ID, <daemon>.<incarnation>.<id>",
+    };
+  }
+
+  const githubInstallation = env['BOXXY_GITHUB_APP_INSTALLATION_ID'] ?? '';
+
+  if (hasGithubApp && !installationID.test(githubInstallation)) {
+    return {
+      kind: 'malformed',
+      name: 'BOXXY_GITHUB_APP_INSTALLATION_ID',
+      expected: "the App installation's numeric ID",
+    };
   }
 
   return {
@@ -79,8 +105,13 @@ export function pickServerSecrets(
       atcToken: env['BOXXY_ATC_TOKEN'] ?? '',
       pepysSigningSecret:
         config.pepys === undefined ? null : (env['BOXXY_PEPYS_SIGNING_SECRET'] ?? ''),
-      githubToken:
-        (env['BOXXY_GITHUB_TOKEN'] ?? '') === '' ? null : (env['BOXXY_GITHUB_TOKEN'] ?? null),
+      githubApp: hasGithubApp
+        ? {
+            clientID: env['BOXXY_GITHUB_APP_CLIENT_ID'] ?? '',
+            privateKey: env['BOXXY_GITHUB_APP_PRIVATE_KEY'] ?? '',
+            installationID: Number(githubInstallation),
+          }
+        : null,
       notice:
         noticeSession === undefined
           ? null

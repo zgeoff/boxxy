@@ -42,20 +42,22 @@ test('it reads the two tokens when the configuration has no pepys section', () =
       workerToken: 'worker-token-1',
       atcToken: 'atc-token-1',
       pepysSigningSecret: null,
-      githubToken: null,
+      githubApp: null,
       notice: null,
       review: null,
     },
   });
 });
 
-test('it reads the GitHub token when one is set', () => {
+test('it reads the three boxxy App keys when they are set', () => {
   const ctx = setupTest();
 
   const answer = pickServerSecrets(ctx.config, {
     BOXXY_WORKER_TOKEN: 'worker-token-1',
     BOXXY_ATC_TOKEN: 'atc-token-1',
-    BOXXY_GITHUB_TOKEN: 'github-token-1',
+    BOXXY_GITHUB_APP_CLIENT_ID: 'Iv23liTestClient0001',
+    BOXXY_GITHUB_APP_PRIVATE_KEY: 'test-private-key',
+    BOXXY_GITHUB_APP_INSTALLATION_ID: '4242',
   });
 
   expect(answer).toStrictEqual({
@@ -64,34 +66,56 @@ test('it reads the GitHub token when one is set', () => {
       workerToken: 'worker-token-1',
       atcToken: 'atc-token-1',
       pepysSigningSecret: null,
-      githubToken: 'github-token-1',
+      githubApp: {
+        clientID: 'Iv23liTestClient0001',
+        privateKey: 'test-private-key',
+        installationID: 4242,
+      },
       notice: null,
       review: null,
     },
   });
 });
 
-test('it reads an empty GitHub token as none', () => {
+test('it names the other boxxy App keys as missing when only one is set, an empty one included', () => {
   const ctx = setupTest();
 
   const answer = pickServerSecrets(ctx.config, {
     BOXXY_WORKER_TOKEN: 'worker-token-1',
     BOXXY_ATC_TOKEN: 'atc-token-1',
-    BOXXY_GITHUB_TOKEN: '',
+    BOXXY_GITHUB_APP_CLIENT_ID: '',
   });
 
   expect(answer).toStrictEqual({
-    kind: 'found',
-    secrets: {
-      workerToken: 'worker-token-1',
-      atcToken: 'atc-token-1',
-      pepysSigningSecret: null,
-      githubToken: null,
-      notice: null,
-      review: null,
-    },
+    kind: 'missing',
+    names: [
+      'BOXXY_GITHUB_APP_CLIENT_ID',
+      'BOXXY_GITHUB_APP_PRIVATE_KEY',
+      'BOXXY_GITHUB_APP_INSTALLATION_ID',
+    ],
   });
 });
+
+test.each(['0', '42a', '-7', '4.2'])(
+  'it names the App installation ID as malformed for a value that is no positive integer: "%s"',
+  (installation) => {
+    const ctx = setupTest();
+
+    const answer = pickServerSecrets(ctx.config, {
+      BOXXY_WORKER_TOKEN: 'worker-token-1',
+      BOXXY_ATC_TOKEN: 'atc-token-1',
+      BOXXY_GITHUB_APP_CLIENT_ID: 'Iv23liTestClient0001',
+      BOXXY_GITHUB_APP_PRIVATE_KEY: 'test-private-key',
+      BOXXY_GITHUB_APP_INSTALLATION_ID: installation,
+    });
+
+    expect(answer).toStrictEqual({
+      kind: 'malformed',
+      name: 'BOXXY_GITHUB_APP_INSTALLATION_ID',
+      expected: "the App installation's numeric ID",
+    });
+  },
+);
 
 test('it names each missing variable, an empty one included', () => {
   const ctx = setupTest();
@@ -118,7 +142,7 @@ test('it reads the signing secret when the configuration has a pepys section', (
       workerToken: 'worker-token-1',
       atcToken: 'atc-token-1',
       pepysSigningSecret: 'signing-secret-1',
-      githubToken: null,
+      githubApp: null,
       notice: null,
       review: null,
     },
@@ -141,7 +165,7 @@ test('it reads the notice session and its own token when both are set', () => {
       workerToken: 'worker-token-1',
       atcToken: 'atc-token-1',
       pepysSigningSecret: null,
-      githubToken: null,
+      githubApp: null,
       notice: { session: 'desk.3.s7', token: 'notice-token-1' },
       review: null,
     },
@@ -165,7 +189,7 @@ test('it reads the three noslop App keys when they are set', () => {
       workerToken: 'worker-token-1',
       atcToken: 'atc-token-1',
       pepysSigningSecret: null,
-      githubToken: null,
+      githubApp: null,
       notice: null,
       review: {
         NOSLOP_GITHUB_APP_ID: '101',
@@ -222,6 +246,10 @@ test.each(['owner-desk', 'desk.3', ''])(
       BOXXY_ATC_NOTICE_TOKEN: 'notice-token-1',
     });
 
-    expect(answer).toStrictEqual({ kind: 'malformed', name: 'BOXXY_ATC_NOTICE_SESSION' });
+    expect(answer).toStrictEqual({
+      kind: 'malformed',
+      name: 'BOXXY_ATC_NOTICE_SESSION',
+      expected: "the session's gateway ID, <daemon>.<incarnation>.<id>",
+    });
   },
 );

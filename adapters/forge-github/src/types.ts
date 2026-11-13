@@ -15,7 +15,8 @@ export interface GithubForgeOptions {
   // the REST root, such as `https://api.github.com`; a deployment points it at its broker
   readonly baseUrl: string;
 
-  // Sent as a bearer token when given. A deployment whose broker adds the credential on the way
-  // out leaves it out. The adapter never logs it and never puts it in an error.
-  readonly token?: string;
+  // Read before each call, and sent as a bearer token, such as the App installation token that
+  // `createGithubAppAuth` mints. A deployment whose broker adds the credential on the way out
+  // leaves it out. The adapter never logs the token and never puts it in an error.
+  readonly readToken?: () => Promise<string>;
 }

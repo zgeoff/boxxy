@@ -14,6 +14,9 @@ export const forgeLimits = {
   // 300 rules on one branch, from every ruleset that targets it; a branch with more throws, because
   // a rule past the limit can be a required check
   maxRulePages: 3,
+
+  // an installation token lasts an hour; the App mints a new one this long before it expires
+  refreshMarginMs: 5 * 60 * 1000,
 } as const;
 
 export const apiVersion = '2022-11-28';

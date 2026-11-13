@@ -31,6 +31,8 @@
   },
   "dependencies": {
     "@boxxy/model": "workspace:*",
+    "@octokit/auth-app": "catalog:",
+    "@octokit/request": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

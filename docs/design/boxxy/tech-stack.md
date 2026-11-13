@@ -45,6 +45,7 @@ Every external version is pinned exactly, once, in the root `workspaces.catalog`
 | Control flow | `ts-pattern`, `tiny-invariant` | atc, pepys |
 | State machines | `xstate` 6 beta, for the attempt state table in `@boxxy/dispatch` only | boxxy's own choice |
 | Tests | `bun test` through `@zgeoff/rig`, `@zgeoff/bun-test-extended`, `@faker-js/faker` | zgeoff/tools |
+| GitHub App auth | `@octokit/auth-app` and `@octokit/request`, in `adapters/forge-github` only, to sign the App's JWT and mint its installation token | boxxy's own choice |
 | HTTP mocks | `msw` with `@mswjs/interceptors`, and `@msw/data` collections, for the GitHub REST API in `adapters/forge-github` tests | pepys |
 | Git hooks | `lefthook`, gitleaks | all five |
 | Commits | `@commitlint/cli`, `@zgeoff/commitlint-config` | wringer, pepys, nixie |

@@ -232,7 +232,7 @@ A pull request that merged before the watch ever listed it is not found by step 
 
 ## The GitHub adapter
 
-`@boxxy/forge-github` implements the forge port with `fetch`, a REST root and an optional token. A deployment whose broker adds the credential leaves the token out. The server builds the adapter from the `github.baseUrl` of its configuration and the optional `BOXXY_GITHUB_TOKEN`. With no `github` section, the hook's link answers `retry` and no watch runs. The adapter reads GitHub's own `id` of the pull request. A 404 for `readPullRequest` reads as `not-found`. `mergeAtHead` reads GitHub's 409 as `head-moved`, and its 405 as `not-mergeable` with GitHub's message as the reason. Every other failure throws.
+`@boxxy/forge-github` implements the forge port with `fetch`, a REST root and an optional token source, which the adapter reads before each call. The server builds the adapter from the `github.baseUrl` of its configuration and the boxxy GitHub App's keys: `BOXXY_GITHUB_APP_CLIENT_ID`, `BOXXY_GITHUB_APP_PRIVATE_KEY` and `BOXXY_GITHUB_APP_INSTALLATION_ID`. The server takes all three or none, and refuses to start with only some, naming each missing variable and never its value. With the keys, `createGithubAppAuth` signs an RS256 JWT with the client ID as `iss`, as [GitHub recommends](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-json-web-token-jwt-for-a-github-app), and trades it for the installation token, which it holds until 5 minutes before the token expires. A failed mint throws with GitHub's status only, and the next call mints again. With no keys, the adapter sends no credential, for a broker that adds it on the way out. A fine-grained token can't stand in for the App, because it has no `Checks` permission and gets 403 on a private repo's check runs. With no `github` section, the hook's link answers `retry` and no watch runs. The adapter reads GitHub's own `id` of the pull request. A 404 for `readPullRequest` reads as `not-found`. `mergeAtHead` reads GitHub's 409 as `head-moved`, and its 405 as `not-mergeable` with GitHub's message as the reason. Every other failure throws.
 
 | Call | Endpoint |
 | --- | --- |
@@ -245,10 +245,9 @@ A pull request that merged before the watch ever listed it is not found by step 
 | `readMergeable` | `GET /repos/{owner}/{repo}/pulls/{number}` |
 | `mergeAtHead` | `PUT /repos/{owner}/{repo}/pulls/{number}/merge` with `sha` and `merge_method` |
 
-A fine-grained token or an app needs these permissions on the repos for the watch, and a classic token needs `public_repo` or `repo`:
+The owner installs the boxxy App on each repo boxxy works on, with these repository permissions:
 
-- `Pull requests: read`, for the pull request reads;
-- `Checks: read` and `Commit statuses: read`, for `readChecks`;
-- `Contents: read`, for `readChangedFiles`.
-
-`readRequiredChecks` and `mergeAtHead` serve the merge step, which needs more permissions ([review, verify and merge](./review-and-merge.md#the-merge-step)). The adapter reads at most 2,000 open pull requests of a repo, 250 commits of a pull request and 300 check runs and 300 commit statuses at a head. `readRequiredChecks` throws for a branch with more than 300 rules, because a rule past the limit can be a required check. `readChecks` gives each check name the state of its newest run and its source, a check run or a commit status. A check run wins over a commit status of the same name. A run that ended with no pass and no failure, such as `cancelled` or `skipped`, reads `other`.
+- `Metadata: read`, for `readRequiredChecks`;
+- `Contents: read and write`, for `readChangedFiles` and the merge;
+- `Pull requests: read and write`, for the pull request reads, `readMergeable` and `mergeAtHead`;
+- `Checks: read` and `Commit statuses: read`, for `readChecks`. The adapter reads at most 2,000 open pull requests of a repo, 250 commits of a pull request and 300 check runs and 300 commit statuses at a head. `readRequiredChecks` throws for a branch with more than 300 rules, because a rule past the limit can be a required check. `readChecks` gives each check name the state of its newest run and its source, a check run or a commit status. A check run wins over a commit status of the same name. A run that ended with no pass and no failure, such as `cancelled` or `skipped`, reads `other`.

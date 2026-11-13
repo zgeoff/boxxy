@@ -140,13 +140,15 @@ export const merge = definePhase({
 
 // ── 3. apps/server/src/start-server.ts ─────────────────────────────────────────────────────────
 
-import { createGithubForge } from '@boxxy/forge-github';
+import { createGithubAppAuth, createGithubForge } from '@boxxy/forge-github';
 import { createNoslopReviewGate } from '@boxxy/review-noslop';
 import { createWringerVerifier } from '@boxxy/verifier-wringer';
 import { createAtcWorker } from '@boxxy/worker-atc';
 import { createMergeJob } from '@boxxy/dispatch';
 
-const forge = createGithubForge({ baseUrl: config.github.baseUrl, token: env.BOXXY_GITHUB_TOKEN, fetch });
+// The boxxy App's installation token, from BOXXY_GITHUB_APP_CLIENT_ID, _PRIVATE_KEY and _INSTALLATION_ID.
+const appAuth = createGithubAppAuth({ keys: secrets.githubApp, baseUrl: config.github.baseUrl, fetch, nowMs: () => Date.now() });
+const forge = createGithubForge({ baseUrl: config.github.baseUrl, readToken: appAuth.readToken, fetch });
 
 // The review tool runs on an agent host, whose image pins it. The server keeps the tool's GitHub
 // App keys and uses them only to check and post a result; no agent host gets them.
@@ -247,8 +249,10 @@ const rules = loadRules(text, { phases: [...phaseKinds, createReviewPhase(review
 // A review round shows in the session list, as a build does, with its round and cause.
 
 declare const config: { github: { baseUrl: string } };
-declare const env: { BOXXY_GITHUB_TOKEN: string | undefined };
-declare const secrets: { review: Record<string, string> };
+declare const secrets: {
+  review: Record<string, string>;
+  githubApp: { clientID: string; privateKey: string; installationID: number };
+};
 declare const atc: unknown, trustedFolders: unknown, credentialSources: unknown, store: unknown, text: string, phaseKinds: unknown, concepts: unknown;
 declare function loadRules(text: string, registries: unknown): unknown;
 declare function buildRoundInput(ctx: unknown): unknown;

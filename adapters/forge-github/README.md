@@ -27,10 +27,14 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Features
 
-- `createGithubForge({ fetch, baseUrl, token? })` returns a `Forge`. The app passes the `fetch` and
-  the REST root, such as `https://api.github.com`.
-- The `token` is optional, because a deployment's broker can add the credential on the way out. The
-  adapter sends it as a bearer token, and never logs it or puts it in an error.
+- `createGithubForge({ fetch, baseUrl, readToken? })` returns a `Forge`. The app passes the `fetch`
+  and the REST root, such as `https://api.github.com`.
+- `readToken` is optional, because a deployment's broker can add the credential on the way out. The
+  adapter reads it before each call, sends the token as a bearer token, and never logs it or puts it
+  in an error.
+- `createGithubAppAuth({ keys, baseUrl, fetch, nowMs })` mints a GitHub App's installation token
+  through `@octokit/auth-app`, with the App's client ID as the JWT's `iss`. Its `readToken` holds
+  the token until 5 minutes before it expires, and shares one mint between the calls that wait.
 - A pull request carries GitHub's own `id`, which pepys builds its entity ID from.
 - A missing pull request reads as `not-found`. Any other failure throws, and the caller reads that
   as "the forge did not answer".

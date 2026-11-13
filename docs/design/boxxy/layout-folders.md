@@ -207,6 +207,7 @@ adapters/forge-github/src       @boxxy/forge-github
                   merge-at-head
   checks/         read-checks  collect-check-states
   branches/       read-required-checks  collect-required-checks
+  app-token/      create-github-app-auth: the boxxy App's installation token
   test-utils/     build-github-seeders  github-handlers: the MSW handlers on @msw/data
                   mock-network  reset-mock-network: the mock network that the test preload starts
                   fixtures/: recorded GitHub answers, with invented values

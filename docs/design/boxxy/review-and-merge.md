@@ -145,7 +145,7 @@ The merge phase runs on the job worker `merge.forge`. On each read, at most once
 - **A webhook never changes boxxy state.** A replayed webhook reaches pepys only.
 - **A merge by hand ends the item.** The merge job reads `merged` and settles. When the item held before the merge, `boxxy item retry <item> --phase merge` runs the merge job, which reads the merge.
 
-The GitHub adapter needs `Contents: write` and `Pull requests: write` to merge, `Checks: read` and `Commit statuses: read` for the checks, and `Metadata: read` for the branch and its rules. The base branch's required checks are the union of the checks that its rulesets require and the checks that its classic branch protection enforces. The adapter reads the classic checks from the branch itself, and a required-checks rule it cannot parse makes the read throw.
+The GitHub adapter calls GitHub as the boxxy App, whose [permissions](./v1-lifecycle.md#the-github-adapter) cover the merge, the checks, and the branch and its rules. The noslop App posts reviews only. The base branch's required checks are the union of the checks that its rulesets require and the checks that its classic branch protection enforces. The adapter reads the classic checks from the branch itself, and a required-checks rule it cannot parse makes the read throw.
 
 ### The merge train
 

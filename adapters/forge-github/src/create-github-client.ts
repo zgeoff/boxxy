@@ -28,17 +28,27 @@ export interface GithubClient {
 export function createGithubClient(options: GithubForgeOptions): GithubClient {
   const baseUrl = options.baseUrl.replace(/\/+$/u, '');
 
-  const headers: Record<string, string> = {
+  const baseHeaders: Record<string, string> = {
     accept: 'application/vnd.github+json',
     'x-github-api-version': apiVersion,
     'user-agent': 'boxxy-forge-github',
-    ...(options.token === undefined ? {} : { authorization: `Bearer ${options.token}` }),
+  };
+
+  const readHeaders = async (): Promise<Record<string, string>> => {
+    if (options.readToken === undefined) {
+      return baseHeaders;
+    }
+
+    const token = await options.readToken();
+
+    return { ...baseHeaders, authorization: `Bearer ${token}` };
   };
 
   const readJson = async <Schema extends z.ZodType>(
     path: string,
     schema: Schema,
   ): Promise<z.infer<Schema> | null> => {
+    const headers = await readHeaders();
     const response = await options.fetch(`${baseUrl}${path}`, { method: 'GET', headers });
 
     if (response.status === 404) {
@@ -91,6 +101,8 @@ export function createGithubClient(options: GithubForgeOptions): GithubClient {
   };
 
   const writeJson = async (path: string, body: JsonBody): Promise<GithubAnswer> => {
+    const headers = await readHeaders();
+
     const response = await options.fetch(`${baseUrl}${path}`, {
       method: 'PUT',
       headers: { ...headers, 'content-type': 'application/json' },

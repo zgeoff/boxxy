@@ -210,14 +210,28 @@ test('it refuses to start on a trust document symlink that points nowhere, and n
   });
 });
 
-test('it starts and stops with a github section and a GitHub token', async () => {
+test('it starts and stops with a github section and the boxxy App keys', async () => {
   const ctx = await setupTest();
 
   await ctx.addConfigSections({ github: { baseUrl: 'http://127.0.0.1:9' } });
 
-  const answer = await ctx.start({ BOXXY_GITHUB_TOKEN: 'github-token-1' });
+  const answer = await ctx.start({
+    BOXXY_GITHUB_APP_CLIENT_ID: 'Iv23liTestClient0001',
+    BOXXY_GITHUB_APP_PRIVATE_KEY: 'test-private-key',
+    BOXXY_GITHUB_APP_INSTALLATION_ID: '4242',
+  });
 
   expect(answer.kind).toBe('started');
+});
+
+test('it refuses to start with only some boxxy App keys, and prints no value', async () => {
+  const ctx = await setupTest();
+  const answer = await ctx.start({ BOXXY_GITHUB_APP_PRIVATE_KEY: 'test-private-key' });
+
+  expect(answer).toStrictEqual({
+    kind: 'refused',
+    message: 'set these variables: BOXXY_GITHUB_APP_CLIENT_ID, BOXXY_GITHUB_APP_INSTALLATION_ID',
+  });
 });
 
 test('it starts both listeners on the ports the system picks', async () => {

@@ -28,14 +28,15 @@ test.each(forgeContract)('it keeps the forge contract: %s', async (_title, check
   expect(outcome.received).toStrictEqual(outcome.expected);
 });
 
-test('it sends the token as a bearer token when it has one', async () => {
+test('it reads the token before each call and sends it as a bearer token', async () => {
   const ctx = setupTest();
   const sent: (string | null)[] = [];
+  const tokens = ['token-for-tests-1', 'token-for-tests-2'];
 
   const forge = createGithubForge({
     fetch: globalThis.fetch,
     baseUrl: GITHUB_API_URL,
-    token: 'token-for-tests',
+    readToken: () => Promise.resolve(tokens.shift() ?? 'no-token-left'),
   });
 
   mockNetwork.use(
@@ -47,8 +48,9 @@ test('it sends the token as a bearer token when it has one', async () => {
   );
 
   await forge.readPullRequest(ctx.ref);
+  await forge.readPullRequest(ctx.ref);
 
-  expect(sent).toStrictEqual(['Bearer token-for-tests']);
+  expect(sent).toStrictEqual(['Bearer token-for-tests-1', 'Bearer token-for-tests-2']);
 });
 
 test('it sends no authorization header without a token', async () => {
@@ -92,7 +94,7 @@ test('it throws an error that names the status and holds no token for a server e
   const forge = createGithubForge({
     fetch: globalThis.fetch,
     baseUrl: GITHUB_API_URL,
-    token: 'token-for-tests',
+    readToken: () => Promise.resolve('token-for-tests'),
   });
 
   mockNetwork.use(

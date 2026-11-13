@@ -12,7 +12,7 @@ function setupTest() {
   const client = createGithubClient({
     fetch: globalThis.fetch,
     baseUrl: GITHUB_API_URL,
-    token: 'token-for-tests',
+    readToken: () => Promise.resolve('token-for-tests'),
   });
 
   const repo = brandSchemas.repoName.parse('acme/lamps');

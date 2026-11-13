@@ -40,6 +40,7 @@
           "caller-proof-imp": ["adapters/caller-proof-imp/**"],
           "review-noslop": ["adapters/review-noslop/**"],
           "verifier-wringer": ["adapters/verifier-wringer/**"],
+          "forge-github": ["adapters/forge-github/**"],
           "pepys-package": ["packages/pepys/**"],
           "system-tests": ["system-tests/**"]
         },
@@ -117,6 +118,12 @@
             ],
             "allow": ["system-tests"],
             "reason": "only system-tests builds the verify CLI; the registry lives in system-tests/src/test-utils/verify/"
+          },
+          {
+            "name": "github-app",
+            "modules": ["@octokit/auth-app", "@octokit/request"],
+            "allow": ["forge-github"],
+            "reason": "only adapters/forge-github mints the boxxy App's installation token; take createGithubAppAuth"
           },
           {
             "name": "wringer-core",

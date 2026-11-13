@@ -3,8 +3,16 @@ import { createPublicDoor } from '@boxxy/auth-oauth';
 import type { PublicDoor } from '@boxxy/auth-oauth';
 import { createNullNotifier, outboxLimits, watchPullRequests } from '@boxxy/dispatch';
 import type { SpawnSettings } from '@boxxy/dispatch';
-import { createGithubForge } from '@boxxy/forge-github';
-import type { AttemptId, GitSource, Notifier, SessionReading, WorkerRegistry } from '@boxxy/model';
+import { createGithubAppAuth, createGithubForge } from '@boxxy/forge-github';
+import type { GithubAppKeys } from '@boxxy/forge-github';
+import type {
+  AttemptId,
+  Forge,
+  GitSource,
+  Notifier,
+  SessionReading,
+  WorkerRegistry,
+} from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { createAtcNotifier } from '@boxxy/notifier-atc';
 import type { UncheckedQueryClient } from '@boxxy/pepys';
@@ -86,10 +94,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
   }
 
   if (secrets.kind === 'malformed') {
-    return {
-      kind: 'refused',
-      message: `set ${secrets.name} to the session's gateway ID, <daemon>.<incarnation>.<id>`,
-    };
+    return { kind: 'refused', message: `set ${secrets.name} to ${secrets.expected}` };
   }
 
   // The review session runs the command on an agent host, which never gets the App's keys; the
@@ -152,11 +157,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
   const forge =
     config.github === undefined
       ? null
-      : createGithubForge({
-          fetch,
-          baseUrl: config.github.baseUrl,
-          ...(secrets.secrets.githubToken !== null && { token: secrets.secrets.githubToken }),
-        });
+      : buildForge(config.github.baseUrl, secrets.secrets.githubApp);
 
   const readings = new Map<AttemptId, SessionReading>();
 
@@ -374,6 +375,19 @@ function toLinkTarget(address: string): { origin: string; url: `/${string}` } {
   const parsed = new URL(address);
 
   return { origin: parsed.origin, url: `/${parsed.pathname.replace(/^\/+/u, '')}` };
+}
+
+// With the App's keys, every forge call sends the App's installation token, which reads check
+// runs on a private repo where a fine-grained token gets 403. Without them, the forge sends no
+// credential, for a broker that adds it on the way out.
+function buildForge(baseUrl: string, app: GithubAppKeys | null): Forge {
+  if (app === null) {
+    return createGithubForge({ fetch, baseUrl });
+  }
+
+  const auth = createGithubAppAuth({ keys: app, baseUrl, fetch, nowMs: () => Date.now() });
+
+  return createGithubForge({ fetch, baseUrl, readToken: auth.readToken });
 }
 
 // where the door reads the address of a request's socket, once its listener runs
