@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { loadVerifyJobRules } from '@boxxy/dispatch/test-utils/load-verify-job-rules';
-import { brandSchemas, reviewInputSchema } from '@boxxy/model';
+import { brandSchemas, toJSONValue } from '@boxxy/model';
 import type { AttemptRow, CheckState, CommitSha, ItemId } from '@boxxy/model';
 import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
 import { renderReportMarkdown } from '@wringer/core';
@@ -84,72 +84,89 @@ async function setupTest() {
     server.forge.seedChecks({ repo, head, checks });
   };
 
+  // The tick claims the item's next step. Its session sends its close-out through the CLI and
+  // ends its turn; the next tick stops the session, and the one after settles the attempt.
+  const runSession = async (item: ItemId, buildBody: () => Promise<unknown>) => {
+    const attempt = await claimNextStep(item);
+
+    server.callerProof.setCaller(attempt.caller);
+
+    const body = await buildBody();
+    const closed = await cli.run(['attempt', 'close-out'], { stdin: JSON.stringify(body) });
+
+    invariant(closed.exitCode === 0, `the close-out records: ${closed.stdout}${closed.stderr}`);
+
+    server.dispatch.worker.setSession(attempt.id, { state: 'running', attention: 'turn-ended' });
+
+    await server.tick();
+    await server.tick();
+
+    return server.dispatch.readAttempt(attempt.id);
+  };
+
   // A review that passes the head, a verify that closes out verified, and the merge: the tick
   // that claims the merge reads it, and a second read 30 seconds later sees the merge it asked for.
   const runGradedMerge = async (item: ItemId, head: CommitSha) => {
-    const review = await claimNextStep(item);
+    const review = await runSession(item, () =>
+      Promise.resolve(toJSONValue(buildMockGateReading({ status: 'passed', head }))),
+    );
 
-    const input = reviewInputSchema.parse(review.input);
+    const verify = await runSession(item, () =>
+      Promise.resolve({ result: { kind: 'verified' }, friction: [] }),
+    );
 
-    await server.dispatch.closeAndSettle(review, {
-      round: input.round,
-      cause: input.cause,
-      reading: buildMockGateReading({ status: 'passed', head }),
-      unrelatedLines: null,
-    });
-
-    const verify = await claimNextStep(item);
-
-    await server.dispatch.closeAndSettle(verify, { result: { kind: 'verified' }, friction: [] });
-
-    const merge = await claimNextStep(item);
+    const claimed = await claimNextStep(item);
 
     server.dispatch.clock.advance(30_000);
 
     await server.tick();
-    await server.watch();
 
-    const settled = await Promise.all(
-      [review, verify, merge].map((row) => server.dispatch.readAttempt(row.id)),
-    );
+    const merge = await server.dispatch.readAttempt(claimed.id);
 
-    return settled.map((row) => [row.phase, row.outcome]);
+    return [review, verify, merge].map((row) => [row.phase, row.outcome]);
   };
 
-  // The rework session records its evidence through the CLI, pushes the commits, and closes out
-  // built.
+  // The rework session wakes on the kept session, records its evidence through the CLI, pushes
+  // the commits, and closes out built.
   const runRepair = async (
     item: ItemId,
     commits: readonly CommitSha[],
     checks: Readonly<Record<string, CheckState>>,
   ) => {
-    const build = await claimNextStep(item);
+    const build = await runSession(item, async () => {
+      const evidence = await cli.run([
+        'attempt',
+        'evidence',
+        '--kind',
+        'test',
+        '--ref',
+        'theme.test.ts: follows the system',
+        '--observed',
+        '12 passed',
+      ]);
 
-    server.callerProof.setCaller(build.caller);
+      pushHead(commits, checks);
 
-    const evidence = await cli.run([
-      'attempt',
-      'evidence',
-      '--kind',
-      'test',
-      '--ref',
-      'theme.test.ts: follows the system',
-      '--observed',
-      '12 passed',
-    ]);
+      const [from, to] = commits.slice(-2);
 
-    pushHead(commits, checks);
+      invariant(from !== undefined && to !== undefined, 'a repair pushes onto a reviewed head');
 
-    await server.dispatch.closeAndSettle(build, {
-      result: { kind: 'built' },
-      criteria: [{ criterion: 'a1', evidence: evidence.stdout.trim() }],
-      openItems: [],
-      friction: [],
+      server.forge.seedCompare({
+        repo,
+        from,
+        to,
+        files: [{ path: 'src/theme.ts', changedLines: 4 }],
+      });
+
+      return {
+        result: { kind: 'built' },
+        criteria: [{ criterion: 'a1', evidence: evidence.stdout.trim() }],
+        openItems: [],
+        friction: [],
+      };
     });
 
-    const settled = await server.dispatch.readAttempt(build.id);
-
-    return [settled.phase, settled.outcome];
+    return [build.phase, build.outcome, build.atcSession];
   };
 
   const derivedSchema = z.object({ state: z.string(), reason: z.string().optional() });
@@ -188,11 +205,15 @@ test('it takes an item through build, review, verify and a merge at its head wit
   server.forge.seedRequiredChecks({ repo: ctx.repo, branch: 'main', checks: ['build'] });
 
   const steps = await ctx.runGradedMerge(build.item, head);
+  const settledFacts = await ctx.countMergeFacts();
+
+  await server.watch();
 
   const seen: unknown = {
     steps,
     merges: server.forge.calls.filter((call) => call.startsWith('mergeAtHead')),
-    facts: await ctx.countMergeFacts(),
+    settledFacts,
+    watchedFacts: await ctx.countMergeFacts(),
     derived: await ctx.readDerived(build.item),
     told: server.notifier.told,
     logged: server.logged,
@@ -205,7 +226,8 @@ test('it takes an item through build, review, verify and a merge at its head wit
       ['merge', 'merged'],
     ],
     merges: [`mergeAtHead example/app#7 ${head} squash`],
-    facts: { requested: 1, answered: 1, merged: 1 },
+    settledFacts: { requested: 1, answered: 1, merged: 1 },
+    watchedFacts: { requested: 1, answered: 1, merged: 1 },
     derived: { state: 'done' },
     told: [],
     logged: [],
@@ -260,16 +282,10 @@ test('it sends a red required check to a repair build three times, and holds the
     ['merge', 'repair'],
   ];
 
+  const repair = ['build', 'built', build.atcSession];
+
   expect(seen).toStrictEqual({
-    steps: [
-      ...repairRound,
-      ['build', 'built'],
-      ...repairRound,
-      ['build', 'built'],
-      ...repairRound,
-      ['build', 'built'],
-      ...repairRound,
-    ],
+    steps: [...repairRound, repair, ...repairRound, repair, ...repairRound, repair, ...repairRound],
     merges: [],
     derived: { state: 'waiting', reason: 'rounds used up' },
     told: [[build.item, 'rounds used up']],

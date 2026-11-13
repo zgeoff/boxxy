@@ -98,18 +98,23 @@ test('it merges a reviewed pull request at its head through the server tick, and
   server.dispatch.clock.advance(30_000);
 
   await server.tick();
+
+  const settledFacts = await ctx.countMergeFacts();
+
   await server.watch();
 
   const seen: unknown = {
     merges: server.forge.calls.filter((call) => call.startsWith('mergeAtHead')),
-    facts: await ctx.countMergeFacts(),
+    settledFacts,
+    watchedFacts: await ctx.countMergeFacts(),
     state: await ctx.readState(build.item),
     logged: server.logged,
   };
 
   expect(seen).toStrictEqual({
     merges: [`mergeAtHead example/app#7 ${head} squash`],
-    facts: { requested: 1, answered: 1, merged: 1 },
+    settledFacts: { requested: 1, answered: 1, merged: 1 },
+    watchedFacts: { requested: 1, answered: 1, merged: 1 },
     state: 'done',
     logged: [],
   });
