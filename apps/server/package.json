@@ -46,6 +46,7 @@
     "@boxxy/review-noslop": "workspace:*",
     "@boxxy/rules": "workspace:*",
     "@boxxy/store-sqlite": "workspace:*",
+    "@boxxy/verifier-wringer": "workspace:*",
     "@boxxy/worker-atc": "workspace:*",
     "@modelcontextprotocol/server": "catalog:",
     "@orpc/client": "catalog:",

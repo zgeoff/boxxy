@@ -12,6 +12,7 @@ import type {
   ItemView,
   LoadedRules,
   NewId,
+  PullRequestRow,
   RelationRow,
   RowWrite,
 } from '@boxxy/model';
@@ -37,6 +38,9 @@ export interface EffectContext {
 
   // the live relations of the attempt's item
   readonly relations: readonly RelationRow[];
+
+  // the rows of the pull requests that the item's attempts made, in any state
+  readonly pullRequests: readonly PullRequestRow[];
   readonly actor: ActorRef;
   readonly now: Instant;
   readonly newId: NewId;

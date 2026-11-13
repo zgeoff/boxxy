@@ -22,7 +22,7 @@ boxxy/
 │   ├── closeout/                the phase kinds: close-out parse, settle, input; openItems dedupe
 │   ├── measurement/   (slice 2) experiments, assignment, verdict, metric + cohort plug-ins
 │   ├── capacity/      (slice 2) capacity sources, router, pacing gate
-│   └── train/         (next)    the merge rule; later the merge train
+│   └── train/                   decideMerge, the merge rule; later the merge train
 ├── adapters/                    one package per outside system, named <port>-<system>
 │   ├── store-sqlite/            a bun:sqlite + Kysely user: the store and its migrations
 │   ├── auth-oauth/              the other bun:sqlite + Kysely user: the public door's OAuth server and its auth database

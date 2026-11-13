@@ -115,9 +115,14 @@ export function buildRoundCause(history: readonly Settled[]): RoundCause {
 //
 // Pure. First match wins. Every green answer needs a record at `observed.head`.
 
-export function decideMerge(input: { observed: MergeObservation; rules: MergeRules; deadlinePassed: boolean; acted: MergeRequest | null; now: Instant }): JobStep {
+export function decideMerge(input: { observed: MergeObservation; rules: MergeRules; deadlinePassed: boolean; acted: MergeRequest | null; now: Instant; actRetryMinutes: number }): JobStep {
   const { observed } = input;
-  const finish = (outcome: string, extra: object = {}): JobStep => ({ kind: 'finish', closeOut: { outcome, head: observed.head, verify: observed.verify, ...extra } });
+  const required = [...new Set([...input.rules.checks, ...observed.baseRequired])];
+  // the full `MergeCloseOut`: its schema is strict, so each finish carries every field
+  const finish = (outcome: MergeOutcome, extra: Partial<MergeCloseOut> = {}): JobStep => ({
+    kind: 'finish',
+    closeOut: { outcome, head: observed.head, required, failed: [], cause: null, mergeCommit: null, reason: null, byBoxxy: false, verify: observed.verify, ...extra },
+  });
 
   // 1. Merged by boxxy on an earlier read, by a merge queue, or by a person.
   if (observed.state === 'merged') return finish('merged', { mergeCommit: observed.mergeCommit, byBoxxy: input.acted?.head === observed.head });
@@ -128,7 +133,6 @@ export function decideMerge(input: { observed: MergeObservation; rules: MergeRul
   // 4. A conflict with the base needs an agent: a repair build rebases.
   if (observed.mergeable === 'conflict') return finish('repair', { cause: 'conflict', failed: [] });
 
-  const required = [...new Set([...input.rules.checks, ...observed.baseRequired])];
   const red = required.filter((name) => observed.checks.get(name) === 'failure');
 
   // 5. A red required check needs an agent.
@@ -140,7 +144,9 @@ export function decideMerge(input: { observed: MergeObservation; rules: MergeRul
   const pending = required.filter((name) => observed.checks.get(name) !== 'success');
 
   if (pending.length > 0 || observed.mergeable === 'unknown') {
-    return input.deadlinePassed ? finish('stalled', { pending }) : { kind: 'wait', reason: 'checks pending', pending };
+    const reason = pending.length > 0 ? 'checks pending' : 'mergeable state unknown';
+
+    return input.deadlinePassed ? finish('stalled') : { kind: 'wait', reason, pending };
   }
 
   // 7. Every check is green. The verify reading must cover this head too. `incomplete` cannot
@@ -157,12 +163,12 @@ export function decideMerge(input: { observed: MergeObservation; rules: MergeRul
   // 9. A request already sent at this head: wait for step 1, and send it again only after
   //    `actRetryMinutes`. A second call is safe: GitHub merges only at `sha`. Past the step's time
   //    limit, hold.
-  if (sent !== null && input.deadlinePassed) return finish('stalled', { pending: [] });
-  if (sent !== null && input.now - sent.at < 5 * 60_000) {
+  if (sent !== null && input.deadlinePassed) return finish('stalled');
+  if (sent !== null && input.now - sent.at < input.actRetryMinutes * 60_000) {
     return { kind: 'wait', reason: 'merge requested', pending: [] };
   }
 
-  return { kind: 'act', action: { kind: 'merge', unit: { members: [{ pullRequest: observed.pullRequest, head: observed.head }] }, method: input.rules.method } };
+  return { kind: 'act', action: { kind: 'merge', unit: { members: [{ pullRequest: observed.pullRequest, head: observed.head }] }, method: input.rules.method, required } };
 }
 
 function isPassedAt(review: GateRecord | null, head: CommitSha): boolean {

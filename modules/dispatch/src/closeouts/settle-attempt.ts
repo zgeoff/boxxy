@@ -53,6 +53,7 @@ export function settleAttempt(input: SettleAttemptInput): Promise<MoveResult> {
         item,
         rules: input.rules,
         relations: detail.relations.filter((relation) => relation.source === item.id),
+        pullRequests: detail.pullRequests,
         actor: input.actor,
         now: input.now,
         newId: input.newId,

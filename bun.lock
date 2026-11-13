@@ -215,6 +215,7 @@
         "@boxxy/review-noslop": "workspace:*",
         "@boxxy/rules": "workspace:*",
         "@boxxy/store-sqlite": "workspace:*",
+        "@boxxy/verifier-wringer": "workspace:*",
         "@boxxy/worker-atc": "workspace:*",
         "@modelcontextprotocol/server": "catalog:",
         "@orpc/client": "catalog:",
@@ -277,6 +278,7 @@
       "version": "0.2.4",
       "dependencies": {
         "@boxxy/model": "workspace:*",
+        "@boxxy/train": "workspace:*",
         "tiny-invariant": "catalog:",
         "ts-pattern": "catalog:",
         "zod": "catalog:",
@@ -338,6 +340,16 @@
         "ts-pattern": "catalog:",
         "yaml": "catalog:",
         "zod": "catalog:",
+      },
+    },
+    "modules/train": {
+      "name": "@boxxy/train",
+      "version": "0.2.4",
+      "dependencies": {
+        "@boxxy/model": "workspace:*",
+      },
+      "devDependencies": {
+        "@faker-js/faker": "catalog:",
       },
     },
     "packages/pepys": {
@@ -521,6 +533,8 @@
     "@boxxy/store-sqlite": ["@boxxy/store-sqlite@workspace:adapters/store-sqlite"],
 
     "@boxxy/system-tests": ["@boxxy/system-tests@workspace:system-tests"],
+
+    "@boxxy/train": ["@boxxy/train@workspace:modules/train"],
 
     "@boxxy/verifier-wringer": ["@boxxy/verifier-wringer@workspace:adapters/verifier-wringer"],
 

@@ -90,7 +90,7 @@ readings/         what the runner does with a session reading
                   pick-reading-action  find-waiting-since  find-closing-failure  act-on-reading
                   types
 jobs/             what the runner does with each read of a job attempt
-                  run-job-reading  types
+                  run-job-reading  create-merge-job  types
 closeouts/        close-out-attempt  read-close-out-context  settle-attempt  pick-settlement
                   build-settle-plans  effect-handlers  types
 sessions/         resume-kept-session  forget-sessions  build-keep-writes  is-builder-session
@@ -105,7 +105,8 @@ outbox/           what the outbox sender decides, with no I/O
 test-utils/       the store contract and its case files, the memory store, the change factories
                   v1: create-fake-worker  worker-contract  create-fake-clock
                   create-fake-backoff  create-test-dispatch  create-fake-fact-sink  create-fake-forge
-                  forge-contract  create-fake-job  load-job-rules  load-verify-rules
+                  forge-contract  create-fake-job  create-fake-verifier  load-job-rules
+                  build-job-rules-text  load-verify-rules
 ```
 
 A new case file of the store contract goes in `test-utils/`, beside `claim-store-contract`.
@@ -114,7 +115,7 @@ The attempt state machine is `attempts/attempt-machine`, with its test beside it
 
 `build-attempt-change` is the only file of the package that writes the attempts table, the attempt sessions table or a limit seat. The store's `syncLimits` also writes seats, outside any store change, when the loaded limits change which attempts they count. The test of `scripts/collect-attempt-writes` reads the package's source and fails on such a write in any other file. It leaves out the tests and the store fixtures in `test-utils/`, which seed those tables.
 
-## `modules/planning/src`, `modules/closeout/src`, `modules/rules/src`
+## `modules/planning/src`, `modules/closeout/src`, `modules/train/src`, `modules/rules/src`
 
 ```text
 modules/planning/src
@@ -127,10 +128,13 @@ modules/closeout/src
   phase-kinds  build-schema-parser  close-out-limits  measure-json-bytes
   dedupe-open-items  missing-criteria  normalise-title
   phases/         one file per phase kind, named as a concept file is: build (exports `build`),
-                  verify (exports `verify`);
+                  verify (exports `verify`), merge (exports `merge`);
                   create-review-phase builds the review phase kind on the gate's `buildCommand`
   review/         build-round-cause  count-unrelated-lines
   utils/          the input helpers that two phase kinds share
+
+modules/train/src
+  decide-merge  types           the merge rule, one step for each read of a merge attempt
 
 modules/rules/src
   index  types  constants

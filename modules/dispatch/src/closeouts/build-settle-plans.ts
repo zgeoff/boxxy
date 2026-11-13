@@ -141,6 +141,10 @@ function pickHandler(effect: Effect): (ctx: EffectContext) => EffectPlan {
       { kind: 'record-proposal' },
       (record) => (ctx) => effectHandlers['record-proposal'](record, ctx),
     )
+    .with(
+      { kind: 'record-merge' },
+      (record) => (ctx) => effectHandlers['record-merge'](record, ctx),
+    )
     .exhaustive();
 }
 
@@ -158,6 +162,13 @@ function buildPlannedContext(ctx: EffectContext, plan: EffectPlan): EffectContex
     ...ctx,
     item: plan.effect.kind === 'close-item' ? { ...ctx.item, closedAt: ctx.now } : ctx.item,
     relations: [...ctx.relations, ...added],
+    pullRequests: ctx.pullRequests.map((row) =>
+      plan.effect.kind === 'record-merge' &&
+      row.repo === plan.effect.pullRequest.repo &&
+      row.number === plan.effect.pullRequest.number
+        ? { ...row, state: 'merged' }
+        : row,
+    ),
   };
 }
 

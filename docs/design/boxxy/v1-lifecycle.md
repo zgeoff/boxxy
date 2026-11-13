@@ -226,7 +226,7 @@ A pull request that the forge already shows merged or closed gets its `boxxy.pul
 **One pass of the watch.** The server runs it every 5 minutes. A forge call that throws counts in `unanswered`, writes nothing, and the next pass tries it again.
 
 1. For each repo with a succeeded build that has no pull request, the pass lists the open pull requests. It reads each one, and links the first whose commit carries the build's `Boxxy-Attempt` trailer, with source `watch`. It skips a build whose item has an open pull request, and a build that ended more than 7 days ago.
-2. For each open pull request row, the pass reads the forge. It links each commit whose trailer names an attempt of the same item, once per commit. It records a merge or a close, and sets the checked time.
+2. For each open pull request row, the pass reads the forge. It links each commit whose trailer names an attempt of the same item, once per commit. It records a merge or a close, and sets the checked time. The settle of a merge attempt records the merge too, and each writer skips a row that is no longer open, so a merge gets one `boxxy.pull_request.merged` fact.
 
 A pull request that merged before the watch ever listed it is not found by step 1. The hook's link covers it, because the link reads a merged pull request at once.
 

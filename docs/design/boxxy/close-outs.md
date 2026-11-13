@@ -53,7 +53,7 @@ constraints apply to the kinds the design names:
 
 ## The v1 phase kinds
 
-`modules/closeout/src/phases/` holds the four phase kinds of [v1](./v1.md#the-pipeline), `triage`, `design`, `build` and `review`, and the `verify` phase kind of [review, verify and merge](./review-and-merge.md#the-verifier). `phaseKinds` lists each one that needs no port for the rules loader, and the server adds the review phase kind, which it builds on its review gate. `libs/model/src/closeouts/types.ts` holds each close-out body and each input.
+`modules/closeout/src/phases/` holds the four phase kinds of [v1](./v1.md#the-pipeline), `triage`, `design`, `build` and `review`, and the `verify` and `merge` phase kinds of [review, verify and merge](./review-and-merge.md#the-verifier). The runner writes the merge close-out from the drive's finish ([job attempts](./review-and-merge.md#job-attempts)). `phaseKinds` lists each one that needs no port for the rules loader, and the server adds the review phase kind, which it builds on its review gate. `libs/model/src/closeouts/types.ts` holds each close-out body and each input.
 
 Each parser runs these steps, and a failed step returns every problem it found and skips the steps after it:
 
@@ -71,6 +71,7 @@ The parser cuts no list. A cut finding or open item would be work lost with no c
 | build | a criterion the item lacks; evidence of another attempt; `built` with a criterion that has no evidence | as design. Asks to file each open item, and, when `built`, to add the cited evidence to the acceptance list |
 | review | a body that is not the `ReviewCloseOut` the server built from the gate's reading | passed: succeeded `passed`. Blocked on open findings: succeeded `changes-requested`. Any other reading: failed, with the failure `review-failed` |
 | verify | a body that names its own `session`; the parser copies `session` from the attempt's input | `verified`, `failed`: succeeded, because the grader graded the work. `blocked`, `abandoned`: failed, with the outcome as the failure |
+| merge | a body with a field that `MergeCloseOut` lacks, or one that lacks a field | `merged`: succeeded. Asks to record the merge of the input's pull request. Any other outcome: failed, with the outcome as the failure |
 
 A blocked or abandoned design, build or verify fails, so it never reads as done work and no session is kept for it. Its failure is the outcome name. The engine reads some failure names, such as `no-capacity`, and the agent's free-text reason could match one, so the reason stays in the close-out. Every settle also asks to record each friction entry as a proposal. The settle returns the effects and the outcome, and the caller applies the effects. When the rules map the outcome to a hold, the caller withholds each effect that changes an item ([v1](./v1.md#the-pipeline)).
 

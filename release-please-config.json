@@ -31,6 +31,7 @@
         "@boxxy/rules",
         "@boxxy/server",
         "@boxxy/store-sqlite",
+        "@boxxy/train",
         "@boxxy/verifier-wringer",
         "@boxxy/worker-atc"
       ]
@@ -51,6 +52,10 @@
     },
     "modules/closeout": {
       "component": "@boxxy/closeout",
+      "initial-version": "0.1.0"
+    },
+    "modules/train": {
+      "component": "@boxxy/train",
       "initial-version": "0.1.0"
     },
     "modules/planning": {

@@ -172,10 +172,12 @@ export type MergeOutcome = 'merged' | 'repair' | 'stale' | 'unverified' | 'close
 // or null when that call got no answer.
 export interface MergeRequest { readonly at: Instant; readonly head: CommitSha; readonly answer: MergeAnswer | null }
 
-export declare function decideMerge(input: { observed: MergeObservation; rules: MergeRules; deadlinePassed: boolean; acted: MergeRequest | null; now: Instant }): JobStep;
+export declare function decideMerge(input: { observed: MergeObservation; rules: MergeRules; deadlinePassed: boolean; acted: MergeRequest | null; now: Instant; actRetryMinutes: number }): JobStep;
 
 // ── libs/model/src/ports/types.ts: the forge gains ────────────────────────────────────────────
 
+// `PullRequestReading` gains `base: string`, the branch it merges into: the merge job reads that
+// branch's required checks.
 export interface Forge {
   // ...readPullRequest, listOpenPullRequests, readPullRequestBody, readChecks, and:
   readRequiredChecks: (repo: RepoName, branch: string) => Promise<readonly string[]>;
@@ -230,6 +232,10 @@ export interface MergeCloseOut {
   readonly byBoxxy: boolean; // `merged`: true when boxxy's own call merged this head
   readonly verify: VerifyReading; // the reading the drive used, so pepys keeps the feature list
 }
+
+// `Effect` gains the effect of a `merged` settle. Its handler moves the open pull request row to
+// merged and writes `boxxy.pull_request.merged`; it skips a row that is not open.
+//   | { kind: 'record-merge'; pullRequest: PullRequestRef; mergeCommit: CommitSha | null }
 
 // `BuildInput` gains `sentBack`, in place of the review's findings as text:
 //   | { from: 'review'; head; open: SeverityCounts; answerHint: string }

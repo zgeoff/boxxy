@@ -109,10 +109,10 @@ The verdict reaches the merge in three steps, and only the last one decides the 
 
 ## The merge step
 
-The merge phase runs on the job worker `merge.forge`. On each read, at most once every 30 seconds per attempt, the job reads:
+The merge phase runs on the job worker `merge.forge`. The server builds that worker only when its configuration has a `github` section, so rules with a merge step load only on such a server. On each read, at most once every 30 seconds per attempt, the job reads:
 
-- the pull request's state, head and mergeable state;
-- the latest run of each check at the head, and the base branch's required checks;
+- the pull request's state, head, base branch and mergeable state;
+- the latest run of each check at the head, and the required checks of the base branch;
 - the verify reading at the head;
 - the item's latest settled review.
 
@@ -141,7 +141,7 @@ The merge phase runs on the job worker `merge.forge`. On each read, at most once
 - **boxxy merges only the head it read.** The merge call passes `sha: head`, and GitHub refuses it when the head moved. The next read sees the new head, and the item goes back to review.
 - **The runner marks the request before the call.** In one store change, under the attempt's lease, the runner sets `actedAt` and `actedHead` and writes `boxxy.merge.requested`. Then it calls GitHub. When the store refuses the change, because another runner holds the lease, the runner sends no call.
 - **A lost answer is safe.** When the call gets no answer, the next read sees the merge, or waits 5 minutes and sends the call again at the same head. A second call never merges twice, because GitHub merges only at `sha`.
-- **boxxy writes one merge fact per merge.** The settle of a `merged` attempt moves the pull request row to merged and writes `boxxy.pull_request.merged`. The [pull request watch](./v1-lifecycle.md#the-pull-request-watch) may have done both first. The row's state lets only the first writer through.
+- **boxxy writes one merge fact per merge.** The settle of a `merged` attempt moves the pull request row to merged, with the settle's time as `mergedAt`, and writes `boxxy.pull_request.merged`. The [pull request watch](./v1-lifecycle.md#the-pull-request-watch) may have done both first. The row's state lets only the first writer through: the settle skips a row that is not open.
 - **A webhook never changes boxxy state.** A replayed webhook reaches pepys only.
 - **A merge by hand ends the item.** The merge job reads `merged` and settles. When the item held before the merge, `boxxy item retry <item> --phase merge` runs the merge job, which reads the merge.
 

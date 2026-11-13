@@ -55,6 +55,7 @@ const effectKindSchema = z.enum([
   'set-acceptance',
   'set-body',
   'record-proposal',
+  'record-merge',
 ]);
 
 const skippedEffectSchema = z.object({ effect: effectKindSchema, reason: z.string().min(1) });

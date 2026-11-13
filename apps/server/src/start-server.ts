@@ -1,17 +1,25 @@
 import { dirname, join } from 'node:path';
 import { createPublicDoor } from '@boxxy/auth-oauth';
 import type { PublicDoor } from '@boxxy/auth-oauth';
-import { createNullNotifier, outboxLimits, watchPullRequests } from '@boxxy/dispatch';
+import {
+  createMergeJob,
+  createNullNotifier,
+  outboxLimits,
+  watchPullRequests,
+} from '@boxxy/dispatch';
 import type { SpawnSettings } from '@boxxy/dispatch';
 import { createGithubAppAuth, createGithubForge } from '@boxxy/forge-github';
 import type { GithubAppKeys } from '@boxxy/forge-github';
 import type {
   AttemptId,
+  ClaimStore,
   Forge,
   GitSource,
   Notifier,
   SessionReading,
+  WorkerKindName,
   WorkerRegistry,
+  WorkerShape,
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { createAtcNotifier } from '@boxxy/notifier-atc';
@@ -20,6 +28,7 @@ import { createPepysReader } from '@boxxy/pepys/reader';
 import { createPepysFactSink } from '@boxxy/pepys/sink';
 import { createNoslopReviewGate } from '@boxxy/review-noslop';
 import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
+import { createWringerVerifier } from '@boxxy/verifier-wringer';
 import { createAtcMcpClient, createAtcWorker } from '@boxxy/worker-atc';
 import { createORPCClient } from '@orpc/client';
 import { RPCLink } from '@orpc/client/fetch';
@@ -30,12 +39,17 @@ import { pickServerSecrets } from './config/pick-server-secrets.ts';
 import { readCallerProof } from './config/read-caller-proof.ts';
 import { readServerConfig } from './config/read-server-config.ts';
 import type { ServerConfig } from './config/server-config-schema.ts';
+import { verifyGateCheck } from './constants.ts';
 import { createCapacityBackoff } from './create-capacity-backoff.ts';
 import { formatErrorChain } from './format-error-chain.ts';
 import { createOffOutbox } from './outbox/create-off-outbox.ts';
 import type { OutboxSender } from './outbox/start-outbox-sender.ts';
 import { startOutboxSender } from './outbox/start-outbox-sender.ts';
-import { atcWorkerName, buildServerRegistrations } from './rules/build-server-registrations.ts';
+import {
+  atcWorkerName,
+  buildServerRegistrations,
+  mergeWorkerName,
+} from './rules/build-server-registrations.ts';
 import { createRulesHolder } from './rules/create-rules-holder.ts';
 import { makePublicMcpServe, maxRequestBytes, serveApi } from './serve-api.ts';
 import { servePublicDoor } from './serve-public-door.ts';
@@ -109,6 +123,21 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
     timeoutMs: atcTimeoutMs,
   });
 
+  const forge =
+    config.github === undefined
+      ? null
+      : buildForge(config.github.baseUrl, secrets.secrets.githubApp);
+
+  const clock = { now: () => brandSchemas.instant.parse(Date.now()) };
+
+  const proof = await readCallerProof(config.trustedIssuers, clock);
+
+  if (proof.kind === 'refused') {
+    return proof;
+  }
+
+  const store = await createSQLiteClaimStore(config.store.file);
+
   const workers: WorkerRegistry = new Map([
     [
       atcWorkerName,
@@ -121,27 +150,20 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
         }),
       },
     ],
+    ...buildMergeWorker(forge, store),
   ]);
 
   const rules = await createRulesHolder(
     config.rules,
     input.log,
-    buildServerRegistrations(reviewGate, config.spawn.reviewAgents),
+    buildServerRegistrations(reviewGate, config.spawn.reviewAgents, [...workers.keys()]),
   );
 
   if (rules.kind !== 'loaded') {
+    await store.close();
+
     return { kind: 'refused', message: `the rules did not load: ${JSON.stringify(rules)}` };
   }
-
-  const clock = { now: () => brandSchemas.instant.parse(Date.now()) };
-
-  const proof = await readCallerProof(config.trustedIssuers, clock);
-
-  if (proof.kind === 'refused') {
-    return proof;
-  }
-
-  const store = await createSQLiteClaimStore(config.store.file);
 
   const runner = brandSchemas.runnerId.parse(config.runner);
   const notifier = buildNotifier(config, secrets.secrets.notice);
@@ -153,11 +175,6 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
     clock,
     log: input.log,
   });
-
-  const forge =
-    config.github === undefined
-      ? null
-      : buildForge(config.github.baseUrl, secrets.secrets.githubApp);
 
   const readings = new Map<AttemptId, SessionReading>();
 
@@ -288,11 +305,36 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
   };
 }
 
+// With the App's keys, every forge call sends the App's installation token, which reads check
+// runs on a private repo where a fine-grained token gets 403. Without them, the forge sends no
+// credential, for a broker that adds it on the way out.
+function buildForge(baseUrl: string, app: GithubAppKeys | null): Forge {
+  if (app === null) {
+    return createGithubForge({ fetch, baseUrl });
+  }
+
+  const auth = createGithubAppAuth({ keys: app, baseUrl, fetch, nowMs: () => Date.now() });
+
+  return createGithubForge({ fetch, baseUrl, readToken: auth.readToken });
+}
+
 function collectCredentialSources(repos: ServerConfig['spawn']['repos']): GitSource[] {
   return Object.values(repos).filter(
     (checkout): checkout is GitSource =>
       typeof checkout !== 'string' && checkout.credentialRef !== undefined,
   );
+}
+
+// The merge reads the pull request, its checks and the verify gate through the forge, so a server
+// with no `github` section builds no merge worker, and the loader refuses a merge step.
+function buildMergeWorker(forge: Forge | null, store: ClaimStore): [WorkerKindName, WorkerShape][] {
+  if (forge === null) {
+    return [];
+  }
+
+  const verifier = createWringerVerifier({ forge, gateCheck: verifyGateCheck });
+
+  return [[mergeWorkerName, { shape: 'job', worker: createMergeJob({ forge, verifier, store }) }]];
 }
 
 // The notifier gets an atc client of its own, with the notice token: the worker token never
@@ -375,19 +417,6 @@ function toLinkTarget(address: string): { origin: string; url: `/${string}` } {
   const parsed = new URL(address);
 
   return { origin: parsed.origin, url: `/${parsed.pathname.replace(/^\/+/u, '')}` };
-}
-
-// With the App's keys, every forge call sends the App's installation token, which reads check
-// runs on a private repo where a fine-grained token gets 403. Without them, the forge sends no
-// credential, for a broker that adds it on the way out.
-function buildForge(baseUrl: string, app: GithubAppKeys | null): Forge {
-  if (app === null) {
-    return createGithubForge({ fetch, baseUrl });
-  }
-
-  const auth = createGithubAppAuth({ keys: app, baseUrl, fetch, nowMs: () => Date.now() });
-
-  return createGithubForge({ fetch, baseUrl, readToken: auth.readToken });
 }
 
 // where the door reads the address of a request's socket, once its listener runs

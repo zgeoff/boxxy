@@ -119,17 +119,24 @@ export const merge = definePhase({
   needsAcceptance: true,
   input: (ctx) => toJSONValue({ pullRequest: findPullRequestLink(ctx.pullRequests) }),
   // No agent decides the merge: the runner calls this pure rule on each read of the job.
-  drive: (ctx) => decideMerge({ observed: parseMergeObservation(ctx.observed), rules: ctx.rules.merge, deadlinePassed: ctx.deadlinePassed, acted: readActed(ctx.attempt), now: ctx.now }),
+  drive: (ctx) => decideMerge({ observed: mergeObservationSchema.parse(ctx.observed), rules: ctx.rules.merge, deadlinePassed: ctx.deadlinePassed, acted: findMergeRequest(ctx.attempt), now: ctx.now, actRetryMinutes: ctx.actRetryMinutes }),
   closeOut: mergeCloseOutParser,
-  // `merged` asks for one effect, `record-merge`: the pull request row moves to merged and
-  // `boxxy.pull_request.merged` is written, unless the watch already did. The row's state guards it.
-  settle: (input) => ({
-    state: input.closeOut.outcome === 'merged' ? 'succeeded' : 'failed',
-    failure: input.closeOut.outcome === 'merged' ? null : input.closeOut.outcome,
-    outcome: input.closeOut.outcome,
-    effects: input.closeOut.outcome === 'merged' ? [{ kind: 'record-merge', head: input.closeOut.head, mergeCommit: input.closeOut.mergeCommit }] : [],
-    frictionDropped: 0,
-  }),
+  // `merged` with a pull request in the input asks for one effect, `record-merge`: the pull
+  // request row moves to merged and `boxxy.pull_request.merged` is written at the settle's time,
+  // unless the watch already did. The handler skips a row that is not open, so only the first
+  // writer gets through.
+  settle: (input) => {
+    const pullRequest = mergeInputSchema.parse(input.attempt.input).pullRequest;
+    const merged = input.closeOut.outcome === 'merged';
+
+    return {
+      state: merged ? 'succeeded' : 'failed',
+      failure: merged ? null : input.closeOut.outcome,
+      outcome: input.closeOut.outcome,
+      effects: merged && pullRequest !== null ? [{ kind: 'record-merge', pullRequest: { repo: pullRequest.repo, number: pullRequest.number }, mergeCommit: input.closeOut.mergeCommit }] : [],
+      frictionDropped: 0,
+    };
+  },
 });
 
 // The verify phase kind (modules/closeout/src/phases/verify.ts) runs on `atc.session`, with the

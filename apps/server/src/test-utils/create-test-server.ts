@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createPublicDoor } from '@boxxy/auth-oauth';
 import type { PublicDoor } from '@boxxy/auth-oauth';
-import { watchPullRequests } from '@boxxy/dispatch';
+import { createMergeJob, watchPullRequests } from '@boxxy/dispatch';
 import type { WatchReport } from '@boxxy/dispatch';
 import type { FakeForge } from '@boxxy/dispatch/test-utils/create-fake-forge';
 import { createFakeForge } from '@boxxy/dispatch/test-utils/create-fake-forge';
@@ -20,16 +20,21 @@ import type {
   PhaseName,
   SessionReading,
 } from '@boxxy/model';
-import { brandSchemas } from '@boxxy/model';
 import type { FakeNotifier } from '@boxxy/model/test-utils/create-fake-notifier';
 import { createFakeNotifier } from '@boxxy/model/test-utils/create-fake-notifier';
 import type { FakePepysReader } from '@boxxy/model/test-utils/create-fake-pepys-reader';
 import { createFakePepysReader } from '@boxxy/model/test-utils/create-fake-pepys-reader';
 import { buildExampleLoadInput } from '@boxxy/rules/test-utils/build-example-load-input';
+import { createWringerVerifier } from '@boxxy/verifier-wringer';
 import invariant from 'tiny-invariant';
 import { buildTokenDigest } from '../auth/pick-request-scope.ts';
+import { verifyGateCheck } from '../constants.ts';
 import { createOffOutbox } from '../outbox/create-off-outbox.ts';
-import { buildServerRegistrations } from '../rules/build-server-registrations.ts';
+import {
+  atcWorkerName,
+  buildServerRegistrations,
+  mergeWorkerName,
+} from '../rules/build-server-registrations.ts';
 import { makeProposedRulesLoader } from '../rules/load-server-rules.ts';
 import { makePublicMcpServe, serveApi } from '../serve-api.ts';
 import type { TickReport } from '../tick/run-tick.ts';
@@ -110,6 +115,12 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
   const forge = createFakeForge();
   const workerToken = 'test-worker-token';
 
+  const mergeJob = createMergeJob({
+    forge,
+    verifier: createWringerVerifier({ forge, gateCheck: verifyGateCheck }),
+    store: dispatch.store,
+  });
+
   const readings = new Map<AttemptId, SessionReading>();
 
   const noticeStatus: NoticeStatus = { lastError: null };
@@ -181,10 +192,8 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
         store: dispatch.store,
         runner: dispatch.runner,
         workers: new Map([
-          [
-            brandSchemas.workerKindName.parse('atc.session'),
-            { shape: 'session', worker: dispatch.worker },
-          ],
+          [atcWorkerName, { shape: 'session', worker: dispatch.worker }],
+          [mergeWorkerName, { shape: 'job', worker: mergeJob }],
         ]),
         rules: dispatch.rules(),
         backoff: dispatch.backoff,

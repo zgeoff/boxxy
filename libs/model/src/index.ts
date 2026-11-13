@@ -59,6 +59,9 @@ export { triageCloseOutSchema } from './closeouts/triage-close-out-schema.ts';
 export { verifyCloseOutSchema } from './closeouts/verify-close-out-schema.ts';
 export { verifyInputSchema } from './closeouts/verify-input-schema.ts';
 export { mergeCloseOutSchema } from './closeouts/merge-close-out-schema.ts';
+export { mergeInputSchema } from './closeouts/merge-input-schema.ts';
+export { mergeObservationSchema } from './merge/merge-observation-schema.ts';
+export { toMergeObservationJSON } from './merge/to-merge-observation-json.ts';
 export { workFactSchemas } from './facts/work-fact-schemas.ts';
 export { costBases, phaseSteps, stageSteps } from './reports/constants.ts';
 export { engineHoldReasons, engineOutcomes } from './pipeline/constants.ts';
@@ -164,6 +167,7 @@ export type {
   Friction,
   FrictionTargetKind,
   MergeCloseOut,
+  MergeInput,
   OpenItem,
   PullRequestLink,
   RelationDraft,

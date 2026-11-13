@@ -88,7 +88,7 @@ Section C of `01-usage.ts` holds the globs. wringer's gate fails a pull request 
 
 | Paths | Features |
 | --- | --- |
-| `apps/cli/**`, `apps/server/**`, `libs/**`, `adapters/store-sqlite/**`, `modules/{rules,dispatch,closeout}/**`, `system-tests/src/test-utils/**` | all three |
+| `apps/cli/**`, `apps/server/**`, `libs/**`, `adapters/store-sqlite/**`, `modules/{rules,dispatch,closeout,train}/**`, `system-tests/src/test-utils/**` | all three |
 | `modules/planning/**` | `claim-settle`, `report-cost` |
 | `packages/pepys/**` | `report-cost` |
 

@@ -59,7 +59,7 @@ unless a broker adds the credential. [Hold notices](../../docs/design/boxxy/owne
 
 ## Features
 
-- `startServer`, which wires the store, the atc worker, pepys and the listeners.
+- `startServer`, which wires the store, the atc worker, pepys, the listeners and the merge job.
 - `serveApi`, the owner and worker listeners as Elysia apps, for a caller with its own deps.
 - `serverConfigSchema`, the configuration file's schema.
 - `./test-utils/create-test-server`, the API on in-memory fakes, for tests.

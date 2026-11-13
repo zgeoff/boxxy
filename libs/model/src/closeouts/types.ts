@@ -176,7 +176,15 @@ export type Effect =
   | { readonly kind: 'set-field'; readonly field: 'designMode'; readonly value: DesignMode }
   | { readonly kind: 'set-acceptance'; readonly criteria: readonly Criterion[] }
   | { readonly kind: 'set-body'; readonly body: string }
-  | { readonly kind: 'record-proposal'; readonly friction: Friction };
+  | { readonly kind: 'record-proposal'; readonly friction: Friction }
+
+  // moves the pull request's row to merged and writes its `merged` fact, unless a row that is no
+  // longer open shows that the pull request watch got there first
+  | {
+      readonly kind: 'record-merge';
+      readonly pullRequest: PullRequestRef;
+      readonly mergeCommit: CommitSha | null;
+    };
 
 export type CloseOutProblem =
   | { readonly kind: 'schema'; readonly path: string; readonly message: string }
@@ -283,6 +291,11 @@ export interface VerifyInput {
   readonly pullRequest: PullRequestLink | null;
   readonly head: CommitSha | null;
   readonly session: 'builder' | 'fresh';
+}
+
+// The input of a merge attempt: the item's latest pull request, null when it has none.
+export interface MergeInput {
+  readonly pullRequest: PullRequestLink | null;
 }
 
 export interface PullRequestLink {

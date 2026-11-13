@@ -1,7 +1,7 @@
 {
   "name": "@boxxy/closeout",
   "version": "0.2.4",
-  "description": "boxxy's phase kinds: the input, the close-out parser and the settle rule of triage, design, build and review",
+  "description": "boxxy's phase kinds: the input, the close-out parser and the settle rule of triage, design, build, review, verify and merge",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/modules/closeout#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",
   "license": "MIT",
@@ -31,6 +31,7 @@
   },
   "dependencies": {
     "@boxxy/model": "workspace:*",
+    "@boxxy/train": "workspace:*",
     "tiny-invariant": "catalog:",
     "ts-pattern": "catalog:",
     "zod": "catalog:"

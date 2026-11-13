@@ -7,6 +7,7 @@ import type {
   RowWrite,
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
+import { buildStateFact } from '../pull-requests/build-state-fact.ts';
 import type { EffectContext, EffectHandlers, EffectPlan } from './types.ts';
 
 // The plan of each kind of effect. Pure: each handler reads only its context, and refuses with
@@ -127,6 +128,53 @@ export const effectHandlers: EffectHandlers = {
     }
 
     return buildEditPlan(effect, ctx, { body: effect.body });
+  },
+
+  // The pull request watch may have recorded the merge first. The row's state lets only the first
+  // writer through, and a skip keeps the settle from failing on the update's guard.
+  'record-merge': (effect, ctx) => {
+    const row = ctx.pullRequests.find(
+      (candidate) =>
+        candidate.repo === effect.pullRequest.repo &&
+        candidate.number === effect.pullRequest.number,
+    );
+
+    if (row === undefined) {
+      return { kind: 'skip', effect, reason: 'the item has no row of the pull request' };
+    }
+
+    if (row.state !== 'open') {
+      return { kind: 'skip', effect, reason: `the pull request row is ${row.state} already` };
+    }
+
+    const set = {
+      state: 'merged',
+      mergedAt: ctx.now,
+      mergeCommit: effect.mergeCommit,
+      checkedAt: ctx.now,
+    } as const;
+
+    const fact = buildStateFact({
+      row: { ...row, ...set },
+      item: ctx.item.id,
+      actor: ctx.actor,
+      id: brandSchemas.factId.parse(ctx.newId()),
+    });
+
+    return {
+      kind: 'apply',
+      effect,
+      writes: [
+        {
+          op: 'update',
+          table: 'pull_requests',
+          key: { repo: row.repo, number: row.number },
+          expect: { state: 'open' },
+          set,
+        },
+      ],
+      facts: fact === null ? [] : [fact],
+    };
   },
 
   // a fact about the attempt only, so it records on a closed item too

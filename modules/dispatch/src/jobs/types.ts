@@ -3,6 +3,7 @@ import type {
   AttemptRow,
   ClaimStore,
   CloseOutProblem,
+  Forge,
   Instant,
   JobWorker,
   LoadedRules,
@@ -10,6 +11,7 @@ import type {
   PhaseName,
   PipelineStep,
   RunnerId,
+  Verifier,
 } from '@boxxy/model';
 
 export interface JobReadingInput {
@@ -25,6 +27,14 @@ export interface JobReadingInput {
   readonly step: PipelineStep | null;
   readonly now: Instant;
   readonly newId: NewId;
+}
+
+export interface MergeJobDeps {
+  readonly forge: Forge;
+  readonly verifier: Verifier;
+
+  // the item's settled review, which the merge rule reads
+  readonly store: ClaimStore;
 }
 
 // A bug that a job reading met, for the runner's log. `job-without-drive`: the phase kind gives

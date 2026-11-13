@@ -17,5 +17,6 @@
   "adapters/auth-oauth": "0.2.4",
   "adapters/review-noslop": "0.2.4",
   "adapters/verifier-wringer": "0.2.4",
+  "modules/train": "0.2.4",
   "libs/prompt-template": "0.2.4"
 }

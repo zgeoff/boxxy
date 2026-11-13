@@ -242,8 +242,9 @@ const everyJourney = [
   'modules/rules/**',
   'modules/dispatch/**',
 
-  // the phase kinds, which the server loads with the rules
+  // the phase kinds, which the server loads with the rules, and the merge rule they drive
   'modules/closeout/**',
+  'modules/train/**',
 
   // the verify CLI and its harness, the broker routing and pepys under test: a change here changes
   // what a journey proves

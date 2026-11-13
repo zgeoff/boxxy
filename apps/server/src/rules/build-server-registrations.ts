@@ -10,19 +10,23 @@ export interface ServerRegistrations {
   readonly reviewAgents: readonly string[];
 }
 
-// The name of the one worker this server builds.
+// The session worker, which every server builds.
 export const atcWorkerName = brandSchemas.workerKindName.parse('atc.session');
 
+// The merge's job worker, which a server builds only with a `github` section.
+export const mergeWorkerName = brandSchemas.workerKindName.parse('merge.forge');
+
 // The phase kinds, worker names and review agents that this server loads its rules with, the
-// review phase kind on the given gate among them. The server's start and the rules repository's
-// check both load with these, so the check refuses what the server refuses.
+// review phase kind on the given gate among them. The server's start passes the workers it built,
+// and the rules repository's check passes both, so it checks rules for a server with a forge.
 export function buildServerRegistrations(
   reviewGate: Pick<ReviewGate, 'buildCommand'>,
   reviewAgents: readonly string[],
+  workers: readonly WorkerKindName[] = [atcWorkerName, mergeWorkerName],
 ): ServerRegistrations {
   return {
     phases: [...phaseKinds, createReviewPhase(reviewGate)],
-    workers: [atcWorkerName],
+    workers,
     reviewAgents,
   };
 }

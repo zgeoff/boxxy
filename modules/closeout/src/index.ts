@@ -5,6 +5,7 @@ export { phaseKinds } from './phase-kinds.ts';
 export { build } from './phases/build.ts';
 export { design } from './phases/design.ts';
 export { createReviewPhase } from './phases/create-review-phase.ts';
+export { merge } from './phases/merge.ts';
 export { triage } from './phases/triage.ts';
 export { verify } from './phases/verify.ts';
 export { countUnrelatedLines } from './review/count-unrelated-lines.ts';

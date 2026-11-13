@@ -3,6 +3,7 @@ import { generateKeyPairSync } from 'node:crypto';
 import { cp, mkdir, mkdtemp, rm, stat, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { buildJobRulesText } from '@boxxy/dispatch/test-utils/build-job-rules-text';
 import invariant from 'tiny-invariant';
 import { startServer } from './start-server.ts';
 import { readHttpStatus } from './test-utils/read-http-status.ts';
@@ -51,6 +52,15 @@ async function setupTest() {
     // writes the configuration file again, with the given sections added
     addConfigSections: (sections: Readonly<Record<string, unknown>>) =>
       Bun.write(configFile, JSON.stringify({ ...config, ...sections })),
+
+    // writes the rules file again, with a merge step after review on the merge job worker
+    addMergeStep: async () => {
+      const rulesFile = path.join(rulesFolder, 'rules.yaml');
+
+      const text = await Bun.file(rulesFile).text();
+
+      await Bun.write(rulesFile, buildJobRulesText(text));
+    },
     start: async (overrides: Readonly<Record<string, string | undefined>>) => {
       const answer = await startServer({
         env: { ...env, ...overrides },
@@ -228,6 +238,30 @@ test('it starts and stops with a github section and the boxxy App keys', async (
   });
 
   expect(answer.kind).toBe('started');
+});
+
+test('it starts with rules that hold a merge step when the configuration has a github section', async () => {
+  const ctx = await setupTest();
+
+  await ctx.addMergeStep();
+  await ctx.addConfigSections({ github: { baseUrl: 'http://127.0.0.1:9' } });
+
+  const answer = await ctx.start({});
+
+  expect(answer.kind).toBe('started');
+});
+
+test('it refuses rules that hold a merge step when the configuration has no github section', async () => {
+  const ctx = await setupTest();
+
+  await ctx.addMergeStep();
+
+  const answer = await ctx.start({});
+
+  expect(answer).toStrictEqual({
+    kind: 'refused',
+    message: expect.stringContaining('unknown-worker'),
+  });
 });
 
 test('it refuses to start with only some boxxy App keys, and prints no value', async () => {
