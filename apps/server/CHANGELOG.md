@@ -2,32 +2,32 @@
 
 ## [0.2.8](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.7...@boxxy/server@0.2.8) (2026-11-13)
 
-
 ### Bug Fixes
 
-* **auth:** remove a client by its id on @zgeoff/mcp-auth 0.2.1 ([#106](https://github.com/zgeoff/boxxy/issues/106)) ([a4c216a](https://github.com/zgeoff/boxxy/commit/a4c216a7b4ddbabd1ac1fbbd4fd410b86f2eb3ab))
-
+- **auth:** remove a client by its id on @zgeoff/mcp-auth 0.2.1
+  ([#106](https://github.com/zgeoff/boxxy/issues/106))
+  ([a4c216a](https://github.com/zgeoff/boxxy/commit/a4c216a7b4ddbabd1ac1fbbd4fd410b86f2eb3ab))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/auth-oauth bumped to 0.2.8
-    * @boxxy/caller-proof-imp bumped to 0.2.8
-    * @boxxy/closeout bumped to 0.2.8
-    * @boxxy/content-hash bumped to 0.2.8
-    * @boxxy/contract bumped to 0.2.8
-    * @boxxy/dispatch bumped to 0.2.8
-    * @boxxy/forge-github bumped to 0.2.8
-    * @boxxy/model bumped to 0.2.8
-    * @boxxy/notifier-atc bumped to 0.2.8
-    * @boxxy/pepys bumped to 0.2.8
-    * @boxxy/planning bumped to 0.2.8
-    * @boxxy/review-noslop bumped to 0.2.8
-    * @boxxy/rules bumped to 0.2.8
-    * @boxxy/store-sqlite bumped to 0.2.8
-    * @boxxy/verifier-wringer bumped to 0.2.8
-    * @boxxy/worker-atc bumped to 0.2.8
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/auth-oauth bumped to 0.2.8
+    - @boxxy/caller-proof-imp bumped to 0.2.8
+    - @boxxy/closeout bumped to 0.2.8
+    - @boxxy/content-hash bumped to 0.2.8
+    - @boxxy/contract bumped to 0.2.8
+    - @boxxy/dispatch bumped to 0.2.8
+    - @boxxy/forge-github bumped to 0.2.8
+    - @boxxy/model bumped to 0.2.8
+    - @boxxy/notifier-atc bumped to 0.2.8
+    - @boxxy/pepys bumped to 0.2.8
+    - @boxxy/planning bumped to 0.2.8
+    - @boxxy/review-noslop bumped to 0.2.8
+    - @boxxy/rules bumped to 0.2.8
+    - @boxxy/store-sqlite bumped to 0.2.8
+    - @boxxy/verifier-wringer bumped to 0.2.8
+    - @boxxy/worker-atc bumped to 0.2.8
 
 ## [0.2.7](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.6...@boxxy/server@0.2.7) (2026-11-13)
 

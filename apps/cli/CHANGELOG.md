@@ -2,23 +2,21 @@
 
 ## [0.2.8](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.2.7...@boxxy/cli@0.2.8) (2026-11-13)
 
-
 ### Miscellaneous Chores
 
-* **@boxxy/cli:** Synchronize boxxy versions
-
+- **@boxxy/cli:** Synchronize boxxy versions
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/contract bumped to 0.2.8
-    * @boxxy/model bumped to 0.2.8
-  * devDependencies
-    * @boxxy/dispatch bumped to 0.2.8
-    * @boxxy/rules bumped to 0.2.8
-    * @boxxy/server bumped to 0.2.8
-    * @boxxy/store-sqlite bumped to 0.2.8
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/contract bumped to 0.2.8
+    - @boxxy/model bumped to 0.2.8
+  - devDependencies
+    - @boxxy/dispatch bumped to 0.2.8
+    - @boxxy/rules bumped to 0.2.8
+    - @boxxy/server bumped to 0.2.8
+    - @boxxy/store-sqlite bumped to 0.2.8
 
 ## [0.2.7](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.2.6...@boxxy/cli@0.2.7) (2026-11-13)
 
