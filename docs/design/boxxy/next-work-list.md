@@ -105,22 +105,22 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 - **Check:** the `sendNotices` and notifier tests in the doc's acceptance section.
 - **Built:** store migration 0004 adds `keySeq`, `keyTries` and `nextTryAt` to the notice row, and both claim stores read due rows through `listNoticesDue`. `sendNotices` in `@boxxy/dispatch` retries with the backoff above, and the atc notifier keeps no state. `runner.status` returns `oldestUnsentAt` as a timestamp string, beside `lastError`. The `send-notices`, `create-atc-notifier` and `runner-handlers` tests cover the backoff, the code map and the status fields.
 
-### 12. The notice session by ID, with its own token
+### 12. The notice session registers itself, with its own token
 
-- **Outcome:** the server reads the notice session's ID from `BOXXY_ATC_NOTICE_SESSION` and the notice token from `BOXXY_ATC_NOTICE_TOKEN`, and the config key `noticeSession` goes. The server refuses to start when the session ID is set and the token is empty, and when the config file still holds `noticeSession`.
+- **Outcome:** the store holds the notice session's gateway ID in one row, and the owner procedures `notices.register` and `notices.show` write and read it, as owner tools and as `boxxy notices register <gateway-id>` and `boxxy notices show`. The notifier reads the row on each try and sends with the notice token, from `BOXXY_ATC_NOTICE_TOKEN`. With a token and no registered session, each notice waits and `runner.status` shows `no-notice-session`. The server refuses to start while `BOXXY_ATC_NOTICE_SESSION` is set, while the notice token is set and empty, and while the config file holds `noticeSession`.
 - **Follows:** [owner notices](./owner-notices.md).
 - **Needs:** slice 11.
-- **Check:** start-up tests that refuse the old key and a missing token.
-- **Built:** `@boxxy/server` reads both variables, and gives the notifier an atc client of its own with the notice token. Start-up tests refuse a config file that holds `noticeSession`, an empty notice token, and a notice session that is no gateway ID, and print no value. A start-up test sends a hold notice to the session by its ID, through a gateway stand-in that takes the notice token alone.
+- **Check:** the registration tests in the doc's acceptance section, and start-up tests that refuse the retired variable, the old key and an empty token.
+- **Built:** store migration 0007 adds the `notice_session` table, and both claim stores read and write its row. `@boxxy/contract` holds the two procedures with their access rows, and the worker token is refused on both. `@boxxy/server` gives the notifier an atc client of its own with the notice token, and a read of the row for each try. The `notices-handlers` tests register a session after a notice waits and see the notice reach it with no restart. The start-up tests refuse `BOXXY_ATC_NOTICE_SESSION`, a config file that holds `noticeSession` and an empty notice token, and print no value.
 
 ## The deployment
 
 ### 13. Notices reach the owner
 
-- **Outcome:** the cloud Secret carries the notice session ID and the notice token, and the plain stack config carries neither. The atc gateway gives the client `boxxy-notices` the message scope only, and the owner's machine grants the principal `service:boxxy-notices` its `local` target, where the notice session runs.
+- **Outcome:** the cloud Secret carries the notice token and no notice session ID, and the plain stack config carries neither. The atc gateway gives the client `boxxy-notices` the message scope only, and the owner's machine grants the principal `service:boxxy-notices` its `local` target, where the notice session runs. The notice session registers its own gateway ID with `boxxy notices register`.
 - **Follows:** [owner notices](./owner-notices.md).
 - **Needs:** slice 12.
-- **Check:** a forced hold reaches the notice session. A notice sent while the session is stopped arrives after it starts, and a notice sent after a rename arrives.
+- **Check:** a forced hold reaches the notice session. A notice sent while the session is stopped arrives after it starts, and a notice sent after a rename arrives. A new session registers, and a notice that waits reaches it with no deploy.
 
 ### 14. The review tool in production
 

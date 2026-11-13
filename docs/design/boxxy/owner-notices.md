@@ -2,7 +2,7 @@
 
 - **Status:** draft
 
-The owner learns of a hold from a notice: a message that the deployed server sends through [atc](https://github.com/zgeoff/atc), the tool that runs agent sessions, to one session, the owner's notice session. This design gets each notice to that session even while the session or the owner's machine sleeps, and lets the owner rename the session with no change to boxxy. The [review-and-merge design](./review-and-merge.md) owns the hold reasons and the text of each notice. [Notices in v1](./v1.md#notices) says which holds write a notice.
+The owner learns of a hold from a notice: a message that the deployed server sends through [atc](https://github.com/zgeoff/atc), the tool that runs agent sessions, to one session, the owner's notice session. This design gets each notice to that session even while the session or the owner's machine sleeps. The notice session registers itself with boxxy, so a new notice session needs no deploy, and a rename of the session changes nothing. The [review-and-merge design](./review-and-merge.md) owns the hold reasons and the text of each notice. [Notices in v1](./v1.md#notices) says which holds write a notice.
 
 Terms this doc uses:
 
@@ -21,27 +21,42 @@ flowchart LR
   notifier -->|"atc_message_send"| gateway["atc gateway"]
   gateway --> session["the owner's notice session"]
   gateway -.->|"refused or uncertain: the row waits for its next try"| row
+  register["the notice session runs boxxy notices register"] --> stored["the notice session row"]
+  stored -.->|"read on each try"| notifier
 ```
 
 ## Contracts
 
-### The notice session in the environment
+### The registered notice session
 
-atc addresses a session only by its gateway ID, `<daemon>.<incarnation>.<id>`: the gateway answers `no_such_session` to any other value. The server therefore reads the ID, from `BOXXY_ATC_NOTICE_SESSION`, which the deployment's Secret holds next to the notice token. The configuration file holds no notice session.
+atc addresses a session only by its gateway ID, `<daemon>.<incarnation>.<id>`: the gateway answers `no_such_session` to any other value. The store holds that ID in one row, and the notice session writes the row itself, with `boxxy notices register <gateway-id>` or the owner tool `notices_register`. The environment holds the notice token, and neither the environment nor the configuration file holds a notice session.
 
 ```ts
+// @boxxy/model, the one row of the `notice_session` table
+interface NoticeSessionRow {
+  readonly gatewayID: string; // as `atc_sessions_list` prints it through the gateway
+  readonly setAt: Instant;
+}
+
+// @boxxy/contract; `setAt` is an ISO 8601 time on the wire
+'notices.register': { input: { gatewayID: string }; output: { session: NoticeSession } };
+'notices.show': { input: {}; output: { session: NoticeSession | null } }; // null: none is registered
+
 // apps/server, the environment it reads at start
 const noticeEnv = z.strictObject({
-  // the notice session's gateway ID, as `atc_sessions_list` prints it through the gateway;
   // with none, the server sends no notice and marks each row sent
-  BOXXY_ATC_NOTICE_SESSION: z.string().regex(/^[^.]+\.[^.]+\..+$/u).optional(),
-  BOXXY_ATC_NOTICE_TOKEN: z.string().optional(),
+  BOXXY_ATC_NOTICE_TOKEN: z.string().min(1).optional(),
 });
 ```
 
+- Only the owner's path calls the two procedures, as [the access table](./v1-api-and-auth.md#the-doors) says: the owner listener, and `/mcp` on the public door, where `notices.register` needs the `write` scope and `notices.show` the `read` scope. The worker token gets `FORBIDDEN`.
+- `notices.register` checks the shape of the ID and nothing else, because the notice token has no scope that reads a session. An ID that names no session shows as `no_such_session` in `runner.status`.
+- `notices.register` replaces the row and writes no fact. A check on the table keeps it to one row.
+- The notifier reads the row on each try. A notice that waits therefore goes to a newly registered session on its next try, and the server never restarts for it.
+- With a notice token and no row, the notifier calls atc for nothing, and the try is `refused` with the reason `no-notice-session`. The notice row waits like any other refused row. A read of the row that fails is `refused` too, with the reason `notice-session-unread`.
 - The notifier calls atc with the notice token, from `BOXXY_ATC_NOTICE_TOKEN`, and with no other token. The server's other atc calls, which start and stop worker sessions, use the worker token, from `BOXXY_ATC_TOKEN`.
-- When `BOXXY_ATC_NOTICE_SESSION` is set and `BOXXY_ATC_NOTICE_TOKEN` is empty, the server refuses to start.
-- The server refuses to start while its configuration file still holds `noticeSession`.
+- The server refuses to start while `BOXXY_ATC_NOTICE_TOKEN` is set and empty.
+- The server refuses to start while the environment holds `BOXXY_ATC_NOTICE_SESSION`, or its configuration file holds `noticeSession`. The message names the variable or the key, and never its value.
 
 ### The notices row and the port
 
@@ -93,10 +108,14 @@ notices: {
 }
 ```
 
+`lastError` is `no-notice-session` while a notice token is set and no notice session is registered.
+
 ## Constraints
 
 - The server never gives up on a notice. A row stays unsent until atc takes it, with at most 15 minutes between tries.
 - The server never wakes the notice session. While the notice waits, `boxxy item list` still shows the hold. atc answers `session_dead` while the session is stopped or asleep, and `daemon_unavailable` while the owner's machine is off.
+- A notice tried while no session is registered waits the same way, so it reaches a session that registers later, at most 15 minutes after the registration.
+- A registration changes no key. A row whose last try at the old session was `uncertain` repeats its key at the new session. When atc took that first send, the repeat comes back `sent` and the notice stays with the old session, like any notice sent before the registration. Otherwise the row gets a new key after its third uncertain try, and the notice goes to the new session.
 - A server restart changes no key, because each key comes from its row.
 - The owner gets each notice once, with two exceptions:
   - When a first send reached the session and every repeat of its key still comes back `uncertain`, the change of key after 3 tries sends the notice a second time.
@@ -107,11 +126,12 @@ notices: {
 
 - The notice token, an atc service token that holds the `message` scope alone. The worker token holds `spawn` and `kill`, so the deployment never grants it the owner's machine.
 - A grant on the owner's machine that lets the notice token reach the notice session on that machine's `local` target. atc lets a token reach a session only when that session and each of its sub-sessions run on a target that the grant names. The owner's agent in the notice session therefore starts its side sessions as top-level sessions. A sub-session on another target makes atc answer `no_such_session`, and every notice then waits.
-- The notice session's gateway ID in the Secret, next to the notice token. When the owner replaces the session with a new one, the owner sets the new ID, and the rows that wait go to the new session on their next try.
+- Nothing for the notice session's ID: the deployment's Secret holds the notice token alone. The owner's agent in a new notice session runs `boxxy notices register` with its own gateway ID, and the rows that wait go to that session on their next try.
 
 ## Decisions
 
-- **The Secret holds the notice session's gateway ID.** atc resolves no names, and a rename keeps the ID. The ID reaches the session, so it stays out of the plain stack config.
+- **The store holds the notice session's gateway ID, and the session registers it.** atc resolves no names, and a rename keeps the ID. A new session has a new ID, and an ID in the deployment would need a deploy for each new session.
+- **Registration checks the shape of the ID only.** A read of the session needs a scope that the notice token lacks, and a wrong ID shows in `runner.status` on the first notice.
 - **The notice session runs on the owner machine's `local` target.** The grant names that target alone.
 - **A notice waits with no cap on tries.** A cap of 5 tries, one per tick, loses every notice sent while the owner's machine sleeps for more than 25 seconds.
 - **An uncertain key gives way to a new key after 3 tries.** A rare second copy costs the owner less than a notice that never arrives.
@@ -122,9 +142,11 @@ notices: {
 
 - **A forced hold reaches the notice session.** On the deployed system, a throwaway item whose task tells the worker to end its attempt as `blocked`, with a question, goes on hold. Within 2 ticks, the notice session's conversation shows an `<atc-message kind="connector">` that names the item, and `atc_message_get` on that message's ID shows `delivered` or `answered`. A hold from a rules change proves nothing, because no settle writes its notice.
 - **A stopped notice session loses no notice.** With the notice session stopped, a forced hold leaves `runner.status` at `unsent: 1` with `lastError: 'session_dead'`. After the owner starts the session again, the notice arrives once, within 15 minutes.
-- **A rename loses no notice.** With the notice session stopped, a forced hold leaves one row unsent. The owner renames the session and starts it again, with no change to the Secret, and the notice arrives once, at the same session ID.
+- **A rename loses no notice.** With the notice session stopped, a forced hold leaves one row unsent. The owner renames the session and starts it again, with no new registration, and the notice arrives once, at the same session ID.
+- **A new session registers with no deploy.** With the registered session stopped, a forced hold leaves one row unsent. A new session runs `boxxy notices register` with its own gateway ID, and `boxxy notices show` prints that ID. The notice arrives once at the new session within 15 minutes, with no change to the deployment and no restart of the server.
 - `sendNotices` tests: a refused try changes the key; an uncertain try keeps it; the third uncertain try changes it; a refused try after an uncertain one keeps the key; a row before its `nextTryAt` is not tried; a row with 50 tries is still tried.
-- Notifier tests: each atc code maps to its outcome, and the adapter sends the key it gets.
+- Notifier tests: each atc code maps to its outcome, the adapter sends the key it gets, and it reads the session on each call.
+- Registration tests: the worker token is refused on both procedures; an ID of the wrong shape is refused; with a notice token and no registered session, a row stays unsent and `runner.status` shows `no-notice-session`; a row that waits reaches a session that registers later; the server refuses to start while `BOXXY_ATC_NOTICE_SESSION` is set, and prints no value.
 
 ## Builder decides
 

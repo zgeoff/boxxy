@@ -167,6 +167,11 @@ export interface StoreDatabase {
     key_tries: number;
     next_try_at: number;
   };
+  notice_session: {
+    id: number;
+    gateway_id: string;
+    set_at: number;
+  };
   outbox: {
     seq: Generated<number>;
     fact_id: string;

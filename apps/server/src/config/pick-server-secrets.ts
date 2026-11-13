@@ -2,14 +2,6 @@ import { createPrivateKey } from 'node:crypto';
 import type { GithubAppKeys } from '@boxxy/forge-github';
 import type { ServerConfig } from './server-config-schema.ts';
 
-export interface NoticeSecrets {
-  // the notice session's gateway ID, `<daemon>.<incarnation>.<id>`
-  readonly session: string;
-
-  // the atc token of the notifier, which no other atc call sends
-  readonly token: string;
-}
-
 interface ServerSecrets {
   readonly workerToken: string;
   readonly atcToken: string;
@@ -21,8 +13,9 @@ interface ServerSecrets {
   // for a broker that adds the GitHub credential on the way out
   readonly githubApp: GithubAppKeys | null;
 
-  // null: no notice session is set, so the server sends no notice
-  readonly notice: NoticeSecrets | null;
+  // the atc token of the notifier, which no other atc call sends; null: none is set, so the
+  // server sends no notice
+  readonly noticeToken: string | null;
 
   // the noslop App's keys, by their variable names; null: none is set, so the server posts no
   // review and rejects each review close-out
@@ -36,10 +29,10 @@ export type SecretsAnswer =
   | { readonly kind: 'missing'; readonly names: readonly string[] }
 
   // the name of a variable whose value has the wrong shape and the shape it needs, never the value
-  | { readonly kind: 'malformed'; readonly name: string; readonly expected: string };
+  | { readonly kind: 'malformed'; readonly name: string; readonly expected: string }
 
-// atc addresses a session only by its gateway ID, and answers `no_such_session` to a name
-const gatewayID = /^[^.]+\.[^.]+\..+$/u;
+  // the name of a variable the server no longer reads and what takes its place, never the value
+  | { readonly kind: 'retired'; readonly name: string; readonly instead: string };
 
 const reviewNames = [
   'NOSLOP_GITHUB_APP_ID',
@@ -53,14 +46,22 @@ const githubAppNames = [
   'BOXXY_GITHUB_APP_INSTALLATION_ID',
 ];
 
-// The secrets come from the environment only. An empty token counts as missing. The notice
-// session is unset only when its variable is absent; an empty one has the wrong shape. The noslop
-// App's keys go together, and so do the boxxy App's: once one is set, each is needed.
+// The secrets come from the environment only. An empty token counts as missing. The store holds
+// the notice session, so its variable is retired whatever its value. The noslop App's keys go
+// together, and so do the boxxy App's: once one is set, each is needed.
 export function pickServerSecrets(
   config: ServerConfig,
   env: Readonly<Record<string, string | undefined>>,
 ): SecretsAnswer {
-  const noticeSession = env['BOXXY_ATC_NOTICE_SESSION'];
+  if (env['BOXXY_ATC_NOTICE_SESSION'] !== undefined) {
+    return {
+      kind: 'retired',
+      name: 'BOXXY_ATC_NOTICE_SESSION',
+      instead: 'register the notice session with `boxxy notices register <gateway-id>`',
+    };
+  }
+
+  const noticeToken = env['BOXXY_ATC_NOTICE_TOKEN'];
   const hasReview = reviewNames.some((name) => env[name] !== undefined);
   const hasGithubApp = githubAppNames.some((name) => env[name] !== undefined);
 
@@ -68,7 +69,7 @@ export function pickServerSecrets(
     'BOXXY_WORKER_TOKEN',
     'BOXXY_ATC_TOKEN',
     ...(config.pepys === undefined ? [] : ['BOXXY_PEPYS_SIGNING_SECRET']),
-    ...(noticeSession === undefined ? [] : ['BOXXY_ATC_NOTICE_TOKEN']),
+    ...(noticeToken === undefined ? [] : ['BOXXY_ATC_NOTICE_TOKEN']),
     ...(hasReview ? reviewNames : []),
     ...(hasGithubApp ? githubAppNames : []),
   ];
@@ -77,14 +78,6 @@ export function pickServerSecrets(
 
   if (names.length > 0) {
     return { kind: 'missing', names };
-  }
-
-  if (noticeSession !== undefined && !gatewayID.test(noticeSession)) {
-    return {
-      kind: 'malformed',
-      name: 'BOXXY_ATC_NOTICE_SESSION',
-      expected: "the session's gateway ID, <daemon>.<incarnation>.<id>",
-    };
   }
 
   const githubInstallation = env['BOXXY_GITHUB_APP_INSTALLATION_ID'] ?? '';
@@ -108,10 +101,7 @@ export function pickServerSecrets(
             installationID: Number(githubInstallation),
           }
         : null,
-      notice:
-        noticeSession === undefined
-          ? null
-          : { session: noticeSession, token: env['BOXXY_ATC_NOTICE_TOKEN'] ?? '' },
+      noticeToken: noticeToken ?? null,
       review: hasReview
         ? Object.fromEntries(reviewNames.map((name) => [name, env[name] ?? '']))
         : null,

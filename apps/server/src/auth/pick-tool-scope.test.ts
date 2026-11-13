@@ -12,6 +12,8 @@ test.each([
   ['runner_status', 'read'],
   ['report_cost', 'read'],
   ['report_stage_times', 'read'],
+  ['notices_show', 'read'],
+  ['notices_register', 'write'],
   ['item_file', 'write'],
   ['item_note', 'write'],
   ['item_retry', 'write'],

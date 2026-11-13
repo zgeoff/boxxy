@@ -1,5 +1,5 @@
 export interface AtcSendRequest {
-  // the name or the id of the session that gets the message
+  // the gateway ID of the session that gets the message
   readonly session: string;
   readonly text: string;
   readonly idempotencyKey: string;
@@ -13,5 +13,8 @@ export interface AtcMessageClient {
 
 export interface AtcNotifierOptions {
   readonly client: AtcMessageClient;
-  readonly session: string;
+
+  // The gateway ID of the session that gets the notices, read on each call, so a change of
+  // session takes effect on the next notice. null: no session is set, and the call sends nothing.
+  readonly readSession: () => Promise<string | null>;
 }

@@ -14,6 +14,7 @@ import { api } from './handlers/api.ts';
 import { attemptHandlers } from './handlers/attempt-handlers.ts';
 import { authHandlers } from './handlers/auth-handlers.ts';
 import { itemHandlers } from './handlers/item-handlers.ts';
+import { noticesHandlers } from './handlers/notices-handlers.ts';
 import { outboxHandlers } from './handlers/outbox-handlers.ts';
 import { planHandlers } from './handlers/plan-handlers.ts';
 import { relationHandlers } from './handlers/relation-handlers.ts';
@@ -36,6 +37,7 @@ const router = api.router({
   attempt: attemptHandlers,
   plan: planHandlers,
   runner: runnerHandlers,
+  notices: noticesHandlers,
   outbox: outboxHandlers,
   rules: rulesHandlers,
   auth: authHandlers,

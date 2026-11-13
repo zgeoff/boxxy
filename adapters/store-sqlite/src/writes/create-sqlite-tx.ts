@@ -4,6 +4,7 @@ import type {
   FactId,
   Instant,
   Limit,
+  NoticeSessionRow,
   NoticeTryUpdate,
   PullRequestRef,
   RunnerId,
@@ -49,6 +50,7 @@ export function createSQLiteTx(db: Kysely<StoreDatabase>): StoreTx {
     listKeptSessions: inTurn(reader.listKeptSessions),
     listSessionsToForget: inTurn(reader.listSessionsToForget),
     readRunner: inTurn(reader.readRunner),
+    readNoticeSession: inTurn(reader.readNoticeSession),
     readUnsentFacts: inTurn(reader.readUnsentFacts),
     readOutboxCounts: inTurn(reader.readOutboxCounts),
     readItemBehind: inTurn(reader.readItemBehind),
@@ -68,6 +70,7 @@ export function createSQLiteTx(db: Kysely<StoreDatabase>): StoreTx {
     markNoticeTried: inTurn((id: number, update: NoticeTryUpdate) =>
       writeNoticeTry(db, id, update),
     ),
+    writeNoticeSession: inTurn((session: NoticeSessionRow) => writeNoticeSession(db, session)),
   };
 }
 
@@ -230,5 +233,18 @@ async function writeNoticeTry(
       ...(update.sentAt === null ? {} : { sent_at: update.sentAt }),
     }))
     .where('id', '=', id)
+    .execute();
+}
+
+async function writeNoticeSession(
+  db: Kysely<StoreDatabase>,
+  session: NoticeSessionRow,
+): Promise<void> {
+  const values = { gateway_id: session.gatewayID, set_at: session.setAt };
+
+  await db
+    .insertInto('notice_session')
+    .values({ id: 1, ...values })
+    .onConflict((conflict) => conflict.column('id').doUpdateSet(values))
     .execute();
 }

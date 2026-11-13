@@ -466,6 +466,13 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
 
       return row === undefined ? null : parseStoreRow('runners', row);
     },
+    readNoticeSession: async () => {
+      const row = await db.selectFrom('notice_session').selectAll().executeTakeFirst();
+
+      return row === undefined
+        ? null
+        : { gatewayID: row.gateway_id, setAt: brandSchemas.instant.parse(row.set_at) };
+    },
     readUnsentFacts: async (limit) => {
       const rows = await db
         .selectFrom('outbox')

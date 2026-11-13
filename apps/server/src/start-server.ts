@@ -34,7 +34,6 @@ import { createORPCClient } from '@orpc/client';
 import { RPCLink } from '@orpc/client/fetch';
 import invariant from 'tiny-invariant';
 import { buildTokenDigest } from './auth/pick-request-scope.ts';
-import type { NoticeSecrets } from './config/pick-server-secrets.ts';
 import { pickServerSecrets } from './config/pick-server-secrets.ts';
 import { readCallerProof } from './config/read-caller-proof.ts';
 import { readServerConfig } from './config/read-server-config.ts';
@@ -42,6 +41,7 @@ import type { ServerConfig } from './config/server-config-schema.ts';
 import { verifyGateCheck } from './constants.ts';
 import { createCapacityBackoff } from './create-capacity-backoff.ts';
 import { formatErrorChain } from './format-error-chain.ts';
+import { makeNoticeSessionRead } from './make-notice-session-read.ts';
 import { createOffOutbox } from './outbox/create-off-outbox.ts';
 import type { OutboxSender } from './outbox/start-outbox-sender.ts';
 import { startOutboxSender } from './outbox/start-outbox-sender.ts';
@@ -111,6 +111,10 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
     return { kind: 'refused', message: `set ${secrets.name} to ${secrets.expected}` };
   }
 
+  if (secrets.kind === 'retired') {
+    return { kind: 'refused', message: `unset ${secrets.name}: ${secrets.instead}` };
+  }
+
   // The review session runs the command on an agent host, which never gets the App's keys; the
   // server uses them only to check and post the result.
   const reviewGate = createNoslopReviewGate({ appEnv: secrets.secrets.review ?? {} });
@@ -166,7 +170,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
   }
 
   const runner = brandSchemas.runnerId.parse(config.runner);
-  const notifier = buildNotifier(config, secrets.secrets.notice);
+  const notifier = buildNotifier(config, secrets.secrets.noticeToken, store);
 
   const pepys = startPepys({
     config,
@@ -338,23 +342,24 @@ function buildMergeWorker(forge: Forge | null, store: ClaimStore): [WorkerKindNa
 }
 
 // The notifier gets an atc client of its own, with the notice token: the worker token never
-// reaches the owner's machine, where the notice session runs.
-function buildNotifier(config: ServerConfig, notice: NoticeSecrets | null): Notifier {
-  if (notice === null) {
+// reaches the owner's machine, where the notice session runs. With no notice token, every notice
+// counts as sent.
+function buildNotifier(config: ServerConfig, token: string | null, store: ClaimStore): Notifier {
+  if (token === null) {
     return createNullNotifier();
   }
 
   const client = createAtcMcpClient({
     url: config.atc.url,
     host: config.atc.host ?? null,
-    token: notice.token,
+    token,
     fetch,
     timeoutMs: atcTimeoutMs,
   });
 
   return createAtcNotifier({
     client: { sendMessage: client.sendMessage },
-    session: notice.session,
+    readSession: makeNoticeSessionRead(store),
   });
 }
 

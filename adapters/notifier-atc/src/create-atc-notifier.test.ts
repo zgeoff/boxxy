@@ -17,6 +17,15 @@ function setupTest() {
   return {
     sent,
     notice,
+
+    // takes every message
+    client: {
+      sendMessage: (request: AtcSendRequest) => {
+        sent.push(request);
+
+        return Promise.resolve({ message: 'm1', status: 'queued' });
+      },
+    },
     createNotifier: (code: string | null) =>
       createAtcNotifier({
         client: {
@@ -30,7 +39,7 @@ function setupTest() {
             return Promise.reject(Object.assign(new Error('atc said no'), { code }));
           },
         },
-        session: 'daemon.1.s1',
+        readSession: () => Promise.resolve('daemon.1.s1'),
       }),
   };
 }
@@ -96,10 +105,54 @@ test('it returns uncertain without the error text when the send fails with no co
 
   const notifier = createAtcNotifier({
     client: { sendMessage: () => Promise.reject(new Error('connect refused with token abc')) },
-    session: 'daemon.1.s1',
+    readSession: () => Promise.resolve('daemon.1.s1'),
   });
 
   const outcome = await notifier.tellHold(ctx.notice);
 
   expect(outcome).toStrictEqual({ kind: 'uncertain', reason: 'atc send failed' });
+});
+
+test('it returns refused with no-notice-session and sends nothing when no session is set', async () => {
+  const ctx = setupTest();
+
+  const notifier = createAtcNotifier({
+    client: ctx.client,
+    readSession: () => Promise.resolve(null),
+  });
+
+  const outcome = await notifier.tellHold(ctx.notice);
+
+  expect([outcome, ctx.sent]).toStrictEqual([{ kind: 'refused', reason: 'no-notice-session' }, []]);
+});
+
+test('it reads the session on each call, so the second message goes to a session set in between', async () => {
+  const ctx = setupTest();
+  const sessions = ['daemon.1.s1', 'daemon.2.s4'];
+
+  const notifier = createAtcNotifier({
+    client: ctx.client,
+    readSession: () => Promise.resolve(sessions.shift() ?? null),
+  });
+
+  await notifier.tellHold(ctx.notice);
+  await notifier.tellHold(ctx.notice);
+
+  expect(ctx.sent.map((request) => request.session)).toStrictEqual(['daemon.1.s1', 'daemon.2.s4']);
+});
+
+test('it returns refused without the error text and sends nothing when the session read fails', async () => {
+  const ctx = setupTest();
+
+  const notifier = createAtcNotifier({
+    client: ctx.client,
+    readSession: () => Promise.reject(new Error('the store file is locked')),
+  });
+
+  const outcome = await notifier.tellHold(ctx.notice);
+
+  expect([outcome, ctx.sent]).toStrictEqual([
+    { kind: 'refused', reason: 'notice-session-unread' },
+    [],
+  ]);
 });

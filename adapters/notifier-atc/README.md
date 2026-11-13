@@ -12,7 +12,7 @@
 </div>
 
 boxxy's `Notifier` port on atc: a hold notice arrives as one atc message in one session, which the
-caller names by its atc gateway ID.
+caller names by its atc gateway ID on each notice.
 
 ## Install
 
@@ -26,8 +26,11 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Features
 
-- `createAtcNotifier({ client, session })` returns a `Notifier`. The message names the item and the
-  reason, and says the owner next runs `boxxy item note` and `boxxy item retry`.
+- `createAtcNotifier({ client, readSession })` returns a `Notifier`. The message names the item and
+  the reason, and says the owner next runs `boxxy item note` and `boxxy item retry`.
+- The adapter calls `readSession` for the session's gateway ID on each notice, so a change of
+  session takes effect on the next notice. With no session, it sends nothing and returns `refused`
+  with the reason `no-notice-session`.
 - The client is one call, `sendMessage`. The app builds it from its atc connection.
 - The adapter sends the key it gets from the notice as the idempotency key, and keeps no state.
 - A send that atc refuses with a code that ran nothing returns `refused`. Every other failure

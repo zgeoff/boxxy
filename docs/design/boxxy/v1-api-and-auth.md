@@ -7,8 +7,8 @@ One contract holds every v1 procedure, and the server serves it through four doo
 ```mermaid
 flowchart LR
   cli[the CLI] --> rpc["/rpc"]
-  owner[the owner's agent] --> mcp["/mcp: 20 tools"]
-  remote[the owner's assistant] --> oauth[the public door: OAuth] --> pmcp["/mcp: 20 tools, by scope"]
+  owner[the owner's agent] --> mcp["/mcp: 22 tools"]
+  remote[the owner's assistant] --> oauth[the public door: OAuth] --> pmcp["/mcp: 22 tools, by scope"]
   session[an agent in a session] --> broker[the impd broker]
   broker --> rpc
   broker --> smcp["/mcp/session: 5 tools"]
@@ -68,6 +68,8 @@ Section C of [`01-api.ts`](./sketches/v1/edge/01-api.ts) holds the input, the ou
 | `attempt.recordPullRequest` | hook | none | links a pull request to the attempt |
 | `runner.pause` | owner | owner | pauses the runner |
 | `runner.resume` | owner | owner | resumes the runner |
+| `notices.register` | owner | owner | sets the [notice session](./owner-notices.md#the-registered-notice-session) by its atc gateway ID |
+| `notices.show` | owner | owner | returns the notice session and when it was set |
 | `outbox.retry` | owner | none | clears the park mark of every parked outbox row |
 | `rules.dryRun` | owner | none | shows where each open item would stand under a rules file |
 | `auth.enroll` | owner | none | mints a one-time link that enrolls a passkey for the public door |
@@ -77,7 +79,7 @@ Section C of [`01-api.ts`](./sketches/v1/edge/01-api.ts) holds the input, the ou
 | `auth.listGrants` | owner | none | lists the grants |
 | `auth.revokeGrant` | owner | none | revokes one grant |
 
-- **20 owner tools.** The owner's agent files and steers work for the owner, so it gets every command on an item, every read, and the runner pause and resume. Only the owner's path files a held item, releases one or lists the held items, and a test checks that their access rows say so.
+- **22 owner tools.** The owner's agent files and steers work for the owner, so it gets every command on an item, every read, the runner pause and resume, and the two procedures of the notice session. Only the owner's path files a held item, releases one or lists the held items, and a test checks that their access rows say so.
 - **5 session tools, on their own endpoint.** A session's tool list holds no command on another item. It reads the other items of its repo, so triage can find a duplicate or an overlap, and [the session's reads](#the-sessions-reads-of-other-items) sets what it sees. A session reports found work in its close-out, where settle dedupes it.
 - **10 procedures with no tool.** A hook program calls two of them. The outbox retry acts on the whole outbox and writes no fact that shows who did it, so it stays with a person at the CLI. The rules dry run takes a whole file. Six manage the public door's sign-in, as [the public door](#the-public-door) says.
 - **A test keeps the access table in step with the contract.** It fails when a procedure has no entry, when an entry names no procedure, or when a tool has no name.

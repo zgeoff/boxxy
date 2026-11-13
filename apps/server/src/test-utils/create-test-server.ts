@@ -15,7 +15,9 @@ import type {
   AttemptId,
   AttemptRow,
   CallerProof,
+  ClaimStore,
   Clock,
+  Notifier,
   PepysReader,
   PhaseName,
   RepoName,
@@ -67,6 +69,10 @@ export interface TestServerOptions {
 
   // the repos that the configuration's spawn section names; `example/app` alone when left out
   readonly repos?: readonly RepoName[];
+
+  // builds the notifier that the tick sends through, from the server's store, in place of the
+  // fake one, which `notifier` then still returns
+  readonly makeNotifier?: (store: ClaimStore) => Notifier;
 }
 
 export interface TestServer {
@@ -117,6 +123,7 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
   const callerProof = createFakeCallerProof();
   const pepys = createFakePepysReader();
   const notifier = createFakeNotifier();
+  const tickNotifier = options.makeNotifier?.(dispatch.store) ?? notifier;
   const forge = createFakeForge();
   const workerToken = 'test-worker-token';
 
@@ -203,7 +210,7 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
         rules: dispatch.rules(),
         backoff: dispatch.backoff,
         spawn: dispatch.spawn,
-        notifier,
+        notifier: tickNotifier,
         now: dispatch.clock.now(),
         newId: dispatch.newId,
         readings,

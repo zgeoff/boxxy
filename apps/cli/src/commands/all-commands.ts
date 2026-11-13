@@ -3,6 +3,7 @@ import { attemptCommands } from './attempt-commands.ts';
 import { authCommands } from './auth-commands.ts';
 import { hookCommands } from './hook-commands.ts';
 import { itemCommands } from './item-commands.ts';
+import { noticesCommands } from './notices-commands.ts';
 import { planCommands } from './plan-commands.ts';
 import { relationCommands } from './relation-commands.ts';
 import { reportCommands } from './report-commands.ts';
@@ -14,6 +15,7 @@ export const allCommands: readonly Command[] = [
   ...relationCommands,
   ...planCommands,
   ...runnerCommands,
+  ...noticesCommands,
   ...authCommands,
   ...reportCommands,
   ...attemptCommands,

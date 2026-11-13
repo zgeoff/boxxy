@@ -86,6 +86,7 @@ test('it creates every table of the store schema in an empty file', async () => 
     'limit_seats',
     'limits',
     'notes',
+    'notice_session',
     'notices',
     'outbox',
     'pull_requests',
@@ -206,6 +207,24 @@ test('it makes each old notice row due at its own time, on its first key, in the
     ],
     'CREATE INDEX notices_unsent ON notices (next_try_at) WHERE sent_at IS NULL',
   ]);
+});
+
+test('it refuses a second notice session row', async () => {
+  const ctx = await setupTest();
+
+  await ctx.migrate();
+
+  ctx.writeRaw(
+    "INSERT INTO notice_session (id, gateway_id, set_at) VALUES (1, 'desk.3.s7', ?)",
+    1000,
+  );
+
+  expect(() => {
+    ctx.writeRaw(
+      "INSERT INTO notice_session (id, gateway_id, set_at) VALUES (2, 'desk.4.s2', ?)",
+      2000,
+    );
+  }).toThrow(/CHECK constraint failed/u);
 });
 
 test('it gives an item of a version 4 file an empty body, and lets a new item hold one', async () => {

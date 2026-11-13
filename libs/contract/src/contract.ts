@@ -20,6 +20,7 @@ import { mcp } from '@orpc/mcp';
 import { z } from 'zod';
 import { authContract } from './auth-contract.ts';
 import { itemReadContract } from './item-read-contract.ts';
+import { noticesContract } from './notices-contract.ts';
 import { outboxStatusSchema } from './outbox-status-schema.ts';
 
 // The wire rules are in section B of the API sketch: no transform in an input, times as ISO 8601,
@@ -522,6 +523,8 @@ export const contract = {
       .input(emptyInput)
       .output(z.object({ paused: z.literal(false) })),
   },
+
+  notices: noticesContract,
 
   outbox: {
     // Clears the park mark of every parked outbox row, and wakes the sender.

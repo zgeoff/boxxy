@@ -51,7 +51,7 @@ test('it reads the two tokens when the configuration has no pepys section', () =
       atcToken: 'atc-token-1',
       pepysSigningSecret: null,
       githubApp: null,
-      notice: null,
+      noticeToken: null,
       review: null,
     },
   });
@@ -79,7 +79,7 @@ test('it reads the three boxxy App keys when they are set', () => {
         privateKey: ctx.privateKey,
         installationID: 4242,
       },
-      notice: null,
+      noticeToken: null,
       review: null,
     },
   });
@@ -203,19 +203,18 @@ test('it reads the signing secret when the configuration has a pepys section', (
       atcToken: 'atc-token-1',
       pepysSigningSecret: 'signing-secret-1',
       githubApp: null,
-      notice: null,
+      noticeToken: null,
       review: null,
     },
   });
 });
 
-test('it reads the notice session and its own token when both are set', () => {
+test('it reads the notice token when it is set', () => {
   const ctx = setupTest();
 
   const answer = pickServerSecrets(ctx.config, {
     BOXXY_WORKER_TOKEN: 'worker-token-1',
     BOXXY_ATC_TOKEN: 'atc-token-1',
-    BOXXY_ATC_NOTICE_SESSION: 'desk.3.s7',
     BOXXY_ATC_NOTICE_TOKEN: 'notice-token-1',
   });
 
@@ -226,7 +225,7 @@ test('it reads the notice session and its own token when both are set', () => {
       atcToken: 'atc-token-1',
       pepysSigningSecret: null,
       githubApp: null,
-      notice: { session: 'desk.3.s7', token: 'notice-token-1' },
+      noticeToken: 'notice-token-1',
       review: null,
     },
   });
@@ -250,7 +249,7 @@ test('it reads the three noslop App keys when they are set', () => {
       atcToken: 'atc-token-1',
       pepysSigningSecret: null,
       githubApp: null,
-      notice: null,
+      noticeToken: null,
       review: {
         NOSLOP_GITHUB_APP_ID: '101',
         NOSLOP_GITHUB_APP_PRIVATE_KEY: 'test-private-key',
@@ -275,27 +274,20 @@ test('it names the other noslop App keys as missing when only one is set', () =>
   });
 });
 
-test.each([
-  { token: undefined, title: 'unset' },
-  { token: '', title: 'empty' },
-])(
-  'it names the notice token as missing when a notice session is set and the token is $title',
-  (row) => {
-    const ctx = setupTest();
+test('it names the notice token as missing when it is set and empty', () => {
+  const ctx = setupTest();
 
-    const answer = pickServerSecrets(ctx.config, {
-      BOXXY_WORKER_TOKEN: 'worker-token-1',
-      BOXXY_ATC_TOKEN: 'atc-token-1',
-      BOXXY_ATC_NOTICE_SESSION: 'desk.3.s7',
-      BOXXY_ATC_NOTICE_TOKEN: row.token,
-    });
+  const answer = pickServerSecrets(ctx.config, {
+    BOXXY_WORKER_TOKEN: 'worker-token-1',
+    BOXXY_ATC_TOKEN: 'atc-token-1',
+    BOXXY_ATC_NOTICE_TOKEN: '',
+  });
 
-    expect(answer).toStrictEqual({ kind: 'missing', names: ['BOXXY_ATC_NOTICE_TOKEN'] });
-  },
-);
+  expect(answer).toStrictEqual({ kind: 'missing', names: ['BOXXY_ATC_NOTICE_TOKEN'] });
+});
 
-test.each(['owner-desk', 'desk.3', ''])(
-  'it names the notice session as malformed for a value that is no gateway ID: "%s"',
+test.each(['desk.3.s7', 'owner-desk', ''])(
+  'it names the notice session variable as retired while it is set to "%s", and prints no value',
   (session) => {
     const ctx = setupTest();
 
@@ -307,9 +299,9 @@ test.each(['owner-desk', 'desk.3', ''])(
     });
 
     expect(answer).toStrictEqual({
-      kind: 'malformed',
+      kind: 'retired',
       name: 'BOXXY_ATC_NOTICE_SESSION',
-      expected: "the session's gateway ID, <daemon>.<incarnation>.<id>",
+      instead: 'register the notice session with `boxxy notices register <gateway-id>`',
     });
   },
 );

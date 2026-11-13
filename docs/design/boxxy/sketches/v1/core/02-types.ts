@@ -615,6 +615,7 @@ export interface StoreReader {
   listNoticesDue: (now: Instant, limit: number) => Promise<readonly NoticeRow[]>; // for the notice port, below: unsent rows whose `nextTryAt` has passed, oldest `nextTryAt` first
   listKeptSessions: () => Promise<readonly { item: ItemId; kept: KeptSession }[]>; // for cleanup of kept sessions
   listSessionsToForget: (now: Instant) => Promise<readonly AttemptRow[]>; // for cleanup: the sessions that `forget` is due for
+  readNoticeSession: () => Promise<NoticeSessionRow | null>; // for the notice port, below; null until `notices.register` writes the row with `writeNoticeSession`
 }
 
 // Built: the store port family is in libs/model/src/ports/types.ts, with SQLite and the memory
@@ -668,9 +669,9 @@ export interface StoreReader {
 //   - The rows are in a small table, not in the fact outbox. The outbox sends facts to pepys in order and
 //     parks on a failure; a notice has another target and must not hold facts back.
 //   - A hold that a rules change makes (no settle) gets no notice.
-// Adapters: `createAtcNotifier({ client, session })`, which sends an atc message to ONE session by
-// its gateway ID (from `BOXXY_ATC_NOTICE_SESSION`, see owner-notices.md); `createFakeNotifier`, for
-// tests; `createNullNotifier`, when the environment sets no notice session.
+// Adapters: `createAtcNotifier({ client, readSession })`, which sends an atc message to ONE session
+// by its gateway ID, read from the store's notice session row on each try (see owner-notices.md);
+// `createFakeNotifier`, for tests; `createNullNotifier`, when the environment sets no notice token.
 // An agent's question takes the same path: the agent closes out `blocked` with the question in
 // the close-out; the rules map `blocked` to a hold; the notice goes out; the owner answers with
 // a note (`item.note`) and `item.retry`, and the next attempt gets the note in its launch prompt.
@@ -683,7 +684,15 @@ export interface Notifier {
 // idempotencyKey })`, that resolves when atc takes the message and rejects when atc refuses it. A
 // rejection becomes `refused` for the codes in owner-notices.md and `uncertain` for every other,
 // with the error's string `code` as the reason (`no_such_session`) or `atc send failed`; the error
-// text is never copied. The notice carries its row's key, and the adapter keeps no state.
+// text is never copied. The notice carries its row's key, and the adapter keeps no state. With no
+// notice session row, the adapter calls atc for nothing and returns `refused` with the reason
+// `no-notice-session`.
+
+// The one row of the `notice_session` table: the session that gets each hold notice.
+export interface NoticeSessionRow {
+  readonly gatewayID: string; // the atc gateway ID, `<daemon>.<incarnation>.<id>`
+  readonly setAt: Instant;
+}
 
 export interface NoticeRow {
   readonly id: number;

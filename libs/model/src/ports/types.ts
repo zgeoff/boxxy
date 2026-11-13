@@ -31,6 +31,7 @@ import type {
   LimitSeatRow,
   NoteRow,
   NoticeRow,
+  NoticeSessionRow,
   PhaseName,
   PoolName,
   PullRequestRef,
@@ -133,6 +134,9 @@ export interface StoreReader extends OutboxReader {
 
   // null before the runner's first heartbeat, which reads as not paused
   readRunner: (id: RunnerId) => Promise<RunnerRow | null>;
+
+  // null until the owner registers a notice session
+  readNoticeSession: () => Promise<NoticeSessionRow | null>;
 }
 
 // The outbox part of the store, for the outbox sender. "Unsent" leaves out a parked row.
@@ -185,6 +189,9 @@ export interface StoreTx extends StoreReader {
 
   // one more try of the notice, with the new key state and next try time; a `sentAt` also marks it sent
   markNoticeTried: (id: number, update: NoticeTryUpdate) => Promise<void>;
+
+  // replaces the one notice session row
+  writeNoticeSession: (session: NoticeSessionRow) => Promise<void>;
 }
 
 // A change may write no fact, such as the suspend mark; such a change moves no store version. The

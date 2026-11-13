@@ -368,4 +368,32 @@ export const claimStoreOutboxCases: readonly ClaimStoreCase[] = [
       };
     },
   ],
+  [
+    '#readNoticeSession returns null before a notice session is written',
+    async (store) => {
+      const session: unknown = await store.read((transaction) => transaction.readNoticeSession());
+
+      return { received: session, expected: null };
+    },
+  ],
+  [
+    '#writeNoticeSession replaces the one notice session row',
+    async (store) => {
+      await store.exclusive(async (transaction) => {
+        await transaction.writeNoticeSession({
+          gatewayID: 'desk.3.s7',
+          setAt: brandSchemas.instant.parse(1000),
+        });
+
+        await transaction.writeNoticeSession({
+          gatewayID: 'desk.4.s2',
+          setAt: brandSchemas.instant.parse(2000),
+        });
+      });
+
+      const session: unknown = await store.read((transaction) => transaction.readNoticeSession());
+
+      return { received: session, expected: { gatewayID: 'desk.4.s2', setAt: 2000 } };
+    },
+  ],
 ];

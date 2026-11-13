@@ -20,9 +20,9 @@ export interface Access {
 }
 
 export const access = {
-  // The owner's agent files and steers work on the owner's behalf, so it gets every command on an
-  // item and every read: 20 tools, among them the two switches of the runner. `rules.dryRun` is a read that is CLI only.
-  // Only this path files a held item, releases one or lists the held items.
+  // The owner's agent files and steers work for the owner: every command on an item, every read,
+  // the runner's two switches and the notice session, 22 tools. `rules.dryRun` is a read that is
+  // CLI only. Only this path files a held item, releases one or lists the held items.
   'item.file': buildOwnerWrite(
     'boxxy item file --repo --title --outcome [--body | --body-file] [--acceptance]… [--kind] [--design-mode] [--blocked-by]… [--label]… [--held <reason>]',
   ),
@@ -38,6 +38,8 @@ export const access = {
   'relation.remove': buildOwnerWrite('boxxy relation remove <source> <type> <target>'),
   'runner.pause': buildOwnerSwitch('boxxy runner pause'),
   'runner.resume': buildOwnerSwitch('boxxy runner resume'),
+  'notices.register': buildOwnerSwitch('boxxy notices register <gateway-id>'),
+  'notices.show': buildOwnerRead('boxxy notices show'),
   'plan.defer': buildOwnerWrite('boxxy defer <item> [--until] --reason'),
   'plan.undefer': buildOwnerWrite('boxxy undefer <item>'),
   'plan.expedite': buildOwnerWrite('boxxy expedite <item>… --reason [--expires]'),

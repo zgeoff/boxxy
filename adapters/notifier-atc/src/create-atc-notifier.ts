@@ -1,4 +1,4 @@
-import type { HoldNotice, Notifier } from '@boxxy/model';
+import type { HoldNotice, NoticeOutcome, Notifier } from '@boxxy/model';
 import type { AtcNotifierOptions } from './types.ts';
 
 // the atc codes of a call that ran nothing; every other error may have sent the message
@@ -13,9 +13,15 @@ const refusedCodes = new Set([
 export function createAtcNotifier(options: AtcNotifierOptions): Notifier {
   return {
     async tellHold(notice) {
+      const session = await readSession(options);
+
+      if (session.kind === 'refused') {
+        return session;
+      }
+
       try {
         await options.client.sendMessage({
-          session: options.session,
+          session: session.id,
           text: formatHoldMessage(notice),
           idempotencyKey: notice.key,
         });
@@ -32,6 +38,21 @@ export function createAtcNotifier(options: AtcNotifierOptions): Notifier {
       return { kind: 'sent' };
     },
   };
+}
+
+type SessionAnswer =
+  | { readonly kind: 'found'; readonly id: string }
+  | Extract<NoticeOutcome, { kind: 'refused' }>;
+
+// With no session, or with a read that failed, the adapter calls atc for nothing.
+async function readSession(options: AtcNotifierOptions): Promise<SessionAnswer> {
+  try {
+    const id = await options.readSession();
+
+    return id === null ? { kind: 'refused', reason: 'no-notice-session' } : { kind: 'found', id };
+  } catch {
+    return { kind: 'refused', reason: 'notice-session-unread' };
+  }
 }
 
 function formatHoldMessage(notice: HoldNotice): string {

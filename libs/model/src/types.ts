@@ -424,6 +424,13 @@ export interface RunnerRow {
   readonly paused: boolean;
 }
 
+// The session that gets each hold notice. The store holds at most one.
+export interface NoticeSessionRow {
+  // the session's atc gateway ID, `<daemon>.<incarnation>.<id>`
+  readonly gatewayID: string;
+  readonly setAt: Instant;
+}
+
 // A hold notice for the `Notifier` port. The tick tries it again, with no cap, until atc takes it.
 export interface NoticeRow {
   readonly id: number;

@@ -1,4 +1,12 @@
-import type { ClaimStore, Limit, LimitSeatRow, OutboxFact, TableName, Tables } from '@boxxy/model';
+import type {
+  ClaimStore,
+  Limit,
+  LimitSeatRow,
+  NoticeSessionRow,
+  OutboxFact,
+  TableName,
+  Tables,
+} from '@boxxy/model';
 
 export interface ClosableClaimStore extends ClaimStore {
   close: () => Promise<void>;
@@ -20,4 +28,5 @@ export type MemoryTables = { [T in TableName]: Tables[T][] } & {
   outbox: OutboxFact[];
   limits: Limit[];
   limit_seats: LimitSeatRow[];
+  notice_session: NoticeSessionRow | null;
 };

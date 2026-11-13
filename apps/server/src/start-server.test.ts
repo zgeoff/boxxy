@@ -122,13 +122,9 @@ test('it refuses to start while the configuration file still holds noticeSession
   });
 });
 
-test('it refuses to start when the notice session is set and the notice token is empty', async () => {
+test('it refuses to start when the notice token is set and empty', async () => {
   const ctx = await setupTest();
-
-  const answer = await ctx.start({
-    BOXXY_ATC_NOTICE_SESSION: 'desk.3.s7',
-    BOXXY_ATC_NOTICE_TOKEN: '',
-  });
+  const answer = await ctx.start({ BOXXY_ATC_NOTICE_TOKEN: '' });
 
   expect(answer).toStrictEqual({
     kind: 'refused',
@@ -136,28 +132,24 @@ test('it refuses to start when the notice session is set and the notice token is
   });
 });
 
-test('it refuses to start on a notice session that is no gateway ID, and prints no value', async () => {
-  const ctx = await setupTest();
-
-  const answer = await ctx.start({
-    BOXXY_ATC_NOTICE_SESSION: 'owner-desk',
-    BOXXY_ATC_NOTICE_TOKEN: 'notice-token-1',
-  });
-
-  expect(answer).toStrictEqual({
-    kind: 'refused',
-    message:
-      "set BOXXY_ATC_NOTICE_SESSION to the session's gateway ID, <daemon>.<incarnation>.<id>",
-  });
-});
-
-test('it starts and stops with a notice session and its token', async () => {
+test('it refuses to start while BOXXY_ATC_NOTICE_SESSION is still set, and prints no value', async () => {
   const ctx = await setupTest();
 
   const answer = await ctx.start({
     BOXXY_ATC_NOTICE_SESSION: 'desk.3.s7',
     BOXXY_ATC_NOTICE_TOKEN: 'notice-token-1',
   });
+
+  expect(answer).toStrictEqual({
+    kind: 'refused',
+    message:
+      'unset BOXXY_ATC_NOTICE_SESSION: register the notice session with `boxxy notices register <gateway-id>`',
+  });
+});
+
+test('it starts and stops with a notice token and no registered notice session', async () => {
+  const ctx = await setupTest();
+  const answer = await ctx.start({ BOXXY_ATC_NOTICE_TOKEN: 'notice-token-1' });
 
   expect(answer.kind).toBe('started');
 });
@@ -458,7 +450,7 @@ test('it spawns a repo with a git source as an atc workspace that atc trusts, wi
   });
 });
 
-test('it sends a hold notice to the notice session by its ID with the notice token', async () => {
+test('it sends a hold notice to the notice session that the store holds, with the notice token', async () => {
   const ctx = await setupTest();
 
   const atc = createFakeAtc({ clock: createFakeClock(), targets: { cloud: 'suspending' } });
@@ -507,11 +499,11 @@ test('it sends a hold notice to the notice session by its ID with the notice tok
     }),
   );
 
+  await store.exclusive((tx) => tx.writeNoticeSession({ gatewayID: 'desk.3.s7', setAt: at }));
   await store.close();
 
   const answer = await ctx.start({
     BOXXY_ATC_TOKEN: 'atcs_worker-token-0123',
-    BOXXY_ATC_NOTICE_SESSION: 'desk.3.s7',
     BOXXY_ATC_NOTICE_TOKEN: 'atcs_notice-token-0123',
   });
 

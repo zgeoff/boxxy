@@ -124,6 +124,7 @@ export type {
   Minutes,
   NoteRow,
   NoticeRow,
+  NoticeSessionRow,
   ObservationBoundary,
   OutcomeName,
   PhaseName,

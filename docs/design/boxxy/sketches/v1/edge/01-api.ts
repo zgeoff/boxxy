@@ -5,7 +5,7 @@
 //
 //   A. The call sites: the server, the CLI, an MCP client.
 //   B. Wire schemas and the rules of the contract.
-//   C. The contract: 26 procedures in five groups.
+//   C. The contract: the procedures, in five groups.
 //   D. Access: who calls each procedure, and which are MCP tools.
 //   E. The session rule: how a call is tied to its attempt, and the bearer token of v1.
 //   F. Imp identity, behind the `CallerProof` port.
@@ -97,7 +97,7 @@ const sessionMcp = serveTools(sessionTools, 'boxxy-session');
 //   every route of both listeners: 403 for a request a browser page sent (`Origin`, or a
 //   `Sec-Fetch-Site` other than `none`), and 413 for a body over 256 KiB
 //   .all('/rpc/*',        { parse: 'none' }, ({ request }) => rpc.handle(request, { prefix: '/rpc', context }))
-//   .all('/mcp',          { parse: 'none' }, ({ request }) => ownerMcp.fetch(request))     20 tools
+//   .all('/mcp',          { parse: 'none' }, ({ request }) => ownerMcp.fetch(request))     22 tools
 //   worker listener, `api.workerListen`, the broker's target; 401 on any path with no token:
 //   .all('/rpc/*',        { parse: 'none' }, ({ request }) => rpc.handle(request, { prefix: '/rpc', context }))
 //   .all('/mcp/session',  { parse: 'none' }, ({ request }) => sessionMcp.fetch(request))    5 tools
@@ -524,6 +524,17 @@ export const contract = {
     resume: oc.input(z.object({})).output(z.object({ paused: z.literal(false) })),
   },
 
+  // The notice session (../../owner-notices.md). Both act on the one `notice_session` row and write
+  // no fact. `register` checks the shape of the ID only: the notice token has no read scope.
+  notices: {
+    register: tool('notices_register', 'Sets the session that gets each hold notice, by its atc gateway ID. A notice that waits goes to this session on its next try.')
+      .input(z.object({ gatewayID: z.string().max(200).regex(/^[^.\s]+\.[^.\s]+\.\S+$/u) })) // `<daemon>.<incarnation>.<id>`
+      .output(z.object({ session: z.object({ gatewayID: z.string(), setAt: time }).nullable() })),
+    show: tool('notices_show', 'Returns the session that gets each hold notice and when it was set. The session is null when none is registered.')
+      .input(z.object({}))
+      .output(z.object({ session: z.object({ gatewayID: z.string(), setAt: time }).nullable() })),
+  },
+
   outbox: {
     // Clears the park mark of every parked outbox row, and wakes the sender (02-outbox.ts).
     retry: oc.input(z.object({})).output(z.object({ unparked: z.number().int() })),
@@ -613,7 +624,7 @@ const ownerRead = (cli: string): Access => ({ caller: 'owner', actor: 'none', to
 
 export const access = {
   // The owner's agent files and steers work on the owner's behalf, so it gets every command on an
-  // item and every read: 20 tools, the runner pause and resume among them. One read is not among
+  // item and every read: 22 tools, the runner pause and resume and the notice session's two among them. One read is not among
   // them, `rules.dryRun` (below), which is CLI only.
   'item.file': ownerWrite('boxxy item file --repo --title --outcome [--body | --body-file] [--acceptance]… [--kind] [--design-mode] [--security] [--blocked-by]… [--label]… [--held <reason>]'),
   'item.edit': ownerWrite('boxxy item edit <item> [--title] [--outcome] [--body | --body-file] [--acceptance]… [--design-mode] [--security | --no-security] [--label]…'),
@@ -653,6 +664,8 @@ export const access = {
   // that would show who did it.
   'runner.pause': { caller: 'owner', actor: 'none', tool: 'owner', cli: 'boxxy runner pause' },
   'runner.resume': { caller: 'owner', actor: 'none', tool: 'owner', cli: 'boxxy runner resume' },
+  'notices.register': { caller: 'owner', actor: 'none', tool: 'owner', cli: 'boxxy notices register <gateway-id>' },
+  'notices.show': ownerRead('boxxy notices show'),
 
   // Not a tool: it acts on the whole outbox, not one item, and writes no fact that would show who
   // did it. It is for a person at the CLI.

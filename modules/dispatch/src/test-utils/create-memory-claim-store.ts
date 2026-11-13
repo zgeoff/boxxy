@@ -76,6 +76,7 @@ function buildEmptyTables(): MemoryTables {
     outbox: [],
     limits: [],
     limit_seats: [],
+    notice_session: null,
   };
 }
 
@@ -162,6 +163,11 @@ function buildMemoryTx(tables: MemoryTables): StoreTx {
           nextTryAt: update.nextTryAt,
         });
       }
+
+      return Promise.resolve();
+    },
+    writeNoticeSession: (session) => {
+      Object.assign(tables, { notice_session: { ...session } });
 
       return Promise.resolve();
     },

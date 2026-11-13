@@ -265,6 +265,7 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
       );
     },
     readRunner: (id) => Promise.resolve(getTables().runners.find((row) => row.id === id) ?? null),
+    readNoticeSession: () => Promise.resolve(getTables().notice_session),
     readUnsentFacts: (limit) =>
       Promise.resolve(
         getTables()
