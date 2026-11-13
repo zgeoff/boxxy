@@ -54,7 +54,7 @@ interface SessionBoundFact extends FactBase {
 }
 
 // `slept` and `woken`: the fold reads the attempt and the time
-export interface AttemptMarkFact extends FactBase {
+interface AttemptMarkFact extends FactBase {
   type: 'boxxy.attempt.slept' | 'boxxy.attempt.woken';
   payload: { attempt: string };
 }
