@@ -251,6 +251,12 @@ function buildRelationPlan(
     return 'the relation is live already';
   }
 
+  // Two `blocks` rows that point at each other hold both items for good. A longer loop needs the
+  // whole relation graph, which the settle does not read.
+  if (isLive(ctx.relations, { source: ends.target, target: ends.source }, type)) {
+    return 'the relation would close a loop with a live one';
+  }
+
   const row: RelationRow = {
     source: ends.source,
     target: ends.target,

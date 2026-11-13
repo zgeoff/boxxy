@@ -27,6 +27,7 @@ import type {
   GrantId,
   Instant,
   ItemId,
+  ItemKindName,
   ItemState,
   ItemView,
   ItemWithLevers,
@@ -134,7 +135,7 @@ export interface StoreReader {
   readItem(id: ItemId, now: Instant, maxAttemptsByKind: MaxAttemptsByKind): Promise<ItemView | null>;
   readItemDetail(id: ItemId, now: Instant, maxAttemptsByKind: MaxAttemptsByKind): Promise<ItemDetailRows | null>; // `item.get`
   listItems(filter: ItemFilter, now: Instant, maxAttemptsByKind: MaxAttemptsByKind): Promise<ItemWithLevers[]>; // `item.list`, with live levers
-  listOpenIssues(repo: RepoName, now: Instant, maxAttemptsByKind: MaxAttemptsByKind): Promise<ItemView[]>; // settle's dedupe: open `core.issue` items
+  listOpenItems(repo: RepoName, kinds: readonly ItemKindName[], now: Instant, maxAttemptsByKind: MaxAttemptsByKind): Promise<ItemView[]>; // settle's dedupe: the open items of each kind the entries name
   readLastLeaseGen(item: ItemId, phase: PhaseName): Promise<number>; // 0 when the item phase has no lease
   readAttempt(id: AttemptId): Promise<AttemptRow | null>;
   listEvidence(attempt: AttemptId): Promise<EvidenceRow[]>; // the close-out parser's context

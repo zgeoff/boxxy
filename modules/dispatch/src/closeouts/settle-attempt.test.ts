@@ -301,7 +301,12 @@ test('it readies an item that waits on another once that item closes', async () 
 
   const detail = await ctx.readItem(attempt.item);
 
-  expect(detail.item.derived).toStrictEqual({ state: 'ready' });
+  const received: unknown = [detail.item.derived, detail.relations];
+
+  expect(received).toStrictEqual([
+    { state: 'ready' },
+    [expect.objectContaining({ source: other, target: attempt.item, type: 'blocks' })],
+  ]);
 });
 
 test('it adds no relation from another item when the rules hold the accepted item', async () => {
@@ -355,6 +360,37 @@ test('it skips a relation from another item that is live already, and still sett
 
   expect(settled?.payload).toMatchObject({
     skippedEffects: [{ effect: 'add-relation', reason: 'the relation is live already' }],
+  });
+});
+
+test('it skips a relation from another item that the item already relates to the same way', async () => {
+  const ctx = await setupTest();
+  const other = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+  const attempt = await ctx.claimAt('triage');
+
+  await ctx.store.exclusive((tx) =>
+    tx.applyChange(buildMockRelationChange({ source: attempt.item, target: other })),
+  );
+
+  await ctx.closeOut(attempt, {
+    result: { kind: 'accepted' },
+    relations: [{ type: 'blocks', source: other }],
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+  const [settled] = await ctx.listFacts('boxxy.attempt.settled');
+
+  const received: unknown = [detail.item.derived, detail.relations.length];
+
+  expect(received).toStrictEqual([{ state: 'ready' }, 1]);
+
+  expect(settled?.payload).toMatchObject({
+    skippedEffects: [
+      { effect: 'add-relation', reason: 'the relation would close a loop with a live one' },
+    ],
   });
 });
 

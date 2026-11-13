@@ -51,8 +51,8 @@ export declare const buildCloseOutParser: CloseOutParser<BuildCloseOut>;
 export declare function missingCriteria(item: ItemView, evidence: readonly EvidenceRow[], cited: BuildCloseOut["criteria"]): readonly CriterionId[];
 
 /**
- * Dedupe for `openItems`. An entry matches an open `core.issue` in the same repo whose title is equal
- * after `normaliseTitle`. A match files nothing, and settle lists the matched item in the attempt's
+ * Dedupe for `openItems`. An entry matches an open item of the same repo and kind whose title is
+ * equal after `normaliseTitle`; slice 1 filed `core.issue` only. A match files nothing, and settle lists the matched item in the attempt's
  * `boxxy.attempt.settled` fact. Settle reads `open` through the store and passes it in. Slice 1.
  * Owner: slice-1.md "The build close-out".
  */

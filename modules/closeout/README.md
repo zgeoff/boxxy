@@ -40,7 +40,7 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 - `closeOutLimits`, the byte limit of a close-out, and `measureJsonBytes`, which measures a value as
   stored.
 - `dedupeOpenItems`, which matches each open item the agent reports to an open item with the same
-  title.
+  kind and title.
 
 ## Documentation
 

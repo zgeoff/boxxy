@@ -73,7 +73,7 @@ export interface WorkFacts {
 
   // written by: `item.file`; settle, for each `file-item` effect (through dedupe)
   // The row without `keptSession`: that is state between two attempts, and no fact carries it.
-  'boxxy.item.filed': Omit<ItemRow, 'keptSession'>; // id, kind, repo, title, outcome, body, acceptance, fields (designMode), labels, foundInAttempt, filedBy, filedAt
+  'boxxy.item.filed': Omit<ItemRow, 'keptSession'>; // id, kind, repo, title, outcome, body, acceptance, fields (designMode, security), labels, foundInAttempt, filedBy, filedAt
 
   // written by: `item.note`. The FULL text of one note; notes are append-only.
   'boxxy.item.noted': { readonly seq: number; readonly text: string };
@@ -86,7 +86,7 @@ export interface WorkFacts {
     readonly body?: string; // the whole new body
     readonly acceptance?: readonly Criterion[];
     readonly kind?: ItemKindName;
-    readonly fields?: { readonly designMode?: DesignMode };
+    readonly fields?: { readonly designMode?: DesignMode; readonly security?: true }; // the whole fields
     readonly labels?: readonly string[]; // the whole new list
     readonly byAttempt: AttemptId | null; // the attempt whose settle made the edit
   };
