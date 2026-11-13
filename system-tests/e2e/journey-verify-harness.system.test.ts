@@ -7,9 +7,11 @@ import type { HttpClient } from '@wringer/http';
 import invariant from 'tiny-invariant';
 import { z } from 'zod';
 import { createVerifyHarness } from '../src/test-utils/verify/harness/create-verify-harness.ts';
+import { fileClosedItem } from '../src/test-utils/verify/harness/file-closed-item.ts';
 import { fileItem } from '../src/test-utils/verify/harness/file-item.ts';
 import { landItem } from '../src/test-utils/verify/harness/land-item.ts';
 import { makeControlHandler } from '../src/test-utils/verify/harness/make-control-handler.ts';
+import { readSessionItem } from '../src/test-utils/verify/harness/read-session-item.ts';
 import { runSession } from '../src/test-utils/verify/harness/run-session.ts';
 import { serveHarness } from '../src/test-utils/verify/harness/serve-harness.ts';
 import { costSchema, itemShowSchema, timesSchema } from '../src/test-utils/verify/harness/types.ts';
@@ -86,6 +88,33 @@ test('it settles a triage attempt as succeeded with the outcome accepted', async
     session: { id: expect.any(String), phase: 'triage', state: 'succeeded', outcome: 'accepted' },
     attempts: [{ phase: 'triage', state: 'succeeded', outcome: 'accepted' }],
   });
+});
+
+test('it lets the session of a triage attempt find and read a closed item of its repo', async () => {
+  const ctx = await setupTest();
+  const closed = await fileClosedItem(ctx.ctx, { title: 'Read the theme from the desktop' });
+
+  await fileItem(ctx.ctx, { title: 'Read the system theme' });
+  await runSession(ctx.ctx, { closeOut: 'accepted', minutes: 4 });
+
+  const shown = await readSessionItem(ctx.ctx, {
+    text: 'theme from the desktop',
+    title: 'Read the theme from the desktop',
+  });
+
+  expect(shown.item).toStrictEqual({ id: closed.item, title: 'Read the theme from the desktop' });
+});
+
+test('it fails the session read with check-failed when the shown title differs', async () => {
+  const ctx = await setupTest();
+
+  await fileClosedItem(ctx.ctx, { title: 'Read the theme from the desktop' });
+  await fileItem(ctx.ctx, { title: 'Read the system theme' });
+  await runSession(ctx.ctx, { closeOut: 'accepted', minutes: 4 });
+
+  const read = readSessionItem(ctx.ctx, { text: 'theme from the desktop', title: 'Another title' });
+
+  await expect(read).rejects.toMatchObject({ code: 'check-failed' });
 });
 
 test('it reports 2 requests and 3 USD, a build of 30 minutes and a merge of 20 for a landed item', async () => {

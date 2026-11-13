@@ -6,10 +6,18 @@ import { z } from 'zod';
 import { expectEqual } from './expect-equal.ts';
 import { featurePaths, ignoredPaths } from './feature-paths.ts';
 import { controlRoutes } from './harness/control-routes.ts';
+import { fileClosedItem } from './harness/file-closed-item.ts';
 import { fileItem } from './harness/file-item.ts';
 import { landItem } from './harness/land-item.ts';
+import { readSessionItem } from './harness/read-session-item.ts';
 import { runSession } from './harness/run-session.ts';
-import { closeOutPresetSchema, costSchema, itemShowSchema, timesSchema } from './harness/types.ts';
+import {
+  closeOutPresetSchema,
+  costSchema,
+  itemShowSchema,
+  sessionItemShowSchema,
+  timesSchema,
+} from './harness/types.ts';
 import { postControl } from './post-control.ts';
 import { runBoxxy } from './run-boxxy.ts';
 
@@ -53,6 +61,15 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
     run: (input, ctx) => fileItem(ctx, input),
   })
   .action({
+    name: 'file-closed-item',
+    summary:
+      'File an item on example/app and close it, with `boxxy item file` and `boxxy item close`; the current item stays',
+    effect: 'write',
+    input: z.strictObject({ title: z.string().min(1) }),
+    data: z.strictObject({ item: z.string() }),
+    run: (input, ctx) => fileClosedItem(ctx, input),
+  })
+  .action({
     name: 'run-session',
     summary:
       "Run one attempt of the current item: a tick claims it, the session's hook binds it, the session closes out with the preset, its turn ends, and two ticks settle it",
@@ -83,8 +100,8 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
     run: (input, ctx) => landItem(ctx, input),
   })
 
-  // Reads. Each runs one owner command of the real CLI on the current item, and fails with
-  // `check-failed` when a value differs from the one the journey names.
+  // Reads. Each runs the real CLI, as the owner on the current item or as the last session, and
+  // fails with `check-failed` when a value differs from the one the journey names.
   .command({
     path: ['boxxy', 'item'],
     summary: "Check the current item's title, and the state and outcome of its --phase attempt",
@@ -112,6 +129,15 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
 
       return shown;
     },
+  })
+  .command({
+    path: ['boxxy', 'session-item'],
+    summary:
+      'As the session of the last run-session, find the one item that holds --text with `boxxy attempt list-items`, and check its title with `boxxy attempt show-item`',
+    effect: 'read',
+    args: z.strictObject({ text: z.string(), title: z.string() }),
+    data: sessionItemShowSchema,
+    run: (args, ctx) => readSessionItem(ctx, args),
   })
   .command({
     path: ['boxxy', 'cost'],

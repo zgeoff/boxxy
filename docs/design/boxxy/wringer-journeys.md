@@ -71,13 +71,13 @@ The journeys call these actions of the registry:
 | Feature | The journey runs | It reads |
 | --- | --- | --- |
 | `file-item` | `file-item` | `item show`: the item and its title |
-| `claim-settle` | `file-item`, then `run-session` with the close-out `accepted` | `item show`: a triage attempt `succeeded` with the outcome `accepted` |
+| `claim-settle` | `file-closed-item`, `file-item`, then `run-session` with the close-out `accepted` | `attempt list-items` and `attempt show-item`, as the session: the closed item; `item show`: a triage attempt `succeeded` with the outcome `accepted` |
 | `report-cost` | `land-item` | `cost`: 2 requests and 3 USD; `times`: a build of 30 minutes and a merge of 20 |
 
 A pass proves this much:
 
 - `file-item`: the owner's path through the CLI and the server to the store files an item and shows it.
-- `claim-settle`: dispatch's `decide`, the claim, the start on the fake worker, the hook's bind, the close-out parse and the settle work together.
+- `claim-settle`: dispatch's `decide`, the claim, the start on the fake worker, the hook's bind, the close-out parse and the settle work together, and a session reads another item of its repo through the worker listener.
 - `report-cost`: the facts reach pepys through the outbox, and both reports come back from pepys through the server and the CLI.
 
 A journey proves boxxy's own code. The fakes stand in for the worker, forge, caller-proof and notifier adapters, so a journey never runs them.

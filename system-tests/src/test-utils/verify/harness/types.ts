@@ -40,6 +40,14 @@ export const itemShowSchema = z.object({
   attempts: z.array(attemptSchema),
 });
 
+const listedItemSchema = z.object({ id: z.string() });
+
+export const sessionItemListSchema = z.object({ items: z.array(listedItemSchema) });
+
+export const sessionItemShowSchema = z.object({
+  item: z.object({ id: z.string(), title: z.string() }),
+});
+
 export const costSchema = z.object({
   totals: z.object({ requests: z.number(), costUSD: z.number() }),
 });

@@ -11,12 +11,14 @@ test('it names the phase and each outcome of the close-out', () => {
   expect(guide).toContain('with one of these outcomes: accepted, duplicate, declined.');
 });
 
-test('it names the three session commands', () => {
+test('it names the five session commands', () => {
   const guide = formatSessionGuide({ phase: 'build', outcomes: ['built'] });
   const commands = guide.match(/boxxy attempt [a-z-]+/gu);
 
   expect(commands).toStrictEqual([
     'boxxy attempt current',
+    'boxxy attempt list-items',
+    'boxxy attempt show-item',
     'boxxy attempt evidence',
     'boxxy attempt close-out',
   ]);

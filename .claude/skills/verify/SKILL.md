@@ -144,12 +144,14 @@ help marks each command `[read]` or `[write]`.
 - Run the actions and reads in the order a journey lists them. Each journey files its own item,
   which later lines call the current item, so the journeys run in any order on one run.
 - `bun verify action file-item --title <title>` files an item through the real `boxxy` CLI.
+  `file-closed-item` files one and closes it, and leaves the current item as it was.
 - `bun verify action run-session --close-out <preset> --minutes <n>` runs one attempt of the current
   item. The presets are `accepted`, `designed`, `built` and `passed`.
 - `bun verify action land-item --title <title>` takes an item through triage, design, build, review
   and the merge, and sends its facts to pepys.
 - `bun verify boxxy item`, `boxxy cost` and `boxxy times` run one owner command of the CLI on the
-  current item, and fail with `check-failed` when a value differs.
+  current item. `boxxy session-item` reads an item as the last `run-session`'s session. Each fails
+  with `check-failed` when a value differs.
 
 <!-- /repo -->
 
