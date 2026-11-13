@@ -411,7 +411,7 @@
     "@orpc/server": "2.0.0-beta.50",
     "@pepys/api": "0.4.1",
     "@pepys/cli": "0.4.1",
-    "@pepys/ingest": "0.4.0",
+    "@pepys/ingest": "0.4.1",
     "@pepys/kit": "0.4.0",
     "@pepys/source-github": "0.4.0",
     "@pepys/source-telemetry": "0.4.0",
@@ -892,7 +892,7 @@
 
     "@pepys/contract": ["@pepys/contract@0.4.1", "", { "dependencies": { "@orpc/contract": "2.0.0-beta.50", "@orpc/openapi": "2.0.0-beta.50", "@pepys/kit": "0.4.1", "zod": "4.6.7" } }, "sha512-GTvYB5KBdQWw8rkkOODMpNFHGhGAZEVNTEzS12xfgl095P+69oRZynSOCNOX4Za6r8iA69RXdLLUptxeTFgBTA=="],
 
-    "@pepys/ingest": ["@pepys/ingest@0.4.0", "", { "dependencies": { "@impz/client": "6.12.0", "@pepys/kit": "0.4.0", "@pepys/schema": "0.4.0", "@s2-dev/streamstore": "0.30.0", "@zgeoff/std": "0.4.3", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2" } }, "sha512-G4+Raqv4oreV0aZwr7IRVHximtajFh+T2F7CSCFnvVR8LpVxblwac/CLcbeVEHUPid+i5OxCOfuWcs8UtsP4qw=="],
+    "@pepys/ingest": ["@pepys/ingest@0.4.1", "", { "dependencies": { "@impz/client": "6.12.0", "@pepys/kit": "0.4.1", "@pepys/schema": "0.4.1", "@s2-dev/streamstore": "0.30.0", "@zgeoff/std": "0.4.3", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2" } }, "sha512-epMYjVphXSprN8EDnnbmEfdwOmmQOIUjntzibsJ6+VKip90HmWEJg4CzzJxkbYaLbRDUt2FeNNV6M+AAFZZALA=="],
 
     "@pepys/kit": ["@pepys/kit@0.4.0", "", { "dependencies": { "@zgeoff/std": "0.4.3", "kysely": "0.29.8", "ts-pattern": "5.9.2", "type-fest": "5.10.0", "zod": "4.6.7" } }, "sha512-ru0Rt2qfVRdk5bymJq0AX9w/4Issq/5/43wx4xU5fNiWxifmW/e1UqLrwJN5ngRYd6/1ponSIcnbkV1ApKzWUg=="],
 
@@ -1506,19 +1506,21 @@
 
     "@pepys/api/xstate": ["xstate@5.33.3", "", {}, "sha512-AnDRjS/GyKHmbA1PyhVCYBqYsA7EGe3KGgeD0ht3NFsXzoz7leX/HQDFX9QlHFJ/ltLHPsgChJYwPzRvB/0b4g=="],
 
-    "@pepys/cli/@pepys/ingest": ["@pepys/ingest@0.4.1", "", { "dependencies": { "@impz/client": "6.12.0", "@pepys/kit": "0.4.1", "@pepys/schema": "0.4.1", "@s2-dev/streamstore": "0.30.0", "@zgeoff/std": "0.4.3", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2" } }, "sha512-epMYjVphXSprN8EDnnbmEfdwOmmQOIUjntzibsJ6+VKip90HmWEJg4CzzJxkbYaLbRDUt2FeNNV6M+AAFZZALA=="],
-
     "@pepys/cli/@pepys/kit": ["@pepys/kit@0.4.1", "", { "dependencies": { "@zgeoff/std": "0.4.3", "kysely": "0.29.8", "ts-pattern": "5.9.2", "type-fest": "5.10.0", "zod": "4.6.7" } }, "sha512-TKGT5Z15Pzf+BsG7g9B/Ry8+VAlo5YH8BxRBH+yh4GWNXD0iLdufhftLu9HKotEFLoQCig0Obfah5XDZZMELbw=="],
 
     "@pepys/cli/xstate": ["xstate@5.33.3", "", {}, "sha512-AnDRjS/GyKHmbA1PyhVCYBqYsA7EGe3KGgeD0ht3NFsXzoz7leX/HQDFX9QlHFJ/ltLHPsgChJYwPzRvB/0b4g=="],
 
     "@pepys/contract/@pepys/kit": ["@pepys/kit@0.4.1", "", { "dependencies": { "@zgeoff/std": "0.4.3", "kysely": "0.29.8", "ts-pattern": "5.9.2", "type-fest": "5.10.0", "zod": "4.6.7" } }, "sha512-TKGT5Z15Pzf+BsG7g9B/Ry8+VAlo5YH8BxRBH+yh4GWNXD0iLdufhftLu9HKotEFLoQCig0Obfah5XDZZMELbw=="],
 
-    "@pepys/ingest/@pepys/schema": ["@pepys/schema@0.4.0", "", { "dependencies": { "@pepys/kit": "0.4.0", "@zgeoff/std": "0.4.3", "ts-pattern": "5.9.2", "zod": "4.6.7" } }, "sha512-oLyXYYtFBijGriP6jgQL0uS4rOx7gCx8tC6yqY+f1xZQ2cK8NSE1OyzrW6dTUAlA3MUFdFHUB7aeT/6IeIiiUw=="],
+    "@pepys/ingest/@pepys/kit": ["@pepys/kit@0.4.1", "", { "dependencies": { "@zgeoff/std": "0.4.3", "kysely": "0.29.8", "ts-pattern": "5.9.2", "type-fest": "5.10.0", "zod": "4.6.7" } }, "sha512-TKGT5Z15Pzf+BsG7g9B/Ry8+VAlo5YH8BxRBH+yh4GWNXD0iLdufhftLu9HKotEFLoQCig0Obfah5XDZZMELbw=="],
 
     "@pepys/schema/@pepys/kit": ["@pepys/kit@0.4.1", "", { "dependencies": { "@zgeoff/std": "0.4.3", "kysely": "0.29.8", "ts-pattern": "5.9.2", "type-fest": "5.10.0", "zod": "4.6.7" } }, "sha512-TKGT5Z15Pzf+BsG7g9B/Ry8+VAlo5YH8BxRBH+yh4GWNXD0iLdufhftLu9HKotEFLoQCig0Obfah5XDZZMELbw=="],
 
     "@pepys/source-github/@pepys/api": ["@pepys/api@0.4.0", "", { "dependencies": { "@better-auth/mcp": "1.7.15", "@better-auth/oauth-provider": "1.7.15", "@modelcontextprotocol/server": "2.4.0", "@orpc/contract": "2.0.0-beta.50", "@orpc/mcp": "2.0.0-beta.50", "@orpc/openapi": "2.0.0-beta.50", "@orpc/server": "2.0.0-beta.50", "@pepys/contract": "0.4.0", "@pepys/kit": "0.4.0", "@pepys/kysely-turso": "0.4.0", "@pepys/schema": "0.4.0", "@simplewebauthn/server": "14.0.3", "@tursodatabase/database": "0.8.3", "@zgeoff/kysely-bun-sqlite": "0.3.2", "@zgeoff/std": "0.4.3", "better-auth": "1.7.15", "elysia": "2.0.0-rc.1", "exact-mirror": "1.2.7", "kysely": "0.29.8", "openapi-types": "12.1.3", "reflect-metadata": "0.2.2", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2", "type-fest": "5.10.0", "typebox": "1.4.4", "xstate": "5.33.3", "zod": "4.6.7" } }, "sha512-ZkwyloSFpzVjE758hAPjPco4mS7+/oSMBevPWN0tZ20TrBUI30wt6r+QkHhs+iyMWgLUONi+ltA45IqVxFZrGw=="],
+
+    "@pepys/source-github/@pepys/ingest": ["@pepys/ingest@0.4.0", "", { "dependencies": { "@impz/client": "6.12.0", "@pepys/kit": "0.4.0", "@pepys/schema": "0.4.0", "@s2-dev/streamstore": "0.30.0", "@zgeoff/std": "0.4.3", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2" } }, "sha512-G4+Raqv4oreV0aZwr7IRVHximtajFh+T2F7CSCFnvVR8LpVxblwac/CLcbeVEHUPid+i5OxCOfuWcs8UtsP4qw=="],
+
+    "@pepys/testing/@pepys/ingest": ["@pepys/ingest@0.4.0", "", { "dependencies": { "@impz/client": "6.12.0", "@pepys/kit": "0.4.0", "@pepys/schema": "0.4.0", "@s2-dev/streamstore": "0.30.0", "@zgeoff/std": "0.4.3", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2" } }, "sha512-G4+Raqv4oreV0aZwr7IRVHximtajFh+T2F7CSCFnvVR8LpVxblwac/CLcbeVEHUPid+i5OxCOfuWcs8UtsP4qw=="],
 
     "@pepys/testing/@pepys/kysely-turso": ["@pepys/kysely-turso@0.4.0", "", { "dependencies": { "@tursodatabase/database": "0.8.3", "kysely": "0.29.8", "tiny-invariant": "1.3.3" } }, "sha512-Ng4E4DotX+/pJUuvyAbgd6sKckMCpD2V2m4v983NNBwIMaas5itNyUolGpP4YGbZ9KNY6eu+X9rUbz/PB122aA=="],
 
@@ -1607,6 +1609,10 @@
     "@pepys/source-github/@pepys/api/typebox": ["typebox@1.4.4", "", {}, "sha512-ctPyL8BZibv6HYU6cE3ldDtfCTh7nXM7WPuL3KQVyRRhMnZEzU3o2yLVywxEEFmKEx+8EdeqG1/uTNzazRbxLA=="],
 
     "@pepys/source-github/@pepys/api/xstate": ["xstate@5.33.3", "", {}, "sha512-AnDRjS/GyKHmbA1PyhVCYBqYsA7EGe3KGgeD0ht3NFsXzoz7leX/HQDFX9QlHFJ/ltLHPsgChJYwPzRvB/0b4g=="],
+
+    "@pepys/source-github/@pepys/ingest/@pepys/schema": ["@pepys/schema@0.4.0", "", { "dependencies": { "@pepys/kit": "0.4.0", "@zgeoff/std": "0.4.3", "ts-pattern": "5.9.2", "zod": "4.6.7" } }, "sha512-oLyXYYtFBijGriP6jgQL0uS4rOx7gCx8tC6yqY+f1xZQ2cK8NSE1OyzrW6dTUAlA3MUFdFHUB7aeT/6IeIiiUw=="],
+
+    "@pepys/testing/@pepys/ingest/@pepys/schema": ["@pepys/schema@0.4.0", "", { "dependencies": { "@pepys/kit": "0.4.0", "@zgeoff/std": "0.4.3", "ts-pattern": "5.9.2", "zod": "4.6.7" } }, "sha512-oLyXYYtFBijGriP6jgQL0uS4rOx7gCx8tC6yqY+f1xZQ2cK8NSE1OyzrW6dTUAlA3MUFdFHUB7aeT/6IeIiiUw=="],
 
     "@zgeoff/format-codemod/oxc-parser/@oxc-parser/binding-android-arm-eabi": ["@oxc-parser/binding-android-arm-eabi@0.155.0", "", { "os": "android", "cpu": "arm" }, "sha512-A6xv7hDtnTm+xlZ7utn6rRQpRMJHRhVr3gjRGqlx0RUX84mNk0pAsy6YN/wWhuOTkaZhRrrzaLxf0NfbH77j2w=="],
 
