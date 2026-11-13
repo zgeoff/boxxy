@@ -3,6 +3,8 @@ import { buildSessionInput } from './build-session-input.ts';
 
 test.each([
   ['attempt.current', {}],
+  ['attempt.listItems', {}],
+  ['attempt.getItem', { item: 'i-1' }],
   ['attempt.evidence', { session: { attempt: 'a-1' }, kind: 'test', ref: 'bun test' }],
   ['attempt.closeOut', { session: { attempt: 'a-1' }, closeOut: {} }],
   [

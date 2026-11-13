@@ -100,7 +100,7 @@ const sessionMcp = serveTools(sessionTools, 'boxxy-session');
 //   .all('/mcp',          { parse: 'none' }, ({ request }) => ownerMcp.fetch(request))     20 tools
 //   worker listener, `api.workerListen`, the broker's target; 401 on any path with no token:
 //   .all('/rpc/*',        { parse: 'none' }, ({ request }) => rpc.handle(request, { prefix: '/rpc', context }))
-//   .all('/mcp/session',  { parse: 'none' }, ({ request }) => sessionMcp.fetch(request))    3 tools
+//   .all('/mcp/session',  { parse: 'none' }, ({ request }) => sessionMcp.fetch(request))    5 tools
 // The build removes the slice 1 rule of docs/design/boxxy/slice-1.md that the server binds to
 // `127.0.0.1` only.
 // A worker session is in an imp and cannot reach the private network address. Its calls to
@@ -424,6 +424,18 @@ export const contract = {
         ]),
       ),
 
+    // Reads only, for triage to find a duplicate or an overlap. Like `attempt.current`, each
+    // takes no attempt ID: the server answers for the repo of the item of the session's current
+    // attempt. A held item, an item of another repo and a missing item all answer `NOT_FOUND`.
+    // Built: libs/contract/src/item-read-contract.ts.
+    listItems: tool('attempt_list_items', 'Lists the items of the repo of this session, newest first, with their derived state and position. Held items are left out. Use it to find an item that asks for the same work or overlaps it.')
+      .input(z.object({ state: z.enum(['idea', 'ready', 'blocked', 'running', 'waiting', 'done', 'archived']).optional(), phase: id.optional(), text: text(200).optional(), label: text(50).optional(), limit: z.number().int().min(1).max(50).default(20), after: id.optional() }))
+      .output(z.discriminatedUnion('kind', [z.object({ kind: z.literal('items'), repo: z.string(), items: z.array(itemListViewSchema), next: id.nullable() }), z.object({ kind: z.literal('refused'), reason: z.literal('no-attempt') })])),
+    getItem: tool('attempt_get_item', 'Returns one item of the repo of this session with its body, position, notes, relations and pull requests.')
+      .errors(notFound)
+      .input(z.object({ item: itemId }))
+      .output(z.discriminatedUnion('kind', [z.object({ kind: z.literal('item'), item: itemViewSchema, notes: z.array(noteRowSchema), relations: z.array(relationRowSchema), pullRequests: z.array(pullRequestRowSchema) }), z.object({ kind: z.literal('refused'), reason: z.literal('no-attempt') })])),
+
     // core: `attempt.bindSession`. Called by `boxxy hook session-start`. Writes
     // `boxxy.attempt.session_bound` for a new pair. No tool: a hook program calls it, not a model.
     bindSession: oc
@@ -619,13 +631,16 @@ export const access = {
   'report.cost': ownerRead('boxxy cost <item>'),
   'report.stageTimes': ownerRead('boxxy times <item>'),
 
-  // An agent in a session needs three things: what it works on, a place for evidence, and the
-  // close-out. Three tools, on their own endpoint, so a session's tool list stays short and holds
-  // no command on another item. A session files found work in its close-out (`openItems`), not
-  // with `item_file`, so settle can dedupe it.
+  // An agent in a session needs what it works on, a place for evidence, the close-out, and a
+  // read of the other items of its repo, so triage can find a duplicate or an overlap. Five
+  // tools, on their own endpoint, so a session's tool list stays short and holds no command on
+  // another item. A session files found work in its close-out (`openItems`), not with
+  // `item_file`, so settle can dedupe it.
   'attempt.current': { caller: 'session', actor: 'none', tool: 'session', cli: 'boxxy attempt current' },
   'attempt.evidence': { caller: 'session', actor: 'boxxy:attempt:<id>', tool: 'session', cli: 'boxxy attempt evidence --kind --ref [--observed]' },
   'attempt.closeOut': { caller: 'session', actor: 'boxxy:attempt:<id>', tool: 'session', cli: 'boxxy attempt close-out   (JSON on stdin)' },
+  'attempt.listItems': { caller: 'session', actor: 'none', tool: 'session', cli: 'boxxy attempt list-items [--state] [--phase] [--text] [--label]' },
+  'attempt.getItem': { caller: 'session', actor: 'none', tool: 'session', cli: 'boxxy attempt show-item <item>' },
 
   // Not tools: a hook program calls them with a hook payload. A model has no reason to.
   'attempt.bindSession': { caller: 'hook', actor: 'boxxy:hook:<id>', tool: 'none', cli: 'boxxy hook session-start   (hook payload on stdin)' },
@@ -686,7 +701,10 @@ declare function toName(path: readonly string[]): keyof typeof access; // ['item
 // │ procedure. It can call no session or hook procedure: it has no `Imp-Identity` (rule 2).
 // │ One root middleware, `implement(contract).use(...)`, does this from the `access` table; no
 // │ handler repeats the check. So a session cannot send `item.close`, `item.retry` or
-// │ `runner.pause` through the broker, although the broker carries any path.
+// │ `runner.pause` through the broker, although the broker carries any path. A session reads
+// │ other items with its own `attempt.listItems` and `attempt.getItem`, never `item.list` or
+// │ `item.get`: they answer for the repo of the item of the session's current attempt, which
+// │ the server finds from the proven caller, and never show a held item (v1-api-and-auth.md).
 // │ A wrong token is refused with 401, on every procedure.
 // │ A session on a `local` target reaches the server on the private network with no token, as
 // │ the owner does, and so may call every OWNER procedure. v1 accepts that, because the workers

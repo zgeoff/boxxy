@@ -16,6 +16,24 @@ test('it serves the owner listener on the memory store', async () => {
   expect(response.status).toBe(200);
 });
 
+test('it files an item in each repo that the test names', async () => {
+  const server = await createTestServer({
+    repos: [
+      brandSchemas.repoName.parse('example/app'),
+      brandSchemas.repoName.parse('example/site'),
+    ],
+  });
+
+  const response = await server.owner(
+    buildRPCRequest({
+      procedure: 'item.file',
+      input: { repo: 'example/site', title: 'Add a sitemap', outcome: 'The site has a sitemap.' },
+    }),
+  );
+
+  expect(response.status).toBe(200);
+});
+
 test('it answers PEPYS_NOT_CONFIGURED to a report when it runs with no pepys', async () => {
   const server = await createTestServer({ hasPepys: false });
   const item = await server.dispatch.seedItem({});

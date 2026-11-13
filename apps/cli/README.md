@@ -48,8 +48,8 @@ of the fact they recorded.
 
 - `boxxy item`, `boxxy relation`, `boxxy defer`, `boxxy expedite`, `boxxy status` and the other
   owner commands.
-- `boxxy attempt current`, `boxxy attempt evidence` and `boxxy attempt close-out`, for an agent in a
-  session.
+- `boxxy attempt current`, `boxxy attempt evidence`, `boxxy attempt close-out`,
+  `boxxy attempt list-items` and `boxxy attempt show-item`, for an agent in a session.
 - `boxxy hook session-start` and `boxxy hook post-tool-use`, which the plug-in in `hook-plugin/`
   runs.
 - `runCLI`, which runs one command line against dependencies the caller passes in.

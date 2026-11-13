@@ -50,9 +50,9 @@ export const access = {
   'report.cost': buildOwnerRead('boxxy cost <item>'),
   'report.stageTimes': buildOwnerRead('boxxy times <item>'),
 
-  // An agent in a session needs three things: what it works on, a place for evidence, and the
-  // close-out. Three tools, on their own endpoint, so a session's tool list holds no command on
-  // another item.
+  // An agent in a session needs what it works on, a place for evidence, the close-out, and a
+  // read of the other items of its repo. Five tools, on their own endpoint, so a session's tool
+  // list holds no command on another item.
   'attempt.current': {
     caller: 'session',
     actor: 'none',
@@ -72,6 +72,20 @@ export const access = {
     actor: 'boxxy:attempt:<id>',
     tool: 'session',
     cli: 'boxxy attempt close-out   (JSON on stdin)',
+    scope: 'none',
+  },
+  'attempt.listItems': {
+    caller: 'session',
+    actor: 'none',
+    tool: 'session',
+    cli: 'boxxy attempt list-items [--state] [--phase] [--text] [--label]',
+    scope: 'none',
+  },
+  'attempt.getItem': {
+    caller: 'session',
+    actor: 'none',
+    tool: 'session',
+    cli: 'boxxy attempt show-item <item>',
     scope: 'none',
   },
 

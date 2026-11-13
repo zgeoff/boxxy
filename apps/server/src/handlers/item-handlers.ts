@@ -4,7 +4,6 @@ import type {
   Criterion,
   ItemId,
   ItemKindName,
-  ItemListView,
   ItemRow,
   ItemView,
   ItemWithLevers,
@@ -19,6 +18,7 @@ import { ORPCError } from '@orpc/server';
 import type { ServerDeps } from '../types.ts';
 import { api } from './api.ts';
 import { buildOwnerFact } from './build-owner-fact.ts';
+import { collectItemPage } from './collect-item-page.ts';
 import { readItemIds } from './read-item-ids.ts';
 import { writeLevers } from './write-levers.ts';
 
@@ -394,23 +394,7 @@ export const itemHandlers = {
       );
     });
 
-    const matched = listed
-      .filter((entry) => isListMatch(entry.item, entry.notes, input))
-      .map((entry) => entry.item)
-      .toSorted(
-        (first, second) => second.filedAt - first.filedAt || second.id.localeCompare(first.id),
-      );
-
-    const start =
-      input.after === undefined ? 0 : matched.findIndex((item) => item.id === input.after) + 1;
-
-    const page = matched.slice(start, start + input.limit);
-    const last = page.at(-1);
-
-    return {
-      items: page.map((item) => toItemListView(item)),
-      next: last !== undefined && start + input.limit < matched.length ? last.id : null,
-    };
+    return collectItemPage(listed, input);
   }),
 };
 
@@ -553,32 +537,6 @@ async function probeLiveDuplicateOf(
 
 function toItemView(item: ItemWithLevers): ItemView {
   const { levers: _levers, ...view } = item;
-
-  return view;
-}
-
-interface ListFilter {
-  readonly phase?: string | undefined;
-  readonly text?: string | undefined;
-  readonly label?: string | undefined;
-}
-
-function isListMatch(item: ItemView, notes: readonly NoteRow[], filter: ListFilter): boolean {
-  const text = filter.text?.toLowerCase();
-
-  return (
-    (filter.phase === undefined ||
-      (item.position.kind === 'phase' && item.position.phase === filter.phase)) &&
-    (filter.label === undefined || item.labels.includes(filter.label)) &&
-    (text === undefined ||
-      [item.title, item.outcome, ...notes.map((note) => note.text)].some((value) =>
-        value.toLowerCase().includes(text),
-      ))
-  );
-}
-
-function toItemListView(item: ItemWithLevers): ItemListView {
-  const { levers: _levers, body: _body, ...view } = item;
 
   return view;
 }

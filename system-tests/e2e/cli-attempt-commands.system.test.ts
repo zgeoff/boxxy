@@ -9,6 +9,8 @@ async function setupTest() {
 
   const attemptRef = z.object({ id: z.string() });
   const closeOutShape = z.object({ phase: z.string(), outcomes: z.array(z.string()) });
+  const listedRef = z.object({ id: z.string() });
+  const listedSchema = z.object({ kind: z.string(), items: z.array(listedRef) });
 
   const currentSchema = z.object({
     kind: z.string(),
@@ -27,7 +29,7 @@ async function setupTest() {
 
   cli.server.callerProof.setCaller(attempt.caller);
 
-  return { ...cli, currentSchema, designBody, attempt };
+  return { ...cli, currentSchema, listedSchema, designBody, attempt };
 }
 
 test('#attempt current prints the attempt of the calling session and the close-out it takes', async () => {
@@ -162,5 +164,57 @@ test('#attempt evidence exits 2 for a kind that does not exist', async () => {
   expect({ exitCode: result.exitCode, stderr: result.stderr }).toStrictEqual({
     exitCode: 2,
     stderr: 'error: --kind takes one of: test, ci-run, live-check\n',
+  });
+});
+
+test('#attempt list-items prints the items of the repo of the session that hold the text', async () => {
+  const ctx = await setupTest();
+
+  const filed = await ctx.run([
+    'item',
+    'file',
+    '--repo',
+    'example/app',
+    '--title',
+    'Add a theme toggle',
+    '--outcome',
+    'The header has a theme toggle.',
+  ]);
+
+  const toggle = readJSONOutput(filed, z.object({ item: z.string() })).item;
+
+  const result = await ctx.run(['attempt', 'list-items', '--text', 'toggle']);
+
+  const listed = readJSONOutput(result, ctx.listedSchema);
+
+  expect({ exitCode: result.exitCode, listed }).toStrictEqual({
+    exitCode: 0,
+    listed: { kind: 'items', items: [{ id: toggle }] },
+  });
+});
+
+test('#attempt show-item exits 1 with NOT_FOUND for a held item', async () => {
+  const ctx = await setupTest();
+
+  const filed = await ctx.run([
+    'item',
+    'file',
+    '--repo',
+    'example/app',
+    '--title',
+    'Draft a new palette',
+    '--outcome',
+    'The palette is chosen.',
+    '--held',
+    'still a draft',
+  ]);
+
+  const draft = readJSONOutput(filed, z.object({ item: z.string() })).item;
+
+  const result = await ctx.run(['attempt', 'show-item', draft]);
+
+  expect({ exitCode: result.exitCode, stderr: result.stderr }).toStrictEqual({
+    exitCode: 1,
+    stderr: `error: NOT_FOUND: no such item {"item":"${draft}"}\n`,
   });
 });

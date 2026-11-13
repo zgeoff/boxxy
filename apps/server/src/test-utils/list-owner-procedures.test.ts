@@ -24,20 +24,24 @@ test('#listOwnerTools lists the 20 owner tools in snake case', () => {
   ]);
 });
 
-test('#listSessionProcedures lists the three session and two hook procedures', () => {
+test('#listSessionProcedures lists the five session and two hook procedures', () => {
   expect(listSessionProcedures()).toStrictEqual([
     ['attempt.current'],
     ['attempt.evidence'],
     ['attempt.closeOut'],
+    ['attempt.listItems'],
+    ['attempt.getItem'],
     ['attempt.bindSession'],
     ['attempt.recordPullRequest'],
   ]);
 });
 
-test('#listSessionTools lists the three session tools in snake case', () => {
+test('#listSessionTools lists the five session tools in snake case', () => {
   expect(listSessionTools()).toStrictEqual([
     ['attempt_current'],
     ['attempt_evidence'],
     ['attempt_close_out'],
+    ['attempt_list_items'],
+    ['attempt_get_item'],
   ]);
 });

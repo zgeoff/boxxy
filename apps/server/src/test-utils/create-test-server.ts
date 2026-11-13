@@ -18,6 +18,7 @@ import type {
   Clock,
   PepysReader,
   PhaseName,
+  RepoName,
   SessionReading,
 } from '@boxxy/model';
 import type { FakeNotifier } from '@boxxy/model/test-utils/create-fake-notifier';
@@ -63,6 +64,9 @@ export interface TestServerOptions {
 
   // true: the server also runs a public door, with its auth database in a temp folder
   readonly hasPublicDoor?: boolean;
+
+  // the repos that the configuration's spawn section names; `example/app` alone when left out
+  readonly repos?: readonly RepoName[];
 }
 
 export interface TestServer {
@@ -105,6 +109,7 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
   const dispatchOptions = {
     ...(options.store !== undefined && { store: options.store }),
     ...(options.restartOf !== undefined && { restartOf: options.restartOf.dispatch }),
+    ...(options.repos !== undefined && { repos: options.repos }),
   };
 
   const dispatch = await createTestDispatch(dispatchOptions);

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { brandSchemas } from '@boxxy/model';
 import { z } from 'zod';
 import { buildMCPRequest } from './test-utils/build-mcp-request.ts';
 import { buildRPCRequest } from './test-utils/build-rpc-request.ts';
@@ -35,6 +36,14 @@ async function setupTest() {
         )
         .parse(answer.result?.['tools']);
     },
+    readDetail: (item: string) =>
+      server.deps.store.read((tx) =>
+        tx.readItemDetail(
+          brandSchemas.itemId.parse(item),
+          server.dispatch.clock.now(),
+          server.dispatch.rules(),
+        ),
+      ),
   };
 }
 
@@ -344,7 +353,7 @@ test('it lists the 20 owner tools on /mcp', async () => {
   expect(tools.map((tool) => [tool.name])).toIncludeSameMembers(listOwnerTools());
 });
 
-test('it lists only the three session tools on /mcp/session', async () => {
+test('it lists only the five session tools on /mcp/session', async () => {
   const ctx = await setupTest();
   const tools = await ctx.listTools('worker', '/mcp/session');
 
@@ -352,8 +361,58 @@ test('it lists only the three session tools on /mcp/session', async () => {
     'attempt_close_out',
     'attempt_current',
     'attempt_evidence',
+    'attempt_get_item',
+    'attempt_list_items',
   ]);
 });
+
+test.each([
+  ['item.edit', (item: string) => ({ item, title: 'Rename the theme' })],
+  ['item.note', (item: string) => ({ item, text: 'A note from a session.' })],
+  ['item.retry', (item: string) => ({ item })],
+  ['item.release', (item: string) => ({ item })],
+  ['item.close', (item: string) => ({ item, reason: 'A session closes it.' })],
+  ['item.wake', (item: string) => ({ item })],
+  ['plan.defer', (item: string) => ({ item, reason: 'A session defers it.' })],
+  ['plan.expedite', (item: string) => ({ items: [item], reason: 'A session expedites it.' })],
+  ['relation.add', (item: string) => ({ source: item, type: 'relates-to', target: item })],
+  [
+    'item.file',
+    () => ({
+      repo: 'example/app',
+      title: 'A held item from a session',
+      outcome: 'The item is held.',
+      held: { reason: 'A session holds it.' },
+    }),
+  ],
+] as const)(
+  'it refuses %s with FORBIDDEN to a session with a proven caller and changes nothing',
+  async (procedure, buildInput) => {
+    const ctx = await setupTest();
+    const attempt = await ctx.seedStartedAttempt(brandSchemas.phaseName.parse('triage'));
+    const before = await ctx.readDetail(attempt.item);
+
+    ctx.callerProof.setCaller(attempt.caller);
+
+    const response = await ctx.worker(
+      buildRPCRequest({ procedure, input: buildInput(attempt.item), token: ctx.workerToken }),
+    );
+
+    const body = await response.json();
+
+    expect({ status: response.status, body }).toStrictEqual({
+      status: 403,
+      body: { json: { defined: false, code: 'FORBIDDEN', message: 'Forbidden' } },
+    });
+
+    expect({
+      detail: await ctx.readDetail(attempt.item),
+      listed: await ctx.deps.store.read((tx) =>
+        tx.listItems({}, ctx.dispatch.clock.now(), ctx.dispatch.rules()),
+      ),
+    }).toStrictEqual({ detail: before, listed: [expect.objectContaining({ id: attempt.item })] });
+  },
+);
 
 test('it answers PEPYS_UNAVAILABLE on the oRPC route with status 503', async () => {
   const ctx = await setupTest();

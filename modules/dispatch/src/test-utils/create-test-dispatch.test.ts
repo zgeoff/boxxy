@@ -18,6 +18,22 @@ test('it claims and starts an item seeded at a phase in one tick', async () => {
   expect(received).toStrictEqual(['build', 'running']);
 });
 
+test('it gives spawn each repo it is given, each in its own folder', async () => {
+  const dispatch = await createTestDispatch({
+    repos: [
+      brandSchemas.repoName.parse('example/app'),
+      brandSchemas.repoName.parse('example/site'),
+    ],
+  });
+
+  const repos: unknown = [...dispatch.spawn.repos];
+
+  expect(repos).toStrictEqual([
+    ['example/app', '/tmp/boxxy-test/app'],
+    ['example/site', '/tmp/boxxy-test/site'],
+  ]);
+});
+
 test('it seeds into the store it is given', async () => {
   const store = createMemoryClaimStore();
 

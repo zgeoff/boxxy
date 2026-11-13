@@ -13,6 +13,7 @@ import type {
   NewId,
   OutboxFact,
   PipelineStep,
+  RepoName,
   RunnerId,
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
@@ -127,6 +128,9 @@ export interface TestDispatchOptions {
 
   // a dispatch whose store, clock and IDs this one carries on, as a server does after a restart
   readonly restartOf?: TestDispatch;
+
+  // the repos that spawn names, each in its own folder; `example/app` alone when left out
+  readonly repos?: readonly RepoName[];
 }
 
 // The example rules with the four phase kinds, the store with its limits synced, the fake
@@ -151,7 +155,9 @@ export async function createTestDispatch(options: TestDispatchOptions = {}): Pro
 
   const spawn: SpawnSettings = {
     target: 'worker-host',
-    repos: new Map([[repo, '/tmp/boxxy-test/app']]),
+    repos: new Map(
+      (options.repos ?? [repo]).map((name) => [name, `/tmp/boxxy-test/${name.split('/').at(-1)}`]),
+    ),
     prompts: new Map(
       [...example.checkout.files].map(([path, bytes]) => [path, decoder.decode(bytes)]),
     ),

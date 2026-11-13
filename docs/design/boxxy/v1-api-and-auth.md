@@ -11,7 +11,7 @@ flowchart LR
   remote[the owner's assistant] --> oauth[the public door: OAuth] --> pmcp["/mcp: 20 tools, by scope"]
   session[an agent in a session] --> broker[the impd broker]
   broker --> rpc
-  broker --> smcp["/mcp/session: 3 tools"]
+  broker --> smcp["/mcp/session: 5 tools"]
   rpc --> router[one router]
   mcp --> router
   pmcp --> router
@@ -62,6 +62,8 @@ Section C of [`01-api.ts`](./sketches/v1/edge/01-api.ts) holds the input, the ou
 | `attempt.current` | session | session | returns the attempt of the calling session, with the schema of its close-out |
 | `attempt.evidence` | session | session | records one piece of evidence |
 | `attempt.closeOut` | session | session | sends the close-out |
+| `attempt.listItems` | session | session | lists the items of the session's repo, held items left out, with filters for state, phase, text and label |
+| `attempt.getItem` | session | session | returns one item of the session's repo with its notes, relations and pull requests |
 | `attempt.bindSession` | hook | none | binds the agent session; reports missing skills |
 | `attempt.recordPullRequest` | hook | none | links a pull request to the attempt |
 | `runner.pause` | owner | owner | pauses the runner |
@@ -76,7 +78,7 @@ Section C of [`01-api.ts`](./sketches/v1/edge/01-api.ts) holds the input, the ou
 | `auth.revokeGrant` | owner | none | revokes one grant |
 
 - **20 owner tools.** The owner's agent files and steers work for the owner, so it gets every command on an item, every read, and the runner pause and resume. Only the owner's path files a held item, releases one or lists the held items, and a test checks that their access rows say so.
-- **3 session tools, on their own endpoint.** A session's tool list holds no command on another item. A session reports found work in its close-out, where settle dedupes it.
+- **5 session tools, on their own endpoint.** A session's tool list holds no command on another item. It reads the other items of its repo, so triage can find a duplicate or an overlap, and [the session's reads](#the-sessions-reads-of-other-items) sets what it sees. A session reports found work in its close-out, where settle dedupes it.
 - **10 procedures with no tool.** A hook program calls two of them. The outbox retry acts on the whole outbox and writes no fact that shows who did it, so it stays with a person at the CLI. The rules dry run takes a whole file. Six manage the public door's sign-in, as [the public door](#the-public-door) says.
 - **A test keeps the access table in step with the contract.** It fails when a procedure has no entry, when an entry names no procedure, or when a tool has no name.
 
@@ -113,7 +115,18 @@ The security rule at the top of section E of [`01-api.ts`](./sketches/v1/edge/01
 
 One root middleware does this from the access table, for the RPC route and both MCP endpoints, and no handler repeats the check. A session therefore cannot close an item, retry one or pause the runner, although the broker carries any path.
 
+A session reads other items through its own two procedures, `attempt.listItems` and `attempt.getItem`, and never through `item.list` or `item.get`, so the rule above holds with no exception.
+
 A session on a local worker target reaches the server on the owner's path and can call every owner procedure. v1 accepts that, because v1 workers run on the cloud target. Such a session can call no session or hook procedure, because it has no proven caller.
+
+## The session's reads of other items
+
+A session sees the items of one repo: the repo of the item that its current attempt works on. The server finds that attempt from the proven caller, as `attempt.current` does, and never takes the repo from the request. A duplicate or an overlap of an item is work in the same repo, so one repo is enough for triage. An item of another repo stays out of sight, because the session's work, such as a public pull request, could carry that item's text into its own repo.
+
+- **Held items.** A held item is the owner's draft, so a session never sees one: `attempt.listItems` leaves it out and takes no `held` state, and `attempt.getItem` answers `NOT_FOUND`.
+- **Refusals.** `attempt.getItem` answers `NOT_FOUND` for an item of another repo, a held item and a missing item alike, so the answer never shows that an item exists. A caller whose session has no attempt gets `refused: no-attempt`, and a request with no proven caller gets 401.
+- **What an answer holds.** A listed item has the fields of an `item.list` row. `attempt.getItem` returns the item with its body, its notes, its relations and its pull requests. It leaves out the attempts, the evidence and the revisions, because an attempt row holds another session's caller and atc session.
+- **No writes.** Both procedures write nothing, and a session still has no edit, note, retry, hold or release. A test sends each owner command with a proven session's call and checks that the answer is `FORBIDDEN` and that the item is unchanged.
 
 ## The proven caller
 

@@ -19,6 +19,7 @@ import { oc } from '@orpc/contract';
 import { mcp } from '@orpc/mcp';
 import { z } from 'zod';
 import { authContract } from './auth-contract.ts';
+import { itemReadContract } from './item-read-contract.ts';
 
 // The wire rules are in section B of the API sketch: no transform in an input, times as ISO 8601,
 // a maximum on every string and list, and a release that removes or renames nothing.
@@ -45,9 +46,8 @@ const leverOutput = z.object({ lever: count });
 const itemInput = z.object({ item: itemId });
 const emptyInput = z.object({});
 
-// No field of a session or hook call names a session: the server takes the session from the
-// proven caller. The attempt ID says which attempt the call is for, so that a call made for an
-// older attempt of a kept session is refused.
+// No field of a session or hook call names a session: the server takes it from the proven caller.
+// The attempt ID names the attempt, so a call made for an older attempt of a kept session fails.
 const sessionRef = z.object({
   attempt: id.describe('The ID of the attempt this call is for, as attempt_current gave it.'),
   agentSession: id.optional().describe("The agent's own session ID, when the caller knows it."),
@@ -456,9 +456,8 @@ export const contract = {
   },
 
   attempt: {
-    // It takes no input: the server finds the session from the proven caller and answers with
-    // the latest attempt that the session carries. This is how every session learns its attempt
-    // ID. `closeOut` tells the agent which of the four close-outs its attempt takes.
+    // No input: it answers with the latest attempt of the proven caller's session, which is how
+    // every session learns its attempt ID, and `closeOut` names the close-out that attempt takes.
     current: tool(
       'attempt_current',
       'Returns the attempt that this session carries: its item, its phase, its input, and the schema of the close-out it must send.',
@@ -483,6 +482,7 @@ export const contract = {
     )
       .input(attemptEvidenceInput)
       .output(attemptEvidenceOutput),
+    ...itemReadContract,
 
     // A hook program calls it, as `boxxy hook session-start`, after it has fetched the skills.
     // `missingSkills` names each listed skill that is absent after the fetch.

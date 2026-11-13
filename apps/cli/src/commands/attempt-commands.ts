@@ -11,6 +11,9 @@ import type { CLIResult, Command } from '../types.ts';
 import { describeCloseOutProblem } from './describe-close-out-problem.ts';
 
 const evidenceKinds = ['test', 'ci-run', 'live-check'] as const;
+
+// every state but `held`: a session never sees a held item
+const listStates = ['idea', 'ready', 'blocked', 'running', 'waiting', 'done', 'archived'] as const;
 const waitMessage = 'no attempt for this session yet; try again in 5 seconds';
 
 // These commands run inside a session. None takes a session: the server finds the session from
@@ -77,6 +80,47 @@ export const attemptCommands: readonly Command[] = [
       const answer = await call.client.attempt.closeOut({ session: { attempt }, closeOut });
 
       return describeCloseOutAnswer(answer);
+    },
+  },
+  {
+    path: ['attempt', 'list-items'],
+    procedure: 'attempt.listItems',
+    summary: 'Lists the items of the repo of this session, newest first, held items left out.',
+    options: {
+      state: { type: 'string' },
+      phase: { type: 'string' },
+      text: { type: 'string' },
+      label: { type: 'string' },
+      limit: { type: 'string' },
+      after: { type: 'string' },
+    },
+    run: async (call) => {
+      const answer = await call.client.attempt.listItems({
+        state: call.args.oneOf('state', listStates),
+        phase: call.args.string('phase'),
+        text: call.args.string('text'),
+        label: call.args.string('label'),
+        limit: call.args.integer('limit'),
+        after: call.args.string('after'),
+      });
+
+      return answer.kind === 'items'
+        ? buildAnswerResult(answer)
+        : buildErrorResult(waitMessage, exitCodes.retryLater);
+    },
+  },
+  {
+    path: ['attempt', 'show-item'],
+    procedure: 'attempt.getItem',
+    summary:
+      'Shows one item of the repo of this session with its body, notes, relations and pull requests.',
+    options: {},
+    run: async (call) => {
+      const answer = await call.client.attempt.getItem({ item: call.args.positional(0, 'item') });
+
+      return answer.kind === 'item'
+        ? buildAnswerResult(answer)
+        : buildErrorResult(waitMessage, exitCodes.retryLater);
     },
   },
 ];

@@ -15,6 +15,7 @@ import type {
 import { brandSchemas } from '@boxxy/model';
 import type { ProvenCall, ServerDeps } from '../types.ts';
 import { api } from './api.ts';
+import { collectItemPage } from './collect-item-page.ts';
 import { toWireJSON } from './to-wire-json.ts';
 
 const noAttempt = { kind: 'refused', reason: 'no-attempt' } as const;
@@ -23,27 +24,102 @@ const noAttempt = { kind: 'refused', reason: 'no-attempt' } as const;
 // middleware's proven call, never from the request; the request names only the attempt.
 export const attemptHandlers = {
   current: api.attempt.current.handler(async (options) => {
-    const context = options.context;
+    const attempt = await readSessionAttempt(options.context.deps, options.context.call);
 
-    if (context.call === null) {
+    return attempt === null ? noAttempt : readCurrent(options.context.deps, attempt);
+  }),
+
+  // The reads of other items. The repo comes from the item of the session's own attempt, never
+  // from the request, and a held item is the owner's draft, so the session never sees one.
+  listItems: api.attempt.listItems.handler(async (options) => {
+    const input = options.input;
+    const deps = options.context.deps;
+
+    const attempt = await readSessionAttempt(deps, options.context.call);
+
+    if (attempt === null) {
       return noAttempt;
     }
 
-    const call = context.call;
+    const now = deps.clock.now();
+    const rules = deps.rulesState().rules;
 
-    const latest = await context.deps.store.read((tx) => tx.findAttemptBySession(call.session));
+    const listed = await deps.store.read(async (tx) => {
+      const own = await tx.readItem(attempt.item, now, rules);
 
-    if (latest === null) {
+      if (own === null) {
+        return null;
+      }
+
+      const items = await tx.listItems(
+        { repo: own.repo, ...(input.state === undefined ? {} : { state: input.state }) },
+        now,
+        rules,
+      );
+
+      const entries = await Promise.all(
+        items
+          .filter((item) => item.derived.state !== 'held')
+          .map(async (item) => ({ item, notes: await tx.listItemNotes(item.id) })),
+      );
+
+      return { repo: own.repo, entries };
+    });
+
+    if (listed === null) {
       return noAttempt;
     }
 
-    const picked = pickCallAttempt(latest, { ...call, attempt: latest.id });
+    return { kind: 'items' as const, repo: listed.repo, ...collectItemPage(listed.entries, input) };
+  }),
+  getItem: api.attempt.getItem.handler(async (options) => {
+    const input = options.input;
+    const notFound = options.errors.NOT_FOUND;
+    const deps = options.context.deps;
 
-    if (picked.kind === 'refused') {
-      return picked;
+    const attempt = await readSessionAttempt(deps, options.context.call);
+
+    if (attempt === null) {
+      return noAttempt;
     }
 
-    return readCurrent(context.deps, picked.attempt);
+    const now = deps.clock.now();
+    const rules = deps.rulesState().rules;
+    const item = brandSchemas.itemId.safeParse(input.item);
+
+    const read = await deps.store.read(async (tx) => {
+      const own = await tx.readItem(attempt.item, now, rules);
+
+      const detail = item.success ? await tx.readItemDetail(item.data, now, rules) : null;
+
+      return { own, detail };
+    });
+
+    if (read.own === null) {
+      return noAttempt;
+    }
+
+    const detail = read.detail;
+
+    // a held item or one of another repo answers as an item that does not exist, so the answer
+    // never shows that it exists
+    if (
+      detail === null ||
+      detail.item.repo !== read.own.repo ||
+      detail.item.derived.state === 'held'
+    ) {
+      throw notFound({ data: { item: input.item } });
+    }
+
+    const { levers: _levers, ...view } = detail.item;
+
+    return {
+      kind: 'item' as const,
+      item: view,
+      notes: [...detail.notes],
+      relations: [...detail.relations],
+      pullRequests: [...detail.pullRequests],
+    };
   }),
   closeOut: api.attempt.closeOut.handler((options) => {
     const input = options.input;
@@ -133,6 +209,26 @@ export const attemptHandlers = {
     });
   }),
 };
+
+// The latest attempt of the proven session, when its own row holds the proven caller.
+async function readSessionAttempt(
+  deps: ServerDeps,
+  call: ProvenCall | null,
+): Promise<AttemptRow | null> {
+  if (call === null) {
+    return null;
+  }
+
+  const latest = await deps.store.read((tx) => tx.findAttemptBySession(call.session));
+
+  if (latest === null) {
+    return null;
+  }
+
+  const picked = pickCallAttempt(latest, { ...call, attempt: latest.id });
+
+  return picked.kind === 'attempt' ? picked.attempt : null;
+}
 
 async function readCurrent(deps: ServerDeps, attempt: AttemptRow) {
   const rules = deps.rulesState().rules;

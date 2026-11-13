@@ -1,8 +1,10 @@
-// A valid input of a session or hook procedure that names the attempt; `{}` for any other.
+// A valid input of a session or hook procedure: one that names the attempt, or an item for the
+// read of one item; `{}` for any other.
 export function buildSessionInput(procedure: string, attempt: string): unknown {
   const session = { attempt };
 
   const inputs: Readonly<Record<string, unknown>> = {
+    'attempt.getItem': { item: 'i-1' },
     'attempt.evidence': { session, kind: 'test', ref: 'bun test' },
     'attempt.closeOut': { session, closeOut: {} },
     'attempt.bindSession': {

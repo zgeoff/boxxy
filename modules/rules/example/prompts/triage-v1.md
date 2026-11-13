@@ -26,6 +26,12 @@ Triage this item.
 {{ notes }}
 {%- endif %}
 
+Before you decide, look for other items of this repo that ask for the same work or overlap it. Run
+`boxxy attempt list-items --text <word>` once for each key word of the title and the outcome, and
+add `--state done` to find work that has landed. Read each likely match with
+`boxxy attempt show-item <item>`: its body, its notes and its relations. Held items and the items of
+other repos never show.
+
 Decide whether boxxy takes it on, and close out with one of these results:
 
 - `accepted` when boxxy should do the work. An accepted item needs an acceptance list. Accept no
@@ -39,6 +45,10 @@ Decide whether boxxy takes it on, and close out with one of these results:
   `kind`, such as `core.issue`, and `security: true` when its work concerns a security weakness.
 - `declined`, with the reason, when boxxy should not do the work at all. Never decline to ask a
   question or to split an item.
+
+When another item overlaps this one but asks for different work, accept or split this item as usual,
+and add `{ "type": "relates-to", "target": "<item>" }` to `relations`, where `<item>` is the other
+item's ID.
 
 To rewrite the body, send the whole new body in `set.body`. Later phases get it in place of this
 one. When this item can start only after another item is done, add
