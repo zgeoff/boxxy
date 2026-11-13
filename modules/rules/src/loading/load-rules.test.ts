@@ -12,7 +12,10 @@ test('it loads the example rules file', () => {
   const input = buildExampleLoadInput();
 
   const phases = [
-    buildMockPhaseKind({ name: 'triage', outcomes: ['accepted', 'duplicate', 'declined'] }),
+    buildMockPhaseKind({
+      name: 'triage',
+      outcomes: ['accepted', 'duplicate', 'declined', 'needs-owner', 'split'],
+    }),
     buildMockPhaseKind({ name: 'design', outcomes: ['designed', 'blocked', 'abandoned'] }),
     buildMockPhaseKind({ name: 'build', outcomes: ['built', 'blocked', 'abandoned'] }),
     buildMockPhaseKind({ name: 'review', outcomes: ['passed', 'changes-requested', 'failed'] }),
@@ -34,7 +37,13 @@ test('it loads the example rules file', () => {
         phase: 'triage',
         maxAttempts: 2,
         timeoutMinutes: 20,
-        on: { accepted: 'next', duplicate: { hold: 'duplicate' }, declined: { hold: 'declined' } },
+        on: {
+          accepted: 'next',
+          duplicate: { hold: 'duplicate' },
+          declined: { hold: 'declined' },
+          'needs-owner': { hold: 'needs-owner' },
+          split: { end: 'split' },
+        },
       },
       {
         phase: 'design',

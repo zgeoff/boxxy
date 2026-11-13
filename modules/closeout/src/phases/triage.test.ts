@@ -261,6 +261,59 @@ test('it settles a declined close-out with the close of the item for its reason'
   });
 });
 
+test('it settles a needs-owner close-out with no close of the item', () => {
+  const settlement: unknown = triage.settle({
+    attempt: buildMockV1AttemptRow({ phase: brandSchemas.phaseName.parse('triage') }),
+    item: buildMockV1ItemView(),
+    closeOut: {
+      result: { kind: 'needs-owner', question: 'Should the export cover archived projects?' },
+      relations: [],
+      friction: [],
+      frictionDropped: 0,
+    },
+    now: brandSchemas.instant.parse(1000),
+  });
+
+  expect(settlement).toStrictEqual({
+    state: 'succeeded',
+    failure: null,
+    outcome: 'needs-owner',
+    effects: [],
+    frictionDropped: 0,
+  });
+});
+
+test('it settles a split close-out with the filing of each part and the close of the item', () => {
+  const parts = [
+    { kind: 'core.issue' as const, title: 'Export projects as CSV', body: 'One part.' },
+    { kind: 'core.issue' as const, title: 'Export projects as JSON', body: 'The other part.' },
+  ];
+
+  const settlement: unknown = triage.settle({
+    attempt: buildMockV1AttemptRow({ phase: brandSchemas.phaseName.parse('triage') }),
+    item: buildMockV1ItemView(),
+    closeOut: {
+      result: { kind: 'split', openItems: parts },
+      relations: [],
+      friction: [],
+      frictionDropped: 0,
+    },
+    now: brandSchemas.instant.parse(1000),
+  });
+
+  expect(settlement).toStrictEqual({
+    state: 'succeeded',
+    failure: null,
+    outcome: 'split',
+    effects: [
+      { kind: 'file-item', item: parts[0] },
+      { kind: 'file-item', item: parts[1] },
+      { kind: 'close-item', reason: 'split', of: null },
+    ],
+    frictionDropped: 0,
+  });
+});
+
 test('it gives a triage attempt the item acceptance list as its input', () => {
   const item = buildMockV1ItemView({
     acceptance: [

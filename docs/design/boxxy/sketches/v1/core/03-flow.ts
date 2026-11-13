@@ -527,9 +527,10 @@ export function closeOutAttempt(input: CloseOutInput): Promise<CloseOutAnswer> {
 //   - A session that does not stop goes through the give-up rule above, like any closing attempt.
 //   - The `close-item` effect of a triage settle uses the same builder. The settling attempt is
 //     the item's only live attempt (an item stands at one phase), so it ends nothing else.
-//     Under the v1 rules no triage settle runs it. `declined` and `duplicate` map
-//     to a `hold` edge, and `settleAttempt` withholds each effect that changes an item.
-//     The effect runs only under rules that map such an outcome to `{ end: … }`.
+//     Under the v1 rules only a triage `split` runs it, which maps to `{ end: split }`.
+//     `declined` and `duplicate` map to a `hold` edge, and `settleAttempt` withholds each
+//     effect that changes an item. The effect runs only under rules that map such an outcome
+//     to `{ end: … }`.
 //   - The item is archived, so the `lost` outcome moves nothing.
 //
 // modules/dispatch/src/closeouts/settle-attempt.ts. One `exclusive` call, one change.
@@ -664,12 +665,12 @@ export function advance(input: { pipeline: Pipeline; settled: Settled; counted: 
   }
 
   // A `{ hold: reason }` edge. The item holds for the owner with the rules' reason
-  // (`declined`, `duplicate`). `then` is the step's own phase, so `boxxy item retry <item>`
-  // sends the item back to that phase (triage), with the counts reset and the round kept.
-  // `boxxy item close <item>` confirms the close-out's result. No effect that changes an item
-  // ran. The owner reads the agent's result (declined with its reason, or
-  // duplicate with the other item) from the hold reason and from the attempt's close-out in
-  // `item.get`, and then confirms or rejects it.
+  // (`declined`, `duplicate`, `needs-owner`). `then` is the step's own phase, so
+  // `boxxy item retry <item>` sends the item back to that phase (triage), with the counts reset
+  // and the round kept. `boxxy item close <item>` confirms the close-out's result. No effect
+  // that changes an item ran. The owner reads the agent's result (declined with its reason,
+  // duplicate with the other item, or needs-owner with its question) from the hold reason and
+  // from the attempt's close-out in `item.get`, and then confirms, rejects or answers it.
   if ('hold' in edge) {
     return { kind: 'hold', reason: edge.hold as HoldReason, then: step.phase, round };
   }

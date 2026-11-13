@@ -250,8 +250,8 @@ export const contract = {
       .output(z.object({ item: id, ended: z.array(z.object({ attempt: id, how: z.enum(['settled', 'closing']) })) })),
 
     // core: `item.retry` with `phase`. Writes `boxxy.lever.recorded`.
-    // With no `phase`, on an item that triage holds as `declined` or `duplicate`, it sends the
-    // item back to triage.
+    // With no `phase`, on an item that triage holds as `declined`, `duplicate` or
+    // `needs-owner`, it sends the item back to triage.
     retry: tool('item_retry', 'Lifts a hold on an item and resets its attempt counts. With phase, also sends the item back to that phase.')
       .errors({ ...notFound, UNKNOWN_PHASE: { message: 'the pipeline of the item has no such phase' }, ITEM_HELD: { message: 'the item is held; release it with item_release first' } })
       .input(z.object({ item: itemId, phase: id.optional().describe('triage, design, build or review.') }))
@@ -379,7 +379,8 @@ export const contract = {
     //
     //   phase    body (core type)   outcomes                                      what it carries
     //   ───────  ─────────────────  ────────────────────────────────────────────  ──────────────────────────────────────────
-    //   triage   TriageCloseOut     accepted, duplicate, declined                 the result; kind, designMode, acceptance, body; relations
+    //   triage   TriageCloseOut     accepted, duplicate, declined, needs-owner,   the result, with a question or the parts; kind,
+    //                               split                                         designMode, acceptance, body; relations
     //   design   DesignCloseOut     designed, blocked, abandoned                  the whole design and its location; acceptance; open items
     //   build    BuildCloseOut      built, blocked, abandoned                     evidence per criterion; open items
     //   review   the tool's result  passed, changes-requested, failed             the server stores ReviewCloseOut: the gate's reading
@@ -389,7 +390,10 @@ export const contract = {
     // effect that changes an item (`close-item`, the relations, `set`); friction is recorded
     // all the same. `item.get` shows the agent's result, in the hold reason and in the
     // attempt's close-out: declined with its reason, or duplicate with the other item. The
-    // owner confirms with `item.close`, or sends the item back to triage with `item.retry`. An
+    // owner confirms with `item.close`, or sends the item back to triage with `item.retry`.
+    // `needs-owner` holds the item with the question in the close-out; the owner answers with
+    // `item.edit` or `item.note`, then `item.retry`. `split` files each part as a new item and
+    // closes the item, which the rules end. An
     // `accepted` close-out must leave the item with an acceptance list (`set.acceptance`, or
     // the item's own), or the parser answers `no-acceptance`.
     // Review. A review session runs the command in its input and sends the review tool's raw

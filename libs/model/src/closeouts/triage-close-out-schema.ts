@@ -3,11 +3,25 @@ import { brandSchemas } from '../rows/brand-schemas.ts';
 import { itemBodyMaxChars } from '../rows/item-body-max-chars.ts';
 import { acceptanceDraftSchema } from './acceptance-draft-schema.ts';
 import { frictionSchema } from './friction-schema.ts';
+import { openItemSchema } from './open-item-schema.ts';
 import type { TriageCloseOut } from './types.ts';
 
-const acceptedSchema = z.object({ kind: z.literal('accepted') });
-const duplicateSchema = z.object({ kind: z.literal('duplicate'), of: brandSchemas.itemId });
-const declinedSchema = z.object({ kind: z.literal('declined'), reason: z.string().min(1) });
+// Strict, so a session that sends a field of one result with another hears of it instead of
+// losing it, such as `openItems` with `declined`.
+const acceptedSchema = z.strictObject({ kind: z.literal('accepted') });
+const duplicateSchema = z.strictObject({ kind: z.literal('duplicate'), of: brandSchemas.itemId });
+const declinedSchema = z.strictObject({ kind: z.literal('declined'), reason: z.string().min(1) });
+
+const needsOwnerSchema = z.strictObject({
+  kind: z.literal('needs-owner'),
+  question: z.string().min(1),
+});
+
+const splitSchema = z.strictObject({
+  kind: z.literal('split'),
+  openItems: z.array(openItemSchema).min(1),
+});
+
 const designModeSchema = z.enum(['agent', 'attended']);
 
 const setSchema = z.strictObject({
@@ -23,7 +37,13 @@ const relationDraftSchema = z.object({
 });
 
 export const triageCloseOutSchema = z.strictObject({
-  result: z.discriminatedUnion('kind', [acceptedSchema, duplicateSchema, declinedSchema]),
+  result: z.discriminatedUnion('kind', [
+    acceptedSchema,
+    duplicateSchema,
+    declinedSchema,
+    needsOwnerSchema,
+    splitSchema,
+  ]),
   set: setSchema.exactOptional(),
   relations: z.array(relationDraftSchema),
   friction: z.array(frictionSchema),

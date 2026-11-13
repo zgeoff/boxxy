@@ -66,7 +66,7 @@ The parser cuts no list. A cut finding or open item would be work lost with no c
 
 | Phase | The parser refuses | The settle |
 | --- | --- | --- |
-| triage | `accepted` that leaves the item with no acceptance list; an unknown item, kind or relation type; a relation to the item itself; a relation named twice, counting the `duplicate-of` relation of a `duplicate` | succeeded. Asks to set the kind, the design mode, the acceptance list, numbered from `a1`, and the body, to add each relation, and to close a `duplicate` or `declined` item |
+| triage | `accepted` that leaves the item with no acceptance list; a `split` with no part; an unknown item, kind or relation type; a relation to the item itself; a relation named twice, counting the `duplicate-of` relation of a `duplicate` | succeeded. Asks to set the kind, the design mode, the acceptance list, numbered from `a1`, and the body, to add each relation, to file each part of a `split`, and to close a `duplicate`, `declined` or `split` item |
 | design | nothing past the schema | `designed`: succeeded. Asks to file each open item, and to set the acceptance list, numbered from `a1`. `blocked`, `abandoned`: failed, with the outcome as the failure |
 | build | a criterion the item lacks; evidence of another attempt; `built` with a criterion that has no evidence | as design. Asks to file each open item, and, when `built`, to add the cited evidence to the acceptance list |
 | review | a body that is not the `ReviewCloseOut` the server built from the gate's reading | passed: succeeded `passed`. Blocked on open findings: succeeded `changes-requested`. Any other reading: failed, with the failure `review-failed` |
@@ -94,7 +94,19 @@ The design close-out holds `{ text, location }`. `text` is the whole design in m
 
 A design starts on an item with no acceptance list, and build, review and verify do not: an item that stands at one of them with no list derives `idea`. A `designed` result may also carry `set.acceptance` and `openItems`. `set.acceptance` has the shape of the triage field and replaces the item's acceptance list, and the settle records it in a `boxxy.item.edited` fact with the attempt in `byAttempt`. `openItems` has the shape of the build field, and the settle files each entry through the same dedupe. A `blocked` or `abandoned` result carries neither, and the parser refuses one that does: a blocked design waits on the owner's answer, and the next design attempt sends its list and its open items.
 
-A triage close-out may set the kind, the design mode, the acceptance list, the body and the relations, and close a duplicate or a declined item. `set.body` is the whole new body, of 40,000 characters or fewer, and replaces the item's body. The settle records it in a `boxxy.item.edited` fact with the attempt in `byAttempt`, so the item's revisions show triage as the author, and the launch prompt of each later phase carries the new body.
+A triage result is one of five, and each has one use:
+
+| Result | Carries | Use | The settle asks |
+| --- | --- | --- | --- |
+| `accepted` | nothing | boxxy does the work | nothing past `set` and the relations |
+| `duplicate` | `of`, the other item | another item asks for the same work | to close the item, with the `duplicate-of` relation |
+| `declined` | `reason` | boxxy refuses the work | to close the item, with the reason |
+| `needs-owner` | `question` | only the owner can decide, such as a choice of scope | nothing. The rules hold the item, the owner reads the question with `boxxy item get`, answers with `boxxy item edit` or `boxxy item note`, and runs `boxxy item retry`, which runs triage again |
+| `split` | `openItems`, one part at least, in the shape of the build field | the item holds several pieces of work that can each be done alone | to file each part through the dedupe of open items, and to close the item with the reason `split` |
+
+Each part of a split holds the triage attempt in `foundInAttempt`. The parts get their IDs in the settle, so no relation draft can name them. The rules' edge decides the item's end: a hold edge withholds the close, and the parts still file.
+
+A triage close-out may set the kind, the design mode, the acceptance list, the body and the relations. `set.body` is the whole new body, of 40,000 characters or fewer, and replaces the item's body. The settle records it in a `boxxy.item.edited` fact with the attempt in `byAttempt`, so the item's revisions show triage as the author, and the launch prompt of each later phase carries the new body.
 
 ## Derived from facts
 

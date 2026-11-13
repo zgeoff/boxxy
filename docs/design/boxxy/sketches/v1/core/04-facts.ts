@@ -91,9 +91,9 @@ export interface WorkFacts {
     readonly byAttempt: AttemptId | null; // the attempt whose settle made the edit
   };
 
-  // written by: `item.close`; settle, for the effect `close-item` (triage: duplicate, declined)
-  // Under the v1 rules a triage `duplicate` or `declined` holds the item and runs
-  // no `close-item`, so `item.close` (the owner's confirm) is the only writer in v1.
+  // written by: `item.close`; settle, for the effect `close-item` (triage: duplicate, declined,
+  // split). Under the v1 rules a triage `duplicate` or `declined` holds the item and runs no
+  // `close-item`, so the settle writes this fact only for a `split`, which the rules end.
   // `ended` lists each live attempt that this close ended. `settled`: a sleeping attempt,
   // whose `boxxy.attempt.settled` is in the same change. `closing`: an attempt whose session ran;
   // this fact is the fact of its move to `closing`, and its `settled` follows the stop.

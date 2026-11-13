@@ -88,8 +88,9 @@ export interface NoteRow {
 // holds no next step.
 export type Position =
   | { readonly kind: 'phase'; readonly phase: PhaseName; readonly round: number }
-  // `reviewed`, `pipeline-done`, `no-pipeline`. `duplicate` and `declined` are not ends in the
-  // v1 rules; they are reasons of a `hold` (see `Edge`, `{ hold: reason }`).
+  // `reviewed`, `pipeline-done`, `no-pipeline`, `split`. `duplicate`, `declined` and
+  // `needs-owner` are not ends in the v1 rules; they are reasons of a `hold` (see `Edge`,
+  // `{ hold: reason }`).
   | { readonly kind: 'end'; readonly reason: string }
   | { readonly kind: 'hold'; readonly reason: HoldReason; readonly then: PhaseName; readonly round: number };
 
@@ -342,9 +343,9 @@ export type Edge =
   // `boxxy item close <item>` or sends it back with `boxxy item retry <item>`.
   // "No effect" means no effect that CHANGES AN ITEM: `close-item`, the relations, and `set`
   // (kind, design mode, acceptance) are withheld. Friction is recorded all the same, because it
-  // is a fact about the attempt only. The hold reason, and the attempt's close-out in
-  // `item.get`, show the agent's result: `declined` with its reason, or `duplicate` with the
-  // other item.
+  // is a fact about the attempt only, and the parts of a `split` still file. The hold reason,
+  // and the attempt's close-out in `item.get`, show the agent's result: `declined` with its
+  // reason, `duplicate` with the other item, or `needs-owner` with its question.
   | { readonly hold: RulesHoldReason };
 
 export type LoadRejectionReason =
@@ -432,7 +433,16 @@ export interface CloseOutLimits {
 export declare const closeOutLimits: CloseOutLimits;
 
 export interface TriageCloseOut {
-  readonly result: { readonly kind: 'accepted' } | { readonly kind: 'duplicate'; readonly of: ItemId } | { readonly kind: 'declined'; readonly reason: string };
+  // `declined` is a refusal only. A question for the owner is `needs-owner`, which settles with no
+  // effect of its own; a split is `split`, which files each part and closes the item, and the
+  // parser refuses it with no part. Each result is a strict object, so a field of another
+  // result is refused instead of dropped.
+  readonly result:
+    | { readonly kind: 'accepted' }
+    | { readonly kind: 'duplicate'; readonly of: ItemId }
+    | { readonly kind: 'declined'; readonly reason: string }
+    | { readonly kind: 'needs-owner'; readonly question: string }
+    | { readonly kind: 'split'; readonly openItems: readonly OpenItem[] };
   readonly set?: {
     readonly kind?: ItemKindName;
     readonly designMode?: DesignMode;

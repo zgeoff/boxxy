@@ -31,7 +31,13 @@ export interface TriageCloseOut {
   readonly result:
     | { readonly kind: 'accepted' }
     | { readonly kind: 'duplicate'; readonly of: ItemId }
-    | { readonly kind: 'declined'; readonly reason: string };
+    | { readonly kind: 'declined'; readonly reason: string }
+
+    // the question the owner answers before triage can decide
+    | { readonly kind: 'needs-owner'; readonly question: string }
+
+    // the parts, filed as new items in place of this one; one at least
+    | { readonly kind: 'split'; readonly openItems: readonly OpenItem[] };
   readonly set?: {
     readonly kind?: ItemKindName;
     readonly designMode?: DesignMode;

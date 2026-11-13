@@ -119,7 +119,10 @@ function setupTest() {
 
   // the four phase kinds are stand-ins with the outcome lists of the v1 phases
   const phases = [
-    buildMockPhaseKind({ name: 'triage', outcomes: ['accepted', 'duplicate', 'declined'] }),
+    buildMockPhaseKind({
+      name: 'triage',
+      outcomes: ['accepted', 'duplicate', 'declined', 'needs-owner', 'split'],
+    }),
     buildMockPhaseKind({ name: 'design', outcomes: ['designed', 'blocked', 'abandoned'] }),
     buildMockPhaseKind({ name: 'build', outcomes: ['built', 'blocked', 'abandoned'] }),
     buildMockPhaseKind({ name: 'review', outcomes: ['passed', 'changes-requested', 'failed'] }),

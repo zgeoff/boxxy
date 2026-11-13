@@ -328,6 +328,95 @@ test('it withholds the close of a declined triage, holds the item, and writes th
   expect(notices).toMatchObject([{ item: attempt.item, reason: 'declined', tries: 0 }]);
 });
 
+test('it holds a triage that needs the owner open at triage, and writes the notice', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('triage');
+
+  await ctx.closeOut(attempt, {
+    result: { kind: 'needs-owner', question: 'Should the export cover archived projects?' },
+    relations: [],
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+  const notices = await ctx.listNotices();
+
+  const position = detail.item.position;
+
+  invariant(position.kind === 'hold', 'the item holds');
+
+  const received: unknown = [detail.item.closedAt, position.reason, position.then];
+
+  expect(received).toStrictEqual([null, 'needs-owner', 'triage']);
+  expect(notices).toMatchObject([{ item: attempt.item, reason: 'needs-owner', tries: 0 }]);
+});
+
+test('it files each part of a split triage and closes the item when the rules end the split', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('triage');
+
+  await ctx.closeOut(attempt, {
+    result: {
+      kind: 'split',
+      openItems: [
+        { kind: 'core.issue', title: 'Export projects as CSV', body: 'One part of the export.' },
+        { kind: 'core.issue', title: 'Export projects as JSON', body: 'The other part.' },
+      ],
+    },
+    relations: [],
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+  const filed = await ctx.listFacts('boxxy.item.filed');
+
+  const received: unknown = [detail.item.closeReason, detail.item.position];
+
+  expect(received).toStrictEqual(['split', { kind: 'end', reason: 'split' }]);
+
+  expect(filed.map((fact) => fact.payload)).toMatchObject([
+    {},
+    { title: 'Export projects as CSV', foundInAttempt: attempt.id },
+    { title: 'Export projects as JSON', foundInAttempt: attempt.id },
+  ]);
+});
+
+test('it still files the parts of a split triage, and keeps the item open, when the rules hold the split', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('triage');
+
+  ctx.setRules(
+    ctx.mapOutcome(ctx.rules(), 'triage', 'split', {
+      hold: brandSchemas.rulesHoldReason.parse('split'),
+    }),
+  );
+
+  await ctx.closeOut(attempt, {
+    result: {
+      kind: 'split',
+      openItems: [{ kind: 'core.issue', title: 'Export projects as CSV', body: 'One part.' }],
+    },
+    relations: [],
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+  const filed = await ctx.listFacts('boxxy.item.filed');
+
+  expect(detail.item.closedAt).toBeNull();
+
+  expect(filed.map((fact) => fact.payload)).toMatchObject([
+    {},
+    { title: 'Export projects as CSV' },
+  ]);
+});
+
 test('it leaves the attempt and the item as they were when the notice of its hold is refused 6 times', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.claimAt('triage');

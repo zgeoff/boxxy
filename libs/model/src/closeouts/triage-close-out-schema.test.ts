@@ -60,6 +60,60 @@ test('it rejects a duplicate with no item it duplicates', () => {
   });
 });
 
+test('it accepts a needs-owner triage with its question', () => {
+  const closeOut = {
+    result: { kind: 'needs-owner', question: 'Should the export cover archived projects?' },
+    relations: [],
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  const parsed: unknown = triageCloseOutSchema.safeParse(closeOut).data;
+
+  expect(parsed).toStrictEqual(closeOut);
+});
+
+test('it rejects a needs-owner triage with an empty question', () => {
+  const closeOut = {
+    result: { kind: 'needs-owner', question: '' },
+    relations: [],
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  expect(triageCloseOutSchema.safeParse(closeOut).error?.issues).toPartiallyContain({
+    path: ['result', 'question'],
+  });
+});
+
+test('it rejects a split triage with no part', () => {
+  const closeOut = {
+    result: { kind: 'split', openItems: [] },
+    relations: [],
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  expect(triageCloseOutSchema.safeParse(closeOut).error?.issues).toPartiallyContain({
+    path: ['result', 'openItems'],
+  });
+});
+
+test('it rejects a declined triage that carries parts', () => {
+  const closeOut = {
+    result: {
+      kind: 'declined',
+      reason: 'Too large for one item',
+      openItems: [{ kind: 'core.issue', title: 'Export projects as CSV', body: '' }],
+    },
+    relations: [],
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  expect(triageCloseOutSchema.safeParse(closeOut).success).toBe(false);
+});
+
 test('it rejects a key that no triage close-out has', () => {
   const closeOut = {
     result: { kind: 'accepted' },

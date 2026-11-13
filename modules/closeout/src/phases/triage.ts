@@ -18,7 +18,7 @@ export const triage = definePhase({
   name: brandSchemas.phaseName.parse('triage'),
   version: 1,
   worker: brandSchemas.workerKindName.parse('atc.session'),
-  outcomes: ['accepted', 'duplicate', 'declined'],
+  outcomes: ['accepted', 'duplicate', 'declined', 'needs-owner', 'split'],
   needsAcceptance: false,
   input: (ctx) =>
     toJSONValue({ acceptance: buildCriterionTexts(ctx.item) } satisfies AcceptanceInput),
@@ -111,7 +111,6 @@ function collectRepeatedRelations(
   );
 }
 
-// A duplicate closes with `of`, which adds the `duplicate-of` relation in the same change.
 function collectTriageEffects(closeOut: TriageCloseOut): Effect[] {
   const set = closeOut.set ?? {};
 
@@ -125,15 +124,21 @@ function collectTriageEffects(closeOut: TriageCloseOut): Effect[] {
       : [{ kind: 'set-acceptance' as const, criteria: buildCriteria(set.acceptance) }]),
     ...(set.body === undefined ? [] : [{ kind: 'set-body' as const, body: set.body }]),
     ...closeOut.relations.map((relation) => ({ kind: 'add-relation' as const, relation })),
-    ...buildCloseEffects(closeOut.result),
+    ...buildResultEffects(closeOut.result),
     ...closeOut.friction.map((friction) => ({ kind: 'record-proposal' as const, friction })),
   ];
 }
 
-function buildCloseEffects(result: TriageCloseOut['result']): Effect[] {
+// A duplicate closes with `of`, which adds the `duplicate-of` relation in the same change. A split
+// files its parts and closes the item; a hold edge withholds the close, and the parts still file.
+function buildResultEffects(result: TriageCloseOut['result']): Effect[] {
   return match(result)
     .returnType<Effect[]>()
-    .with({ kind: 'accepted' }, () => [])
+    .with({ kind: 'accepted' }, { kind: 'needs-owner' }, () => [])
+    .with({ kind: 'split' }, (split) => [
+      ...split.openItems.map((openItem) => ({ kind: 'file-item' as const, item: openItem })),
+      { kind: 'close-item' as const, reason: 'split', of: null },
+    ])
     .with({ kind: 'duplicate' }, (duplicate) => [
       { kind: 'close-item', reason: 'duplicate', of: duplicate.of },
     ])

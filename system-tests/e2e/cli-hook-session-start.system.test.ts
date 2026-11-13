@@ -159,7 +159,7 @@ test('it binds without a fetch and tells the session its close-out when the reci
           'boxxy runs this session as one attempt at the triage phase.',
           'Your whole task is in the launch prompt, which carries the ticket. Run `boxxy attempt current` for the attempt ID and the JSON Schema of the close-out body.',
           'To cite a test or a check, record it with `boxxy attempt evidence --kind <test|ci-run|live-check> --ref <what you checked>` and use the ID it prints.',
-          'Before you end, send the close-out body as JSON on stdin to `boxxy attempt close-out`, with one of these outcomes: accepted, duplicate, declined.',
+          'Before you end, send the close-out body as JSON on stdin to `boxxy attempt close-out`, with one of these outcomes: accepted, duplicate, declined, needs-owner, split.',
           'When it prints problems, fix each one and send it again. The first valid close-out is final.',
           'A session that ends without a valid close-out fails.',
         ].join('\n'),

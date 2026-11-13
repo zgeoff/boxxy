@@ -381,8 +381,8 @@ export const contract = {
       .input(itemCloseInput)
       .output(itemCloseOutput),
 
-    // Writes `boxxy.lever.recorded`. With no `phase`, on an item that triage holds as `declined`
-    // or `duplicate`, it sends the item back to triage.
+    // Writes `boxxy.lever.recorded`. With no `phase`, on an item that triage holds as `declined`,
+    // `duplicate` or `needs-owner`, it sends the item back to triage.
     retry: tool(
       'item_retry',
       'Lifts a hold on an item and resets its attempt counts. With phase, also sends the item back to that phase.',

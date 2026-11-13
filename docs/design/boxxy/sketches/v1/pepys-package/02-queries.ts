@@ -123,7 +123,7 @@ export type StageTime = z.output<typeof stageTimeSchema>;
 // so the definition needs no boxxy fact, and `boxxy_stage_time` reads the same column for its
 // merge time. An item with no pull request never lands. A triage that ends `duplicate` or
 // `declined` is one: it holds the item for the owner, who closes it, and the item has no pull
-// request.
+// request. A triage `split` is another: it closes the item, and each part lands on its own.
 //
 // An attempt whose `failure` is `no-capacity` is not an attempt of work.
 // The worker refused its spawn for capacity, so it has no session, no request row and no cost.

@@ -33,6 +33,8 @@ import { createFakeFactSink, outboxLimits, runSenderOnce, toWireItem } from '@bo
 //           accepted:  next
 //           duplicate: { hold: duplicate }           # the owner confirms
 //           declined:  { hold: declined }            # with `boxxy item close`, or `boxxy item retry`
+//           needs-owner: { hold: needs-owner }       # the owner answers, then `boxxy item retry`
+//           split:     { end: split }                # the parts are filed; the item closes
 //       - phase: design
 //         maxAttempts: 2
 //         timeoutMinutes: 90                     # Required on every step. It is the clock of an
@@ -275,7 +277,7 @@ export async function runAttemptCloseOut(env: Record<string, string | undefined>
 //   boxxy item close <item> --reason …        also ends the item's live attempt: a sleeping one
 //                                             settles at once with no wake, any other is stopped, then settled
 //   boxxy item retry <item>                   lifts a hold and resets both counts
-//                                             from a triage hold (`declined`, `duplicate`)
+//                                             from a triage hold (`declined`, `duplicate`, `needs-owner`)
 //                                             it sends the item back to triage
 //   boxxy item close <item> --reason …        the owner's confirm of a triage `declined`
 //                                             or `duplicate`; the triage settle itself closes nothing
