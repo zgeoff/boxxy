@@ -1,5 +1,3 @@
-// Copied from atc: packages/mcp/src/auth/normalize-client-name.ts at commit 4fe647cf.
-
 export function normalizeClientName(
   raw: unknown,
   fallback = 'unnamed client',

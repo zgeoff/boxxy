@@ -2,7 +2,6 @@ import { oc } from '@orpc/contract';
 import { z } from 'zod';
 
 const id = z.string().min(1).max(64);
-const time = z.iso.datetime({ offset: true });
 const text100 = z.string().min(1).max(100);
 const emptyInput = z.object({});
 
@@ -36,7 +35,6 @@ const grantView = z.object({
 const enrollOutput = z.object({
   token: z.string().min(1).max(200),
   link: z.string().max(500),
-  expiresAt: time,
 });
 
 // These manage who may reach the public door. Each answers AUTH_NOT_CONFIGURED when the server's

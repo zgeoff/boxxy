@@ -250,6 +250,9 @@ async function startTestPublicDoor(
     dbPath: join(folder, 'auth.db'),
     trustForwardedFrom: [],
     writeSecurityLine: () => {},
+    onSweepError: (error) => {
+      throw error;
+    },
     readPeer: () => '127.0.0.1',
     serveMCP: makePublicMcpServe(readDeps),
   });

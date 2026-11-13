@@ -1,5 +1,3 @@
-// Copied from atc: packages/mcp/src/http/is-loopback-host.ts at commit 4fe647cf.
-
 export function isLoopbackHost(host: string): boolean {
   return (
     host === 'localhost' ||

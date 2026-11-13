@@ -100,16 +100,16 @@ A worker session runs in an imp, which reaches the public internet only. The ses
 
 ## The public door
 
-[0018](../../decisions/0018-public-owner-mcp.md) records why the owner's MCP endpoint has a public door. The door runs the OAuth server of [`@boxxy/auth-oauth`](../../../adapters/auth-oauth/README.md), a copy of the one in atc, and serves the owner's 20 tools. It never serves `/rpc` or `/healthz`, and the six `auth` procedures are not tools, so no token reaches them.
+[0018](../../decisions/0018-public-owner-mcp.md) records why the owner's MCP endpoint has a public door. The door runs the OAuth server of [`@zgeoff/mcp-auth`](https://github.com/zgeoff/tools/tree/main/docs/design/mcp-auth), through [`@boxxy/auth-oauth`](../../../adapters/auth-oauth/README.md), and serves the owner's 20 tools at `/mcp` and at the bare origin. It never serves `/rpc` or `/healthz`, and the six `auth` procedures are not tools, so no token reaches them.
 
 The configuration's `publicDoor` section holds the `port`, the `publicURL`, `trustForwardedFrom`, and optionally the `hostname` (loopback by default) and the `authFile`. A door that listens beyond loopback needs an `https` public URL. The `publicURL` is the OAuth issuer, and `<publicURL>/mcp` is the one resource that every token is bound to.
 
 - **Clients.** A client is a public client that the owner adds with `boxxy auth clients add`, with PKCE S256 and no client secret. The door has no dynamic client registration.
-- **Authorization.** Each authorization needs a fresh passkey sign-in, then a consent page that lists the scopes the client asked for. Only `read` starts ticked. The owner enrolls a passkey with `boxxy auth enroll`, which prints a one-time link.
-- **Tokens.** An access token is opaque, lasts 3600 seconds and is stored hashed. Refresh tokens rotate, and a reused one revokes the client's grants. A code lasts 600 seconds and an owner session 1800 seconds. The signing secret is drawn at each start, so a restart ends the sign-ins in progress. A token's audience must equal `<publicURL>/mcp`.
+- **Authorization.** Each authorization needs a fresh passkey sign-in, then a consent page that lists the scopes the client asked for. Only `read` starts ticked. The owner enrolls a passkey with `boxxy auth enroll`, which prints a one-time, short-lived link.
+- **Tokens.** The package sets the token lifetimes: an access token is opaque, lasts 15 minutes and is stored hashed. Refresh tokens rotate, and a reused one ends its grant. The signing secret is drawn at each start, so a restart ends the sign-ins in progress. A token's audience must equal `<publicURL>/mcp`. Each grant is one row, and a revoke deletes it with every token of the grant.
 - **Scopes.** `read` is for a tool that changes nothing: `runner_status`, `item_get`, `item_list`, `report_cost` and `report_stage_times`. `write` is for every tool that changes state, the runner pause and resume among them. The access table holds each tool's scope, and the door registers only a tool that has one. A token without the scope that a tool needs gets 403 with `insufficient_scope`. A request with no valid token gets 401.
 - **Request checks.** The door answers 403 to a request whose `Host` is not the public host or the local address, and to a form post or an MCP request whose `Origin` is another one. It writes each sign-in outcome and each refused token to stderr as a JSON line. `trustForwardedFrom` lists the socket peers whose `CF-Connecting-IP` header those lines label `trusted`.
-- **State.** The OAuth state lives in an auth database file beside the store, which only its owner can read. `boxxy auth clients` and `boxxy auth grants` manage it through the owner listener.
+- **State.** The OAuth state lives in an auth database file beside the store, which only its owner can read. `boxxy auth clients` and `boxxy auth grants` manage it through the owner listener. Each client has a unique name. At start, the door runs the auth database's migrations, which gave each grant from before the package its own row. Every 15 minutes it sweeps out expired tokens and sign-ins that never finished.
 
 ## The scope of the worker token
 

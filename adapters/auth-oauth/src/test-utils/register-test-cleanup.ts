@@ -1,5 +1,3 @@
-// Copied from atc: packages/test-utils/src/register-test-cleanup.ts at commit 4fe647cf.
-
 import { onTestFinished } from 'bun:test';
 
 // The releases the current test registered, in registration order; null

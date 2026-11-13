@@ -198,7 +198,6 @@ test('it prints the enrollment link of boxxy auth enroll over the RPC route', as
       json: {
         token: 'enroll-token-1',
         link: 'https://boxxy.example/enroll?token=enroll-token-1',
-        expiresAt: '2026-11-13T09:15:00.000Z',
       },
       status: 200,
     },
@@ -211,7 +210,7 @@ test('it prints the enrollment link of boxxy auth enroll over the RPC route', as
     result: {
       exitCode: 0,
       stdout:
-        'Enrollment link: https://boxxy.example/enroll?token=enroll-token-1\nIt enrolls one passkey and expires at 2026-11-13T09:15:00.000Z. Open it in your browser.\n',
+        'Enrollment link: https://boxxy.example/enroll?token=enroll-token-1\nIt enrolls one passkey and expires soon. Open it in your browser now.\n',
       stderr: '',
     },
     urls: ['http://boxxy.test/rpc/auth/enroll'],

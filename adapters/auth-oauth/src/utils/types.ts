@@ -1,5 +1,3 @@
-// Copied from atc: packages/core/src/types.ts at commit 4fe647cf.
-
 export interface AuthClock {
   readonly now: () => number;
 

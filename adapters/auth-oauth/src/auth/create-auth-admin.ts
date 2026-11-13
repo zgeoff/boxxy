@@ -1,32 +1,39 @@
-import { PUBLIC_DOOR_PATHS } from '../http/public-door-paths.ts';
-import type { AuthClock } from '../utils/types.ts';
-import { createEnrollmentToken } from './create-enrollment-token.ts';
-import { isAllowedRedirectURI } from './is-allowed-redirect-uri.ts';
-import { normalizeClientName } from './normalize-client-name.ts';
-import type { openMCPAuth } from './open-mcp-auth.ts';
-import { readClientViews } from './read-client-views.ts';
-import type { ClientView } from './read-client-views.ts';
-import { readGrantViews } from './read-grant-views.ts';
-import type { GrantView } from './read-grant-views.ts';
-import { removeClient } from './remove-client.ts';
-import { revokeGrant } from './revoke-grant.ts';
-
-type MCPAuth = Awaited<ReturnType<typeof openMCPAuth>>;
+import type { GrantScope } from '@boxxy/contract';
+import { grantScopes } from '@boxxy/contract';
+import { MCPAuthError } from '@zgeoff/mcp-auth';
+import type { ClientView, GrantView, MCPAuth } from '@zgeoff/mcp-auth';
 
 export interface AuthAdminInput {
-  readonly store: MCPAuth;
+  readonly auth: MCPAuth<GrantScope, null>;
   readonly origin: string;
-  readonly clock: AuthClock;
 }
 
 export type AddClientAnswer =
   | { readonly kind: 'added'; readonly clientID: string; readonly name: string }
-  | { readonly kind: 'refused'; readonly redirectURI: string };
+
+  // the message says which rule the name or a redirect URI broke
+  | { readonly kind: 'refused'; readonly message: string }
+  | { readonly kind: 'conflict'; readonly name: string };
+
+export type RemoveClientAnswer =
+  | { readonly kind: 'removed' }
+  | { readonly kind: 'not-found' }
+
+  // another client has the same name, and the OAuth server removes a client by its name
+  | { readonly kind: 'ambiguous'; readonly name: string };
 
 export interface EnrollmentLink {
   readonly token: string;
   readonly link: string;
-  readonly expiresAt: number;
+}
+
+export interface AuthGrantView {
+  readonly grantID: string;
+  readonly clientID: string;
+  readonly clientName: string;
+  readonly scopes: readonly GrantScope[];
+  readonly createdAt: string;
+  readonly lastUsedAt: string | null;
 }
 
 // What the owner's commands do to the authorization database: add and remove clients, revoke
@@ -35,44 +42,107 @@ export interface AuthAdmin {
   readonly enroll: () => Promise<EnrollmentLink>;
   readonly addClient: (name: string, redirectURIs: readonly string[]) => Promise<AddClientAnswer>;
   readonly listClients: () => Promise<readonly ClientView[]>;
-  readonly removeClient: (clientID: string) => Promise<boolean>;
-  readonly listGrants: () => Promise<readonly GrantView[]>;
+  readonly removeClient: (clientID: string) => Promise<RemoveClientAnswer>;
+  readonly listGrants: () => Promise<readonly AuthGrantView[]>;
   readonly revokeGrant: (grantID: string) => Promise<boolean>;
 }
 
 export function createAuthAdmin(input: AuthAdminInput): AuthAdmin {
-  const store = input.store;
-  const origin = input.origin;
-  const clock = input.clock;
+  const auth = input.auth;
 
   return {
     enroll: async () => {
-      const created = await createEnrollmentToken(store.db, clock.now());
+      const token = await auth.passkeys.createEnrollmentToken();
 
-      return {
-        token: created.token,
-        link: `${origin}${PUBLIC_DOOR_PATHS.browser.enroll}?token=${created.token}`,
-        expiresAt: created.expiresAt,
-      };
+      const link = new URL(`${input.origin}${auth.paths.browser.enroll}`);
+
+      link.searchParams.set('token', token);
+
+      return { token, link: link.href };
     },
     addClient: async (name, redirectURIs) => {
-      const refused = redirectURIs.find((uri) => !isAllowedRedirectURI(uri));
+      try {
+        const added = await auth.clients.add(name, redirectURIs);
 
-      if (refused !== undefined) {
-        return { kind: 'refused', redirectURI: refused };
+        return { kind: 'added', clientID: added.clientID, name: added.name };
+      } catch (error) {
+        return pickAddRefusal(error, name);
+      }
+    },
+    listClients: () => auth.clients.list(),
+    removeClient: async (clientID) => {
+      const clients = await auth.clients.list();
+
+      const answer = pickClientToRemove(clients, clientID);
+
+      if (answer.kind === 'remove') {
+        await auth.clients.remove(answer.name);
+
+        return { kind: 'removed' };
       }
 
-      const clientName = normalizeClientName(name);
-
-      const created = await store.auth.api.createFixedClient({
-        body: { name: clientName, redirectURIs: [...redirectURIs] },
-      });
-
-      return { kind: 'added', clientID: created.clientID, name: clientName };
+      return answer;
     },
-    listClients: () => readClientViews(store.db),
-    removeClient: (clientID) => removeClient(store.db, clientID),
-    listGrants: () => readGrantViews(store.db),
-    revokeGrant: (grantID) => revokeGrant(store.db, grantID),
+    listGrants: async () => {
+      const grants = await auth.grants.list();
+
+      return grants.map((grant) => toAuthGrantView(grant));
+    },
+    revokeGrant: async (grantID) => {
+      const grants = await auth.grants.list();
+
+      const grant = grants.find((view) => view.grantID === grantID);
+
+      return grant === undefined ? false : auth.grants.revoke(grant.grantID);
+    },
+  };
+}
+
+// The package refuses a bad name or redirect URI, and a taken name, with a coded error; any other
+// error is not the owner's input.
+function pickAddRefusal(error: unknown, name: string): AddClientAnswer {
+  if (!(error instanceof MCPAuthError)) {
+    throw error;
+  }
+
+  if (error.code === 'conflict') {
+    return { kind: 'conflict', name };
+  }
+
+  if (error.code === 'invalid-client-name' || error.code === 'invalid-redirect-uri') {
+    return { kind: 'refused', message: error.message };
+  }
+
+  throw error;
+}
+
+type ClientToRemove =
+  | { readonly kind: 'remove'; readonly name: string }
+  | Exclude<RemoveClientAnswer, { readonly kind: 'removed' }>;
+
+function pickClientToRemove(clients: readonly ClientView[], clientID: string): ClientToRemove {
+  const client = clients.find((view) => view.clientID === clientID);
+
+  if (client === undefined) {
+    return { kind: 'not-found' };
+  }
+
+  const isShared = clients.some(
+    (view) => view.name === client.name && view.clientID !== client.clientID,
+  );
+
+  return isShared
+    ? { kind: 'ambiguous', name: client.name }
+    : { kind: 'remove', name: client.name };
+}
+
+function toAuthGrantView(grant: GrantView): AuthGrantView {
+  return {
+    grantID: grant.grantID,
+    clientID: grant.clientID,
+    clientName: grant.clientName,
+    scopes: grantScopes.filter((scope) => grant.scopes.includes(scope)),
+    createdAt: grant.createdAt,
+    lastUsedAt: grant.lastUsedAt,
   };
 }

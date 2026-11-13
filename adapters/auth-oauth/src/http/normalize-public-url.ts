@@ -1,5 +1,3 @@
-// Copied from atc: packages/mcp/src/http/normalize-public-url.ts at commit 4fe647cf.
-
 import { isLoopbackHost } from './is-loopback-host.ts';
 
 export function normalizePublicURL(raw: string): string {

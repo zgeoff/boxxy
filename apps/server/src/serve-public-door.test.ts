@@ -24,11 +24,7 @@ async function setupTest() {
     door,
     origin,
     issueToken: async (ticked: readonly string[]) => {
-      const grant = await authorizeTestClient(door, {
-        origin,
-        requested: ['read', 'write', 'offline_access'],
-        ticked,
-      });
+      const grant = await authorizeTestClient(door.auth, { scopes: ticked });
 
       return grant.accessToken;
     },

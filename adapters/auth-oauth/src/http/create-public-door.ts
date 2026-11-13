@@ -1,22 +1,20 @@
-// Adapted from atc: packages/mcp/src/http/start-mcp-http-server.ts at commit 4fe647cf.
-
+import type { Database } from 'bun:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { APPROVAL_WINDOW_SECONDS } from '../auth/approval-window-seconds.ts';
-import { createApprovalState } from '../auth/create-approval-state.ts';
+import type { GrantScope } from '@boxxy/contract';
+import { grantScopes } from '@boxxy/contract';
+import { DEFAULT_PATHS, openMCPAuth } from '@zgeoff/mcp-auth';
+import type { MCPAuth, Requester } from '@zgeoff/mcp-auth';
+import { createMCPHTTPApp } from '@zgeoff/mcp-auth/elysia';
 import { createAuthAdmin } from '../auth/create-auth-admin.ts';
 import type { AuthAdmin } from '../auth/create-auth-admin.ts';
-import { createEnrollmentState } from '../auth/create-enrollment-state.ts';
 import { createSecurityEventLog } from '../auth/create-security-event-log.ts';
 import { openAuthDatabase } from '../auth/open-auth-database.ts';
-import { openMCPAuth } from '../auth/open-mcp-auth.ts';
-import type { HTTPServerContext, Requester } from '../auth/types.ts';
+import { runAuthMigrations } from '../migrations/run-auth-migrations.ts';
 import type { AuthClock } from '../utils/types.ts';
-import type { McpServe } from './answer-mcp-request.ts';
-import { createMCPHTTPApp } from './create-mcp-http-app.ts';
 import { isLoopbackHost } from './is-loopback-host.ts';
 import { normalizePublicURL } from './normalize-public-url.ts';
-import { PUBLIC_DOOR_PATHS } from './public-door-paths.ts';
+import type { McpServe } from './types.ts';
 
 export interface PublicDoorOptions {
   // The origin clients reach the door at: the OAuth issuer.
@@ -33,6 +31,9 @@ export interface PublicDoorOptions {
   // Receives one JSON line per sign-in outcome or refused token.
   readonly writeSecurityLine: (line: string) => void;
 
+  // Receives a failed sweep of the expired tokens and the sign-ins that never finished.
+  readonly onSweepError: (error: unknown) => void;
+
   // The address of the socket a request came in on, or null.
   readonly readPeer: (request: Request) => string | null;
 
@@ -48,6 +49,9 @@ export interface PublicDoor {
   // The door answers to the loopback address on this port as well as to its public host.
   readonly addLocalPort: (port: number) => void;
   readonly admin: AuthAdmin;
+
+  // The OAuth server itself, for the test helpers that sign a client in.
+  readonly auth: MCPAuth<GrantScope, null>;
   readonly stop: () => Promise<void>;
 }
 
@@ -62,8 +66,12 @@ const systemClock: AuthClock = {
   },
 };
 
-// Opens the authorization database and builds the door's routes. Throws on a public URL that is
-// not an https origin, or not a loopback address while the door listens beyond loopback.
+// The door serves no path of its own beside the OAuth server's, and no route lives under this.
+const NO_APP_PREFIX = '/.boxxy-none';
+
+// Opens and migrates the authorization database and builds the door's routes. Throws on a public
+// URL that is not an https origin, or not a loopback address while the door listens beyond
+// loopback.
 export async function createPublicDoor(options: PublicDoorOptions): Promise<PublicDoor> {
   const clock = options.clock ?? systemClock;
   const origin = normalizePublicURL(options.publicURL);
@@ -104,33 +112,42 @@ export async function createPublicDoor(options: PublicDoorOptions): Promise<Publ
 
   mkdirSync(dirname(options.dbPath), { recursive: true });
 
-  const store = await openMCPAuth({
-    dbPath: options.dbPath,
-    openDatabase: openAuthDatabase,
-    origin,
+  const sqlite = openAuthDatabase(options.dbPath);
+
+  const auth = await openAuth(sqlite, origin, clock, security).catch((error: unknown) => {
+    sqlite.close();
+    throw error;
   });
 
   const hosts = new Set<string>([new URL(origin).host]);
   const origins = new Set<string>([origin]);
 
-  const context: HTTPServerContext = {
-    origin,
-    resource: `${origin}${PUBLIC_DOOR_PATHS.machine.mcp}`,
-    store,
-    approvals: createApprovalState(APPROVAL_WINDOW_SECONDS * 1000, () => clock.now()),
-    enrollments: createEnrollmentState(() => clock.now()),
-    security,
-    clock,
-  };
+  const metadataURL = `${origin}${DEFAULT_PATHS.machine.mcpResourceMetadata}`;
 
   const app = createMCPHTTPApp({
+    auth,
     hosts,
     origins,
-    readContext: () => context,
     readRequester,
-    serveMCP: options.serveMCP,
     security,
+    mcp: {
+      // The adapter answers only a request whose bearer token verified, so the header holds one.
+      // oxlint-disable-next-line zgeoff/function-verb -- the adapter's option names this method fetch
+      fetch: (request, access) =>
+        options.serveMCP(request, {
+          token:
+            /^Bearer (?<token>\S+)$/iu.exec(request.headers.get('authorization') ?? '')?.groups?.[
+              'token'
+            ] ?? '',
+          clientId: access.clientID,
+          scopes: [...access.scopes],
+          resourceMetadataUrl: metadataURL,
+        }),
+    },
+    besidePrefix: NO_APP_PREFIX,
   });
+
+  const sweep = startSweep(auth, clock, options.onSweepError);
 
   return {
     answerRequest: (request) => app.handle(request),
@@ -140,11 +157,78 @@ export async function createPublicDoor(options: PublicDoorOptions): Promise<Publ
       origins.add(`http://127.0.0.1:${port}`);
       origins.add(`http://localhost:${port}`);
     },
-    admin: createAuthAdmin({ store, origin, clock }),
+    admin: createAuthAdmin({ auth, origin }),
+    auth,
     stop: async () => {
-      await store.close();
+      sweep.stop();
 
+      await auth.close();
+
+      sqlite.close();
       security.drain();
+    },
+  };
+}
+
+async function openAuth(
+  sqlite: Database,
+  origin: string,
+  clock: AuthClock,
+  security: ReturnType<typeof createSecurityEventLog>,
+): Promise<MCPAuth<GrantScope, null>> {
+  await runAuthMigrations(sqlite);
+
+  return openMCPAuth({
+    database: sqlite,
+    origin,
+    productName: 'boxxy',
+    scopes: grantScopes,
+    paths: DEFAULT_PATHS,
+    tables: { passkey: 'boxxy_passkey', enrollmentToken: 'boxxy_enrollment_token' },
+    clock,
+    security,
+
+    // Each MCP request builds its own server and holds no stream open, so a revoke has nothing to
+    // end beyond the tokens the package deletes.
+    onGrantRevoked: () => null,
+  });
+}
+
+// Each passkey login makes a grant row, which stays until a sweep finds it unfinished an hour on.
+const SWEEP_MS = 15 * 60_000;
+
+function startSweep(
+  auth: MCPAuth<GrantScope, null>,
+  clock: AuthClock,
+  onError: (error: unknown) => void,
+): { readonly stop: () => void } {
+  let cancel: (() => void) | null = null;
+  let isStopped = false;
+
+  const runSweep = async (): Promise<void> => {
+    try {
+      await auth.removeExpired();
+    } catch (error) {
+      onError(error);
+    }
+
+    if (!isStopped) {
+      scheduleNext();
+    }
+  };
+
+  const scheduleNext = (): void => {
+    cancel = clock.schedule(() => {
+      void runSweep();
+    }, SWEEP_MS);
+  };
+
+  scheduleNext();
+
+  return {
+    stop: () => {
+      isStopped = true;
+      cancel?.();
     },
   };
 }

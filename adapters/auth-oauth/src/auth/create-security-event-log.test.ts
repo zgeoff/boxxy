@@ -1,5 +1,3 @@
-// Copied from atc: packages/mcp/src/auth/create-security-event-log.test.ts at commit 4fe647cf.
-
 import { expect, test } from 'bun:test';
 import { buildStubClock } from '../test-utils/build-stub-clock.ts';
 import { createSecurityEventLog } from './create-security-event-log.ts';

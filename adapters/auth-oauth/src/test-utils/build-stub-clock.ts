@@ -1,5 +1,3 @@
-// Copied from atc: packages/test-utils/src/build-stub-clock.ts at commit 4fe647cf.
-
 import type { AuthClock } from '../utils/types.ts';
 
 interface StubTimer {

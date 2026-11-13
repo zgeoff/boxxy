@@ -31,21 +31,14 @@
     "typecheck": "tsrs --noEmit"
   },
   "dependencies": {
-    "@better-auth/mcp": "catalog:",
-    "@better-auth/oauth-provider": "catalog:",
     "@boxxy/contract": "workspace:*",
-    "@simplewebauthn/server": "catalog:",
     "@zgeoff/kysely-bun-sqlite": "catalog:",
-    "better-auth": "catalog:",
+    "@zgeoff/mcp-auth": "catalog:",
     "elysia": "catalog:",
     "exact-mirror": "catalog:",
     "kysely": "catalog:",
     "openapi-types": "catalog:",
-    "reflect-metadata": "catalog:",
-    "tiny-invariant": "catalog:",
-    "ts-pattern": "catalog:",
-    "typebox": "catalog:",
-    "zod": "catalog:"
+    "typebox": "catalog:"
   },
   "engines": {
     "bun": ">=1.3",

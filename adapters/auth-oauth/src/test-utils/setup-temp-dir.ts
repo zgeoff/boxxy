@@ -1,5 +1,3 @@
-// Copied from atc: packages/test-utils/src/setup-temp-dir.ts at commit 4fe647cf.
-
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

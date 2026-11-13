@@ -1,5 +1,3 @@
-// Copied from atc: packages/mcp/src/http/is-loopback-host.test.ts at commit 4fe647cf.
-
 import { expect, test } from 'bun:test';
 import { isLoopbackHost } from './is-loopback-host.ts';
 

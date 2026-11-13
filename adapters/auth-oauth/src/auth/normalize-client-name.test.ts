@@ -1,5 +1,3 @@
-// Copied from atc: packages/mcp/src/auth/normalize-client-name.test.ts at commit 4fe647cf.
-
 import { expect, test } from 'bun:test';
 import { normalizeClientName } from './normalize-client-name.ts';
 

@@ -115,7 +115,7 @@ Each outside system has one package that may talk to it:
 | Outside system | Package                 | What lint checks                                                      |
 | -------------- | ----------------------- | --------------------------------------------------------------------- |
 | the store      | `adapters/store-sqlite` | only it and `adapters/auth-oauth` import `bun:sqlite`, `kysely` or `@zgeoff/kysely-bun-sqlite`; the second one opens the auth database, never the store |
-| OAuth          | `adapters/auth-oauth`   | only it imports `better-auth` (and its subpaths), `@better-auth/mcp`, `@better-auth/oauth-provider`, `@simplewebauthn/server` or `reflect-metadata` |
+| OAuth          | `adapters/auth-oauth`   | only it imports `@zgeoff/mcp-auth`, `@zgeoff/mcp-auth/elysia` or `@zgeoff/mcp-auth/testing` |
 | atc            | `adapters/worker-atc`   | only it imports `@modelcontextprotocol/client`, to call the atc gateway's MCP tools |
 | imp identity   | `adapters/caller-proof-imp` | only it imports `@impz/client` or `@impz/client/identity`         |
 | noslop         | `adapters/review-noslop` | only it imports `@noslop/cli`, `@noslop/cli/post` or `@noslop/cli/check`, to check and post a review result with the noslop App's keys |
@@ -124,11 +124,11 @@ Each outside system has one package that may talk to it:
 | wringer        | `apps/cli/src/test-utils/verify/` | only the verify CLI imports `@wringer/gunshi`, `@wringer/http` or another `@wringer/*` package |
 | wringer report | `adapters/verifier-wringer` | only it, the verify CLI and the CLI's two merge journey test files import `@wringer/core`; the adapter parses the report in a pull request with its `parseReportBlock` |
 
-oRPC has an owner and no lint pin. Only `libs/contract` calls `oc` and `mcp.tool` to define a procedure. `apps/server` imports `@orpc/server`, `@orpc/mcp` and `@modelcontextprotocol/server` to serve the contract, and `@orpc/client` to call the pepys query API. The atc stand-in in `adapters/worker-atc/src/test-utils/` imports `@modelcontextprotocol/server` too, to serve atc's tools on the library the atc gateway uses; the package lists it as an optional peer. `apps/cli` imports `@orpc/client` to call the server, and the real-pepys test deployment of `packages/pepys` imports it to call the pepys query API in process. Only `apps/server` and `adapters/auth-oauth` import `elysia`, and each lists Elysia's peers `exact-mirror`, `openapi-types` and `typebox` as its own dependencies.
+oRPC has an owner and no lint pin. Only `libs/contract` calls `oc` and `mcp.tool` to define a procedure. `apps/server` imports `@orpc/server`, `@orpc/mcp` and `@modelcontextprotocol/server` to serve the contract, and `@orpc/client` to call the pepys query API. The atc stand-in in `adapters/worker-atc/src/test-utils/` imports `@modelcontextprotocol/server` too, to serve atc's tools on the library the atc gateway uses; the package lists it as an optional peer. `apps/cli` imports `@orpc/client` to call the server, and the real-pepys test deployment of `packages/pepys` imports it to call the pepys query API in process. Only `apps/server` imports `elysia`. `adapters/auth-oauth` imports the Elysia adapter of `@zgeoff/mcp-auth`, which needs Elysia as a peer, so it lists `elysia` too. Each lists Elysia's peers `exact-mirror`, `openapi-types` and `typebox` as its own dependencies. Both sit on `2.0.0-rc.3`, the first Elysia the adapter supports.
 
 `@pepys/api` brings its own Elysia, `exact-mirror` and `typebox`, which the lockfile nests under it. All oRPC packages sit at one exact version, `2.0.0-beta.50`, in the root catalog. `@impz/client` brings its own `@orpc/client` 1.x, which the lockfile nests under it, so every boxxy package resolves the catalog version.
 
-The OAuth libraries sit at the versions that atc uses, pinned once in the root catalog: `better-auth` and `@better-auth/*` at `1.7.15`, and `@simplewebauthn/server` at `14.0.3`.
+`@zgeoff/mcp-auth` brings the OAuth libraries, better-auth and `@simplewebauthn/server`, at the versions it pins.
 
 Three libraries have a pin of their own:
 

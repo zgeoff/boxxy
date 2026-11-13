@@ -1,8 +1,12 @@
-// Copied from atc: packages/mcp/src/auth/format-security-event.ts at commit 4fe647cf.
-
-import { PUBLIC_DOOR_PATHS } from '../http/public-door-paths.ts';
+import { DEFAULT_PATHS } from '@zgeoff/mcp-auth';
+import type { SecurityEvent } from '@zgeoff/mcp-auth';
 import { normalizeClientName } from './normalize-client-name.ts';
-import type { SecurityEvent } from './types.ts';
+
+// The IDs in an event are tagged strings, and a line needs only their text.
+type LoggedSecurityEvent = Omit<SecurityEvent, 'client' | 'correlationID'> & {
+  readonly client?: { readonly id: string; readonly name: string };
+  readonly correlationID?: string;
+};
 
 export interface SuppressedSecurityEvent {
   readonly kind: 'suppressed';
@@ -12,11 +16,11 @@ export interface SuppressedSecurityEvent {
 
 // The paths an event may hold as its route.
 const ROUTES: ReadonlySet<string> = new Set(
-  Object.values(PUBLIC_DOOR_PATHS).flatMap((group) => Object.values(group)),
+  Object.values(DEFAULT_PATHS).flatMap((group) => Object.values(group)),
 );
 
 export function formatSecurityEvent(
-  event: SecurityEvent | SuppressedSecurityEvent,
+  event: LoggedSecurityEvent | SuppressedSecurityEvent,
   at: number,
 ): string {
   const head = { version: 1, ts: new Date(at).toISOString(), kind: event.kind };
@@ -30,9 +34,9 @@ export function formatSecurityEvent(
   const fields = {
     ...head,
     outcome: event.outcome,
-    ...('reason' in event && event.reason !== undefined ? { reason: event.reason } : {}),
+    ...(event.reason === undefined ? {} : { reason: event.reason }),
     ...(event.kind === 'owner_auth'
-      ? { method: event.path === PUBLIC_DOOR_PATHS.browser.enroll ? 'enrollment_token' : 'passkey' }
+      ? { method: event.path === DEFAULT_PATHS.browser.enroll ? 'enrollment_token' : 'passkey' }
       : {}),
     route: ROUTES.has(event.path) ? event.path : 'other',
     ...(event.client === undefined
@@ -43,9 +47,6 @@ export function formatSecurityEvent(
             name: toEventText(event.client.name, 100),
           },
         }),
-    ...(event.redirectHost === undefined
-      ? {}
-      : { redirectHost: toEventText(event.redirectHost, 255) }),
     ...(event.correlationID === undefined ? {} : { correlationID: event.correlationID }),
     ...(requester.socketAddress === null
       ? {}
