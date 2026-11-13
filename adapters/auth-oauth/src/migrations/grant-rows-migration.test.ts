@@ -31,7 +31,7 @@ function setupTest() {
         hostname: '127.0.0.1',
         dbPath,
         trustForwardedFrom: [],
-        writeSecurityLine: () => null,
+        writeSecurityLine: () => {},
         onSweepError: (error) => {
           throw error;
         },
@@ -69,13 +69,13 @@ test('it verifies the access token of each grant after the migration, one of the
 
   const door = await ctx.openDoor();
 
-  const verified = await Promise.all([
+  const verified: unknown = await Promise.all([
     door.auth.verify(first?.accessToken ?? ''),
     door.auth.verify(refreshed?.accessToken ?? ''),
   ]);
 
   // The IDs are tagged strings, which compare equal to the plain ones the seed gave.
-  expect<unknown>(verified).toStrictEqual([
+  expect(verified).toStrictEqual([
     {
       kind: 'oauth',
       grantID: first?.grantID,
@@ -111,12 +111,12 @@ test('it ends a migrated grant on revoke and keeps the other grant', async () =>
 
   await door.admin.revokeGrant(revoked?.grantID ?? '');
 
-  const verified = await Promise.all([
+  const verified: unknown = await Promise.all([
     door.auth.verify(revoked?.accessToken ?? ''),
     door.auth.verify(kept?.accessToken ?? ''),
   ]);
 
-  expect<unknown>(verified).toStrictEqual([
+  expect(verified).toStrictEqual([
     null,
     {
       kind: 'oauth',
@@ -190,7 +190,7 @@ test('it drops a grant whose tokens had all expired', async () => {
   const door = await ctx.openDoor();
   const grants = await door.admin.listGrants();
 
-  expect<unknown>(grants.map((grant) => grant.grantID)).toStrictEqual([live?.grantID]);
+  expect(grants.map((grant) => grant.grantID)).toStrictEqual([live?.grantID ?? '']);
 });
 
 test('it keeps the passkeys the owner enrolled before the migration', async () => {
@@ -205,7 +205,9 @@ test('it keeps the passkeys the owner enrolled before the migration', async () =
   const door = await ctx.openDoor();
   const passkeys = await door.auth.passkeys.list();
 
-  expect<unknown>(passkeys.map((passkey) => passkey.id)).toStrictEqual(['passkey-kept']);
+  const ids: unknown = passkeys.map((passkey) => passkey.id);
+
+  expect(ids).toStrictEqual(['passkey-kept']);
 });
 
 test('it refreshes a migrated grant with its newest refresh token', async () => {
@@ -264,7 +266,9 @@ test('it opens a new database, and opens it again once it holds the tables', asy
 
   await first.stop();
 
-  await expect(ctx.openDoor()).resolves.toBeDefined();
+  const door = await ctx.openDoor();
+
+  expect(door.auth.resource).toBe('https://boxxy.example/mcp');
 });
 
 test('it refuses to remove a migrated client whose name another client shares', async () => {

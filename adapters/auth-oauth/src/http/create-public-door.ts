@@ -51,7 +51,7 @@ export interface PublicDoor {
   readonly admin: AuthAdmin;
 
   // The OAuth server itself, for the test helpers that sign a client in.
-  readonly auth: MCPAuth<GrantScope, null>;
+  readonly auth: MCPAuth<GrantScope>;
   readonly stop: () => Promise<void>;
 }
 
@@ -175,7 +175,7 @@ async function openAuth(
   origin: string,
   clock: AuthClock,
   security: ReturnType<typeof createSecurityEventLog>,
-): Promise<MCPAuth<GrantScope, null>> {
+): Promise<MCPAuth<GrantScope>> {
   await runAuthMigrations(sqlite);
 
   return openMCPAuth({
@@ -190,7 +190,7 @@ async function openAuth(
 
     // Each MCP request builds its own server and holds no stream open, so a revoke has nothing to
     // end beyond the tokens the package deletes.
-    onGrantRevoked: () => null,
+    onGrantRevoked: () => {},
   });
 }
 
@@ -198,7 +198,7 @@ async function openAuth(
 const SWEEP_MS = 15 * 60_000;
 
 function startSweep(
-  auth: MCPAuth<GrantScope, null>,
+  auth: MCPAuth<GrantScope>,
   clock: AuthClock,
   onError: (error: unknown) => void,
 ): { readonly stop: () => void } {

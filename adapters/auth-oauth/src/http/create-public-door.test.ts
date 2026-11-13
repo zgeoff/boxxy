@@ -70,7 +70,7 @@ test('it writes a security line for a token it never issued', async () => {
     authorization: 'Bearer made-up-token',
   });
 
-  expect(ctx.lines.map((line) => JSON.parse(line))).toStrictEqual([
+  expect(ctx.lines.map((line): unknown => JSON.parse(line))).toStrictEqual([
     expect.objectContaining({ kind: 'bearer', outcome: 'rejected', reason: 'invalid_token' }),
   ]);
 });

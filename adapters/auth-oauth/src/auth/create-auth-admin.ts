@@ -4,7 +4,7 @@ import { MCPAuthError } from '@zgeoff/mcp-auth';
 import type { ClientView, GrantView, MCPAuth } from '@zgeoff/mcp-auth';
 
 export interface AuthAdminInput {
-  readonly auth: MCPAuth<GrantScope, null>;
+  readonly auth: MCPAuth<GrantScope>;
   readonly origin: string;
 }
 
