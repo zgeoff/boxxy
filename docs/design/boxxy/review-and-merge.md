@@ -197,6 +197,8 @@ Section 5 of [`01-usage.ts`](./sketches/next/review-and-merge/01-usage.ts) shows
 | A review never passes a head that it did not read. | Review adapter tests: the later-review command runs a plain review after a `--fixes-only` run that judged no fix; `accept` reads such a run as `not-covered` and posts nothing; and a result for an old head reads `not-covered`. |
 | A server restart during a review never holds the item or starts a second review. | A CLI test that stops the server after `accept` posts and before the close-out is stored: the session's second close-out settles the same attempt. A second test repeats a stored close-out, and `accept` does not run. |
 | A passed review needs noslop's check to pass. | A review adapter test: `check` answers `failure` with no open finding, and the reading is blocked `unreadable`. |
+| A review that GitHub refuses the App fails with the reason, and a rate limit sends again. | Review adapter tests: a 404 on the post and a 403 on `check` read `not-covered` with the status in `reason`, and a 429 throws. |
+| A repo whose noslop config names no App still gets reviews. | A review adapter test: `findings` exited 1 with no list, `check` finds nothing open, and the reading is `passed`. |
 | A review close-out from any other session is refused. | The close-out procedure's caller test, as for every attempt. |
 | The core holds no tool name. | `turbo boundaries` and the import-zones lint: no file in `modules/` or `libs/` imports a review or verify adapter. |
 
