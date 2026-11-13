@@ -25,6 +25,17 @@ function setupTest() {
         return grants;
       },
     },
+
+    // A refresh that narrowed the scopes can leave a live access token with no live refresh token.
+    expireRefreshTokens: () => {
+      const sqlite = new Database(dbPath);
+
+      sqlite.run('UPDATE oauthRefreshToken SET expiresAt = ?', [
+        new Date(Date.now() - 1000).toISOString(),
+      ]);
+
+      sqlite.close();
+    },
     openDoor: async () => {
       const door = await createPublicDoor({
         publicURL: origin,
@@ -287,4 +298,24 @@ test('it refuses to remove a migrated client whose name another client shares', 
   const answer = await door.admin.removeClient(first?.clientID ?? '');
 
   expect(answer).toStrictEqual({ kind: 'ambiguous', name: 'Alpha assistant' });
+});
+
+test('it revokes a migrated grant whose refresh token expired while its access token lives', async () => {
+  const ctx = setupTest();
+
+  const [grant] = ctx.seed.oldAuth({
+    grants: [{ clientName: 'Alpha assistant', scopes: ['read'], refreshes: 0, lastUsedAt: null }],
+    passkeyID: 'passkey-1',
+    now: Date.now(),
+  });
+
+  ctx.expireRefreshTokens();
+
+  const door = await ctx.openDoor();
+
+  await door.admin.revokeGrant(grant?.grantID ?? '');
+
+  const access = await door.auth.verify(grant?.accessToken ?? '');
+
+  expect(access).toBeNull();
 });

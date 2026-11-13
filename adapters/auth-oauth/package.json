@@ -34,6 +34,7 @@
     "@boxxy/contract": "workspace:*",
     "@zgeoff/kysely-bun-sqlite": "catalog:",
     "@zgeoff/mcp-auth": "catalog:",
+    "@zgeoff/std": "catalog:",
     "elysia": "catalog:",
     "exact-mirror": "catalog:",
     "kysely": "catalog:",

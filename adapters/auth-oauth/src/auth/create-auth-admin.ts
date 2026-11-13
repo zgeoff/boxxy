@@ -1,7 +1,8 @@
 import type { GrantScope } from '@boxxy/contract';
 import { grantScopes } from '@boxxy/contract';
 import { MCPAuthError } from '@zgeoff/mcp-auth';
-import type { ClientView, GrantView, MCPAuth } from '@zgeoff/mcp-auth';
+import type { ClientView, GrantID, GrantView, MCPAuth } from '@zgeoff/mcp-auth';
+import { toTagged } from '@zgeoff/std';
 
 export interface AuthAdminInput {
   readonly auth: MCPAuth<GrantScope>;
@@ -88,13 +89,10 @@ export function createAuthAdmin(input: AuthAdminInput): AuthAdmin {
 
       return grants.map((grant) => toAuthGrantView(grant));
     },
-    revokeGrant: async (grantID) => {
-      const grants = await auth.grants.list();
 
-      const grant = grants.find((view) => view.grantID === grantID);
-
-      return grant === undefined ? false : auth.grants.revoke(grant.grantID);
-    },
+    // The package lists only grants with a live refresh token, and a grant can hold a live access
+    // token without one, so the revoke goes to the package by ID.
+    revokeGrant: (grantID) => auth.grants.revoke(toTagged<GrantID>(grantID)),
   };
 }
 
