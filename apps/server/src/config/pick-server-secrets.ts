@@ -145,22 +145,21 @@ function findMalformedGithubApp(
     };
   }
 
-  if (!isPrivateKey(env['BOXXY_GITHUB_APP_PRIVATE_KEY'] ?? '')) {
+  if (!isRSAPrivateKey(env['BOXXY_GITHUB_APP_PRIVATE_KEY'] ?? '')) {
     return {
       kind: 'malformed',
       name: 'BOXXY_GITHUB_APP_PRIVATE_KEY',
-      expected: "the App's private key, in PEM form",
+      expected: "the App's RSA private key, in PEM form",
     };
   }
 
   return null;
 }
 
-function isPrivateKey(pem: string): boolean {
+// GitHub takes only an RS256 JWT, so a key of any other type can't sign it
+function isRSAPrivateKey(pem: string): boolean {
   try {
-    createPrivateKey(pem);
-
-    return true;
+    return createPrivateKey(pem).asymmetricKeyType === 'rsa';
   } catch {
     return false;
   }

@@ -152,6 +152,13 @@ test.each([
     key: '-----BEGIN RSA PRIVATE KEY-----\nbm90IGEga2V5\n-----END RSA PRIVATE KEY-----',
     title: 'a PEM that holds no key',
   },
+  {
+    key: generateKeyPairSync('ec', { namedCurve: 'prime256v1' }).privateKey.export({
+      type: 'pkcs8',
+      format: 'pem',
+    }),
+    title: 'an EC key, which cannot sign RS256',
+  },
 ])('it names the App private key as malformed for $title, and prints no value', (row) => {
   const ctx = setupTest();
 
@@ -166,7 +173,7 @@ test.each([
   expect(answer).toStrictEqual({
     kind: 'malformed',
     name: 'BOXXY_GITHUB_APP_PRIVATE_KEY',
-    expected: "the App's private key, in PEM form",
+    expected: "the App's RSA private key, in PEM form",
   });
 });
 
