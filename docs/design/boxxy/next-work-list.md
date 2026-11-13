@@ -44,6 +44,7 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 - **Follows:** [wringer journeys](./wringer-journeys.md); `wringer-journeys/01-usage.ts` and `02-types.ts`.
 - **Needs:** wringer 0.2.0.
 - **Check:** a fresh agent with only the verify skill reaches `done` on all three journeys. The journeys pass in a network namespace with only loopback up. `bun verify lint` and `bun run check:test-layout` pass, and a test fails on a tracked path that the map neither maps nor ignores.
+- **Built:** `bun verify` runs `system-tests/src/test-utils/verify/verify.ts` on wringer 0.2.0, with the registry in `verify-registry.ts`, the harness in `harness/`, `runBoxxy` and the map in `feature-paths.ts`. The journeys `file-item`, `claim-settle` and `report-cost` drive the CLI and the server through the harness. `makeBrokerSend` moved out of `create-test-cli` into its own module. The verify and wringer skills sit in `.claude/skills/`, `.gitignore` holds `.wringer/`, the import-zones `wringer` rule and the layout row pin wringer to `system-tests`, and AGENTS.md holds the grading steps. The `journey-verify-harness` system test runs the three journeys on one harness in any order, and the `feature-paths` test fails on a tracked path that the map neither maps nor ignores.
 
 ### 6. The CI gate
 
@@ -59,12 +60,13 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 - **Follows:** [the verifier](./review-and-merge.md#the-verifier).
 - **Needs:** slices 1 and 6.
 - **Check:** adapter tests for `verified`, `incomplete` and `not-covered`.
+- **Built:** `createWringerVerifier({ forge, gateCheck })` in `@boxxy/verifier-wringer` reads the gate check at the head first. A run that passed reads `verified` and a run that failed reads `incomplete`, each with the features of the report that `parseReportBlock` from `@wringer/core` finds in the body. A passed or failed run with no report that parses reads `incomplete` with no features. No run, a pending run, or a run that ended `other`, such as `cancelled`, reads `not-covered`, and the body is never read. The forge port gains `readPullRequestBody` and `readChecks`. `@boxxy/forge-github` reads the newest check run of each name and the commit statuses at a head, and the fake forge seeds a body and the checks. The `wringer-core` import-zones rule lets the adapter import `@wringer/core`. The `forge-github` tests of the two reads run against MSW handlers on `@msw/data` collections, from the test preload in `scripts/test-preload/`. The `create-wringer-verifier` tests cover each reading, and `collect-check-states` covers each check state. The server does not build the verifier yet: slice 8's merge job takes it.
 
 ## The merge step
 
 ### 8. The forge merge and the merge phase
 
-- **Outcome:** `adapters/forge-github` reads the checks, the required checks and the mergeable state, and merges at a head with `mergeAtHead`. `decideMerge` in `modules/train` decides each merge read, the merge phase runs it, and the `record-merge` effect is guarded by the pull request row's state.
+- **Outcome:** `adapters/forge-github` reads the required checks and the mergeable state, and merges at a head with `mergeAtHead`. Slice 7 added `readChecks`. `decideMerge` in `modules/train` decides each merge read, the merge phase runs it, and the `record-merge` effect is guarded by the pull request row's state.
 - **Follows:** [the merge step](./review-and-merge.md#the-merge-step); `review-and-merge/03-flow.ts`.
 - **Needs:** slices 2 and 7.
 - **Check:** one `decideMerge` test per row of the merge table, forge tests on recorded GitHub answers, and the merge journey in `system-tests/e2e/`.
