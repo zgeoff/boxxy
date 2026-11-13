@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { brandSchemas } from '../rows/brand-schemas.ts';
 import { frictionSchema } from './friction-schema.ts';
 import { openItemSchema } from './open-item-schema.ts';
+import { relationDraftSchema } from './relation-draft-schema.ts';
 import type { BuildCloseOut } from './types.ts';
 
 const reasonSchema = z.string().min(1);
@@ -18,6 +19,7 @@ export const buildCloseOutSchema = z.strictObject({
   result: z.discriminatedUnion('kind', [builtSchema, blockedSchema, abandonedSchema]),
   criteria: z.array(citedEvidenceSchema),
   openItems: z.array(openItemSchema),
+  relations: z.array(relationDraftSchema).exactOptional(),
   friction: z.array(frictionSchema),
   frictionDropped: z.number().int().nonnegative(),
 }) satisfies z.ZodType<BuildCloseOut>;

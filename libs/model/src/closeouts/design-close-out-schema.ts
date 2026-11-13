@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { acceptanceDraftSchema } from './acceptance-draft-schema.ts';
 import { frictionSchema } from './friction-schema.ts';
 import { openItemSchema } from './open-item-schema.ts';
+import { relationDraftSchema } from './relation-draft-schema.ts';
 import type { DesignCloseOut } from './types.ts';
 
 const reasonSchema = z.string().min(1);
@@ -21,9 +22,15 @@ const designedSchema = z.strictObject({
   design: designSchema,
   set: z.strictObject({ acceptance: acceptanceDraftSchema.exactOptional() }).exactOptional(),
   openItems: z.array(openItemSchema).exactOptional(),
+  relations: z.array(relationDraftSchema).exactOptional(),
 });
 
-const blockedSchema = z.strictObject({ kind: z.literal('blocked'), reason: reasonSchema });
+const blockedSchema = z.strictObject({
+  kind: z.literal('blocked'),
+  reason: reasonSchema,
+  relations: z.array(relationDraftSchema).exactOptional(),
+});
+
 const abandonedSchema = z.strictObject({ kind: z.literal('abandoned'), reason: reasonSchema });
 
 export const designCloseOutSchema = z.strictObject({

@@ -25,6 +25,7 @@ import { buildSchemaParser } from '../build-schema-parser.ts';
 import { missingCriteria } from '../missing-criteria.ts';
 import { buildCriterionTexts } from '../utils/build-criterion-texts.ts';
 import { collectOpenItemProblems } from '../utils/collect-open-item-problems.ts';
+import { collectRelationProblems } from '../utils/collect-relation-problems.ts';
 import { findLatestCloseOut } from '../utils/find-latest-close-out.ts';
 import { findLatestDesign } from '../utils/find-latest-design.ts';
 import { findPullRequestLink } from '../utils/find-pull-request-link.ts';
@@ -131,13 +132,15 @@ function collectBuildProblems(closeOut: BuildCloseOut, ctx: CloseOutContext): Cl
     ...[...foreignEvidence].map((evidence) => ({ kind: 'foreign-evidence' as const, evidence })),
     ...(missing.length > 0 ? [{ kind: 'built-without-evidence' as const, criteria: missing }] : []),
     ...collectOpenItemProblems(closeOut.openItems, ctx),
+    ...collectRelationProblems(closeOut.relations ?? [], [], ctx),
   ];
 }
 
 function collectBuildEffects(closeOut: BuildCloseOut, item: ItemView): Effect[] {
   const acceptance = buildCitedAcceptance(item.acceptance, closeOut.criteria);
 
-  // a failed build changes no item: the next build of the item cites its evidence again
+  // a failed build keeps the item's acceptance list: the next build of the item cites its evidence
+  // again
   const isChanged =
     closeOut.result.kind === 'built' &&
     acceptance.some(
@@ -147,6 +150,7 @@ function collectBuildEffects(closeOut: BuildCloseOut, item: ItemView): Effect[] 
   return [
     ...closeOut.openItems.map((openItem) => ({ kind: 'file-item' as const, item: openItem })),
     ...(isChanged ? [{ kind: 'set-acceptance' as const, criteria: acceptance }] : []),
+    ...(closeOut.relations ?? []).map((relation) => ({ kind: 'add-relation' as const, relation })),
     ...closeOut.friction.map((friction) => ({ kind: 'record-proposal' as const, friction })),
   ];
 }

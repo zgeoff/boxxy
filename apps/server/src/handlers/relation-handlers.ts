@@ -1,5 +1,5 @@
 import type { ItemId, RelationRow, RelationTypeName } from '@boxxy/model';
-import { brandSchemas } from '@boxxy/model';
+import { brandSchemas, hasRelationPath } from '@boxxy/model';
 import { api } from './api.ts';
 import { buildOwnerFact } from './build-owner-fact.ts';
 import { readItemIds } from './read-item-ids.ts';
@@ -120,24 +120,5 @@ function pickRelationRefusal(
     return 'exists';
   }
 
-  return isReachable(ofType, target, source) ? 'cycle' : null;
-}
-
-function isReachable(relations: readonly RelationRow[], from: ItemId, to: ItemId): boolean {
-  const seen = new Set<ItemId>();
-
-  const queue: ItemId[] = [from];
-
-  for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
-    if (next === to) {
-      return true;
-    }
-
-    if (!seen.has(next)) {
-      seen.add(next);
-      queue.push(...relations.filter((row) => row.source === next).map((row) => row.target));
-    }
-  }
-
-  return false;
+  return hasRelationPath(ofType, target, source) ? 'cycle' : null;
 }

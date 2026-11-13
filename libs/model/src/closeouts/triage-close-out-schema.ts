@@ -4,6 +4,7 @@ import { itemBodyMaxChars } from '../rows/item-body-max-chars.ts';
 import { acceptanceDraftSchema } from './acceptance-draft-schema.ts';
 import { frictionSchema } from './friction-schema.ts';
 import { openItemSchema } from './open-item-schema.ts';
+import { relationDraftSchema } from './relation-draft-schema.ts';
 import type { TriageCloseOut } from './types.ts';
 
 // Strict, so a session that sends a field of one result with another hears of it instead of
@@ -30,12 +31,6 @@ const setSchema = z.strictObject({
   acceptance: acceptanceDraftSchema.exactOptional(),
   body: z.string().max(itemBodyMaxChars).exactOptional(),
 });
-
-// Strict, so a draft that names both ends is refused instead of read as one of them.
-const relationDraftSchema = z.union([
-  z.strictObject({ type: brandSchemas.relationTypeName, target: brandSchemas.itemId }),
-  z.strictObject({ type: brandSchemas.relationTypeName, source: brandSchemas.itemId }),
-]);
 
 export const triageCloseOutSchema = z.strictObject({
   result: z.discriminatedUnion('kind', [

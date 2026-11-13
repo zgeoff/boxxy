@@ -113,6 +113,91 @@ test('it settles a designed close-out with an effect to file each open item and 
   });
 });
 
+test('it returns the relation problems of a blocked close-out', () => {
+  const item = buildMockV1ItemView();
+  const unknown = buildMockV1ItemView().id;
+
+  const raw = {
+    result: {
+      kind: 'blocked',
+      reason: 'The settings page must land first.',
+      relations: [
+        { type: 'blocks', source: unknown },
+        { type: 'waits-for', source: item.id },
+      ],
+    },
+    friction: [],
+  };
+
+  const parsed: unknown = design.closeOut.parse(raw, {
+    item,
+    attempt: buildMockV1AttemptRow().id,
+    evidence: [],
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set([brandSchemas.relationTypeName.parse('blocks')]),
+    },
+    input: null,
+  });
+
+  expect(parsed).toStrictEqual({
+    kind: 'invalid',
+    problems: expect.toIncludeSameMembers([
+      { kind: 'unknown-item', item: unknown },
+      { kind: 'refused-relation', type: 'waits-for', target: item.id, reason: 'unknown-type' },
+      { kind: 'refused-relation', type: 'waits-for', target: item.id, reason: 'self' },
+    ]),
+  });
+});
+
+test('it refuses relations with an abandoned design', () => {
+  const item = buildMockV1ItemView();
+
+  const raw = {
+    result: {
+      kind: 'abandoned',
+      reason: 'The theme is out of scope.',
+      relations: [{ type: 'blocks', source: item.id }],
+    },
+    friction: [],
+  };
+
+  const parsed: unknown = design.closeOut.parse(raw, {
+    item,
+    attempt: buildMockV1AttemptRow().id,
+    evidence: [],
+    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    input: null,
+  });
+
+  expect(parsed).toStrictEqual({
+    kind: 'invalid',
+    problems: [{ kind: 'schema', path: 'result', message: expect.any(String) }],
+  });
+});
+
+test.each([
+  ['blocked', { kind: 'blocked' as const, reason: 'The settings page must land first.' }],
+  ['designed', { kind: 'designed' as const, design: { text: 'Retry once', location: null } }],
+])('it settles a %s close-out with an effect to add each relation', (_name, result) => {
+  const relation = {
+    type: brandSchemas.relationTypeName.parse('blocks'),
+    source: buildMockV1ItemView().id,
+  };
+
+  const settlement = design.settle({
+    attempt: buildMockV1AttemptRow({ phase: brandSchemas.phaseName.parse('design') }),
+    item: buildMockV1ItemView(),
+    closeOut: { result: { ...result, relations: [relation] }, friction: [], frictionDropped: 0 },
+    now: brandSchemas.instant.parse(1000),
+  });
+
+  const effects: unknown = settlement.effects;
+
+  expect(effects).toStrictEqual([{ kind: 'add-relation', relation }]);
+});
+
 test('it settles a blocked close-out as failed, with the outcome name as the failure', () => {
   const settlement: unknown = design.settle({
     attempt: buildMockV1AttemptRow({ phase: brandSchemas.phaseName.parse('design') }),

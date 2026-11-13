@@ -65,8 +65,15 @@ export interface DesignCloseOut {
 
         // the follow-up work the design found, filed as new items
         readonly openItems?: readonly OpenItem[];
+        readonly relations?: readonly RelationDraft[];
       }
-    | { readonly kind: 'blocked'; readonly reason: string }
+    | {
+        readonly kind: 'blocked';
+        readonly reason: string;
+
+        // such as a `blocks` wait on the item the design is blocked by
+        readonly relations?: readonly RelationDraft[];
+      }
     | { readonly kind: 'abandoned'; readonly reason: string };
   readonly friction: readonly Friction[];
   readonly frictionDropped: number;
@@ -88,6 +95,7 @@ export interface BuildCloseOut {
     | { readonly kind: 'abandoned'; readonly reason: string };
   readonly criteria: readonly { readonly criterion: CriterionId; readonly evidence: FactId }[];
   readonly openItems: readonly OpenItem[];
+  readonly relations?: readonly RelationDraft[];
   readonly friction: readonly Friction[];
   readonly frictionDropped: number;
 }
@@ -173,7 +181,8 @@ export interface Friction {
 }
 
 // What a phase kind's settle asks for. The settle of an attempt whose outcome maps to a hold
-// withholds each effect that changes an item, and keeps `record-proposal`.
+// withholds each effect that changes an item, and keeps `record-proposal` and a `blocks` relation
+// from another item, so the item still waits on that item after the owner's retry.
 export type Effect =
   | { readonly kind: 'file-item'; readonly item: OpenItem }
   | { readonly kind: 'close-item'; readonly reason: string; readonly of: ItemId | null }

@@ -11,7 +11,8 @@ and the attempt stays open for the agent to send it again. The close-out has no 
 The field names and the friction targets are decided. The shape inside each field is proposed.
 
 [`06-closeouts.ts`](./sketches/06-closeouts.ts) holds the shape, `BuildCloseOut`, with four fields:
-`result`, `criteria`, `openItems` and `friction`. The sections below give what each field holds.
+`result`, `criteria`, `openItems` and `friction`. The v1 build close-out also takes an optional
+`relations`. The sections below give what each field holds.
 
 ### result
 
@@ -28,6 +29,10 @@ to the fact that shows it. boxxy never reads this evidence to decide that an ite
 ### openItems
 
 Each open item is work the agent found and did not do. It holds `kind`, `title`, `body` and an optional `security`. `kind` is any item kind the rules know, and the parser refuses another as `unknown-kind`. `security: true` gives the filed item the [security mark](./v1.md#the-ledger-labels-notes-and-relations). boxxy files each open item through dedupe. When an open item matches an open item of the same repo and kind whose title is equal after normalising, boxxy files nothing and links the existing item to the attempt: the attempt's settle fact lists it. An item filed from an open item records the attempt that reported it as `found-in` ([slice 1](./slice-1.md#the-build-close-out)).
+
+### relations
+
+`relations` has the shape and the checks of the [triage field](#the-v1-phase-kinds), with any result. A build blocked by other work records `{ type: 'blocks', source }`, and the item waits on that work.
 
 ### friction
 
@@ -69,7 +74,7 @@ The parser cuts no list. A cut finding or open item would be work lost with no c
 | verify | a body that names its own `session`; the parser copies `session` from the attempt's input | `verified`, `failed`: succeeded, because the grader graded the work. `blocked`, `abandoned`: failed, with the outcome as the failure |
 | merge | a body with a field that `MergeCloseOut` lacks, or one that lacks a field | `merged`: succeeded. Asks to record the merge of the input's pull request. Any other outcome: failed, with the outcome as the failure |
 
-A blocked or abandoned design, build or verify fails, so it never reads as done work and no session is kept for it. Its failure is the outcome name. The engine reads some failure names, such as `no-capacity`, and the agent's free-text reason could match one, so the reason stays in the close-out. Every settle also asks to record each friction entry as a proposal. The settle returns the effects and the outcome, and the caller applies the effects. When the rules map the outcome to a hold, the caller withholds each effect that changes an item ([v1](./v1.md#the-pipeline)).
+A blocked or abandoned design, build or verify fails, so it never reads as done work and no session is kept for it. Its failure is the outcome name. The engine reads some failure names, such as `no-capacity`, and the agent's free-text reason could match one, so the reason stays in the close-out. Every settle also asks to record each friction entry as a proposal. The settle returns the effects and the outcome, and the caller applies the effects. When the rules map the outcome to a hold, the caller withholds each effect that changes an item, except a wait on another item ([v1](./v1.md#the-pipeline)).
 
 The review session sends the review tool's raw result. The server passes it to `ReviewGate.accept`, and builds the `ReviewCloseOut` from the reading: the round, its cause, the reading and `unrelatedLines` ([the review gate](./review-and-merge.md#the-review-gate)). The review parser then checks that built body, and the repeat check hashes the raw result.
 
@@ -89,7 +94,7 @@ Triage, design and build get the item's acceptance list in their input, and wher
 
 The design close-out holds `{ text, location }`. `text` is the whole design in markdown, code blocks included, and the limit of the whole close-out bounds it. `location` is a pointer to a doc in the repo, or null. A design close-out stored with `summary` in place of `text` reads as `text`, with no change to the stored data.
 
-A design starts on an item with no acceptance list, and build, review and verify do not: an item that stands at one of them with no list derives `idea`. A `designed` result may also carry `set.acceptance` and `openItems`. `set.acceptance` has the shape of the triage field and replaces the item's acceptance list, and the settle records it in a `boxxy.item.edited` fact with the attempt in `byAttempt`. `openItems` has the shape of the build field, and the settle files each entry through the same dedupe. A `blocked` or `abandoned` result carries neither, and the parser refuses one that does: a blocked design waits on the owner's answer, and the next design attempt sends its list and its open items. Its `reason` holds the question and what the design settled so far, because the next design gets that reason in its input.
+A design starts on an item with no acceptance list, and build, review and verify do not: an item that stands at one of them with no list derives `idea`. A `designed` result may also carry `set.acceptance` and `openItems`. `set.acceptance` has the shape of the triage field and replaces the item's acceptance list, and the settle records it in a `boxxy.item.edited` fact with the attempt in `byAttempt`. `openItems` has the shape of the build field, and the settle files each entry through the same dedupe. A `blocked` or `abandoned` result carries neither, and the parser refuses one that does: a blocked design waits on the owner's answer, and the next design attempt sends its list and its open items. A blocked design's `reason` holds the question and what the design settled so far, because the next design gets that reason in its input. A `designed` or `blocked` result may carry `relations`, with the shape and the checks of the triage field, so a design blocked by other work records `{ type: 'blocks', source }` and the item waits on that work. An `abandoned` result carries none.
 
 A triage result is one of five, and each has one use:
 
@@ -103,7 +108,7 @@ A triage result is one of five, and each has one use:
 
 Each part of a split holds the triage attempt in `foundInAttempt`. The parts get their IDs in the settle, so no relation draft can name them. The rules' edge decides the item's end: a hold edge withholds the close, and the parts still file.
 
-A triage close-out may set the kind, the design mode, the acceptance list, the body and the relations. A relation draft `{ type, target }` goes from the item to `target`, and `{ type, source }` goes from `source` to the item. So `{ type: 'blocks', source }` makes the item wait on `source`: the item derives `blocked`, and no pool picks it, until `source` is done or archived ([core model](./core-model.md#links)). The settle skips a relation that is live already, and one whose reverse of the same type is live, because two `blocks` rows that point at each other hold both items for good. The settle reads only the item's own relations, so a longer loop still lands. A hold edge withholds every relation. `set.body` is the whole new body, of 40,000 characters or fewer, and replaces the item's body. The settle records it in a `boxxy.item.edited` fact with the attempt in `byAttempt`, so the item's revisions show triage as the author, and the launch prompt of each later phase carries the new body.
+A triage close-out may set the kind, the design mode, the acceptance list, the body and the relations. A relation draft `{ type, target }` goes from the item to `target`, and `{ type, source }` goes from `source` to the item. So `{ type: 'blocks', source }` makes the item wait on `source`: the item derives `blocked`, and no pool picks it, until `source` is done or archived ([core model](./core-model.md#links)). The settle skips a relation that is live already. It also skips a `blocks` relation that would close a loop of live `blocks` relations of any length, because a loop holds each of its items for good; the owner's `relation.add` refuses the same loop. A hold edge withholds every relation except a wait on another item, `{ type: 'blocks', source }`: a blocked design or build records that wait so the item still waits after the owner's retry. The `settled` fact lists each skipped relation with its reason, the `duplicate-of` relation of a duplicate's close too. `set.body` is the whole new body, of 40,000 characters or fewer, and replaces the item's body. The settle records it in a `boxxy.item.edited` fact with the attempt in `byAttempt`, so the item's revisions show triage as the author, and the launch prompt of each later phase carries the new body.
 
 ## Derived from facts
 

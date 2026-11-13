@@ -309,7 +309,7 @@ test('it readies an item that waits on another once that item closes', async () 
   ]);
 });
 
-test('it adds no relation from another item when the rules hold the accepted item', async () => {
+test('it adds a wait on another item when the rules hold the accepted item', async () => {
   const ctx = await setupTest();
   const other = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
   const attempt = await ctx.claimAt('triage');
@@ -331,10 +331,47 @@ test('it adds no relation from another item when the rules hold the accepted ite
   const detail = await ctx.readItem(attempt.item);
   const [settled] = await ctx.listFacts('boxxy.attempt.settled');
 
+  const received: unknown = detail.relations;
+
+  expect(received).toStrictEqual([
+    expect.objectContaining({ source: other, target: attempt.item, type: 'blocks' }),
+  ]);
+
+  expect(settled?.payload).toMatchObject({ skippedEffects: [] });
+});
+
+test('it adds no other relation when the rules hold the accepted item', async () => {
+  const ctx = await setupTest();
+  const other = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+  const attempt = await ctx.claimAt('triage');
+
+  ctx.setRules(
+    ctx.mapOutcome(ctx.rules(), 'triage', 'accepted', {
+      hold: brandSchemas.rulesHoldReason.parse('accepted'),
+    }),
+  );
+
+  await ctx.closeOut(attempt, {
+    result: { kind: 'accepted' },
+    relations: [
+      { type: 'blocks', target: other },
+      { type: 'relates-to', source: other },
+    ],
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+  const [settled] = await ctx.listFacts('boxxy.attempt.settled');
+
   expect(detail.relations).toStrictEqual([]);
 
   expect(settled?.payload).toMatchObject({
-    skippedEffects: [{ effect: 'add-relation', reason: 'the item holds for the owner' }],
+    skippedEffects: [
+      { effect: 'add-relation', reason: 'the item holds for the owner' },
+      { effect: 'add-relation', reason: 'the item holds for the owner' },
+    ],
   });
 });
 
@@ -389,9 +426,152 @@ test('it skips a relation from another item that the item already relates to the
 
   expect(settled?.payload).toMatchObject({
     skippedEffects: [
-      { effect: 'add-relation', reason: 'the relation would close a loop with a live one' },
+      { effect: 'add-relation', reason: 'the relation would close a loop of blocks relations' },
     ],
   });
+});
+
+test('it skips a wait on another item that would close a longer loop of blocks relations', async () => {
+  const ctx = await setupTest();
+  const first = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+  const second = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+  const attempt = await ctx.claimAt('triage');
+
+  await ctx.store.exclusive((tx) =>
+    tx.applyChange(buildMockRelationChange({ source: attempt.item, target: first })),
+  );
+
+  await ctx.store.exclusive((tx) =>
+    tx.applyChange(buildMockRelationChange({ source: first, target: second })),
+  );
+
+  await ctx.closeOut(attempt, {
+    result: { kind: 'accepted' },
+    relations: [{ type: 'blocks', source: second }],
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+  const [settled] = await ctx.listFacts('boxxy.attempt.settled');
+
+  const received: unknown = [detail.item.derived, detail.relations.length];
+
+  expect(received).toStrictEqual([{ state: 'ready' }, 1]);
+
+  expect(settled?.payload).toMatchObject({
+    skippedEffects: [
+      { effect: 'add-relation', reason: 'the relation would close a loop of blocks relations' },
+    ],
+  });
+});
+
+test('it adds a duplicate-of relation that points back at a live one', async () => {
+  const ctx = await setupTest();
+  const other = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+  const attempt = await ctx.claimAt('triage');
+
+  const duplicateOf = brandSchemas.relationTypeName.parse('duplicate-of');
+
+  await ctx.store.exclusive((tx) =>
+    tx.applyChange(
+      buildMockRelationChange({ source: other, target: attempt.item, type: duplicateOf }),
+    ),
+  );
+
+  await ctx.closeOut(attempt, {
+    result: { kind: 'accepted' },
+    relations: [{ type: 'duplicate-of', target: other }],
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+  const [settled] = await ctx.listFacts('boxxy.attempt.settled');
+
+  expect(detail.relations.map((relation) => [relation.source, relation.target])).toStrictEqual([
+    [other, attempt.item],
+    [attempt.item, other],
+  ]);
+
+  expect(settled?.payload).toMatchObject({ skippedEffects: [] });
+});
+
+test('it makes the item of a blocked design wait on the item its close-out names', async () => {
+  const ctx = await setupTest();
+  const other = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+  const attempt = await ctx.claimAt('design');
+
+  await ctx.closeOut(attempt, {
+    result: {
+      kind: 'blocked',
+      reason: 'The theme needs the settings page first.',
+      relations: [{ type: 'blocks', source: other }],
+    },
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+
+  const received: unknown = detail.relations;
+
+  expect(received).toStrictEqual([
+    expect.objectContaining({ source: other, target: attempt.item, type: 'blocks' }),
+  ]);
+});
+
+test('it makes the item of a designed close-out wait on the item it names', async () => {
+  const ctx = await setupTest();
+  const other = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+  const attempt = await ctx.claimAt('design');
+
+  await ctx.closeOut(attempt, {
+    result: {
+      kind: 'designed',
+      design: { text: 'Follow the system theme.', location: null },
+      relations: [{ type: 'blocks', source: other }],
+    },
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+
+  const received: unknown = [detail.item.derived, detail.relations];
+
+  expect(received).toStrictEqual([
+    { state: 'blocked' },
+    [expect.objectContaining({ source: other, target: attempt.item, type: 'blocks' })],
+  ]);
+});
+
+test('it makes the item of a blocked build wait on the item its close-out names', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('build');
+  const other = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('design') });
+
+  await ctx.closeOut(attempt, {
+    result: { kind: 'blocked', reason: 'The settings page must land first.' },
+    criteria: [],
+    openItems: [],
+    relations: [{ type: 'blocks', source: other }],
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+
+  const received: unknown = detail.relations;
+
+  expect(received).toStrictEqual([
+    expect.objectContaining({ source: other, target: attempt.item, type: 'blocks' }),
+  ]);
 });
 
 test('it files an open item as the kind it names, with the security mark it sets', async () => {
@@ -761,6 +941,7 @@ test('it settles a stored close-out whose effects repeat a relation and a close,
     skippedEffects: [
       { effect: 'add-relation', reason: 'the relation is live already' },
       { effect: 'add-relation', reason: 'an item has no relation to itself' },
+      { effect: 'add-relation', reason: 'the relation is live already' },
       { effect: 'close-item', reason: 'the item is closed' },
     ],
   });

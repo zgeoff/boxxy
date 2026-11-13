@@ -6,7 +6,7 @@ import type {
   RelationTypeName,
   RowWrite,
 } from '@boxxy/model';
-import { brandSchemas, getRelationEnds } from '@boxxy/model';
+import { brandSchemas, getRelationEnds, hasRelationPath } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { buildStateFact } from '../pull-requests/build-state-fact.ts';
 import type { EffectContext, EffectHandlers, EffectPlan } from './types.ts';
@@ -66,6 +66,7 @@ export const effectHandlers: EffectHandlers = {
     return {
       kind: 'apply',
       effect,
+      skipped: typeof relation === 'string' ? [{ effect: 'add-relation', reason: relation }] : [],
       writes: [
         ...(duplicateOf?.writes ?? []),
         buildItemUpdate(ctx, { closedAt: ctx.now, closeReason: effect.reason }),
@@ -251,10 +252,9 @@ function buildRelationPlan(
     return 'the relation is live already';
   }
 
-  // Two `blocks` rows that point at each other hold both items for good. A longer loop needs the
-  // whole relation graph, which the settle does not read.
-  if (isLive(ctx.relations, { source: ends.target, target: ends.source }, type)) {
-    return 'the relation would close a loop with a live one';
+  // a loop of `blocks` relations holds each of its items for good
+  if (type === 'blocks' && hasRelationPath(ctx.blocks, ends.target, ends.source)) {
+    return 'the relation would close a loop of blocks relations';
   }
 
   const row: RelationRow = {

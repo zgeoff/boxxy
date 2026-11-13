@@ -8,6 +8,7 @@ import type {
   StoreChange,
   StoreTx,
 } from '@boxxy/model';
+import { brandSchemas } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { buildAttemptChange } from '../attempts/build-attempt-change.ts';
 import { isSameGuard } from '../attempts/is-same-guard.ts';
@@ -52,6 +53,12 @@ export function settleAttempt(input: SettleAttemptInput): Promise<MoveResult> {
       ),
     ];
 
+    const blocksType = brandSchemas.relationTypeName.parse('blocks');
+
+    const addsBlocks = settlement.effects.some(
+      (effect) => effect.kind === 'add-relation' && effect.relation.type === blocksType,
+    );
+
     const settled = buildSettlePlans({
       effects: settlement.effects,
       ctx: {
@@ -61,6 +68,7 @@ export function settleAttempt(input: SettleAttemptInput): Promise<MoveResult> {
         relations: detail.relations.filter(
           (relation) => relation.source === item.id || relation.target === item.id,
         ),
+        blocks: addsBlocks ? await tx.listLiveRelations(blocksType) : [],
         pullRequests: detail.pullRequests,
         actor: input.actor,
         now: input.now,

@@ -96,6 +96,12 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
             (filter.repo === undefined || item.repo === filter.repo),
         ),
       ),
+    listLiveRelations: (type) =>
+      Promise.resolve(
+        sortRelations(
+          getTables().relations.filter((row) => row.type === type && row.removedAt === null),
+        ),
+      ),
     listOpenItems: (repo, kinds, now, rules) =>
       Promise.resolve(
         buildViews(now, rules)

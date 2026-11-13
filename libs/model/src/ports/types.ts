@@ -53,6 +53,7 @@ export interface StoreReader extends OutboxReader {
   readItem: (id: ItemId, now: Instant, rules: ItemRules) => Promise<ItemView | null>;
   readItemDetail: (id: ItemId, now: Instant, rules: ItemRules) => Promise<ItemDetailRows | null>;
   listItems: (filter: ItemFilter, now: Instant, rules: ItemRules) => Promise<ItemWithLevers[]>;
+  listLiveRelations: (type: RelationRow['type']) => Promise<RelationRow[]>;
 
   // the open items of one repo whose kind is one of `kinds`, for the dedupe of filed items
   listOpenItems: (

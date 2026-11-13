@@ -102,6 +102,71 @@ test('it accepts a blocked close-out that cites no evidence', () => {
   });
 });
 
+test('it rejects a relation to an item the store lacks and a relation named twice', () => {
+  const item = buildMockV1ItemView();
+  const unknown = buildMockV1ItemView().id;
+  const row = buildMockEvidenceRow();
+
+  const raw = {
+    result: { kind: 'blocked', reason: 'The settings page must land first' },
+    criteria: [],
+    openItems: [],
+    relations: [
+      { type: 'blocks', source: unknown },
+      { type: 'blocks', source: unknown },
+    ],
+    friction: [],
+  };
+
+  const parsed: unknown = build.closeOut.parse(raw, {
+    item,
+    attempt: row.attempt,
+    evidence: [row],
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set([brandSchemas.relationTypeName.parse('blocks')]),
+    },
+    input: null,
+  });
+
+  expect(parsed).toStrictEqual({
+    kind: 'invalid',
+    problems: expect.toIncludeSameMembers([
+      { kind: 'unknown-item', item: unknown },
+      {
+        kind: 'phase-rule',
+        message: `the close-out names blocks from ${unknown} more than once`,
+      },
+    ]),
+  });
+});
+
+test('it settles a blocked close-out with an effect to add each relation', () => {
+  const relation = {
+    type: brandSchemas.relationTypeName.parse('blocks'),
+    source: buildMockV1ItemView().id,
+  };
+
+  const settlement = build.settle({
+    attempt: buildMockV1AttemptRow(),
+    item: buildMockV1ItemView(),
+    closeOut: {
+      result: { kind: 'blocked', reason: 'The settings page must land first' },
+      criteria: [],
+      openItems: [],
+      relations: [relation],
+      friction: [],
+      frictionDropped: 0,
+    },
+    now: brandSchemas.instant.parse(1000),
+  });
+
+  const effects: unknown = settlement.effects;
+
+  expect(effects).toStrictEqual([{ kind: 'add-relation', relation }]);
+});
+
 test('it rejects a close-out that fails the schema, with the path of the bad field', () => {
   const item = buildMockV1ItemView();
   const row = buildMockEvidenceRow();

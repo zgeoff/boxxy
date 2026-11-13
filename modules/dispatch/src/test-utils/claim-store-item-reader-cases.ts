@@ -15,6 +15,42 @@ import type { ClaimStoreCase } from './types.ts';
 
 export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
   [
+    '#listLiveRelations returns every live relation of the type',
+    async (store) => {
+      const first = buildMockV1ItemRow();
+      const second = buildMockV1ItemRow();
+      const third = buildMockV1ItemRow();
+
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(buildMockFileItemChange(first));
+        await transaction.applyChange(buildMockFileItemChange(second));
+        await transaction.applyChange(buildMockFileItemChange(third));
+
+        await transaction.applyChange(
+          buildMockRelationChange({ source: first.id, target: second.id }),
+        );
+
+        await transaction.applyChange(
+          buildMockRelationChange({ source: second.id, target: third.id }),
+        );
+      });
+
+      const listed: unknown = await store.read((transaction) =>
+        transaction.listLiveRelations(brandSchemas.relationTypeName.parse('blocks')),
+      );
+
+      const relation = { type: 'blocks', addedBy: 'boxxy:owner:local', removedAt: null };
+
+      return {
+        received: listed,
+        expected: expect.toIncludeSameMembers([
+          { ...relation, source: first.id, target: second.id, addedAt: 3500 },
+          { ...relation, source: second.id, target: third.id, addedAt: 3500 },
+        ]),
+      };
+    },
+  ],
+  [
     '#readItem returns the body that the item was filed with, and the body after an update',
     async (store) => {
       const item = buildMockV1ItemRow({ body: '## Context\n\nThe first body.' });

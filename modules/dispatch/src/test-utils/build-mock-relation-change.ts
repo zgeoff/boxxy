@@ -1,14 +1,15 @@
 import { brandSchemas } from '@boxxy/model';
-import type { ItemId, StoreChange } from '@boxxy/model';
+import type { ItemId, RelationTypeName, StoreChange } from '@boxxy/model';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
 
 interface RelationInput {
   readonly source: ItemId;
   readonly target: ItemId;
+  readonly type?: RelationTypeName;
 }
 
 export function buildMockRelationChange(input: RelationInput): StoreChange {
-  const type = brandSchemas.relationTypeName.parse('blocks');
+  const type = input.type ?? brandSchemas.relationTypeName.parse('blocks');
   const addedAt = brandSchemas.instant.parse(3500);
 
   return {

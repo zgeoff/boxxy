@@ -25,8 +25,17 @@ export type EffectPlan =
       readonly effect: Effect;
       readonly writes: readonly RowWrite[];
       readonly facts: readonly AnyNewFact[];
+
+      // a part of the effect that writes nothing, such as the `duplicate-of` relation of a close
+      // when that relation is live already
+      readonly skipped?: readonly SkippedPart[];
     }
   | { readonly kind: 'skip'; readonly effect: Effect; readonly reason: string };
+
+interface SkippedPart {
+  readonly effect: Effect['kind'];
+  readonly reason: string;
+}
 
 // What an effect handler reads. A handler does no I/O: settle reads these first.
 export interface EffectContext {
@@ -38,6 +47,10 @@ export interface EffectContext {
 
   // the live relations of the attempt's item, from it and to it
   readonly relations: readonly RelationRow[];
+
+  // every live `blocks` relation of the store, which the loop check walks; read only when an
+  // effect adds a `blocks` relation, and empty otherwise
+  readonly blocks: readonly RelationRow[];
 
   // the rows of the pull requests that the item's attempts made, in any state
   readonly pullRequests: readonly PullRequestRow[];

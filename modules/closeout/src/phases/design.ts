@@ -4,6 +4,7 @@ import type {
   CloseOutProblem,
   DesignCloseOut,
   Effect,
+  RelationDraft,
 } from '@boxxy/model';
 import { brandSchemas, definePhase, designCloseOutSchema, toJSONValue } from '@boxxy/model';
 import { match } from 'ts-pattern';
@@ -12,6 +13,7 @@ import { buildSchemaParser } from '../build-schema-parser.ts';
 import { buildCriteria } from '../utils/build-criteria.ts';
 import { buildCriterionTexts } from '../utils/build-criterion-texts.ts';
 import { collectOpenItemProblems } from '../utils/collect-open-item-problems.ts';
+import { collectRelationProblems } from '../utils/collect-relation-problems.ts';
 import { findStoppedReason } from '../utils/find-stopped-reason.ts';
 
 const designBodySchema = designCloseOutSchema.omit({ frictionDropped: true });
@@ -58,7 +60,17 @@ export const design = definePhase({
 function collectDesignProblems(closeOut: DesignCloseOut, ctx: CloseOutContext): CloseOutProblem[] {
   const openItems = closeOut.result.kind === 'designed' ? (closeOut.result.openItems ?? []) : [];
 
-  return collectOpenItemProblems(openItems, ctx);
+  return [
+    ...collectOpenItemProblems(openItems, ctx),
+    ...collectRelationProblems(getDesignRelations(closeOut), [], ctx),
+  ];
+}
+
+function getDesignRelations(closeOut: DesignCloseOut): readonly RelationDraft[] {
+  return match(closeOut.result)
+    .with({ kind: 'designed' }, { kind: 'blocked' }, (result) => result.relations ?? [])
+    .with({ kind: 'abandoned' }, () => [])
+    .exhaustive();
 }
 
 function collectDesignEffects(closeOut: DesignCloseOut): Effect[] {
@@ -73,6 +85,10 @@ function collectDesignEffects(closeOut: DesignCloseOut): Effect[] {
     ...(acceptance === undefined
       ? []
       : [{ kind: 'set-acceptance' as const, criteria: buildCriteria(acceptance) }]),
+    ...getDesignRelations(closeOut).map((relation) => ({
+      kind: 'add-relation' as const,
+      relation,
+    })),
     ...closeOut.friction.map((friction) => ({ kind: 'record-proposal' as const, friction })),
   ];
 }

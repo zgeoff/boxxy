@@ -33,8 +33,10 @@ design as markdown in `design.text`, code blocks included, and the path of a doc
 without it. Send each follow-up item the design leaves for later in `result.openItems`, and leave it
 out of the design text: boxxy files it as an item of its own. Give each one its item `kind`, such as
 `core.issue`, and `security: true` when its work concerns a security weakness. Close out `blocked`
-with the open question and what you settled so far in `reason`: the next design gets that reason. Or
-close out `abandoned`.
+with the open question and what you settled so far in `reason`: the next design gets that reason.
+When the design can go on only after another item is done, also add
+`{ "type": "blocks", "source": "<the other item's ID>" }` to `result.relations`: boxxy starts no
+work on this item until the other one is done. Or close out `abandoned`.
 
 Run `boxxy attempt current` for the attempt ID and the JSON Schema of the close-out body. To cite a
 test or a check, record it with

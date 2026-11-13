@@ -144,6 +144,19 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         (item) => filter.state === undefined || item.derived.state === filter.state,
       );
     },
+    listLiveRelations: async (type) => {
+      const relations = await db
+        .selectFrom('relations')
+        .selectAll()
+        .where('removed_at', 'is', null)
+        .where('type', '=', type)
+        .orderBy('added_at')
+        .orderBy('source')
+        .orderBy('target')
+        .execute();
+
+      return relations.map((row) => parseStoreRow('relations', row));
+    },
     listOpenItems: async (repo, kinds, now, rules) => {
       if (kinds.length === 0) {
         return [];

@@ -24,9 +24,9 @@ export interface SettlePlans {
   readonly skippedEffects: SettledFact['skippedEffects'];
 }
 
-// The plan of each effect of a settle, and the `settled` fact's fields that the plans decide.
-// A hold withholds each effect that changes an existing item. Each plan sees what the plans
-// before it write, so a repeated effect skips instead of breaking a key of the store.
+// A hold withholds each effect that changes an existing item, except a wait on another item. Each
+// plan sees what the plans before it write, so a repeated effect skips instead of breaking a key
+// of the store.
 export function buildSettlePlans(input: SettlePlansInput): SettlePlans {
   const fileItems = input.effects.flatMap((effect) =>
     effect.kind === 'file-item' ? [effect.item] : [],
@@ -65,7 +65,9 @@ export function buildSettlePlans(input: SettlePlansInput): SettlePlans {
     criteria: collectCopiedEvidence(plans, input.ctx.item),
     matched: deduped.matched,
     skippedEffects: plans.flatMap((plan) =>
-      plan.kind === 'skip' ? [{ effect: plan.effect.kind, reason: plan.reason }] : [],
+      plan.kind === 'skip'
+        ? [{ effect: plan.effect.kind, reason: plan.reason }]
+        : (plan.skipped ?? []),
     ),
   };
 }
@@ -101,7 +103,7 @@ function findSkipReason(
     return 'the close-out names this title already';
   }
 
-  return held && isItemChange(effect) ? 'the item holds for the owner' : null;
+  return held && isItemChange(effect) && !isWait(effect) ? 'the item holds for the owner' : null;
 }
 
 const itemChanges: ReadonlySet<Effect['kind']> = new Set([
@@ -115,6 +117,16 @@ const itemChanges: ReadonlySet<Effect['kind']> = new Set([
 
 function isItemChange(effect: Effect): boolean {
   return itemChanges.has(effect.kind);
+}
+
+// A wait on another item lands under a hold: a blocked design or build records it so that the
+// item still waits after the owner's retry.
+function isWait(effect: Effect): boolean {
+  return (
+    effect.kind === 'add-relation' &&
+    effect.relation.type === 'blocks' &&
+    'source' in effect.relation
+  );
 }
 
 // A handler that throws is a bug in the handler, not in the stored data, but the settle still
@@ -162,6 +174,7 @@ function buildPlannedContext(ctx: EffectContext, plan: EffectPlan): EffectContex
     ...ctx,
     item: plan.effect.kind === 'close-item' ? { ...ctx.item, closedAt: ctx.now } : ctx.item,
     relations: [...ctx.relations, ...added],
+    blocks: [...ctx.blocks, ...added.filter((row) => row.type === 'blocks')],
     pullRequests: ctx.pullRequests.map((row) =>
       plan.effect.kind === 'record-merge' &&
       row.repo === plan.effect.pullRequest.repo &&
