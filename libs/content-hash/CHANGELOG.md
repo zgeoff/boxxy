@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.5](https://github.com/zgeoff/boxxy/compare/@boxxy/content-hash@0.2.4...@boxxy/content-hash@0.2.5) (2026-11-13)
+
+
+### Miscellaneous Chores
+
+* **@boxxy/content-hash:** Synchronize boxxy versions
+
 ## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/content-hash@0.2.3...@boxxy/content-hash@0.2.4) (2026-11-13)
 
 ### Miscellaneous Chores

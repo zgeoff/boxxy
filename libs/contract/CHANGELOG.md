@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.5](https://github.com/zgeoff/boxxy/compare/@boxxy/contract@0.2.4...@boxxy/contract@0.2.5) (2026-11-13)
+
+
+### Features
+
+* **api:** let a session list and read the items of its repo ([c1ff07c](https://github.com/zgeoff/boxxy/commit/c1ff07c940a9b3554e454c973c246cf671b093ec))
+* **closeout:** add needs-owner and split triage outcomes ([046b848](https://github.com/zgeoff/boxxy/commit/046b8481e76b26278eddf56fd138a5dbcb83b05e))
+* **server:** let the owner set and clear the security mark ([baa4439](https://github.com/zgeoff/boxxy/commit/baa4439a5d98eea4b177bf7e3d9b33db153627e8))
+
+
+### Bug Fixes
+
+* **api:** hide kept sessions and hidden relations from session reads ([0c141ce](https://github.com/zgeoff/boxxy/commit/0c141ce62d9920318996444f0c08f8749799bd77))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/model bumped to 0.2.5
+
 ## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/contract@0.2.3...@boxxy/contract@0.2.4) (2026-11-13)
 
 ### Features

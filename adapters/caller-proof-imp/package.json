@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/caller-proof-imp",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "boxxy's caller proof port on the broker's identity token",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/adapters/caller-proof-imp#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",

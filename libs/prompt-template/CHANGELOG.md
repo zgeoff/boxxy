@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.5](https://github.com/zgeoff/boxxy/compare/@boxxy/prompt-template@0.2.4...@boxxy/prompt-template@0.2.5) (2026-11-13)
+
+
+### Features
+
+* **closeout:** let a design carry a conclusion for the next build ([c0cd27d](https://github.com/zgeoff/boxxy/commit/c0cd27de061efad0d152024c01286f8d6f5d0961))
+* **closeout:** let an open item name its kind and the security mark ([63a2df4](https://github.com/zgeoff/boxxy/commit/63a2df4d995057017eb12a272f47d480cf395919))
+* **dispatch:** carry a blocked design's reason into the next design ([f1c2293](https://github.com/zgeoff/boxxy/commit/f1c229379b74366f15fdd0a188ff6616dbf4413d))
+
 ## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/prompt-template@0.2.3...@boxxy/prompt-template@0.2.4) (2026-11-13)
 
 ### Miscellaneous Chores
