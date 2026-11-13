@@ -85,5 +85,5 @@ minimumReleaseAgeExcludes = [
 preload = [
   "@zgeoff/bun-test-extended",
   "./libs/model/src/test-utils/pin-faker-seed.ts",
-  "./scripts/test-preload/reset-mock-network.ts",
+  "./adapters/forge-github/src/test-utils/reset-mock-network.ts",
 ]

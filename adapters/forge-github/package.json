@@ -37,13 +37,17 @@
     "@boxxy/dispatch": "workspace:*",
     "@faker-js/faker": "catalog:",
     "@msw/data": "catalog:",
-    "msw": "catalog:"
+    "@mswjs/interceptors": "catalog:",
+    "msw": "catalog:",
+    "tiny-invariant": "catalog:"
   },
   "peerDependencies": {
     "@boxxy/dispatch": "workspace:*",
     "@faker-js/faker": "catalog:",
     "@msw/data": "catalog:",
-    "msw": "catalog:"
+    "@mswjs/interceptors": "catalog:",
+    "msw": "catalog:",
+    "tiny-invariant": "catalog:"
   },
   "peerDependenciesMeta": {
     "@boxxy/dispatch": {
@@ -55,7 +59,13 @@
     "@msw/data": {
       "optional": true
     },
+    "@mswjs/interceptors": {
+      "optional": true
+    },
     "msw": {
+      "optional": true
+    },
+    "tiny-invariant": {
       "optional": true
     }
   },

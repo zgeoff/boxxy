@@ -205,6 +205,7 @@ adapters/forge-github/src       @boxxy/forge-github
   to-pull-path  to-pull-request-reading  read-pull-request-body  read-checks
   collect-check-states  github-forge-error
   test-utils/     create-fake-github-fetch  github-handlers: the MSW handlers on @msw/data
+                  mock-network  reset-mock-network: the mock network that the test preload starts
 
 adapters/auth-oauth/src          @boxxy/auth-oauth: the public door's OAuth server, copied from atc
   index                         create-public-door and the types the server reads
