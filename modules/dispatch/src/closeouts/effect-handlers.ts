@@ -7,6 +7,7 @@ import type {
   RowWrite,
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
+import invariant from 'tiny-invariant';
 import { buildStateFact } from '../pull-requests/build-state-fact.ts';
 import type { EffectContext, EffectHandlers, EffectPlan } from './types.ts';
 
@@ -147,6 +148,12 @@ export const effectHandlers: EffectHandlers = {
       return { kind: 'skip', effect, reason: `the pull request row is ${row.state} already` };
     }
 
+    // the merge fact needs the commit; the watch keeps an open row and records it once GitHub
+    // gives one
+    if (effect.mergeCommit === null) {
+      return { kind: 'skip', effect, reason: 'the forge gave no merge commit yet' };
+    }
+
     const set = {
       state: 'merged',
       mergedAt: ctx.now,
@@ -161,6 +168,8 @@ export const effectHandlers: EffectHandlers = {
       id: brandSchemas.factId.parse(ctx.newId()),
     });
 
+    invariant(fact !== null, 'a merged row with its merge commit has a merge fact');
+
     return {
       kind: 'apply',
       effect,
@@ -173,7 +182,7 @@ export const effectHandlers: EffectHandlers = {
           set,
         },
       ],
-      facts: fact === null ? [] : [fact],
+      facts: [fact],
     };
   },
 

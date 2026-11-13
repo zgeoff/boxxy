@@ -234,7 +234,8 @@ export interface MergeCloseOut {
 }
 
 // `Effect` gains the effect of a `merged` settle. Its handler moves the open pull request row to
-// merged and writes `boxxy.pull_request.merged`; it skips a row that is not open.
+// merged and writes `boxxy.pull_request.merged`. It skips a row that is not open, and a merge
+// with no merge commit yet, which the watch records later.
 //   | { kind: 'record-merge'; pullRequest: PullRequestRef; mergeCommit: CommitSha | null }
 
 // `BuildInput` gains `sentBack`, in place of the review's findings as text:

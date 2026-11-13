@@ -233,6 +233,59 @@ test('it writes one merge fact when the watch records the merge before the settl
   });
 });
 
+test('it leaves the merge fact to the watch when the forge reads a merge with no merge commit yet', async () => {
+  const ctx = await setupTest();
+
+  const repo = brandSchemas.repoName.parse('example/app');
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+  const mergeCommit = brandSchemas.commitSha.parse('ffeeddccbbaa99887766554433221100ffeeddcc');
+
+  await ctx.seedBuildWithPullRequest(ctx.forge, 7);
+
+  ctx.forge.seed({
+    ref: { repo, number: 7 },
+    githubId: 9_000_007,
+    reading: {
+      state: 'merged',
+      mergedAt: brandSchemas.instant.parse(1_900_000_000_000),
+      mergeCommit: null,
+      commits: [{ sha: head, message: 'Dim the lamp' }],
+    },
+  });
+
+  ctx.forge.seedRequiredChecks({ repo, branch: 'main', checks: [] });
+
+  const merge = await ctx.claimMergeAfterReview(head);
+
+  await ctx.read(merge);
+
+  ctx.forge.seed({
+    ref: { repo, number: 7 },
+    githubId: 9_000_007,
+    reading: {
+      state: 'merged',
+      mergedAt: brandSchemas.instant.parse(1_900_000_000_000),
+      mergeCommit,
+      commits: [{ sha: head, message: 'Dim the lamp' }],
+    },
+  });
+
+  await ctx.watch();
+
+  const settled = await ctx.readAttempt(merge.id);
+  const merged = await ctx.listFacts('boxxy.pull_request.merged');
+
+  const seen: unknown = {
+    attempt: [settled.state, settled.outcome],
+    merged: merged.map((fact) => fact.payload),
+  };
+
+  expect(seen).toStrictEqual({
+    attempt: ['succeeded', 'merged'],
+    merged: [expect.objectContaining({ number: 7, mergeCommit })],
+  });
+});
+
 test('it writes one merge fact when the watch reads the pull request after the settle', async () => {
   const ctx = await setupTest();
 
