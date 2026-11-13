@@ -40,6 +40,38 @@ test('it reads a stored design close-out that holds a summary as the design text
   });
 });
 
+test('it accepts a designed close-out with a conclusion beside the design', () => {
+  const closeOut = {
+    result: {
+      kind: 'designed',
+      design: { text: 'Read the upload logs of one week.', location: null },
+      conclusion: 'The retries come from the proxy timeout of 30 seconds.',
+    },
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  const parsed: unknown = designCloseOutSchema.safeParse(closeOut).data;
+
+  expect(parsed).toStrictEqual(closeOut);
+});
+
+test('it rejects a designed close-out with an empty conclusion', () => {
+  const closeOut = {
+    result: {
+      kind: 'designed',
+      design: { text: 'Read the upload logs of one week.', location: null },
+      conclusion: '',
+    },
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  expect(designCloseOutSchema.safeParse(closeOut).error?.issues).toPartiallyContain({
+    path: ['result', 'conclusion'],
+  });
+});
+
 test('it rejects a designed close-out with an empty design text', () => {
   const closeOut = {
     result: { kind: 'designed', design: { text: '', location: null } },

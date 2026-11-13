@@ -14,6 +14,7 @@ function setupTest() {
           body: value,
           acceptance: value,
           design: value,
+          conclusion: value,
           findings: value,
           stopped: value,
           notes: value,
@@ -175,7 +176,7 @@ test.each([
 
 test('it lists the placeholders when a name is unknown', () => {
   expect(findPromptTemplateFault('{{ owner }}')).toBe(
-    'the template names "owner", which is not a placeholder; the placeholders are ticket, title, outcome, body, acceptance, design, findings, stopped, notes, security, repo, attempt_id, input',
+    'the template names "owner", which is not a placeholder; the placeholders are ticket, title, outcome, body, acceptance, design, conclusion, findings, stopped, notes, security, repo, attempt_id, input',
   );
 });
 

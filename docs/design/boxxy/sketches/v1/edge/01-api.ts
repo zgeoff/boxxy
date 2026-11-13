@@ -384,7 +384,7 @@ export const contract = {
     //   ───────  ─────────────────  ────────────────────────────────────────────  ──────────────────────────────────────────
     //   triage   TriageCloseOut     accepted, duplicate, declined, needs-owner,   the result, with a question or the parts; kind,
     //                               split                                         designMode, acceptance, body; relations
-    //   design   DesignCloseOut     designed, blocked, abandoned                  the whole design and its location; acceptance; open items
+    //   design   DesignCloseOut     designed, blocked, abandoned                  the whole design and its location; a conclusion; acceptance; open items
     //   build    BuildCloseOut      built, blocked, abandoned                     evidence per criterion; open items
     //   review   the tool's result  passed, changes-requested, failed             the server stores ReviewCloseOut: the gate's reading
     //

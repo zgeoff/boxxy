@@ -19,6 +19,12 @@ Build this item to its design and acceptance list, and open a pull request.
 
 {{ design }}
 {%- endif %}
+{%- if conclusion %}
+
+## Conclusion
+
+{{ conclusion }}
+{%- endif %}
 {%- if findings %}
 
 ## Findings to answer

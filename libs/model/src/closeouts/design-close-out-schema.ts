@@ -20,6 +20,7 @@ const designSchema = z.preprocess(
 const designedSchema = z.strictObject({
   kind: z.literal('designed'),
   design: designSchema,
+  conclusion: z.string().min(1).exactOptional(),
   set: z.strictObject({ acceptance: acceptanceDraftSchema.exactOptional() }).exactOptional(),
   openItems: z.array(openItemSchema).exactOptional(),
   relations: z.array(relationDraftSchema).exactOptional(),

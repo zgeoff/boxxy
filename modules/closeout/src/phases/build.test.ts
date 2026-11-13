@@ -629,6 +629,7 @@ test('it gives a build of round 2 the design, the send-back of the review and th
   expect(input).toStrictEqual({
     acceptance: [{ id: 'a1', text: 'Retries once' }],
     design: { text: 'Retry once', location: null },
+    conclusion: null,
     sentBack: {
       from: 'review',
       head,
@@ -637,6 +638,42 @@ test('it gives a build of round 2 the design, the send-back of the review and th
     },
     stopped: null,
     pullRequest: { repo: pullRequest.repo, number: pullRequest.number, url: pullRequest.url },
+  });
+});
+
+test('it gives a build the conclusion of the design beside the design', () => {
+  const history = [
+    buildMockV1AttemptRow({
+      phase: brandSchemas.phaseName.parse('design'),
+      state: 'succeeded',
+      closeOut: {
+        result: {
+          kind: 'designed',
+          design: { text: 'Read the upload logs.', location: null },
+          conclusion: 'The retries come from the proxy timeout.',
+        },
+        friction: [],
+        frictionDropped: 0,
+      },
+    }),
+  ];
+
+  const input = build.input({
+    item: buildMockV1ItemView({ acceptance: [] }),
+    attempt: buildMockV1AttemptRow().id,
+    history,
+    retries: [],
+    pullRequests: [],
+    session: null,
+  });
+
+  expect(input).toStrictEqual({
+    acceptance: [],
+    design: { text: 'Read the upload logs.', location: null },
+    conclusion: 'The retries come from the proxy timeout.',
+    sentBack: null,
+    stopped: null,
+    pullRequest: null,
   });
 });
 
@@ -665,6 +702,7 @@ test.each([
   expect(input).toStrictEqual({
     acceptance: [],
     design: null,
+    conclusion: null,
     sentBack: null,
     stopped: null,
     pullRequest: null,
@@ -710,6 +748,7 @@ test('it sends a build the findings of a v1 review that asked for changes, as th
   expect(input).toStrictEqual({
     acceptance: [],
     design: null,
+    conclusion: null,
     sentBack: {
       from: 'review',
       head,
@@ -764,6 +803,7 @@ test.each([
   expect(input).toStrictEqual({
     acceptance: [],
     design: null,
+    conclusion: null,
     sentBack: { from: 'verify', head, features: ['upload-retry', 'upload-progress'] },
     stopped: null,
     pullRequest: null,
@@ -809,6 +849,7 @@ test('it gives a build after a verified verify no send-back, though an earlier r
   expect(input).toStrictEqual({
     acceptance: [],
     design: null,
+    conclusion: null,
     sentBack: null,
     stopped: null,
     pullRequest: null,
@@ -862,6 +903,7 @@ test('it sends a build the findings of a review that asked for changes after an 
   expect(input).toStrictEqual({
     acceptance: [],
     design: null,
+    conclusion: null,
     sentBack: {
       from: 'review',
       head,
@@ -915,6 +957,7 @@ test.each<[string, (BuildCloseOut['result'] | null)[], string | null]>([
   expect(input).toStrictEqual({
     acceptance: [],
     design: null,
+    conclusion: null,
     sentBack: null,
     stopped,
     pullRequest: null,

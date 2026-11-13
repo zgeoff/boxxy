@@ -19,6 +19,7 @@ export function buildPromptValues(parts: PromptValueParts): PromptValues {
   const sections = getLaunchSections(parts.input);
   const acceptance = buildAcceptance(item);
   const design = buildDesign(sections.design);
+  const conclusion = sections.conclusion ?? '';
   const findings = buildFindings(sections.sentBack);
   const stopped = sections.stopped ?? '';
   const notes = buildNotes(parts.notes);
@@ -29,6 +30,7 @@ export function buildPromptValues(parts: PromptValueParts): PromptValues {
     item.body,
     formatSection('Acceptance', acceptance),
     formatSection('Design', design),
+    formatSection('Conclusion', conclusion),
     formatSection('Findings to answer', findings),
     formatSection('Where the last attempt stopped', stopped),
     formatSection('Notes from the owner', notes),
@@ -44,6 +46,7 @@ export function buildPromptValues(parts: PromptValueParts): PromptValues {
     attempt_id: parts.attempt,
     acceptance,
     design,
+    conclusion,
     findings,
     stopped,
     notes,

@@ -58,6 +58,10 @@ export interface DesignCloseOut {
     | {
         readonly kind: 'designed';
         readonly design: Design;
+
+        // the answers of an item that asks questions, such as an investigation, in markdown; the
+        // next build gets them beside the design
+        readonly conclusion?: string;
         readonly set?: {
           // the whole new list, in place of the item's list
           readonly acceptance?: readonly { readonly text: string }[];
@@ -274,6 +278,9 @@ export interface AcceptanceInput {
 export interface BuildInput {
   readonly acceptance: readonly CriterionText[];
   readonly design: Design | null;
+
+  // the conclusion of the latest design, null when it has none
+  readonly conclusion: string | null;
   readonly sentBack: SentBack | null;
 
   // the reason of the item's latest build that closed out, when it closed out `blocked`

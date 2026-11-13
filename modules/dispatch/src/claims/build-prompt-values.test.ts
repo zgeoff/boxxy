@@ -51,6 +51,7 @@ test('it builds every placeholder from the item, the notes and the phase input',
     attempt_id: 'att-1',
     acceptance: '- a1: It retries',
     design: 'One button.\n\n```ts\nretry();\n```\n\nLocation: docs/design/retry.md',
+    conclusion: '',
     findings:
       'The review at e83c5163316f89bfbde7d9ab23ca2e25604af290 left findings open: high 1, medium 2, low 0.\n\nReply to each open finding.',
     stopped: '',
@@ -122,6 +123,47 @@ test('it joins the ticket in order, with each section that has content under its
   );
 });
 
+test('it gives the conclusion of the design, and puts it in the ticket after the design', () => {
+  const item = buildMockV1ItemView({ title: 'T', outcome: 'O', body: '', acceptance: [] });
+
+  const values = buildPromptValues({
+    item,
+    attempt: 'att-1',
+    notes: [],
+    input: {
+      design: { text: 'Read the upload logs.', location: null },
+      conclusion: 'The retries come from the proxy timeout.',
+    },
+  });
+
+  expect([values.conclusion, values.ticket]).toStrictEqual([
+    'The retries come from the proxy timeout.',
+    '# T\n\nO\n\n## Design\n\nRead the upload logs.\n\n## Conclusion\n\nThe retries come from the proxy timeout.',
+  ]);
+});
+
+test('it renders the conclusion of the design in the example build prompt', () => {
+  const item = buildMockV1ItemView({ title: 'T', outcome: 'O', body: '', acceptance: [] });
+
+  const values = buildPromptValues({
+    item,
+    attempt: 'att-1',
+    notes: [],
+    input: {
+      design: { text: 'Read the upload logs.', location: null },
+      conclusion: 'The retries come from the proxy timeout.',
+    },
+  });
+
+  const template = new TextDecoder().decode(
+    buildExampleLoadInput().checkout.files.get('prompts/build-v1.md'),
+  );
+
+  expect(renderPromptTemplate(template, values)).toContain(
+    '## Design\n\nRead the upload logs.\n\n## Conclusion\n\nThe retries come from the proxy timeout.\n\n',
+  );
+});
+
 test('it builds each empty section as the empty string', () => {
   const item = buildMockV1ItemView({ title: 'T', outcome: 'O', body: '', acceptance: [] });
 
@@ -136,10 +178,11 @@ test('it builds each empty section as the empty string', () => {
     values.body,
     values.acceptance,
     values.design,
+    values.conclusion,
     values.findings,
     values.stopped,
     values.notes,
-  ]).toStrictEqual(['', '', '', '', '', '']);
+  ]).toStrictEqual(['', '', '', '', '', '', '']);
 
   expect(values.ticket).toBe('# T\n\nO');
 });

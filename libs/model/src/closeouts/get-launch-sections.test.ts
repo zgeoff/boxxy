@@ -18,6 +18,7 @@ test('it gives the design and the send-back of a build input', () => {
 
   expect(sections).toStrictEqual({
     design: input.design,
+    conclusion: null,
     sentBack: input.sentBack,
     stopped: null,
   });
@@ -36,7 +37,29 @@ test.each([
 
   const sections: unknown = getLaunchSections(input);
 
-  expect(sections).toStrictEqual({ design: null, sentBack: input.sentBack, stopped: null });
+  expect(sections).toStrictEqual({
+    design: null,
+    conclusion: null,
+    sentBack: input.sentBack,
+    stopped: null,
+  });
+});
+
+test('it gives the conclusion of a build input after an investigation', () => {
+  const input = {
+    acceptance: [],
+    design: { text: 'Read the upload logs.', location: null },
+    conclusion: 'The retries come from the proxy timeout.',
+    sentBack: null,
+    pullRequest: null,
+  };
+
+  expect(getLaunchSections(input)).toStrictEqual({
+    design: input.design,
+    conclusion: 'The retries come from the proxy timeout.',
+    sentBack: null,
+    stopped: null,
+  });
 });
 
 test('it gives the design of a v1 build input, which holds no send-back', () => {
@@ -44,6 +67,7 @@ test('it gives the design of a v1 build input, which holds no send-back', () => 
 
   expect(getLaunchSections(input)).toStrictEqual({
     design: input.design,
+    conclusion: null,
     sentBack: null,
     stopped: null,
   });
@@ -54,6 +78,7 @@ test('it gives the reason the last design stopped at of a design input', () => {
 
   expect(getLaunchSections(input)).toStrictEqual({
     design: null,
+    conclusion: null,
     sentBack: null,
     stopped: 'Should the default be light or dark?',
   });
@@ -65,5 +90,10 @@ test.each([
   ['a design input after a design that did not stop blocked', { acceptance: [], stopped: null }],
   ['an input of another shape', 'text'],
 ])('it gives no section for %s', (_title, input) => {
-  expect(getLaunchSections(input)).toStrictEqual({ design: null, sentBack: null, stopped: null });
+  expect(getLaunchSections(input)).toStrictEqual({
+    design: null,
+    conclusion: null,
+    sentBack: null,
+    stopped: null,
+  });
 });
