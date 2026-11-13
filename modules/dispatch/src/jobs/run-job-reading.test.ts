@@ -382,6 +382,34 @@ test('it settles a starting job timed out and reports the fault when its read th
   });
 });
 
+test('it leaves a job to the runner that read it while its own read threw past the step time limit', async () => {
+  const ctx = await setupTest();
+  const claimed = await ctx.claimMerge();
+
+  await ctx.read(claimed);
+
+  ctx.clock.advance(240 * 60_000 + 1);
+
+  const stale = await ctx.readAttempt(claimed.id);
+
+  ctx.job.failNextRead(new Error('the forge did not answer'));
+
+  ctx.job.beforeNextRead(async () => {
+    await ctx.read(claimed);
+  });
+
+  const fault = await ctx.read(stale);
+  const row = await ctx.readAttempt(claimed.id);
+
+  const seen: unknown = {
+    fault,
+    state: row.state,
+    timedOut: await ctx.listFacts('boxxy.attempt.timed_out'),
+  };
+
+  expect(seen).toStrictEqual({ fault: null, state: 'running', timedOut: [] });
+});
+
 test('it gives the drive the time after which an unanswered action is sent again', async () => {
   const ctx = await setupTest();
   const claimed = await ctx.claimMerge();

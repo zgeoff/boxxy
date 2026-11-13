@@ -46,6 +46,10 @@ export async function runJobReading(input: JobReadingInput): Promise<JobFault | 
 
   const reading = await readJob(input);
 
+  if (reading.kind === 'refused') {
+    return null;
+  }
+
   if (reading.kind === 'timed-out') {
     return { fault: 'job-timed-out', attempt: attempt.id, error: reading.error };
   }
@@ -100,7 +104,10 @@ function isReadDue(input: JobReadingInput): boolean {
   return readAt === null || input.now - readAt >= timeouts.jobReadSeconds * secondMs;
 }
 
-type JobReadResult = JobReading | { readonly kind: 'timed-out'; readonly error: unknown };
+type JobReadResult =
+  | JobReading
+  | { readonly kind: 'timed-out'; readonly error: unknown }
+  | { readonly kind: 'refused' };
 
 // A read that throws within the step's time limit throws on, and the next tick reads again. Past
 // the limit, the attempt settles timed out, as a session attempt's does, so a forge that never
@@ -115,14 +122,23 @@ async function readJob(input: JobReadingInput): Promise<JobReadResult> {
       throw error;
     }
 
-    const moved = await writeJobMove(input, {
-      kind: 'timed-out',
-      afterMinutes: step.timeoutMinutes,
-    });
+    // a row that another runner's read or mark moved meanwhile is refused, so its progress stands
+    const row = input.attempt;
 
-    if (moved.kind === 'applied') {
-      await settleJob(input, 'timed-out');
+    const moved = await input.store.exclusive((tx) =>
+      writeAttemptMove(
+        tx,
+        row.id,
+        { kind: 'timed-out', afterMinutes: step.timeoutMinutes },
+        { ...buildBase(input), seen: { readAt: row.readAt, actedAt: row.actedAt } },
+      ),
+    );
+
+    if (moved.kind !== 'applied') {
+      return { kind: 'refused' };
     }
+
+    await settleJob(input, 'timed-out');
 
     return { kind: 'timed-out', error };
   }
