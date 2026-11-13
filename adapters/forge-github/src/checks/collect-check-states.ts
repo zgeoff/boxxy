@@ -1,4 +1,4 @@
-import type { CheckState } from '@boxxy/model';
+import type { CheckReading, CheckState } from '@boxxy/model';
 
 export interface CheckRunRow {
   readonly id: number;
@@ -18,11 +18,11 @@ export interface CommitStatusRow {
 export function collectCheckStates(
   checkRuns: readonly CheckRunRow[],
   statuses: readonly CommitStatusRow[],
-): ReadonlyMap<string, CheckState> {
-  const states = new Map<string, CheckState>();
+): ReadonlyMap<string, CheckReading> {
+  const states = new Map<string, CheckReading>();
 
   for (const status of statuses) {
-    states.set(status.context, pickStatusState(status.state));
+    states.set(status.context, { state: pickStatusState(status.state), source: 'commit-status' });
   }
 
   const newest = new Map<string, CheckRunRow>();
@@ -36,7 +36,7 @@ export function collectCheckStates(
   }
 
   for (const run of newest.values()) {
-    states.set(run.name, pickRunState(run));
+    states.set(run.name, { state: pickRunState(run), source: 'check-run' });
   }
 
   return states;

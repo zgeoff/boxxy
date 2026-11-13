@@ -1,7 +1,7 @@
 import type { JsonValue } from '@boxxy/content-hash';
 import type { AnyNewFact, OutboxFact } from '../facts/types.ts';
 import type { ItemRevision, ItemWithLevers } from '../items/types.ts';
-import type { CheckState, MergeUnit } from '../merge/types.ts';
+import type { CheckReading, MergeUnit } from '../merge/types.ts';
 import type { HoldReason } from '../pipeline/types.ts';
 import type { Limit, LimitFill, SeatRelease, SeatTake, Snapshot } from '../planning/types.ts';
 import type { CostToLand, StageTime } from '../reports/types.ts';
@@ -446,8 +446,8 @@ export interface Forge {
   // the description of the pull request, empty when it has none
   readPullRequestBody: (ref: PullRequestRef) => Promise<string>;
 
-  // the latest run of each check name at `head`, from check runs and commit statuses
-  readChecks: (repo: RepoName, head: CommitSha) => Promise<ReadonlyMap<string, CheckState>>;
+  // the latest run of each check name at `head`, from check runs and commit statuses, with its source
+  readChecks: (repo: RepoName, head: CommitSha) => Promise<ReadonlyMap<string, CheckReading>>;
 
   // the forge's compare of two heads: each changed file with its added and deleted lines
   readChangedFiles: (repo: RepoName, from: CommitSha, to: CommitSha) => Promise<ChangedFile[]>;

@@ -1,5 +1,6 @@
 import type {
   ChangedFile,
+  CheckReading,
   CheckState,
   CommitSha,
   Forge,
@@ -18,11 +19,13 @@ export interface SeededPullRequest {
   readonly body?: string;
 }
 
-// The latest run of each check name at a head, as a test puts them on a forge.
+// The latest check run and commit status of each name at a head, as a test puts them on a forge.
+// A check run wins over a commit status of the same name.
 export interface SeededChecks {
   readonly repo: RepoName;
   readonly head: CommitSha;
   readonly checks: Readonly<Record<string, CheckState>>;
+  readonly statuses?: Readonly<Record<string, CheckState>>;
 }
 
 // A compare of two heads as a test puts it on a forge.
@@ -61,7 +64,7 @@ export interface FakeForge extends Forge {
 export function createFakeForge(): FakeForge {
   const pullRequests = new Map<string, SeededPullRequest>();
   const compares = new Map<string, readonly ChangedFile[]>();
-  const checksByHead = new Map<string, ReadonlyMap<string, CheckState>>();
+  const checksByHead = new Map<string, ReadonlyMap<string, CheckReading>>();
 
   const calls: string[] = [];
   let isDown = false;
@@ -94,9 +97,18 @@ export function createFakeForge(): FakeForge {
       compares.set(toCompareKey(compare.repo, compare.from, compare.to), compare.files);
     },
     seedChecks: (seeded) => {
-      const checks = new Map(Object.entries(seeded.checks));
+      const statuses = Object.entries(seeded.statuses ?? {}).map(
+        ([name, state]) => [name, { state, source: 'commit-status' }] as const,
+      );
 
-      checksByHead.set(toHeadKey(seeded.repo, seeded.head), checks);
+      const runs = Object.entries(seeded.checks).map(
+        ([name, state]) => [name, { state, source: 'check-run' }] as const,
+      );
+
+      checksByHead.set(
+        toHeadKey(seeded.repo, seeded.head),
+        new Map<string, CheckReading>([...statuses, ...runs]),
+      );
     },
     setDown: (down) => {
       isDown = down;

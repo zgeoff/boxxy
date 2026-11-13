@@ -248,4 +248,4 @@ A fine-grained token or an app needs these permissions on the repos, and a class
 - `Checks: read` and `Commit statuses: read`, for `readChecks`;
 - `Contents: read`, for `readChangedFiles`.
 
-The merge step needs more permissions ([review, verify and merge](./review-and-merge.md#the-merge-step)). The adapter reads at most 2,000 open pull requests of a repo, 250 commits of a pull request and 300 check runs at a head. `readChecks` gives each check name the state of its newest run, and a check run wins over a commit status of the same name. A run that ended with no pass and no failure, such as `cancelled` or `skipped`, reads `other`.
+The merge step needs more permissions ([review, verify and merge](./review-and-merge.md#the-merge-step)). The adapter reads at most 2,000 open pull requests of a repo, 250 commits of a pull request and 300 check runs and 300 commit statuses at a head. `readChecks` gives each check name the state of its newest run and its source, a check run or a commit status. A check run wins over a commit status of the same name. A run that ended with no pass and no failure, such as `cancelled` or `skipped`, reads `other`.

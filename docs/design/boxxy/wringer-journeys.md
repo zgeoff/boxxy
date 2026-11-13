@@ -170,11 +170,11 @@ The `edited` event reruns the gate. The grader never changes the code, so the he
 
 ## What this design gives the `Verifier` port
 
-The [review and merge design](./review-and-merge.md#the-verifier) owns the port, `Verifier.readAt(pullRequest, head)`, and its `VerifyReading`. The wringer adapter fills the reading through the forge, from the `verify / gate` run at the head and the report in the pull request's body:
+The [review and merge design](./review-and-merge.md#the-verifier) owns the port, `Verifier.readAt(pullRequest, head)`, and its `VerifyReading`. The wringer adapter fills the reading through the forge, from the `verify / gate` check run at the head and the report in the pull request's body:
 
 - `verified` when the gate run succeeded, and `incomplete` when it failed;
-- each feature and its status (`verified`, `stale`, `missing` or `unchanged`) from the report;
-- `not-covered` when no gate run at the head has finished, or the body has no report.
+- each feature and its status (`verified`, `stale`, `missing` or `unchanged`) from the report, and no features when the body holds no report that parses;
+- `not-covered` when no gate check run at the head passed or failed.
 
 An unmapped path fails the gate while every feature reads `verified`. The reading is then `incomplete`, and the run's annotation holds the path.
 

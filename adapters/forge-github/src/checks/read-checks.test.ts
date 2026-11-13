@@ -42,9 +42,9 @@ test('it reads each check run and commit status at the head by name', async () =
 
   expect(checks).toStrictEqual(
     new Map([
-      ['deploy/preview', 'failure'],
-      ['pr / checks', 'success'],
-      ['verify / gate', 'pending'],
+      ['deploy/preview', { state: 'failure', source: 'commit-status' }],
+      ['pr / checks', { state: 'success', source: 'check-run' }],
+      ['verify / gate', { state: 'pending', source: 'check-run' }],
     ]),
   );
 });
@@ -71,7 +71,9 @@ test('it reads the newest run of a check name that ran twice at the head', async
 
   const checks = await readChecks(ctx.client, ctx.repo, ctx.head);
 
-  expect(checks).toStrictEqual(new Map([['verify / gate', 'pending']]));
+  expect(checks).toStrictEqual(
+    new Map([['verify / gate', { state: 'pending', source: 'check-run' }]]),
+  );
 });
 
 test('it reads every check run over one page', async () => {
@@ -83,6 +85,22 @@ test('it reads every check run over one page', async () => {
       head: ctx.head,
       id: index,
       name: `check ${index}`,
+    });
+  }
+
+  const checks = await readChecks(ctx.client, ctx.repo, ctx.head);
+
+  expect(checks.size).toBe(105);
+});
+
+test('it reads every commit status over one page', async () => {
+  const ctx = setupTest();
+
+  for (let index = 1; index <= 105; index += 1) {
+    await githubCommitStatuses.create({
+      repo: 'acme/lamps',
+      head: ctx.head,
+      context: `status ${index}`,
     });
   }
 

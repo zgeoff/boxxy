@@ -176,6 +176,7 @@ export type {
 } from './closeouts/types.ts';
 
 export type {
+  CheckReading,
   CheckState,
   GateRecord,
   MergeMember,

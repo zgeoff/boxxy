@@ -30,5 +30,5 @@ export const githubSchemas = {
   compare: z.object({ files: z.array(compareFile).optional() }),
   pullRequestBody: z.object({ body: z.string().nullable() }),
   checkRunPage: z.object({ total_count: runCount, check_runs: z.array(checkRun) }),
-  combinedStatus: z.object({ statuses: z.array(commitStatus) }),
+  combinedStatus: z.object({ total_count: runCount, statuses: z.array(commitStatus) }),
 } as const;

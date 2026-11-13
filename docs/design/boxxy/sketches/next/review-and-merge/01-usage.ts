@@ -212,13 +212,15 @@ const rules = loadRules(text, { phases: [...phaseKinds, createReviewPhase(review
 //                       accepted-risk."
 //
 // adapters/verifier-wringer: `createWringerVerifier`. `readAt(pullRequest, head)` reads the
-// latest run of the gate check at `head` and the pull request body, through the forge port:
+// latest run of the gate check at `head` and the pull request body, through the forge port. Only
+// a check run counts: a commit status of the gate's name reads as none, since any token that may
+// write statuses can post one.
 //
 //   gate check at `head`   report in the body        reading
 //   ────────────────────   ───────────────────────   ────────────────────────────────────────
 //   none, or pending       any                       not-covered
 //   other (cancelled ...)  any                       not-covered
-//   success             parses                    verified, with the report's features
+//   success                parses                    verified, with the report's features
 //   failure                parses                    incomplete, with the report's features
 //   success or failure     absent or does not parse  incomplete, with no features
 //

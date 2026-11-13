@@ -124,9 +124,31 @@ test('#readChecks reads the checks seeded at the head, and none at another head'
 
   expect([atHead, atOtherHead]).toStrictEqual([
     new Map([
-      ['pr / checks', 'success'],
-      ['verify / gate', 'pending'],
+      ['pr / checks', { state: 'success', source: 'check-run' }],
+      ['verify / gate', { state: 'pending', source: 'check-run' }],
     ]),
     new Map(),
   ]);
+});
+
+test('#readChecks reads a seeded status as a commit status, under a check run of its name', async () => {
+  const forge = createFakeForge();
+  const repo = brandSchemas.repoName.parse('acme/lamps');
+  const head = brandSchemas.commitSha.parse('a'.repeat(40));
+
+  forge.seedChecks({
+    repo,
+    head,
+    checks: { 'pr / checks': 'success' },
+    statuses: { 'pr / checks': 'failure', 'deploy/preview': 'pending' },
+  });
+
+  const checks = await forge.readChecks(repo, head);
+
+  expect(checks).toStrictEqual(
+    new Map([
+      ['pr / checks', { state: 'success', source: 'check-run' }],
+      ['deploy/preview', { state: 'pending', source: 'commit-status' }],
+    ]),
+  );
 });

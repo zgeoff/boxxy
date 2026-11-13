@@ -97,10 +97,18 @@ export const githubHandlers = [
   http.get(`${GITHUB_API_URL}/repos/:owner/:name/commits/:head/status`, (info) => {
     const repo = `${String(info.params['owner'])}/${String(info.params['name'])}`;
     const head = String(info.params['head']);
+
+    const search = new URL(info.request.url).searchParams;
+
+    const perPage = Number(search.get('per_page') ?? '30');
+    const page = Number(search.get('page') ?? '1');
     const statuses = githubCommitStatuses.findMany((query) => query.where({ repo, head }));
 
     const answer: z.input<typeof githubSchemas.combinedStatus> = {
-      statuses: statuses.map((status) => ({ context: status.context, state: status.state })),
+      total_count: statuses.length,
+      statuses: statuses
+        .slice((page - 1) * perPage, page * perPage)
+        .map((status) => ({ context: status.context, state: status.state })),
     };
 
     return HttpResponse.json(answer);

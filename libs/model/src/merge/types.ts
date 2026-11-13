@@ -35,6 +35,13 @@ export interface MergeMember {
 
 export type CheckState = 'success' | 'failure' | 'pending' | 'other';
 
+// The latest run of one check name at a head. A `check-run` comes from a GitHub App, such as
+// GitHub Actions; a `commit-status` comes from any token that may write statuses.
+export interface CheckReading {
+  readonly state: CheckState;
+  readonly source: 'check-run' | 'commit-status';
+}
+
 // What the merge job reads on each read. The job decides nothing.
 export interface MergeObservation {
   readonly pullRequest: PullRequestRef;

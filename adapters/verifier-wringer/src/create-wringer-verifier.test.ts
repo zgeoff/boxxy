@@ -174,6 +174,32 @@ test.each(['pending', 'other'] as const)(
   },
 );
 
+test('it reads not-covered when a commit status, and no check run, carries the gate name', async () => {
+  const ctx = setupTest();
+  const report = buildMockWringerReport({ features: [{ name: 'item-list', status: 'verified' }] });
+
+  ctx.forge.seed({
+    ref: ctx.ref,
+    githubId: 7_000_087,
+    reading: { state: 'open', mergedAt: null, mergeCommit: null, commits: [] },
+    body: renderReportMarkdown(report),
+  });
+
+  ctx.forge.seedChecks({
+    repo: ctx.repo,
+    head: ctx.head,
+    checks: {},
+    statuses: { 'verify / gate': 'success' },
+  });
+
+  const reading = await ctx.verifier.readAt(ctx.ref, ctx.head);
+
+  expect(reading).toStrictEqual({
+    status: 'not-covered',
+    head: ctx.head,
+  });
+});
+
 test('it reads not-covered when the gate passed only at an older head', async () => {
   const ctx = setupTest();
   const olderHead = brandSchemas.commitSha.parse('9c01e2d'.padEnd(40, '0'));

@@ -33,8 +33,8 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 - A pull request carries GitHub's own `id`, which pepys builds its entity ID from.
 - A missing pull request reads as `not-found`. Any other failure throws, and the caller reads that
   as "the forge did not answer".
-- `readChecks(repo, head)` gives the state of the newest run of each check name at `head`, from the
-  check runs and the commit statuses.
+- `readChecks(repo, head)` gives the state and the source of the newest run of each check name at
+  `head`, from the check runs and the commit statuses.
 - `src/test-utils/github-handlers.ts` holds the MSW handlers that answer the GitHub REST API in
   tests, from `@msw/data` collections that a test seeds. The repo's test preload runs
   `src/test-utils/reset-mock-network.ts`, which starts the one mock network of each test process.

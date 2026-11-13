@@ -1,4 +1,4 @@
-import type { CommitSha, Verifier, VerifyReading } from '@boxxy/model';
+import type { CheckReading, CommitSha, Verifier, VerifyReading } from '@boxxy/model';
 import { parseReportBlock } from '@wringer/core';
 import type { WringerVerifierOptions } from './types.ts';
 
@@ -9,10 +9,9 @@ export function createWringerVerifier(options: WringerVerifierOptions): Verifier
     readAt: async (pullRequest, head) => {
       const checks = await options.forge.readChecks(pullRequest.repo, head);
 
-      const gate = checks.get(options.gateCheck);
+      const gate = pickGateState(checks.get(options.gateCheck));
 
-      // a cancelled or skipped gate run gave no verdict, the same as a run still going
-      if (gate !== 'success' && gate !== 'failure') {
+      if (gate === null) {
         return { status: 'not-covered', head };
       }
 
@@ -21,6 +20,16 @@ export function createWringerVerifier(options: WringerVerifierOptions): Verifier
       return buildVerifyReading(head, gate, body);
     },
   };
+}
+
+// Only the workflow's check run counts: any token that may write statuses could post a commit
+// status of the gate's name. A cancelled or skipped run gave no verdict, as a run still going.
+function pickGateState(gate: CheckReading | undefined): 'success' | 'failure' | null {
+  if (gate?.source !== 'check-run') {
+    return null;
+  }
+
+  return gate.state === 'success' || gate.state === 'failure' ? gate.state : null;
 }
 
 function buildVerifyReading(

@@ -18,7 +18,9 @@ test.each([
   (status, conclusion, expected) => {
     const states = collectCheckStates([{ id: 1, name: 'pr / checks', status, conclusion }], []);
 
-    expect(states).toStrictEqual(new Map([['pr / checks', expected]]));
+    expect(states).toStrictEqual(
+      new Map([['pr / checks', { state: expected, source: 'check-run' }]]),
+    );
   },
 );
 
@@ -30,7 +32,9 @@ test.each([
 ] as const)('it reads a commit status in state %s as %s', (state, expected) => {
   const states = collectCheckStates([], [{ context: 'deploy/preview', state }]);
 
-  expect(states).toStrictEqual(new Map([['deploy/preview', expected]]));
+  expect(states).toStrictEqual(
+    new Map([['deploy/preview', { state: expected, source: 'commit-status' }]]),
+  );
 });
 
 test('it reads the run with the highest id of a name, in any order', () => {
@@ -42,7 +46,9 @@ test('it reads the run with the highest id of a name, in any order', () => {
     [],
   );
 
-  expect(states).toStrictEqual(new Map([['verify / gate', 'failure']]));
+  expect(states).toStrictEqual(
+    new Map([['verify / gate', { state: 'failure', source: 'check-run' }]]),
+  );
 });
 
 test('it reads a check run over a commit status of the same name', () => {
@@ -51,5 +57,7 @@ test('it reads a check run over a commit status of the same name', () => {
     [{ context: 'pr / checks', state: 'failure' }],
   );
 
-  expect(states).toStrictEqual(new Map([['pr / checks', 'success']]));
+  expect(states).toStrictEqual(
+    new Map([['pr / checks', { state: 'success', source: 'check-run' }]]),
+  );
 });
