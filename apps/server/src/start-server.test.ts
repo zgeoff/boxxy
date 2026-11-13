@@ -378,6 +378,9 @@ test('it spawns a filed item on atc over MCP with the host name and the bearer a
   });
 
   const store = await createSQLiteClaimStore(path.join(ctx.folder, 'boxxy.db'));
+
+  onTestFinished(() => store.close());
+
   const dispatch = await createTestDispatch({ store });
 
   await dispatch.seedItem({});
@@ -428,6 +431,9 @@ test('it spawns a repo with a git source as an atc workspace that atc trusts, wi
   });
 
   const store = await createSQLiteClaimStore(path.join(ctx.folder, 'boxxy.db'));
+
+  onTestFinished(() => store.close());
+
   const dispatch = await createTestDispatch({ store });
 
   await dispatch.seedItem({});
@@ -472,6 +478,8 @@ test('it sends a hold notice to the notice session by its ID with the notice tok
   });
 
   const store = await createSQLiteClaimStore(path.join(ctx.folder, 'boxxy.db'));
+
+  onTestFinished(() => store.close());
 
   const at = brandSchemas.instant.parse(0);
 
