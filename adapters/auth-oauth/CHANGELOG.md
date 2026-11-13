@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.8](https://github.com/zgeoff/boxxy/compare/@boxxy/auth-oauth@0.2.7...@boxxy/auth-oauth@0.2.8) (2026-11-13)
+
+
+### Bug Fixes
+
+* **auth:** remove a client by its id on @zgeoff/mcp-auth 0.2.1 ([#106](https://github.com/zgeoff/boxxy/issues/106)) ([a4c216a](https://github.com/zgeoff/boxxy/commit/a4c216a7b4ddbabd1ac1fbbd4fd410b86f2eb3ab))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/contract bumped to 0.2.8
+
 ## [0.2.7](https://github.com/zgeoff/boxxy/compare/@boxxy/auth-oauth@0.2.6...@boxxy/auth-oauth@0.2.7) (2026-11-13)
 
 ### Features
