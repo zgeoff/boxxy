@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.2.3...@boxxy/pepys@0.2.4) (2026-11-13)
+
+### Bug Fixes
+
+- **dispatch:** carry the fallback flag on a reconciled start
+  ([e64b901](https://github.com/zgeoff/boxxy/commit/e64b901ef13eecf3e607bbdbf87fd06445930ea9))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.4
+
 ## [0.2.3](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.2.2...@boxxy/pepys@0.2.3) (2026-11-12)
 
 ### Miscellaneous Chores

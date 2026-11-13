@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/closeout@0.2.3...@boxxy/closeout@0.2.4) (2026-11-13)
+
+### Features
+
+- **closeout:** send a failed verify's features to the rework build
+  ([c5222b0](https://github.com/zgeoff/boxxy/commit/c5222b0cecfc49b52198e2e9353f351e658f4908))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.4
+  - devDependencies
+    - @boxxy/planning bumped to 0.2.4
+    - @boxxy/rules bumped to 0.2.4
+
 ## [0.2.3](https://github.com/zgeoff/boxxy/compare/@boxxy/closeout@0.2.2...@boxxy/closeout@0.2.3) (2026-11-12)
 
 ### Features

@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.2.3...@boxxy/store-sqlite@0.2.4) (2026-11-13)
+
+### Features
+
+- **dispatch:** file, list and release held items
+  ([8b43b30](https://github.com/zgeoff/boxxy/commit/8b43b305c89d1f3dcced47779634441830f3f3fd))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.2.4
+    - @boxxy/model bumped to 0.2.4
+  - devDependencies
+    - @boxxy/dispatch bumped to 0.2.4
+  - peerDependencies
+    - @boxxy/dispatch bumped to 0.2.4
+
 ## [0.2.3](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.2.2...@boxxy/store-sqlite@0.2.3) (2026-11-12)
 
 ### Features
