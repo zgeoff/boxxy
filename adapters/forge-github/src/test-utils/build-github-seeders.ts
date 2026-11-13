@@ -17,6 +17,7 @@ export function buildGithubSeeders(): GithubSeeders {
         id: pullRequest.githubId,
         body: pullRequest.body ?? null,
         state: reading.state === 'open' ? 'open' : 'closed',
+        ...(reading.base !== undefined && { base: reading.base }),
         mergedAt: reading.mergedAt === null ? null : new Date(reading.mergedAt).toISOString(),
         mergeCommit: reading.mergeCommit,
         commits: reading.commits.map((row) => ({ sha: row.sha, message: row.message })),

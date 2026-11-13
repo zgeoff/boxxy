@@ -17,6 +17,7 @@ export function toPullRequestReading(
     url: pullRequest.html_url,
     githubId: pullRequest.id,
     state: mergedAt === null ? pullRequest.state : 'merged',
+    base: pullRequest.base.ref,
     mergedAt,
     mergeCommit:
       mergedAt === null || pullRequest.merge_commit_sha === null

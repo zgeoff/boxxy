@@ -33,7 +33,7 @@ const otherRepo = brandSchemas.repoName.parse('acme/shades');
 // The behaviour of the forge port that dispatch relies on. Every adapter and the fake pass it.
 export const forgeContract: readonly ForgeContractCase[] = [
   [
-    '#readPullRequest reads an open pull request with its GitHub id, url and commits',
+    '#readPullRequest reads an open pull request with its GitHub id, url, base and commits',
     async (harness) => {
       await harness.seed(buildOpen(7, 2));
 
@@ -45,6 +45,7 @@ export const forgeContract: readonly ForgeContractCase[] = [
           url: 'https://github.com/acme/lamps/pull/7',
           githubId: 5_000_007,
           state: 'open',
+          base: 'main',
           mergedAt: null,
           mergeCommit: null,
           commits: [
@@ -111,6 +112,21 @@ export const forgeContract: readonly ForgeContractCase[] = [
       return {
         received: reading === 'not-found' ? reading : reading.commits.map((commit) => commit.sha),
         expected: Array.from({ length: 130 }, (_unused, index) => buildSha(index + 1)),
+      };
+    },
+  ],
+  [
+    '#readPullRequest reads the base branch of a pull request into a branch with a slash in its name',
+    async (harness) => {
+      const open = buildOpen(11);
+
+      await harness.seed({ ...open, reading: { ...open.reading, base: 'release/2.0' } });
+
+      const reading = await harness.forge.readPullRequest(buildRef(11));
+
+      return {
+        received: reading === 'not-found' ? reading : reading.base,
+        expected: 'release/2.0',
       };
     },
   ],

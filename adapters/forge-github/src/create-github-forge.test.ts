@@ -5,6 +5,7 @@ import { HttpResponse, http } from 'msw';
 import { createGithubForge } from './create-github-forge.ts';
 import { GithubForgeError } from './github-forge-error.ts';
 import { buildGithubSeeders } from './test-utils/build-github-seeders.ts';
+import pullRequest from './test-utils/fixtures/pull-request.json' with { type: 'json' };
 import { GITHUB_API_URL } from './test-utils/github-handlers.ts';
 import { mockNetwork } from './test-utils/mock-network.ts';
 
@@ -107,6 +108,25 @@ test('it throws an error that names the status and holds no token for a server e
     GithubForgeError,
     'GitHub answered 503 to GET /repos/acme/lamps/pulls/7',
   );
+});
+
+test('it reads the base branch of the pull request that GitHub answers', () => {
+  const ctx = setupTest();
+
+  mockNetwork.use(
+    http.get(`${GITHUB_API_URL}/repos/acme/lamps/pulls/7`, () => HttpResponse.json(pullRequest)),
+    http.get(`${GITHUB_API_URL}/repos/acme/lamps/pulls/7/commits`, () => HttpResponse.json([])),
+  );
+
+  expect(ctx.forge.readPullRequest(ctx.ref)).resolves.toStrictEqual({
+    url: 'https://github.com/acme/lamps/pull/7',
+    githubId: 2_400_000_007,
+    state: 'open',
+    base: 'release/2.0',
+    mergedAt: null,
+    mergeCommit: null,
+    commits: [],
+  });
 });
 
 test('it throws for a body that is not a pull request', () => {

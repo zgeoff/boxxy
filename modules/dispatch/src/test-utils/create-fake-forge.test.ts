@@ -33,6 +33,7 @@ test('it reads a pull request by a repo name in another case, with the seeded ur
 
   expect(reading).toStrictEqual({
     state: 'open',
+    base: 'main',
     mergedAt: null,
     mergeCommit: null,
     commits: [],

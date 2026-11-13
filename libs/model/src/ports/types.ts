@@ -471,6 +471,9 @@ export interface PullRequestReading {
   // GitHub's own `id` of the pull request
   readonly githubId: number;
   readonly state: 'open' | 'closed' | 'merged';
+
+  // the branch that the pull request merges into
+  readonly base: string;
   readonly mergedAt: Instant | null;
   readonly mergeCommit: CommitSha | null;
   readonly commits: readonly { readonly sha: CommitSha; readonly message: string }[];

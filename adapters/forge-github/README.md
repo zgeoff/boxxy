@@ -35,7 +35,8 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 - `createGithubAppAuth({ keys, baseUrl, fetch, nowMs })` mints a GitHub App's installation token
   through `@octokit/auth-app`, with the App's client ID as the JWT's `iss`. Its `readToken` holds
   the token until 5 minutes before it expires, and shares one mint between the calls that wait.
-- A pull request carries GitHub's own `id`, which pepys builds its entity ID from.
+- A pull request carries GitHub's own `id`, which pepys builds its entity ID from, and the base
+  branch it merges into.
 - A missing pull request reads as `not-found`. Any other failure throws, and the caller reads that
   as "the forge did not answer".
 - `readChecks(repo, head)` gives the state and the source of the newest run of each check name at

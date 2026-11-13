@@ -11,11 +11,14 @@ import type {
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 
-// A pull request as a test puts it on a forge. The url is the one GitHub gives.
+// A pull request as a test puts it on a forge. The url is the one GitHub gives, and a pull
+// request with no base seeded merges into `main`.
 export interface SeededPullRequest {
   readonly ref: PullRequestRef;
   readonly githubId: number;
-  readonly reading: Omit<PullRequestReading, 'githubId' | 'url'>;
+  readonly reading: Omit<PullRequestReading, 'githubId' | 'url' | 'base'> & {
+    readonly base?: string;
+  };
 
   // the description; none reads as empty
   readonly body?: string;
@@ -80,6 +83,7 @@ export interface FakeForge extends Forge {
 
 // a fixed time, because a module reads no clock
 const mergedAtMs = brandSchemas.instant.parse(1_900_000_000_000);
+const defaultBase = 'main';
 
 // A forge that keeps the pull requests a test seeds and answers as the `Forge` contract says.
 export function createFakeForge(): FakeForge {
@@ -107,6 +111,7 @@ export function createFakeForge(): FakeForge {
 
     return Promise.resolve({
       ...found.reading,
+      base: found.reading.base ?? defaultBase,
       githubId: found.githubId,
       url: `https://github.com/${found.ref.repo}/pull/${found.ref.number}`,
     });

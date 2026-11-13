@@ -30,6 +30,7 @@ export const githubSchemas = {
     id: z.number().int().positive(),
     html_url: z.url(),
     state: z.enum(['open', 'closed']),
+    base: z.object({ ref: z.string().min(1) }),
     merged_at: z.iso.datetime({ offset: true }).nullable(),
     merge_commit_sha: z.string().nullable(),
   }),
