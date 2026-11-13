@@ -31,7 +31,7 @@
     },
     "adapters/auth-oauth": {
       "name": "@boxxy/auth-oauth",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@better-auth/mcp": "catalog:",
         "@better-auth/oauth-provider": "catalog:",
@@ -52,7 +52,7 @@
     },
     "adapters/caller-proof-imp": {
       "name": "@boxxy/caller-proof-imp",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@boxxy/model": "workspace:*",
         "@impz/client": "catalog:",
@@ -64,7 +64,7 @@
     },
     "adapters/forge-github": {
       "name": "@boxxy/forge-github",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@boxxy/model": "workspace:*",
         "zod": "catalog:",
@@ -96,14 +96,14 @@
     },
     "adapters/notifier-atc": {
       "name": "@boxxy/notifier-atc",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@boxxy/model": "workspace:*",
       },
     },
     "adapters/review-noslop": {
       "name": "@boxxy/review-noslop",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@boxxy/model": "workspace:*",
         "@noslop/cli": "catalog:",
@@ -122,7 +122,7 @@
     },
     "adapters/store-sqlite": {
       "name": "@boxxy/store-sqlite",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@boxxy/content-hash": "workspace:*",
         "@boxxy/model": "workspace:*",
@@ -145,7 +145,7 @@
     },
     "adapters/verifier-wringer": {
       "name": "@boxxy/verifier-wringer",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@boxxy/model": "workspace:*",
         "@wringer/core": "catalog:",
@@ -163,7 +163,7 @@
     },
     "adapters/worker-atc": {
       "name": "@boxxy/worker-atc",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@boxxy/model": "workspace:*",
         "@modelcontextprotocol/client": "catalog:",
@@ -183,7 +183,7 @@
     },
     "apps/cli": {
       "name": "@boxxy/cli",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "bin": {
         "boxxy": "./src/main.ts",
       },
@@ -197,7 +197,7 @@
     },
     "apps/server": {
       "name": "@boxxy/server",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@boxxy/auth-oauth": "workspace:*",
         "@boxxy/caller-proof-imp": "workspace:*",
@@ -229,14 +229,14 @@
     },
     "libs/content-hash": {
       "name": "@boxxy/content-hash",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "zod": "catalog:",
       },
     },
     "libs/contract": {
       "name": "@boxxy/contract",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@boxxy/model": "workspace:*",
         "@orpc/contract": "catalog:",
@@ -246,7 +246,7 @@
     },
     "libs/model": {
       "name": "@boxxy/model",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@boxxy/content-hash": "workspace:*",
         "tiny-invariant": "catalog:",
@@ -264,7 +264,7 @@
     },
     "libs/prompt-template": {
       "name": "@boxxy/prompt-template",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "liquidjs": "catalog:",
         "tiny-invariant": "catalog:",
@@ -272,7 +272,7 @@
     },
     "modules/closeout": {
       "name": "@boxxy/closeout",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@boxxy/model": "workspace:*",
         "tiny-invariant": "catalog:",
@@ -293,7 +293,7 @@
     },
     "modules/dispatch": {
       "name": "@boxxy/dispatch",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@boxxy/closeout": "workspace:*",
         "@boxxy/content-hash": "workspace:*",
@@ -316,7 +316,7 @@
     },
     "modules/planning": {
       "name": "@boxxy/planning",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@boxxy/content-hash": "workspace:*",
         "@boxxy/model": "workspace:*",
@@ -327,7 +327,7 @@
     },
     "modules/rules": {
       "name": "@boxxy/rules",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@boxxy/content-hash": "workspace:*",
         "@boxxy/model": "workspace:*",
@@ -340,7 +340,7 @@
     },
     "packages/pepys": {
       "name": "@boxxy/pepys",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "dependencies": {
         "@boxxy/model": "workspace:*",
       },
