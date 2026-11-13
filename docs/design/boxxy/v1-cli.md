@@ -38,6 +38,7 @@ Each procedure of the contract has one command. The usage line of a command is t
    - the commands `boxxy attempt current`, `boxxy attempt evidence` and `boxxy attempt close-out`, and the reads `boxxy attempt list-items` and `boxxy attempt show-item` for finding items of the repo that ask for the same work or overlap;
    - the `--kind` values that `attempt evidence` takes, from the list its parser reads, what `--ref` and `--observed` take, and that `attempt close-out` takes no `--ref` because its body cites the evidence ID;
    - that a screenshot and a measurement are a `live-check`, or a `test` when a test asserts the measurement, and that a diff is no evidence kind;
+   - that the agent uploads a log too long for `--observed` to a place that outlives the machine, and records it as a `live-check` with the link in `--ref`. boxxy stores the link and never the log;
    - that a session that ends without a valid close-out fails.
 
 A bind answer of `skill-missing` makes the server move the attempt to `closing`, and the runner settles it as failed with `skill-missing`. The hook then exits 1 and names the skills. The hook exits 0 for `bound` and exits 1 for every other answer.

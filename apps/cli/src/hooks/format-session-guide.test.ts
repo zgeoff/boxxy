@@ -70,7 +70,7 @@ test('it says what --ref takes, and that the close-out cites the evidence ID', (
   const guide = formatSessionGuide({ phase: 'build', outcomes: ['built'] });
 
   expect(guide).toContain(
-    '`--ref` takes a test file and name, a CI run URL, or the command of a live check. `boxxy attempt close-out` takes no `--ref`: its body cites the ID that `boxxy attempt evidence` printed.',
+    '`--ref` takes a test file and name, a CI run URL, or the URL or command of a live check. `boxxy attempt close-out` takes no `--ref`: its body cites the ID that `boxxy attempt evidence` printed.',
   );
 });
 
@@ -79,5 +79,13 @@ test('it names the evidence kind of a screenshot, a measurement and a diff', () 
 
   expect(guide).toContain(
     'For a screenshot, use `live-check`, with the page or command in `--ref` and what it shows in `--observed`. For a measurement, use `live-check`, with the command in `--ref` and the number and its unit in `--observed`, or `test` when a test asserts it. A diff is no evidence kind: cite the test or check that shows what it changes.',
+  );
+});
+
+test('it names the evidence kind of a long log, and where its link goes', () => {
+  const guide = formatSessionGuide({ phase: 'build', outcomes: ['built'] });
+
+  expect(guide).toContain(
+    'For a log too long for `--observed`, such as the raw runs of a benchmark, upload it to a place that outlives this machine. Then use `live-check`, with the link in `--ref` and what the log shows in `--observed`.',
   );
 });
