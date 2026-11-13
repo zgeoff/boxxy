@@ -138,6 +138,11 @@ export interface LoadedRules {
 //   | { kind: 'merge-without-rules' }                 a `merge` step and no `merge` block
 //   | { kind: 'empty-merge-checks' }                  `merge.checks` is empty
 //   | { kind: 'builder-session-not-kept'; recipe }    `session: builder`, and the build step before it keeps no session
+//   | { kind: 'review-agent-outside-review'; recipe } a recipe for another step names a review agent
+//   | { kind: 'review-without-review-agent'; recipe } a review recipe names an agent not in `spawn.reviewAgents`
+//   | { kind: 'review-builder-session'; recipe }      a review recipe sets `session: builder`
+//   | { kind: 'review-session-resumed'; edge }        a `resume: true` edge goes to the review step
+// The four review refusals apply only when `spawn.reviewAgents` is set.
 
 // ── libs/model/src/merge/types.ts: the merge decision ──────────────────────────────────────────
 // `JobAction` and `MergeCloseOut` name these types, and a lib imports no module, so they live in

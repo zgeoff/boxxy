@@ -58,7 +58,7 @@ export async function runJobReading(deps: JobDeps): Promise<void> {
 //
 // The review round runs in an agent session on an agent host, through `atc.session`, as a
 // build does. Its input carries the command that `ReviewGate.buildCommand` gave; the session runs
-// it in the pull request's checkout and sends the tool's raw result with `boxxy attempt
+// it in its own clone, where the tool fetches the pull request's base and head, and sends the tool's raw result with `boxxy attempt
 // close-out`. The server keeps the forge and the tool's App keys: the agent host gets neither.
 //
 // The `attempt.closeOut` procedure calls `closeOutCall`, which calls this for a review attempt,
