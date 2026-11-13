@@ -21,9 +21,10 @@ export interface Access {
 
 export const access = {
   // The owner's agent files and steers work on the owner's behalf, so it gets every command on an
-  // item and every read: 19 tools, among them the two switches of the runner. `rules.dryRun` is a read that is CLI only.
+  // item and every read: 20 tools, among them the two switches of the runner. `rules.dryRun` is a read that is CLI only.
+  // Only this path files a held item, releases one or lists the held items.
   'item.file': buildOwnerWrite(
-    'boxxy item file --repo --title --outcome [--body | --body-file] [--acceptance]… [--kind] [--design-mode] [--blocked-by]… [--label]…',
+    'boxxy item file --repo --title --outcome [--body | --body-file] [--acceptance]… [--kind] [--design-mode] [--blocked-by]… [--label]… [--held <reason>]',
   ),
   'item.edit': buildOwnerWrite(
     'boxxy item edit <item> [--title] [--outcome] [--body | --body-file] [--acceptance]… [--design-mode] [--label]…',
@@ -31,6 +32,7 @@ export const access = {
   'item.close': buildOwnerWrite('boxxy item close <item> --reason [--of]'),
   'item.retry': buildOwnerWrite('boxxy item retry <item> [--phase]'),
   'item.wake': buildOwnerWrite('boxxy item wake <item>'),
+  'item.release': buildOwnerWrite('boxxy item release <item>'),
   'item.note': buildOwnerWrite('boxxy item note <item> --text'),
   'relation.add': buildOwnerWrite('boxxy relation add <source> <type> <target>'),
   'relation.remove': buildOwnerWrite('boxxy relation remove <source> <type> <target>'),
@@ -41,7 +43,9 @@ export const access = {
   'plan.expedite': buildOwnerWrite('boxxy expedite <item>… --reason [--expires]'),
   'plan.unexpedite': buildOwnerWrite('boxxy unexpedite <item>'),
   'item.get': buildOwnerRead('boxxy item show <item>'),
-  'item.list': buildOwnerRead('boxxy item list [--state] [--repo] [--phase] [--text] [--label]'),
+  'item.list': buildOwnerRead(
+    'boxxy item list [--state | --held] [--repo] [--phase] [--text] [--label]',
+  ),
   'runner.status': buildOwnerRead('boxxy status'),
   'report.cost': buildOwnerRead('boxxy cost <item>'),
   'report.stageTimes': buildOwnerRead('boxxy times <item>'),

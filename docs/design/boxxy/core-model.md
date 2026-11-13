@@ -31,8 +31,8 @@ fields, such as `trigger`, `area` and `size`.
 
 ### Derived states
 
-An item's state is one of `idea`, `ready`, `running`, `blocked`, `waiting`, `done` or `archived`.
-boxxy computes it from facts each time, and no command sets it.
+An item's state is one of `held`, `idea`, `ready`, `running`, `blocked`, `waiting`, `done` or `archived`.
+boxxy computes it from facts each time, and no command sets it. A [held item](./planning.md#held-items) is `held`, with its reason, until the owner releases it.
 
 - `item.close` with a reason archives an idea. Nothing is deleted, and archived items stay
   queryable.

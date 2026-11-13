@@ -160,7 +160,15 @@ export interface NoteRow {
   readonly at: Instant;
 }
 
-export type ItemState = 'idea' | 'ready' | 'running' | 'blocked' | 'waiting' | 'done' | 'archived';
+export type ItemState =
+  | 'held'
+  | 'idea'
+  | 'ready'
+  | 'running'
+  | 'blocked'
+  | 'waiting'
+  | 'done'
+  | 'archived';
 
 export type WaitingReason =
   | 'pull request open'
@@ -169,8 +177,9 @@ export type WaitingReason =
   | HoldReason;
 
 export type DerivedState =
-  | { readonly state: Exclude<ItemState, 'waiting'> }
-  | { readonly state: 'waiting'; readonly reason: WaitingReason };
+  | { readonly state: Exclude<ItemState, 'waiting' | 'held'> }
+  | { readonly state: 'waiting'; readonly reason: WaitingReason }
+  | { readonly state: 'held'; readonly reason: string };
 
 // A row of `item.list`: the view without the body, which can be long.
 export type ItemListView = Omit<ItemView, 'body'>;

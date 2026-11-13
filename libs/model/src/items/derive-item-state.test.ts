@@ -24,6 +24,7 @@ function setupTest() {
     buildPosition,
     endPosition: { kind: 'end', reason: 'reviewed' } satisfies Position,
     base: {
+      heldReason: null,
       liveLease: null,
       phases,
       attempts: [],
@@ -46,6 +47,32 @@ test('it derives archived for a closed item, ahead of a live lease', () => {
   });
 
   expect(state).toStrictEqual({ state: 'archived' });
+});
+
+test('it derives archived for a closed item, ahead of its held reason', () => {
+  const ctx = setupTest();
+
+  const state = deriveItemState({
+    ...ctx.base,
+    item: buildMockV1ItemView({ closedAt: brandSchemas.instant.parse(9000) }),
+    position: ctx.buildPosition,
+    heldReason: 'a draft to finish',
+  });
+
+  expect(state).toStrictEqual({ state: 'archived' });
+});
+
+test('it derives held with the reason for a held item that would be ready', () => {
+  const ctx = setupTest();
+
+  const state = deriveItemState({
+    ...ctx.base,
+    item: buildMockV1ItemView(),
+    position: ctx.buildPosition,
+    heldReason: 'a draft to finish',
+  });
+
+  expect(state).toStrictEqual({ state: 'held', reason: 'a draft to finish' });
 });
 
 test('it derives running for an item with a live lease, ahead of a hold', () => {

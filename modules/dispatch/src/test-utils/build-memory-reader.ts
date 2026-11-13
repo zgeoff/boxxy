@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
-import { buildItemViews } from '@boxxy/model';
+import { buildItemRevision, buildItemViews } from '@boxxy/model';
 import type {
   AtcSessionId,
   AttemptRow,
@@ -80,6 +80,10 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
         notes: tables.notes
           .filter((note) => note.item === id)
           .toSorted((first, second) => first.seq - second.seq),
+        revisions: tables.outbox
+          .filter((fact) => fact.entity === `boxxy:item:${id}` && fact.type === 'boxxy.item.edited')
+          .toSorted((first, second) => first.seq - second.seq)
+          .map((fact) => buildItemRevision(fact)),
       };
 
       return Promise.resolve(detail);

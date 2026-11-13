@@ -17,6 +17,7 @@ import type {
 import { collectRetries } from './collect-retries.ts';
 import { collectSettled } from './collect-settled.ts';
 import { deriveItemState } from './derive-item-state.ts';
+import { findHeldReason } from './find-held-reason.ts';
 import { liveLevers } from './live-levers.ts';
 import type { ItemSetRows, ItemWithLevers } from './types.ts';
 
@@ -125,6 +126,7 @@ function deriveGroupState(group: ItemGroup, rules: ItemRules, blocking: Blocking
     ...blocking,
     item: group.item,
     position: group.position,
+    heldReason: findHeldReason(group.levers),
     liveLease: group.liveLease,
     phases: rules.phases,
     attempts: group.attempts,

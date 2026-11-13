@@ -5,7 +5,9 @@ export { advance } from './pipeline/advance.ts';
 export { attemptRowSchema } from './rows/attempt-row-schema.ts';
 export { attemptSessionRowSchema } from './rows/attempt-session-row-schema.ts';
 export { buildCloseOutSchema } from './closeouts/build-close-out-schema.ts';
+export { buildItemRevision } from './items/build-item-revision.ts';
 export { buildItemViews } from './items/build-item-views.ts';
+export { heldLeverKind, releaseLeverKind } from './items/constants.ts';
 export { collectRetries } from './items/collect-retries.ts';
 export { collectSettled } from './items/collect-settled.ts';
 export { closeOutAnswerSchema } from './closeouts/close-out-answer-schema.ts';
@@ -29,6 +31,7 @@ export { frictionSchema } from './closeouts/friction-schema.ts';
 export { isFilterMatch } from './planning/is-filter-match.ts';
 export { itemBodyMaxChars } from './rows/item-body-max-chars.ts';
 export { itemListViewSchema, itemViewSchema } from './rows/item-view-schema.ts';
+export { itemRevisionSchema } from './rows/item-revision-schema.ts';
 export { itemRowSchema } from './rows/item-row-schema.ts';
 export { leverRowSchema } from './rows/lever-row-schema.ts';
 export { limitFillSchema } from './planning/limit-fill-schema.ts';
@@ -296,7 +299,7 @@ export type {
 
 export type { CostToLand, StageTime } from './reports/types.ts';
 export type { OutboxStatus } from './reports/outbox-status.ts';
-export type { ItemSetRows, ItemWithLevers } from './items/types.ts';
+export type { ItemRevision, ItemSetRows, ItemWithLevers } from './items/types.ts';
 
 export type {
   Concept,

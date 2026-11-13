@@ -5,6 +5,7 @@ import {
   evidenceRowSchema,
   itemBodyMaxChars,
   itemListViewSchema,
+  itemRevisionSchema,
   itemViewSchema,
   limitFillSchema,
   loadRejectionSchema,
@@ -77,6 +78,7 @@ const itemDetail = z.object({
   relations: z.array(relationRowSchema),
   evidence: z.array(evidenceRowSchema),
   pullRequests: z.array(pullRequestRowSchema),
+  revisions: z.array(itemRevisionSchema),
 });
 
 const outboxLastError = z.object({
@@ -136,6 +138,7 @@ const itemFileInput = z.object({
     .describe('attended: the owner works with the agent in the design session.'),
   blockedBy: z.array(itemId).max(20).default([]),
   labels: z.array(text50).max(20).default([]).describe('Free labels, such as "infra".'),
+  held: z.object({ reason }).optional().describe('Held: no phase runs until item_release.'),
 });
 
 const itemEditInput = z.object({
@@ -167,11 +170,19 @@ const itemWakeOutput = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('not-sleeping') }),
 ]);
 
+const itemReleaseOutput = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('released'), item: id }),
+  z.object({ kind: z.literal('refused'), reason: z.literal('not-held') }),
+]);
+
 const itemNoteInput = z.object({ item: itemId, text: z.string().min(1).max(8000) });
 const itemNoteOutput = z.object({ item: id, seq: count });
 
 const itemListInput = z.object({
-  state: z.enum(['idea', 'ready', 'blocked', 'running', 'waiting', 'done', 'archived']).optional(),
+  state: z
+    .enum(['held', 'idea', 'ready', 'blocked', 'running', 'waiting', 'done', 'archived'])
+    .optional()
+    .describe('Only items in this state. "held" lists the held items only.'),
   repo: text200.optional(),
   phase: id.optional().describe('Only items that stand at this phase.'),
   text: text200.optional().describe('Only items whose title, outcome or notes hold this text.'),
@@ -333,7 +344,8 @@ const reportStageTimesOutput = stageTimeSchema.extend({ item: id, behind });
 
 export const contract = {
   item: {
-    // Writes `boxxy.item.filed`, and one `boxxy.relation.added` per `blockedBy`.
+    // Writes `boxxy.item.filed`, and one `boxxy.relation.added` per `blockedBy`. With `held`, the
+    // same change writes the `item.held` lever and its `boxxy.lever.recorded`.
     file: tool(
       'item_file',
       'Files a new item of work. boxxy runs it through triage, design, build and review. Returns the item ID.',
@@ -391,6 +403,16 @@ export const contract = {
       .errors(notFound)
       .input(itemInput)
       .output(itemWakeOutput),
+
+    // Writes `boxxy.lever.recorded` with an `item.release` lever. A `refused` answer is normal
+    // flow: the item is not held.
+    release: tool(
+      'item_release',
+      'Releases a held item, so boxxy starts its pipeline, from triage, on the next tick.',
+    )
+      .errors(notFound)
+      .input(itemInput)
+      .output(itemReleaseOutput),
 
     // Notes are append-only. Writes `boxxy.item.noted` with the full text.
     note: tool(

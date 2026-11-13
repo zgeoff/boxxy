@@ -97,7 +97,7 @@ const sessionMcp = serveTools(sessionTools, 'boxxy-session');
 //   every route of both listeners: 403 for a request a browser page sent (`Origin`, or a
 //   `Sec-Fetch-Site` other than `none`), and 413 for a body over 256 KiB
 //   .all('/rpc/*',        { parse: 'none' }, ({ request }) => rpc.handle(request, { prefix: '/rpc', context }))
-//   .all('/mcp',          { parse: 'none' }, ({ request }) => ownerMcp.fetch(request))     19 tools
+//   .all('/mcp',          { parse: 'none' }, ({ request }) => ownerMcp.fetch(request))     20 tools
 //   worker listener, `api.workerListen`, the broker's target; 401 on any path with no token:
 //   .all('/rpc/*',        { parse: 'none' }, ({ request }) => rpc.handle(request, { prefix: '/rpc', context }))
 //   .all('/mcp/session',  { parse: 'none' }, ({ request }) => sessionMcp.fetch(request))    3 tools
@@ -208,6 +208,9 @@ export const contract = {
           designMode: z.enum(['agent', 'attended']).optional().describe('attended: the owner works with the agent in the design session.'),
           blockedBy: z.array(itemId).max(20).default([]),
           labels: z.array(text(50)).max(20).default([]).describe('Free labels, such as "infra".'),
+          // With `held`, the same change writes an `item.held` lever with the reason, so no tick
+          // sees the item open. The item stays `held` until `item.release`.
+          held: z.object({ reason }).optional().describe('Held: no phase runs until item_release.'),
         }),
       )
       .output(z.object({ item: id })),
@@ -267,6 +270,18 @@ export const contract = {
         ]),
       ),
 
+    // Writes an `item.release` lever and its `boxxy.lever.recorded`. The item's pipeline starts
+    // on the next tick. An item that is not held gets `refused`, and nothing is written.
+    release: tool('item_release', 'Releases a held item, so boxxy starts its pipeline, from triage, on the next tick.')
+      .errors(notFound)
+      .input(z.object({ item: itemId }))
+      .output(
+        z.discriminatedUnion('kind', [
+          z.object({ kind: z.literal('released'), item: id }),
+          z.object({ kind: z.literal('refused'), reason: z.literal('not-held') }),
+        ]),
+      ),
+
     // ── C5. Reads (item) ──
     // `item.note` appends one note to an item. Notes are append-only; no procedure edits or
     // removes one. Writes `boxxy.item.noted` with the full text. The next attempt of the item
@@ -277,7 +292,8 @@ export const contract = {
       .input(z.object({ item: itemId, text: text(8000) }))
       .output(z.object({ item: id, seq: z.number().int() })),
 
-    // The answer also holds the item's labels and its notes, oldest first.
+    // The answer also holds the item's labels and its notes, oldest first, and its revisions: one
+    // per `boxxy.item.edited` fact in the outbox, with its time, its actor and the fields it set.
     get: tool('item_get', 'Returns one item with its position in the pipeline, its labels, notes, attempts, relations, evidence and pull requests.')
       .errors(notFound)
       .input(z.object({ item: itemId }))
@@ -287,7 +303,7 @@ export const contract = {
     list: tool('item_list', 'Lists items with their derived state and position, newest first.')
       .input(
         z.object({
-          state: z.enum(['idea', 'ready', 'blocked', 'running', 'waiting', 'done', 'archived']).optional(),
+          state: z.enum(['held', 'idea', 'ready', 'blocked', 'running', 'waiting', 'done', 'archived']).optional(),
           repo: text(200).optional(),
           phase: id.optional().describe('Only items that stand at this phase.'),
           // a text query over the title, the outcome and the notes
@@ -578,13 +594,14 @@ const ownerRead = (cli: string): Access => ({ caller: 'owner', actor: 'none', to
 
 export const access = {
   // The owner's agent files and steers work on the owner's behalf, so it gets every command on an
-  // item and every read: 19 tools, the runner pause and resume among them. One read is not among
+  // item and every read: 20 tools, the runner pause and resume among them. One read is not among
   // them, `rules.dryRun` (below), which is CLI only.
-  'item.file': ownerWrite('boxxy item file --repo --title --outcome [--body | --body-file] [--acceptance]… [--kind] [--design-mode] [--blocked-by]… [--label]…'),
+  'item.file': ownerWrite('boxxy item file --repo --title --outcome [--body | --body-file] [--acceptance]… [--kind] [--design-mode] [--blocked-by]… [--label]… [--held <reason>]'),
   'item.edit': ownerWrite('boxxy item edit <item> [--title] [--outcome] [--body | --body-file] [--acceptance]… [--design-mode] [--label]…'),
   'item.close': ownerWrite('boxxy item close <item> --reason [--of]'),
   'item.retry': ownerWrite('boxxy item retry <item> [--phase]'),
   'item.wake': ownerWrite('boxxy item wake <item>'),
+  'item.release': ownerWrite('boxxy item release <item>'),
   'item.note': ownerWrite('boxxy item note <item> --text'),
   'relation.add': ownerWrite('boxxy relation add <source> <type> <target>'),
   'relation.remove': ownerWrite('boxxy relation remove <source> <type> <target>'),
@@ -593,7 +610,7 @@ export const access = {
   'plan.expedite': ownerWrite('boxxy expedite <item>… --reason [--expires]'),
   'plan.unexpedite': ownerWrite('boxxy unexpedite <item>'),
   'item.get': ownerRead('boxxy item show <item>'),
-  'item.list': ownerRead('boxxy item list [--state] [--repo] [--phase] [--text] [--label]'),
+  'item.list': ownerRead('boxxy item list [--state | --held] [--repo] [--phase] [--text] [--label]'),
   'runner.status': ownerRead('boxxy status'),
   'report.cost': ownerRead('boxxy cost <item>'),
   'report.stageTimes': ownerRead('boxxy times <item>'),

@@ -1,10 +1,21 @@
 import { makeAnswerRun } from '../cli/make-answer-run.ts';
-import type { Command } from '../types.ts';
+import { UsageError } from '../cli/usage-error.ts';
+import type { Command, CommandArgs } from '../types.ts';
 import { parseCriterionFlag } from './parse-criterion-flag.ts';
 import { readItemBody } from './read-item-body.ts';
 
 const designModes = ['agent', 'attended'] as const;
-const itemStates = ['idea', 'ready', 'blocked', 'running', 'waiting', 'done', 'archived'] as const;
+
+const itemStates = [
+  'held',
+  'idea',
+  'ready',
+  'blocked',
+  'running',
+  'waiting',
+  'done',
+  'archived',
+] as const;
 
 export const itemCommands: readonly Command[] = [
   {
@@ -22,9 +33,12 @@ export const itemCommands: readonly Command[] = [
       'design-mode': { type: 'string' },
       'blocked-by': { type: 'string', multiple: true },
       label: { type: 'string', multiple: true },
+      held: { type: 'string' },
     },
-    run: makeAnswerRun(async (call) =>
-      call.client.item.file({
+    run: makeAnswerRun(async (call) => {
+      const held = call.args.string('held');
+
+      return call.client.item.file({
         repo: call.args.requireString('repo'),
         title: call.args.requireString('title'),
         outcome: call.args.requireString('outcome'),
@@ -34,8 +48,9 @@ export const itemCommands: readonly Command[] = [
         labels: call.args.strings('label'),
         kind: call.args.string('kind'),
         designMode: call.args.oneOf('design-mode', designModes),
-      }),
-    ),
+        held: held === undefined ? undefined : { reason: held },
+      });
+    }),
   },
   {
     path: ['item', 'edit'],
@@ -101,6 +116,15 @@ export const itemCommands: readonly Command[] = [
     run: makeAnswerRun((call) => call.client.item.wake({ item: call.args.positional(0, 'item') })),
   },
   {
+    path: ['item', 'release'],
+    procedure: 'item.release',
+    summary: 'Releases a held item, so triage starts on the next tick.',
+    options: {},
+    run: makeAnswerRun((call) =>
+      call.client.item.release({ item: call.args.positional(0, 'item') }),
+    ),
+  },
+  {
     path: ['item', 'note'],
     procedure: 'item.note',
     summary: 'Appends a note to an item. The next attempt reads it.',
@@ -126,6 +150,7 @@ export const itemCommands: readonly Command[] = [
     summary: 'Lists items, newest first, with filters.',
     options: {
       state: { type: 'string' },
+      held: { type: 'boolean' },
       repo: { type: 'string' },
       phase: { type: 'string' },
       text: { type: 'string' },
@@ -135,7 +160,7 @@ export const itemCommands: readonly Command[] = [
     },
     run: makeAnswerRun((call) =>
       call.client.item.list({
-        state: call.args.oneOf('state', itemStates),
+        state: pickListState(call.args),
         repo: call.args.string('repo'),
         phase: call.args.string('phase'),
         text: call.args.string('text'),
@@ -146,3 +171,20 @@ export const itemCommands: readonly Command[] = [
     ),
   },
 ];
+
+type ItemListState = (typeof itemStates)[number];
+
+// `--held` is the short form of `--state held`, so it refuses any other state.
+function pickListState(args: CommandArgs): ItemListState | undefined {
+  const state = args.oneOf('state', itemStates);
+
+  if (!args.flag('held')) {
+    return state;
+  }
+
+  if (state !== undefined && state !== 'held') {
+    throw new UsageError('--held lists held items only, so it takes no other --state');
+  }
+
+  return 'held';
+}

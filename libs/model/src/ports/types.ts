@@ -1,6 +1,6 @@
 import type { JsonValue } from '@boxxy/content-hash';
 import type { AnyNewFact, OutboxFact } from '../facts/types.ts';
-import type { ItemWithLevers } from '../items/types.ts';
+import type { ItemRevision, ItemWithLevers } from '../items/types.ts';
 import type { MergeUnit } from '../merge/types.ts';
 import type { HoldReason } from '../pipeline/types.ts';
 import type { Limit, LimitFill, SeatRelease, SeatTake, Snapshot } from '../planning/types.ts';
@@ -135,6 +135,9 @@ export interface ItemDetailRows {
   readonly evidence: readonly EvidenceRow[];
   readonly pullRequests: readonly PullRequestRow[];
   readonly notes: readonly NoteRow[];
+
+  // the item's `boxxy.item.edited` facts from the outbox, oldest first
+  readonly revisions: readonly ItemRevision[];
 }
 
 // The bookkeeping writes run outside `StoreChange`: they write no fact and move no store version.

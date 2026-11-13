@@ -7,8 +7,8 @@ One contract holds every v1 procedure, and the server serves it through four doo
 ```mermaid
 flowchart LR
   cli[the CLI] --> rpc["/rpc"]
-  owner[the owner's agent] --> mcp["/mcp: 19 tools"]
-  remote[the owner's assistant] --> oauth[the public door: OAuth] --> pmcp["/mcp: 19 tools, by scope"]
+  owner[the owner's agent] --> mcp["/mcp: 20 tools"]
+  remote[the owner's assistant] --> oauth[the public door: OAuth] --> pmcp["/mcp: 20 tools, by scope"]
   session[an agent in a session] --> broker[the impd broker]
   broker --> rpc
   broker --> smcp["/mcp/session: 3 tools"]
@@ -41,14 +41,15 @@ Section C of [`01-api.ts`](./sketches/v1/edge/01-api.ts) holds the input, the ou
 
 | Procedure | Caller | MCP tool | What it does |
 | --- | --- | --- | --- |
-| `item.file` | owner | owner | files an item; refuses a repo that the server's `spawn.repos` does not name |
+| `item.file` | owner | owner | files an item; refuses a repo that the server's `spawn.repos` does not name; with `held`, files it [held](./planning.md#held-items) |
 | `item.edit` | owner | owner | replaces the given fields of an item |
 | `item.close` | owner | owner | closes an item and ends its live attempt; with `of`, as a duplicate |
 | `item.retry` | owner | owner | lifts a hold and resets the attempt counts; with `phase`, sets the position |
 | `item.wake` | owner | owner | asks boxxy to wake the item's sleeping session |
+| `item.release` | owner | owner | releases a held item; refuses an item that is not held |
 | `item.note` | owner | owner | appends a note |
-| `item.get` | owner | owner | returns one item with its position, notes, attempts and pull requests |
-| `item.list` | owner | owner | lists items, with filters for state, repo, phase, text and label |
+| `item.get` | owner | owner | returns one item with its position, notes, attempts, pull requests and revisions |
+| `item.list` | owner | owner | lists items, with filters for state (`held` among them), repo, phase, text and label |
 | `relation.add` | owner | owner | adds a relation between two items |
 | `relation.remove` | owner | owner | removes a relation |
 | `plan.defer` | owner | owner | holds an item back from dispatch |
@@ -74,7 +75,7 @@ Section C of [`01-api.ts`](./sketches/v1/edge/01-api.ts) holds the input, the ou
 | `auth.listGrants` | owner | none | lists the grants |
 | `auth.revokeGrant` | owner | none | revokes one grant |
 
-- **19 owner tools.** The owner's agent files and steers work for the owner, so it gets every command on an item, every read, and the runner pause and resume.
+- **20 owner tools.** The owner's agent files and steers work for the owner, so it gets every command on an item, every read, and the runner pause and resume. Only the owner's path files a held item, releases one or lists the held items, and a test checks that their access rows say so.
 - **3 session tools, on their own endpoint.** A session's tool list holds no command on another item. A session reports found work in its close-out, where settle dedupes it.
 - **10 procedures with no tool.** A hook program calls two of them. The outbox retry acts on the whole outbox and writes no fact that shows who did it, so it stays with a person at the CLI. The rules dry run takes a whole file. Six manage the public door's sign-in, as [the public door](#the-public-door) says.
 - **A test keeps the access table in step with the contract.** It fails when a procedure has no entry, when an entry names no procedure, or when a tool has no name.
@@ -95,7 +96,7 @@ A worker session runs in an imp, which reaches the public internet only. The ses
 
 ## The public door
 
-[0018](../../decisions/0018-public-owner-mcp.md) records why the owner's MCP endpoint has a public door. The door runs the OAuth server of [`@boxxy/auth-oauth`](../../../adapters/auth-oauth/README.md), a copy of the one in atc, and serves the owner's 19 tools. It never serves `/rpc` or `/healthz`, and the six `auth` procedures are not tools, so no token reaches them.
+[0018](../../decisions/0018-public-owner-mcp.md) records why the owner's MCP endpoint has a public door. The door runs the OAuth server of [`@boxxy/auth-oauth`](../../../adapters/auth-oauth/README.md), a copy of the one in atc, and serves the owner's 20 tools. It never serves `/rpc` or `/healthz`, and the six `auth` procedures are not tools, so no token reaches them.
 
 The configuration's `publicDoor` section holds the `port`, the `publicURL`, `trustForwardedFrom`, and optionally the `hostname` (loopback by default) and the `authFile`. A door that listens beyond loopback needs an `https` public URL. The `publicURL` is the OAuth issuer, and `<publicURL>/mcp` is the one resource that every token is bound to.
 

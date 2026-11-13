@@ -1,4 +1,5 @@
 import type { Instant, LeverKind, LeverRow } from '../types.ts';
+import { heldLeverKind, releaseLeverKind } from './constants.ts';
 
 export function liveLevers(levers: readonly LeverRow[], now: Instant): LeverRow[] {
   return levers.filter((lever) => !isExpired(lever, now) && !isUndone(lever, levers));
@@ -11,6 +12,7 @@ function isExpired(lever: LeverRow, now: Instant): boolean {
 const undoKinds: ReadonlyMap<LeverKind, LeverKind> = new Map([
   ['plan.defer', 'plan.undefer'],
   ['plan.expedite', 'plan.unexpedite'],
+  [heldLeverKind, releaseLeverKind],
 ]);
 
 function isUndone(lever: LeverRow, levers: readonly LeverRow[]): boolean {

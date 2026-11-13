@@ -56,10 +56,10 @@ function setupTest() {
   };
 }
 
-test('it holds exactly 32 procedures', () => {
+test('it holds exactly 33 procedures', () => {
   const ctx = setupTest();
 
-  expect(ctx.procedures).toHaveLength(32);
+  expect(ctx.procedures).toHaveLength(33);
 });
 
 test('it gives every procedure exactly one access row, and every access row a procedure', () => {
@@ -92,13 +92,24 @@ test('it lists a procedure as a tool only on the endpoint of its caller', () => 
   expect(invalid).toStrictEqual([]);
 });
 
-test('it lists 19 owner tools, 3 session tools and 10 procedures with no tool', () => {
+test('it lists 20 owner tools, 3 session tools and 10 procedures with no tool', () => {
   const ctx = setupTest();
   const rows = [...ctx.rows.values()];
 
   expect(
     ['owner', 'session', 'none'].map((tool) => rows.filter((row) => row.tool === tool).length),
-  ).toStrictEqual([19, 3, 10]);
+  ).toStrictEqual([20, 3, 10]);
+});
+
+test('it gives the procedures that file held, release or list held items to the owner alone', () => {
+  const ctx = setupTest();
+  const names = ['item.file', 'item.release', 'item.list'];
+
+  expect(names.map((name) => ctx.rows.get(name)?.caller)).toStrictEqual([
+    'owner',
+    'owner',
+    'owner',
+  ]);
 });
 
 test('it gives every owner tool a scope of read or write', () => {
@@ -119,6 +130,7 @@ test('it gives every procedure that changes state the write scope', () => {
     'item.close',
     'item.retry',
     'item.wake',
+    'item.release',
     'item.note',
     'relation.add',
     'relation.remove',

@@ -62,6 +62,7 @@ export function parseCommandArgs(command: Command, line: readonly string[]): Com
 
       return Number(value);
     },
+    flag: (name) => values[name] === true,
     oneOf: readOneOf,
     requireOneOf: (name, choices) => readOneOf(name, choices) ?? failMissingFlag(name),
   };

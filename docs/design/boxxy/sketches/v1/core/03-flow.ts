@@ -858,12 +858,15 @@ export function findPosition(input: { pipeline: Pipeline | null; attempts: reado
 //   question, waits `sleep.afterIdleMinutes`, sleeps, and frees both seats for the next one.
 
 // ── G. Derived item state (libs/model/src/items/derive-item-state.ts) ──────────────────────────
-// The function takes the item, its position, its live lease, the loaded phase kinds (for
-// `needsAcceptance`), its attempts and pull requests, and the live relations with the blockers' states.
+// The function takes the item, its position, its held reason, its live lease, the loaded phase
+// kinds (for `needsAcceptance`), its attempts and pull requests, and the live relations with the
+// blockers' states. The held reason is the reason of the item's latest `item.held` lever, or null
+// when an `item.release` lever is later or the item has neither.
 // A pull request counts when it links to a succeeded attempt of the phase `build`.
 // The table reads `position` (section E). First match wins:
 //
 //   archived   `closed_at` is set
+//   held       the item has a held reason, with that reason; no waiver lifts it
 //   running    the item holds a live item-phase lease (a sleeping or closing attempt included)
 //   waiting    position is `hold`, with its reason
 //   done       position is `end`, and a pull request linked to a succeeded build attempt is merged

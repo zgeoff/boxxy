@@ -116,7 +116,8 @@ test('#item list exits 2 for a state that does not exist', async () => {
 
   expect({ exitCode: result.exitCode, stderr: result.stderr }).toStrictEqual({
     exitCode: 2,
-    stderr: 'error: --state takes one of: idea, ready, blocked, running, waiting, done, archived\n',
+    stderr:
+      'error: --state takes one of: held, idea, ready, blocked, running, waiting, done, archived\n',
   });
 });
 

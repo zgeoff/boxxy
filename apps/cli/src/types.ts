@@ -39,6 +39,9 @@ export interface CommandArgs {
   requireString: (name: string) => string;
   strings: (name: string) => string[];
   integer: (name: string) => number | undefined;
+
+  // true when the command line gives the flag of a `boolean` option
+  flag: (name: string) => boolean;
   oneOf: <Choice extends string>(name: string, choices: readonly Choice[]) => Choice | undefined;
   requireOneOf: <Choice extends string>(name: string, choices: readonly Choice[]) => Choice;
 }

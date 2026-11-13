@@ -15,6 +15,9 @@ interface DeriveItemStateInput {
   readonly item: ItemRow;
   readonly position: Position;
 
+  // the reason of the item's held lever, or null when the item is not held
+  readonly heldReason: string | null;
+
   // the item's live item-phase lease, a sleeping or closing attempt's included
   readonly liveLease: LeaseRow | null;
 
@@ -35,6 +38,10 @@ export function deriveItemState(input: DeriveItemStateInput): DerivedState {
 
   if (item.closedAt !== null) {
     return { state: 'archived' };
+  }
+
+  if (input.heldReason !== null) {
+    return { state: 'held', reason: input.heldReason };
   }
 
   if (input.liveLease !== null) {

@@ -1,5 +1,7 @@
 import type {
+  ActorRef,
   AttemptRow,
+  Instant,
   ItemRow,
   ItemView,
   LeaseRow,
@@ -18,6 +20,14 @@ export interface ItemSetRows {
   readonly attempts: readonly AttemptRow[];
   readonly liveLeases: readonly LeaseRow[];
   readonly pullRequests: readonly PullRequestRow[];
+}
+
+// One `boxxy.item.edited` fact of an item: when, by whom, and the names of the fields it set.
+export interface ItemRevision {
+  readonly seq: number;
+  readonly at: Instant;
+  readonly actor: ActorRef;
+  readonly changed: readonly string[];
 }
 
 export interface ItemWithLevers extends ItemView {

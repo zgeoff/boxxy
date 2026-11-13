@@ -8,11 +8,13 @@ import type {
   ItemRow,
   ItemView,
   ItemWithLevers,
+  LeverKind,
+  LeverRow,
   NoteRow,
   RelationRow,
   StoreReader,
 } from '@boxxy/model';
-import { brandSchemas } from '@boxxy/model';
+import { brandSchemas, heldLeverKind, releaseLeverKind } from '@boxxy/model';
 import { ORPCError } from '@orpc/server';
 import type { ServerDeps } from '../types.ts';
 import { api } from './api.ts';
@@ -75,18 +77,25 @@ export const itemHandlers = {
       const relations = blockers.items.map((source) => buildBlocksRow(source, row.id, now));
       const filedFact = buildOwnerFact(deps, row.id, 'boxxy.item.filed', filed);
 
+      const held =
+        input.held === undefined
+          ? []
+          : [buildOwnerLever(row.id, heldLeverKind, input.held.reason, now)];
+
       refuseLargeFact(filedFact, options.errors.FACT_TOO_LARGE);
 
       await tx.applyChange({
         at: now,
         writes: [
           { op: 'insert', table: 'items', row },
+          ...held.map((lever) => ({ op: 'insert', table: 'levers', row: lever }) as const),
           ...relations.map(
             (relation) => ({ op: 'insert', table: 'relations', row: relation }) as const,
           ),
         ],
         facts: [
           filedFact,
+          ...held.map((lever) => buildOwnerFact(deps, row.id, 'boxxy.lever.recorded', lever)),
           ...relations.map((relation) =>
             buildOwnerFact(deps, relation.source, 'boxxy.relation.added', {
               source: relation.source,
@@ -272,6 +281,28 @@ export const itemHandlers = {
       ? ({ kind: 'requested', attempt: asleep.id, atcSession: asleep.atcSession } as const)
       : ({ kind: 'not-sleeping' } as const);
   }),
+  release: api.item.release.handler((options) => {
+    const deps = options.context.deps;
+
+    return deps.store.exclusive(async (tx) => {
+      const item = await readItemOrThrow(tx, deps, options.input.item, options.errors.NOT_FOUND);
+
+      if (item.derived.state !== 'held') {
+        return { kind: 'refused', reason: 'not-held' } as const;
+      }
+
+      const now = deps.clock.now();
+      const lever = buildOwnerLever(item.id, releaseLeverKind, null, now);
+
+      await tx.applyChange({
+        at: now,
+        writes: [{ op: 'insert', table: 'levers', row: lever }],
+        facts: [buildOwnerFact(deps, item.id, 'boxxy.lever.recorded', lever)],
+      });
+
+      return { kind: 'released', item: item.id } as const;
+    });
+  }),
   note: api.item.note.handler((options) => {
     const input = options.input;
     const deps = options.context.deps;
@@ -324,6 +355,12 @@ export const itemHandlers = {
       relations: [...detail.relations],
       evidence: [...detail.evidence],
       pullRequests: [...detail.pullRequests],
+      revisions: detail.revisions.map((revision) => ({
+        seq: revision.seq,
+        at: revision.at,
+        actor: revision.actor,
+        changed: [...revision.changed],
+      })),
     };
   }),
   list: api.item.list.handler(async (options) => {
@@ -398,6 +435,26 @@ function buildRelationRow(
     addedBy: owner,
     addedAt: at,
     removedAt: null,
+  };
+}
+
+// The store numbers the lever on insert.
+function buildOwnerLever(
+  item: ItemId,
+  kind: LeverKind,
+  reason: string | null,
+  at: ItemRow['filedAt'],
+): LeverRow {
+  return {
+    seq: 0,
+    kind,
+    item,
+    until: null,
+    expiresAt: null,
+    reason,
+    phase: null,
+    actor: owner,
+    at,
   };
 }
 

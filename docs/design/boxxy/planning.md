@@ -15,7 +15,7 @@ the pool filter fields it defines in `filterFields`, and the plug-ins that act o
 | Plug-in kind | What it does | Example |
 | --- | --- | --- |
 | signal | gives a sort key that a pool can name | rank, age |
-| gate | holds an item off the frontier, with a reason | defer, blocked |
+| gate | holds an item off the frontier, with a reason | defer, blocked, held |
 | pool gate | holds a whole pool, with a reason | pacing ([capacity](./capacity.md#the-pacing-gate)) |
 | waiver | lifts one gate's hold for one item | expedite lifts defer |
 | admission | widens which pools may take an item | `--any-pool` |
@@ -114,7 +114,7 @@ time ([rules](./rules.md#levers-as-facts)).
   - It takes the next free slot in any pool whose filter matches, or with `--any-pool` the next free
     build slot anywhere. It never stops running work.
   - It lifts defer, quiet hours and budget holds on the pulled work and its blockers. A gate declared
-    unliftable, such as `blocked` or `attended`, still holds.
+    unliftable, such as `blocked`, `held` or `attended`, still holds.
   - It carries a reason and an optional expiry. Only a caller on the owner's path can expedite
     ([API and auth](./v1-api-and-auth.md#the-paths)). An owner pull
     ranks ahead of a judgement phase's pull.
@@ -125,6 +125,16 @@ time ([rules](./rules.md#levers-as-facts)).
 - **Deadline** is a rare optional field. Pools read it as urgency once it gets close.
 
 boxxy refuses cycles, estimates and a default priority.
+
+### Held items
+
+The owner files a held item to keep a draft that boxxy never starts. The owner edits it and adds notes, then releases it into its pipeline.
+
+- **Filing.** `item.file` with `held: { reason }` writes the item and an `item.held` lever in one store change, so no tick sees the item open. A held item needs the same fields as any other item.
+- **The gate.** An item whose latest `item.held` or `item.release` lever is `item.held` has the derived state `held`, with the lever's reason. The state comes right after `archived` in the derived-state table, ahead of every other state, so a held item is never a candidate of the frame and runs no phase, triage included. Like `blocked`, the gate is part of the derived state and no concept of the rules registers it, so no rules file can drop it, and no waiver, expedite, pull or goal lifts it. `item.retry` leaves a held item held.
+- **Release.** `item.release` writes an `item.release` lever, and triage starts on the next tick. It refuses an item that is not held with `not-held`, a closed item included. Both levers write `boxxy.lever.recorded`.
+- **Reading.** `item.list` with the state `held` lists the held items only. `item.get` returns the item's revisions: one for each `boxxy.item.edited` fact in the outbox, with its time, its actor and the names of the fields it set. The outbox keeps every sent row ([facts and pepys](./v1-facts-and-pepys.md#the-outbox)), so the revisions need no table of their own.
+- **Access.** Only the owner's path files, releases or lists held items ([API and auth](./v1-api-and-auth.md#the-procedures)).
 
 ## Projects, areas and goals
 

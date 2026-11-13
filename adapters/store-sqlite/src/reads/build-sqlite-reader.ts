@@ -1,7 +1,13 @@
 import { formatCanonicalJson } from '@boxxy/content-hash';
-import { brandSchemas, limitSeatRowSchema, outboxFactSchema, toJSONValue } from '@boxxy/model';
-import type { ItemView, ItemWithLevers, StoreReader } from '@boxxy/model';
-import type { Kysely } from 'kysely';
+import {
+  brandSchemas,
+  buildItemRevision,
+  limitSeatRowSchema,
+  outboxFactSchema,
+  toJSONValue,
+} from '@boxxy/model';
+import type { ItemView, ItemWithLevers, OutboxFact, StoreReader } from '@boxxy/model';
+import type { Kysely, Selectable } from 'kysely';
 import { parseJSONText } from '../codecs/parse-json-text.ts';
 import { parseStoreRow } from '../codecs/parse-store-row.ts';
 import type { StoreDatabase } from '../types.ts';
@@ -106,6 +112,14 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         .orderBy('seq')
         .execute();
 
+      const edits = await db
+        .selectFrom('outbox')
+        .selectAll()
+        .where('entity', '=', `boxxy:item:${id}`)
+        .where('type', '=', 'boxxy.item.edited')
+        .orderBy('seq')
+        .execute();
+
       return {
         item,
         attempts: attempts.map((row) => parseStoreRow('attempts', row)),
@@ -113,6 +127,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         evidence: evidence.map((row) => parseStoreRow('evidence', row)),
         pullRequests: pullRequests.map((row) => parseStoreRow('pull_requests', row)),
         notes: notes.map((row) => parseStoreRow('notes', row)),
+        revisions: edits.map((row) => buildItemRevision(parseOutboxRow(row))),
       };
     },
     listItems: async (filter, now, rules) => {
@@ -430,20 +445,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         .limit(limit)
         .execute();
 
-      return rows.map((row) =>
-        outboxFactSchema.parse({
-          seq: row.seq,
-          factId: row.fact_id,
-          type: row.type,
-          entity: row.entity,
-          actor: row.actor,
-          at: row.at,
-          payload: parseJSONText(row.payload),
-          sentAt: row.sent_at,
-          parkedAt: row.parked_at,
-          parkedReason: row.parked_reason,
-        }),
-      );
+      return rows.map((row) => parseOutboxRow(row));
     },
     readOutboxCounts: async () => {
       const waiting = await db
@@ -495,4 +497,19 @@ function toItemView(item: ItemWithLevers): ItemView {
   const { levers: _levers, ...view } = item;
 
   return view;
+}
+
+function parseOutboxRow(row: Selectable<StoreDatabase['outbox']>): OutboxFact {
+  return outboxFactSchema.parse({
+    seq: row.seq,
+    factId: row.fact_id,
+    type: row.type,
+    entity: row.entity,
+    actor: row.actor,
+    at: row.at,
+    payload: parseJSONText(row.payload),
+    sentAt: row.sent_at,
+    parkedAt: row.parked_at,
+    parkedReason: row.parked_reason,
+  });
 }

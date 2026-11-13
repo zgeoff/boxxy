@@ -1,6 +1,6 @@
 # Next work list
 
-Build three designs in slices 1 to 14 below, in order: [review, verify and merge](./review-and-merge.md), [wringer journeys](./wringer-journeys.md) and [owner notices](./owner-notices.md). Slice 15 renders the [launch prompt](./v1.md#the-launch-prompt) with Liquid. Each slice gives its outcome, the doc and sketch files it follows, what it needs first, and the check that proves it. Slices 1 to 12 need nothing outside this repo except wringer 0.2.0. Slices 13 and 14 change the cloud repo's deployment.
+Build three designs in slices 1 to 14 below, in order: [review, verify and merge](./review-and-merge.md), [wringer journeys](./wringer-journeys.md) and [owner notices](./owner-notices.md). Slice 15 renders the [launch prompt](./v1.md#the-launch-prompt) with Liquid. Slice 16 adds [held items](./planning.md#held-items). Each slice gives its outcome, the doc and sketch files it follows, what it needs first, and the check that proves it. Slices 1 to 12 need nothing outside this repo except wringer 0.2.0. Slices 13 and 14 change the cloud repo's deployment.
 
 Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and puts its code in the folders that the [folder layout](./layout-folders.md) sets. The sketches are in [`sketches/next/`](./sketches/next/): `review-and-merge/` and `wringer-journeys/`. The owner-notices sketches sit inside its doc.
 
@@ -125,3 +125,13 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 - **Needs:** nothing.
 - **Check:** a loader test per rejection (an unknown placeholder, a syntax error, an `include`), a render test of the example build prompt with no design and no findings, and a test that a value holding `{{ }}` or `{% %}` renders as written.
 - **Built:** `@boxxy/prompt-template` in `libs/prompt-template` is the only package that imports `liquidjs`. Its `findPromptTemplateFault` runs at load in `@boxxy/rules`, which refuses the rules as `bad-prompt`, and its `renderPromptTemplate` runs at claim in `@boxxy/dispatch`. The engine has no file system and no output escape, reads the empty string as false, and fails on an unknown variable or filter. It registers only the tags and filters listed in the lib's `constants.ts`: no tag that binds a name, such as `assign`, and no filter that reads the clock, such as `date`, or can throw at render. The load check also refuses a name read from a value, a `for` loop over anything but a bare placeholder, a range and a field read on any value, so a template it accepts renders on any placeholder values. The example prompts in `modules/rules/example/prompts/` spell out the title, outcome, body and each section under its heading.
+
+## Held items
+
+### 16. Held items
+
+- **Outcome:** the owner files an item held, edits and notes it while boxxy starts no phase on it, and releases it into its pipeline. `held` is a derived state with its reason, that no waiver lifts. `item_list` lists the held items only, `item_get` lists an item's revisions, and only the owner's path files, releases or lists held items.
+- **Follows:** [held items](./planning.md#held-items).
+- **Needs:** nothing.
+- **Check:** a system test that a tick and an expedite leave a held item unstarted, and that the tick after a release starts its triage; a test that a release of an item that is not held is refused; the access table test.
+- **Built:** `item.file` takes `held: { reason }` and writes the item and an `item.held` lever in one change, and `item.release` writes an `item.release` lever or answers `refused` with `not-held`. `findHeldReason` in `@boxxy/model` reads the latest of the two levers, and `deriveItemState` gives `held` right after `archived`, so the frame never takes a held item. The levers table holds both levers, so the store needs no migration. Both claim stores return the item's `boxxy.item.edited` outbox rows as `revisions` in `readItemDetail`. The CLI adds `item file --held`, `item list --held` and `item release`. The `cli-held-items` system test, the `find-held-reason`, `derive-item-state` and `item-handlers` tests, and the held-item cases of the claim store contract cover it.

@@ -22,6 +22,7 @@ const derivedSchema = z.discriminatedUnion('state', [
   z.object({ state: z.literal('done') }),
   z.object({ state: z.literal('archived') }),
   z.object({ state: z.literal('waiting'), reason: holdReasonOrWaitingSchema }),
+  z.object({ state: z.literal('held'), reason: z.string() }),
 ]);
 
 // typed as the core type, so a handler returns the stored view with its read-only lists

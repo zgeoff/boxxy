@@ -431,6 +431,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
           evidence: [expect.objectContaining({ attempt: attempt.id, kind: 'pull_request' })],
           pullRequests: [expect.objectContaining({ attempt: attempt.id, state: 'open' })],
           notes: [note],
+          revisions: [],
         },
       };
     },

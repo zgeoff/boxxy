@@ -6,21 +6,21 @@ import {
   listSessionTools,
 } from './list-owner-procedures.ts';
 
-test('#listOwnerProcedures lists the 27 owner procedures', () => {
+test('#listOwnerProcedures lists the 28 owner procedures', () => {
   const rows = listOwnerProcedures();
 
   expect([rows.length, rows]).toStrictEqual([
-    27,
-    expect.arrayContaining([['item.close'], ['runner.pause'], ['rules.dryRun']]),
+    28,
+    expect.arrayContaining([['item.close'], ['item.release'], ['runner.pause'], ['rules.dryRun']]),
   ]);
 });
 
-test('#listOwnerTools lists the 19 owner tools in snake case', () => {
+test('#listOwnerTools lists the 20 owner tools in snake case', () => {
   const rows = listOwnerTools();
 
   expect([rows.length, rows]).toStrictEqual([
-    19,
-    expect.arrayContaining([['item_file'], ['report_stage_times']]),
+    20,
+    expect.arrayContaining([['item_file'], ['item_release'], ['report_stage_times']]),
   ]);
 });
 

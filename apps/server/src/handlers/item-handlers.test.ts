@@ -112,6 +112,90 @@ test('#file stores the body and writes it in the filed fact', async () => {
   ]);
 });
 
+test('#file with held stores the item held, with the filed fact and the held lever fact', async () => {
+  const ctx = await setupTest();
+
+  const answer = await ctx.readAnswer('item.file', {
+    repo: 'example/app',
+    title: 'Draft a dark theme',
+    outcome: 'The app has a dark theme.',
+    held: { reason: 'still a draft' },
+  });
+
+  const item = brandSchemas.itemId.parse(answer.item);
+
+  const stored = await ctx.readItem(item);
+  const filed = await ctx.dispatch.listFacts('boxxy.item.filed');
+  const levers = await ctx.dispatch.listFacts('boxxy.lever.recorded');
+
+  expect(stored?.derived).toStrictEqual({ state: 'held', reason: 'still a draft' });
+
+  expect([filed.map((fact) => fact.entity), levers.map((fact) => fact.payload)]).toStrictEqual([
+    [`boxxy:item:${item}`],
+    [expect.objectContaining({ item, kind: 'item.held', reason: 'still a draft' })],
+  ]);
+});
+
+test('#file with held refuses an item with no outcome, as it refuses any other', async () => {
+  const ctx = await setupTest();
+
+  const answer = await ctx.readAnswer('item.file', {
+    repo: 'example/app',
+    title: 'Draft a dark theme',
+    held: { reason: 'still a draft' },
+  });
+
+  const filed = await ctx.dispatch.listFacts('boxxy.item.filed');
+
+  expect([answer.status, filed]).toStrictEqual([400, []]);
+});
+
+test('#release writes a release lever fact, and the item is ready again', async () => {
+  const ctx = await setupTest();
+
+  const filed = await ctx.readAnswer('item.file', {
+    repo: 'example/app',
+    title: 'Draft a dark theme',
+    outcome: 'The app has a dark theme.',
+    held: { reason: 'still a draft' },
+  });
+
+  const item = brandSchemas.itemId.parse(filed.item);
+
+  const answer = await ctx.callOwner('item.release', { item });
+  const stored = await ctx.readItem(item);
+  const levers = await ctx.dispatch.listFacts('boxxy.lever.recorded');
+
+  expect(answer.body).toStrictEqual({ json: { kind: 'released', item } });
+
+  expect([stored?.derived, levers.map((fact) => fact.payload)]).toStrictEqual([
+    { state: 'ready' },
+    [
+      expect.objectContaining({ kind: 'item.held' }),
+      expect.objectContaining({ kind: 'item.release', item }),
+    ],
+  ]);
+});
+
+test('#release refuses an item that is not held and writes nothing', async () => {
+  const ctx = await setupTest();
+  const item = await ctx.dispatch.seedItem({});
+  const answer = await ctx.callOwner('item.release', { item });
+  const levers = await ctx.dispatch.listFacts('boxxy.lever.recorded');
+
+  expect([answer.body, levers]).toStrictEqual([
+    { json: { kind: 'refused', reason: 'not-held' } },
+    [],
+  ]);
+});
+
+test('#release answers not found for an item that does not exist', async () => {
+  const ctx = await setupTest();
+  const answer = await ctx.readAnswer('item.release', { item: 'i-404' });
+
+  expect(answer.code).toBe('NOT_FOUND');
+});
+
 test('#file stores an empty body when it gets none', async () => {
   const ctx = await setupTest();
 
