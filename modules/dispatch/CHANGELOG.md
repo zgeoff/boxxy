@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.2.6](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.2.5...@boxxy/dispatch@0.2.6) (2026-11-13)
+
+
+### Features
+
+* **server:** let the notice session register itself ([97140bc](https://github.com/zgeoff/boxxy/commit/97140bc254b2c34adf5ebda91799991aa4cffcd1))
+
+
+### Bug Fixes
+
+* **dispatch:** forget a failed review session on the next tick ([f06fc44](https://github.com/zgeoff/boxxy/commit/f06fc44cd0b7e7c2d7efaea61c202e62aa627cfa))
+* **dispatch:** forget the late session of a stray that has none ([bf7596d](https://github.com/zgeoff/boxxy/commit/bf7596de44b1d7e8a643d012434d0dd6e1cb4fff))
+* **dispatch:** keep cleanup going when a stray lookup throws ([011fac2](https://github.com/zgeoff/boxxy/commit/011fac2bf6f9acac255871973bb978739b7a0f56))
+* **dispatch:** stop and forget a stray whose stop is unconfirmed ([e5bb1e8](https://github.com/zgeoff/boxxy/commit/e5bb1e813017d62459b83fa6c1dbaf0a4bc4eeae))
+* **rules:** forbid attribution trailers in the example build prompt ([5f1c82b](https://github.com/zgeoff/boxxy/commit/5f1c82b15ae60ab9eb1835410811b98c1352e335))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/closeout bumped to 0.2.6
+    * @boxxy/content-hash bumped to 0.2.6
+    * @boxxy/model bumped to 0.2.6
+    * @boxxy/planning bumped to 0.2.6
+    * @boxxy/prompt-template bumped to 0.2.6
+  * devDependencies
+    * @boxxy/rules bumped to 0.2.6
+  * peerDependencies
+    * @boxxy/rules bumped to 0.2.6
+
 ## [0.2.5](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.2.4...@boxxy/dispatch@0.2.5) (2026-11-13)
 
 ### Features

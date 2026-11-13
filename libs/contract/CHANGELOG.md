@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.6](https://github.com/zgeoff/boxxy/compare/@boxxy/contract@0.2.5...@boxxy/contract@0.2.6) (2026-11-13)
+
+
+### Features
+
+* **server:** let the notice session register itself ([97140bc](https://github.com/zgeoff/boxxy/commit/97140bc254b2c34adf5ebda91799991aa4cffcd1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/model bumped to 0.2.6
+
 ## [0.2.5](https://github.com/zgeoff/boxxy/compare/@boxxy/contract@0.2.4...@boxxy/contract@0.2.5) (2026-11-13)
 
 ### Features

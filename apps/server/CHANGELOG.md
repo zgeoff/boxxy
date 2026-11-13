@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.2.6](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.5...@boxxy/server@0.2.6) (2026-11-13)
+
+
+### Features
+
+* **server:** let the notice session register itself ([97140bc](https://github.com/zgeoff/boxxy/commit/97140bc254b2c34adf5ebda91799991aa4cffcd1))
+
+
+### Bug Fixes
+
+* **dispatch:** keep cleanup going when a stray lookup throws ([011fac2](https://github.com/zgeoff/boxxy/commit/011fac2bf6f9acac255871973bb978739b7a0f56))
+* **server:** log a call that fails with an internal error ([bf1f61b](https://github.com/zgeoff/boxxy/commit/bf1f61b1f5628bb8f64c266a87c73939a05f938f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/auth-oauth bumped to 0.2.6
+    * @boxxy/caller-proof-imp bumped to 0.2.6
+    * @boxxy/closeout bumped to 0.2.6
+    * @boxxy/content-hash bumped to 0.2.6
+    * @boxxy/contract bumped to 0.2.6
+    * @boxxy/dispatch bumped to 0.2.6
+    * @boxxy/forge-github bumped to 0.2.6
+    * @boxxy/model bumped to 0.2.6
+    * @boxxy/notifier-atc bumped to 0.2.6
+    * @boxxy/pepys bumped to 0.2.6
+    * @boxxy/planning bumped to 0.2.6
+    * @boxxy/review-noslop bumped to 0.2.6
+    * @boxxy/rules bumped to 0.2.6
+    * @boxxy/store-sqlite bumped to 0.2.6
+    * @boxxy/verifier-wringer bumped to 0.2.6
+    * @boxxy/worker-atc bumped to 0.2.6
+
 ## [0.2.5](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.4...@boxxy/server@0.2.5) (2026-11-13)
 
 ### Features
