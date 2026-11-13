@@ -2,17 +2,17 @@ import { expect, onTestFinished, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { createSkillsRepo } from '@boxxy/cli/test-utils/create-skills-repo';
 import { brandSchemas, toJSONValue } from '@boxxy/model';
 import type { AttemptRow, ItemId } from '@boxxy/model';
 import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
-import { runOutboxSender } from '@boxxy/server/test-utils/run-outbox-sender';
-import { startPepysUnderTest } from '@boxxy/server/test-utils/start-pepys-under-test';
 import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
 import invariant from 'tiny-invariant';
 import { z } from 'zod';
-import { createSkillsRepo } from '../src/test-utils/create-skills-repo.ts';
 import { createTestCLI } from '../src/test-utils/create-test-cli.ts';
 import { readJSONOutput } from '../src/test-utils/read-json-output.ts';
+import { runOutboxSender } from '../src/test-utils/run-outbox-sender.ts';
+import { startPepysUnderTest } from '../src/test-utils/start-pepys-under-test.ts';
 
 interface SessionScript {
   readonly item: ItemId;

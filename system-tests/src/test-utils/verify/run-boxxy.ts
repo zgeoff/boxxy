@@ -11,7 +11,7 @@ export interface BoxxyRun<Output> {
   readonly schema: z.ZodType<Output>;
 }
 
-const cliPath = join(import.meta.dir, '..', '..', 'main.ts');
+const cliPath = join(import.meta.dir, '..', '..', '..', '..', 'apps', 'cli', 'src', 'main.ts');
 
 // Runs the real CLI as a process, with BOXXY_URL set to the harness's `boxxy` listener, and
 // replaces the word `@current` with the current item. It sets BOXXY_SKILLS_URL on every call,

@@ -4,12 +4,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createFakeClock } from '@boxxy/dispatch/test-utils/create-fake-clock';
 import { brandSchemas } from '@boxxy/model';
+import { startServer } from '@boxxy/server';
+import { waitFor } from '@boxxy/server/test-utils/wait-for';
 import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
 import { createFakeAtc } from '@boxxy/worker-atc/test-utils/create-fake-atc';
 import { createFakeAtcServer } from '@boxxy/worker-atc/test-utils/create-fake-atc-server';
 import invariant from 'tiny-invariant';
-import { startServer } from '../src/index.ts';
-import { waitFor } from '../src/test-utils/wait-for.ts';
 
 async function setupTest() {
   const folder = await mkdtemp(path.join(tmpdir(), 'boxxy-test-notice-'));

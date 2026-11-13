@@ -2,9 +2,7 @@
 // a feature when the feature's journey runs code in it. The harness runs the fakes in a package's
 // src/test-utils/, so a package's whole folder maps, its test-utils included.
 
-// Every journey files an item through the CLI and the server, and reads it back. The two apps'
-// folders hold the verify CLI and its harness, the broker routing and pepys under test, so a
-// change there changes what a journey proves.
+// Every journey files an item through the CLI and the server, and reads it back.
 const everyJourney = [
   'apps/cli/**',
   'apps/server/**',
@@ -18,6 +16,10 @@ const everyJourney = [
   // the phase kinds, which the server loads with the rules, and the merge rule of one of them
   'modules/closeout/**',
   'modules/train/**',
+
+  // the verify CLI and its harness, the broker routing and pepys under test: a change here changes
+  // what a journey proves
+  'system-tests/src/test-utils/**',
 ] as const;
 
 export const featurePaths = {
@@ -39,7 +41,7 @@ export const ignoredPaths = [
   '**/LICENSE',
   '**/*.test.ts',
   '**/bench/**',
-  'apps/*/e2e/**',
+  'system-tests/e2e/**',
 
   // 2. Build, lint and repo wiring, which Bun never reads when it runs the source.
   '**/tsconfig*.json',

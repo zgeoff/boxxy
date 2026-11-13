@@ -184,7 +184,7 @@ Section 5 of [`01-usage.ts`](./sketches/next/review-and-merge/01-usage.ts) shows
 
 | Behaviour | Evidence |
 | --- | --- |
-| An item whose required checks are green at its head merges with no person. | An e2e journey in `apps/cli/e2e/` with a fake forge: the merge job calls `mergeAtHead` at the head it read, and the store holds `boxxy.merge.requested`, `boxxy.merge.answered` and one `boxxy.pull_request.merged`. |
+| An item whose required checks are green at its head merges with no person. | An e2e journey in `system-tests/e2e/` with a fake forge: the merge job calls `mergeAtHead` at the head it read, and the store holds `boxxy.merge.requested`, `boxxy.merge.answered` and one `boxxy.pull_request.merged`. |
 | A red check sends the item to a repair build, and a fourth repair holds it with a notice. | The same journey with a red check, and a `decideMerge` test row for each row of the merge table. |
 | A merge with no pull request, a pull request the forge does not hold, or one with no commit holds the item with the reason, and a forge that does not answer is read again. | Tick tests in `apps/server` with the merge job and a fake forge, one per case: after two ticks the attempt settled `blocked` with the reason and the item waits on `merge-blocked`; with the forge down it stays `starting`. |
 | A merge whose read throws past the time limit times out, and the item holds after the step's last attempt. | Tick tests with the forge down: each merge attempt settles `timed-out` with the outcome `lost`, and after two the item waits on `attempts used up`; a running merge whose reads start to throw times out too. |

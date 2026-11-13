@@ -6,14 +6,14 @@ import { settleAttempt } from '@boxxy/dispatch';
 import { brandSchemas, toJSONValue } from '@boxxy/model';
 import type { AttemptRow } from '@boxxy/model';
 import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
-import { runOutboxSender } from '@boxxy/server/test-utils/run-outbox-sender';
-import { startPepysUnderTest } from '@boxxy/server/test-utils/start-pepys-under-test';
 import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
 import { seedV1ReviewCloseOut } from '@boxxy/store-sqlite/test-utils/seed-v1-review-close-out';
 import invariant from 'tiny-invariant';
 import { z } from 'zod';
 import { createTestCLI } from '../src/test-utils/create-test-cli.ts';
 import { readJSONOutput } from '../src/test-utils/read-json-output.ts';
+import { runOutboxSender } from '../src/test-utils/run-outbox-sender.ts';
+import { startPepysUnderTest } from '../src/test-utils/start-pepys-under-test.ts';
 
 async function setupTest() {
   const folder = await mkdtemp(join(tmpdir(), 'boxxy-test-v1-review-'));

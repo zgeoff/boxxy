@@ -1,4 +1,4 @@
-import { runOutboxSender } from '@boxxy/server/test-utils/run-outbox-sender';
+import { runOutboxSender } from '../../run-outbox-sender.ts';
 import { ControlConflictError } from './control-conflict-error.ts';
 import type { VerifyHarness } from './types.ts';
 

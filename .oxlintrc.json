@@ -18,12 +18,16 @@
     "zgeoff/import-zones": [
       "error",
       {
-        "workspaces": ["apps/*", "modules/*", "adapters/*", "libs/*", "packages/*"],
+        "workspaces": ["apps/*", "modules/*", "adapters/*", "libs/*", "packages/*", "system-tests"],
         "zones": {
-          "packages": ["apps/**", "modules/**", "adapters/**", "libs/**", "packages/**"],
-          "cli": ["apps/cli/**"],
-          "cli-tests": ["apps/cli/e2e/**", "apps/cli/src/test-utils/**"],
-          "server": ["apps/server/**"],
+          "packages": [
+            "apps/**",
+            "modules/**",
+            "adapters/**",
+            "libs/**",
+            "packages/**",
+            "system-tests/**"
+          ],
           "adapters": ["adapters/**"],
           "deployed": ["packages/**"],
           "domain": ["modules/**", "libs/**"],
@@ -37,16 +41,10 @@
           "review-noslop": ["adapters/review-noslop/**"],
           "verifier-wringer": ["adapters/verifier-wringer/**"],
           "forge-github": ["adapters/forge-github/**"],
-          "pepys-package": ["packages/pepys/**"]
+          "pepys-package": ["packages/pepys/**"],
+          "system-tests": ["system-tests/**"]
         },
         "edges": [
-          {
-            "name": "cli-server",
-            "from": ["cli"],
-            "ignore": ["apps/cli/e2e/**", "apps/cli/src/test-utils/**"],
-            "to": ["server"],
-            "reason": "the CLI reaches the server only through the contract; only its e2e tests and test helpers start the real server"
-          },
           {
             "name": "pepys",
             "from": ["domain"],
@@ -118,8 +116,8 @@
               "@wringer/http",
               "@wringer/stream"
             ],
-            "allow": ["cli-tests"],
-            "reason": "only the CLI's tests and test helpers build the verify CLI; the registry lives in apps/cli/src/test-utils/verify/"
+            "allow": ["system-tests"],
+            "reason": "only system-tests builds the verify CLI; the registry lives in system-tests/src/test-utils/verify/"
           },
           {
             "name": "github-app",
@@ -130,8 +128,8 @@
           {
             "name": "wringer-core",
             "modules": ["@wringer/core"],
-            "allow": ["cli-tests", "verifier-wringer"],
-            "reason": "the CLI's tests and test helpers build the verify CLI on it, and only adapters/verifier-wringer reads its report for the server; take the Verifier port"
+            "allow": ["system-tests", "verifier-wringer"],
+            "reason": "system-tests builds the verify CLI on it, and only adapters/verifier-wringer reads its report for the server; take the Verifier port"
           },
           {
             "name": "yaml",

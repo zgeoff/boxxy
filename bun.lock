@@ -196,16 +196,6 @@
         "ts-pattern": "catalog:",
         "zod": "catalog:",
       },
-      "devDependencies": {
-        "@boxxy/dispatch": "workspace:*",
-        "@boxxy/rules": "workspace:*",
-        "@boxxy/server": "workspace:*",
-        "@boxxy/store-sqlite": "workspace:*",
-        "@wringer/core": "catalog:",
-        "@wringer/gunshi": "catalog:",
-        "@wringer/http": "catalog:",
-        "tiny-invariant": "catalog:",
-      },
     },
     "apps/server": {
       "name": "@boxxy/server",
@@ -398,6 +388,25 @@
         "@pepys/testing",
       ],
     },
+    "system-tests": {
+      "name": "@boxxy/system-tests",
+      "dependencies": {
+        "@boxxy/cli": "workspace:*",
+        "@boxxy/contract": "workspace:*",
+        "@boxxy/dispatch": "workspace:*",
+        "@boxxy/model": "workspace:*",
+        "@boxxy/pepys": "workspace:*",
+        "@boxxy/rules": "workspace:*",
+        "@boxxy/server": "workspace:*",
+        "@boxxy/store-sqlite": "workspace:*",
+        "@boxxy/worker-atc": "workspace:*",
+        "@wringer/core": "catalog:",
+        "@wringer/gunshi": "catalog:",
+        "@wringer/http": "catalog:",
+        "tiny-invariant": "catalog:",
+        "zod": "catalog:",
+      },
+    },
   },
   "catalog": {
     "@better-auth/mcp": "1.7.15",
@@ -522,6 +531,8 @@
     "@boxxy/server": ["@boxxy/server@workspace:apps/server"],
 
     "@boxxy/store-sqlite": ["@boxxy/store-sqlite@workspace:adapters/store-sqlite"],
+
+    "@boxxy/system-tests": ["@boxxy/system-tests@workspace:system-tests"],
 
     "@boxxy/train": ["@boxxy/train@workspace:modules/train"],
 

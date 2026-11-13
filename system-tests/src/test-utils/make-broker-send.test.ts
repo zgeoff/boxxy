@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { buildRPCRequest } from './build-rpc-request.ts';
+import { buildRPCRequest } from '@boxxy/server/test-utils/build-rpc-request';
 import { makeBrokerSend } from './make-broker-send.ts';
 
 function setupTest() {

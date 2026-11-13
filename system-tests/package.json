@@ -1,0 +1,33 @@
+{
+  "name": "@boxxy/system-tests",
+  "private": true,
+  "description": "Tests that run more than one boxxy app together, such as the CLI against the real server",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    "./test-utils/*": "./src/test-utils/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsrs --noEmit"
+  },
+  "dependencies": {
+    "@boxxy/cli": "workspace:*",
+    "@boxxy/contract": "workspace:*",
+    "@boxxy/dispatch": "workspace:*",
+    "@boxxy/model": "workspace:*",
+    "@boxxy/pepys": "workspace:*",
+    "@boxxy/rules": "workspace:*",
+    "@boxxy/server": "workspace:*",
+    "@boxxy/store-sqlite": "workspace:*",
+    "@boxxy/worker-atc": "workspace:*",
+    "@wringer/core": "catalog:",
+    "@wringer/gunshi": "catalog:",
+    "@wringer/http": "catalog:",
+    "tiny-invariant": "catalog:",
+    "zod": "catalog:"
+  },
+  "engines": {
+    "bun": ">=1.3",
+    "node": ">=24"
+  }
+}
