@@ -56,13 +56,16 @@ const poolSchema = z.strictObject({
 
 const efforts = ['low', 'medium', 'high', 'xhigh', 'max'] as const satisfies readonly Effort[];
 
+const promptPathSchema = nameSchema.refine(isCheckoutPath, {
+  message: 'a prompt path runs from the checkout root, with no empty, "." or ".." folder',
+});
+
 const recipeSchema = z.strictObject({
   agent: nameSchema,
   model: nameSchema,
   effort: z.enum(efforts),
-  prompt: nameSchema.refine(isCheckoutPath, {
-    message: 'a prompt path runs from the checkout root, with no empty, "." or ".." folder',
-  }),
+  prompt: promptPathSchema,
+  reworkPrompt: promptPathSchema.exactOptional(),
   source: brandSchemas.sourceName,
   skills: z.array(nameSchema),
 

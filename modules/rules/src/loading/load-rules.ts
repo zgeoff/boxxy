@@ -136,11 +136,10 @@ function buildLoadResult(
     commit: input.checkout.commit,
     files: [
       { path: rulesFileName, bytes: rulesBytes, executable: false },
-      ...prompts.value.map((prompt) => ({
-        path: prompt.recipe.prompt,
-        bytes: prompt.bytes,
-        executable: false,
-      })),
+      ...prompts.value.flatMap((prompt) => [
+        { path: prompt.recipe.prompt, bytes: prompt.bytes, executable: false },
+        ...(prompt.rework === null ? [] : [{ ...prompt.rework, executable: false }]),
+      ]),
     ],
     pins: registry.pins,
     phases: input.phases,
@@ -178,6 +177,7 @@ function buildLoadResult(
             name: prompt.name,
             recipe: prompt.recipe,
             promptHash: hashBytes(prompt.bytes),
+            ...(prompt.rework === null ? {} : { reworkPromptHash: hashBytes(prompt.rework.bytes) }),
             rulesVersion: version,
           },
         ]),
@@ -240,6 +240,9 @@ interface RecipePrompt {
   readonly name: RecipeName;
   readonly recipe: ParsedRulesFile['recipes'][RecipeName];
   readonly bytes: Uint8Array;
+
+  // the recipe's `reworkPrompt`; null when it has none
+  readonly rework: { readonly path: string; readonly bytes: Uint8Array } | null;
 }
 
 function collectPrompts(
@@ -250,35 +253,52 @@ function collectPrompts(
   const rejections: LoadRejection[] = [];
 
   for (const [name, recipe] of Object.entries(file.recipes)) {
-    const bytes = files.get(recipe.prompt);
+    const first = checkPromptFile(files, recipe.prompt, ['recipes', name, 'prompt']);
 
-    if (bytes === undefined) {
-      rejections.push(
-        buildRejection(['recipes', name, 'prompt'], {
-          kind: 'missing-prompt',
-          path: recipe.prompt,
-        }),
-      );
+    const rework =
+      recipe.reworkPrompt === undefined
+        ? null
+        : {
+            path: recipe.reworkPrompt,
+            checked: checkPromptFile(files, recipe.reworkPrompt, ['recipes', name, 'reworkPrompt']),
+          };
 
+    rejections.push(...first.rejections, ...(rework?.checked.rejections ?? []));
+
+    if (first.value === null || rework?.checked.value === null) {
       continue;
     }
 
-    const fault = findPromptTemplateFault(new TextDecoder().decode(bytes));
-
-    if (fault === null) {
-      prompts.push({ name: brandSchemas.recipeName.parse(name), recipe, bytes });
-    } else {
-      rejections.push(
-        buildRejection(['recipes', name, 'prompt'], {
-          kind: 'bad-prompt',
-          path: recipe.prompt,
-          message: fault,
-        }),
-      );
-    }
+    prompts.push({
+      name: brandSchemas.recipeName.parse(name),
+      recipe,
+      bytes: first.value,
+      rework: rework === null ? null : { path: rework.path, bytes: rework.checked.value },
+    });
   }
 
   return { value: prompts, rejections };
+}
+
+function checkPromptFile(
+  files: ReadonlyMap<string, Uint8Array>,
+  path: string,
+  at: readonly (string | number)[],
+): Checked<Uint8Array> {
+  const bytes = files.get(path);
+
+  if (bytes === undefined) {
+    return { value: null, rejections: [buildRejection(at, { kind: 'missing-prompt', path })] };
+  }
+
+  const fault = findPromptTemplateFault(new TextDecoder().decode(bytes));
+
+  return fault === null
+    ? { value: bytes, rejections: [] }
+    : {
+        value: null,
+        rejections: [buildRejection(at, { kind: 'bad-prompt', path, message: fault })],
+      };
 }
 
 function collectPropagationRejections(

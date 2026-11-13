@@ -34,6 +34,7 @@ import { buildPromptValues } from './build-prompt-values.ts';
 import { buildSnapshotHash } from './build-snapshot-hash.ts';
 import { findRecipeName } from './find-recipe-name.ts';
 import { pickKeptSession } from './pick-kept-session.ts';
+import { pickPromptPath } from './pick-prompt-path.ts';
 import type { ClaimInput, SpawnSettings } from './types.ts';
 
 // A race that `decide` did not see: the change took no lease or no seat. The runner ends the
@@ -180,6 +181,7 @@ function buildClaimedEvent(parts: ClaimedParts): {
     notes: parts.detail.notes,
     attempt: parts.attempt,
     recipe: material.recipe,
+    promptPath: pickPromptPath(material.recipe, parts.detail.attempts, parts.pick.phase),
     input: phaseInput,
     settings: parts.settings,
   });
@@ -225,16 +227,17 @@ interface SpawnParts {
   readonly notes: readonly NoteRow[];
   readonly attempt: AttemptId;
   readonly recipe: Recipe;
+  readonly promptPath: string;
   readonly input: JsonValue;
   readonly settings: SpawnSettings;
 }
 
 function buildSpawnRequest(parts: SpawnParts): SpawnRequest {
   const checkout = parts.settings.repos.get(parts.item.repo);
-  const template = parts.settings.prompts.get(parts.recipe.prompt);
+  const template = parts.settings.prompts.get(parts.promptPath);
 
   invariant(checkout !== undefined, `the configuration names no repo ${parts.item.repo}`);
-  invariant(template !== undefined, `the rules checkout has no prompt ${parts.recipe.prompt}`);
+  invariant(template !== undefined, `the rules checkout has no prompt ${parts.promptPath}`);
 
   return {
     target: parts.settings.target,
@@ -256,12 +259,15 @@ function buildSpawnRequest(parts: SpawnParts): SpawnRequest {
   };
 }
 
-// The recipe hash covers the recipe's fields, its prompt, the rules version and the skills pin.
+// The recipe hash covers the recipe's fields, its prompts, the rules version and the skills pin.
 function buildRecipeHash(material: RecipeMaterial, rules: LoadedRules) {
   const hash = contentHash(
     toJSONValue({
       recipe: material.recipe,
       promptHash: material.promptHash,
+      ...(material.reworkPromptHash === undefined
+        ? {}
+        : { reworkPromptHash: material.reworkPromptHash }),
       rulesVersion: material.rulesVersion,
       skills: rules.skills,
     }),

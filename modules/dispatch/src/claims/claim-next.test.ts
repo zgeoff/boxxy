@@ -4,6 +4,7 @@ import { brandSchemas } from '@boxxy/model';
 import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
 import invariant from 'tiny-invariant';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
+import { loadReworkPromptRules } from '../test-utils/load-rework-prompt-rules.ts';
 import { loadVerifyRules } from '../test-utils/load-verify-rules.ts';
 import { claimNext } from './claim-next.ts';
 import { requestWake } from './request-wake.ts';
@@ -33,6 +34,16 @@ async function setupTest() {
         newId: dispatch.newId,
         backoff: dispatch.backoff,
         spawn: { ...dispatch.spawn, repos },
+      }),
+    claimNextWithPrompts: (prompts: SpawnSettings['prompts']) =>
+      claimNext({
+        store: dispatch.store,
+        runner: dispatch.runner,
+        rules: dispatch.rules(),
+        now: dispatch.clock.now(),
+        newId: dispatch.newId,
+        backoff: dispatch.backoff,
+        spawn: { ...dispatch.spawn, prompts },
       }),
     claimNextAfter: (claimed: readonly ItemId[]) =>
       claimNext({
@@ -236,6 +247,60 @@ test('it carries the failed features of the verify in the prompt of the rework b
       /## Findings to answer\n\nThe verify at [0-9a-f]{40} failed these features:\n\n- upload-retry/u,
     ),
   });
+});
+
+test('it renders the rework prompt of the recipe for a build that a review sent back', async () => {
+  const ctx = await setupTest();
+
+  const loaded = loadReworkPromptRules('Rework {{ title }}.\n\n{{ findings }}\n');
+
+  ctx.setRules(loaded.rules);
+
+  await ctx.seedBuild();
+
+  const review = await ctx.claim();
+
+  invariant(review !== null, 'the review claims');
+
+  const reviewRow = await ctx.readAttempt(review.attempt.id);
+
+  await ctx.closeAndSettle(reviewRow, {
+    round: 1,
+    cause: 'first',
+    reading: buildMockGateReading({
+      status: 'blocked',
+      why: 'open-findings',
+      open: { high: 1, medium: 0, low: 0 },
+      findingPaths: ['src/theme.ts'],
+    }),
+    unrelatedLines: null,
+  });
+
+  const rework = await ctx.claimNextWithPrompts(loaded.prompts);
+
+  invariant(rework?.kind === 'start', 'the rework build claims');
+
+  expect(rework.spawn.prompt).toMatch(
+    /^Rework Add a dark theme\.\n\nThe review at [0-9a-f]{40} left findings open: high 1, medium 0, low 0\./u,
+  );
+});
+
+test('it renders the first prompt of a recipe with a rework prompt for the first build', async () => {
+  const ctx = await setupTest();
+
+  const loaded = loadReworkPromptRules('Rework {{ title }}.\n');
+
+  ctx.setRules(loaded.rules);
+
+  await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+
+  const claim = await ctx.claimNextWithPrompts(loaded.prompts);
+
+  invariant(claim?.kind === 'start', 'the claim starts the item');
+
+  expect(claim.spawn.prompt).toStartWith(
+    'Build this item to its design and acceptance list, and open a pull request.',
+  );
 });
 
 test('it carries the body that triage set in the prompt of the next phase', async () => {

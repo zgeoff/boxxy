@@ -402,6 +402,9 @@ export interface SkillsPin {
 export interface Recipe {
   // ...the fields that `libs/model` has on this type, and:
   readonly skills: readonly string[]; // such as ['bake-off']; empty: the phase needs none
+  // optional, such as 'prompts/build-rework-v1.md': the template of a rework round, an attempt
+  // of a phase that already succeeded once for the item; absent: every round renders `prompt`
+  readonly reworkPrompt?: string;
 }
 
 // ── libs/model/src/closeouts/types.ts ─────────────────────────────────────────────────────────

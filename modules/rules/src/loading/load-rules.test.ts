@@ -2973,3 +2973,211 @@ sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 24
     ],
   });
 });
+
+test("it loads a recipe's rework prompt with the hash of its bytes", () => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const result = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+kinds:
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
+pools:
+  - { name: build, takes: {}, order: [oldest] }
+lead: []
+propagation: []
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, reworkPrompt: prompts/build-rework.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{ title }}.\n')],
+        ['prompts/build-rework.md', new TextEncoder().encode('Answer {{ findings }}.\n')],
+      ]),
+    },
+    concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
+    pins,
+  });
+
+  invariant(result.kind === 'loaded', 'the rules load');
+
+  const recipe: unknown = result.rules.recipes.get(brandSchemas.recipeName.parse('build-v1'));
+
+  expect(recipe).toStrictEqual({
+    name: 'build-v1',
+    recipe: {
+      agent: 'claude',
+      model: 'example-model',
+      effort: 'high',
+      prompt: 'prompts/build-v1.md',
+      reworkPrompt: 'prompts/build-rework.md',
+      source: 'subscription',
+      skills: [],
+    },
+    promptHash: hashBytes(new TextEncoder().encode('Build {{ title }}.\n')),
+    reworkPromptHash: hashBytes(new TextEncoder().encode('Answer {{ findings }}.\n')),
+    rulesVersion: result.rules.version,
+  });
+});
+
+test.each([
+  ['is missing from the checkout', [], { kind: 'missing-prompt', path: 'prompts/build-rework.md' }],
+  [
+    'names a value that is no placeholder',
+    [['prompts/build-rework.md', 'Answer {{ findigns }}.\n']],
+    {
+      kind: 'bad-prompt',
+      path: 'prompts/build-rework.md',
+      message: expect.stringContaining('the template names "findigns"'),
+    },
+  ],
+] as const)('it rejects a rework prompt that %s', (_, extraFiles, reason) => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const result: unknown = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+kinds:
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
+pools:
+  - { name: build, takes: {}, order: [oldest] }
+lead: []
+propagation: []
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, reworkPrompt: prompts/build-rework.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{ title }}.\n')],
+        ...extraFiles.map(([path, text]): [string, Uint8Array] => [
+          path,
+          new TextEncoder().encode(text),
+        ]),
+      ]),
+    },
+    concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
+    pins,
+  });
+
+  expect(result).toStrictEqual({
+    kind: 'rejected',
+    rejections: [{ file: 'rules.yaml', path: 'recipes.build-v1.reworkPrompt', reason }],
+  });
+});
+
+test('it changes the rules version when one byte of the rework prompt changes', () => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const rules = new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+kinds:
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
+pools:
+  - { name: build, takes: {}, order: [oldest] }
+lead: []
+propagation: []
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, reworkPrompt: prompts/build-rework.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
+`);
+
+  const before = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        ['rules.yaml', rules],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{ title }}.\n')],
+        ['prompts/build-rework.md', new TextEncoder().encode('Answer {{ findings }}.\n')],
+      ]),
+    },
+    concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
+    pins,
+  });
+
+  const after = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        ['rules.yaml', rules],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{ title }}.\n')],
+        ['prompts/build-rework.md', new TextEncoder().encode('Answer {{ findings }}!\n')],
+      ]),
+    },
+    concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
+    pins,
+  });
+
+  invariant(before.kind === 'loaded');
+  invariant(after.kind === 'loaded');
+
+  expect(after.rules.version).not.toBe(before.rules.version);
+});

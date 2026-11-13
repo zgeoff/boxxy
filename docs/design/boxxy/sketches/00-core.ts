@@ -383,6 +383,7 @@ export type Recipe = {
   readonly model: string;
   readonly effort: Effort;
   readonly prompt: string; // the template's path in the rules checkout
+  readonly reworkPrompt?: string; // the template of a rework round; v1.md, "The launch prompt"
   readonly source: SourceName; // slice 1: the one capacity source; slice 2: an optional pin
 };
 // later: `RecipeLater` below adds `models` and `caps` (slice 2), and `skills`, `plugins` and
@@ -399,6 +400,7 @@ export type RecipeMaterial = {
   readonly name: RecipeName;
   readonly recipe: Recipe;
   readonly promptHash: ContentHash;
+  readonly reworkPromptHash?: ContentHash; // only when the recipe has a `reworkPrompt`
   readonly pluginFolderHash: ContentHash;
   readonly rulesVersion: RulesVersion;
 };

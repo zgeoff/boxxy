@@ -452,6 +452,10 @@ export interface Recipe {
 
   // the prompt template's path in the rules checkout
   readonly prompt: string;
+
+  // the template of a rework round, when an earlier attempt of the phase succeeded; the claim
+  // renders `prompt` when the recipe has none
+  readonly reworkPrompt?: string;
   readonly source: SourceName;
 
   // the skills the phase needs; the recipe hash covers the list and the rules' pin
@@ -466,6 +470,9 @@ export interface RecipeMaterial {
   readonly name: RecipeName;
   readonly recipe: Recipe;
   readonly promptHash: ContentHash;
+
+  // only when the recipe has a `reworkPrompt`, so the hash of a recipe without one stays the same
+  readonly reworkPromptHash?: ContentHash;
   readonly rulesVersion: RulesVersion;
 }
 
