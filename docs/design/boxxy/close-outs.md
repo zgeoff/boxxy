@@ -102,7 +102,7 @@ A triage result is one of five, and each has one use:
 | `duplicate` | `of`, the other item | another item asks for the same work | to close the item, with the `duplicate-of` relation |
 | `declined` | `reason` | boxxy refuses the work | to close the item, with the reason |
 | `needs-owner` | `question` | only the owner can decide, such as a choice of scope | nothing. The rules hold the item, the owner reads the question with `boxxy item get`, answers with `boxxy item edit` or `boxxy item note`, and runs `boxxy item retry`, which runs triage again |
-| `split` | `openItems`, one part at least, in the shape of the build field | the item holds several pieces of work that can each be done alone | to file each part through the dedupe of open items, and to close the item with the reason `split` |
+| `split` | `openItems`, one part at least, in the shape of the build field | the item holds several pieces of work that can each be done alone | to file each part through the dedupe of open items, and to close the item with the reason `split`. When the close applies, the dedupe leaves the item out, so a part with the item's title still files |
 
 Each part of a split holds the triage attempt in `foundInAttempt`. The parts get their IDs in the settle, so no relation draft can name them. The rules' edge decides the item's end: a hold edge withholds the close, and the parts still file.
 

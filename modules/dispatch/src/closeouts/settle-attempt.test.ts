@@ -385,6 +385,29 @@ test('it files each part of a split triage and closes the item when the rules en
   ]);
 });
 
+test('it files a part of a split triage that has the title of the item it closes', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('triage');
+
+  await ctx.closeOut(attempt, {
+    result: {
+      kind: 'split',
+      openItems: [{ kind: 'core.issue', title: 'Add a dark theme', body: 'The theme toggle.' }],
+    },
+    relations: [],
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const filed = await ctx.listFacts('boxxy.item.filed');
+
+  expect(filed.map((fact) => fact.payload)).toMatchObject([
+    {},
+    { title: 'Add a dark theme', foundInAttempt: attempt.id },
+  ]);
+});
+
 test('it still files the parts of a split triage, and keeps the item open, when the rules hold the split', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.claimAt('triage');

@@ -32,7 +32,14 @@ export function buildSettlePlans(input: SettlePlansInput): SettlePlans {
     effect.kind === 'file-item' ? [effect.item] : [],
   );
 
-  const deduped = dedupeOpenItems(fileItems, input.openIssues);
+  // an item that this settle closes is no open issue a filed item can match
+  const closes = !input.held && input.effects.some((effect) => effect.kind === 'close-item');
+
+  const openIssues = closes
+    ? input.openIssues.filter((issue) => issue.id !== input.ctx.item.id)
+    : input.openIssues;
+
+  const deduped = dedupeOpenItems(fileItems, openIssues);
 
   const toFile = new Set(deduped.file);
 
