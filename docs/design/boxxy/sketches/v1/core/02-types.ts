@@ -625,9 +625,10 @@ export interface StoreReader {
 //     pipeline and each phase's `needsAcceptance`. One pure function, `buildItemViews`, folds
 //     each item's settled attempts and `item.retry` levers with `findPosition`, then derives
 //     its state with `deriveItemState`.
-//   - `listSessionsToForget(failedEndedBefore)`: cleanup passes the cutoff of a failed attempt,
-//     not the time now. A succeeded attempt is due at once. Only the latest attempt of a
-//     session counts, and a kept session or a stray session not yet stopped is left out.
+//   - `listSessionsToForget(failedEndedBefore, strayedBefore)`: cleanup passes the cutoff of a
+//     failed attempt and of a stray, not the time now. A succeeded attempt is due at once. Only
+//     the latest attempt of a session counts. A kept session is left out, and so is a stray
+//     session not yet stopped that strayed at `strayedBefore` or later.
 //   - `findAttemptByAgentSession` gives the latest attempt bound to the agent session, and
 //     `findSessionByCaller` matches on each session's latest attempt alone.
 //   - `StoreReader` also has the outbox reads (../edge/02-outbox.ts, section B).

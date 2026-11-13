@@ -210,7 +210,10 @@ export const claimStoreSessionCases: readonly ClaimStoreCase[] = [
       });
 
       const listed = await store.read((transaction) =>
-        transaction.listSessionsToForget(brandSchemas.instant.parse(3000)),
+        transaction.listSessionsToForget(
+          brandSchemas.instant.parse(3000),
+          brandSchemas.instant.parse(1500),
+        ),
       );
 
       return {
@@ -220,7 +223,7 @@ export const claimStoreSessionCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
-    '#listSessionsToForget leaves out a kept session, an unstopped stray and an older attempt',
+    '#listSessionsToForget leaves out a kept session, a recent unstopped stray and an older attempt',
     async (store) => {
       const keptSession = brandSchemas.atcSessionId.parse('atc-session-1');
 
@@ -279,10 +282,67 @@ export const claimStoreSessionCases: readonly ClaimStoreCase[] = [
       });
 
       const listed = await store.read((transaction) =>
-        transaction.listSessionsToForget(brandSchemas.instant.parse(3000)),
+        transaction.listSessionsToForget(
+          brandSchemas.instant.parse(3000),
+          brandSchemas.instant.parse(1500),
+        ),
       );
 
       return { received: listed, expected: [] };
+    },
+  ],
+  [
+    '#listSessionsToForget lists an unstopped stray that strayed before the stray cutoff',
+    async (store) => {
+      const stray = buildMockV1AttemptRow({
+        state: 'succeeded',
+        endedAt: brandSchemas.instant.parse(2000),
+        strayedAt: brandSchemas.instant.parse(2000),
+      });
+
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(
+          buildMockFileItemChange(buildMockV1ItemRow({ id: stray.item })),
+        );
+
+        await transaction.applyChange(buildMockClaimChange(stray));
+      });
+
+      const listed = await store.read((transaction) =>
+        transaction.listSessionsToForget(
+          brandSchemas.instant.parse(3000),
+          brandSchemas.instant.parse(2001),
+        ),
+      );
+
+      return { received: listed.map((attempt) => attempt.id), expected: [stray.id] };
+    },
+  ],
+  [
+    '#listSessionsToForget leaves out an unstopped stray that strayed at the stray cutoff',
+    async (store) => {
+      const stray = buildMockV1AttemptRow({
+        state: 'succeeded',
+        endedAt: brandSchemas.instant.parse(2000),
+        strayedAt: brandSchemas.instant.parse(2000),
+      });
+
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(
+          buildMockFileItemChange(buildMockV1ItemRow({ id: stray.item })),
+        );
+
+        await transaction.applyChange(buildMockClaimChange(stray));
+      });
+
+      const listed = await store.read((transaction) =>
+        transaction.listSessionsToForget(
+          brandSchemas.instant.parse(3000),
+          brandSchemas.instant.parse(2000),
+        ),
+      );
+
+      return { received: listed.map((attempt) => attempt.id), expected: [] };
     },
   ],
   [

@@ -400,7 +400,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         })
         .toSorted((first, second) => first.kept.keptAt - second.kept.keptAt);
     },
-    listSessionsToForget: async (failedEndedBefore) => {
+    listSessionsToForget: async (failedEndedBefore, strayedBefore) => {
       const keptRows = await db
         .selectFrom('items')
         .selectAll()
@@ -425,6 +425,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
           builder.or([
             builder('strayed_at', 'is', null),
             builder('session_stopped_at', 'is not', null),
+            builder('strayed_at', '<', strayedBefore),
           ]),
         )
         .where((builder) => {

@@ -60,6 +60,30 @@ async function setupTest() {
 
       return dispatch.readAttempt(claim.attempt.id);
     },
+    strayBuild: async () => {
+      await dispatch.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+
+      const claim = await dispatch.claim();
+
+      invariant(claim !== null, 'the claim picks the seeded item');
+
+      await settleAttempt({
+        store: dispatch.store,
+        attempt: claim.attempt.id,
+        forced: 'stalled',
+        sessionStopped: false,
+        rules: dispatch.rules(),
+        actor: 'boxxy:runner:runner-1',
+        now: dispatch.clock.now(),
+        newId: dispatch.newId,
+      });
+
+      return dispatch.readAttempt(claim.attempt.id);
+    },
+    listStrays: () =>
+      dispatch.store.read((tx) =>
+        tx.listStrayAttempts(brandSchemas.instant.parse(dispatch.clock.now() - 24 * 3_600_000)),
+      ),
   };
 }
 
@@ -197,4 +221,55 @@ test('it forgets a session once', async () => {
   const again = await ctx.forget();
 
   expect(again).toStrictEqual({ forgotten: [], failed: [] });
+});
+
+test('it stops and forgets a stray session whose stop is still unconfirmed after 24 hours', async () => {
+  const ctx = await setupTest();
+  const stray = await ctx.strayBuild();
+
+  ctx.clock.advance(24 * ctx.hourMs + 1000);
+
+  const report = await ctx.forget();
+  const after = await ctx.readAttempt(stray.id);
+
+  const received: unknown = [
+    await ctx.listStrays(),
+    report.forgotten,
+    after.sessionStoppedAt,
+    after.sessionForgottenAt,
+  ];
+
+  expect(received).toStrictEqual([[], [ctx.getSession(stray)], ctx.clock.now(), ctx.clock.now()]);
+});
+
+test('it leaves a stray session whose stop is unconfirmed until 24 hours after it strayed', async () => {
+  const ctx = await setupTest();
+  const stray = await ctx.strayBuild();
+
+  ctx.clock.advance(24 * ctx.hourMs);
+
+  const report = await ctx.forget();
+
+  expect(report.forgotten).not.toContain(ctx.getSession(stray));
+});
+
+test('it keeps a stray session whose late stop is refused and tries again on the next tick', async () => {
+  const ctx = await setupTest();
+  const stray = await ctx.strayBuild();
+
+  ctx.clock.advance(25 * ctx.hourMs);
+  ctx.worker.failNext('stop', { kind: 'refused', cause: 'other', reason: 'host kept awake' });
+
+  const first = await ctx.forget();
+  const afterFirst = await ctx.readAttempt(stray.id);
+  const second = await ctx.forget();
+
+  const received: unknown = [
+    first.failed,
+    ctx.listForgetCalls().length,
+    afterFirst.sessionStoppedAt,
+    second.forgotten,
+  ];
+
+  expect(received).toStrictEqual([[ctx.getSession(stray)], 1, null, [ctx.getSession(stray)]]);
 });

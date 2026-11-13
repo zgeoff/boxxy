@@ -930,7 +930,8 @@ export function findPosition(input: { pipeline: Pipeline | null; attempts: reado
 //   The runner tick does it (`listSessionsToForget`), and writes `sessionForgottenAt` on the
 //   attempt row. No fact type for session cleanup exists, so no fact records the forget. A
 //   forget that fails is tried again on the next tick. A stray session is not forgotten before
-//   it has stopped.
+//   it has stopped. A stray whose stop is unconfirmed `timeouts.strayHours` after it strayed is
+//   stopped by cleanup on each tick, and forgotten once the stop is confirmed.
 //
 // Notices. The change that settles an attempt writes one `notices` row when the
 // item's position after it is a hold (02-types.ts, `Notifier`). The tick sends unsent rows

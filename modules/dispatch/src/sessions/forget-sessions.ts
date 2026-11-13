@@ -16,9 +16,13 @@ export async function forgetSessions(input: ForgetSessionsInput): Promise<Forget
     Math.max(0, input.now - timeouts.failedSessionHours * hourMs),
   );
 
+  const strayCutoff = brandSchemas.instant.parse(
+    Math.max(0, input.now - timeouts.strayHours * hourMs),
+  );
+
   const rows = await input.store.read(async (tx) => ({
     kept: await tx.listKeptSessions(),
-    due: await tx.listSessionsToForget(cutoff),
+    due: await tx.listSessionsToForget(cutoff, strayCutoff),
   }));
 
   const kept = rows.kept;
@@ -89,7 +93,19 @@ function buildBase(input: ForgetSessionsInput) {
   return { actor: input.actor, now: input.now, newId: input.newId };
 }
 
+// atc refuses the forget of a live session, so a stray whose stop the runner never confirmed is
+// stopped first, and the confirmed stop is recorded before the forget.
 async function forgetAttempt(input: ForgetSessionsInput, attempt: AttemptRow): Promise<boolean> {
+  const isStray = attempt.strayedAt !== null && attempt.sessionStoppedAt === null;
+
+  if (isStray) {
+    const stop = await input.worker.stop(attempt);
+
+    if (stop.kind !== 'stopped' && stop.kind !== 'absent') {
+      return false;
+    }
+  }
+
   if (attempt.atcSession !== null) {
     const outcome = await input.worker.forget(attempt.atcSession);
 
@@ -98,9 +114,18 @@ async function forgetAttempt(input: ForgetSessionsInput, attempt: AttemptRow): P
     }
   }
 
-  await input.store.exclusive((tx) =>
-    writeAttemptMove(tx, attempt.id, { kind: 'session-forgotten' }, buildBase(input)),
-  );
+  await input.store.exclusive(async (tx) => {
+    if (isStray) {
+      await writeAttemptMove(
+        tx,
+        attempt.id,
+        { kind: 'stray-stopped', atcSession: attempt.atcSession },
+        buildBase(input),
+      );
+    }
+
+    await writeAttemptMove(tx, attempt.id, { kind: 'session-forgotten' }, buildBase(input));
+  });
 
   return true;
 }

@@ -113,7 +113,7 @@ Section D of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the table of ca
 Section D of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the stop, the give-up rule and the table of what `item.close` does to each attempt state. boxxy moves an attempt to `closing` when it has decided that the attempt is over and the session still runs. The runner then stops the session, and the attempt settles when the session reads as suspended, ended or absent.
 
 - **Grace.** boxxy sends no stop while the agent is inside a turn, until 60 seconds after the move to `closing`, so the agent can tell the owner that the close-out went in. A close caused by `item.close` gets no grace.
-- **The give-up rule.** An attempt whose session still runs 10 minutes after the move to `closing` settles anyway, by its cause, and releases its seats and its lease. boxxy marks it as a stray, keeps sending the stop for 24 hours, and lists it in `runner.status`. A stop can fail for that long on a host that another owner keeps awake.
+- **The give-up rule.** An attempt whose session still runs 10 minutes after the move to `closing` settles anyway, by its cause, and releases its seats and its lease. boxxy marks it as a stray, keeps sending the stop for 24 hours, and lists it in `runner.status`. After that, [cleanup](#cleanup) takes over the stop. A stop can fail for that long on a host that another owner keeps awake.
 - **An item closed while its spawn is in flight.** The attempt stays in `closing` and sends no second spawn. When the session appears, boxxy stops it and settles. When none appears in 10 minutes, the attempt settles as a stray, and the runner looks for the session by its spawn name for 24 hours. When the session appears, the runner records it on the attempt row as it stops it, so cleanup forgets it.
 
 `item.close` ends the item's live attempts in the same store change as the close. A sleeping attempt settles at once as failed, with the reason `item-closed` and no wake. Any other live attempt moves to `closing`.
@@ -161,7 +161,7 @@ Section H of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the cleanup rul
 | succeeded | forgets the stopped session at once; on an imp target the machine is destroyed |
 | failed | keeps the stopped session for 24 hours, for diagnosis, then forgets it |
 
-boxxy tries a failed forget again on the next tick, and never forgets a stray session before it has stopped. The attempt row records the forget, through the attempt move `session-forgotten`. No fact does, because no fact type for cleanup exists.
+boxxy tries a failed forget again on the next tick, and never forgets a stray session before it has stopped. A stray whose stop is still unconfirmed 24 hours after it strayed goes to cleanup: on each tick, cleanup sends the stop, and forgets the session once the stop is confirmed, because atc refuses to forget a live session. The attempt row records the forget, through the attempt move `session-forgotten`. No fact does, because no fact type for cleanup exists.
 
 ## Capacity and the usage limit
 
