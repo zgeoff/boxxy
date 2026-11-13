@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.2.5](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.2.4...@boxxy/store-sqlite@0.2.5) (2026-11-13)
+
+### Features
+
+- **closeout:** let an open item name its kind and the security mark
+  ([63a2df4](https://github.com/zgeoff/boxxy/commit/63a2df4d995057017eb12a272f47d480cf395919))
+- **dispatch:** let design and build close-outs record a wait on an item
+  ([f07d757](https://github.com/zgeoff/boxxy/commit/f07d7579ae4b8574895ffede061942a84f2422fd))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.2.5
+    - @boxxy/model bumped to 0.2.5
+  - devDependencies
+    - @boxxy/dispatch bumped to 0.2.5
+  - peerDependencies
+    - @boxxy/dispatch bumped to 0.2.5
+
 ## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.2.3...@boxxy/store-sqlite@0.2.4) (2026-11-13)
 
 ### Features

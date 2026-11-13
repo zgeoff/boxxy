@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.5](https://github.com/zgeoff/boxxy/compare/@boxxy/planning@0.2.4...@boxxy/planning@0.2.5) (2026-11-13)
+
+### Features
+
+- **closeout:** add needs-owner and split triage outcomes
+  ([046b848](https://github.com/zgeoff/boxxy/commit/046b8481e76b26278eddf56fd138a5dbcb83b05e))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.2.5
+    - @boxxy/model bumped to 0.2.5
+    - @boxxy/rules bumped to 0.2.5
+
 ## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/planning@0.2.3...@boxxy/planning@0.2.4) (2026-11-13)
 
 ### Miscellaneous Chores

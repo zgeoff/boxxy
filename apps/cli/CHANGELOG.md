@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.2.5](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.2.4...@boxxy/cli@0.2.5) (2026-11-13)
+
+### Features
+
+- **api:** let a session list and read the items of its repo
+  ([c1ff07c](https://github.com/zgeoff/boxxy/commit/c1ff07c940a9b3554e454c973c246cf671b093ec))
+- **cli:** name the item reads in the session guide and verify them
+  ([3803e8b](https://github.com/zgeoff/boxxy/commit/3803e8b2c185509f5fd9c475d08ea681725598c8))
+- **cli:** tell a session where its input is and how to cite evidence
+  ([286934c](https://github.com/zgeoff/boxxy/commit/286934cafdee2b7344b75a8e5eca9e503f34410d))
+- **server:** let the owner set and clear the security mark
+  ([baa4439](https://github.com/zgeoff/boxxy/commit/baa4439a5d98eea4b177bf7e3d9b33db153627e8))
+
+### Bug Fixes
+
+- **cli:** keep the server-starting test helpers out of the tarball
+  ([bcbf3ad](https://github.com/zgeoff/boxxy/commit/bcbf3ade494eb11ab513c57c45221310b40f57e2))
+
+### Reverts
+
+- restore the system-tests package
+  ([3fa7e41](https://github.com/zgeoff/boxxy/commit/3fa7e41906f18190c0a813dce547ce66908194ab))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/contract bumped to 0.2.5
+    - @boxxy/model bumped to 0.2.5
+
 ## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.2.3...@boxxy/cli@0.2.4) (2026-11-13)
 
 ### Features

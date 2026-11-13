@@ -1,5 +1,77 @@
 # Changelog
 
+## [0.2.5](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.2.4...@boxxy/dispatch@0.2.5) (2026-11-13)
+
+### Features
+
+- **api:** let a session list and read the items of its repo
+  ([c1ff07c](https://github.com/zgeoff/boxxy/commit/c1ff07c940a9b3554e454c973c246cf671b093ec))
+- **closeout:** add needs-owner and split triage outcomes
+  ([046b848](https://github.com/zgeoff/boxxy/commit/046b8481e76b26278eddf56fd138a5dbcb83b05e))
+- **closeout:** carry a blocked build or triage question into the retry
+  ([616a9eb](https://github.com/zgeoff/boxxy/commit/616a9eb946dcf5455c20f8d3abcceafeb657149a))
+- **closeout:** let a design carry a conclusion for the next build
+  ([c0cd27d](https://github.com/zgeoff/boxxy/commit/c0cd27de061efad0d152024c01286f8d6f5d0961))
+- **closeout:** let a design close-out set acceptance and file items
+  ([1fae644](https://github.com/zgeoff/boxxy/commit/1fae64432325058409d68831ed625ddd16646764))
+- **closeout:** let a triage close-out set the item body
+  ([9eb8f5b](https://github.com/zgeoff/boxxy/commit/9eb8f5b5f7dd3bb7172a2e4a6d31ff83b03100e9))
+- **closeout:** let a triage relation make the item wait on another
+  ([e977518](https://github.com/zgeoff/boxxy/commit/e977518c2fa41e52d8f3365cf8236601a732416d))
+- **closeout:** let an open item name its kind and the security mark
+  ([63a2df4](https://github.com/zgeoff/boxxy/commit/63a2df4d995057017eb12a272f47d480cf395919))
+- **closeout:** start a design on an item with no acceptance list
+  ([5944fcc](https://github.com/zgeoff/boxxy/commit/5944fccbb8a1570661781bfa22fba28f94380495))
+- **dispatch:** carry a blocked design's reason into the next design
+  ([f1c2293](https://github.com/zgeoff/boxxy/commit/f1c229379b74366f15fdd0a188ff6616dbf4413d))
+- **dispatch:** let design and build close-outs record a wait on an item
+  ([f07d757](https://github.com/zgeoff/boxxy/commit/f07d7579ae4b8574895ffede061942a84f2422fd))
+- **forge:** read a pull request's base branch
+  ([33e8cc7](https://github.com/zgeoff/boxxy/commit/33e8cc7cda8c40ad248fb672b5affa2e98dde702))
+- **forge:** read required checks and merge a pull request at its head
+  ([40a38dd](https://github.com/zgeoff/boxxy/commit/40a38dd71e5ad1ab9f3b8915084067fe95f944a4))
+- **rules:** let a recipe give a rework round its own prompt
+  ([bf0e63c](https://github.com/zgeoff/boxxy/commit/bf0e63c12d471e201b829bfdc6db782103de1ead))
+- **train:** merge a reviewed, green, verified pull request at its head
+  ([3f09760](https://github.com/zgeoff/boxxy/commit/3f09760bad1cb9d409dd2930a5dacdb7679f11d8))
+
+### Bug Fixes
+
+- **dispatch:** compare-and-set a job's action mark on the row it read
+  ([84b4bd2](https://github.com/zgeoff/boxxy/commit/84b4bd2aa5803acf015e88b00b9a8e0819b37091))
+- **dispatch:** file a split part that has its parent's title
+  ([55221c3](https://github.com/zgeoff/boxxy/commit/55221c3810d13adfd1390e90c11f0a47609192d7))
+- **dispatch:** hand a kept agent session over at its first bind
+  ([9d34a82](https://github.com/zgeoff/boxxy/commit/9d34a8211bad7cd97ae2aea6fa73e0763d35aece))
+- **dispatch:** leave a merge with no merge commit to the watch
+  ([6a6b035](https://github.com/zgeoff/boxxy/commit/6a6b035dd7d0a6189968b101bdfe23627605858a))
+- **dispatch:** let only a live attempt take over a kept agent session
+  ([6df8bc7](https://github.com/zgeoff/boxxy/commit/6df8bc7431fe9967187962b03ec7902e5596c298))
+- **dispatch:** refuse a job timeout on a row another runner moved
+  ([98704b9](https://github.com/zgeoff/boxxy/commit/98704b99df31f61c2dd5459bac08b6d1b88fc79e))
+- **dispatch:** skip a close-out relation whose reverse is live
+  ([102db78](https://github.com/zgeoff/boxxy/commit/102db78c9e74f725bd7d7c095cd67d4990080f00))
+- **dispatch:** time out a job attempt whose read throws past its limit
+  ([06d8303](https://github.com/zgeoff/boxxy/commit/06d830391eb9596d3883779d3d4c4e202a09e364))
+- **forge:** refuse a branch past the rules limit, read closed as unknown
+  ([e64d471](https://github.com/zgeoff/boxxy/commit/e64d471f41e331a27e2981b889e1050f88c4c1ee))
+- **train:** hold a merge that has no pull request or head to read
+  ([635679a](https://github.com/zgeoff/boxxy/commit/635679adcf42020d8022f4c1b843c15e96b7d21d))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/closeout bumped to 0.2.5
+    - @boxxy/content-hash bumped to 0.2.5
+    - @boxxy/model bumped to 0.2.5
+    - @boxxy/planning bumped to 0.2.5
+    - @boxxy/prompt-template bumped to 0.2.5
+  - devDependencies
+    - @boxxy/rules bumped to 0.2.5
+  - peerDependencies
+    - @boxxy/rules bumped to 0.2.5
+
 ## [0.2.4](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.2.3...@boxxy/dispatch@0.2.4) (2026-11-13)
 
 ### Features

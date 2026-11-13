@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/verifier-wringer",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "boxxy's verifier on wringer: reads the verify gate check and the report in a pull request",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/adapters/verifier-wringer#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",
