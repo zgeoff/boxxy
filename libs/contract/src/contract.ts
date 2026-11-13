@@ -390,6 +390,7 @@ export const contract = {
       .errors({
         ...notFound,
         UNKNOWN_PHASE: { message: 'the pipeline of the item has no such phase' },
+        ITEM_HELD: { message: 'the item is held; release it with item_release first' },
       })
       .input(itemRetryInput)
       .output(leverOutput),

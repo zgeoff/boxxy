@@ -71,15 +71,22 @@ test('#expedite leaves a held item unstarted', async () => {
   expect([shown.item.derived.state, shown.attempts]).toStrictEqual(['held', []]);
 });
 
-test('#item retry leaves a held item held', async () => {
+test('#item retry exits 1 for a held item, so its release still starts at triage', async () => {
   const ctx = await setupTest();
-  const item = await ctx.fileItem('--held', 'still a draft');
+  const item = await ctx.fileItem('--held', 'still a draft', '--acceptance', 'It is dark.');
+  const retried = await ctx.run(['item', 'retry', item, '--phase', 'build']);
 
-  await ctx.run(['item', 'retry', item]);
+  await ctx.run(['item', 'release', item]);
+  await ctx.server.tick();
 
   const shown = await ctx.showItem(item);
 
-  expect(shown.item.derived.state).toBe('held');
+  expect({ exitCode: retried.exitCode, stderr: retried.stderr }).toStrictEqual({
+    exitCode: 1,
+    stderr: 'error: ITEM_HELD: the item is held; release it with item_release first\n',
+  });
+
+  expect(shown.attempts).toStrictEqual([{ phase: 'triage' }]);
 });
 
 test('#item release releases a held item, and the next tick starts its triage', async () => {

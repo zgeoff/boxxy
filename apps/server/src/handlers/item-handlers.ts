@@ -224,10 +224,16 @@ export const itemHandlers = {
     const input = options.input;
     const notFound = options.errors.NOT_FOUND;
     const unknownPhase = options.errors.UNKNOWN_PHASE;
+    const itemHeld = options.errors.ITEM_HELD;
     const deps = options.context.deps;
     const rules = deps.rulesState().rules;
 
     const item = await deps.store.read((tx) => readItemOrThrow(tx, deps, input.item, notFound));
+
+    // A retry would move a held item's position, so its release would skip triage.
+    if (item.derived.state === 'held') {
+      throw itemHeld();
+    }
 
     const phase =
       input.phase === undefined

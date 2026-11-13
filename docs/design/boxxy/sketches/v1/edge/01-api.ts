@@ -253,7 +253,7 @@ export const contract = {
     // With no `phase`, on an item that triage holds as `declined` or `duplicate`, it sends the
     // item back to triage.
     retry: tool('item_retry', 'Lifts a hold on an item and resets its attempt counts. With phase, also sends the item back to that phase.')
-      .errors({ ...notFound, UNKNOWN_PHASE: { message: 'the pipeline of the item has no such phase' } })
+      .errors({ ...notFound, UNKNOWN_PHASE: { message: 'the pipeline of the item has no such phase' }, ITEM_HELD: { message: 'the item is held; release it with item_release first' } })
       .input(z.object({ item: itemId, phase: id.optional().describe('triage, design, build or review.') }))
       .output(z.object({ lever: z.number().int() })),
 
