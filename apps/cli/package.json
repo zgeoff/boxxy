@@ -16,8 +16,12 @@
   "files": [
     "src",
     "!src/**/*.test.ts",
+    "!src/test-utils/create-test-cli.ts",
+    "!src/test-utils/verify",
     "hook-plugin",
-    "dist"
+    "dist",
+    "!dist/test-utils/create-test-cli.d.ts",
+    "!dist/test-utils/verify"
   ],
   "type": "module",
   "exports": {
