@@ -118,7 +118,11 @@ async function setupTest() {
 
   // The rework session records its evidence through the CLI, pushes the commits, and closes out
   // built.
-  const runRepair = async (item: ItemId, push: () => void) => {
+  const runRepair = async (
+    item: ItemId,
+    commits: readonly CommitSha[],
+    checks: Readonly<Record<string, CheckState>>,
+  ) => {
     const build = await claimNextStep(item);
 
     server.callerProof.setCaller(build.caller);
@@ -134,7 +138,7 @@ async function setupTest() {
       '12 passed',
     ]);
 
-    push();
+    pushHead(commits, checks);
 
     await server.dispatch.closeAndSettle(build, {
       result: { kind: 'built' },
@@ -235,11 +239,11 @@ test('it sends a red required check to a repair build three times, and holds the
 
   const steps = [
     ...(await ctx.runGradedMerge(build.item, first)),
-    await ctx.runRepair(build.item, () => ctx.pushHead([first, second], red)),
+    await ctx.runRepair(build.item, [first, second], red),
     ...(await ctx.runGradedMerge(build.item, second)),
-    await ctx.runRepair(build.item, () => ctx.pushHead([first, second, third], red)),
+    await ctx.runRepair(build.item, [first, second, third], red),
     ...(await ctx.runGradedMerge(build.item, third)),
-    await ctx.runRepair(build.item, () => ctx.pushHead(heads, red)),
+    await ctx.runRepair(build.item, heads, red),
     ...(await ctx.runGradedMerge(build.item, fourth)),
   ];
 
