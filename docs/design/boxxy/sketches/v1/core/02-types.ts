@@ -626,7 +626,7 @@ export interface StoreReader {
 //     each item's settled attempts and `item.retry` levers with `findPosition`, then derives
 //     its state with `deriveItemState`.
 //   - `listSessionsToForget(failedEndedBefore, strayedBefore)`: cleanup passes the cutoff of a
-//     failed attempt and of a stray, not the time now. A succeeded attempt is due at once. Only
+//     failed attempt and of a stray, not the time now. A succeeded attempt or a failed review is due at once. Only
 //     the latest attempt of a session counts. A kept session is left out, and so is a stray
 //     session not yet stopped that strayed at `strayedBefore` or later.
 //   - `findAttemptByAgentSession` gives the latest attempt bound to the agent session, and

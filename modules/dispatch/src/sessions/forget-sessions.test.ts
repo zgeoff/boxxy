@@ -60,6 +60,26 @@ async function setupTest() {
 
       return dispatch.readAttempt(claim.attempt.id);
     },
+    failReview: async () => {
+      await dispatch.seedItem({ phase: brandSchemas.phaseName.parse('review') });
+
+      const claim = await dispatch.claim();
+
+      invariant(claim !== null, 'the claim picks the seeded item');
+
+      await settleAttempt({
+        store: dispatch.store,
+        attempt: claim.attempt.id,
+        forced: 'stalled',
+        sessionStopped: true,
+        rules: dispatch.rules(),
+        actor: 'boxxy:runner:runner-1',
+        now: dispatch.clock.now(),
+        newId: dispatch.newId,
+      });
+
+      return dispatch.readAttempt(claim.attempt.id);
+    },
     strayBuild: async () => {
       await dispatch.seedItem({ phase: brandSchemas.phaseName.parse('build') });
 
@@ -180,6 +200,22 @@ test('it keeps a failed attempt session for 24 hours and then forgets it', async
     early.forgotten.includes(ctx.getSession(failed)),
     late.forgotten.includes(ctx.getSession(failed)),
   ]).toStrictEqual([false, true]);
+});
+
+test('it forgets the session of a failed review on the next tick', async () => {
+  const ctx = await setupTest();
+  const failed = await ctx.failReview();
+
+  ctx.clock.advance(5000);
+
+  const report = await ctx.forget();
+  const after = await ctx.readAttempt(failed.id);
+
+  expect([failed.phase, report.forgotten, after.sessionForgottenAt]).toStrictEqual([
+    brandSchemas.phaseName.parse('review'),
+    [ctx.getSession(failed)],
+    ctx.clock.now(),
+  ]);
 });
 
 test('it tries a refused forget again on the next tick and records nothing for the refusal', async () => {

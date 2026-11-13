@@ -170,6 +170,42 @@ export const claimStoreSessionCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
+    '#listSessionsToForget returns a failed review at once and leaves a failed build until the cutoff',
+    async (store) => {
+      const review = buildMockV1AttemptRow({
+        phase: brandSchemas.phaseName.parse('review'),
+        state: 'failed',
+        endedAt: brandSchemas.instant.parse(5000),
+        claimedAt: brandSchemas.instant.parse(1000),
+      });
+
+      const build = buildMockV1AttemptRow({
+        state: 'failed',
+        endedAt: brandSchemas.instant.parse(5000),
+        claimedAt: brandSchemas.instant.parse(1100),
+      });
+
+      await store.exclusive(async (transaction) => {
+        for (const attempt of [review, build]) {
+          await transaction.applyChange(
+            buildMockFileItemChange(buildMockV1ItemRow({ id: attempt.item })),
+          );
+
+          await transaction.applyChange(buildMockClaimChange(attempt));
+        }
+      });
+
+      const listed = await store.read((transaction) =>
+        transaction.listSessionsToForget(
+          brandSchemas.instant.parse(3000),
+          brandSchemas.instant.parse(1500),
+        ),
+      );
+
+      return { received: listed.map((attempt) => attempt.id), expected: [review.id] };
+    },
+  ],
+  [
     '#listSessionsToForget returns a succeeded session at once and a failed one past the cutoff',
     async (store) => {
       const succeeded = buildMockV1AttemptRow({

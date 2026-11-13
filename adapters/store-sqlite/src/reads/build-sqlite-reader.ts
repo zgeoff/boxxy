@@ -434,7 +434,12 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
             builder('ended_at', '<=', failedEndedBefore),
           ]);
 
-          return builder.or([builder('state', '=', 'succeeded'), failedBefore]);
+          const failedReview = builder.and([
+            builder('state', '=', 'failed'),
+            builder('phase', '=', 'review'),
+          ]);
+
+          return builder.or([builder('state', '=', 'succeeded'), failedBefore, failedReview]);
         })
         .orderBy('claimed_at')
         .orderBy('id')

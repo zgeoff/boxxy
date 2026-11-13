@@ -181,6 +181,6 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
   - `report.cost` showed model requests in every phase and a cost above zero, and `report.stageTimes` showed minutes for triage, design, build, review and merge;
   - the worker token got `FORBIDDEN` on an owner procedure, and a call with no token got 401;
   - the review asked for changes, and the second build round ran on the first build's kept session;
-  - after the item settled, `boxxy status` showed no attempt and no stray, and no worker machine was left for the run's sessions. A failed session stays for the 24 hours that the [cleanup rule](./v1-lifecycle.md#cleanup) sets;
+  - after the item settled, `boxxy status` showed no attempt and no stray, and no worker machine was left for the run's sessions. A failed session other than a review's stays for the 24 hours that the [cleanup rule](./v1-lifecycle.md#cleanup) sets;
   - a redelivered `pull_request` webhook left the pull request's row and both reports unchanged, because pepys applies each fact ID once.
 - **Faults the proof found:** the atc daemon's path had no `tar`; the deployed prompts did not tell a session how to close out, which the session start guide now does; and the cost query matched no telemetry for a session on a remote target, because telemetry carries the session's own ID, the part after the last dot.

@@ -64,7 +64,7 @@ Four rules decide the hard cells:
 - A close-out beats a sleep in progress. A close-out that lands between the sleep request and the stop moves the attempt to `closing`.
 - boxxy puts no attempt to sleep before atc reports an agent session ID for it, because atc cannot revive a session that stopped before atc captured the ID.
 
-The time limits that the rules file does not hold are in `timeouts`, in `modules/dispatch/src/timeouts.ts`: 10 minutes for a lost spawn, a lost resume and a session that does not stop, 60 seconds of grace before a stop, 10 seconds before a revived session wakes over the cap, 30 minutes for a stall, 60 seconds of capacity backoff, 24 hours at most of usage-limit backoff, and 24 hours for a stray session, a kept session and a failed attempt's session. A job attempt has two more: 30 seconds at least between two reads of one job (`jobReadSeconds`), and 5 minutes before the drive sends an unanswered action again (`actRetryMinutes`).
+The time limits that the rules file does not hold are in `timeouts`, in `modules/dispatch/src/timeouts.ts`: 10 minutes for a lost spawn, a lost resume and a session that does not stop, 60 seconds of grace before a stop, 10 seconds before a revived session wakes over the cap, 30 minutes for a stall, 60 seconds of capacity backoff, 24 hours at most of usage-limit backoff, and 24 hours for a stray session, a kept session and the session of a failed attempt that is not a review. A job attempt has two more: 30 seconds at least between two reads of one job (`jobReadSeconds`), and 5 minutes before the drive sends an unanswered action again (`actRetryMinutes`).
 
 ## Sleep and wake
 
@@ -159,7 +159,8 @@ Section H of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the cleanup rul
 | Attempt | What boxxy does |
 | --- | --- |
 | succeeded | forgets the stopped session at once; on an imp target the machine is destroyed |
-| failed | keeps the stopped session for 24 hours, for diagnosis, then forgets it |
+| failed review | forgets the stopped session on the next tick, because nothing resumes a review session |
+| any other failed attempt, such as a design, build or triage | keeps the stopped session for 24 hours, for diagnosis, then forgets it |
 
 boxxy tries a failed forget again on the next tick, and never forgets a stray session before it has stopped. A stray whose stop is still unconfirmed 24 hours after it strayed goes to cleanup: on each tick, cleanup sends the stop, and forgets the session once the stop is confirmed, because atc refuses to forget a live session. The attempt row records the forget, through the attempt move `session-forgotten`. No fact does, because no fact type for cleanup exists.
 

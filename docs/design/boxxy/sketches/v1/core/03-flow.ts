@@ -925,8 +925,9 @@ export function findPosition(input: { pipeline: Pipeline | null; attempts: reado
 //
 // Session cleanup: what happens to a settled attempt's session, when it is not kept.
 //   succeeded   stop, then forget (`worker.forget`): the imp is destroyed.
-//   failed      keep the stopped session for `timeouts.failedSessionHours` (24), for diagnosis,
-//               then forget.
+//   failed review   forget on the next tick: nothing resumes a review session.
+//   other failed    keep the stopped session for `timeouts.failedSessionHours` (24), for
+//                   diagnosis, then forget.
 //   The runner tick does it (`listSessionsToForget`), and writes `sessionForgottenAt` on the
 //   attempt row. No fact type for session cleanup exists, so no fact records the forget. A
 //   forget that fails is tried again on the next tick. A stray session is not forgotten before

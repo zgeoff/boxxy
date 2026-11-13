@@ -248,6 +248,7 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
                 attempt.sessionStoppedAt !== null ||
                 attempt.strayedAt < strayedBefore) &&
               (attempt.state === 'succeeded' ||
+                (attempt.state === 'failed' && attempt.phase === 'review') ||
                 (attempt.state === 'failed' &&
                   attempt.endedAt !== null &&
                   attempt.endedAt <= failedEndedBefore)),
