@@ -49,7 +49,15 @@ import { z } from 'zod';
 import { expectEqual, runBoxxy } from './run-boxxy.ts';
 import { featurePaths, ignoredPaths } from './feature-paths.ts';
 import { landItem, runSession } from './harness/drive.ts';
-import { closeOutPresetSchema, costSchema, itemShowSchema, timesSchema } from './harness/types.ts';
+import { fileClosedItem } from './harness/file-closed-item.ts';
+import { readSessionItem } from './harness/read-session-item.ts';
+import {
+  closeOutPresetSchema,
+  costSchema,
+  itemShowSchema,
+  sessionItemShowSchema,
+  timesSchema,
+} from './harness/types.ts';
 
 export function createVerifyRegistry(): Wringer {
   return (
@@ -101,6 +109,18 @@ export function createVerifyRegistry(): Wringer {
         },
       })
       .action({
+        name: 'file-closed-item',
+        summary:
+          'File an item on example/app and close it, with `boxxy item file` and `boxxy item close`; the current item stays',
+        effect: 'write',
+        input: z.strictObject({ title: z.string().min(1) }),
+        data: z.strictObject({ item: z.string() }),
+
+        // a closed item takes no seat, so the other journeys claim the same way, and it is not
+        // held, so a session can read it
+        run: (input, ctx) => fileClosedItem(ctx, input),
+      })
+      .action({
         name: 'run-session',
         summary:
           "Run one attempt of the current item: a tick claims it, the session's hook binds it, the session closes out with the preset, its turn ends, and two ticks settle it",
@@ -126,8 +146,8 @@ export function createVerifyRegistry(): Wringer {
         run: (input, ctx) => landItem(ctx, input),
       })
 
-      // Reads. Each runs one owner command of the real CLI on the current item, and fails with
-      // `check-failed` when a value differs from the one the journey names.
+      // Reads. Each runs the real CLI, as the owner on the current item or as the last session, and
+      // fails with `check-failed` when a value differs from the one the journey names.
       .command({
         path: ['boxxy', 'item'],
         summary: "Check the current item's title, and the state and outcome of its --phase attempt",
@@ -152,6 +172,18 @@ export function createVerifyRegistry(): Wringer {
 
           return shown;
         },
+      })
+      .command({
+        path: ['boxxy', 'session-item'],
+        summary:
+          'As the session of the last run-session, find the one item that holds --text with `boxxy attempt list-items`, and check its title with `boxxy attempt show-item`',
+        effect: 'read',
+        args: z.strictObject({ text: z.string(), title: z.string() }),
+        data: sessionItemShowSchema,
+
+        // fails with `check-failed` when the list holds another count than one, or the shown item
+        // another title
+        run: (args, ctx) => readSessionItem(ctx, args),
       })
       .command({
         path: ['boxxy', 'cost'],
@@ -344,18 +376,22 @@ export const ignoredPaths = [
 ## claim-settle
 
 - **What:** boxxy claims a filed item for triage, a worker session binds and closes out, and the
-  attempt settles with that outcome.
-- **How a user reaches it:** the owner files an item; the runner tick does the rest.
+  attempt settles with that outcome. The session reads another item of its repo.
+- **How a user reaches it:** the owner files an item; the runner tick does the rest. A triage
+  session runs `boxxy attempt list-items` and `boxxy attempt show-item` to look for a duplicate.
 - **Journey:**
 
   ```bash
   bun verify use --feature claim-settle
+  bun verify action file-closed-item --title "Read the theme from the desktop"
   bun verify action file-item --title "Read the system theme"
   bun verify action run-session --close-out accepted --minutes 4
+  bun verify boxxy session-item --text "theme from the desktop" --title "Read the theme from the desktop"
   bun verify boxxy item --title "Read the system theme" --phase triage --outcome accepted
   ```
 
-- **End state:** `boxxy item` exits 0: the item's triage attempt is `succeeded` with the outcome
+- **End state:** `boxxy session-item` exits 0: the session lists one item with the text, and shows
+  its title. `boxxy item` exits 0: the item's triage attempt is `succeeded` with the outcome
   `accepted`. `run-session` fails with `check-failed` when no tick claims the item, the hook does
   not bind, the close-out is refused, or two ticks do not settle the attempt.
 
