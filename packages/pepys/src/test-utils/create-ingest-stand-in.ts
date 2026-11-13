@@ -1,4 +1,4 @@
-import { isDeliveryAuthentic } from '@pepys/kit';
+import { createLogger, isDeliveryAuthentic } from '@pepys/kit';
 import { boxxySource } from '../boxxy-source.ts';
 
 export interface IngestStandIn {
@@ -19,6 +19,7 @@ export function createIngestStandIn(secret: string): IngestStandIn {
     throw new Error('the boxxy source has no receive path');
   }
 
+  const log = createLogger(process.stderr);
   const stored: string[] = [];
 
   return {
@@ -33,7 +34,7 @@ export function createIngestStandIn(secret: string): IngestStandIn {
 
       const received = path.read(
         { headers: request.headers, body },
-        { name: boxxySource.name, families: boxxySource.families },
+        { name: boxxySource.name, families: boxxySource.families, log },
       );
 
       if (received.kind === 'refused') {

@@ -1,4 +1,4 @@
-import { isDeliveryAuthentic } from '@pepys/kit';
+import { createLogger, isDeliveryAuthentic } from '@pepys/kit';
 import type { DeliveryCheck, FactEnvelope } from '@pepys/kit';
 import { createTestStore } from '@pepys/testing';
 import { z } from 'zod';
@@ -83,6 +83,8 @@ export async function createTestPepys(options: TestPepysOptions): Promise<TestPe
     throw new Error('the boxxy source has no receive path');
   }
 
+  const log = createLogger(process.stderr);
+
   const stored = new Set<string>();
 
   const receiveFacts = async (request: Request): Promise<Response> => {
@@ -96,7 +98,7 @@ export async function createTestPepys(options: TestPepysOptions): Promise<TestPe
 
     const received = path.read(
       { headers: request.headers, body },
-      { name: boxxySource.name, families: boxxySource.families },
+      { name: boxxySource.name, families: boxxySource.families, log },
     );
 
     if (received.kind === 'refused') {

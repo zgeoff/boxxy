@@ -14,7 +14,7 @@ A deployment installs these:
 | the pepys deployment | `@boxxy/pepys`, the plug-in, and `@boxxy/model` |
 | the agent image | no package: the files that the [CLI's GitHub release](#the-cli-release-assets) carries |
 
-`@boxxy/pepys` lists `@pepys/kit` and `zod` as peer dependencies, so the plug-in uses the deployment's own copy of each. Every `@pepys/*` peer range of `@boxxy/pepys` has one floor, `^0.3.1`, so a deployment can take any `0.3.x` release from `0.3.1` on, and a boxxy release moves the floor when it moves to a new pepys version. Inside this repo, the root catalog pins every `@pepys/*` package that boxxy installs to one exact npm version, and the dev dependencies of `@boxxy/pepys` take them from the catalog.
+`@boxxy/pepys` lists `@pepys/kit` and `zod` as peer dependencies, so the plug-in uses the deployment's own copy of each. Every `@pepys/*` peer range of `@boxxy/pepys` has one floor, `^0.4.0`, so a deployment can take any `0.4.x` release from `0.4.0` on, and a boxxy release moves the floor when it moves to a new pepys version. Inside this repo, the root catalog pins every `@pepys/*` package that boxxy installs to one exact npm version, and the dev dependencies of `@boxxy/pepys` take them from the catalog.
 
 A package never names an export that its tarball lacks, and never ships source that imports a name its install does not bring. The publish packs each package, reads the tarball's file list, and refuses the run before `npm publish` when an `exports` target has no packed file, or a packed `src` file imports a bare name that is in no `dependencies`, `peerDependencies` or `optionalDependencies` field. `bun` and the `node:` and `bun:` modules count as listed. The CI rehearsal makes both checks on every package.
 
