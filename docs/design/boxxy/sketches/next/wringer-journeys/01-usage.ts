@@ -5,7 +5,7 @@
 //   A. The entry point and the root package.json.
 //   B. The registry: the launch target, the actions, the reads, the doctor check, the features.
 //   C. The path-to-feature map and the ignore list.
-//   D. The feature map in the `verify` skill: the three journeys, as an agent runs them.
+//   D. The feature map in the `verify` skill: the seven journeys, as an agent runs them.
 //
 // The harness that `bun verify up` launches, and its control routes, are in 02-types.ts and
 // 03-flow.ts. The entry, the registry, the map and the harness live in
@@ -31,8 +31,8 @@ await runVerify(createVerifyRegistry(), { skill: '.claude/skills/verify' });
 //   }
 //
 // apps/cli/package.json lists "@wringer/core", "@wringer/gunshi" and "@wringer/http" as
-// "catalog:" devDependencies, pinned at 0.2.0, the release that adds `.ignore(...)`, beside the
-// @boxxy packages the harness imports.
+// "catalog:" devDependencies, pinned at 0.3.0 (@wringer/http at 0.1.3), the release that writes the version 2 data comment and
+// adds `publish`, beside the @boxxy packages the harness imports.
 //
 // .gitignore gains `.wringer/`. The `zgeoff/import-zones` pins gain one edge: only the verify CLI
 // folder imports `@wringer/*`.
@@ -349,9 +349,9 @@ export const ignoredPaths = [
 
 // ── D. The feature map in the `verify` skill ───────────────────────────────────────────────────
 //
-// .claude/skills/verify/references/feature-map.md. Each journey runs as written after
-// `bun verify up` and `bun verify doctor`. Each files its own item, so the three run in any order
-// on one run.
+// .claude/skills/verify/references/feature-<name>.md, one file per feature. Each journey runs as
+// written after `bun verify up` and `bun verify doctor`. Each files its own items, so the seven run
+// in any order on one run.
 /*
 ## file-item
 
@@ -407,4 +407,80 @@ export const ignoredPaths = [
 - **End state:** each read exits 0: pepys reports 2 model requests that cost 3 USD in all, a build
   step of 30 minutes and a merge step of 20, the numbers that `land-item` scripts on the harness
   clock.
+
+## plan-ordering
+
+- **What:** an expedited item is claimed first, a deferred item is not claimed, and the undeferred
+  item is claimed on the next tick.
+- **How a user reaches it:** `boxxy expedite`, `boxxy defer` and `boxxy undefer`.
+- **Journey:**
+
+  ```bash
+  bun verify use --feature plan-ordering
+  bun verify action file-item --title "Sort the settings by use"
+  bun verify action file-item-beside --title "Sort the settings by name"
+  bun verify action plan-lever --lever expedite --title "Sort the settings by name"
+  bun verify action plan-lever --lever defer --title "Sort the settings by use"
+  bun verify action run-session --close-out accepted --minutes 4
+  bun verify boxxy item --title "Sort the settings by name" --phase triage --outcome accepted
+  bun verify boxxy attempts --title "Sort the settings by use" --count 0
+  bun verify action plan-lever --lever undefer --title "Sort the settings by use"
+  bun verify action tick
+  bun verify boxxy attempts --title "Sort the settings by use" --count 1 --phase triage
+  ```
+
+## runner-pause
+
+- **What:** a paused runner starts no attempt, and a resumed runner claims the filed item.
+- **How a user reaches it:** `boxxy runner pause`, `boxxy runner resume` and `boxxy status`.
+- **Journey:**
+
+  ```bash
+  bun verify use --feature runner-pause
+  bun verify action runner-pause
+  bun verify action file-item --title "Remember the window size"
+  bun verify action tick
+  bun verify boxxy attempts --title "Remember the window size" --count 0
+  bun verify boxxy status --state paused
+  bun verify action runner-resume
+  bun verify action tick
+  bun verify boxxy attempts --title "Remember the window size" --count 1 --phase triage
+  bun verify boxxy status --state running
+  ```
+
+## hold-notice
+
+- **What:** an item that the rules hold sends one notice to the registered notice session.
+- **How a user reaches it:** `boxxy notices register`.
+- **Journey:**
+
+  ```bash
+  bun verify use --feature hold-notice
+  bun verify action register-notices --session workbench.3.owner-notes
+  bun verify action file-item --title "Choose the theme source"
+  bun verify action run-session --close-out needs-owner --minutes 4
+  bun verify action tick
+  bun verify boxxy hold --reason needs-owner --state held
+  bun verify boxxy notices --count 1 --reason needs-owner --session workbench.3.owner-notes
+  ```
+
+## hold-recovery
+
+- **What:** the owner retries a held item at a phase, and the next attempt runs in that phase.
+- **How a user reaches it:** `boxxy item retry <item> --phase <phase>`.
+- **Journey:**
+
+  ```bash
+  bun verify use --feature hold-recovery
+  bun verify action file-item --title "Pick the theme in the settings"
+  bun verify action run-session --close-out accepted --minutes 4
+  bun verify action run-session --close-out designed --minutes 10
+  bun verify action open-pull-request
+  bun verify action run-session --close-out blocked --minutes 12 --pull-request opened
+  bun verify boxxy hold --reason blocked --state held
+  bun verify action retry-item --phase review
+  bun verify action run-session --close-out passed --minutes 8
+  bun verify boxxy item --title "Pick the theme in the settings" --phase review --outcome passed
+  bun verify boxxy hold --reason blocked --state lifted
+  ```
 */

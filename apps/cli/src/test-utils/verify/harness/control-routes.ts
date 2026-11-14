@@ -25,6 +25,12 @@ const modelRequestSchema = z.strictObject({
   costUSD: z.number(),
 });
 
+const sentNoticeSchema = z.strictObject({
+  item: z.string(),
+  reason: z.string(),
+  session: z.string(),
+});
+
 // The steps that only the harness can take, each with the schema of its body and of its answer. A
 // route answers 400 to a body its schema refuses, and 409 to a step whose state is wrong.
 export const controlRoutes = {
@@ -37,7 +43,7 @@ export const controlRoutes = {
   setCurrent: {
     method: 'POST',
     path: '/control/current',
-    request: z.strictObject({ item: itemID }),
+    request: z.strictObject({ item: itemID, keepPrevious: z.boolean() }),
     response: z.null(),
   },
   readCurrent: {
@@ -58,6 +64,20 @@ export const controlRoutes = {
       payload: sessionStartPayloadSchema,
     }),
   },
+
+  // runs one tick at the clock's time, with no wait and no session
+  tick: {
+    method: 'POST',
+    path: '/control/tick',
+    request: z.null(),
+    response: z.null(),
+  },
+  readNotices: {
+    method: 'GET',
+    path: '/control/notices',
+    request: z.null(),
+    response: z.strictObject({ notices: z.array(sentNoticeSchema) }),
+  },
   advanceClock: {
     method: 'POST',
     path: '/control/clock',
@@ -73,6 +93,12 @@ export const controlRoutes = {
   openPullRequest: {
     method: 'POST',
     path: '/control/pull-requests/open',
+    request: z.null(),
+    response: z.strictObject({ number: z.number().int() }),
+  },
+  readOpenedPullRequest: {
+    method: 'GET',
+    path: '/control/pull-requests/opened',
     request: z.null(),
     response: z.strictObject({ number: z.number().int() }),
   },

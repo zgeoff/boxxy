@@ -6,6 +6,7 @@ export function openPullRequest(harness: VerifyHarness): { number: number } {
   const number = harness.nextPullRequest;
 
   harness.nextPullRequest += 1;
+  harness.openedPullRequest = number;
 
   harness.server.forge.seed({
     ...buildPullRequestRef(number),

@@ -103,3 +103,27 @@ test('it answers 409 to a merge of a pull request the forge never opened', async
 
   expect(answer.status).toBe(409);
 });
+
+test('it answers 409 to a read of the opened pull request before one opens', async () => {
+  const ctx = await setupTest();
+  const answer = await ctx.call('GET', '/control/pull-requests/opened');
+
+  expect(answer.status).toBe(409);
+});
+
+test('it answers the number of the pull request that the last open took', async () => {
+  const ctx = await setupTest();
+
+  await ctx.call('POST', '/control/pull-requests/open');
+
+  const answer = await ctx.call('GET', '/control/pull-requests/opened');
+
+  expect(answer).toStrictEqual({ status: 200, json: { number: 1 } });
+});
+
+test('it answers an empty list of notices before any hold', async () => {
+  const ctx = await setupTest();
+  const answer = await ctx.call('GET', '/control/notices');
+
+  expect(answer).toStrictEqual({ status: 200, json: { notices: [] } });
+});
