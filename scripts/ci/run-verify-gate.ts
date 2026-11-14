@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { formatGateAnnotations } from './format-gate-annotations.ts';
+import { isRenovatePullRequest } from './is-renovate-pull-request.ts';
 import { parseGateEnvelope } from './parse-gate-envelope.ts';
 import { parsePullRequestEvent } from './parse-pull-request-event.ts';
 import type { RunCommand } from './run-command.ts';
@@ -39,6 +40,12 @@ export async function runVerifyGate(options: VerifyGateOptions): Promise<number>
     options.writeError(`::error::${event.message}\n`);
 
     return 1;
+  }
+
+  if (isRenovatePullRequest(event)) {
+    options.writeOutput('verify gate skipped: a renovate pull request carries no verify report\n');
+
+    return 0;
   }
 
   const bodyFile = join(tempDirectory, 'pr-body.md');
