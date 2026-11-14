@@ -8,10 +8,9 @@ interface MockWringerReportInput {
 // A wringer report against `origin/main` at a random fingerprint. A `verified` or `stale` feature
 // carries a verdict, and only an `unchanged` feature is unchanged.
 export function buildMockWringerReport(input: MockWringerReportInput): Report {
-  const fingerprint = faker.string.hexadecimal({ length: 16, casing: 'lower', prefix: '' });
+  const fingerprint = faker.string.hexadecimal({ length: 40, casing: 'lower', prefix: '' });
 
   return {
-    version: 1,
     base: 'origin/main',
     fingerprint,
     complete: input.features.every(
@@ -25,12 +24,15 @@ export function buildMockWringerReport(input: MockWringerReportInput): Report {
         feature.status === 'verified' || feature.status === 'stale'
           ? {
               feature: feature.name,
-              fingerprint:
+              fingerprint,
+              featureFingerprint:
                 feature.status === 'verified'
                   ? fingerprint
-                  : faker.string.hexadecimal({ length: 16, casing: 'lower', prefix: '' }),
+                  : faker.string.hexadecimal({ length: 40, casing: 'lower', prefix: '' }),
               run: `run-${faker.string.alphanumeric(8)}`,
               at: faker.date.recent().toISOString(),
+              target: { name: 'local', evidence: 'local' as const },
+              pin: { kind: 'local' as const },
               evidence: [],
             }
           : null,

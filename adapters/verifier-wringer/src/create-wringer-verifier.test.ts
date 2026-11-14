@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 import { createFakeForge } from '@boxxy/dispatch/test-utils/create-fake-forge';
 import { brandSchemas } from '@boxxy/model';
-import { renderReportMarkdown } from '@wringer/core';
 import { createWringerVerifier } from './create-wringer-verifier.ts';
+import { buildMockWringerComment } from './test-utils/build-mock-wringer-comment.ts';
 import { buildMockWringerReport } from './test-utils/build-mock-wringer-report.ts';
 
 function setupTest() {
@@ -24,7 +24,7 @@ test('it reads verified, with the report features, when the gate passed at the h
   const report = buildMockWringerReport({
     features: [
       { name: 'item-list', status: 'verified' },
-      { name: 'runner', status: 'unchanged' },
+      { name: 'runner', status: 'verified' },
     ],
   });
 
@@ -32,7 +32,7 @@ test('it reads verified, with the report features, when the gate passed at the h
     ref: ctx.ref,
     githubId: 7_000_087,
     reading: { state: 'open', mergedAt: null, mergeCommit: null, commits: [] },
-    body: `Fix the item list.\n\n${renderReportMarkdown(report)}`,
+    body: `Fix the item list.\n\n${buildMockWringerComment(report)}`,
   });
 
   ctx.forge.seedChecks({
@@ -48,12 +48,12 @@ test('it reads verified, with the report features, when the gate passed at the h
     head: ctx.head,
     features: [
       { name: 'item-list', status: 'verified' },
-      { name: 'runner', status: 'unchanged' },
+      { name: 'runner', status: 'verified' },
     ],
   });
 });
 
-test('it reads incomplete, with the report features, when the gate failed at the head', async () => {
+test('it reads incomplete with no features when the gate failed at the head', async () => {
   const ctx = setupTest();
 
   const report = buildMockWringerReport({
@@ -67,7 +67,7 @@ test('it reads incomplete, with the report features, when the gate failed at the
     ref: ctx.ref,
     githubId: 7_000_087,
     reading: { state: 'open', mergedAt: null, mergeCommit: null, commits: [] },
-    body: renderReportMarkdown(report),
+    body: buildMockWringerComment(report),
   });
 
   ctx.forge.seedChecks({ repo: ctx.repo, head: ctx.head, checks: { 'verify / gate': 'failure' } });
@@ -77,11 +77,25 @@ test('it reads incomplete, with the report features, when the gate failed at the
   expect(reading).toStrictEqual({
     status: 'incomplete',
     head: ctx.head,
-    features: [
-      { name: 'item-list', status: 'verified' },
-      { name: 'merge', status: 'stale' },
-    ],
+    features: [],
   });
+});
+
+test('it reads incomplete with no features when the body holds a version 1 report', async () => {
+  const ctx = setupTest();
+
+  ctx.forge.seed({
+    ref: ctx.ref,
+    githubId: 7_000_087,
+    reading: { state: 'open', mergedAt: null, mergeCommit: null, commits: [] },
+    body: '<!-- wringer-report v1\n{"version":1,"features":[]}\n-->',
+  });
+
+  ctx.forge.seedChecks({ repo: ctx.repo, head: ctx.head, checks: { 'verify / gate': 'success' } });
+
+  const reading = await ctx.verifier.readAt(ctx.ref, ctx.head);
+
+  expect(reading).toStrictEqual({ status: 'incomplete', head: ctx.head, features: [] });
 });
 
 test('it reads incomplete with no features when the gate passed and the body holds no report', async () => {
@@ -112,7 +126,7 @@ test('it reads incomplete with no features when the report in the body does not 
     ref: ctx.ref,
     githubId: 7_000_087,
     reading: { state: 'open', mergedAt: null, mergeCommit: null, commits: [] },
-    body: '<!-- wringer-report v1\n{"version": 1, "features": \n-->',
+    body: '<!-- wringer-data v2 {"version": 2, "claims": ',
   });
 
   ctx.forge.seedChecks({ repo: ctx.repo, head: ctx.head, checks: { 'verify / gate': 'success' } });
@@ -134,7 +148,7 @@ test('it reads not-covered, and never reads the body, when the head has no gate 
     ref: ctx.ref,
     githubId: 7_000_087,
     reading: { state: 'open', mergedAt: null, mergeCommit: null, commits: [] },
-    body: renderReportMarkdown(report),
+    body: buildMockWringerComment(report),
   });
 
   ctx.forge.seedChecks({ repo: ctx.repo, head: ctx.head, checks: { 'pr / checks': 'success' } });
@@ -160,7 +174,7 @@ test.each(['pending', 'other'] as const)(
       ref: ctx.ref,
       githubId: 7_000_087,
       reading: { state: 'open', mergedAt: null, mergeCommit: null, commits: [] },
-      body: renderReportMarkdown(report),
+      body: buildMockWringerComment(report),
     });
 
     ctx.forge.seedChecks({ repo: ctx.repo, head: ctx.head, checks: { 'verify / gate': gate } });
@@ -182,7 +196,7 @@ test('it reads not-covered when a commit status, and no check run, carries the g
     ref: ctx.ref,
     githubId: 7_000_087,
     reading: { state: 'open', mergedAt: null, mergeCommit: null, commits: [] },
-    body: renderReportMarkdown(report),
+    body: buildMockWringerComment(report),
   });
 
   ctx.forge.seedChecks({
@@ -209,7 +223,7 @@ test('it reads not-covered when the gate passed only at an older head', async ()
     ref: ctx.ref,
     githubId: 7_000_087,
     reading: { state: 'open', mergedAt: null, mergeCommit: null, commits: [] },
-    body: renderReportMarkdown(report),
+    body: buildMockWringerComment(report),
   });
 
   ctx.forge.seedChecks({ repo: ctx.repo, head: olderHead, checks: { 'verify / gate': 'success' } });

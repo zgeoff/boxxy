@@ -103,9 +103,9 @@ The `verify` phase runs an agent session that drives the real app with the repo'
 
 The verdict reaches the merge in three steps, and only the last one decides the merge:
 
-1. The verify agent runs the journeys, writes wringer's report into the pull request body, and then closes out `verified`, which moves the item on to merge.
+1. The verify agent runs the journeys, writes wringer's report into the pull request body with `bun verify publish`, and then closes out `verified`, which moves the item on to merge.
 2. The CI check `verify / gate` reads that report and fails a change whose features lack a fresh verdict. The gate computes wringer's fingerprint of the change, which needs a checkout, and the server has none.
-3. The merge job calls `Verifier.readAt(pullRequest, head)`. The wringer adapter builds the `VerifyReading` from the latest `verify / gate` run at the head and the report in the body. A head with no gate check run that passed or failed reads `not-covered`, never `verified`; a cancelled or skipped run gave no verdict. A commit status of the gate's name never counts, because any token that may write statuses can post one. `decideMerge` reads only this reading, so a `verified` close-out with no green gate never merges.
+3. The merge job calls `Verifier.readAt(pullRequest, head)`. The wringer adapter builds the `VerifyReading` from the latest `verify / gate` run at the head and the data comment of the report in the body, which holds one claim for each recorded verdict. A head with no gate check run that passed or failed reads `not-covered`, never `verified`; a cancelled or skipped run gave no verdict. A commit status of the gate's name never counts, because any token that may write statuses can post one. `decideMerge` reads only this reading, so a `verified` close-out with no green gate never merges.
 
 [wringer journeys](./wringer-journeys.md) owns what the grading agent does, the report, and the `verify / gate` workflow. The workflow runs on `pull_request` with the types `opened`, `synchronize`, `reopened` and `edited`, because the report lives in the body.
 
