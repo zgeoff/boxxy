@@ -181,8 +181,7 @@ export function createVerifyRegistry(): Wringer {
         args: z.strictObject({ text: z.string(), title: z.string() }),
         data: sessionItemShowSchema,
 
-        // fails with `check-failed` when the list holds another count than one, or the shown item
-        // another title
+        // fails with `check-failed` when the list is empty, or a shown item has another title
         run: (args, ctx) => readSessionItem(ctx, args),
       })
       .command({
