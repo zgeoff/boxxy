@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/store-sqlite",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "boxxy's store on SQLite",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/adapters/store-sqlite#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",

@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.9](https://github.com/zgeoff/boxxy/compare/@boxxy/closeout@0.2.8...@boxxy/closeout@0.2.9) (2026-11-14)
+
+### Miscellaneous Chores
+
+- **@boxxy/closeout:** Synchronize boxxy versions
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.9
+    - @boxxy/train bumped to 0.2.9
+  - devDependencies
+    - @boxxy/planning bumped to 0.2.9
+    - @boxxy/rules bumped to 0.2.9
+
 ## [0.2.8](https://github.com/zgeoff/boxxy/compare/@boxxy/closeout@0.2.7...@boxxy/closeout@0.2.8) (2026-11-13)
 
 ### Miscellaneous Chores
