@@ -36,7 +36,7 @@
       "@pepys/ingest": "0.4.2",
       "@pepys/kit": "0.4.1",
       "@pepys/source-github": "0.4.2",
-      "@pepys/source-telemetry": "0.4.0",
+      "@pepys/source-telemetry": "0.4.2",
       "@pepys/testing": "0.4.0",
       "@stylistic/eslint-plugin": "5.10.0",
       "@tsconfig/strictest": "2.0.8",
