@@ -26,6 +26,9 @@ export const featurePaths = {
   'runner-pause': [...everyJourney, 'modules/planning/**'],
   'hold-notice': [...everyJourney, 'modules/planning/**'],
   'hold-recovery': [...everyJourney, 'modules/planning/**'],
+
+  // the public door, its OAuth server and the service-token file, which the harness serves
+  'owner-mcp': [...everyJourney, 'adapters/auth-oauth/**'],
 } as const satisfies Record<string, readonly string[]>;
 
 // A path that one of these globs matches counts as no change, even where a feature's globs match
@@ -77,11 +80,10 @@ export const ignoredPaths = [
   '.release-please-manifest.json',
   'release-please-config.json',
 
-  // 4. Code that no journey runs: the harness runs fakes in place of the adapters, and composes
+  // 4. Code that no journey runs: the harness runs fakes in place of most adapters, and composes
   //    the server itself, so the server's own start, config, timers and rules loader never run.
   //    Their own tests, the server's start tests on the atc stand-in and the live proof cover them.
   'adapters/worker-atc/**',
-  'adapters/auth-oauth/**',
   'adapters/caller-proof-imp/**',
   'adapters/notifier-atc/**',
   'adapters/forge-github/**',

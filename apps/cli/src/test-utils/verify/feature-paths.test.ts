@@ -21,6 +21,7 @@ test('it ignores no source file that a journey runs', () => {
     'modules/rules/example/rules.yaml',
     'modules/planning/src/decide.ts',
     'packages/pepys/src/reader.ts',
+    'adapters/auth-oauth/src/http/create-public-door.ts',
   ];
 
   expect(collectUnmappedPaths(sources, {}, ignoredPaths)).toStrictEqual(sources);

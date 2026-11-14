@@ -37,6 +37,10 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
   token to the `serveMCP` callback that the app gives it.
 - It writes each sign-in outcome and each refused token to `writeSecurityLine` as a JSON line.
 - `admin` enrolls a passkey, adds and removes clients, and lists and revokes grants.
+- With `serviceTokens`, the door signs in the service clients of a service-token file with the
+  `client_credentials` grant. It reads the file again on SIGHUP, and passes each outcome to
+  `onReload`: the clients replaced, or the old clients kept with the reason.
+- `mintServiceSecret()` draws a service client's secret and its digest, for the file.
 - `./test-utils/authorize-test-client` signs a client in through `door.auth` with a stub passkey,
   for tests.
 

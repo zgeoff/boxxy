@@ -352,6 +352,58 @@ test('it refuses to start a public door that listens beyond loopback with a plai
   });
 });
 
+test('it refuses to start a public door whose service-token file is not valid, and names the file', async () => {
+  const ctx = await setupTest();
+
+  const serviceTokensFile = path.join(ctx.folder, 'service-tokens.json');
+
+  await Bun.write(serviceTokensFile, '{"resource":');
+
+  await ctx.addConfigSections({
+    publicDoor: { port: 0, publicURL: 'http://127.0.0.1:4455', serviceTokensFile },
+  });
+
+  const answer = await ctx.start({});
+
+  expect(answer).toStrictEqual({
+    kind: 'refused',
+    message: expect.stringContaining(`the service-token file ${serviceTokensFile} is not valid`),
+  });
+});
+
+test('it logs the service clients of the public door once SIGHUP reloads its file', async () => {
+  const ctx = await setupTest();
+
+  const serviceTokensFile = path.join(ctx.folder, 'service-tokens.json');
+
+  const writeClients = (clients: Readonly<Record<string, unknown>>) =>
+    Bun.write(
+      serviceTokensFile,
+      JSON.stringify({ resource: 'http://127.0.0.1:4455/mcp', clients }),
+    );
+
+  await writeClients({});
+
+  await ctx.addConfigSections({
+    publicDoor: { port: 0, publicURL: 'http://127.0.0.1:4455', serviceTokensFile },
+  });
+
+  await ctx.start({});
+
+  await writeClients({
+    'dock-reader': {
+      scopes: ['read'],
+      secretDigests: ['8f5dce3101b35b758cca5d0a431e6cbbf9619a6614d38cbdc7d5294db5a06804'],
+    },
+  });
+
+  process.kill(process.pid, 'SIGHUP');
+
+  await waitFor(() => ctx.logged.length > 0);
+
+  expect(ctx.logged).toStrictEqual(['the public door reloaded its service clients']);
+});
+
 test('it spawns a filed item on atc over MCP with the host name and the bearer and no warning', async () => {
   const ctx = await setupTest();
 

@@ -4,17 +4,26 @@ import { dirname } from 'node:path';
 import type { GrantScope } from '@boxxy/contract';
 import { grantScopes } from '@boxxy/contract';
 import { DEFAULT_PATHS, openMCPAuth } from '@zgeoff/mcp-auth';
-import type { MCPAuth, Requester } from '@zgeoff/mcp-auth';
+import type { MCPAuth, Requester, ServiceTokenFile } from '@zgeoff/mcp-auth';
 import { createMCPHTTPApp } from '@zgeoff/mcp-auth/elysia';
 import { createAuthAdmin } from '../auth/create-auth-admin.ts';
 import type { AuthAdmin } from '../auth/create-auth-admin.ts';
 import { createSecurityEventLog } from '../auth/create-security-event-log.ts';
 import { openAuthDatabase } from '../auth/open-auth-database.ts';
 import { runAuthMigrations } from '../migrations/run-auth-migrations.ts';
+import { serviceTokenPrefix } from '../service-tokens/constants.ts';
+import { readServiceTokenFile } from '../service-tokens/read-service-token-file.ts';
+import type { ServiceTokenReload } from '../service-tokens/reload-service-tokens.ts';
+import { startServiceTokenReloads } from '../service-tokens/start-service-token-reloads.ts';
 import type { AuthClock } from '../utils/types.ts';
 import { isLoopbackHost } from './is-loopback-host.ts';
 import { normalizePublicURL } from './normalize-public-url.ts';
 import type { McpServe } from './types.ts';
+
+export interface ServiceTokensOptions {
+  readonly file: string;
+  readonly onReload: (reload: ServiceTokenReload) => void;
+}
 
 export interface PublicDoorOptions {
   // The origin clients reach the door at: the OAuth issuer.
@@ -40,6 +49,11 @@ export interface PublicDoorOptions {
   // Answers an MCP request whose bearer token verified.
   readonly serveMCP: McpServe;
   readonly clock?: AuthClock;
+
+  // The file of the service clients that sign in with the client_credentials grant. The door reads
+  // it at start, and again on each SIGHUP, and reports each reload. With none, the door takes no
+  // service client.
+  readonly serviceTokens?: ServiceTokensOptions;
 }
 
 export interface PublicDoor {
@@ -70,8 +84,8 @@ const systemClock: AuthClock = {
 const NO_APP_PREFIX = '/.boxxy-none';
 
 // Opens and migrates the authorization database and builds the door's routes. Throws on a public
-// URL that is not an https origin, or not a loopback address while the door listens beyond
-// loopback.
+// URL that is neither https nor loopback while the door listens beyond loopback, and on a broken
+// service-token file, so a deploy never serves without its service clients.
 export async function createPublicDoor(options: PublicDoorOptions): Promise<PublicDoor> {
   const clock = options.clock ?? systemClock;
   const origin = normalizePublicURL(options.publicURL);
@@ -110,14 +124,21 @@ export async function createPublicDoor(options: PublicDoorOptions): Promise<Publ
     };
   };
 
+  const serviceTokens =
+    options.serviceTokens === undefined
+      ? null
+      : await readStartFile(options.serviceTokens.file, origin);
+
   mkdirSync(dirname(options.dbPath), { recursive: true });
 
   const sqlite = openAuthDatabase(options.dbPath);
 
-  const auth = await openAuth(sqlite, origin, clock, security).catch((error: unknown) => {
-    sqlite.close();
-    throw error;
-  });
+  const auth = await openAuth({ sqlite, origin, clock, security, serviceTokens }).catch(
+    (error: unknown) => {
+      sqlite.close();
+      throw error;
+    },
+  );
 
   const hosts = new Set<string>([new URL(origin).host]);
   const origins = new Set<string>([origin]);
@@ -149,6 +170,15 @@ export async function createPublicDoor(options: PublicDoorOptions): Promise<Publ
 
   const sweep = startSweep(auth, clock, options.onSweepError);
 
+  const stopReloads =
+    options.serviceTokens === undefined
+      ? () => Promise.resolve()
+      : startServiceTokenReloads({
+          auth,
+          path: options.serviceTokens.file,
+          onReload: options.serviceTokens.onReload,
+        });
+
   return {
     answerRequest: (request) => app.handle(request),
     addLocalPort: (port) => {
@@ -162,6 +192,8 @@ export async function createPublicDoor(options: PublicDoorOptions): Promise<Publ
     stop: async () => {
       sweep.stop();
 
+      await stopReloads();
+
       await auth.close();
 
       sqlite.close();
@@ -170,23 +202,45 @@ export async function createPublicDoor(options: PublicDoorOptions): Promise<Publ
   };
 }
 
-async function openAuth(
-  sqlite: Database,
-  origin: string,
-  clock: AuthClock,
-  security: ReturnType<typeof createSecurityEventLog>,
-): Promise<MCPAuth<GrantScope>> {
-  await runAuthMigrations(sqlite);
+async function readStartFile(path: string, origin: string): Promise<ServiceTokenFile<GrantScope>> {
+  const parsed = await readServiceTokenFile(path);
+
+  if (!parsed.ok) {
+    throw new Error(`the service-token file ${path} is not valid: ${parsed.reason}`);
+  }
+
+  if (parsed.file.resource !== `${origin}/mcp`) {
+    throw new Error(
+      `the service-token file ${path} is not valid: it names the resource ${parsed.file.resource}, where the door serves ${origin}/mcp`,
+    );
+  }
+
+  return parsed.file;
+}
+
+interface AuthOpening {
+  readonly sqlite: Database;
+  readonly origin: string;
+  readonly clock: AuthClock;
+  readonly security: ReturnType<typeof createSecurityEventLog>;
+  readonly serviceTokens: ServiceTokenFile<GrantScope> | null;
+}
+
+async function openAuth(opening: AuthOpening): Promise<MCPAuth<GrantScope>> {
+  await runAuthMigrations(opening.sqlite);
 
   return openMCPAuth({
-    database: sqlite,
-    origin,
+    database: opening.sqlite,
+    origin: opening.origin,
     productName: 'boxxy',
     scopes: grantScopes,
     paths: DEFAULT_PATHS,
     tables: { passkey: 'boxxy_passkey', enrollmentToken: 'boxxy_enrollment_token' },
-    clock,
-    security,
+    clock: opening.clock,
+    security: opening.security,
+    ...(opening.serviceTokens === null
+      ? {}
+      : { serviceTokens: { prefix: serviceTokenPrefix, file: opening.serviceTokens } }),
 
     // Each MCP request builds its own server and holds no stream open, so a revoke has nothing to
     // end beyond the tokens the package deletes.

@@ -39,7 +39,8 @@
     "exact-mirror": "catalog:",
     "kysely": "catalog:",
     "openapi-types": "catalog:",
-    "typebox": "catalog:"
+    "typebox": "catalog:",
+    "zod": "catalog:"
   },
   "engines": {
     "bun": ">=1.3",

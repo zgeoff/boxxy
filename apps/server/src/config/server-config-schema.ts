@@ -69,6 +69,10 @@ const publicDoorSection = z.strictObject({
 
   // the auth database; beside the store file when left out
   authFile: name.optional(),
+
+  // the file of the service clients, which hold only the digests of their secrets; the server reads
+  // it again on SIGHUP. With none, the door takes no service client.
+  serviceTokensFile: name.optional(),
 });
 
 // The server's configuration file, as JSON, at the path in `BOXXY_CONFIG`. It holds no secret:
