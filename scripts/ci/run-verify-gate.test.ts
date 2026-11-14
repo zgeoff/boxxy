@@ -111,8 +111,14 @@ async function setupTest() {
   };
 
   // Writes the event GitHub writes for a pull request into main, then runs the step's script.
-  const runGate = async (body: string | null) => {
-    await writeFile(eventPath, JSON.stringify({ pull_request: { body, base: { ref: 'main' } } }));
+  const runGate = async (
+    body: string | null,
+    pullRequest: Readonly<Record<string, unknown>> = {},
+  ) => {
+    await writeFile(
+      eventPath,
+      JSON.stringify({ pull_request: { body, base: { ref: 'main' }, ...pullRequest } }),
+    );
 
     const result = await $`bun ${scriptPath}`
       .cwd(repo)
@@ -137,6 +143,37 @@ test('it fails a change to a mapped path when the body holds no report', async (
   await ctx.commitChange({ 'apps/cli/src/main.ts': "console.log('boxxy, changed');\n" });
 
   const gate = await ctx.runGate(null);
+
+  expect(gate).toStrictEqual({
+    exitCode: 1,
+    annotations: ctx.featureNames.map(
+      (name) => `::error title=verify gate::${name}: The PR body holds no wringer data comment.`,
+    ),
+  });
+});
+
+test('it passes a change to a mapped path from the renovate bot on a renovate branch with no report', async () => {
+  const ctx = await setupTest();
+
+  await ctx.commitChange({ 'apps/cli/src/main.ts': "console.log('boxxy, changed');\n" });
+
+  const gate = await ctx.runGate(null, {
+    head: { ref: 'renovate/left-pad-2.x' },
+    user: { type: 'Bot', login: 'zgeoff-renovate[bot]' },
+  });
+
+  expect(gate).toStrictEqual({ exitCode: 0, annotations: [] });
+});
+
+test('it fails a change to a mapped path from a person on a renovate branch with no report', async () => {
+  const ctx = await setupTest();
+
+  await ctx.commitChange({ 'apps/cli/src/main.ts': "console.log('boxxy, changed');\n" });
+
+  const gate = await ctx.runGate(null, {
+    head: { ref: 'renovate/left-pad-2.x' },
+    user: { type: 'User', login: 'tray-keeper' },
+  });
 
   expect(gate).toStrictEqual({
     exitCode: 1,
