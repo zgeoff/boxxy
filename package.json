@@ -18,7 +18,7 @@
     "catalog": {
       "@commitlint/cli": "21.2.4",
       "@faker-js/faker": "10.6.0",
-      "@impz/client": "7.0.0",
+      "@impz/client": "7.1.0",
       "@maschwenk/tsrslint": "0.1.6",
       "@modelcontextprotocol/client": "2.4.0",
       "@modelcontextprotocol/server": "2.4.0",
