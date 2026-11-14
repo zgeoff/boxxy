@@ -201,7 +201,7 @@ An unmapped path fails the gate while every feature reads `verified`. The readin
 - A control route answers 409 for a step whose state is wrong, and the registry turns the answer into `check-failed`. A route never retries.
 - Only the verify CLI in `apps/cli/src/test-utils/verify/` imports `@wringer/*`, beside the two merge journey test files that render a data comment with `@wringer/core`, and the import-zones pins hold that edge.
 - `.wringer/` is in `.gitignore`, and the registry sets no upload hook, so the evidence files never leave the grader's machine.
-- The repo owns the `verify` and `wringer` skills: `bunx @wringer/gunshi skill install` writes the `wringer` skill, and the repo writes the `verify` skill from the template that `bun verify guide template` names, with one `references/feature-<name>.md` for each feature. The skills sync never delivers either.
+- The repo owns the `verify` skill, and writes it from the template that `bun verify guide template` names, with one `references/feature-<name>.md` for each feature. `bun verify guide` prints the guide of the installed `@wringer/gunshi`, so the repo keeps no copy of it. The skills sync never delivers the `verify` skill.
 
 ## Decisions
 

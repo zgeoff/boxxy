@@ -45,9 +45,9 @@ The mistakes that cost most here:
   | `testing`      | writing or reviewing a test             |
   | `ci-design`    | changing a workflow, a job or a trigger |
 
-- The `verify` and `wringer` skills are in `.claude/skills/` too, and the repo owns both: load
-  `verify` before you grade a change, and `wringer` when `bun verify lint` fails or a new
-  `@wringer/gunshi` ships. `bunx @wringer/gunshi skill install` writes `wringer`.
+- The `verify` skill is in `.claude/skills/` too, and the repo owns it: load it before you grade a
+  change. When `bun verify lint` fails or a new `@wringer/gunshi` ships, run `bun verify guide`,
+  which prints the guide of the installed version.
 - A sync job copies the skills in `.claude/skills/` from
   [zgeoff/skills](https://github.com/zgeoff/skills) and overwrites local changes. Never edit them
   here. When a skill is wrong, say so in your PR description.
