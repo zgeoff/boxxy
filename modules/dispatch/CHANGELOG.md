@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.2.9](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.2.8...@boxxy/dispatch@0.2.9) (2026-11-14)
+
+
+### Miscellaneous Chores
+
+* **@boxxy/dispatch:** Synchronize boxxy versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/closeout bumped to 0.2.9
+    * @boxxy/content-hash bumped to 0.2.9
+    * @boxxy/model bumped to 0.2.9
+    * @boxxy/planning bumped to 0.2.9
+    * @boxxy/prompt-template bumped to 0.2.9
+  * devDependencies
+    * @boxxy/rules bumped to 0.2.9
+  * peerDependencies
+    * @boxxy/rules bumped to 0.2.9
+
 ## [0.2.8](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.2.7...@boxxy/dispatch@0.2.8) (2026-11-13)
 
 ### Miscellaneous Chores

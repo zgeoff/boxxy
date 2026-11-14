@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.9](https://github.com/zgeoff/boxxy/compare/@boxxy/auth-oauth@0.2.8...@boxxy/auth-oauth@0.2.9) (2026-11-14)
+
+
+### Miscellaneous Chores
+
+* **@boxxy/auth-oauth:** Synchronize boxxy versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/contract bumped to 0.2.9
+
 ## [0.2.8](https://github.com/zgeoff/boxxy/compare/@boxxy/auth-oauth@0.2.7...@boxxy/auth-oauth@0.2.8) (2026-11-13)
 
 ### Bug Fixes
