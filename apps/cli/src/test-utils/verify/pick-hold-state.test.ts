@@ -10,7 +10,7 @@ test.each([
   {
     title: 'held for a different reason',
     derived: { state: 'held', reason: 'needs-owner' },
-    expected: 'lifted',
+    expected: 'held for another reason',
   },
   { title: 'ready', derived: { state: 'ready' }, expected: 'lifted' },
   {
@@ -18,6 +18,6 @@ test.each([
     derived: { state: 'waiting', reason: 'attempts used up' },
     expected: 'lifted',
   },
-])('#pickHoldState reads $expected for an item $title', (row) => {
+])('#pickHoldState reads "$expected" for an item $title', (row) => {
   expect(pickHoldState(row.derived, 'attempts used up')).toBe(row.expected);
 });
