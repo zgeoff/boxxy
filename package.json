@@ -37,7 +37,7 @@
       "@pepys/kit": "0.4.2",
       "@pepys/source-github": "0.4.2",
       "@pepys/source-telemetry": "0.4.2",
-      "@pepys/testing": "0.4.0",
+      "@pepys/testing": "0.4.2",
       "@stylistic/eslint-plugin": "5.10.0",
       "@tsconfig/strictest": "2.0.8",
       "@types/bun": "1.4.4",
