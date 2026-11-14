@@ -1,13 +1,12 @@
 # hold-recovery
 
-This journey proves that the owner's retry lifts a hold, and that the next attempt works the phase
-the owner chose. The owner runs `boxxy item retry <item> --phase <phase>`, and
+Run this journey to check that the owner's retry lifts a hold, and that the next attempt works the
+phase the owner chose. The owner runs `boxxy item retry <item> --phase <phase>`, and
 `action retry-item --phase` runs it on the current item.
 
-`boxxy item retry` refuses an item in the `held` state, the state a `needs-owner` close-out leaves.
-So the journey holds the item with a `blocked` build, and a retry can lift that hold. A `passed`
-review needs a linked pull request, so the journey opens one with `action open-pull-request` before
-the build. `--pull-request opened` on the build's `action run-session` links that pull request.
+A `passed` review needs a build with a linked pull request, so a `blocked` build makes the hold.
+`action open-pull-request` opens the pull request first, and `--pull-request opened` on the build's
+`action run-session` links it.
 
 ## Journey
 

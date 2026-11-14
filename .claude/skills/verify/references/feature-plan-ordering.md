@@ -1,8 +1,8 @@
 # plan-ordering
 
-This journey proves that a deferred item gets no attempt, and gets one after the owner undefers it.
-It runs the expedite too. While one item is deferred, the runner can claim only the other, so the
-journey never proves that an expedite moves an item ahead of an older one.
+Run this journey to check that a deferred item gets no attempt, and gets one after the owner
+undefers it. It runs the expedite too. While one item is deferred, the runner can claim only the
+other, so the journey never proves that an expedite moves an item ahead of an older one.
 
 The owner moves an item to the front with `boxxy expedite`, and holds an item back with
 `boxxy defer` until `boxxy undefer`. `action plan-lever` runs the command that `--lever` names, on

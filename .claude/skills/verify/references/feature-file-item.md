@@ -1,7 +1,7 @@
 # file-item
 
-This journey proves that boxxy stores the title of an item the owner files. The owner files an item
-with `boxxy item file`, and reads it with `boxxy item show`. `action file-item` runs
+Run this journey to check that boxxy stores the title of an item the owner files. The owner files an
+item with `boxxy item file`, and reads it with `boxxy item show`. `action file-item` runs
 `boxxy item file` and makes the new item current. `bun verify boxxy item` runs `boxxy item show` on
 the current item, and compares its title with `--title`.
 

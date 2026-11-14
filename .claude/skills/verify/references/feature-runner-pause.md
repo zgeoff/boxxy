@@ -1,9 +1,9 @@
 # runner-pause
 
-This journey proves that boxxy starts no attempt while the owner has paused the runner, and starts
-one after the owner resumes it. The owner runs `boxxy runner pause` and `boxxy runner resume`, and
-reads the runner's state with `boxxy status`. `action runner-pause` and `action runner-resume` run
-the two owner commands.
+Run this journey to check that boxxy starts no attempt while the owner has paused the runner, and
+starts one after the owner resumes it. The owner runs `boxxy runner pause` and
+`boxxy runner resume`, and reads the runner's state with `boxxy status`. `action runner-pause` and
+`action runner-resume` run the two owner commands.
 
 When a command fails between `action runner-pause` and `action runner-resume`, the runner stays
 paused, and no later journey on the run gets an attempt. Run `bun verify action runner-resume`

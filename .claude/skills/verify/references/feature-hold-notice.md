@@ -1,7 +1,7 @@
 # hold-notice
 
-This journey proves that boxxy sends one notice to the owner's registered session when it puts an
-item on hold. The owner registers the session with `boxxy notices register`, and
+Run this journey to check that boxxy sends one notice to the owner's registered session when it puts
+an item on hold. The owner registers the session with `boxxy notices register`, and
 `action register-notices` runs that command. In the harness, a fake notifier takes the place of atc,
 the service that delivers notices, and keeps each notice it gets. `bun verify boxxy notices` reads
 the fake notifier.

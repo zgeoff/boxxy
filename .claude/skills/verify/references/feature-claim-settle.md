@@ -1,7 +1,7 @@
 # claim-settle
 
-This journey proves that boxxy claims a filed item, starts a worker session for its triage, and
-settles the attempt with the outcome that the session closes out with. It also proves that the
+Run this journey to check that boxxy claims a filed item, starts a worker session for its triage,
+and settles the attempt with the outcome that the session closes out with. It also proves that the
 session can read another item of its repo. A triage session reads other items to look for a
 duplicate, with `boxxy attempt list-items` and `boxxy attempt show-item`.
 
