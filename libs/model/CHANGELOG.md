@@ -2,17 +2,17 @@
 
 ## [0.2.9](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.2.8...@boxxy/model@0.2.9) (2026-11-14)
 
-
 ### Features
 
-* **verify:** move to wringer 0.3 and add four journeys ([#117](https://github.com/zgeoff/boxxy/issues/117)) ([274d32b](https://github.com/zgeoff/boxxy/commit/274d32b7a8a72dd4f6680620deba0e91edcc1d65))
-
+- **verify:** move to wringer 0.3 and add four journeys
+  ([#117](https://github.com/zgeoff/boxxy/issues/117))
+  ([274d32b](https://github.com/zgeoff/boxxy/commit/274d32b7a8a72dd4f6680620deba0e91edcc1d65))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/content-hash bumped to 0.2.9
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.2.9
 
 ## [0.2.8](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.2.7...@boxxy/model@0.2.8) (2026-11-13)
 
