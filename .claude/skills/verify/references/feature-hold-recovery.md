@@ -1,7 +1,14 @@
 # hold-recovery
 
-The owner sends a held item to a phase with `boxxy item retry --phase`. The retry lifts the hold,
-and the next attempt runs in that phase.
+The owner sends a held item back to a phase with `boxxy item retry --phase <phase>`. The retry lifts
+the hold, and the next attempt works that phase. The journey runs `boxxy item retry` through
+`action retry-item`.
+
+The journey runs a triage attempt and a design attempt, then opens a pull request on the fake
+GitHub. Its build attempt closes out `blocked` with that pull request linked, and boxxy holds the
+item. Then the journey retries the item in review, and runs a review attempt that closes out
+`passed`. A `passed` review needs the linked pull request. The hold comes from a `blocked` build,
+because `boxxy item retry` refuses an item that waits on the owner.
 
 ## Journey
 
@@ -21,6 +28,7 @@ bun verify boxxy hold --reason blocked --state lifted
 
 ## End state
 
-Each read exits 0: the build session closed out `blocked` and the item held with the reason
-`blocked`. After the retry, the review attempt `succeeded` with the outcome `passed`, and the item
-holds nothing.
+- The first `boxxy hold` exits 0: after the build attempt, the item is held with the reason
+  `blocked`.
+- `boxxy item` exits 0: the review attempt `succeeded` with the outcome `passed`.
+- The last `boxxy hold` exits 0: the `blocked` hold is `lifted`.

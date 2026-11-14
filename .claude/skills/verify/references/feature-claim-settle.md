@@ -1,9 +1,12 @@
 # claim-settle
 
-boxxy claims a filed item for triage, a worker session binds and closes out, and the attempt settles
-with that outcome. The session reads another item of its repo. The owner files an item and the
-runner tick does the rest. A triage session runs `boxxy attempt list-items` and
-`boxxy attempt show-item` to look for a duplicate.
+The owner files an item, and boxxy works it on its runner ticks. A tick claims the item for triage,
+and a worker session starts. The session's hook binds the session to the attempt, and the session
+closes out. Two more ticks settle the attempt with the session's outcome. While it works, the triage
+session looks for a duplicate with `boxxy attempt list-items` and `boxxy attempt show-item`.
+
+The journey files a closed item for the triage session to find. Then it files the item under test
+and runs one triage attempt of it.
 
 ## Journey
 
@@ -18,7 +21,13 @@ bun verify boxxy item --title "Read the system theme" --phase triage --outcome a
 
 ## End state
 
-`boxxy session-item` exits 0: the session lists one item with the text, and shows its title.
-`boxxy item` exits 0: the item's triage attempt is `succeeded` with the outcome `accepted`.
-`run-session` fails with `check-failed` when no tick claims the item, the hook does not bind, the
-close-out is refused, or two ticks do not settle the attempt.
+- `boxxy session-item` exits 0: as the triage session, `list-items` finds one item whose text holds
+  "theme from the desktop", and `show-item` gives its title.
+- `boxxy item` exits 0: the triage attempt of "Read the system theme" `succeeded` with the outcome
+  `accepted`.
+- `action run-session` runs the ticks itself. It exits 1 with `check-failed` when one of its steps
+  fails:
+  - no tick claims the item;
+  - the session's hook does not bind the session;
+  - the server refuses the close-out;
+  - two ticks leave the attempt unsettled.

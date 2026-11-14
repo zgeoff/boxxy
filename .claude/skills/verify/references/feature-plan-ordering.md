@@ -1,8 +1,11 @@
 # plan-ordering
 
-The owner moves an item to the front of its pool with `boxxy expedite`, and holds another back with
-`boxxy defer` until `boxxy undefer`. The runner tick claims the expedited item, claims no deferred
-item, and claims the undeferred item on its next tick.
+The owner moves an item to the front of the queue with `boxxy expedite`, and holds an item back with
+`boxxy defer` until `boxxy undefer`. The journey runs each of the three through `action plan-lever`.
+
+The journey files two open items, "Sort the settings by use" and then "Sort the settings by name".
+It expedites the second, defers the first, and runs one attempt. Then it undefers the first item and
+runs one tick.
 
 ## Journey
 
@@ -22,6 +25,10 @@ bun verify boxxy attempts --title "Sort the settings by use" --count 1 --phase t
 
 ## End state
 
-The expedited item has a triage attempt that `succeeded` with the outcome `accepted`, and the
-deferred item has no attempt. After the undefer and one tick, the deferred item has one triage
-attempt. `plan-lever` fails with `check-failed` when no open item has the title.
+- `boxxy item` exits 0: the runner claimed "Sort the settings by name", and its triage attempt
+  `succeeded` with the outcome `accepted`.
+- The first `boxxy attempts` exits 0: while it is deferred, "Sort the settings by use" has no
+  attempt.
+- The last `boxxy attempts` exits 0: after the undefer and one tick, "Sort the settings by use" has
+  one triage attempt.
+- `plan-lever` exits 1 with `check-failed` when no open item has the title it names.

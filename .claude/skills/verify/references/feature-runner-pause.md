@@ -1,7 +1,11 @@
 # runner-pause
 
-The owner pauses the runner with `boxxy runner pause`, and it starts no attempt until
-`boxxy runner resume`. `boxxy status` shows which of the two it is.
+The owner pauses the runner with `boxxy runner pause`, and boxxy starts no attempt until
+`boxxy runner resume`. `boxxy status` shows the runner as `paused` or `running`. The journey pauses
+the runner, files an item and runs a tick, then resumes the runner and runs another tick.
+
+When the journey fails between `runner-pause` and `runner-resume`, the runner stays paused, and each
+later journey on the run claims nothing. Run `bun verify action runner-resume` before you go on.
 
 ## Journey
 
@@ -20,7 +24,7 @@ bun verify boxxy status --state running
 
 ## End state
 
-Each read exits 0: while the runner is paused, a tick leaves the item with no attempt and `status`
-shows `paused`. After the resume, the next tick gives the item one triage attempt and `status` shows
-`running`. A journey that fails between the pause and the resume leaves the runner paused: run
-`bun verify action runner-resume`.
+- While the runner is paused, the first `boxxy attempts` exits 0, because the tick started no
+  attempt, and `boxxy status` shows `paused`.
+- After the resume, the last `boxxy attempts` exits 0, because the tick started one triage attempt,
+  and `boxxy status` shows `running`.

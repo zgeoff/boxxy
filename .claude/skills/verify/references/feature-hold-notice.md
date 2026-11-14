@@ -1,7 +1,12 @@
 # hold-notice
 
-An item that the rules hold sends one notice to the session that the owner registered with
-`boxxy notices register`. The harness's notifier stands in for atc and keeps each notice it takes.
+When boxxy puts an item on hold, it sends one notice to the session that the owner registered with
+`boxxy notices register`. In the harness, a fake notifier takes the place of atc, the service that
+delivers notices to sessions, and keeps each notice it gets.
+
+The journey registers a session through `action register-notices`, files an item, and runs an
+attempt that closes out `needs-owner`. Then it runs one more tick. Keep the session name
+`workbench.3.owner-notes` as written, because the last read checks it.
 
 ## Journey
 
@@ -17,7 +22,8 @@ bun verify boxxy notices --count 1 --reason needs-owner --session workbench.3.ow
 
 ## End state
 
-Each read exits 0: the item holds with the reason `needs-owner`, and the notifier sent exactly one
-notice for it, with that reason, to the registered session. The notifier refuses a notice while no
-session is registered, so `boxxy notices` fails with `check-failed` when the registration did not
-reach the server.
+- `boxxy hold` exits 0: the item is held with the reason `needs-owner`.
+- `boxxy notices` exits 0: the fake notifier got one notice for the item, with the reason
+  `needs-owner`, for `workbench.3.owner-notes`.
+- When `boxxy notices` finds no notice, check the `register-notices` step first. The fake notifier
+  refuses every notice while no session is registered.

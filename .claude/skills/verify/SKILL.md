@@ -124,12 +124,13 @@ command points that command alone.
 
 <!-- repo: targets -->
 
-| Target  | Start with                                            | Access     | Notes                                                                                                                              |
-| ------- | ----------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `local` | `bun verify use --target local`, then `bun verify up` | read-write | The real server on a new SQLite store, fakes for the clock, worker, forge and notifier, and pepys under test. It needs no network. |
+| Target  | Start with                                            | Access     |
+| ------- | ----------------------------------------------------- | ---------- |
+| `local` | `bun verify use --target local`, then `bun verify up` | read-write |
 
-The only target is `local`. A `bun verify down` stops the harness, and the next `up` starts from an
-empty store.
+Each `up` runs the real boxxy server and CLI on an empty SQLite store, with no network. Fakes stand
+in for the clock, the worker, GitHub and the atc notifier. pepys, the service that stores each
+item's cost and stage times, runs in the harness process.
 
 <!-- /repo -->
 
@@ -144,19 +145,14 @@ group, such as `action`: run `bun verify <group> --help` for its commands.
 
 <!-- repo: commands -->
 
-- Each journey files its own items, so the journeys run in any order on one run.
-- `action file-item --title <title>` files an item through the real `boxxy` CLI and makes it the
-  current item. `file-item-beside` keeps the current item open beside the new one, and
-  `file-closed-item` files an item and closes it.
-- `action run-session --close-out <preset> --minutes <n>` runs one attempt of the current item. The
-  presets are `accepted`, `needs-owner`, `designed`, `built`, `blocked` and `passed`.
-  `--pull-request opened` links the pull request of `open-pull-request`.
-- `action land-item --title <title>` takes an item through triage, design, build, review and the
-  merge, and sends its facts to pepys.
-- `action tick`, `plan-lever`, `runner-pause`, `runner-resume`, `register-notices` and `retry-item`
-  run one tick, or the owner command of that name.
-- Each `boxxy <name>` read runs one owner command or reads the harness, and fails with
-  `check-failed` when a value differs.
+- Run each journey once after an `up`, in any order. To repeat a journey, run `down` and `up` first.
+- `action tick` runs one runner tick, in which boxxy claims work and settles attempts.
+  `action run-session` runs one attempt: a worker session works one phase of the current item, and
+  closes out with the preset.
+- `file-item`, `file-item-beside` and `land-item` make the item they file current, and the harness
+  closes the item before it. `file-item-beside` keeps that item open.
+- A read, `bun verify boxxy <name>`, takes the values to expect as flags. It exits 1 with
+  `check-failed` when the app shows another value.
 
 <!-- /repo -->
 
