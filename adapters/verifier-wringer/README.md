@@ -34,8 +34,9 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 - A head with no gate check run, or one still running, cancelled or skipped, reads `not-covered`.
   The adapter then never reads the body. A commit status of the gate's name never counts.
 - A finished gate with no data comment of version 2 in the body, or one that does not parse, reads
-  `incomplete` with no features. A report of version 1, from before `bun verify publish` wrote
-  version 2, reads the same: run `bun verify publish` again.
+  `incomplete` with no features and a `note` that holds the parser's refusal. A report of version 1,
+  from before `bun verify publish` wrote version 2, reads the same, and its note says to run
+  `bun verify publish` again.
 - The adapter does no I/O of its own. It reads the forge, and reads the data comment with wringer's
   `parseReportComment`.
 

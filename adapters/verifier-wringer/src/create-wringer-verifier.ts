@@ -34,7 +34,7 @@ function pickGateState(gate: CheckReading | undefined): 'success' | 'failure' | 
 
 // A claim in the data comment carries no feature status, because staleness needs the diff that
 // only the gate has. A passed gate reads each claim as `verified`, and a failed gate reads no
-// feature. A comment of version 1 reads as one that does not parse.
+// feature. A comment that does not parse reads `incomplete`, with its refusal as the note.
 function buildVerifyReading(
   head: CommitSha,
   gate: 'success' | 'failure',
@@ -42,7 +42,16 @@ function buildVerifyReading(
 ): VerifyReading {
   const parsed = parseReportComment(body);
 
-  if (!parsed.ok || gate === 'failure') {
+  if (!parsed.ok) {
+    const note =
+      parsed.reason === 'version-1'
+        ? `${parsed.message} Run \`bun verify publish\` again.`
+        : parsed.message;
+
+    return { status: 'incomplete', head, features: [], note };
+  }
+
+  if (gate === 'failure') {
     return { status: 'incomplete', head, features: [] };
   }
 

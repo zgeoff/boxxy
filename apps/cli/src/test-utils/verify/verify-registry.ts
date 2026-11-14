@@ -21,6 +21,7 @@ import {
   statusSchema,
   timesSchema,
 } from './harness/types.ts';
+import { pickHoldState } from './pick-hold-state.ts';
 import { postControl } from './post-control.ts';
 import { runBoxxy } from './run-boxxy.ts';
 
@@ -266,7 +267,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
         schema: itemShowSchema,
       });
 
-      const hold = shown.item.derived.reason === args.reason ? 'held' : 'lifted';
+      const hold = pickHoldState(shown.item.derived, args.reason);
 
       expectEqual(`the hold for ${args.reason}`, hold, args.state);
 

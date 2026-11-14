@@ -12,6 +12,7 @@ export const verifyReadingSchema = z.discriminatedUnion('status', [
     status: z.enum(['verified', 'incomplete']),
     head: brandSchemas.commitSha,
     features: z.array(featureSchema),
+    note: z.string().optional(),
   }),
   z.object({ status: z.literal('not-covered'), head: brandSchemas.commitSha }),
 ]) satisfies z.ZodType<VerifyReading>;

@@ -95,7 +95,12 @@ test('it reads incomplete with no features when the body holds a version 1 repor
 
   const reading = await ctx.verifier.readAt(ctx.ref, ctx.head);
 
-  expect(reading).toStrictEqual({ status: 'incomplete', head: ctx.head, features: [] });
+  expect(reading).toStrictEqual({
+    status: 'incomplete',
+    head: ctx.head,
+    features: [],
+    note: 'The PR body holds a version 1 report. Run `bun verify publish` again.',
+  });
 });
 
 test('it reads incomplete with no features when the gate passed and the body holds no report', async () => {
@@ -116,6 +121,7 @@ test('it reads incomplete with no features when the gate passed and the body hol
     status: 'incomplete',
     head: ctx.head,
     features: [],
+    note: 'The PR body holds no wringer data comment.',
   });
 });
 
@@ -137,6 +143,7 @@ test('it reads incomplete with no features when the report in the body does not 
     status: 'incomplete',
     head: ctx.head,
     features: [],
+    note: 'The wringer data comment in the PR body is not closed.',
   });
 });
 
