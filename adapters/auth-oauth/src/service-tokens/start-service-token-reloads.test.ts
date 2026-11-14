@@ -79,5 +79,5 @@ test('it stops cleanly after a report throws', async () => {
 
   await first;
 
-  await expect(ctx.stop()).resolves.toBeUndefined();
+  await expect(ctx.stop()).toResolve();
 });
