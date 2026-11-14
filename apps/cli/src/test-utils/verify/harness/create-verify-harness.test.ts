@@ -136,6 +136,24 @@ test('it lets the session of a triage attempt find and read a closed item of its
   expect(shown.item).toStrictEqual({ id: closed.item, title: 'Read the theme from the desktop' });
 });
 
+test('it lets the session find the closed item when the journey runs a second time', async () => {
+  const ctx = await setupTest();
+
+  await fileClosedItem(ctx.ctx, { title: 'Read the theme from the desktop' });
+  await fileItem(ctx.ctx, { title: 'Read the system theme' });
+  await runSession(ctx.ctx, { closeOut: 'accepted', minutes: 4 });
+  await fileClosedItem(ctx.ctx, { title: 'Read the theme from the desktop' });
+  await fileItem(ctx.ctx, { title: 'Read the system theme' });
+  await runSession(ctx.ctx, { closeOut: 'accepted', minutes: 4 });
+
+  const shown = await readSessionItem(ctx.ctx, {
+    text: 'theme from the desktop',
+    title: 'Read the theme from the desktop',
+  });
+
+  expect(shown.item.title).toBe('Read the theme from the desktop');
+});
+
 test('it fails the session read with check-failed when the shown title differs', async () => {
   const ctx = await setupTest();
 

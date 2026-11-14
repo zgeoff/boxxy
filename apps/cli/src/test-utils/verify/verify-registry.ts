@@ -320,7 +320,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
   .command({
     path: ['boxxy', 'session-item'],
     summary:
-      'As the session of the last run-session, find the one item that holds --text with `boxxy attempt list-items`, and check its title with `boxxy attempt show-item`',
+      'As the session of the last run-session, find the items that hold --text with `boxxy attempt list-items`, and check the title of each with `boxxy attempt show-item`',
     effect: 'read',
     args: z.strictObject({ text: z.string(), title: z.string() }),
     data: sessionItemShowSchema,

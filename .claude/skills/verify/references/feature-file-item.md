@@ -1,8 +1,9 @@
 # file-item
 
-The owner files an item with `boxxy item file`, and reads it back with `boxxy item show <item>`,
-where `<item>` is the id that `item file` prints. The journey files one item and checks the title
-that boxxy shows.
+This journey proves that boxxy stores the title of an item the owner files. The owner files an item
+with `boxxy item file`, and reads it with `boxxy item show`. `action file-item` runs
+`boxxy item file` and makes the new item current. `bun verify boxxy item` runs `boxxy item show` on
+the current item, and compares its title with `--title`.
 
 ## Journey
 
@@ -14,6 +15,5 @@ bun verify boxxy item --title "Follow the system theme"
 
 ## End state
 
-- `action file-item` exits 0. It exits 1 when the server refuses the item.
-- `boxxy item` exits 0: `boxxy item show` gives the title that `file-item` filed. It exits 1 with
-  `check-failed` when the title differs.
+- `bun verify action file-item` exits 0. It exits 1 when the boxxy server refuses the item.
+- `bun verify boxxy item` exits 0: boxxy shows the title that `action file-item` filed.

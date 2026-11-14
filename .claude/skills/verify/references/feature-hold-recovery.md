@@ -1,14 +1,13 @@
 # hold-recovery
 
-The owner sends a held item back to a phase with `boxxy item retry --phase <phase>`. The retry lifts
-the hold, and the next attempt works that phase. The journey runs `boxxy item retry` through
-`action retry-item`.
+This journey proves that the owner's retry lifts a hold, and that the next attempt works the phase
+the owner chose. The owner runs `boxxy item retry <item> --phase <phase>`, and
+`action retry-item --phase` runs it on the current item.
 
-The journey runs a triage attempt and a design attempt, then opens a pull request on the fake
-GitHub. Its build attempt closes out `blocked` with that pull request linked, and boxxy holds the
-item. Then the journey retries the item in review, and runs a review attempt that closes out
-`passed`. A `passed` review needs the linked pull request. The hold comes from a `blocked` build,
-because `boxxy item retry` refuses an item that waits on the owner.
+`boxxy item retry` refuses an item in the `held` state, the state a `needs-owner` close-out leaves.
+So the journey holds the item with a `blocked` build, and a retry can lift that hold. A `passed`
+review needs a linked pull request, so the journey opens one with `action open-pull-request` before
+the build. `--pull-request opened` on the build's `action run-session` links that pull request.
 
 ## Journey
 
@@ -28,7 +27,8 @@ bun verify boxxy hold --reason blocked --state lifted
 
 ## End state
 
-- The first `boxxy hold` exits 0: after the build attempt, the item is held with the reason
-  `blocked`.
-- `boxxy item` exits 0: the review attempt `succeeded` with the outcome `passed`.
-- The last `boxxy hold` exits 0: the `blocked` hold is `lifted`.
+- The first `bun verify boxxy hold` exits 0: the triage, design and build attempts ran in that
+  order, and the build closed out `blocked`, so boxxy holds the item with the reason `blocked`.
+- `bun verify boxxy item` exits 0: after the retry, the review attempt `succeeded` with the outcome
+  `passed`.
+- The last `bun verify boxxy hold` exits 0: the `blocked` hold is `lifted`.

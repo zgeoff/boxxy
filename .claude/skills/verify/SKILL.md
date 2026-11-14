@@ -145,12 +145,13 @@ group, such as `action`: run `bun verify <group> --help` for its commands.
 
 <!-- repo: commands -->
 
-- Run each journey once after an `up`, in any order. To repeat a journey, run `down` and `up` first.
-- `action tick` runs one runner tick, in which boxxy claims work and settles attempts.
+- Each journey files its own items, so you can run a journey again on the same run.
+- An `action` takes one step as the owner, the person who runs boxxy, or as the harness.
+  `action tick` runs one runner tick, in which boxxy claims work and settles attempts.
   `action run-session` runs one attempt: a worker session works one phase of the current item, and
-  closes out with the preset.
-- `file-item`, `file-item-beside` and `land-item` make the item they file current, and the harness
-  closes the item before it. `file-item-beside` keeps that item open.
+  closes out with the `--close-out` value.
+- `file-item`, `file-item-beside` and `land-item` make the item they file current. The harness then
+  closes the item that was current before, unless `file-item-beside` filed the new one.
 - A read, `bun verify boxxy <name>`, takes the values to expect as flags. It exits 1 with
   `check-failed` when the app shows another value.
 

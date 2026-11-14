@@ -176,7 +176,7 @@ export function createVerifyRegistry(): Wringer {
       .command({
         path: ['boxxy', 'session-item'],
         summary:
-          'As the session of the last run-session, find the one item that holds --text with `boxxy attempt list-items`, and check its title with `boxxy attempt show-item`',
+          'As the session of the last run-session, find the items that hold --text with `boxxy attempt list-items`, and check the title of each with `boxxy attempt show-item`',
         effect: 'read',
         args: z.strictObject({ text: z.string(), title: z.string() }),
         data: sessionItemShowSchema,
@@ -385,8 +385,8 @@ export const ignoredPaths = [
   bun verify boxxy item --title "Read the system theme" --phase triage --outcome accepted
   ```
 
-- **End state:** `boxxy session-item` exits 0: the session lists one item with the text, and shows
-  its title. `boxxy item` exits 0: the item's triage attempt is `succeeded` with the outcome
+- **End state:** `boxxy session-item` exits 0: the session lists the closed item by its text, and
+  shows its title. `boxxy item` exits 0: the item's triage attempt is `succeeded` with the outcome
   `accepted`. `run-session` fails with `check-failed` when no tick claims the item, the hook does
   not bind, the close-out is refused, or two ticks do not settle the attempt.
 
