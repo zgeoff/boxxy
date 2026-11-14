@@ -267,7 +267,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
         schema: itemShowSchema,
       });
 
-      const hold = pickHoldState(shown.item.derived, args.reason);
+      const hold = pickHoldState(shown.item, args.reason);
 
       expectEqual(`the hold for ${args.reason}`, hold, args.state);
 

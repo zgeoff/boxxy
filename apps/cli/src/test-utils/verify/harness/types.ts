@@ -60,7 +60,14 @@ const attemptSchema = z.object({
 
 // Only the fields a journey checks.
 const derivedSchema = z.object({ state: z.string(), reason: z.string().optional() });
-const shownItemSchema = z.object({ id: z.string(), title: z.string(), derived: derivedSchema });
+const positionSchema = z.object({ kind: z.string(), reason: z.string().optional() });
+
+const shownItemSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  derived: derivedSchema,
+  position: positionSchema,
+});
 
 export const itemShowSchema = z.object({
   item: shownItemSchema,
