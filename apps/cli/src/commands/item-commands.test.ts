@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { loadJobRules } from '@boxxy/dispatch/test-utils/load-job-rules';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
-import { renderReportMarkdown } from '@wringer/core';
+import { renderReportComment } from '@wringer/core';
 import invariant from 'tiny-invariant';
 import { z } from 'zod';
 import { runCLI } from '../cli/run-cli.ts';
@@ -668,13 +668,12 @@ test('it merges a reviewed pull request at its head through the server tick, and
     body: [
       'Follow the system theme.',
       '',
-      renderReportMarkdown({
-        version: 1,
+      renderReportComment({
+        version: 2,
+        registry: 'boxxy-verify',
         base: 'origin/main',
-        fingerprint: '0f1e2d3c4b5a6978',
-        complete: true,
-        features: [{ name: 'theme', changed: false, status: 'unchanged', verdict: null }],
-        unmapped: [],
+        fingerprint: '0f1e2d3c4b5a69780f1e2d3c4b5a69780f1e2d3c',
+        claims: [],
       }),
     ].join('\n'),
   });

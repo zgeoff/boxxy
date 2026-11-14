@@ -419,9 +419,9 @@
     "@stylistic/eslint-plugin": "5.10.0",
     "@tsconfig/strictest": "2.0.8",
     "@types/bun": "1.4.4",
-    "@wringer/core": "0.2.0",
-    "@wringer/gunshi": "0.2.0",
-    "@wringer/http": "0.1.2",
+    "@wringer/core": "0.3.0",
+    "@wringer/gunshi": "0.3.0",
+    "@wringer/http": "0.1.3",
     "@zgeoff/bun-test-extended": "0.2.3",
     "@zgeoff/chex": "0.3.4",
     "@zgeoff/commitlint-config": "0.1.0",
@@ -1048,11 +1048,11 @@
 
     "@typescript/typescript-win32-x64": ["@typescript/typescript-win32-x64@7.0.2", "", { "os": "win32", "cpu": "x64" }, "sha512-0BQ3HkAHHlKLSp1qRvf3SUhGpGsDuhB/jgFw75guyqbxJqEaS0Cw/VFO8i2nHglJUzQCRtMMR/IBAKE3ETMC4g=="],
 
-    "@wringer/core": ["@wringer/core@0.2.0", "", { "dependencies": { "@zgeoff/std": "0.4.3", "ts-pattern": "5.9.2", "xstate": "5.33.3", "zod": "4.6.7" } }, "sha512-UWiqgCQnn3Gaw3s0imC+cUNYattMwGVLy8uN39zLDecvAUv2MMGDxE1PSq2Zn4Xab5WpJaSCqCUOOoLPnFvOqA=="],
+    "@wringer/core": ["@wringer/core@0.3.0", "", { "dependencies": { "@zgeoff/std": "0.4.3", "ts-pattern": "5.9.2", "xstate": "5.33.3" }, "peerDependencies": { "zod": "^4.0.0" } }, "sha512-3aewxdbASbD96KGHPF1dPHExFGdx8ok1X0BSHTKndOJSewtS4FM2bSch/exIIF+3o55IBwJIhx3N4bWOoQhmaQ=="],
 
-    "@wringer/gunshi": ["@wringer/gunshi@0.2.0", "", { "dependencies": { "gunshi": "0.37.3", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2", "zod": "4.6.7" }, "peerDependencies": { "@wringer/core": "0.2.0" }, "bin": { "wringer-gunshi": "src/wringer-gunshi.ts" } }, "sha512-bXOnEI42WWRVNtHfz3DoLou6Vod0WLnMzkaAzikoQDd6AmExS6njkeDSwLifEa/YvoSIrt3vF8T5s4OT89RoQg=="],
+    "@wringer/gunshi": ["@wringer/gunshi@0.3.0", "", { "dependencies": { "gunshi": "0.37.3", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2" }, "peerDependencies": { "@wringer/core": "0.3.0", "zod": "^4.0.0" }, "bin": { "wringer-gunshi": "src/wringer-gunshi.ts" } }, "sha512-YTk5qS3gp0SVizca9tnGCRFoOp953CbH+Dd4vO+waMXVfEyD3UNgLE3uHix43GXal4f297haBBOb0BSSpU7dfg=="],
 
-    "@wringer/http": ["@wringer/http@0.1.2", "", { "dependencies": { "zod": "4.6.7" }, "peerDependencies": { "@wringer/core": "0.2.0" } }, "sha512-skGn2/A8bc+oNeg7apd7w8I59L9trFCS1Ggppg88J5gyzaaPP0Xhv69sz6/ooBfTF9jyfMdc8bSJKUTssgWr4w=="],
+    "@wringer/http": ["@wringer/http@0.1.3", "", { "peerDependencies": { "@wringer/core": "0.3.0", "zod": "^4.0.0" } }, "sha512-TKqgwm9p/qYyB6KhBz4Z0nhyHJoliI+QBt/gEXFU/DXjUlBz2IqTiaYM0CtwsdjXv+VIBpEHf/aClko/D8frqA=="],
 
     "@zgeoff/agent-hooks": ["@zgeoff/agent-hooks@0.2.12", "", { "bin": { "agent-hooks": "dist/cli.js" } }, "sha512-bMEmXGtNICFNvR/e9lF9p+N4BwyIPqnG7IZ/m78vz3i5ZUZbgtSVLWgw3k5/d0cE6OXGLBW4sJ3twKd2kYzRSQ=="],
 

@@ -8,12 +8,14 @@ export interface Verifier {
 }
 
 // `not-covered`: no gate run at `head` that passed or failed. A passed or failed run with no
-// readable report in the pull request reads `incomplete`, with no features.
+// readable report in the pull request reads `incomplete`, with no features, and a `note` that says
+// why the report did not read.
 export type VerifyReading =
   | {
       readonly status: 'verified' | 'incomplete';
       readonly head: CommitSha;
       readonly features: readonly VerifiedFeature[];
+      readonly note?: string | undefined;
     }
   | { readonly status: 'not-covered'; readonly head: CommitSha };
 

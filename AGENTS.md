@@ -45,9 +45,9 @@ The mistakes that cost most here:
   | `testing`      | writing or reviewing a test             |
   | `ci-design`    | changing a workflow, a job or a trigger |
 
-- The `verify` and `wringer` skills are in `.claude/skills/` too, and the repo owns both: load
-  `verify` before you grade a change, and `wringer` when `bun verify lint` fails or a new
-  `@wringer/gunshi` ships. `bunx @wringer/gunshi skill install` writes `wringer`.
+- The `verify` skill is in `.claude/skills/` too, and the repo owns it: load it before you grade a
+  change. When `bun verify lint` fails or a new `@wringer/gunshi` ships, run `bun verify guide`,
+  which prints the guide of the installed version.
 - A sync job copies the skills in `.claude/skills/` from
   [zgeoff/skills](https://github.com/zgeoff/skills) and overwrites local changes. Never edit them
   here. When a skill is wrong, say so in your PR description.
@@ -97,9 +97,9 @@ steps before you open or update a pull request, after your last code change:
 1. Load the `verify` skill, and run `bun verify report`. Each feature with `changed: true` needs a
    verdict.
 2. Run `bun verify up` and `bun verify doctor`. Then run the journey of each changed feature, from
-   the skill's feature map, and `bun verify done`.
-3. Run `bun verify report --human`. Put the output last in the Verification section of the pull
-   request body, in place of an older report, with `gh pr edit --body-file`.
+   its file in the skill's `references/`, and `bun verify done`.
+3. Run `bun verify publish`. It writes the report into the body of the branch's open pull request,
+   in place of an older one.
 4. Run `bun verify down`.
 
 Any edit after `done` makes every verdict stale: run the steps again. When a journey fails, fix the

@@ -22,6 +22,19 @@ async function setupTest() {
 
   await mkdir(runnerTemp);
 
+  const older = '0'.repeat(40);
+
+  // the features that a change under `apps/cli` maps to
+  const featureNames = [
+    'file-item',
+    'claim-settle',
+    'report-cost',
+    'plan-ordering',
+    'runner-pause',
+    'hold-notice',
+    'hold-recovery',
+  ];
+
   const env = {
     PATH: process.env['PATH'],
     HOME: directory,
@@ -61,13 +74,40 @@ async function setupTest() {
     await runGit(['commit', '--quiet', '--message', 'change']);
   };
 
-  const readFingerprint = async () => {
-    const result = await $`bun verify report --base origin/main`.cwd(repo).env(env).quiet();
+  // A report whose claims all sit at the zero fingerprint fails the gate as stale, and the failure
+  // names each feature's own fingerprint in the tree.
+  const readFingerprints = async () => {
+    const claimed = buildReportBody({
+      fingerprint: older,
+      featureFingerprints: Object.fromEntries(featureNames.map((name) => [name, older])),
+    });
 
-    const envelope: unknown = JSON.parse(result.stdout.toString());
-    const report = findField(findField(envelope, 'data'), 'report');
+    const bodyFile = join(runnerTemp, 'probe-body.md');
 
-    return String(findField(report, 'fingerprint'));
+    await writeFile(bodyFile, claimed);
+
+    const result = await $`bun verify gate --base origin/main --body-file ${bodyFile}`
+      .cwd(repo)
+      .env(env)
+      .nothrow()
+      .quiet();
+
+    const data = findField(JSON.parse(result.stdout.toString()), 'data');
+    const failing = findField(data, 'failing');
+    const featureFingerprints: Record<string, string> = {};
+
+    for (const failure of Array.isArray(failing) ? failing : []) {
+      const reason = String(findField(failure, 'reason'));
+
+      featureFingerprints[String(findField(failure, 'name'))] = reason.slice(
+        reason.indexOf('tree at ') + 'tree at '.length,
+      );
+    }
+
+    return {
+      fingerprint: String(findField(data, 'fingerprint')),
+      featureFingerprints,
+    };
   };
 
   // Writes the event GitHub writes for a pull request into main, then runs the step's script.
@@ -88,7 +128,7 @@ async function setupTest() {
     return { exitCode: result.exitCode, annotations };
   };
 
-  return { commitChange, readFingerprint, runGate };
+  return { commitChange, featureNames, older, readFingerprints, runGate };
 }
 
 test('it fails a change to a mapped path when the body holds no report', async () => {
@@ -100,11 +140,9 @@ test('it fails a change to a mapped path when the body holds no report', async (
 
   expect(gate).toStrictEqual({
     exitCode: 1,
-    annotations: [
-      '::error title=verify gate::file-item: The PR body holds no wringer report block.',
-      '::error title=verify gate::claim-settle: The PR body holds no wringer report block.',
-      '::error title=verify gate::report-cost: The PR body holds no wringer report block.',
-    ],
+    annotations: ctx.featureNames.map(
+      (name) => `::error title=verify gate::${name}: The PR body holds no wringer data comment.`,
+    ),
   });
 });
 
@@ -113,34 +151,36 @@ test('it passes a change to a mapped path when the report holds a verdict of eac
 
   await ctx.commitChange({ 'apps/cli/src/main.ts': "console.log('boxxy, changed');\n" });
 
-  const fingerprint = await ctx.readFingerprint();
+  const fingerprints = await ctx.readFingerprints();
 
-  const body = buildReportBody(fingerprint, ['file-item', 'claim-settle', 'report-cost']);
+  const body = buildReportBody(fingerprints);
 
   const gate = await ctx.runGate(body);
 
   expect(gate).toStrictEqual({ exitCode: 0, annotations: [] });
 });
 
-test('it fails a change to a mapped path when the report holds verdicts at an older fingerprint', async () => {
+test('it fails a change to a mapped path when the report holds claims at an older fingerprint', async () => {
   const ctx = await setupTest();
 
   await ctx.commitChange({ 'apps/cli/src/main.ts': "console.log('boxxy, changed');\n" });
 
-  const fingerprint = await ctx.readFingerprint();
+  const tree = await ctx.readFingerprints();
 
-  const older = '0000000000000000000000000000000000000000';
-  const body = buildReportBody(older, ['file-item', 'claim-settle']);
+  const body = buildReportBody({
+    fingerprint: ctx.older,
+    featureFingerprints: { 'file-item': ctx.older, 'claim-settle': ctx.older },
+  });
 
   const gate = await ctx.runGate(body);
 
   expect(gate).toStrictEqual({
     exitCode: 1,
-    annotations: [
-      `::error title=verify gate::file-item: verdict at ${older}, tree at ${fingerprint}`,
-      `::error title=verify gate::claim-settle: verdict at ${older}, tree at ${fingerprint}`,
-      '::error title=verify gate::report-cost: no verdict in the report',
-    ],
+    annotations: ctx.featureNames.map((name) =>
+      name === 'file-item' || name === 'claim-settle'
+        ? `::error title=verify gate::${name}: verdict at ${ctx.older}, tree at ${tree.featureFingerprints[name]}`
+        : `::error title=verify gate::${name}: no claim in the data comment`,
+    ),
   });
 });
 

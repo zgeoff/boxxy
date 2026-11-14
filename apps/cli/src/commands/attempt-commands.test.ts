@@ -7,7 +7,7 @@ import { brandSchemas, toJSONValue } from '@boxxy/model';
 import type { AttemptRow, CheckState, CommitSha, ItemId } from '@boxxy/model';
 import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
 import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
-import { renderReportMarkdown } from '@wringer/core';
+import { renderReportComment } from '@wringer/core';
 import invariant from 'tiny-invariant';
 import { z } from 'zod';
 import { createTestCLI } from '../test-utils/create-test-cli.ts';
@@ -97,26 +97,24 @@ async function setupTest() {
       body: [
         'Follow the system theme.',
         '',
-        renderReportMarkdown({
-          version: 1,
+        renderReportComment({
+          version: 2,
+          registry: 'boxxy-verify',
           base: 'origin/main',
-          fingerprint: '0f1e2d3c4b5a6978',
-          complete: true,
-          features: [
+          fingerprint: '0f1e2d3c4b5a69780f1e2d3c4b5a69780f1e2d3c',
+          claims: [
             {
-              name: 'theme',
-              changed: true,
-              status: 'verified',
-              verdict: {
-                feature: 'theme',
-                fingerprint: '0f1e2d3c4b5a6978',
-                run: 'run-theme-1',
-                at: '2026-11-01T09:00:00Z',
-                evidence: [],
-              },
+              feature: 'theme',
+              fingerprint: '0f1e2d3c4b5a69780f1e2d3c4b5a69780f1e2d3c',
+              featureFingerprint: '0f1e2d3c4b5a69780f1e2d3c4b5a69780f1e2d3c',
+              run: 'run-theme-1',
+              at: '2026-11-01T09:00:00Z',
+              target: { name: 'local', evidence: 'local' },
+              pin: { kind: 'local' },
+              evidenceDigest: '0'.repeat(64),
+              evidenceCount: 0,
             },
           ],
-          unmapped: [],
         }),
       ].join('\n'),
     });

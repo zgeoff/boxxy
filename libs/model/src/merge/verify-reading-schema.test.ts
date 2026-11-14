@@ -29,3 +29,16 @@ test('it refuses a feature status that wringer never reports', () => {
 
   expect(verifyReadingSchema.safeParse(reading).success).toBeFalse();
 });
+
+test('it keeps the note of an incomplete reading', () => {
+  const reading = {
+    status: 'incomplete',
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+    features: [],
+    note: 'The PR body holds a version 1 report. Run `bun verify publish` again.',
+  };
+
+  const parsed: unknown = verifyReadingSchema.parse(reading);
+
+  expect(parsed).toStrictEqual(reading);
+});

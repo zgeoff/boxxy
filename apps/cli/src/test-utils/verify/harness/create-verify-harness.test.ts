@@ -7,17 +7,21 @@ import invariant from 'tiny-invariant';
 import { z } from 'zod';
 import { runCLI } from '../../../cli/run-cli.ts';
 import { runGit } from '../../../run-git.ts';
+import { postControl } from '../post-control.ts';
 import { runBoxxy } from '../run-boxxy.ts';
 import type { VerifyContext } from '../verify-context.ts';
+import { controlRoutes } from './control-routes.ts';
 import { createVerifyHarness } from './create-verify-harness.ts';
 import { fileClosedItem } from './file-closed-item.ts';
 import { fileItem } from './file-item.ts';
 import { landItem } from './land-item.ts';
 import { makeControlHandler } from './make-control-handler.ts';
+import { readItemByTitle } from './read-item-by-title.ts';
 import { readSessionItem } from './read-session-item.ts';
+import { runPlanLever } from './run-plan-lever.ts';
 import { runSession } from './run-session.ts';
 import { serveHarness } from './serve-harness.ts';
-import { costSchema, itemShowSchema, timesSchema } from './types.ts';
+import { costSchema, itemShowSchema, statusSchema, timesSchema } from './types.ts';
 
 // The journeys of the verify CLI, run against the harness in this process. The CLI steps run the
 // real CLI in this process too, on the argv that `bun verify` runs as a process: `env BOXXY_URL=…
@@ -84,7 +88,13 @@ async function setupTest() {
   const showItem = () =>
     runBoxxy(ctx, { argv: ['item', 'show', '@current'], schema: itemShowSchema });
 
-  return { ctx, showItem };
+  const showItemTitled = async (title: string) => {
+    const id = await readItemByTitle(ctx, title);
+
+    return runBoxxy(ctx, { argv: ['item', 'show', id], schema: itemShowSchema });
+  };
+
+  return { ctx, showItem, showItemTitled };
 }
 
 test('it files an item that item show reads back', async () => {
@@ -126,6 +136,24 @@ test('it lets the session of a triage attempt find and read a closed item of its
   expect(shown.item).toStrictEqual({ id: closed.item, title: 'Read the theme from the desktop' });
 });
 
+test('it lets the session find the closed item when the journey runs a second time', async () => {
+  const ctx = await setupTest();
+
+  await fileClosedItem(ctx.ctx, { title: 'Read the theme from the desktop' });
+  await fileItem(ctx.ctx, { title: 'Read the system theme' });
+  await runSession(ctx.ctx, { closeOut: 'accepted', minutes: 4 });
+  await fileClosedItem(ctx.ctx, { title: 'Read the theme from the desktop' });
+  await fileItem(ctx.ctx, { title: 'Read the system theme' });
+  await runSession(ctx.ctx, { closeOut: 'accepted', minutes: 4 });
+
+  const shown = await readSessionItem(ctx.ctx, {
+    text: 'theme from the desktop',
+    title: 'Read the theme from the desktop',
+  });
+
+  expect(shown.item.title).toBe('Read the theme from the desktop');
+});
+
 test('it fails the session read with check-failed when the shown title differs', async () => {
   const ctx = await setupTest();
 
@@ -164,4 +192,134 @@ test('it runs the journeys in any order on one harness', async () => {
   const cost = await runBoxxy(ctx.ctx, { argv: ['cost', '@current'], schema: costSchema });
 
   expect(z.number().parse(cost.totals.costUSD)).toBe(3);
+});
+
+test('it claims the expedited item and not the deferred one, and claims the deferred one after the undefer', async () => {
+  const ctx = await setupTest();
+
+  await fileItem(ctx.ctx, { title: 'Sort the settings by use' });
+  await fileItem(ctx.ctx, { title: 'Sort the settings by name', keepPrevious: true });
+  await runPlanLever(ctx.ctx, { lever: 'expedite', title: 'Sort the settings by name' });
+  await runPlanLever(ctx.ctx, { lever: 'defer', title: 'Sort the settings by use' });
+  await runSession(ctx.ctx, { closeOut: 'accepted', minutes: 4 });
+
+  const expedited = await ctx.showItemTitled('Sort the settings by name');
+  const deferred = await ctx.showItemTitled('Sort the settings by use');
+
+  await runPlanLever(ctx.ctx, { lever: 'undefer', title: 'Sort the settings by use' });
+  await postControl(ctx.ctx, controlRoutes.tick, null);
+
+  const undeferred = await ctx.showItemTitled('Sort the settings by use');
+
+  expect([expedited.attempts, deferred.attempts, undeferred.attempts]).toStrictEqual([
+    [{ phase: 'triage', state: 'succeeded', outcome: 'accepted' }],
+    [],
+    [{ phase: 'triage', state: expect.any(String), outcome: null }],
+  ]);
+});
+
+test('it closes the peer of a journey when the next journey files its item', async () => {
+  const ctx = await setupTest();
+
+  await fileItem(ctx.ctx, { title: 'Sort the settings by use' });
+  await fileItem(ctx.ctx, { title: 'Sort the settings by name', keepPrevious: true });
+  await fileItem(ctx.ctx, { title: 'Remember the window size' });
+
+  const first = await ctx.showItemTitled('Sort the settings by use');
+  const second = await ctx.showItemTitled('Sort the settings by name');
+  const third = await ctx.showItem();
+
+  expect([first, second, third].map((shown) => shown.item.derived.state)).toStrictEqual([
+    'archived',
+    'archived',
+    'ready',
+  ]);
+});
+
+test('it claims nothing while the runner is paused, and claims the item after the resume', async () => {
+  const ctx = await setupTest();
+
+  const pause = () => runBoxxy(ctx.ctx, { argv: ['runner', 'pause'], schema: statusSchema });
+  const resume = () => runBoxxy(ctx.ctx, { argv: ['runner', 'resume'], schema: statusSchema });
+
+  await pause();
+  await fileItem(ctx.ctx, { title: 'Remember the window size' });
+  await postControl(ctx.ctx, controlRoutes.tick, null);
+
+  const paused = await ctx.showItem();
+
+  await resume();
+  await postControl(ctx.ctx, controlRoutes.tick, null);
+
+  const resumed = await ctx.showItem();
+
+  expect([paused.attempts, resumed.attempts.map((attempt) => attempt.phase)]).toStrictEqual([
+    [],
+    ['triage'],
+  ]);
+});
+
+test('it sends one notice to the registered session when an item holds', async () => {
+  const ctx = await setupTest();
+
+  await runBoxxy(ctx.ctx, {
+    argv: ['notices', 'register', 'workbench.3.owner-notes'],
+    schema: z.unknown(),
+  });
+
+  await fileItem(ctx.ctx, { title: 'Choose the theme source' });
+  await runSession(ctx.ctx, { closeOut: 'needs-owner', minutes: 4 });
+  await postControl(ctx.ctx, controlRoutes.tick, null);
+
+  const shown = await ctx.showItem();
+  const sent = await postControl(ctx.ctx, controlRoutes.readNotices, null);
+
+  expect({ reason: shown.item.derived.reason, notices: sent.notices }).toStrictEqual({
+    reason: 'needs-owner',
+    notices: [{ item: shown.item.id, reason: 'needs-owner', session: 'workbench.3.owner-notes' }],
+  });
+});
+
+test('it sends no notice while no session is registered', async () => {
+  const ctx = await setupTest();
+
+  await fileItem(ctx.ctx, { title: 'Choose the theme source' });
+  await runSession(ctx.ctx, { closeOut: 'needs-owner', minutes: 4 });
+  await postControl(ctx.ctx, controlRoutes.tick, null);
+
+  const sent = await postControl(ctx.ctx, controlRoutes.readNotices, null);
+
+  expect(sent.notices).toStrictEqual([]);
+});
+
+test('it lifts the hold of a blocked build and runs a passed review after the retry', async () => {
+  const ctx = await setupTest();
+
+  await fileItem(ctx.ctx, { title: 'Pick the theme in the settings' });
+  await runSession(ctx.ctx, { closeOut: 'accepted', minutes: 4 });
+  await runSession(ctx.ctx, { closeOut: 'designed', minutes: 10 });
+
+  const opened = await postControl(ctx.ctx, controlRoutes.openPullRequest, null);
+
+  await runSession(ctx.ctx, { closeOut: 'blocked', minutes: 12, pullRequest: opened.number });
+
+  const held = await ctx.showItem();
+
+  await runBoxxy(ctx.ctx, {
+    argv: ['item', 'retry', '@current', '--phase', 'review'],
+    schema: z.unknown(),
+  });
+
+  const review = await runSession(ctx.ctx, { closeOut: 'passed', minutes: 8 });
+  const shown = await ctx.showItem();
+
+  expect({
+    heldReason: held.item.derived.reason,
+    review: [review.phase, review.state, review.outcome],
+    reasonAfter: shown.item.derived.reason,
+  }).toStrictEqual({
+    heldReason: 'blocked',
+    review: ['review', 'succeeded', 'passed'],
+    reasonAfter: 'no pull request linked',
+  });
 });

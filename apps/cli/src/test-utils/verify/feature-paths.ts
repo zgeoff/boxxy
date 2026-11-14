@@ -22,6 +22,10 @@ export const featurePaths = {
   'file-item': [...everyJourney],
   'claim-settle': [...everyJourney, 'modules/planning/**'],
   'report-cost': [...everyJourney, 'modules/planning/**', 'packages/pepys/**'],
+  'plan-ordering': [...everyJourney, 'modules/planning/**'],
+  'runner-pause': [...everyJourney, 'modules/planning/**'],
+  'hold-notice': [...everyJourney, 'modules/planning/**'],
+  'hold-recovery': [...everyJourney, 'modules/planning/**'],
 } as const satisfies Record<string, readonly string[]>;
 
 // A path that one of these globs matches counts as no change, even where a feature's globs match

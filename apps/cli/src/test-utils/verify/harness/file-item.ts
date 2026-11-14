@@ -6,9 +6,13 @@ import { controlRoutes } from './control-routes.ts';
 
 interface FileItemInput {
   readonly title: string;
+
+  // true: the current item before this one stays open beside it
+  readonly keepPrevious?: boolean;
 }
 
-// Files an item on example/app through the real CLI. The item becomes the current one.
+// Files an item on example/app through the real CLI. The item becomes the current one, and the
+// one before it closes, unless `keepPrevious` leaves it open.
 export async function fileItem(
   ctx: VerifyContext,
   input: FileItemInput,
@@ -29,7 +33,10 @@ export async function fileItem(
     schema: z.object({ item: z.string() }),
   });
 
-  await postControl(ctx, controlRoutes.setCurrent, { item: filed.item });
+  await postControl(ctx, controlRoutes.setCurrent, {
+    item: filed.item,
+    keepPrevious: input.keepPrevious ?? false,
+  });
 
   return { item: filed.item };
 }

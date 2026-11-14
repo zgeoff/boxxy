@@ -1,34 +1,33 @@
-// A pull request body that ends with the hidden block of a wringer report, as
-// `bun verify report --human` prints it, with a verdict of each feature at the fingerprint.
-export function buildReportBody(fingerprint: string, features: readonly string[]): string {
-  const report = {
-    version: 1,
+interface ReportBodyOptions {
+  // the patch ID of the whole change
+  readonly fingerprint: string;
+
+  // the patch ID of each feature's part of the change, by feature name
+  readonly featureFingerprints: Readonly<Record<string, string>>;
+}
+
+// A pull request body that ends with the data comment of a wringer report, as
+// `bun verify publish` writes it, with a claim for each feature.
+export function buildReportBody(options: ReportBodyOptions): string {
+  const comment = {
+    version: 2,
+    registry: 'boxxy-verify',
     base: 'origin/main',
-    fingerprint,
-    complete: true,
-    features: features.map((name) => ({
-      name,
-      changed: true,
-      status: 'verified',
-      verdict: {
-        feature: name,
-        fingerprint,
-        run: 'run-1',
-        at: '2026-03-02T10:00:00.000Z',
-        evidence: [],
-      },
+    fingerprint: options.fingerprint,
+    claims: Object.entries(options.featureFingerprints).map(([feature, featureFingerprint]) => ({
+      feature,
+      fingerprint: options.fingerprint,
+      featureFingerprint,
+      run: 'run-1',
+      at: '2026-03-02T10:00:00.000Z',
+      target: { name: 'local', evidence: 'local' },
+      pin: { kind: 'local' },
+      evidenceDigest: '0'.repeat(64),
+      evidenceCount: 0,
     })),
-    unmapped: [],
   };
 
-  const lines = [
-    '## Verification',
-    '',
-    '<!-- wringer-report v1',
-    JSON.stringify(report),
-    '-->',
-    '',
-  ];
-
-  return lines.join('\n');
+  return ['## Verification', '', `<!-- wringer-data v2 ${JSON.stringify(comment)} -->`, ''].join(
+    '\n',
+  );
 }

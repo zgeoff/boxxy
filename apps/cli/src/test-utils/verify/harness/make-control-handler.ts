@@ -67,7 +67,7 @@ export function makeControlHandler(
       return { clock: new Date(harness.server.dispatch.clock.now()).toISOString() };
     }),
     bindRoute(controlRoutes.setCurrent, async (body) => {
-      await setCurrentItem(harness, body.item);
+      await setCurrentItem(harness, body.item, body.keepPrevious);
 
       return null;
     }),
@@ -79,6 +79,12 @@ export function makeControlHandler(
       return Promise.resolve({ item: harness.current });
     }),
     bindRoute(controlRoutes.startSession, (body) => startSession(harness, body)),
+    bindRoute(controlRoutes.tick, async () => {
+      await harness.server.tick();
+
+      return null;
+    }),
+    bindRoute(controlRoutes.readNotices, () => Promise.resolve({ notices: harness.notices })),
     bindRoute(controlRoutes.advanceClock, (body) => {
       const now = harness.server.dispatch.clock.advance(body.minutes * minuteMs);
 
@@ -86,6 +92,13 @@ export function makeControlHandler(
     }),
     bindRoute(controlRoutes.endTurn, (body) => endTurn(harness, body.attempt)),
     bindRoute(controlRoutes.openPullRequest, () => Promise.resolve(openPullRequest(harness))),
+    bindRoute(controlRoutes.readOpenedPullRequest, () => {
+      if (harness.openedPullRequest === null) {
+        throw new ControlConflictError('no pull request is open: run open-pull-request first');
+      }
+
+      return Promise.resolve({ number: harness.openedPullRequest });
+    }),
     bindRoute(controlRoutes.mergePullRequest, (body) => mergePullRequest(harness, body)),
     bindRoute(controlRoutes.sendTelemetry, async (body) => {
       await sendTelemetry(harness, body.requests);
