@@ -45,15 +45,16 @@ journey of `bun verify` commands, and the end state that shows it works.
 
 <!-- wringer:features -->
 
-| Feature       | Summary                                                             | File                                                                       |
-| ------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| file-item     | The owner files an item, and boxxy shows it                         | [references/feature-file-item.md](references/feature-file-item.md)         |
-| claim-settle  | boxxy claims an item, a session closes out, and the attempt settles | [references/feature-claim-settle.md](references/feature-claim-settle.md)   |
-| report-cost   | A merged item reports its cost and stage times                      | [references/feature-report-cost.md](references/feature-report-cost.md)     |
-| plan-ordering | Expedite and defer set which item the runner claims                 | [references/feature-plan-ordering.md](references/feature-plan-ordering.md) |
-| runner-pause  | A paused runner claims nothing                                      | [references/feature-runner-pause.md](references/feature-runner-pause.md)   |
-| hold-notice   | A held item sends one notice to the notice session                  | [references/feature-hold-notice.md](references/feature-hold-notice.md)     |
-| hold-recovery | A retry lifts a hold and runs the chosen phase                      | [references/feature-hold-recovery.md](references/feature-hold-recovery.md) |
+| Feature       | Summary                                                                               | File                                                                       |
+| ------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| file-item     | The owner files an item, and boxxy shows it                                           | [references/feature-file-item.md](references/feature-file-item.md)         |
+| claim-settle  | boxxy claims an item, a session closes out, and the attempt settles                   | [references/feature-claim-settle.md](references/feature-claim-settle.md)   |
+| report-cost   | A merged item reports its cost and stage times                                        | [references/feature-report-cost.md](references/feature-report-cost.md)     |
+| plan-ordering | Expedite and defer set which item the runner claims                                   | [references/feature-plan-ordering.md](references/feature-plan-ordering.md) |
+| runner-pause  | A paused runner claims nothing                                                        | [references/feature-runner-pause.md](references/feature-runner-pause.md)   |
+| hold-notice   | A held item sends one notice to the notice session                                    | [references/feature-hold-notice.md](references/feature-hold-notice.md)     |
+| hold-recovery | A retry lifts a hold and runs the chosen phase                                        | [references/feature-hold-recovery.md](references/feature-hold-recovery.md) |
+| owner-mcp     | An agent signs in to the public door as a service client, and calls the owner's tools | [references/feature-owner-mcp.md](references/feature-owner-mcp.md)         |
 
 <!-- /wringer:features -->
 
@@ -124,13 +125,14 @@ command points that command alone.
 
 <!-- repo: targets -->
 
-| Target  | Start with                                            | Access     |
-| ------- | ----------------------------------------------------- | ---------- |
-| `local` | `bun verify use --target local`, then `bun verify up` | read-write |
+| Target  | Start with                                                      | Access     |
+| ------- | --------------------------------------------------------------- | ---------- |
+| `local` | `bun verify use --target local`, then `bun verify up`           | read-write |
+| `prod`  | the steps in [On prod](references/feature-owner-mcp.md#on-prod) | read-only  |
 
 Each `up` runs the real boxxy server and CLI on an empty SQLite store, with no network. Fakes stand
-in for the clock, the worker, GitHub and the atc notifier. pepys, the service that stores each
-item's cost and stage times, runs in the harness process.
+in for the clock, the worker, GitHub and the atc notifier. pepys, which stores each item's cost and
+stage times, runs in the harness process.
 
 <!-- /repo -->
 

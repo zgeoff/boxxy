@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { createPublicDoor } from '@boxxy/auth-oauth';
-import type { PublicDoor } from '@boxxy/auth-oauth';
+import type { PublicDoor, ServiceTokensOptions } from '@boxxy/auth-oauth';
 import {
   createMergeJob,
   createNullNotifier,
@@ -33,6 +33,7 @@ import { createAtcMcpClient, createAtcWorker } from '@boxxy/worker-atc';
 import { createORPCClient } from '@orpc/client';
 import { RPCLink } from '@orpc/client/fetch';
 import invariant from 'tiny-invariant';
+import { match } from 'ts-pattern';
 import { buildTokenDigest } from './auth/pick-request-scope.ts';
 import { pickServerSecrets } from './config/pick-server-secrets.ts';
 import { readCallerProof } from './config/read-caller-proof.ts';
@@ -466,6 +467,9 @@ async function startPublicDoor(
       },
       readPeer: (request) => peers.current?.requestIP(request)?.address ?? null,
       serveMCP: makePublicMcpServe(readDeps),
+      ...(section.serviceTokensFile === undefined
+        ? {}
+        : { serviceTokens: buildServiceTokens(section.serviceTokensFile, input.log) }),
     });
 
     return { kind: 'ready', door, peers };
@@ -475,6 +479,30 @@ async function startPublicDoor(
       message: `the public door did not start: ${formatErrorChain(error)}`,
     };
   }
+}
+
+// Each SIGHUP reloads the file; the log says how many clients the door now holds, or why it kept
+// the ones it had.
+function buildServiceTokens(file: string, log: ServerLog): ServiceTokensOptions {
+  return {
+    file,
+    onReload: (reload) => {
+      match(reload)
+        .with({ kind: 'replaced' }, (replaced) => {
+          log.warn('the public door reloaded its service clients', {
+            file,
+            clients: replaced.clients,
+          });
+        })
+        .with({ kind: 'kept' }, (kept) => {
+          log.warn('the public door kept its service clients, since the file is not valid', {
+            file,
+            reason: kept.reason,
+          });
+        })
+        .exhaustive();
+    },
+  };
 }
 
 function newId(): string {

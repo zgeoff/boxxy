@@ -44,6 +44,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@boxxy/auth-oauth": "workspace:*",
     "@boxxy/dispatch": "workspace:*",
     "@boxxy/rules": "workspace:*",
     "@boxxy/server": "workspace:*",
@@ -51,6 +52,7 @@
     "@wringer/core": "catalog:",
     "@wringer/gunshi": "catalog:",
     "@wringer/http": "catalog:",
+    "@wringer/mcp": "catalog:",
     "tiny-invariant": "catalog:"
   },
   "engines": {

@@ -1,8 +1,16 @@
 import { join } from 'node:path';
-import { createWringer, local } from '@wringer/core';
-import type { Wringer } from '@wringer/core';
+import { WringerError, createWringer, local } from '@wringer/core';
+import type { DriveContext, Wringer } from '@wringer/core';
 import { http } from '@wringer/http';
+import type { HttpClient } from '@wringer/http';
+import { mcp } from '@wringer/mcp';
 import { z } from 'zod';
+import { buildMCPServers } from './build-mcp-servers.ts';
+import { localMCPClient, mcpDoorMetadataPath, prodMCPClient, prodOriginEnv } from './constants.ts';
+import { createLocalMCPClient } from './create-local-mcp-client.ts';
+import { checkMCPDoor } from './doctor/check-mcp-door.ts';
+import { checkMCPSignIn } from './doctor/check-mcp-sign-in.ts';
+import { makeTargetCheck } from './doctor/make-target-check.ts';
 import { expectEqual } from './expect-equal.ts';
 import { featurePaths, ignoredPaths } from './feature-paths.ts';
 import { controlRoutes } from './harness/control-routes.ts';
@@ -26,11 +34,14 @@ import { postControl } from './post-control.ts';
 import { runBoxxy } from './run-boxxy.ts';
 
 const noticeReasonsSchema = z.strictObject({ notices: z.array(z.string()) });
+const skippedSchema = z.strictObject({ skipped: z.string() });
+const doorCheckSchema = z.union([z.strictObject({ resource: z.string() }), skippedSchema]);
 
 // The registry's name is not `boxxy`: gunshi reads a command group named like the program as the
 // program itself, so `boxxy item` would lose its flags.
 export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
   .use(http({}))
+  .use(mcp({}))
   .target('local', {
     mode: 'launch',
     access: 'read-write',
@@ -38,21 +49,45 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
     launch: (ctx) => ({
       command: ['bun', join(import.meta.dir, 'harness', 'main.ts')],
 
-      // the SQLite store, the skills repo and each session's workspace go under the run
-      // folder, so each `up` starts from nothing
-      env: { BOXXY_VERIFY_DIR: ctx.runDirectory },
+      // the SQLite store, the skills repo, the door's auth database and each session's workspace go
+      // under the run folder, so each `up` starts from nothing. The harness gets only the digest of
+      // the run's service client.
+      env: {
+        BOXXY_VERIFY_DIR: ctx.runDirectory,
+        BOXXY_VERIFY_MCP_DIGEST: createLocalMCPClient(),
+      },
       ready: (line) =>
         line['event'] === 'listening'
           ? {
               web: String(line['control']),
               boxxy: String(line['boxxy']),
               skills: String(line['skills']),
+              mcp: String(line['mcp']),
             }
           : null,
     }),
 
-    // `web` is the http driver's endpoint: the harness's control routes
-    drivers: { http: () => ({ healthPath: '/control/health' }) },
+    drivers: {
+      // `web` is the http driver's endpoint: the harness's control routes
+      http: () => ({ healthPath: '/control/health' }),
+      mcp: (ctx) => buildMCPServers(z.url().parse(ctx.endpoints['mcp']), localMCPClient),
+    },
+  })
+  .target('prod', {
+    mode: 'attach',
+    access: 'read-only',
+
+    // evidence stays local: the deployed items name private repos, and a PR description is public
+    evidence: 'local',
+    refusalHint:
+      'prod is the deployed boxxy, and it is read-only. Leave the write undone, skip `done` for this feature, and report the write you needed.',
+    host: local(),
+    endpoints: readProdEndpoints,
+    drivers: {
+      // the door serves no page of its own, so the reachable check reads its resource metadata
+      http: () => ({ endpoint: 'mcp', healthPath: mcpDoorMetadataPath }),
+      mcp: (ctx) => buildMCPServers(z.url().parse(ctx.endpoints['mcp']), prodMCPClient),
+    },
   })
 
   // Writes. A step that the owner or a session takes runs the real `boxxy` CLI as a process. A
@@ -62,6 +97,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
     name: 'file-item',
     summary: 'File an item on example/app with `boxxy item file`; it becomes the current item',
     effect: 'write',
+    targets: ['local'],
     input: z.strictObject({ title: z.string().min(1) }),
     data: z.strictObject({ item: z.string() }),
     run: (input, ctx) => fileItem(ctx, input),
@@ -71,6 +107,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
     summary:
       'File an item on example/app and close it, with `boxxy item file` and `boxxy item close`; the current item stays',
     effect: 'write',
+    targets: ['local'],
     input: z.strictObject({ title: z.string().min(1) }),
     data: z.strictObject({ item: z.string() }),
     run: (input, ctx) => fileClosedItem(ctx, input),
@@ -80,6 +117,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
     summary:
       'File an item on example/app with `boxxy item file`; it becomes the current item, and the current item before it stays open',
     effect: 'write',
+    targets: ['local'],
     input: z.strictObject({ title: z.string().min(1) }),
     data: z.strictObject({ item: z.string() }),
     run: (input, ctx) => fileItem(ctx, { ...input, keepPrevious: true }),
@@ -89,6 +127,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
     summary:
       "Run one attempt of the current item: a tick claims it, the session's hook binds it, the session closes out with the preset, its turn ends, and two ticks settle it",
     effect: 'write',
+    targets: ['local'],
     input: z.strictObject({
       closeOut: closeOutPresetSchema,
 
@@ -122,6 +161,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
     name: 'open-pull-request',
     summary: 'Open the next pull request on the fake forge, which a later run-session can link',
     effect: 'write',
+    targets: ['local'],
     input: z.strictObject({}),
     data: z.strictObject({ pullRequest: z.number() }),
     run: async (_input, ctx) => {
@@ -135,6 +175,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
     summary:
       'File an item and take it through triage, design, a build that opens a pull request, a passed review and the merge, with one model request in the build and one in the review',
     effect: 'write',
+    targets: ['local'],
     input: z.strictObject({ title: z.string().min(1) }),
     data: z.strictObject({ item: z.string(), pullRequest: z.number() }),
     timeoutMs: 60_000,
@@ -145,6 +186,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
     name: 'tick',
     summary: 'Run one runner tick at the harness clock, with no wait and no session',
     effect: 'write',
+    targets: ['local'],
     input: z.strictObject({}),
     data: z.null(),
     run: async (_input, ctx) => {
@@ -158,6 +200,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
     summary:
       'Run `boxxy expedite`, `boxxy defer` or `boxxy undefer` on the open item that has the title',
     effect: 'write',
+    targets: ['local'],
     input: z.strictObject({ lever: z.enum(['expedite', 'defer', 'undefer']), title: z.string() }),
     data: z.null(),
     run: (input, ctx) => runPlanLever(ctx, input),
@@ -166,6 +209,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
     name: 'runner-pause',
     summary: 'Pause the runner with `boxxy runner pause`',
     effect: 'write',
+    targets: ['local'],
     input: z.strictObject({}),
     data: statusSchema,
     run: (_input, ctx) => runBoxxy(ctx, { argv: ['runner', 'pause'], schema: statusSchema }),
@@ -174,6 +218,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
     name: 'runner-resume',
     summary: 'Resume the runner with `boxxy runner resume`',
     effect: 'write',
+    targets: ['local'],
     input: z.strictObject({}),
     data: statusSchema,
     run: (_input, ctx) => runBoxxy(ctx, { argv: ['runner', 'resume'], schema: statusSchema }),
@@ -182,6 +227,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
     name: 'register-notices',
     summary: 'Register the session that gets each hold notice with `boxxy notices register`',
     effect: 'write',
+    targets: ['local'],
     input: z.strictObject({ session: z.string().min(1) }),
     data: z.unknown(),
     run: (input, ctx) =>
@@ -191,6 +237,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
     name: 'retry-item',
     summary: 'Run `boxxy item retry --phase` on the current item, which lifts its hold',
     effect: 'write',
+    targets: ['local'],
     input: z.strictObject({ phase: z.string().min(1) }),
     data: z.unknown(),
     run: (input, ctx) =>
@@ -361,17 +408,37 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
   })
 
   // the doctor: the harness sends a status call through the broker route, the store answers, and
-  // pepys under test answers a query. A check runs no process, so it cannot run the CLI.
+  // pepys under test answers a query. A check runs no process, so it cannot run the CLI. The doctor
+  // runs every check on every target, and `prod` has no harness, so `boxxy` passes there unrun.
   .check({
     name: 'boxxy',
     input: z.strictObject({}),
-    data: z.null(),
+    data: z.union([z.null(), skippedSchema]),
     timeoutMs: 10_000,
-    run: async (_input, ctx) => {
+    run: makeTargetCheck('local', async (ctx) => {
       await postControl(ctx, controlRoutes.health, null);
 
       return null;
-    },
+    }),
+  })
+
+  // the public door answers /mcp, and the target's service client signs in and lists the tools
+  .check({
+    name: 'mcp-door',
+    input: z.strictObject({}),
+    data: doorCheckSchema,
+    timeoutMs: 10_000,
+
+    // on `local` the http driver reaches the harness's control routes, and `mcp-sign-in` proves the
+    // harness's door
+    run: makeTargetCheck('prod', checkProdDoor),
+  })
+  .check({
+    name: 'mcp-sign-in',
+    input: z.strictObject({}),
+    data: z.strictObject({ server: z.string(), tools: z.number().int() }),
+    timeoutMs: 20_000,
+    run: (_input, ctx) => checkMCPSignIn(ctx.drivers.mcp),
   })
   .feature(
     {
@@ -409,6 +476,34 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
       summary: 'A retry lifts a hold and runs the chosen phase',
       paths: featurePaths['hold-recovery'],
     },
+    {
+      name: 'owner-mcp',
+      summary:
+        "An agent signs in to the public door as a service client, and calls the owner's tools",
+      paths: featurePaths['owner-mcp'],
+    },
   )
   .ignore(...ignoredPaths)
   .build();
+
+// The supervisor reads the origin when `attach` starts the run, from the environment it took over.
+function readProdEndpoints(): { mcp: string } {
+  const origin = z.url().safeParse(process.env[prodOriginEnv]);
+
+  if (!origin.success) {
+    throw new WringerError('environment', {
+      message: `prod needs the deployed door's origin in ${prodOriginEnv}`,
+      hint: 'Set it on the `attach` line, as the owner-mcp feature file shows.',
+    });
+  }
+
+  return { mcp: origin.data };
+}
+
+type DoorCheckContext = Pick<DriveContext, 'target' | 'endpoints'> & {
+  readonly drivers: { readonly http: Pick<HttpClient, 'request'> };
+};
+
+function checkProdDoor(ctx: DoorCheckContext) {
+  return checkMCPDoor(ctx.drivers.http, z.url().parse(ctx.endpoints['mcp']));
+}

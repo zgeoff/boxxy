@@ -2,7 +2,7 @@
 
 - **Status:** draft
 
-boxxy has a verify CLI on [wringer](https://github.com/zgeoff/wringer) 0.3.0, run as `bun verify`, with seven features: file an item, claim and settle an attempt, report cost, order the plan, pause the runner, send a hold notice and recover a hold. An agent grades a pull request on its own machine: it runs the journey of each feature that the pull request changes, against a local boxxy, and writes the report into the pull request's body with `bun verify publish`. A CI check, `verify / gate`, fails a pull request that changes a feature's files with no fresh verdict for that feature, and boxxy's merge step waits for it through `merge.checks` in the rules file.
+boxxy has a verify CLI on [wringer](https://github.com/zgeoff/wringer) 0.3.0, run as `bun verify`, with eight features: file an item, claim and settle an attempt, report cost, order the plan, pause the runner, send a hold notice, recover a hold, and call the owner's tools through the public door as a service client. An agent grades a pull request on its own machine: it runs the journey of each feature that the pull request changes, against a local boxxy, and writes the report into the pull request's body with `bun verify publish`. A CI check, `verify / gate`, fails a pull request that changes a feature's files with no fresh verdict for that feature, and boxxy's merge step waits for it through `merge.checks` in the rules file.
 
 wringer's terms, as this doc uses them:
 
@@ -19,7 +19,7 @@ boxxy's own terms come from these docs:
 - a close-out, the structured result a session sends at the end of its attempt: [close-outs](./close-outs.md);
 - the outbox, the store's queue of facts for pepys, and pepys, the service that stores the facts and serves the cost and time reports: [facts and pepys](./v1-facts-and-pepys.md).
 
-The sketches are in [`sketches/next/wringer-journeys/`](./sketches/next/wringer-journeys/): the registry, the map and the seven journeys in `01-usage.ts`, the harness contract in `02-types.ts`, and the order of its steps in `03-flow.ts`. Where this doc and a sketch differ, the sketch stands.
+The sketches are in [`sketches/next/wringer-journeys/`](./sketches/next/wringer-journeys/): the registry, the map and the first seven journeys in `01-usage.ts`, the harness contract in `02-types.ts`, and the order of its steps in `03-flow.ts`. Where this doc and a sketch differ, the sketch stands.
 
 ## Shape
 
@@ -57,9 +57,10 @@ The real server has two listeners: the owner listener for owner calls, and the w
 - **Time moves only when a step moves it.** No tick, pull request watch or outbox send runs on a timer. A control route advances the fake clock, then runs one tick, one watch pass or one outbox drain. A journey reads the same numbers on every run.
 - **Each journey files its own item.** The harness keeps the item that the last `file-item` or `land-item` action filed, and a journey line refers to it as `@current`. Each pull request that the fake forge opens takes the next number. The journeys run in any order after one `up`, and a journey can run again on the same run. When a journey sets the current item, the harness closes the item before it and its peers, so no tick claims work for an old item. A journey that orders two items files the second with `file-item-beside`, which keeps the first open as a peer until the next journey. The minutes that a control route takes count from the day the current item was set.
 - **The doctor check calls `GET /control/health`.** The route sends a status call through the broker routing and asks pepys under test for a stage time. A doctor check runs no process, so it cannot run the CLI.
-- **The harness reaches no network outside localhost.** It needs no atc, GitHub or deployed pepys, and no token.
+- **The harness reaches no network outside localhost.** It needs no atc, GitHub or deployed pepys, and no stored token.
+- **The harness serves the public door on a loopback port.** `bun verify up` mints a service client with both scopes for the run, puts the secret's digest in the harness's environment, and keeps the secret in the supervisor's, which the harness never sees. The harness writes the digest into the door's service-token file, and the registry's `mcp` driver signs in with the secret. `serveLoopbackDoor`, exported from `@boxxy/server/test-utils/serve-loopback-door`, builds the door.
 
-## The seven journeys
+## The journeys
 
 Section D of `01-usage.ts` holds each journey as the `verify` skill's feature files hold it. Each journey ends in a read command, which runs the CLI and fails with `check-failed` when a value differs from the one in the journey line. The grader judges nothing.
 
@@ -82,6 +83,7 @@ The journeys call these actions of the registry:
 | `runner-pause` | `runner-pause`, `file-item`, `tick`, then `runner-resume` and `tick` | no attempt and `status` `paused`, then one triage attempt and `status` `running` |
 | `hold-notice` | `register-notices`, `file-item`, `run-session` with the close-out `needs-owner`, `tick` | the hold reason `needs-owner`, and the one notice that the notifier sent to the registered session |
 | `hold-recovery` | an item taken to a blocked build with a pull request, `retry-item --phase review`, `run-session` with `passed` | the hold reason `blocked` before the retry; a review attempt `succeeded` with the outcome `passed`, and no hold after |
+| `owner-mcp` | `mcp tools`, then `mcp call item_file` with a hold, as the service client | `mcp call item_get` and `item_list`: the held item and its title |
 
 A pass proves this much:
 
@@ -92,6 +94,7 @@ A pass proves this much:
 - `runner-pause`: the pause flag stops the claim, `status` reports it, and the resume lets the next tick claim.
 - `hold-notice`: a settle that holds writes a notice row, the tick sends it through the notifier to the session that `notices register` stored.
 - `hold-recovery`: `item retry --phase` lifts a rules hold and moves the item to the phase, so the next attempt runs there.
+- `owner-mcp`: a service client signs in with `client_credentials` from its service-token file, the door lists the owner's tools with the read tools marked, and an MCP call files and reads an item. The item is held, so no other journey's tick claims it.
 
 A journey proves boxxy's own code. The fakes stand in for the worker, forge, caller-proof and notifier adapters, so a journey never runs them. A journey that pauses the runner ends with the resume, so the other journeys claim as before.
 
@@ -101,8 +104,9 @@ Section C of `01-usage.ts` holds the globs. wringer's gate fails a pull request 
 
 | Paths | Features |
 | --- | --- |
-| `apps/cli/**`, `apps/server/**`, `libs/**`, `adapters/store-sqlite/**`, `modules/{rules,dispatch,closeout,train}/**` | all seven |
-| `modules/planning/**` | every feature but `file-item` |
+| `apps/cli/**`, `apps/server/**`, `libs/**`, `adapters/store-sqlite/**`, `modules/{rules,dispatch,closeout,train}/**` | all eight |
+| `modules/planning/**` | every feature but `file-item` and `owner-mcp` |
+| `adapters/auth-oauth/**` | `owner-mcp` |
 | `packages/pepys/**` | `report-cost` |
 
 The ignore list's groups, each with its reason in the sketch:
@@ -110,12 +114,12 @@ The ignore list's groups, each with its reason in the sketch:
 1. Prose, tests and benches: `docs/**`, each `README.md`, `CHANGELOG.md` and `LICENSE`, `AGENTS.md`, `CLAUDE.md`, `**/*.test.ts` and `**/bench/**`.
 2. Build, lint and repo wiring that Bun never reads when it runs the source: the TypeScript, turbo, lint, format, commit and hook configs, `.claude/**`, `.github/**`, and `scripts/**`.
 3. The files that Renovate and release-please change: each `package.json`, `bun.lock`, `.bun-version`, `.release-please-manifest.json` and `release-please-config.json`.
-4. Code that no journey runs: the adapters behind the fakes, the public door's `adapters/auth-oauth` among them, and the server's own start, config, timers and rules loader, which the harness replaces with `createTestServer`. The tests of `startServer` on the atc stand-in, each adapter's tests and contract suite, and the [live proof](./v1-work-list.md#22-the-live-proof) cover them.
+4. Code that no journey runs: the adapters behind the fakes, and the server's own start, config, timers and rules loader, which the harness replaces with `createTestServer`. The tests of `startServer` on the atc stand-in, each adapter's tests and contract suite, and the [live proof](./v1-work-list.md#22-the-live-proof) cover them.
 
 The map keeps these rules:
 
 - A package is in a feature when the feature's journey runs code in it. The harness runs the fakes in a package's `src/test-utils/`, so the whole package folder maps, its fakes included.
-- A change to the CLI's or the server's `src/test-utils/`, the verify CLI and the harness among it, needs fresh verdicts of all seven features, because it changes what a journey proves.
+- A change to the CLI's or the server's `src/test-utils/`, the verify CLI and the harness among it, needs fresh verdicts of all eight features, because it changes what a journey proves.
 - An ignore glob never matches a source file that a journey runs. `**/*.md` stays off the list, because the rules' prompts are markdown that the server sends to each session.
 - The dependency files are the one exception. A patch or minor update merges on green CI with no verdict. A major bump of a third-party package, or a new Bun version, gets the owner's standing review for major bumps, and the CLI's tests against the real server in CI run the same flow as the journeys.
 - A new package fails the gate as unmapped until its pull request adds it to a feature or to the ignore list.
@@ -194,7 +198,7 @@ An unmapped path fails the gate while every feature reads `verified`. The readin
 
 ## Constraints
 
-- All seven journeys pass on a Linux machine with no network beyond localhost, after `bun install`. The slice that builds the harness proves it by running the journeys in a network namespace with only the loopback interface up, such as one made by `unshare --map-root-user --net`.
+- All eight journeys pass on a Linux machine with no network beyond localhost, after `bun install`. The slice that builds the harness proves it by running the journeys in a network namespace with only the loopback interface up, such as one made by `unshare --map-root-user --net`.
 - `runBoxxy` sets `BOXXY_SKILLS_URL` on every CLI call, because the session-start hook fetches from GitHub when the variable is unset.
 - Each journey finishes in 60 seconds or less. `land-item`, the longest step, has a timeout of 60 seconds.
 - The harness prints its ready line only after both listeners answer. When a part fails to start, it exits with code 1 and the cause on stderr.
@@ -222,6 +226,6 @@ An unmapped path fails the gate while every feature reads `verified`. The readin
 ## Out of scope
 
 - A journey that runs a real adapter against its stand-in, such as the atc worker against the fake atc server. Each adapter's contract suite covers it.
-- A read-only target on a deployed boxxy.
+- A verdict on the `prod` target. `prod` attaches read-only to the deployed public door with a read-scope service client, for a smoke check after a deploy: its doctor checks that the door answers and that the client signs in, and the reads are `runner_status`, `item_list` and one `item_get`. Its evidence stays on the grader's machine, because the deployed items name private repos.
 - Uploading the evidence files.
 - The `Verifier` port, the `verify` phase and the merge step.

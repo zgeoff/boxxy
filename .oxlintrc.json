@@ -119,6 +119,7 @@
               "@wringer/db",
               "@wringer/gunshi",
               "@wringer/http",
+              "@wringer/mcp",
               "@wringer/stream"
             ],
             "allow": ["verify-cli"],

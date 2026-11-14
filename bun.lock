@@ -42,6 +42,7 @@
         "kysely": "catalog:",
         "openapi-types": "catalog:",
         "typebox": "catalog:",
+        "zod": "catalog:",
       },
     },
     "adapters/caller-proof-imp": {
@@ -191,6 +192,7 @@
         "zod": "catalog:",
       },
       "devDependencies": {
+        "@boxxy/auth-oauth": "workspace:*",
         "@boxxy/dispatch": "workspace:*",
         "@boxxy/rules": "workspace:*",
         "@boxxy/server": "workspace:*",
@@ -198,6 +200,7 @@
         "@wringer/core": "catalog:",
         "@wringer/gunshi": "catalog:",
         "@wringer/http": "catalog:",
+        "@wringer/mcp": "catalog:",
         "tiny-invariant": "catalog:",
       },
     },
@@ -422,6 +425,7 @@
     "@wringer/core": "0.3.0",
     "@wringer/gunshi": "0.3.1",
     "@wringer/http": "0.1.3",
+    "@wringer/mcp": "0.1.0",
     "@zgeoff/bun-test-extended": "0.2.3",
     "@zgeoff/chex": "0.3.4",
     "@zgeoff/commitlint-config": "0.1.0",
@@ -1053,6 +1057,8 @@
     "@wringer/gunshi": ["@wringer/gunshi@0.3.1", "", { "dependencies": { "gunshi": "0.37.3", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2" }, "peerDependencies": { "@wringer/core": "0.3.0", "zod": "^4.0.0" }, "bin": { "wringer-gunshi": "src/wringer-gunshi.ts" } }, "sha512-tB0JCE1VXs79x6rlP9LIeFD1hvsXHThrZ9GUcbJLtFa2Q3EX74vmG81FPz3lstTbUdY6xH3iXwtPebq0mFLRCA=="],
 
     "@wringer/http": ["@wringer/http@0.1.3", "", { "peerDependencies": { "@wringer/core": "0.3.0", "zod": "^4.0.0" } }, "sha512-TKqgwm9p/qYyB6KhBz4Z0nhyHJoliI+QBt/gEXFU/DXjUlBz2IqTiaYM0CtwsdjXv+VIBpEHf/aClko/D8frqA=="],
+
+    "@wringer/mcp": ["@wringer/mcp@0.1.0", "", { "dependencies": { "@modelcontextprotocol/client": "2.4.0" }, "peerDependencies": { "@wringer/core": "0.3.0", "zod": "^4.0.0" } }, "sha512-7qvALnC/15vxn0kpnc6LatmOmNSIBmDl3A3w4kOOTNx+NJo2t0LO9ioz4WpSmOQ/Z9RNDzzEvCFFJyjTUufCmg=="],
 
     "@zgeoff/agent-hooks": ["@zgeoff/agent-hooks@0.2.12", "", { "bin": { "agent-hooks": "dist/cli.js" } }, "sha512-bMEmXGtNICFNvR/e9lF9p+N4BwyIPqnG7IZ/m78vz3i5ZUZbgtSVLWgw3k5/d0cE6OXGLBW4sJ3twKd2kYzRSQ=="],
 
