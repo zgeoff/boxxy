@@ -251,11 +251,16 @@ test.each([
 });
 
 test.each([
-  { problem: 'is not JSON', text: '{"resource":', message: /not valid JSON/u },
+  {
+    problem: 'is not JSON',
+    text: '{"resource":',
+    message: /broken-service-tokens\.json is not valid: the file is not valid JSON/u,
+  },
   {
     problem: 'names another resource',
     text: JSON.stringify({ resource: 'https://other.example/mcp', clients: {} }),
-    message: /another resource/u,
+    message:
+      /broken-service-tokens\.json is not valid: it names the resource https:\/\/other\.example\/mcp/u,
   },
   {
     problem: 'holds a static token',
@@ -265,7 +270,7 @@ test.each([
         'dock-reader': { scopes: ['read'], tokens: ['boxxy_svc_dockreaderdockreaderdockreader01'] },
       },
     }),
-    message: /static token/u,
+    message: /broken-service-tokens\.json is not valid: .*static token/u,
   },
 ])('it refuses to start with a service-token file that $problem', async (row) => {
   const ctx = await setupTest();

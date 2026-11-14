@@ -41,5 +41,11 @@ async function runReload(reloads: ServiceTokenReloads): Promise<void> {
     }),
   );
 
-  reloads.onReload(reload);
+  // a report that throws must not reject the chain, which would skip every later reload and fail
+  // the door's stop; stderr is the one place left to say so
+  try {
+    reloads.onReload(reload);
+  } catch (error) {
+    process.stderr.write(`the service-token reload was not reported: ${String(error)}\n`);
+  }
 }

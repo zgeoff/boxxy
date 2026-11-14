@@ -125,7 +125,9 @@ export async function createPublicDoor(options: PublicDoorOptions): Promise<Publ
   };
 
   const serviceTokens =
-    options.serviceTokens === undefined ? null : await readStartFile(options.serviceTokens.file);
+    options.serviceTokens === undefined
+      ? null
+      : await readStartFile(options.serviceTokens.file, origin);
 
   mkdirSync(dirname(options.dbPath), { recursive: true });
 
@@ -200,11 +202,17 @@ export async function createPublicDoor(options: PublicDoorOptions): Promise<Publ
   };
 }
 
-async function readStartFile(path: string): Promise<ServiceTokenFile<GrantScope>> {
+async function readStartFile(path: string, origin: string): Promise<ServiceTokenFile<GrantScope>> {
   const parsed = await readServiceTokenFile(path);
 
   if (!parsed.ok) {
     throw new Error(`the service-token file ${path} is not valid: ${parsed.reason}`);
+  }
+
+  if (parsed.file.resource !== `${origin}/mcp`) {
+    throw new Error(
+      `the service-token file ${path} is not valid: it names the resource ${parsed.file.resource}, where the door serves ${origin}/mcp`,
+    );
   }
 
   return parsed.file;
