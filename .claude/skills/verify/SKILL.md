@@ -147,7 +147,7 @@ only the name of a group, such as `action`: run `bun verify <group> --help` for 
 
 <!-- repo: commands -->
 
-- Each journey files its own items, so you can run it again on the same run.
+- Each journey files its own items, so you can repeat it without `up --restart`.
 - An `action` takes one step as the owner, the person who runs boxxy, or as the harness.
   `action tick` runs one runner tick: boxxy claims work and settles attempts. `action run-session`
   runs one attempt: a worker session works one phase of the current item, and closes out with the
