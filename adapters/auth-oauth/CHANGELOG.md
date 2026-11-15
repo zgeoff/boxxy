@@ -2,17 +2,17 @@
 
 ## [0.2.9](https://github.com/zgeoff/boxxy/compare/@boxxy/auth-oauth@0.2.8...@boxxy/auth-oauth@0.2.9) (2026-11-15)
 
-
 ### Features
 
-* **verify:** add owner mcp journey and a prod target ([#123](https://github.com/zgeoff/boxxy/issues/123)) ([2b6eb85](https://github.com/zgeoff/boxxy/commit/2b6eb8523aacc9ee8bd0175ca4454695a9146cde))
-
+- **verify:** add owner mcp journey and a prod target
+  ([#123](https://github.com/zgeoff/boxxy/issues/123))
+  ([2b6eb85](https://github.com/zgeoff/boxxy/commit/2b6eb8523aacc9ee8bd0175ca4454695a9146cde))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/contract bumped to 0.2.9
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/contract bumped to 0.2.9
 
 ## [0.2.8](https://github.com/zgeoff/boxxy/compare/@boxxy/auth-oauth@0.2.7...@boxxy/auth-oauth@0.2.8) (2026-11-13)
 
