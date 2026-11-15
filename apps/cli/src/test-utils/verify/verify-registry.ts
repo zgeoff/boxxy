@@ -10,7 +10,6 @@ import { localMCPClient, mcpDoorMetadataPath, prodMCPClient, prodOriginEnv } fro
 import { createLocalMCPClient } from './create-local-mcp-client.ts';
 import { checkMCPDoor } from './doctor/check-mcp-door.ts';
 import { checkMCPSignIn } from './doctor/check-mcp-sign-in.ts';
-import { makeTargetCheck } from './doctor/make-target-check.ts';
 import { expectEqual } from './expect-equal.ts';
 import { featurePaths, ignoredPaths } from './feature-paths.ts';
 import { controlRoutes } from './harness/control-routes.ts';
@@ -34,8 +33,6 @@ import { postControl } from './post-control.ts';
 import { runBoxxy } from './run-boxxy.ts';
 
 const noticeReasonsSchema = z.strictObject({ notices: z.array(z.string()) });
-const skippedSchema = z.strictObject({ skipped: z.string() });
-const doorCheckSchema = z.union([z.strictObject({ resource: z.string() }), skippedSchema]);
 
 // The registry's name is not `boxxy`: gunshi reads a command group named like the program as the
 // program itself, so `boxxy item` would lose its flags.
@@ -408,30 +405,32 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
   })
 
   // the doctor: the harness sends a status call through the broker route, the store answers, and
-  // pepys under test answers a query. A check runs no process, so it cannot run the CLI. The doctor
-  // runs every check on every target, and `prod` has no harness, so `boxxy` passes there unrun.
+  // pepys under test answers a query. A check runs no process, so it cannot run the CLI. `prod` has
+  // no harness.
   .check({
     name: 'boxxy',
     input: z.strictObject({}),
-    data: z.union([z.null(), skippedSchema]),
+    data: z.null(),
     timeoutMs: 10_000,
-    run: makeTargetCheck('local', async (ctx) => {
+    targets: ['local'],
+    run: async (_input, ctx) => {
       await postControl(ctx, controlRoutes.health, null);
 
       return null;
-    }),
+    },
   })
 
   // the public door answers /mcp, and the target's service client signs in and lists the tools
   .check({
     name: 'mcp-door',
     input: z.strictObject({}),
-    data: doorCheckSchema,
+    data: z.strictObject({ resource: z.string() }),
     timeoutMs: 10_000,
 
     // on `local` the http driver reaches the harness's control routes, and `mcp-sign-in` proves the
     // harness's door
-    run: makeTargetCheck('prod', checkProdDoor),
+    targets: ['prod'],
+    run: (_input, ctx) => checkProdDoor(ctx),
   })
   .check({
     name: 'mcp-sign-in',
@@ -500,7 +499,7 @@ function readProdEndpoints(): { mcp: string } {
   return { mcp: origin.data };
 }
 
-type DoorCheckContext = Pick<DriveContext, 'target' | 'endpoints'> & {
+type DoorCheckContext = Pick<DriveContext, 'endpoints'> & {
   readonly drivers: { readonly http: Pick<HttpClient, 'request'> };
 };
 
