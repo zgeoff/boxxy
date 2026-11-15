@@ -133,8 +133,8 @@ that command alone. A command with neither runs on the registry's first target, 
 | `local` | `bun verify use --target local`, then `bun verify up`           | read-write |
 | `prod`  | the steps in [On prod](references/feature-owner-mcp.md#on-prod) | read-only  |
 
-Each `up` runs the real boxxy server and CLI on an empty SQLite store, with no network, and fakes
-for the clock, the worker, GitHub and the atc notifier.
+Each `up` starts the harness: the real boxxy server and CLI on an empty SQLite store, with no
+network, and fakes for the clock, the worker, GitHub and the atc notifier.
 
 <!-- /repo -->
 
@@ -151,9 +151,9 @@ only the name of a group, such as `action`: run `bun verify <group> --help` for 
 <!-- repo: commands -->
 
 - An `action` takes one step as the owner of boxxy or as the harness. `file-item` and `land-item`
-  close the item that was current before.
-- A read, `bun verify boxxy <name>`, takes the values to expect as flags, and exits 1 with
-  `check-failed` when the app shows another value.
+  make the item they file current, and the harness closes the current item before it.
+- `bun verify boxxy <name>` takes the values to expect as flags, and exits 1 with `check-failed`
+  when the app shows another value.
 
 <!-- /repo -->
 
