@@ -128,13 +128,13 @@ that command alone. A command with neither runs on the registry's first target, 
 
 <!-- repo: targets -->
 
-| Target  | Start with                                                      | Access     |
-| ------- | --------------------------------------------------------------- | ---------- |
-| `local` | `bun verify use --target local`, then `bun verify up`           | read-write |
-| `prod`  | the steps in [On prod](references/feature-owner-mcp.md#on-prod) | read-only  |
+| Target  | Kind   | Start with                                                      | Access     |
+| ------- | ------ | --------------------------------------------------------------- | ---------- |
+| `local` | launch | `bun verify use --target local`, then `bun verify up`           | read-write |
+| `prod`  | attach | the steps in [On prod](references/feature-owner-mcp.md#on-prod) | read-only  |
 
-Each `up` starts the harness: the real boxxy server and CLI on an empty SQLite store, with no
-network, and fakes for the clock, the worker, GitHub and the atc notifier.
+Each `up` starts the harness: the boxxy server and CLI on an empty SQLite store, with no network,
+and fakes for the clock, the worker, GitHub and the hold-notice sender.
 
 <!-- /repo -->
 
@@ -150,10 +150,9 @@ only the name of a group, such as `action`: run `bun verify <group> --help` for 
 
 <!-- repo: commands -->
 
-- An `action` takes one step as the owner of boxxy or as the harness. `file-item` and `land-item`
-  make the item they file current, and the harness closes the current item before it.
-- `bun verify boxxy <name>` takes the values to expect as flags, and exits 1 with `check-failed`
-  when the app shows another value.
+- An `action` takes one step as the owner or as the harness. Later journey lines act on the item
+  that `file-item` or `land-item` filed last, and the harness closes the item filed before it.
+- `bun verify boxxy <name>` takes the values to expect as flags.
 
 <!-- /repo -->
 

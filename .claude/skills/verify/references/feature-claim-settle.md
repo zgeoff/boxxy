@@ -7,7 +7,7 @@ duplicate, with `boxxy attempt list-items` and `boxxy attempt show-item`.
 
 The owner reaches the feature with `boxxy item file` alone: boxxy does the rest on its runner ticks.
 `action file-closed-item` files a closed item, which exists only for the session to find. The
-`accepted` close-out fixes the outcome, whatever the session finds.
+`accepted` close-out sets the outcome, whatever the session finds.
 
 ## Journey
 
@@ -22,10 +22,11 @@ bun verify boxxy item --title "Read the system theme" --phase triage --outcome a
 
 ## End state
 
-- `bun verify action run-session` exits 0: a tick claimed the item, the session's start hook bound
-  the session to the attempt, the server took the close-out, and two ticks settled the attempt. When
-  one of these fails, it exits 1 with `check-failed`. Read the evidence to find the step.
-- `bun verify boxxy session-item` exits 0: as the session, `boxxy attempt list-items` found the
-  closed item by its text, and `boxxy attempt show-item` showed its title.
-- `bun verify boxxy item` exits 0: the triage attempt of "Read the system theme" `succeeded` with
-  the outcome `accepted`.
+- The triage attempt of "Read the system theme" `succeeded` with the outcome `accepted`.
+  `bun verify boxxy item` checks it.
+- As the session, `boxxy attempt list-items` finds the closed item "Read the theme from the desktop"
+  by its text, and `boxxy attempt show-item` shows its title. `bun verify boxxy session-item` checks
+  both.
+- A tick claimed the item, the session's start hook bound the session to the attempt, the server
+  took the close-out, and two ticks settled the attempt. When one of these fails,
+  `bun verify action run-session` exits 1 with `check-failed`. Read the evidence to find the step.
