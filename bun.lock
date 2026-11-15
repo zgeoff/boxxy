@@ -418,7 +418,7 @@
     "@pepys/kit": "0.4.3",
     "@pepys/source-github": "0.4.3",
     "@pepys/source-telemetry": "0.4.2",
-    "@pepys/testing": "0.4.2",
+    "@pepys/testing": "0.4.3",
     "@stylistic/eslint-plugin": "5.10.0",
     "@tsconfig/strictest": "2.0.8",
     "@types/bun": "1.4.4",
@@ -908,7 +908,7 @@
 
     "@pepys/source-telemetry": ["@pepys/source-telemetry@0.4.2", "", { "dependencies": { "@pepys/kit": "0.4.2", "@zgeoff/std": "0.4.3", "tiny-invariant": "1.3.3", "zod": "4.6.7" } }, "sha512-OCPTYN8UX3nyk59F9pYS+tXTq2M5fy4n38nKcIUVUHWmrz6J5TDv0W9zHTq+bBXWOQ53KZ4D7LzkgxvQYfdzBg=="],
 
-    "@pepys/testing": ["@pepys/testing@0.4.2", "", { "dependencies": { "@pepys/ingest": "0.4.2", "@pepys/kit": "0.4.2", "@pepys/kysely-turso": "0.4.2", "@tursodatabase/database": "0.8.3", "kysely": "0.29.8", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2", "zod": "4.6.7" } }, "sha512-55H8JGpgELMeYbX9Id7gWjw25LkHLdpDBKiNOArBLZhuUOqCYMSJ2DEaEwzU9gFzSHJmaSmOJAz4msToeH88Fw=="],
+    "@pepys/testing": ["@pepys/testing@0.4.3", "", { "dependencies": { "@pepys/ingest": "0.4.3", "@pepys/kit": "0.4.3", "@pepys/kysely-turso": "0.4.3", "@tursodatabase/database": "0.8.3", "kysely": "0.29.8", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2", "zod": "4.6.7" } }, "sha512-u1U5lEfAufS9VDq1evjBW+rO32s57EW4tyCFveSGxaakpiGdydMxPrCr8XA8XZ0BSrjhPp71b9u2FwwoeTwHnw=="],
 
     "@protobuf-ts/runtime": ["@protobuf-ts/runtime@2.11.1", "", {}, "sha512-KuDaT1IfHkugM2pyz+FwiY80ejWrkH1pAtOBOZFuR6SXEFTsnb/jiQWQ1rCIrcKx2BtyxnxW6BWwsVSA/Ie+WQ=="],
 
@@ -1536,6 +1536,12 @@
 
     "@pepys/testing/@pepys/kit": ["@pepys/kit@0.4.2", "", { "dependencies": { "@zgeoff/std": "0.4.3", "kysely": "0.29.8", "ts-pattern": "5.9.2", "type-fest": "5.10.0", "zod": "4.6.7" } }, "sha512-gapmVICnJ3znulHNP4gsmi+XTNjtH0iAGJlBc328ueXyT5qk3GVVgOjkQvPCiO029+VQQi4Gk9DpsjpJSOMOCQ=="],
 
+    "@pepys/testing/@pepys/ingest": ["@pepys/ingest@0.4.3", "", { "dependencies": { "@impz/client": "7.2.0", "@pepys/kit": "0.4.3", "@pepys/schema": "0.4.3", "@s2-dev/streamstore": "0.30.0", "@zgeoff/std": "0.4.3", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2" } }, "sha512-2ihci8hy8RaDpMTth98sRztX6Yus8lFLDHanUioML5fFK+ufR3ab/vU5tBaRmofqHvBHod5DCuxOeeUO+FbnsA=="],
+
+    "@pepys/testing/@pepys/kit": ["@pepys/kit@0.4.3", "", { "dependencies": { "@zgeoff/std": "0.4.3", "kysely": "0.29.8", "ts-pattern": "5.9.2", "type-fest": "5.10.0", "zod": "4.6.7" } }, "sha512-XvHiVtyQyVie7NEO2XMoLieI8V0Dpue4Aiz/e7oCQR1fAMWAR/tSOEqLug/kSLpCvqAMPqKapVYpAU3PmoNyUA=="],
+
+    "@pepys/testing/@pepys/kysely-turso": ["@pepys/kysely-turso@0.4.3", "", { "dependencies": { "@tursodatabase/database": "0.8.3", "kysely": "0.29.8", "tiny-invariant": "1.3.3" } }, "sha512-U/tpdXPpxcIKnvLa0AlN7LnpdgEpCdVzsj9Ff9Ck2rct6O6xoYoSQ+d53PmhvanTEzROowgsArIQ6l+QQFzlaw=="],
+
     "@wringer/core/xstate": ["xstate@5.33.3", "", {}, "sha512-AnDRjS/GyKHmbA1PyhVCYBqYsA7EGe3KGgeD0ht3NFsXzoz7leX/HQDFX9QlHFJ/ltLHPsgChJYwPzRvB/0b4g=="],
 
     "@wringer/gunshi/gunshi": ["gunshi@0.37.3", "", {}, "sha512-uwm23bguqDcleEetknuQnF5okLcgmQPM3iv4aWVHTPDbiSs9shh02F079NCY0mWkrIRjHqNhgmzW6k0FCXhy1g=="],
@@ -1631,6 +1637,8 @@
     "@pepys/source-github/@pepys/api/xstate": ["xstate@5.33.3", "", {}, "sha512-AnDRjS/GyKHmbA1PyhVCYBqYsA7EGe3KGgeD0ht3NFsXzoz7leX/HQDFX9QlHFJ/ltLHPsgChJYwPzRvB/0b4g=="],
 
     "@pepys/source-github/@pepys/ingest/@pepys/schema": ["@pepys/schema@0.4.3", "", { "dependencies": { "@pepys/kit": "0.4.3", "@zgeoff/std": "0.4.3", "ts-pattern": "5.9.2", "zod": "4.6.7" } }, "sha512-j2/phlO2nOKCn/xoLSO6sKrvS8elPDiqiD//s1zf71lpzJ2fTfOcPpZ0feelkz2gTpbD6lTeLSvpK3kzU2FWMQ=="],
+
+    "@pepys/testing/@pepys/ingest/@pepys/schema": ["@pepys/schema@0.4.3", "", { "dependencies": { "@pepys/kit": "0.4.3", "@zgeoff/std": "0.4.3", "ts-pattern": "5.9.2", "zod": "4.6.7" } }, "sha512-j2/phlO2nOKCn/xoLSO6sKrvS8elPDiqiD//s1zf71lpzJ2fTfOcPpZ0feelkz2gTpbD6lTeLSvpK3kzU2FWMQ=="],
 
     "@zgeoff/format-codemod/oxc-parser/@oxc-parser/binding-android-arm-eabi": ["@oxc-parser/binding-android-arm-eabi@0.155.0", "", { "os": "android", "cpu": "arm" }, "sha512-A6xv7hDtnTm+xlZ7utn6rRQpRMJHRhVr3gjRGqlx0RUX84mNk0pAsy6YN/wWhuOTkaZhRrrzaLxf0NfbH77j2w=="],
 
