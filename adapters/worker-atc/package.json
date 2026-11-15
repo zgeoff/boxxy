@@ -1,6 +1,6 @@
 {
   "name": "@boxxy/worker-atc",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "boxxy's worker port on atc: starts, reads, sleeps, wakes, stops and forgets agent sessions",
   "homepage": "https://github.com/zgeoff/boxxy/tree/main/adapters/worker-atc#readme",
   "bugs": "https://github.com/zgeoff/boxxy/issues",
