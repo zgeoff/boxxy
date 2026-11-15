@@ -6,8 +6,8 @@ public door, an MCP endpoint with an OAuth server in front. The client signs in 
 it trades a client ID and secret for an access token. The `mcp` commands sign in for you, so you
 never pass a token.
 
-Start the run with `bun verify up`, as for every journey. `up` mints a service client with the read
-and write scopes, and the harness serves the public door beside the app.
+On `local`, start the run with `bun verify up`. `up` mints a service client with the read and write
+scopes, and the harness serves the public door beside the app.
 
 - Keep the `held` field in the `item_file` line. The runner never starts work on a held item, so the
   item stays put while you run the other journeys.
@@ -41,14 +41,20 @@ Each field below sits under `data`.
 
 ## On prod
 
-After a deploy, run these steps on `prod`, the deployed public door. The `prod` target refuses every
-command that changes state. Record no verdict on `prod`: you run `bun verify done` on `local` only.
-When a step fails, give its `data` or `error` in your reply, and still run step 5.
+When your task asks you to check a deploy, run these steps on `prod`, the deployed server. You
+attach to it with no `up`. It refuses every command that changes state.
 
-1. Run `bun verify use --target prod`, then `bun verify use --feature owner-mcp`.
+- When a step fails, give its `data` or `error` in your reply. Skip step 5, and still run step 6.
+- Keep the `prod` report off every PR. The deployed items name private repos, so `prod` keeps its
+  evidence files in `.wringer/`.
+- Run `bun verify publish` only after you run this journey and `done` on `local` again. The `prod`
+  verdict replaces the feature's `local` verdict in this worktree.
+
+1. Run `bun verify use --target prod`, then `bun verify use --feature owner-mcp`. Expect: `ok: true`
+   from each.
 2. Read the door's origin and the secret of the read-scope client `service:wringer-ro` from the item
-   `boxxy verify prod mcp client` in the `boxxy` vault of 1Password. Set both on the `attach` line
-   only, and never print the secret:
+   `boxxy verify prod mcp client` in the `boxxy` vault of 1Password. Set both only on the `attach`
+   line. Never print the secret:
 
    ```bash
    item='op://boxxy/boxxy verify prod mcp client'
@@ -57,12 +63,12 @@ When a step fails, give its `data` or `error` in your reply, and still run step 
    unset secret
    ```
 
-   Expect: `ok: true` and `data.status` `running`. When `op read` fails, `attach` doesn't run: stop
-   and give the `op` error in your reply. The run's background process holds the secret, and signs
-   in for each later command.
+   Expect: `ok: true` and `data.status` `running`. When `op read` fails, `attach` doesn't run: give
+   the `op` error in your reply, and go to step 6. `attach` starts a background process that holds
+   the secret, and signs in for each later command.
 
-3. Run `bun verify doctor`. Expect: `data.passed: true`. On `prod`, the `boxxy` check passes with
-   `data.skipped`. It tests the local harness. The other checks test the door:
+3. Run `bun verify doctor`. Expect: `data.passed: true`. On `prod`, the doctor reports the `boxxy`
+   check as `skipped`. That check tests the local harness. The other checks test the door:
    - `mcp-door` reads the door's OAuth metadata at `/.well-known/oauth-protected-resource/mcp`. When
      it fails, the deployed server runs with no public door, or at another URL.
    - `mcp-sign-in` signs the client in and lists the tools. When it fails, the deployed server's
@@ -83,5 +89,6 @@ When a step fails, give its `data` or `error` in your reply, and still run step 
    `structuredContent.paused`, `true` or `false`, and `item_get` gives the item with that `id` in
    `structuredContent.item`.
 
-5. Run `bun verify detach`, then `bun verify use --target local`. `detach` stops the background
+5. Run `bun verify done` to record the `prod` verdict. Expect: `ok: true`.
+6. Run `bun verify detach`, then `bun verify use --target local`. `detach` stops the background
    process and deletes the run's copy of the secret.

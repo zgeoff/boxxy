@@ -226,6 +226,6 @@ An unmapped path fails the gate while every feature reads `verified`. The readin
 ## Out of scope
 
 - A journey that runs a real adapter against its stand-in, such as the atc worker against the fake atc server. Each adapter's contract suite covers it.
-- A verdict on the `prod` target. `prod` attaches read-only to the deployed public door with a read-scope service client, for a smoke check after a deploy: its doctor checks that the door answers and that the client signs in, and the reads are `runner_status`, `item_list` and one `item_get`. Its evidence stays on the grader's machine, because the deployed items name private repos.
+- A `prod` verdict in a PR. `prod` attaches read-only to the deployed public door with a read-scope service client, for a smoke check after a deploy: its doctor checks that the door answers and that the client signs in, and the reads are `runner_status`, `item_list` and one `item_get`. The grader records a verdict there with `done`, and the verdict and its evidence stay on the grader's machine, because the deployed items name private repos.
 - Uploading the evidence files.
 - The `Verifier` port, the `verify` phase and the merge step.
