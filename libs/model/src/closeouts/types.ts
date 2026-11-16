@@ -68,7 +68,7 @@ export interface DesignCloseOut {
         };
 
         // the follow-up work the design found, filed as new items
-        readonly openItems?: readonly OpenItem[];
+        readonly openItems?: readonly DesignOpenItem[];
         readonly relations?: readonly RelationDraft[];
       }
     | {
@@ -177,6 +177,28 @@ export interface OpenItem {
   readonly security?: boolean;
 }
 
+// An open item of a design, which may set the order of the work it splits out. `blocks` and
+// `blockedBy` name the designed item as `item`, and another open item of the same close-out by its
+// `key`, because neither of the two has an ID yet.
+export interface DesignOpenItem extends OpenItem {
+  readonly key?: string;
+  readonly blocks?: readonly string[];
+  readonly blockedBy?: readonly string[];
+}
+
+// An end of a link between the items one settle files: the attempt's item, or the open item of
+// the close-out with this key.
+export type LinkEnd =
+  | { readonly kind: 'item' }
+  | { readonly kind: 'open-item'; readonly key: string };
+
+// A relation between two items of one settle, at least one of them filed by it.
+export interface OpenItemLink {
+  readonly type: RelationTypeName;
+  readonly from: LinkEnd;
+  readonly to: LinkEnd;
+}
+
 export type FrictionTargetKind = 'skill' | 'rule' | 'lint' | 'agents-md' | 'tool';
 
 export interface Friction {
@@ -188,9 +210,16 @@ export interface Friction {
 // withholds each effect that changes an item, and keeps `record-proposal` and a `blocks` relation
 // from another item, so the item still waits on that item after the owner's retry.
 export type Effect =
-  | { readonly kind: 'file-item'; readonly item: OpenItem }
+  | {
+      readonly kind: 'file-item';
+      readonly item: OpenItem;
+
+      // names the filed item in the `link` of an `add-relation`
+      readonly key?: string;
+    }
   | { readonly kind: 'close-item'; readonly reason: string; readonly of: ItemId | null }
   | { readonly kind: 'add-relation'; readonly relation: RelationDraft }
+  | { readonly kind: 'add-relation'; readonly link: OpenItemLink }
   | { readonly kind: 'set-kind'; readonly itemKind: ItemKindName }
   | { readonly kind: 'set-field'; readonly field: 'designMode'; readonly value: DesignMode }
   | { readonly kind: 'set-acceptance'; readonly criteria: readonly Criterion[] }

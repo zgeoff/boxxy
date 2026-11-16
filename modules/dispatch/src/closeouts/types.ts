@@ -9,6 +9,7 @@ import type {
   Effect,
   ForcedFailure,
   Instant,
+  ItemId,
   ItemView,
   LoadedRules,
   NewId,
@@ -51,6 +52,10 @@ export interface EffectContext {
   // every live `blocks` relation of the store, which the loop check walks; read only when an
   // effect adds a `blocks` relation, and empty otherwise
   readonly blocks: readonly RelationRow[];
+
+  // the ID of each open item of the settle by its key: the filed item, or the open item the dedupe
+  // matched; an open item that files nothing has none
+  readonly filed: ReadonlyMap<string, ItemId>;
 
   // the rows of the pull requests that the item's attempts made, in any state
   readonly pullRequests: readonly PullRequestRow[];

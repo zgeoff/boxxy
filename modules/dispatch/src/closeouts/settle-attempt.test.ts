@@ -550,6 +550,193 @@ test('it makes the item of a designed close-out wait on the item it names', asyn
   ]);
 });
 
+test('it makes the designed item wait on an open item that its design files to block it', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('design');
+
+  await ctx.closeOut(attempt, {
+    result: {
+      kind: 'designed',
+      design: { text: 'Scaffold the theme package, then theme the app.', location: null },
+      set: { acceptance: [{ text: 'The app follows the system theme' }] },
+      openItems: [
+        {
+          kind: 'core.issue',
+          title: 'Scaffold the theme package',
+          body: 'Found while designing.',
+          blocks: ['item'],
+        },
+      ],
+    },
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const issues = await ctx.listOpenIssues();
+
+  const scaffold = issues.find((issue) => issue.title === 'Scaffold the theme package');
+
+  const detail = await ctx.readItem(attempt.item);
+
+  const received: unknown = [detail.item.derived, detail.relations];
+
+  expect(received).toStrictEqual([
+    { state: 'blocked' },
+    [expect.objectContaining({ source: scaffold?.id, target: attempt.item, type: 'blocks' })],
+  ]);
+});
+
+test('it records the blocks links between the open items of a design by their keys', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('design');
+
+  await ctx.closeOut(attempt, {
+    result: {
+      kind: 'designed',
+      design: { text: 'Scaffold the theme package, then add the alerts.', location: null },
+      set: { acceptance: [{ text: 'The app follows the system theme' }] },
+      openItems: [
+        {
+          kind: 'core.issue',
+          title: 'Scaffold the theme package',
+          body: 'Found while designing.',
+          key: 'scaffold',
+          blocks: ['item', 'alerts'],
+        },
+        {
+          kind: 'core.issue',
+          title: 'Alert on a missing theme',
+          body: 'Found while designing.',
+          key: 'alerts',
+          blockedBy: ['scaffold', 'item'],
+        },
+      ],
+    },
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const issues = await ctx.listOpenIssues();
+
+  const scaffold = issues.find((issue) => issue.title === 'Scaffold the theme package');
+  const alerts = issues.find((issue) => issue.title === 'Alert on a missing theme');
+
+  invariant(scaffold !== undefined && alerts !== undefined, 'the design files both open items');
+
+  const detail = await ctx.readItem(alerts.id);
+
+  expect(detail.relations).toIncludeSameMembers([
+    expect.objectContaining({ source: scaffold.id, target: alerts.id, type: 'blocks' }),
+    expect.objectContaining({ source: attempt.item, target: alerts.id, type: 'blocks' }),
+  ]);
+});
+
+test('it makes the designed item wait on the open issue that a blocking open item matches', async () => {
+  const ctx = await setupTest();
+  const other = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+  const attempt = await ctx.claimAt('design');
+
+  await ctx.closeOut(attempt, {
+    result: {
+      kind: 'designed',
+      design: { text: 'Theme the app once the dark theme lands.', location: null },
+      set: { acceptance: [{ text: 'The app follows the system theme' }] },
+      openItems: [
+        { kind: 'core.issue', title: 'Add a dark theme', body: 'Found.', blocks: ['item'] },
+      ],
+    },
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+
+  const received: unknown = [detail.item.derived, detail.relations];
+
+  expect(received).toStrictEqual([
+    { state: 'blocked' },
+    [expect.objectContaining({ source: other, target: attempt.item, type: 'blocks' })],
+  ]);
+});
+
+test('it withholds a blocks link from an open item that matches the held designed item', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('design');
+
+  ctx.setRules(
+    ctx.mapOutcome(ctx.rules(), 'design', 'designed', {
+      hold: brandSchemas.rulesHoldReason.parse('designed'),
+    }),
+  );
+
+  await ctx.closeOut(attempt, {
+    result: {
+      kind: 'designed',
+      design: { text: 'Export the theme after this work.', location: null },
+      openItems: [
+        {
+          kind: 'core.issue',
+          title: 'Add a dark theme',
+          body: 'The same work.',
+          key: 'same',
+          blocks: ['export'],
+        },
+        { kind: 'core.issue', title: 'Export the theme', body: 'Found.', key: 'export' },
+      ],
+    },
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+
+  expect(detail.relations).toStrictEqual([]);
+});
+
+test('it rejects a design whose open items block each other in a loop', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('design');
+
+  const answer = await ctx.closeOut(attempt, {
+    result: {
+      kind: 'designed',
+      design: { text: 'Scaffold the theme package, then add the alerts.', location: null },
+      openItems: [
+        {
+          kind: 'core.issue',
+          title: 'Scaffold',
+          body: 'Found.',
+          key: 'scaffold',
+          blocks: ['item'],
+        },
+        {
+          kind: 'core.issue',
+          title: 'Alerts',
+          body: 'Found.',
+          key: 'alerts',
+          blocks: ['scaffold'],
+          blockedBy: ['item'],
+        },
+      ],
+    },
+    friction: [],
+  });
+
+  expect(answer).toStrictEqual({
+    kind: 'rejected',
+    problems: [
+      {
+        kind: 'phase-rule',
+        message: "the open items' blocks links make a loop: scaffold → item → alerts → scaffold",
+      },
+    ],
+  });
+});
+
 test('it makes the item of a blocked build wait on the item its close-out names', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.claimAt('build');

@@ -100,7 +100,7 @@ test('it settles a designed close-out with an effect to file each open item and 
     failure: null,
     outcome: 'designed',
     effects: [
-      { kind: 'file-item', item: openItem },
+      { kind: 'file-item', item: openItem, key: '#0' },
       {
         kind: 'set-acceptance',
         criteria: [
@@ -110,6 +110,109 @@ test('it settles a designed close-out with an effect to file each open item and 
       },
     ],
     frictionDropped: 0,
+  });
+});
+
+test('it settles open items that block each other with one link per pair after the filings', () => {
+  const settlement = design.settle({
+    attempt: buildMockV1AttemptRow({ phase: brandSchemas.phaseName.parse('design') }),
+    item: buildMockV1ItemView(),
+    closeOut: {
+      result: {
+        kind: 'designed',
+        design: { text: 'Scaffold first', location: null },
+        openItems: [
+          {
+            kind: brandSchemas.itemKindName.parse('core.issue'),
+            title: 'Scaffold the repo',
+            body: 'Found.',
+            key: 'scaffold',
+            blocks: ['item', 'alerts'],
+          },
+          {
+            kind: brandSchemas.itemKindName.parse('core.issue'),
+            title: 'Send the alerts',
+            body: 'Found.',
+            key: 'alerts',
+            blockedBy: ['scaffold'],
+          },
+        ],
+      },
+      friction: [],
+      frictionDropped: 0,
+    },
+    now: brandSchemas.instant.parse(1000),
+  });
+
+  const received: unknown = settlement.effects;
+
+  expect(received).toStrictEqual([
+    {
+      kind: 'file-item',
+      item: { kind: 'core.issue', title: 'Scaffold the repo', body: 'Found.' },
+      key: 'scaffold',
+    },
+    {
+      kind: 'file-item',
+      item: { kind: 'core.issue', title: 'Send the alerts', body: 'Found.' },
+      key: 'alerts',
+    },
+    {
+      kind: 'add-relation',
+      link: {
+        type: 'blocks',
+        from: { kind: 'open-item', key: 'scaffold' },
+        to: { kind: 'item' },
+      },
+    },
+    {
+      kind: 'add-relation',
+      link: {
+        type: 'blocks',
+        from: { kind: 'open-item', key: 'scaffold' },
+        to: { kind: 'open-item', key: 'alerts' },
+      },
+    },
+  ]);
+});
+
+test('it returns the problems of open item links that name an unknown key, a repeated key and the item itself', () => {
+  const item = buildMockV1ItemView();
+
+  const raw = {
+    result: {
+      kind: 'designed',
+      design: { text: 'Scaffold first', location: null },
+      openItems: [
+        { kind: 'core.issue', title: 'One', body: 'Found.', key: 'one', blocks: ['two', 'one'] },
+        { kind: 'core.issue', title: 'Again', body: 'Found.', key: 'one' },
+      ],
+    },
+    friction: [],
+  };
+
+  const parsed: unknown = design.closeOut.parse(raw, {
+    item,
+    attempt: buildMockV1AttemptRow().id,
+    evidence: [],
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set([brandSchemas.itemKindName.parse('core.issue')]),
+      relationTypes: new Set([brandSchemas.relationTypeName.parse('blocks')]),
+    },
+    input: null,
+  });
+
+  expect(parsed).toStrictEqual({
+    kind: 'invalid',
+    problems: [
+      { kind: 'phase-rule', message: 'the close-out gives more than one open item the key one' },
+      {
+        kind: 'phase-rule',
+        message: 'an open item names two, which is neither `item` nor the key of an open item',
+      },
+      { kind: 'phase-rule', message: 'the open item one names itself' },
+    ],
   });
 });
 

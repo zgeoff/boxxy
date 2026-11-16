@@ -12,9 +12,12 @@ import type { z } from 'zod';
 import { buildSchemaParser } from '../build-schema-parser.ts';
 import { buildCriteria } from '../utils/build-criteria.ts';
 import { buildCriterionTexts } from '../utils/build-criterion-texts.ts';
+import { collectOpenItemLinkProblems } from '../utils/collect-open-item-link-problems.ts';
+import { collectOpenItemLinks } from '../utils/collect-open-item-links.ts';
 import { collectOpenItemProblems } from '../utils/collect-open-item-problems.ts';
 import { collectRelationProblems } from '../utils/collect-relation-problems.ts';
 import { findStoppedReason } from '../utils/find-stopped-reason.ts';
+import { getOpenItemRef } from '../utils/get-open-item-ref.ts';
 
 const designBodySchema = designCloseOutSchema.omit({ frictionDropped: true });
 
@@ -62,6 +65,7 @@ function collectDesignProblems(closeOut: DesignCloseOut, ctx: CloseOutContext): 
 
   return [
     ...collectOpenItemProblems(openItems, ctx),
+    ...collectOpenItemLinkProblems(openItems, ctx),
     ...collectRelationProblems(getDesignRelations(closeOut), [], ctx),
   ];
 }
@@ -76,12 +80,19 @@ function getDesignRelations(closeOut: DesignCloseOut): readonly RelationDraft[] 
 function collectDesignEffects(closeOut: DesignCloseOut): Effect[] {
   const designed = closeOut.result.kind === 'designed' ? closeOut.result : null;
   const acceptance = designed?.set?.acceptance;
+  const openItems = designed?.openItems ?? [];
 
+  // the links go after the filings, so the settle knows the ID of each filed item they name
   return [
-    ...(designed?.openItems ?? []).map((openItem) => ({
-      kind: 'file-item' as const,
-      item: openItem,
-    })),
+    ...openItems.map((designOpenItem, index) => {
+      const { key: _key, blocks: _blocks, blockedBy: _blockedBy, ...openItem } = designOpenItem;
+
+      return {
+        kind: 'file-item' as const,
+        item: openItem,
+        key: getOpenItemRef(designOpenItem, index),
+      };
+    }),
     ...(acceptance === undefined
       ? []
       : [{ kind: 'set-acceptance' as const, criteria: buildCriteria(acceptance) }]),
@@ -89,6 +100,7 @@ function collectDesignEffects(closeOut: DesignCloseOut): Effect[] {
       kind: 'add-relation' as const,
       relation,
     })),
+    ...collectOpenItemLinks(openItems).map((link) => ({ kind: 'add-relation' as const, link })),
     ...closeOut.friction.map((friction) => ({ kind: 'record-proposal' as const, friction })),
   ];
 }
