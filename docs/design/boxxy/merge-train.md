@@ -4,7 +4,7 @@ The merge train lands each repo's approved pull requests one batch at a time, so
 send every other open pull request back to rebase. Stacks move as one unit, a unit rebases only at
 the front of the train, and the batch size follows the measured rate at which combined batches fail.
 The train comes after slice 1 (see [slice 1](./slice-1.md)); the `modules/train` package will hold
-it (see [the layout](./layout.md)).
+it (see [the layout](../../architecture/repo/layout.md)).
 
 The decisions behind this doc are
 [0011: merge train rules](../../decisions/0011-merge-train-rules.md) and

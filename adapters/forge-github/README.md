@@ -7,7 +7,7 @@
   </p>
 
   <p>
-    <a href="../../docs/design/boxxy/README.md">Documentation</a>
+    <a href="../../docs/architecture/overview.md">Documentation</a>
   </p>
 </div>
 
@@ -52,5 +52,5 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-[The pull request watch](../../docs/design/boxxy/v1-lifecycle.md#the-pull-request-watch) describes
-the calls and the GitHub permissions they need.
+[The pull request watch](../../docs/architecture/interfaces/github.md#the-pull-request-watch)
+describes the calls and the GitHub permissions they need.

@@ -8,7 +8,7 @@ whole design is proposed. It ships in slice 2 (see [slice 1](./slice-1.md) for w
 The decision behind this doc is
 [0008: capacity sources and a router](../../decisions/0008-capacity-sources-and-a-router.md). The
 `modules/capacity` package holds the code, and each source has an adapter named `capacity-<system>`
-(see [the layout](./layout.md)).
+(see [the layout](../../architecture/repo/layout.md)).
 
 ## Capacity sources
 

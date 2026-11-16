@@ -8,7 +8,7 @@ cohort keys are plug-ins; assignment, the noise floor and the stop rules stay fi
 The decisions behind this doc are
 [0006: the measurement verdict with plug-in metrics](../../decisions/0006-measurement-verdict-with-plug-in-metrics.md)
 and [0007: spend capture through OTel](../../decisions/0007-spend-capture-through-otel.md). The
-`modules/measurement` package holds the code; [the layout](./layout.md) gives its place.
+`modules/measurement` package holds the code; [the layout](../../architecture/repo/layout.md) gives its place.
 
 ## Spend capture
 

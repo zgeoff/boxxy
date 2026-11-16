@@ -124,7 +124,7 @@ A fixed rule can be wrong. These guards stop a wrong rule from blocking work:
 - **Hexagonal.** The core (items, `buildFrame()`, `decide()`, settle rules) is pure. Driving
   adapters are the entry points (CLI, MCP, nixie, hooks) on one command port. Driven adapters sit
   behind ports: the store, the fact sources, the worker kinds and the ask channels. The clock is not a
-  port: only the apps read it, and modules get time as an argument ([layout](./layout.md#import-pins)).
+  port: only the apps read it, and modules get time as an argument ([layout](../../architecture/repo/layout.md#import-pins)).
 - **Strategies.** Each plug-in kind is a strategy interface: signal, gate, pool gate, waiver,
   admission, view, a worker kind's `reconcile`, and a phase's settle rule. A planning concept is a bundle of
   strategies ([decision 0004](../../decisions/0004-planning-concepts-are-plug-ins.md)).
@@ -132,5 +132,5 @@ A fixed rule can be wrong. These guards stop a wrong rule from blocking work:
   rules run challengers in shadow; recipes run them in live buckets
   ([measurement](./measurement.md)).
 
-[Layout](./layout.md) maps these parts to packages, and pins each outside system to one adapter
+[Layout](../../architecture/repo/layout.md) maps these parts to packages, and pins each outside system to one adapter
 package.

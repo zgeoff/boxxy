@@ -7,7 +7,7 @@
   </p>
 
   <p>
-    <a href="../../docs/design/boxxy/README.md">Documentation</a>
+    <a href="../../docs/architecture/overview.md">Documentation</a>
   </p>
 </div>
 
@@ -45,5 +45,4 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 ## Documentation
 
 The [close-outs design](../../docs/design/boxxy/close-outs.md#the-v1-phase-kinds) says what each
-phase kind checks and settles, and
-[`02-types.ts`](../../docs/design/boxxy/sketches/v1/core/02-types.ts) gives the shapes.
+phase kind checks and settles, and `@boxxy/model` holds the shapes.

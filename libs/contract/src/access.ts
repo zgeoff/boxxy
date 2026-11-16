@@ -24,10 +24,10 @@ export const access = {
   // the runner's two switches and the notice session, 22 tools. `rules.dryRun` is a read that is
   // CLI only. Only this path files a held item, releases one or lists the held items.
   'item.file': buildOwnerWrite(
-    'boxxy item file --repo --title --outcome [--body | --body-file] [--acceptance]… [--kind] [--design-mode] [--blocked-by]… [--label]… [--held <reason>]',
+    'boxxy item file --repo --title --outcome [--body | --body-file] [--acceptance]… [--kind] [--design-mode] [--blocked-by]… [--label]… [--security] [--held <reason>]',
   ),
   'item.edit': buildOwnerWrite(
-    'boxxy item edit <item> [--title] [--outcome] [--body | --body-file] [--acceptance]… [--design-mode] [--label]…',
+    'boxxy item edit <item> [--title] [--outcome] [--body | --body-file] [--acceptance]… [--design-mode] [--label]… [--security | --no-security]',
   ),
   'item.close': buildOwnerWrite('boxxy item close <item> --reason [--of]'),
   'item.retry': buildOwnerWrite('boxxy item retry <item> [--phase]'),

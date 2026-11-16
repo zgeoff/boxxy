@@ -238,7 +238,7 @@ Once the image holds no rules, `rules.yaml` opens with this comment:
 ### 1. A boxxy release with the checkout reader
 
 - **Outcome:** an `@boxxy/server` release holds the three reader commits: the ref check, the read from the checked commit, and `--no-replace-objects`.
-- **Follows:** [how boxxy ships](./release.md).
+- **Follows:** [how boxxy ships](../../architecture/repo/release.md).
 - **Needs:** a release that carries the three commits.
 - **Check:** `git tag --contains` on each of the three commits prints the release's `@boxxy/server` tag.
 - **Built:** `@boxxy/server@0.2.0` is the first tag that holds all three.

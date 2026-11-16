@@ -6,16 +6,13 @@
   </p>
 
   <p>
-    <a href="./docs/design/boxxy/README.md">Design docs</a> •
-    <a href="./docs/design/boxxy/slice-1.md">First build spec</a>
+    <a href="./docs/architecture/overview.md">Architecture</a> •
+    <a href="./docs/design/boxxy/README.md">Design docs</a>
   </p>
 </div>
 
 Decides which task a fleet of coding agents works on next, and measures what each task costs in
 tokens and money.
-
-**Status: v1 in progress.** The [v1 design](./docs/design/boxxy/v1.md) sets out the version under
-build, and the [v1 work list](./docs/design/boxxy/v1-work-list.md) splits it into slices.
 
 ## What boxxy does
 
@@ -30,8 +27,8 @@ compare models, prompts and rules on the same kind of task.
 
 ## Workspace
 
-boxxy is one [Bun](https://bun.sh) workspace. The [layout](./docs/design/boxxy/layout.md) sets which
-folder holds what, and which package may import which.
+boxxy is one [Bun](https://bun.sh) workspace. The [layout](./docs/architecture/repo/layout.md) sets
+which folder holds what, and which package may import which.
 
 | Package                  | Folder                  | Holds                                              |
 | ------------------------ | ----------------------- | -------------------------------------------------- |
@@ -59,8 +56,11 @@ bun run typecheck && bun run lint && bun run test
 
 ## Docs
 
-- `docs/design/boxxy/`: the design docs. The [index](./docs/design/boxxy/README.md) lists them, and
-  the [core model](./docs/design/boxxy/core-model.md) defines the terms.
+- `docs/architecture/`: how the built system works. Start at the
+  [overview](./docs/architecture/overview.md).
+- `docs/design/boxxy/`: the designs for work not yet built. The
+  [index](./docs/design/boxxy/README.md) lists them, and the
+  [core model](./docs/design/boxxy/core-model.md) defines the terms.
 - `docs/decisions/`: the decision records, numbered in the order they were made.
 - `docs/runbooks/`: the maintainer steps the tooling doesn't do, such as a package's first publish.
 

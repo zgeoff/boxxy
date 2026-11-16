@@ -8,7 +8,7 @@ lines with no log library.
 
 boxxy uses the newest stack in use across atc, nixie, pepys, noslop and wringer, with wringer
 weighted most, picked by commit date where the repos disagree. The
-[tech stack design](../design/boxxy/tech-stack.md) gives where each choice comes from, and the root
+[tech stack design](../architecture/repo/tech-stack.md) gives where each choice comes from, and the root
 catalog pins each version.
 
 - Runtime and language: Bun 1.4.4, and TypeScript 7 with tsrs.
@@ -18,7 +18,7 @@ catalog pins each version.
 - Store: Kysely on `bun:sqlite`.
 - Libraries: zod 4 and ts-pattern. The server writes its logs as JSON lines to stderr, with no log
   library. The CLI reads its flags with `node:util`
-  `parseArgs` ([the CLI](../design/boxxy/v1-cli.md#commands)).
+  `parseArgs` ([the CLI](../architecture/interfaces/cli-and-hooks.md#commands)).
 - Tests: `bun test`, run through `@zgeoff/rig`.
 - Release: release-please, with npm trusted publishing.
 - Shared files: repo-sync, like every other repo. It also delivers the chex checks.

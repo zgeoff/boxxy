@@ -4,7 +4,7 @@ Use this runbook to set up releases once, to publish a package that is new to np
 release pull request, and to recover a release that failed. CI does the rest of a release.
 
 CI releases every `@boxxy/*` package to npm at one shared version, as
-[How boxxy ships](../design/boxxy/release.md) describes:
+[How boxxy ships](../architecture/repo/release.md) describes:
 
 1. A commit lands on `main` that release-please counts as releasable, such as a `feat` or a `fix`.
    The release job in `.github/workflows/main.yml` runs release-please, which opens one release pull
@@ -55,7 +55,7 @@ publisher. npm expires a trusted publisher that no publish uses in its first 2 d
 
 A new name goes out once from a maintainer's machine as a placeholder, version `0.0.1`, with no
 code. CI publishes every real version, starting with the next release.
-[How boxxy ships](../design/boxxy/release.md#the-first-publish-of-a-new-name) says why. The
+[How boxxy ships](../architecture/repo/release.md#the-first-publish-of-a-new-name) says why. The
 `npm-first-publish` script of the
 [npm-publish skill](https://github.com/zgeoff/skills/tree/main/skills/npm-publish) does the checks
 and the publish.
@@ -206,7 +206,7 @@ any of those tags, and list the `<path>` of each package to publish:
 When `apps/cli` is among the listed paths, the run also attaches the CLI's assets. Expect
 `skipping the CLI assets: @boxxy/cli@<version> already holds SHA256SUMS` for a release that holds
 the whole set. The run uploads all three files again only when `SHA256SUMS` is missing.
-[The CLI release assets](../design/boxxy/release.md#the-cli-release-assets) gives the reason.
+[The CLI release assets](../architecture/repo/release.md#the-cli-release-assets) gives the reason.
 
 **CAUTION:** A new compile can give a binary with a new checksum, which breaks each image that pins
 the old one. Delete `SHA256SUMS` from a release only to replace a set that no image pins yet.

@@ -7,7 +7,7 @@
   </p>
 
   <p>
-    <a href="../../docs/design/boxxy/README.md">Documentation</a>
+    <a href="../../docs/architecture/overview.md">Documentation</a>
   </p>
 </div>
 
@@ -35,10 +35,9 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 - `exclusive` calls that run one at a time in a `BEGIN IMMEDIATE` transaction, and `read` calls that
   see the last commit ([store rules](../../docs/design/boxxy/slice-1.md#store-rules)).
 - Each item's position and state derived on each read, from the rows and the loaded rules
-  ([v1](../../docs/design/boxxy/v1.md)).
+  ([the pipeline](../../docs/architecture/work/pipeline.md)).
 
 ## Documentation
 
-The [v1 tables migration](./src/migrations/v1-tables-migration.ts) creates each table, and the store
-section of [`02-types.ts`](../../docs/design/boxxy/sketches/v1/core/02-types.ts) gives the port, the
-seat take and the seat sync.
+The [v1 tables migration](./src/migrations/v1-tables-migration.ts) creates each table, and the
+`ClaimStore` port in `@boxxy/model` gives the port, the seat take and the seat sync.

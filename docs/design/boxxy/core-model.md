@@ -23,7 +23,7 @@ An item is a typed node. Its kind comes from the item kind registry, and the cor
 An item also holds a title, an outcome, an acceptance list and a body. The body is markdown of at
 most 40,000 characters, by convention under `## Context`, `## Scope`, `## Permissions` and
 `## Notes for the agent`. The owner writes it, triage may rewrite it, and the
-[launch prompt](./v1.md#the-launch-prompt) passes it to the agent. boxxy does not parse it.
+[launch prompt](../../architecture/work/pipeline.md#the-launch-prompt) passes it to the agent. boxxy does not parse it.
 
 [Planning](./planning.md) adds `core.project` and `core.goal`. A new kind is a registry entry with
 its pipeline and typed fields, not new core code. Free tags are refused: a kind declares typed
@@ -163,13 +163,13 @@ Every entry point is a client of one command API: `item.file`, `item.edit`, `rel
 session through a mod, the CLI, agents filing work, and later nixie.
 
 - **The actor comes from the listener a call arrives on**
-  ([API and auth](./v1-api-and-auth.md#the-paths)). A call on the owner listener with no token
+  ([API and auth](../../architecture/interfaces/api-and-auth.md#the-paths)). A call on the owner listener with no token
   acts as the owner. A call through the public door acts as the owner too, with an OAuth token that the owner approved. A call with the worker token acts as a session, and its proven caller names
   the session. The actor never comes from a value the caller supplies, such as an environment
   variable.
 - **The owner's path is the only check on an owner command.** Any caller on that path can expedite,
   file or rank, and boxxy never asks for a confirmation bound to the person
-  ([API and auth](./v1-api-and-auth.md#the-paths)).
+  ([API and auth](../../architecture/interfaces/api-and-auth.md#the-paths)).
 - An agent inside an attempt files work as that attempt, and the new item links `found-in` to it.
 - A steer reaches a running attempt as an atc message, and the next attempt through its input.
 

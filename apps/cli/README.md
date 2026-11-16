@@ -7,7 +7,7 @@
   </p>
 
   <p>
-    <a href="../../docs/design/boxxy/README.md">Documentation</a>
+    <a href="../../docs/architecture/overview.md">Documentation</a>
   </p>
 </div>
 
@@ -26,7 +26,7 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 An image with no Bun downloads `boxxy-linux-x64`, `boxxy-hook-plugin.tar.gz` and `SHA256SUMS` from
 the GitHub release `@boxxy/cli@<version>`, as
-[the CLI release assets](../../docs/design/boxxy/release.md#the-cli-release-assets) describes.
+[the CLI release assets](../../docs/architecture/repo/release.md#the-cli-release-assets) describes.
 
 ## Usage
 
@@ -56,5 +56,5 @@ of the fact they recorded.
 
 ## Documentation
 
-[The CLI and the hooks](../../docs/design/boxxy/v1-cli.md) lists the environment, the exit codes and
-what each hook does.
+[The CLI and the hooks](../../docs/architecture/interfaces/cli-and-hooks.md) lists the environment,
+the exit codes and what each hook does.

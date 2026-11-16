@@ -7,7 +7,7 @@
   </p>
 
   <p>
-    <a href="../../docs/design/boxxy/README.md">Documentation</a>
+    <a href="../../docs/architecture/overview.md">Documentation</a>
   </p>
 </div>
 
@@ -38,5 +38,5 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-[The proven caller](../../docs/design/boxxy/v1-api-and-auth.md#the-proven-caller) describes how the
-server uses the proof, and why the adapter makes no session check of its own.
+[The proven caller](../../docs/architecture/interfaces/api-and-auth.md#the-proven-caller) describes
+how the server uses the proof, and why the adapter makes no session check of its own.

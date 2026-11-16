@@ -7,7 +7,7 @@
   </p>
 
   <p>
-    <a href="../../docs/design/boxxy/README.md">Documentation</a>
+    <a href="../../docs/architecture/overview.md">Documentation</a>
   </p>
 </div>
 
@@ -36,5 +36,5 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-[API and auth in v1](../../docs/design/boxxy/v1-api-and-auth.md) describes the three doors, the
-procedures and the scope of the worker token.
+[API and auth in v1](../../docs/architecture/interfaces/api-and-auth.md) describes the three doors,
+the procedures and the scope of the worker token.

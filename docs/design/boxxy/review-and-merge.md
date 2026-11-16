@@ -26,14 +26,14 @@ flowchart LR
 
 ## Terms
 
-This doc uses the terms of the [core model](./core-model.md) and [v1](./v1.md): item, phase, attempt, recipe, close-out, settle, edge, hold and round. These terms are its own, or have one meaning here:
+This doc uses the terms of the [core model](./core-model.md) and [the pipeline](../../architecture/work/pipeline.md): item, phase, attempt, recipe, close-out, settle, edge, hold and round. These terms are its own, or have one meaning here:
 
 - **Send-back:** a backward edge, such as `changes-requested: { to: build, max: 3 }`. Its `max` is the number of send-backs the edge allows. The next use of that edge holds the item with `rounds used up`. Each edge counts its own uses since the item's latest `boxxy item retry`.
 - **Review number:** 1 plus the item's `changes-requested` reviews since its latest retry. It differs from the item's round, which rises on every send-back.
 - **Worker:** what runs an attempt, named by the phase kind. `atc.session` runs an agent session on an agent host, a machine that atc starts. A job worker runs inside the boxxy server and starts no session. The rules limit named `workers` counts agent sessions only.
-- **The runner:** the server's loop that claims attempts and, on each tick, reads every live attempt ([attempt lifecycle](./v1-lifecycle.md)).
-- **The core:** the packages under `modules/` and `libs/`, which do no I/O ([layout](./layout.md)).
-- **pepys:** the fact store that boxxy writes its facts to, and its queries ([facts and pepys](./v1-facts-and-pepys.md)).
+- **The runner:** the server's loop that claims attempts and, on each tick, reads every live attempt ([attempt lifecycle](../../architecture/work/attempts.md)).
+- **The core:** the packages under `modules/` and `libs/`, which do no I/O ([layout](../../architecture/repo/layout.md)).
+- **pepys:** the fact store that boxxy writes its facts to, and its queries ([facts and pepys](../../architecture/interfaces/facts-and-pepys.md)).
 
 The review tool is noslop, and the verify tool is wringer. Only their adapters name them.
 
@@ -107,7 +107,7 @@ The verdict reaches the merge in three steps, and only the last one decides the 
 2. The CI check `verify / gate` reads that report and fails a change whose features lack a fresh verdict. The gate computes wringer's fingerprint of the change, which needs a checkout, and the server has none.
 3. The merge job calls `Verifier.readAt(pullRequest, head)`. The wringer adapter builds the `VerifyReading` from the latest `verify / gate` run at the head and the data comment of the report in the body, which holds one claim for each recorded verdict. A head with no gate check run that passed or failed reads `not-covered`, never `verified`; a cancelled or skipped run gave no verdict. A commit status of the gate's name never counts, because any token that may write statuses can post one. `decideMerge` reads only this reading, so a `verified` close-out with no green gate never merges.
 
-[wringer journeys](./wringer-journeys.md) owns what the grading agent does, the report, and the `verify / gate` workflow. The workflow runs on `pull_request` with the types `opened`, `synchronize`, `reopened` and `edited`, because the report lives in the body.
+[wringer journeys](../../architecture/repo/verify-journeys.md) owns what the grading agent does, the report, and the `verify / gate` workflow. The workflow runs on `pull_request` with the types `opened`, `synchronize`, `reopened` and `edited`, because the report lives in the body.
 
 ## The merge step
 
@@ -145,11 +145,11 @@ The merge phase runs on the job worker `merge.forge`. The server builds that wor
 - **boxxy merges only the head it read.** The merge call passes `sha: head`, and GitHub refuses it when the head moved. The next read sees the new head, and the item goes back to review.
 - **The runner marks the request before the call.** In one store change, under the attempt's lease, the runner sets `actedAt` and `actedHead` and writes `boxxy.merge.requested`. Then it calls GitHub. When the store refuses the change, because another runner holds the lease, the runner sends no call.
 - **A lost answer is safe.** When the call gets no answer, the next read sees the merge, or waits 5 minutes and sends the call again at the same head. A second call never merges twice, because GitHub merges only at `sha`.
-- **boxxy writes one merge fact per merge.** The settle of a `merged` attempt moves the pull request row to merged, with the settle's time as `mergedAt`, and writes `boxxy.pull_request.merged`. The [pull request watch](./v1-lifecycle.md#the-pull-request-watch) may have done both first. The row's state lets only the first writer through: the settle skips a row that is not open. When GitHub shows the merge with no merge commit yet, the settle leaves the row open, and the watch records the merge once GitHub gives the commit.
+- **boxxy writes one merge fact per merge.** The settle of a `merged` attempt moves the pull request row to merged, with the settle's time as `mergedAt`, and writes `boxxy.pull_request.merged`. The [pull request watch](../../architecture/interfaces/github.md#the-pull-request-watch) may have done both first. The row's state lets only the first writer through: the settle skips a row that is not open. When GitHub shows the merge with no merge commit yet, the settle leaves the row open, and the watch records the merge once GitHub gives the commit.
 - **A webhook never changes boxxy state.** A replayed webhook reaches pepys only.
 - **A merge by hand ends the item.** The merge job reads `merged` and settles. When the item held before the merge, `boxxy item retry <item> --phase merge` runs the merge job, which reads the merge.
 
-The GitHub adapter calls GitHub as the boxxy App, whose [permissions](./v1-lifecycle.md#the-github-adapter) cover the merge, the checks, and the branch and its rules. The noslop App posts reviews only. The base branch's required checks are the union of the checks that its rulesets require and the checks that its classic branch protection enforces. The adapter reads the classic checks from the branch itself, and a required-checks rule it cannot parse makes the read throw.
+The GitHub adapter calls GitHub as the boxxy App, whose [permissions](../../architecture/interfaces/github.md#the-github-adapter) cover the merge, the checks, and the branch and its rules. The noslop App posts reviews only. The base branch's required checks are the union of the checks that its rulesets require and the checks that its classic branch protection enforces. The adapter reads the classic checks from the branch itself, and a required-checks rule it cannot parse makes the read throw.
 
 ### The merge train
 
@@ -174,13 +174,23 @@ The fact catalog of 30 types holds three for these steps: `boxxy.attempt.job_sta
 - each verify close-out, with its grader;
 - each merge close-out, with the verify reading.
 
-pepys's stage-time query reads the review outcomes `passed` and `changes-requested`. For an item with a merge phase, the query starts the merge step when the runner claims the item's first merge attempt after its latest passed review. For an item with no merge attempt after that review, the merge step starts at the review's end. The query also returns the sum of the item's `unrelatedLines` ([`boxxy_stage_time`](./v1-facts-and-pepys.md#boxxy_stage_time)). A review's close-out carries tokens per model, and pepys prices them as it prices telemetry.
+pepys's stage-time query reads the review outcomes `passed` and `changes-requested`. For an item with a merge phase, the query starts the merge step when the runner claims the item's first merge attempt after its latest passed review. For an item with no merge attempt after that review, the merge step starts at the review's end. The query also returns the sum of the item's `unrelatedLines` ([`boxxy_stage_time`](../../architecture/interfaces/facts-and-pepys.md#how-long-an-item-spent-in-each-stage)). A review's close-out carries tokens per model, and pepys prices them as it prices telemetry.
 
 pepys compares the two graders by recipe. The owner gives one item kind the `session: builder` recipe and another the `session: fresh` recipe. When the build's kept session is gone, a `session: builder` attempt runs on a fresh session, and its `started` fact carries `resumeFallback: true`, so a comparison can leave it out. When the fresh start's reply is lost, the runner's reconcile writes `reconciled` in place of `started`, and that fact carries the same flag.
 
+## The review tool in production
+
+[The review gate](#the-review-gate) runs noslop in a review session on a worker machine, and the server posts the result as the noslop GitHub App. The deployment needs these:
+
+- The noslop CLI in the worker image, at the version of boxxy's `@noslop/cli` pin. Codex, noslop's default model CLI, has no sign-in on a worker machine, so the review session runs noslop with `--adapter claude`.
+- The read-only clone token in the review session, as `GH_TOKEN`, which noslop reads to fetch the pull request. It is the token the atc daemon clones with, with `Contents: read` and `Pull requests: read`. atc withholds the daemon's variables from sessions, so the review recipe names a review agent, an atc agent whose broker profile holds the token, and the server lists it in `spawn.reviewAgents`. Build and design sessions never get it: [the review gate](#the-review-gate) holds the load rules that keep it to review sessions.
+- The App's keys in the server pod alone, and never in a worker session.
+- The App, installed on every repo that the server starts workers for.
+- The check: a live boxxy review round leaves a `noslop` check run, posted by the App, at the pull request's head.
+
 ## What the owner sees
 
-Section 5 of [`01-usage.ts`](./sketches/next/review-and-merge/01-usage.ts) shows both views. `boxxy item get` shows the latest review at each head with its open counts, the verify reading and its grader, the merge attempt's wait reason, and the send-backs each loop has used. `boxxy runner status` lists each live merge with its wait reason and age. A hold reaches the owner's notice session through the [notice port](./v1.md#notices).
+Section 5 of [`01-usage.ts`](./sketches/next/review-and-merge/01-usage.ts) shows both views. `boxxy item get` shows the latest review at each head with its open counts, the verify reading and its grader, the merge attempt's wait reason, and the send-backs each loop has used. `boxxy runner status` lists each live merge with its wait reason and age. A hold reaches the owner's notice session through the [notice port](../../architecture/work/pipeline.md#when-an-item-needs-the-owner).
 
 ## Acceptance
 

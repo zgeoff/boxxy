@@ -7,7 +7,7 @@
   </p>
 
   <p>
-    <a href="../../docs/design/boxxy/README.md">Documentation</a>
+    <a href="../../docs/architecture/overview.md">Documentation</a>
   </p>
 </div>
 
@@ -41,5 +41,5 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-[The atc worker](../../docs/design/boxxy/v1-lifecycle.md#the-atc-worker) in the attempt lifecycle
+[The atc worker](../../docs/architecture/work/sessions.md#the-atc-worker) in the attempt lifecycle
 maps each port method to its atc call, and each atc answer to the port's outcome.
