@@ -117,8 +117,9 @@ wakeup and no owner is there to wake it. That holds even when the session asks f
 Claude Code sends its idle notice after every turn end and atc reads that as a request for input. A
 silent agent-mode session therefore ends only at `afterSilentMinutes`.
 
-An attended session starts waiting when it asks for input, when its turn ends, when it shows no
-activity after a wake, or once it has been quiet for `afterQuietMinutes`.
+An attended session counts as waiting for the owner when it asks for input, when its turn has ended,
+when it has done nothing since a wake, or once it has been quiet for `afterQuietMinutes`. The
+`afterIdleMinutes` wait runs from its last activity, or from the wake when it did nothing since.
 
 atc counts only the agent's hook events as activity, such as the end of a turn, and never a tool
 call. A turn the agent starts for a scheduled wakeup or a finished background task therefore shows
