@@ -1,8 +1,19 @@
-import { cp, lstat, mkdir, mkdtemp, realpath, rm, stat } from 'node:fs/promises';
+import {
+  appendFile,
+  cp,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  stat,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
 import { skillsRepoFolder, workspaceSkillsFolder } from '../constants.ts';
 import type { CLIDeps } from '../types.ts';
+import { buildSkillExcludeAddition } from './build-skill-exclude-addition.ts';
 
 interface SkillsPin {
   // the repository, as owner/name
@@ -25,12 +36,13 @@ export interface InstallSkillsInput {
   readonly runGit: CLIDeps['runGit'];
 }
 
+type SkillOutcome = 'copied' | 'committed' | 'missing';
+
 const sourcePattern = /^[\w.-]+\/[\w.-]+$/u;
 const refPattern = /^[0-9a-f]{40,64}$/u;
 
-// Copies each named skill at the pin into the workspace and returns the names that are not there
-// afterwards. A skill is there when its folder holds a `SKILL.md`. A fetch that fails leaves every
-// name missing, because the attempt cannot tell a skill it lacks from one it could not read.
+// A fetch that fails leaves every name missing, because the attempt cannot tell a skill it lacks
+// from one it could not read.
 export async function installSkills(input: InstallSkillsInput): Promise<string[]> {
   if (input.names.length === 0) {
     return [];
@@ -51,15 +63,18 @@ export async function installSkills(input: InstallSkillsInput): Promise<string[]
       return [...input.names];
     }
 
-    const missing: string[] = [];
+    const outcomes: { name: string; outcome: SkillOutcome }[] = [];
 
     for (const name of input.names) {
-      if (!(await installSkill(input, scratch, name))) {
-        missing.push(name);
-      }
+      outcomes.push({ name, outcome: await installSkill(input, scratch, name) });
     }
 
-    return missing;
+    const namesWith = (outcome: SkillOutcome) =>
+      outcomes.filter((entry) => entry.outcome === outcome).map((entry) => entry.name);
+
+    await writeSkillExcludes(input, namesWith('copied'));
+
+    return namesWith('missing');
   } finally {
     await rm(scratch, { recursive: true, force: true });
   }
@@ -90,9 +105,9 @@ async function installSkill(
   input: InstallSkillsInput,
   scratch: string,
   name: string,
-): Promise<boolean> {
+): Promise<SkillOutcome> {
   if (!namePattern.test(name)) {
-    return false;
+    return 'missing';
   }
 
   const checkout = await input.runGit(
@@ -101,16 +116,26 @@ async function installSkill(
   );
 
   if (checkout.exitCode !== 0) {
-    return false;
+    return 'missing';
+  }
+
+  const target = join(input.workspace, workspaceSkillsFolder, name);
+
+  const tracked = await probeSkillTracked(input, name);
+
+  // The repository's checks and docs expect its own copy, and replacing it would show as changed
+  // tracked files in the agent's pull request.
+  if (tracked) {
+    const committed = await probeSkillFile(target);
+
+    return committed ? 'committed' : 'missing';
   }
 
   const inside = await probeSkillsFolderInWorkspace(input.workspace);
 
   if (!inside) {
-    return false;
+    return 'missing';
   }
-
-  const target = join(input.workspace, workspaceSkillsFolder, name);
 
   // Node has no openat, so a link made between the check above and this rm or cp still moves them
   const copied = await rm(target, { recursive: true, force: true })
@@ -120,7 +145,22 @@ async function installSkill(
       () => false,
     );
 
-  const skillFile = copied ? await stat(join(target, 'SKILL.md')).catch(() => null) : null;
+  const installed = copied ? await probeSkillFile(target) : false;
+
+  return installed ? 'copied' : 'missing';
+}
+
+async function probeSkillTracked(input: InstallSkillsInput, name: string): Promise<boolean> {
+  const listed = await input.runGit(
+    ['ls-files', '--cached', '--', `${workspaceSkillsFolder}/${name}`],
+    input.workspace,
+  );
+
+  return listed.exitCode === 0 && listed.output.trim() !== '';
+}
+
+async function probeSkillFile(folder: string): Promise<boolean> {
+  const skillFile = await stat(join(folder, 'SKILL.md')).catch(() => null);
 
   return skillFile?.isFile() === true;
 }
@@ -152,4 +192,37 @@ async function probeSkillsFolderInWorkspace(workspace: string): Promise<boolean>
   } catch {
     return false;
   }
+}
+
+// A workspace outside any repository has no status to keep clean, so it gets no exclude.
+async function writeSkillExcludes(
+  input: InstallSkillsInput,
+  names: readonly string[],
+): Promise<void> {
+  if (names.length === 0) {
+    return;
+  }
+
+  const paths = await input.runGit(
+    ['rev-parse', '--show-prefix', '--git-path', 'info/exclude'],
+    input.workspace,
+  );
+
+  if (paths.exitCode !== 0) {
+    return;
+  }
+
+  const [prefix = '', excludePath = ''] = paths.output.split('\n');
+  const exclude = isAbsolute(excludePath) ? excludePath : join(input.workspace, excludePath);
+
+  const existing = await readFile(exclude, 'utf8').catch(() => '');
+
+  const addition = buildSkillExcludeAddition({ existing, prefix, names });
+
+  if (addition === '') {
+    return;
+  }
+
+  await mkdir(dirname(exclude), { recursive: true });
+  await appendFile(exclude, addition);
 }

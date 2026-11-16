@@ -14,23 +14,149 @@ async function setupTest() {
 
   const workspace = join(folder, 'workspace');
 
-  const install = (repo: SkillsRepo, names: readonly string[]) =>
+  await mkdir(workspace);
+
+  const install = (repo: SkillsRepo, names: readonly string[], cwd = workspace) =>
     installSkills({
       pin: { source: repo.source, ref: repo.ref },
       names,
-      workspace,
+      workspace: cwd,
       baseURL: repo.baseURL,
       runGit,
     });
+
+  const runWorkspaceGit = async (args: readonly string[]) => {
+    const done = await runGit(args, workspace);
+
+    if (done.exitCode !== 0) {
+      throw new Error(`git ${args.join(' ')} failed: ${done.output}`);
+    }
+
+    return done.output;
+  };
+
+  // makes the workspace a repository whose one commit holds these files, by path from its top
+  const commitFiles = async (files: Record<string, string>) => {
+    for (const [file, text] of Object.entries(files)) {
+      await mkdir(dirname(join(workspace, file)), { recursive: true });
+      await writeFile(join(workspace, file), text);
+    }
+
+    await runWorkspaceGit(['init', '--quiet']);
+    await runWorkspaceGit(['add', '--all']);
+
+    await runWorkspaceGit([
+      '-c',
+      'user.name=Test',
+      '-c',
+      'user.email=test@example.com',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '--quiet',
+      '-m',
+      'files',
+    ]);
+  };
 
   return {
     install,
     workspace,
     folder,
+    commitFiles,
+    readStatus: () => runWorkspaceGit(['status', '--porcelain', '--untracked-files=all']),
+    readExclude: () => readFile(join(workspace, '.git/info/exclude'), 'utf8'),
     makeRepo: (skills: Record<string, Record<string, string>>) =>
       createSkillsRepo({ folder: join(folder, 'remote'), skills }),
   };
 }
+
+test('it leaves a skill the repository commits as committed, extra files included', async () => {
+  const ctx = await setupTest();
+
+  await ctx.commitFiles({
+    '.claude/skills/docs-writing/SKILL.md': 'committed\n',
+    '.claude/skills/docs-writing/scripts/check-links.sh': 'echo links\n',
+  });
+
+  const repo = await ctx.makeRepo({ 'docs-writing': { 'SKILL.md': 'pinned\n' } });
+  const missing = await ctx.install(repo, ['docs-writing']);
+  const status = await ctx.readStatus();
+  const skill = await readFile(join(ctx.workspace, '.claude/skills/docs-writing/SKILL.md'), 'utf8');
+
+  expect(missing).toStrictEqual([]);
+  expect(status).toBe('');
+  expect(skill).toBe('committed\n');
+});
+
+test('it returns a skill the repository commits without a SKILL.md as missing', async () => {
+  const ctx = await setupTest();
+
+  await ctx.commitFiles({ '.claude/skills/docs-writing/notes.md': 'notes\n' });
+
+  const repo = await ctx.makeRepo({ 'docs-writing': { 'SKILL.md': 'pinned\n' } });
+  const missing = await ctx.install(repo, ['docs-writing']);
+
+  expect(missing).toStrictEqual(['docs-writing']);
+});
+
+test('it lists each skill it copies in info/exclude, so git status shows no new folder', async () => {
+  const ctx = await setupTest();
+
+  await ctx.commitFiles({
+    'README.md': 'readme\n',
+    '.claude/skills/docs-writing/SKILL.md': 'committed\n',
+  });
+
+  const repo = await ctx.makeRepo({
+    alpha: { 'SKILL.md': 'alpha\n', 'references/more.md': 'more\n' },
+    beta: { 'SKILL.md': 'beta\n' },
+    'docs-writing': { 'SKILL.md': 'pinned\n' },
+  });
+
+  const missing = await ctx.install(repo, ['alpha', 'beta', 'docs-writing']);
+  const status = await ctx.readStatus();
+  const exclude = await ctx.readExclude();
+  const alpha = await readFile(join(ctx.workspace, '.claude/skills/alpha/SKILL.md'), 'utf8');
+
+  expect(missing).toStrictEqual([]);
+  expect(status).toBe('');
+  expect(exclude).toEndWith('\n/.claude/skills/alpha/\n/.claude/skills/beta/\n');
+  expect(alpha).toBe('alpha\n');
+});
+
+test('it lists a copied skill once when a later session installs it again', async () => {
+  const ctx = await setupTest();
+
+  await ctx.commitFiles({ 'README.md': 'readme\n' });
+
+  const repo = await ctx.makeRepo({ alpha: { 'SKILL.md': 'alpha\n' } });
+
+  await ctx.install(repo, ['alpha']);
+  await ctx.install(repo, ['alpha']);
+
+  const exclude = await ctx.readExclude();
+
+  const lines = exclude.split('\n').filter((line) => line === '/.claude/skills/alpha/');
+
+  expect(lines).toHaveLength(1);
+});
+
+test('it lists a copied skill by its path from the top when the workspace is a subfolder', async () => {
+  const ctx = await setupTest();
+
+  await ctx.commitFiles({ 'app/README.md': 'readme\n' });
+
+  const repo = await ctx.makeRepo({ alpha: { 'SKILL.md': 'alpha\n' } });
+
+  await ctx.install(repo, ['alpha'], join(ctx.workspace, 'app'));
+
+  const status = await ctx.readStatus();
+  const exclude = await ctx.readExclude();
+
+  expect(status).toBe('');
+  expect(exclude).toEndWith('\n/app/.claude/skills/alpha/\n');
+});
 
 test('it copies each listed skill with all its files and returns no missing name', async () => {
   const ctx = await setupTest();

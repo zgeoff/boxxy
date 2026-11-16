@@ -1,3 +1,4 @@
+import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import invariant from 'tiny-invariant';
 import type { z } from 'zod';
@@ -44,12 +45,16 @@ export async function startSession(harness: VerifyHarness, input: StartInput): P
     'the started session runs, and the fake worker gives it an agent session',
   );
 
+  const workspace = join(harness.runDirectory, 'workspace');
+
+  await mkdir(workspace, { recursive: true });
+
   return {
     attempt: attempt.id,
     phase: attempt.phase,
     payload: {
       session_id: reading.agentSession,
-      cwd: join(harness.runDirectory, 'workspace'),
+      cwd: workspace,
       hook_event_name: 'SessionStart',
       source: 'startup',
     },
