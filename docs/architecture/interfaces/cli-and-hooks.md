@@ -112,25 +112,31 @@ copies it into the workspace. It first strips git's environment of every variabl
 `git rev-parse --local-env-vars` lists, such as `GIT_DIR`, and of `GIT_CEILING_DIRECTORIES`, so git
 writes only in the scratch folder. A recipe with no skills skips the fetch.
 
-The install leaves `git status` in the workspace's repository as it found it, so the agent's pull
-request and the repository's own checks never see the skills:
+When the workspace is in a git repository, the install changes nothing that `git status` shows
+there, so the agent's pull request and the repository's own checks don't see the installed skills:
 
 - When the repository tracks a file in `.claude/skills/<skill>`, the hook keeps the committed skill
   and copies nothing. The repository's checks and docs expect its own version of the skill.
-- The hook adds each skill it copies to the repository's `info/exclude`, as
-  `/<path from the top>/.claude/skills/<skill>/`, once. Checks that list untracked files, such as
-  `git ls-files --others --exclude-standard`, then skip it. A workspace outside any repository gets
-  no exclude.
+- Before any copy, the hook lists each skill it will copy in the repository's `info/exclude`, as
+  `/<path from the top>/.claude/skills/<skill>/` with glob characters escaped, and removes the line
+  of each committed skill. Checks that list untracked files, such as
+  `git ls-files --others --exclude-standard`, then skip the copied folders. Worktrees of one
+  repository share its `info/exclude`, so the hook updates the file under a lock.
+
+The hook treats the workspace as outside any repository only when no folder from the workspace up
+holds a `.git`. Then it runs no git in the workspace and writes no exclude.
 
 A skill counts as installed only when its folder in the workspace holds a `SKILL.md`. The copy
 replaces any earlier untracked copy, so a [kept session](../work/sessions.md#the-kept-session) that
 resumes under a new pin gets the new files. The hook reports a skill missing when its name or the
 pin is malformed, the fetch fails, the copy fails, the copied or committed folder has no `SKILL.md`,
 or the path is unsafe: `.claude` or `.claude/skills` is a symbolic link, or `.claude/skills`
-resolves outside the workspace. A failed fetch makes every listed skill missing, because the hook
-can't tell a skill the repository lacks from one it couldn't read. The copy deletes the skill's
-folder first, and a link on the path would aim that delete outside the workspace, so the hook checks
-the path just before each copy, after git has run, and touches nothing for a skill whose path fails.
+resolves outside the workspace. It also reports a skill missing, and leaves the workspace as it is,
+when git fails in the workspace's repository or the hook can't write `info/exclude`. A failed fetch
+makes every listed skill missing, because the hook can't tell a skill the repository lacks from one
+it couldn't read. The copy deletes the skill's folder first, and a link on the path would aim that
+delete outside the workspace, so the hook checks the path just before each copy, after git has run,
+and touches nothing for a skill whose path fails.
 
 ## The pull request hook
 

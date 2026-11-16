@@ -1,6 +1,6 @@
-import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { runGit } from '../run-git.ts';
+import { createGitRepo } from './create-git-repo.ts';
 
 export interface SkillsRepoInput {
   // an empty folder of the test; the repository is made inside it
@@ -26,46 +26,20 @@ const source = 'example/skills';
 export async function createSkillsRepo(input: SkillsRepoInput): Promise<SkillsRepo> {
   const repo = join(input.folder, `${source}.git`);
 
-  await mkdir(repo, { recursive: true });
+  const files = Object.entries(input.skills).flatMap(([name, skillFiles]) =>
+    Object.entries(skillFiles).map(([file, text]) => [`skills/${name}/${file}`, text] as const),
+  );
 
-  for (const [name, files] of Object.entries(input.skills)) {
-    for (const [file, text] of Object.entries(files)) {
-      const path = join(repo, 'skills', name, file);
+  const ref = await createGitRepo({
+    folder: repo,
+    files: { ...Object.fromEntries(files), 'README.md': 'skills\n' },
+  });
 
-      await mkdir(dirname(path), { recursive: true });
-      await writeFile(path, text);
-    }
+  const configured = await runGit(['config', 'uploadpack.allowAnySHA1InWant', 'true'], repo);
+
+  if (configured.exitCode !== 0) {
+    throw new Error(`git config failed: ${configured.output}`);
   }
 
-  await writeFile(join(repo, 'README.md'), 'skills\n');
-
-  const steps = [
-    ['init', '--quiet'],
-    ['config', 'uploadpack.allowAnySHA1InWant', 'true'],
-    ['add', '--all'],
-    [
-      '-c',
-      'user.name=Test',
-      '-c',
-      'user.email=test@example.com',
-      '-c',
-      'commit.gpgsign=false',
-      'commit',
-      '--quiet',
-      '-m',
-      'skills',
-    ],
-  ];
-
-  for (const step of steps) {
-    const done = await runGit(step, repo);
-
-    if (done.exitCode !== 0) {
-      throw new Error(`git ${step.join(' ')} failed: ${done.output}`);
-    }
-  }
-
-  const head = await runGit(['rev-parse', 'HEAD'], repo);
-
-  return { baseURL: input.folder, source, ref: head.output.trim() };
+  return { baseURL: input.folder, source, ref };
 }

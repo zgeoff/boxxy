@@ -1,5 +1,5 @@
 import { expect, onTestFinished, test } from 'bun:test';
-import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { brandSchemas } from '@boxxy/model';
@@ -14,9 +14,6 @@ async function setupTest() {
   onTestFinished(() => rm(folder, { recursive: true, force: true }));
 
   const workspace = join(folder, 'workspace');
-
-  await mkdir(workspace);
-
   const skillsFolder = join(folder, 'remote');
 
   const startHook = (agentSession: string, baseURL: string) =>

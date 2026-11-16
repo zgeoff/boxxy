@@ -1,5 +1,5 @@
 import { expect, onTestFinished, test } from 'bun:test';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { settleAttempt } from '@boxxy/dispatch';
@@ -67,8 +67,6 @@ async function setupTest() {
   });
 
   const workspace = join(journeyFolder, 'workspace');
-
-  await mkdir(workspace);
 
   const readLiveAttempt = async (liveItem: ItemId): Promise<AttemptRow> => {
     const live = await server.deps.store.read((tx) => tx.listLiveAttempts());

@@ -1,5 +1,4 @@
 import {
-  appendFile,
   cp,
   lstat,
   mkdir,
@@ -8,12 +7,14 @@ import {
   realpath,
   rm,
   stat,
+  writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join } from 'node:path';
+import { withFileLock } from '@zgeoff/std/with-file-lock';
 import { skillsRepoFolder, workspaceSkillsFolder } from '../constants.ts';
 import type { CLIDeps } from '../types.ts';
-import { buildSkillExcludeAddition } from './build-skill-exclude-addition.ts';
+import { buildSkillExclude } from './build-skill-exclude.ts';
 
 interface SkillsPin {
   // the repository, as owner/name
@@ -36,10 +37,10 @@ export interface InstallSkillsInput {
   readonly runGit: CLIDeps['runGit'];
 }
 
-type SkillOutcome = 'copied' | 'committed' | 'missing';
-
 const sourcePattern = /^[\w.-]+\/[\w.-]+$/u;
 const refPattern = /^[0-9a-f]{40,64}$/u;
+
+type SkillPlan = 'copy' | 'committed' | 'missing';
 
 // A fetch that fails leaves every name missing, because the attempt cannot tell a skill it lacks
 // from one it could not read.
@@ -63,18 +64,34 @@ export async function installSkills(input: InstallSkillsInput): Promise<string[]
       return [...input.names];
     }
 
-    const outcomes: { name: string; outcome: SkillOutcome }[] = [];
+    const repository = await readWorkspaceRepository(input);
 
-    for (const name of input.names) {
-      outcomes.push({ name, outcome: await installSkill(input, scratch, name) });
+    if (repository.kind === 'unreadable') {
+      return [...input.names];
     }
 
-    const namesWith = (outcome: SkillOutcome) =>
-      outcomes.filter((entry) => entry.outcome === outcome).map((entry) => entry.name);
+    const plans: { name: string; plan: SkillPlan }[] = [];
 
-    await writeSkillExcludes(input, namesWith('copied'));
+    for (const name of input.names) {
+      plans.push({ name, plan: await readSkillPlan(input, scratch, name, repository) });
+    }
 
-    return namesWith('missing');
+    const namesWith = (plan: SkillPlan) =>
+      plans.filter((entry) => entry.plan === plan).map((entry) => entry.name);
+
+    const excluded = await writeSkillExclude(repository, namesWith('copy'), namesWith('committed'));
+
+    const missing = new Set(namesWith('missing'));
+
+    for (const name of namesWith('copy')) {
+      const copied = excluded ? await copySkill(input, scratch, name) : false;
+
+      if (!copied) {
+        missing.add(name);
+      }
+    }
+
+    return input.names.filter((name) => missing.has(name));
   } finally {
     await rm(scratch, { recursive: true, force: true });
   }
@@ -99,13 +116,63 @@ async function runFetch(
   return fetched.exitCode === 0;
 }
 
+type WorkspaceRepository =
+  | { readonly kind: 'none' }
+  | { readonly kind: 'unreadable' }
+  | {
+      readonly kind: 'found';
+
+      // the workspace's path from the repository's top, ending in `/`, or empty at the top
+      readonly prefix: string;
+      readonly excludePath: string;
+    };
+
+// A repository git can't read, such as one with a corrupt index, still holds files the install
+// must not replace, so only a workspace with no `.git` above it counts as outside any repository.
+async function readWorkspaceRepository(input: InstallSkillsInput): Promise<WorkspaceRepository> {
+  const inside = await probeGitEntryAbove(input.workspace);
+
+  if (!inside) {
+    return { kind: 'none' };
+  }
+
+  const paths = await input
+    .runGit(['rev-parse', '--show-prefix', '--git-path', 'info/exclude'], input.workspace)
+    .catch(() => null);
+
+  if (paths === null || paths.exitCode !== 0) {
+    return { kind: 'unreadable' };
+  }
+
+  const [prefix = '', excludePath = ''] = paths.output.split('\n');
+
+  return {
+    kind: 'found',
+    prefix,
+    excludePath: isAbsolute(excludePath) ? excludePath : join(input.workspace, excludePath),
+  };
+}
+
+async function probeGitEntryAbove(folder: string): Promise<boolean> {
+  const entry = await lstat(join(folder, '.git')).catch(() => null);
+
+  if (entry !== null) {
+    return true;
+  }
+
+  const parent = dirname(folder);
+
+  return parent === folder ? false : probeGitEntryAbove(parent);
+}
+
 const namePattern = /^[a-z0-9][a-z0-9._-]*$/u;
 
-async function installSkill(
+async function readSkillPlan(
   input: InstallSkillsInput,
   scratch: string,
   name: string,
-): Promise<SkillOutcome> {
+  repository: WorkspaceRepository,
+): Promise<SkillPlan> {
   if (!namePattern.test(name)) {
     return 'missing';
   }
@@ -119,23 +186,83 @@ async function installSkill(
     return 'missing';
   }
 
-  const target = join(input.workspace, workspaceSkillsFolder, name);
+  if (repository.kind === 'none') {
+    return 'copy';
+  }
 
-  const tracked = await probeSkillTracked(input, name);
+  const listed = await input.runGit(
+    ['ls-files', '--cached', '--', `${workspaceSkillsFolder}/${name}`],
+    input.workspace,
+  );
+
+  if (listed.exitCode !== 0) {
+    return 'missing';
+  }
+
+  if (listed.output.trim() === '') {
+    return 'copy';
+  }
 
   // The repository's checks and docs expect its own copy, and replacing it would show as changed
   // tracked files in the agent's pull request.
-  if (tracked) {
-    const committed = await probeSkillFile(target);
+  const committed = await probeSkillFile(join(input.workspace, workspaceSkillsFolder, name));
 
-    return committed ? 'committed' : 'missing';
+  return committed ? 'committed' : 'missing';
+}
+
+async function probeSkillFile(folder: string): Promise<boolean> {
+  const skillFile = await stat(join(folder, 'SKILL.md')).catch(() => null);
+
+  return skillFile?.isFile() === true;
+}
+
+const excludeLockWaitMs = 10_000;
+
+// Worktrees of one repository share its exclude file, so two sessions can update it at once.
+async function writeSkillExclude(
+  repository: WorkspaceRepository,
+  add: readonly string[],
+  remove: readonly string[],
+): Promise<boolean> {
+  if (repository.kind !== 'found') {
+    return true;
   }
 
+  try {
+    await mkdir(dirname(repository.excludePath), { recursive: true });
+
+    const result = await withFileLock(
+      `${repository.excludePath}.boxxy-lock`,
+      async () => {
+        const existing = await readFile(repository.excludePath, 'utf8').catch(() => '');
+
+        const next = buildSkillExclude({ existing, prefix: repository.prefix, add, remove });
+
+        if (next !== existing) {
+          await writeFile(repository.excludePath, next);
+        }
+      },
+      { waitMs: excludeLockWaitMs },
+    );
+
+    return result.kind === 'ran';
+  } catch {
+    return false;
+  }
+}
+
+async function copySkill(
+  input: InstallSkillsInput,
+  scratch: string,
+  name: string,
+): Promise<boolean> {
   const inside = await probeSkillsFolderInWorkspace(input.workspace);
 
   if (!inside) {
-    return 'missing';
+    return false;
   }
+
+  const target = join(input.workspace, workspaceSkillsFolder, name);
 
   // Node has no openat, so a link made between the check above and this rm or cp still moves them
   const copied = await rm(target, { recursive: true, force: true })
@@ -145,24 +272,7 @@ async function installSkill(
       () => false,
     );
 
-  const installed = copied ? await probeSkillFile(target) : false;
-
-  return installed ? 'copied' : 'missing';
-}
-
-async function probeSkillTracked(input: InstallSkillsInput, name: string): Promise<boolean> {
-  const listed = await input.runGit(
-    ['ls-files', '--cached', '--', `${workspaceSkillsFolder}/${name}`],
-    input.workspace,
-  );
-
-  return listed.exitCode === 0 && listed.output.trim() !== '';
-}
-
-async function probeSkillFile(folder: string): Promise<boolean> {
-  const skillFile = await stat(join(folder, 'SKILL.md')).catch(() => null);
-
-  return skillFile?.isFile() === true;
+  return copied ? probeSkillFile(target) : false;
 }
 
 // The copy removes the skill's folder first, so a link in the skills path would point that removal
@@ -192,37 +302,4 @@ async function probeSkillsFolderInWorkspace(workspace: string): Promise<boolean>
   } catch {
     return false;
   }
-}
-
-// A workspace outside any repository has no status to keep clean, so it gets no exclude.
-async function writeSkillExcludes(
-  input: InstallSkillsInput,
-  names: readonly string[],
-): Promise<void> {
-  if (names.length === 0) {
-    return;
-  }
-
-  const paths = await input.runGit(
-    ['rev-parse', '--show-prefix', '--git-path', 'info/exclude'],
-    input.workspace,
-  );
-
-  if (paths.exitCode !== 0) {
-    return;
-  }
-
-  const [prefix = '', excludePath = ''] = paths.output.split('\n');
-  const exclude = isAbsolute(excludePath) ? excludePath : join(input.workspace, excludePath);
-
-  const existing = await readFile(exclude, 'utf8').catch(() => '');
-
-  const addition = buildSkillExcludeAddition({ existing, prefix, names });
-
-  if (addition === '') {
-    return;
-  }
-
-  await mkdir(dirname(exclude), { recursive: true });
-  await appendFile(exclude, addition);
 }
