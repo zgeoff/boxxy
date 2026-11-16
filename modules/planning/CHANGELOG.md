@@ -2,19 +2,19 @@
 
 ## [0.2.10](https://github.com/zgeoff/boxxy/compare/@boxxy/planning@0.2.9...@boxxy/planning@0.2.10) (2026-11-16)
 
-
 ### Bug Fixes
 
-* **dispatch:** end a silent agent-mode attempt only at the silence limit ([#139](https://github.com/zgeoff/boxxy/issues/139)) ([d55fa2a](https://github.com/zgeoff/boxxy/commit/d55fa2a584029eb4f45d78a1820291558f9f35e2))
-
+- **dispatch:** end a silent agent-mode attempt only at the silence limit
+  ([#139](https://github.com/zgeoff/boxxy/issues/139))
+  ([d55fa2a](https://github.com/zgeoff/boxxy/commit/d55fa2a584029eb4f45d78a1820291558f9f35e2))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/content-hash bumped to 0.2.10
-    * @boxxy/model bumped to 0.2.10
-    * @boxxy/rules bumped to 0.2.10
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.2.10
+    - @boxxy/model bumped to 0.2.10
+    - @boxxy/rules bumped to 0.2.10
 
 ## [0.2.9](https://github.com/zgeoff/boxxy/compare/@boxxy/planning@0.2.8...@boxxy/planning@0.2.9) (2026-11-15)
 

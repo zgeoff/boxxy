@@ -2,20 +2,22 @@
 
 ## [0.2.10](https://github.com/zgeoff/boxxy/compare/@boxxy/rules@0.2.9...@boxxy/rules@0.2.10) (2026-11-16)
 
-
 ### Bug Fixes
 
-* **closeout:** let a design order the open items it files ([#141](https://github.com/zgeoff/boxxy/issues/141)) ([4d4d432](https://github.com/zgeoff/boxxy/commit/4d4d43263a4964decbe6e261bf2c2e91de3f71c5))
-* **dispatch:** end a silent agent-mode attempt only at the silence limit ([#139](https://github.com/zgeoff/boxxy/issues/139)) ([d55fa2a](https://github.com/zgeoff/boxxy/commit/d55fa2a584029eb4f45d78a1820291558f9f35e2))
-
+- **closeout:** let a design order the open items it files
+  ([#141](https://github.com/zgeoff/boxxy/issues/141))
+  ([4d4d432](https://github.com/zgeoff/boxxy/commit/4d4d43263a4964decbe6e261bf2c2e91de3f71c5))
+- **dispatch:** end a silent agent-mode attempt only at the silence limit
+  ([#139](https://github.com/zgeoff/boxxy/issues/139))
+  ([d55fa2a](https://github.com/zgeoff/boxxy/commit/d55fa2a584029eb4f45d78a1820291558f9f35e2))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/content-hash bumped to 0.2.10
-    * @boxxy/model bumped to 0.2.10
-    * @boxxy/prompt-template bumped to 0.2.10
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.2.10
+    - @boxxy/model bumped to 0.2.10
+    - @boxxy/prompt-template bumped to 0.2.10
 
 ## [0.2.9](https://github.com/zgeoff/boxxy/compare/@boxxy/rules@0.2.8...@boxxy/rules@0.2.9) (2026-11-15)
 

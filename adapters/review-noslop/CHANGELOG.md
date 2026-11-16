@@ -2,17 +2,15 @@
 
 ## [0.2.10](https://github.com/zgeoff/boxxy/compare/@boxxy/review-noslop@0.2.9...@boxxy/review-noslop@0.2.10) (2026-11-16)
 
-
 ### Miscellaneous Chores
 
-* **@boxxy/review-noslop:** Synchronize boxxy versions
-
+- **@boxxy/review-noslop:** Synchronize boxxy versions
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.2.10
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.10
 
 ## [0.2.9](https://github.com/zgeoff/boxxy/compare/@boxxy/review-noslop@0.2.8...@boxxy/review-noslop@0.2.9) (2026-11-15)
 
