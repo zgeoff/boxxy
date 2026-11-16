@@ -8,7 +8,9 @@ type SettledFact = WorkFacts['boxxy.attempt.settled'];
 
 interface SettlePlansInput {
   readonly effects: readonly Effect[];
-  readonly ctx: EffectContext;
+
+  // the settle fills `filed` as it plans
+  readonly ctx: Omit<EffectContext, 'filed'>;
 
   // the open items of the item's repo of each kind the effects file, for the dedupe of filed items
   readonly openItems: readonly ItemView[];
@@ -58,7 +60,12 @@ export function buildSettlePlans(input: SettlePlansInput): SettlePlans {
       (first, second) => Number(first.kind === 'close-item') - Number(second.kind === 'close-item'),
     );
 
-  const plans = collectPlans(effects, input, repeats);
+  const plans = collectPlans(
+    effects,
+    input,
+    repeats,
+    collectMatchedKeys(input.effects, toFile, openItems),
+  );
 
   return {
     plans,
@@ -76,9 +83,10 @@ function collectPlans(
   effects: readonly Effect[],
   input: SettlePlansInput,
   repeats: ReadonlySet<OpenItem>,
+  matched: ReadonlyMap<string, ItemId>,
 ): EffectPlan[] {
   const plans: EffectPlan[] = [];
-  let ctx = input.ctx;
+  let ctx: EffectContext = { ...input.ctx, filed: matched };
 
   for (const effect of effects) {
     const reason = findSkipReason(effect, input.held, repeats);
@@ -115,18 +123,25 @@ const itemChanges: ReadonlySet<Effect['kind']> = new Set([
   'set-body',
 ]);
 
+// A link between two filed items changes no existing item.
 function isItemChange(effect: Effect): boolean {
+  if (effect.kind === 'add-relation' && 'link' in effect) {
+    return effect.link.from.kind === 'item' || effect.link.to.kind === 'item';
+  }
+
   return itemChanges.has(effect.kind);
 }
 
 // A wait on another item lands under a hold: a blocked design or build records it so that the
 // item still waits after the owner's retry.
 function isWait(effect: Effect): boolean {
-  return (
-    effect.kind === 'add-relation' &&
-    effect.relation.type === 'blocks' &&
-    'source' in effect.relation
-  );
+  if (effect.kind !== 'add-relation') {
+    return false;
+  }
+
+  return 'link' in effect
+    ? effect.link.type === 'blocks' && effect.link.to.kind === 'item'
+    : effect.relation.type === 'blocks' && 'source' in effect.relation;
 }
 
 // A handler that throws is a bug in the handler, not in the stored data, but the settle still
@@ -170,8 +185,15 @@ function buildPlannedContext(ctx: EffectContext, plan: EffectPlan): EffectContex
     write.op === 'insert' && write.table === 'relations' ? [write.row] : [],
   );
 
+  const filedRow = plan.writes.find((write) => write.op === 'insert' && write.table === 'items');
+  const filedKey = plan.effect.kind === 'file-item' ? plan.effect.key : undefined;
+
   return {
     ...ctx,
+    filed:
+      filedKey === undefined || filedRow?.op !== 'insert' || filedRow.table !== 'items'
+        ? ctx.filed
+        : new Map([...ctx.filed, [filedKey, filedRow.row.id]]),
     item: plan.effect.kind === 'close-item' ? { ...ctx.item, closedAt: ctx.now } : ctx.item,
     relations: [...ctx.relations, ...added],
     blocks: [...ctx.blocks, ...added.filter((row) => row.type === 'blocks')],
@@ -183,6 +205,25 @@ function buildPlannedContext(ctx: EffectContext, plan: EffectPlan): EffectContex
         : row,
     ),
   };
+}
+
+// A keyed open item that the dedupe matched to an open item links as that item.
+function collectMatchedKeys(
+  effects: readonly Effect[],
+  toFile: ReadonlySet<OpenItem>,
+  openItems: readonly ItemView[],
+): Map<string, ItemId> {
+  return new Map(
+    effects.flatMap((effect) => {
+      if (effect.kind !== 'file-item' || effect.key === undefined || toFile.has(effect.item)) {
+        return [];
+      }
+
+      const [matchedID] = dedupeOpenItems([effect.item], openItems).matched;
+
+      return matchedID === undefined ? [] : [[effect.key, matchedID] as const];
+    }),
+  );
 }
 
 // The evidence ids that an applied `set-acceptance` added to each criterion.

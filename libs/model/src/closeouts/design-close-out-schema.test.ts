@@ -133,3 +133,48 @@ test('it rejects a blocked close-out that files open items', () => {
     path: ['result'],
   });
 });
+
+test('it accepts open items that set the order of the work by key', () => {
+  const closeOut = {
+    result: {
+      kind: 'designed',
+      design: { text: 'Scaffold the repo, then build the alerts.', location: null },
+      openItems: [
+        {
+          kind: 'core.issue',
+          title: 'Scaffold the alerts repo',
+          body: 'Make the empty repo.',
+          key: 'scaffold',
+          blocks: ['item', 'alerts'],
+        },
+        {
+          kind: 'core.issue',
+          title: 'Send the alerts',
+          body: 'Send one alert per failed upload.',
+          key: 'alerts',
+          blockedBy: ['item'],
+        },
+      ],
+    },
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  const parsed: unknown = designCloseOutSchema.safeParse(closeOut).data;
+
+  expect(parsed).toStrictEqual(closeOut);
+});
+
+test.each(['item', 'Scaffold', 'two words'])('it rejects the open item key %p', (key) => {
+  const closeOut = {
+    result: {
+      kind: 'designed',
+      design: { text: 'Scaffold the repo first.', location: null },
+      openItems: [{ kind: 'core.issue', title: 'Scaffold the repo', body: 'Make it.', key }],
+    },
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  expect(designCloseOutSchema.safeParse(closeOut).success).toBeFalse();
+});

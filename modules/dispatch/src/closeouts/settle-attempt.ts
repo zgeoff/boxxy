@@ -56,7 +56,9 @@ export function settleAttempt(input: SettleAttemptInput): Promise<MoveResult> {
     const blocksType = brandSchemas.relationTypeName.parse('blocks');
 
     const addsBlocks = settlement.effects.some(
-      (effect) => effect.kind === 'add-relation' && effect.relation.type === blocksType,
+      (effect) =>
+        effect.kind === 'add-relation' &&
+        ('link' in effect ? effect.link.type : effect.relation.type) === blocksType,
     );
 
     const settled = buildSettlePlans({

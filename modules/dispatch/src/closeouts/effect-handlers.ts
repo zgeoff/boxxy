@@ -2,6 +2,8 @@ import type {
   AnyNewFact,
   ItemId,
   ItemRow,
+  LinkEnd,
+  OpenItemLink,
   RelationRow,
   RelationTypeName,
   RowWrite,
@@ -87,11 +89,17 @@ export const effectHandlers: EffectHandlers = {
       return { kind: 'skip', effect, reason: closed };
     }
 
-    const plan = buildRelationPlan(
-      ctx,
-      effect.relation.type,
-      getRelationEnds(effect.relation, ctx.item.id),
-    );
+    const ends =
+      'link' in effect
+        ? resolveLinkEnds(effect.link, ctx)
+        : getRelationEnds(effect.relation, ctx.item.id);
+
+    if (typeof ends === 'string') {
+      return { kind: 'skip', effect, reason: ends };
+    }
+
+    const type = 'link' in effect ? effect.link.type : effect.relation.type;
+    const plan = buildRelationPlan(ctx, type, ends);
 
     return typeof plan === 'string'
       ? { kind: 'skip', effect, reason: plan }
@@ -248,7 +256,7 @@ function buildRelationPlan(
     return 'an item has no relation to itself';
   }
 
-  if (isLive(ctx.relations, ends, type)) {
+  if (isLive([...ctx.relations, ...ctx.blocks], ends, type)) {
     return 'the relation is live already';
   }
 
@@ -296,6 +304,26 @@ function buildItemUpdate(ctx: EffectContext, set: Partial<ItemRow>): RowWrite {
     expect: { closedAt: null },
     set,
   };
+}
+
+// The IDs of a link's ends, or why one has none, such as an open item that the settle skipped.
+function resolveLinkEnds(link: OpenItemLink, ctx: EffectContext): Ends | string {
+  const source = findLinkEndId(link.from, ctx);
+  const target = findLinkEndId(link.to, ctx);
+
+  if (source === null || target === null) {
+    const missing = [link.from, link.to].flatMap((end) =>
+      end.kind === 'open-item' && !ctx.filed.has(end.key) ? [end.key] : [],
+    );
+
+    return `the open item ${missing.join(' and ')} filed nothing`;
+  }
+
+  return { source, target };
+}
+
+function findLinkEndId(end: LinkEnd, ctx: EffectContext): ItemId | null {
+  return end.kind === 'item' ? ctx.item.id : (ctx.filed.get(end.key) ?? null);
 }
 
 function buildEditPlan(

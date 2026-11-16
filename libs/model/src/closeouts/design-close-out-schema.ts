@@ -3,7 +3,7 @@ import { acceptanceDraftSchema } from './acceptance-draft-schema.ts';
 import { frictionSchema } from './friction-schema.ts';
 import { openItemSchema } from './open-item-schema.ts';
 import { relationDraftSchema } from './relation-draft-schema.ts';
-import type { DesignCloseOut } from './types.ts';
+import type { DesignCloseOut, DesignOpenItem } from './types.ts';
 
 const reasonSchema = z.string().min(1);
 
@@ -15,6 +15,20 @@ const designSchema = z.preprocess(
   }),
 );
 
+// `item` names the designed item in `blocks` and `blockedBy`, so no open item takes it as its key.
+const openItemKeySchema = z
+  .string()
+  .regex(/^[a-z0-9][a-z0-9-]*$/u, 'a key is lowercase letters, digits and hyphens')
+  .refine((key) => key !== 'item', '`item` names the designed item');
+
+const linkRefSchema = z.string().min(1);
+
+const designOpenItemSchema = openItemSchema.extend({
+  key: openItemKeySchema.exactOptional(),
+  blocks: z.array(linkRefSchema).exactOptional(),
+  blockedBy: z.array(linkRefSchema).exactOptional(),
+}) satisfies z.ZodType<DesignOpenItem>;
+
 // Strict, so a session that sends `set` or `openItems` with a blocked or abandoned design hears
 // of it instead of losing them.
 const designedSchema = z.strictObject({
@@ -22,7 +36,7 @@ const designedSchema = z.strictObject({
   design: designSchema,
   conclusion: z.string().min(1).exactOptional(),
   set: z.strictObject({ acceptance: acceptanceDraftSchema.exactOptional() }).exactOptional(),
-  openItems: z.array(openItemSchema).exactOptional(),
+  openItems: z.array(designOpenItemSchema).exactOptional(),
   relations: z.array(relationDraftSchema).exactOptional(),
 });
 
