@@ -116,8 +116,10 @@ count. The example has one pool per phase, plus one for attended designs.
 A recipe sets how a phase's session runs: the agent, the model and effort, the prompt template, and
 the skills. Each item kind maps each phase to a recipe, and `design/attended` to an attended
 design's recipe. The review recipe runs under a review agent, whose broker profile holds a read-only
-clone token, and the loader refuses a review agent on any other step, so no other session gets the
-token.
+clone token. When the server's `spawn.reviewAgents` lists the review agents, the loader refuses a
+review agent on any other step and a kept review session, so only review sessions get the token.
+With an empty list, the default, the loader makes none of these checks, so a deployment that gives
+a review agent the token must list it.
 
 - **Skills are pinned.** The rules file pins one commit of the skills repo, each recipe lists the
   skills its phase needs, and the recipe hash covers the list and the pin.
@@ -206,7 +208,7 @@ how a notice is sent and retried.
 An agent's question takes the same path. The agent closes out `blocked` with the question, or
 `needs-owner` at triage, and the item holds. The owner gets the notice, answers with
 `boxxy item note`, and runs `boxxy item retry`. The notice gives the hold reason only, and
-`boxxy item get` shows the question in the attempt's close-out. The next attempt of the phase gets
+`boxxy item show` shows the question in the attempt's close-out. The next attempt of the phase gets
 the question in `{{ stopped }}` and the answer in `{{ notes }}`, so a design or a build that stops
 puts the question and what it did so far in its reason.
 
