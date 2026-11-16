@@ -36,12 +36,14 @@ journeys again.
 `bun verify publish` writes the report into the pull request body: a table of each feature, whether
 the change touches it, and its verdict, plus a hidden data comment with one entry per verdict.
 wringer calls that entry a claim, which has nothing to do with boxxy's claim of work. Git ignores
-`.wringer/` and the registry sets no upload hook, so evidence stays on the grader's machine.
+`.wringer/`, and the verify registry, `verify-registry.ts`, which defines the targets and features
+`bun verify` knows, sets no upload hook, so evidence stays on the grader's machine.
 
 ## The harness
 
-`bun verify up` starts one Bun process, the harness, in a new run folder that wringer creates, so
-each `up` starts empty. The harness builds the same parts as the CLI's end-to-end merge tests:
+`bun verify up` starts the registry's `local` target: one Bun process, the harness, in a new run
+folder that wringer creates, so each `up` starts empty. The harness builds the same parts as the
+CLI's end-to-end merge tests:
 
 - the real server from the server's test composition, on a SQLite store, with the
   [example rules](../work/pipeline.md) and a local skills repo they pin;
@@ -71,12 +73,14 @@ The harness keeps these rules:
 - **Time moves only when a step moves it.** The harness runs no tick, watch pass or outbox send on a
   timer; a control route moves the fake clock, then runs one of them. On a deployed server a journey
   would wait for each tick, and its timestamps would differ each run.
-- **Each journey files its own item.** The `file-item` and `land-item` actions make the new item
-  `@current` and close the items before it, so no tick claims work for an old item;
-  `file-item-beside` keeps the earlier item open, for a journey like `plan-ordering` that needs two.
-  Journeys therefore run in any order after one `up`, and can run again on the same run.
+- **Each journey files its own item.** A journey line runs either a CLI command or an action, a
+  control step the harness provides. The `file-item` and `land-item` actions make the new item the
+  current one, which journey lines name as `@current`, and close the items before it, so no tick
+  claims work for an old item; `file-item-beside` keeps the earlier item open, for a journey like
+  `plan-ordering` that needs two. Journeys therefore run in any order after one `up`, and can run
+  again on the same run.
 - **Control steps run one at a time, in arrival order.** A route refuses a step whose state is
-  wrong, and the journey line fails with `check-failed`. Nothing retries.
+  wrong, and the journey line fails with `check-failed`. The harness never retries a step.
 - **The harness reaches nothing beyond localhost.** It needs no atc, GitHub or deployed pepys, and
   no stored token. Every CLI call sets `BOXXY_SKILLS_URL`, because the session-start hook would
   otherwise fetch from GitHub.
@@ -155,14 +159,14 @@ prompts are markdown the server sends to each session.
 `verify / gate`, in `.github/workflows/verify.yml`, runs when a pull request opens, reopens, gets a
 push or has its body edited, since the grader publishes after the push. It has its own workflow
 because the shared checks have no `edited` trigger, and a body edit there would rerun every static
-check. Neither of its steps starts boxxy or runs a journey: `bun run verify:lint` fails when the
-registry, the map and the skill disagree, such as a glob that matches no file or a journey line that
-won't parse; then `bun run ci:verify-gate` runs the gate on the body against the base branch and
-prints one `::error::` per failing feature and per unmapped path.
+check. The job never starts boxxy or runs a journey. It runs two steps: `bun run verify:lint` fails
+when the registry, the map and the skill disagree, such as a glob that matches no file or a journey
+line that won't parse; then `bun run ci:verify-gate` runs the gate on the body against the base
+branch and prints one `::error::` per failing feature and per unmapped path.
 
 - **It reports on every pull request,** with no `if:` or path filter, because the merge step waits
-  for each required check, and one that never reports ends the merge attempt as `stalled` at its
-  deadline.
+  for each required check, and one that never reports ends the merge attempt with the outcome
+  `stalled` at its deadline.
 - **It passes a Renovate pull request without running the gate** when the head branch starts with
   `renovate/` and the author is the Renovate app's bot. Renovate can bump a version inside a mapped
   path, and no grader writes its reports. A person's `renovate/` branch still meets the gate.

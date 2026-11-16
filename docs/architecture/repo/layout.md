@@ -3,10 +3,9 @@
 boxxy is one Bun workspace, split so the domain never does I/O. Modules hold the domain. A module
 that needs an outside system declares a port, an interface for that system, and an adapter
 implements the port for one system. Apps build the adapters and hand them to the modules. Libs hold
-the types, schemas and pure helpers several packages share, and also do no I/O. A deployed package,
-under `packages/`, is one that another repo's deployment installs. Lint enforces every rule here, so
-a file in the wrong place fails the check. Read this doc before you add a package, a dependency or a
-file whose home isn't obvious.
+the shared types, schemas and pure helpers, and do no I/O either. A deployed package, under
+`packages/`, is one that another repo's deployment installs. Lint enforces these rules. Read this
+doc before you add a package, a dependency or a file whose home isn't obvious.
 
 [Decision 0016](../../decisions/0016-layout.md) records why the repo is split this way.
 [Tech stack](./tech-stack.md) covers the libraries and the repo's setup files. The
@@ -84,11 +83,11 @@ another adapter, and only an app depends on an adapter or a deployed package.
   takes a port, as a module does, and an import-zones entry fails any import of a deployed package
   from a module or lib. A lib it depends on gets installed with it, so such a lib lists its
   test-only libraries in `devDependencies`.
-- **An app never depends on another app,** with one exception: the CLI's tests drive the real
-  server, and the test layout puts them beside the CLI code they drive. The CLI lists the server
-  only as a dev dependency, may import only the server's test-helper exports, and may import them
-  only from a test or a test helper. The CLI's published package leaves out those helpers, the
-  verify CLI among them.
+- **An app never depends on another app.** One exception: the CLI's tests drive the real server, and
+  the test layout puts them beside the CLI code they drive. The CLI lists the server only as a dev
+  dependency, may import only the server's test-helper exports, and may import them only from a test
+  or a test helper. The CLI's published package leaves out those helpers, including the verify CLI
+  behind `bun verify` ([verify journeys](./verify-journeys.md)).
 - **`scripts/` is not a package,** so the import rules leave it alone and a script may do I/O.
   `turbo boundaries` refuses a root dependency on a module, so a script that needs one imports its
   source by relative path.
@@ -97,10 +96,14 @@ another adapter, and only an app depends on an adapter or a deployed package.
 
 Each outside system has one adapter or deployed package that talks to it, and the
 `zgeoff/import-zones` rule in `.oxlintrc.json` pins that system's client library there. A library
-the domain needs for one job is pinned to the one package whose job needs it: the YAML parser to the
-rules module, which every rules file passes through; xstate to dispatch, which runs only the attempt
-machine; and Liquid to the prompt-template lib, because the rules module checks templates at load
-and dispatch renders them at claim, so both import the lib. The exceptions:
+the domain needs for one job is pinned to the one package whose job needs it:
+
+- the YAML parser to the rules module, which every rules file passes through;
+- xstate to dispatch, which runs only the attempt machine;
+- Liquid to the prompt-template lib, because the rules module checks templates at load and dispatch
+  renders them at claim, so both import the lib.
+
+The exceptions to one system per package:
 
 - **The auth adapter opens its own database with the store's SQLite libraries,** and never opens the
   store.
@@ -125,8 +128,8 @@ Three more entries in the rule keep the domain clean:
 
 oRPC has no entry, so a reviewer checks its rule: only the contract lib defines procedures, the
 server serves them and calls the pepys query API, and the CLI calls the server. Two test helpers
-outside the apps also import these libraries: the atc stand-in in the atc worker serves atc's tools
-over MCP, and the test pepys deployment calls the pepys query API.
+outside the apps also import the oRPC or MCP libraries: the atc stand-in in the atc worker serves
+atc's tools over MCP, and the test pepys deployment calls the pepys query API.
 
 ## Inside a package
 

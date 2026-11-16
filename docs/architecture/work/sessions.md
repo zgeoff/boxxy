@@ -18,12 +18,17 @@ when it binds the session to an attempt.
 ## The kept session
 
 boxxy keeps the stopped session of a succeeded attempt on the item, so a later attempt can wake it
-and carry on where the agent left off. It keeps the session when the item's pipeline has a
-`resume: true` edge back to the attempt's phase, such as review's `changes-requested` edge to build;
-when the attempt is a build and a recipe of the item's kind has `session: builder`; or when the
-attempt itself ran a `session: builder` recipe, such as a verify that grades the build in the
-builder's session. A verify succeeds with either result, `verified` or `failed`, so both keep the
-session for the rework.
+and carry on where the agent left off. It keeps the session when:
+
+- the item's pipeline has a `resume: true` edge back to the attempt's phase, such as review's
+  `changes-requested` edge to build;
+- the attempt is a build, and a recipe of the item's kind runs in the builder's session
+  ([`session: builder`](./pipeline.md#recipes-and-skills));
+- the attempt itself ran a `session: builder` recipe, such as a verify that grades the build in the
+  builder's session.
+
+A verify succeeds with either result, `verified` or `failed`, so both keep the session for the
+rework.
 
 A rework round runs like this:
 
@@ -38,10 +43,10 @@ A rework round runs like this:
 
 One atc session now carries two attempts, so the server takes each call from that session as a call
 for its latest attempt ([the proven caller](../interfaces/api-and-auth.md#the-proven-caller)). boxxy
-refuses to bind an agent session that another attempt holds, except when that holder succeeded on
-the same atc session and the new attempt is live. A stopped kept session holds no seat and has no
-attempt state of its own: it belongs to the item, and the attempt that wakes it goes through the
-same claim and start as any other.
+refuses to bind an agent session that another attempt holds. It makes one exception: the holder
+succeeded on the same atc session, and the new attempt is live. A stopped kept session holds no seat
+and has no attempt state of its own: it belongs to the item, and the attempt that wakes it goes
+through the same claim and start as any other.
 
 The runner spawns a fresh session instead when the item has no kept session, or when atc refuses the
 wake for a cause other than capacity; the `started` fact records that fallback. Either way, the new
@@ -62,8 +67,8 @@ atc keeps a stopped session's record until boxxy forgets it, and on an imp targe
 destroys the session's imp. Cleanup is the last session step of each tick. It forgets each kept
 session that is due, and the session of each settled attempt that isn't kept: a succeeded attempt or
 a failed review right away, since nothing resumes a review session, and any other failed attempt
-after some hours, so the owner can diagnose it. A forget that atc doesn't confirm changes nothing,
-and cleanup tries again next tick.
+after a fixed number of hours, so the owner can diagnose it. A forget that atc doesn't confirm
+changes nothing, and cleanup tries again next tick.
 
 atc refuses to forget a live session, so a stray's session needs a confirmed stop first. A stray is
 an attempt that settled while its session may still run
@@ -79,7 +84,7 @@ and sends no fact, because the fact catalog has no type for cleanup.
 
 atc refuses a session when the worker target has no room, and the atc worker reports that refusal
 with the cause `capacity`. The same request would meet the same lack of room on the next tick, so
-the runner holds back the pool that the attempt came from for a short backoff, during which the
+the runner holds back the pool that the attempt came from for a fixed backoff, during which the
 claim starts no item from that pool and wakes none of its sleeping attempts.
 
 - **A spawn refused for capacity fails the attempt** as `no-capacity`, which doesn't count against
@@ -89,24 +94,25 @@ claim starts no item from that pool and wakes none of its sleeping attempts.
 - **The backoff lives in the runner's memory,** one end time per pool. A restart drops it, and the
   next refusal sets it again.
 - **The claim loop claims no item twice in one tick,** so it never resends a refused wake in the
-  same tick, and an error in the loop ends the loop but not the tick.
+  same tick. An error in the loop ends the loop, and the rest of the tick still runs.
 
 atc reports no usage limit, so nothing detects the account's limit and the next claim spawns into
 it. A session at the limit ends by the other
 [bounds](./attempts.md#the-bounds-on-a-running-attempt): in agent mode it falls silent and settles
 `stalled`, or `timed-out` if the step's time limit comes first, and both count against
-`maxAttempts`; in attended mode it sleeps. Dispatch keeps a path for a worker that does report a
-reset time: it settles the attempt as `usage-limit` and backs the pool off until the reset, up to a
-fixed cap.
+`maxAttempts`; in attended mode it sleeps. Dispatch keeps a path for a worker kind that does report
+a reset time, though the atc worker never does: it settles the attempt as `usage-limit` and backs
+the pool off until the reset, up to a fixed cap.
 
 ## The atc worker
 
 `@boxxy/worker-atc` is boxxy's adapter for atc. It calls the atc gateway's MCP tools as atc's
 service principal `service:boxxy`, with a token that needs the `read`, `message`, `spawn` and `kill`
-scopes. A daemon accepts that token only on the targets its own `principals` key lists for
-`service:boxxy`. The client sends the token as a bearer over streamable HTTP and follows no
-redirect, so the token goes only to the configured address. It refuses a tool result that fails its
-schema or size cap as `malformed_answer`, before boxxy reads any field.
+scopes. An atc daemon runs the sessions on one machine, and accepts that token only on the targets
+its own `principals` key lists for `service:boxxy`. The client sends the token as a bearer over
+streamable HTTP and follows no redirect, so the token goes only to the configured address. It
+refuses a tool result that fails its schema or size cap as `malformed_answer`, before boxxy reads
+any field.
 
 | boxxy asks to       | atc tools, in order                                       |
 | ------------------- | --------------------------------------------------------- |
@@ -136,6 +142,10 @@ The worker reads a session's `lifecycle.harness` field from `atc_session_get`: `
 running, `suspended` as suspended, and `exited` as ended. It never uses atc's top-level state for
 this, because atc lists a session as `exited` whenever its process isn't running, so a process
 asleep inside its host looks the same as one that ended.
+
+The [bounds](./attempts.md#the-bounds-on-a-running-attempt) read a running session's attention and
+last activity to tell when an attended session waits for the owner or an agent-mode session falls
+silent.
 
 - **Attention** comes from atc's state: `running` gives `working`, `needs_you` gives `needs-input`,
   and `done` gives `turn-ended`.

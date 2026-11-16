@@ -48,10 +48,10 @@ POST with no CORS preflight, and DNS rebinding lets a page pass for the listener
 
 Each procedure is `<group>.<verb>`, and its MCP tool is `<group>_<verb>`. Each procedure sets its
 own tool name, so renaming a router key never renames a tool. An answer the caller acts on in its
-normal flow is one member of the procedure's output union, each with its own `kind`; a call that
-names something that doesn't exist throws a typed error. The server accepts the previous CLI
-version, because the CLI ships in the agent image, which can lag a server deploy, so a release never
-removes or renames anything the previous CLI sends or reads.
+normal flow is one member of the procedure's output union, and each member has its own `kind`; a
+call that names something that doesn't exist throws a typed error. The server accepts the previous
+CLI version, because the CLI ships in the agent image, which can lag a server deploy, so a release
+never removes or renames anything the previous CLI sends or reads.
 
 The contract's access table gives each procedure its caller (`owner`, `session` or `hook`), the
 actor its [fact](./facts-and-pepys.md) records, the MCP endpoint that lists it, its CLI usage line,
@@ -91,11 +91,12 @@ path sets which procedures the caller may call.
 | the owner's path | public           | the owner's assistant                           | an OAuth access token the owner approved |
 | the worker path  | worker, or owner | a session, or one of its hooks                  | the worker token, then the proven caller |
 
-A request with a token is on the worker path on either listener, and a wrong token gets 401. The
-broker sends a session's requests only to the worker listener, but a holder of the worker token who
-sends it to the owner listener still gets only the worker path's power. On the worker path, the
-middleware refuses every owner procedure with `FORBIDDEN`, so a session can't close an item, retry
-one or pause the runner, even though the broker forwards a request to any URL path.
+On the owner and worker listeners, a request that carries a bearer token is on the worker path, and
+a wrong token gets 401. The broker sends a session's requests only to the worker listener, but a
+holder of the worker token who sends it to the owner listener still gets only the worker path's
+power. On the worker path, the middleware refuses every owner procedure with `FORBIDDEN`, so a
+session can't close an item, retry one or pause the runner, even though the broker forwards a
+request to any URL path.
 
 A session runs in an imp, a cloud machine that reaches only the public internet. It calls a made-up
 host name that the broker answers on, which it reads from `BOXXY_URL`. The broker adds two tokens to
@@ -103,11 +104,11 @@ each request to that name and forwards it to the worker listener: the worker tok
 the broker and the server hold, proves the request came through the broker, and an identity token
 proves which machine sent it. The session never holds the worker token.
 
-atc can also run a session on its own machine, outside an imp. That session has no broker in front
-of it, so it reaches the server on the owner's path: it can call every owner procedure, and no
-session or hook procedure, because it has no proven caller. boxxy accepts that this session has the
-owner's power, because atc's machine already sits on the owner's private network, and a deployment
-runs its worker sessions in imps, where the broker is the only way in.
+atc can also run a session on the machine where atc itself runs, outside an imp. That session has no
+broker in front of it, so it reaches the server on the owner's path: it can call every owner
+procedure, and no session or hook procedure, because it has no proven caller. boxxy accepts that
+this session has the owner's power, because atc's machine already sits on the owner's private
+network, and a deployment runs its worker sessions in imps, where the broker is the only way in.
 
 ## The public door
 
@@ -161,8 +162,8 @@ carry their text into its own repo.
   and `attempt.getItem` also leaves out its attempts, evidence and revisions, because those record
   the machine and atc session of whoever worked on the item. It also drops each relation whose other
   item the session can't see.
-- **Neither procedure writes.** A session has no procedure that edits, notes, retries or releases an
-  item.
+- **Both procedures only read.** A session has no procedure that edits, notes, retries or releases
+  an item.
 
 ## The proven caller
 
@@ -175,7 +176,8 @@ make one:
    and a subject, or with nothing, and nothing gets 401.
 2. The middleware finds the atc session whose latest attempt row holds that caller; the runner
    recorded the caller there from atc's answer. Two matching sessions get `FORBIDDEN`, and the
-   caller is logged. No match gets the procedure's `refused` result with the reason `no-attempt`.
+   caller is logged. When no session matches, the procedure answers with its `refused` result and
+   the reason `no-attempt`.
 3. The handler passes the core the attempt ID from the request with the session and caller from
    steps 1 and 2. The core accepts the call only when that attempt is the session's latest and its
    own row holds the proven caller.

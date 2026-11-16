@@ -17,9 +17,9 @@ doc before you change how boxxy follows pull requests or talks to GitHub.
 The hook and the watch write a link the same way, in one store transaction: a pull request row,
 which the watch later reads to follow the pull request; an evidence row that ties the URL to the
 build attempt, in the same list a close-out cites; and the `boxxy.pull_request.linked` fact. The
-evidence row and the fact record which path made the link, `hook` or `watch`. The watch follows only
-open rows, so when GitHub already shows the pull request merged or closed, the server stores the row
-that way in the same transaction and writes the matching fact.
+server records which path made the link, `hook` or `watch`, in the evidence row and the fact. The
+watch follows only open rows, so when GitHub already shows the pull request merged or closed, the
+server stores the row that way in the same transaction and writes the matching fact.
 
 A link writes no attempt row, so it never takes the attempt's lease and never races the settle. The
 two paths make sure the link goes to the right attempt in different ways: the watch links only a
@@ -48,9 +48,11 @@ Only a first `linked` answer writes anything:
 | `refused`, `not-current`            | the call is for an attempt that isn't the session's latest, at either check                             |
 | `refused`, `no-attempt`             | the session has no attempt, or its latest attempt doesn't hold the proven caller, at either check       |
 
-After a `retry`, the watch links the pull request on a later pass, unless the config has no `github`
-section, the pull request merges or closes before that pass, or none of its commits carries the
-build's `Boxxy-Attempt` trailer.
+After a `retry`, the watch links the pull request on a later pass, except when:
+
+- the config has no `github` section, so the watch never runs;
+- the pull request merges or closes before that pass, and the watch finds only open ones;
+- none of its commits carries the build's `Boxxy-Attempt` trailer.
 
 ## The pull request watch
 
@@ -62,8 +64,8 @@ then follows each open pull request:
 1. **Link what the hook missed.** For each succeeded build with no pull request row, the pass lists
    the open pull requests of its repo and links the first one holding a commit whose
    `Boxxy-Attempt: <attempt_id>` trailer holds that build's ID. It skips a build whose item already
-   has an open pull request, and a build that ended too long ago, so a build that never opened a
-   pull request stops costing GitHub calls.
+   has an open pull request, and a build that ended longer ago than a fixed link window, so a build
+   that never opened a pull request stops costing GitHub calls.
 2. **Follow each open pull request.** For each commit whose trailer holds the ID of an attempt of
    the row's item, it writes an evidence row for that attempt and a `boxxy.commit.linked` fact, once
    per commit. When the pull request has merged or closed, it moves the row and writes

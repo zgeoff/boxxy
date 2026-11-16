@@ -37,14 +37,15 @@ for every outcome. The phase kind, the server code behind a phase, lists the out
 close-out and says what runs the attempt: an agent session, or a merge job that the runner drives
 itself.
 
-An edge is one of five kinds:
+An edge is one of these:
 
 - `next` moves the item to the following step, or ends the pipeline after the last one.
 - `again` runs the same phase again, and counts against the step's `maxAttempts`.
-- `{ to, max, resume }` sends the item to the step of phase `to` and starts a new round. An edge
-  back to an earlier step, or to its own step, needs `max`: the number of times it may run before
-  the item holds with `rounds used up`, so every loop ends. `resume: true` wakes that step's
-  [kept session](./sessions.md#the-kept-session), so the builder carries on with its context.
+- `{ to, max, resume }` sends the item to the step of phase `to` and adds one to the item's round,
+  the count of its trips back through the pipeline. An edge back to an earlier step, or to its own
+  step, needs `max`: the number of times it may run before the item holds with `rounds used up`, so
+  every loop ends. `resume: true` wakes that step's [kept session](./sessions.md#the-kept-session),
+  so the builder carries on with its context.
 - `{ end }` ends the pipeline with a reason.
 - `{ hold }` holds the item for the owner with a reason.
 
@@ -62,23 +63,25 @@ the item's position: a phase, an end or a hold.
   `boxxy item retry --phase`, and each retry that lifts a `rounds used up` hold. A review of
   reworked code has the build's round, and the reports count any attempt above round 1 as rework.
 - **The engine adds two outcomes.** `lost` is the outcome of an attempt that failed without an
-  outcome of its phase, such as one with no valid close-out. `lost` acts as `again`, except after
-  `no-capacity` or `usage-limit`, where the work never ran. `unsettleable` marks a close-out the
-  phase code could not settle; it has no edge, so the item holds.
+  outcome of its phase, such as one with no valid close-out. `lost` acts as `again`. One exception:
+  the engine skips a `no-capacity` or `usage-limit` failure, because that work never ran.
+  `unsettleable` marks a close-out the phase code could not settle; it has no edge, so the item
+  holds.
 - **The engine adds three holds:** `attempts used up`, `rounds used up` and `outcome not in rules`.
-  A stored outcome whose edge a newer phase kind dropped takes the last of these, and never falls
-  through to `next`, so no item skips a phase unchecked. The loader refuses a rules-file hold with
-  one of these reasons, so a report can tell an engine hold from a rules hold.
+  When a newer phase kind drops an outcome, an item whose stored outcome lost its edge holds with
+  `outcome not in rules`. It never falls through to `next`, so no item skips a phase unchecked. The
+  loader refuses a rules-file hold with one of these reasons, so a report can tell an engine hold
+  from a rules hold.
 - **`boxxy item retry <item>` lifts a hold** and restarts both counts: the attempts in a row, and
   the runs of each `{ to }` edge. `--phase <phase>` also moves the item to that phase, and is the
   only way back to build after a passed review.
 
 A rules change never touches a live attempt: the attempt settles by the phase kind loaded when it
 settles. An item between attempts stands wherever the new rules put it. It can move to another
-phase, leave a hold because a limit went up, or take a hold because one went down. That last case
-sends no notice, because boxxy writes notices only at settle. Run `boxxy rules dry-run <file>`
-before a rules change merges: it prints each open item's position now and under the new rules, and
-writes nothing.
+phase, leave a hold because a `maxAttempts` or `max` went up, or take a hold because one went down.
+That last case sends no notice, because boxxy writes notices only at settle. Run
+`boxxy rules dry-run <file>` before a rules change merges: it prints each open item's position now
+and under the new rules, and writes nothing.
 
 ## When an item needs the owner
 
@@ -98,6 +101,12 @@ to this one, so a blocked design or build still waits on that item after the ret
 
 ## Limits and pools
 
+An item's design runs in `agent` mode by default. In `attended` mode the owner works with the agent
+in its session, and the agent closes out when the owner is done. The owner sets `designMode` when
+filing or editing the item, or a triage close-out sets it. An attended design takes its seats even
+when the owner is away, so it sleeps and gives them back after `sleep.afterUnattendedMinutes` with
+no owner attached.
+
 A limit caps how many attempts run at once. It has a name, a maximum and a filter on the phase and
 the item's fields. The claim starts an attempt only when every limit that counts it has a free seat,
 and a sleeping attempt gives its seats back. The example caps all attempts with `workers`, and
@@ -109,17 +118,12 @@ A pool decides which ready item the claim takes next: it takes the items its fil
 order, and the owner's levers, defer and expedite, change that order. A pool sets no count, so the
 loader refuses a pool unless some limit counts every attempt it can start.
 
-An item's design runs in `agent` mode by default. In `attended` mode the owner works with the agent
-in its session, and the agent closes out when the owner is done. The owner sets `designMode` when
-filing or editing the item, or a triage close-out sets it. An attended design takes its seats even
-when the owner is away, so it sleeps and gives them back after `sleep.afterUnattendedMinutes` with
-no owner attached.
-
 ## Recipes and skills
 
 The rules file's `kinds` section gives each item kind, such as `core.issue`, a pipeline and a recipe
-per phase. A recipe sets the agent, the model, the launch prompt template and the skills. The key
-`design/attended` gives the recipe for an attended design.
+per phase. A recipe sets the agent, the model, the launch prompt template and the skills. Each
+kind's recipe map is keyed by phase name, and its key `design/attended` gives the recipe for an
+attended design.
 
 - **Skills are pinned.** The rules file pins one commit of one skills repository, and each recipe
   lists the skills its phase needs. The
@@ -127,13 +131,17 @@ per phase. A recipe sets the agent, the model, the launch prompt template and th
   session's workspace, and a skill it can't install fails the attempt as `skill-missing`.
 - **Each attempt records a recipe hash** over its recipe, its templates, the rules version and the
   skills pin, so the reports keep attempts of a changed recipe apart.
+- **`session: builder` on a recipe** runs its phase in the build's
+  [kept session](./sessions.md#the-kept-session) instead of a fresh one, such as a verify that
+  grades the build where it was built.
 - **A build recipe has no check command.** The agent follows the repo's own agent instructions, so
   each repo keeps its own checks.
 - **Review runs on a review agent**, an atc agent set up with a read-only clone token. When the
-  server config lists review agents, the loader keeps them to fresh review sessions only. It refuses
-  a review recipe on any other agent, a review agent in any other phase, and a review recipe that
-  could leave its session kept for the next build to wake (`session: builder`, or a `resume: true`
-  edge to review).
+  server config lists review agents in `spawn.reviewAgents`, the loader keeps them to fresh review
+  sessions only. It refuses a review recipe on any other agent, a review agent in any other phase,
+  and a review recipe that could leave its session kept for the next build to wake
+  (`session: builder`, or a `resume: true` edge to review). With the list empty, the default, it
+  checks none of this.
 
 ## The launch prompt
 
@@ -174,16 +182,17 @@ example with `{{ ticket }}`.
 ## The review
 
 The [review gate design](../../design/boxxy/review-and-merge.md#the-review-gate) owns the review. A
-review session runs one command that the gate builds for the review tool, and sends the tool's raw
-result as its close-out. The server checks that the result covers the pull request's head commit,
-then posts it to the pull request. A failed call, or a result for another commit, settles `failed`.
+review session runs one command that the review gate, boxxy's adapter for the noslop review tool,
+builds, and sends the tool's raw result as its close-out. The server checks that the result covers
+the pull request's head commit, then posts it to the pull request. A failed call, or a result for
+another commit, settles `failed`.
 
 The next build's `findings` gives the commit the review read, the open findings counted by severity,
 and the gate's text on how to answer them, never the findings' text
 ([decision 0009](../../decisions/0009-close-outs-hold-what-only-the-agent-knows.md)). After a failed
 verify, `findings` gives the commit the verify ran at and the features that failed.
 
-## The ledger: labels, notes and relations
+## What an item records
 
 boxxy is the only record of the work. Each fact carries the full text it changes, so pepys can
 rebuild every item from the facts alone ([facts and pepys](../interfaces/facts-and-pepys.md)), and

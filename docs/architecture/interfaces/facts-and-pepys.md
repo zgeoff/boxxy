@@ -79,9 +79,10 @@ The stream `facts.boxxy.work` carries every fact type. These rules hold for all 
 - **Facts carry the full text they change.** The `filed` fact holds the body, and an `edited` fact
   holds it again when it changes. The plug-in's tables keep no body or design text, because no
   report reads them, but the pepys fact log keeps both.
-- **Each fact carries its store version.** The sink adds `storeVersion` to every payload. A
-  `boxxy.decision.recorded` fact, the runner's decision to start or wake an attempt, also carries
-  the version that decision read, as `snapshotStoreVersion`.
+- **Each fact carries its store version.** The fact sink, the part of the pepys plug-in that the
+  server uses to send, adds `storeVersion` to every payload. A `boxxy.decision.recorded` fact, the
+  runner's decision to start or wake an attempt, also carries the version that decision read, as
+  `snapshotStoreVersion`.
 - **Session facts carry the proven caller.** The `started`, `reconciled` and `resumed` facts hold
   the attempt's [proven caller](./api-and-auth.md#the-proven-caller), which the cost report matches
   against telemetry.
@@ -91,8 +92,8 @@ The stream `facts.boxxy.work` carries every fact type. These rules hold for all 
   pepys is down. pepys takes the merge time from its GitHub tables instead.
 - **Some changes write no fact.** A runner pause or resume names no item. A settle for `stalled`,
   `skill-missing` or a capacity refusal shows only on the `settled` fact.
-- **A retired type keeps its schema.** boxxy no longer writes `boxxy.attempt.turn_ended`, but pepys
-  still holds such facts and the plug-in must parse every fact of an item.
+- **`boxxy.attempt.turn_ended` keeps its schema** though boxxy never writes it, because pepys holds
+  facts of that type and the plug-in must parse every fact of an item.
 
 ## boxxy's plug-in in pepys
 
@@ -130,14 +131,14 @@ sides build the same entity ID from the same value.
 - **`ran_in` joins on the session ID in telemetry.** atc stamps every agent it starts with the
   resource attribute `atc.session.id`, and the telemetry plug-in keys each row by that ID, or by the
   agent's own session ID when a record has none. The consumer therefore links an attempt to both
-  IDs. boxxy holds the long atc ID, `<target>.<daemon>.<id>`, while telemetry carries only `<id>`,
-  so the consumer keeps the last dot-separated part. The join assumes each agent copies
-  `OTEL_RESOURCE_ATTRIBUTES` onto every record it exports.
+  IDs. boxxy holds the long atc ID that a client on another machine gets, while telemetry carries
+  only the session's own ID, its last dot-separated part, so the consumer keeps that part. The join
+  assumes each agent copies `OTEL_RESOURCE_ATTRIBUTES` onto every record it exports.
 
 The pepys deployment hands the plug-in the GitHub and telemetry tables the reports read, and the
 GitHub plug-in's delivery data: when a pull request merged, was released and was deployed. The
 plug-in depends only on their shape, so a deployment whose tables lack a column the reports read
-fails its type check, not at run time.
+fails its type check before it ever runs.
 
 ## What an item cost to land
 
@@ -182,7 +183,8 @@ review, and the time the item's attempts slept. A stage that hasn't happened is 
   ([the review gate](../../design/boxxy/review-and-merge.md#the-review-gate)). A first review
   records null.
 - **The wait for review** runs from each `built` build's end to the claim of the first review after
-  it, ordered by claim time, because boxxy numbers attempts within each phase.
+  it, ordered by claim time. Attempt numbers count within one phase, so they can't order a build
+  against a review.
 - **A `no-capacity` failure counts nowhere; a `usage-limit` one counts.**
 
 The query matches three outcome names: `built`, `passed` and `changes-requested`. Rename one in a

@@ -83,16 +83,16 @@ with its session ID, and pepys joins that telemetry to attempts by the session I
 | `.github/workflows/`                               | `main.yml` checks `main` and publishes, `npm-packages.yml` rehearses the publish, `repo-sync.yml` pulls the shared files, and `verify.yml` runs the [verify gate](./verify-journeys.md#the-ci-check) |
 
 - **`bunfig.toml`** installs with an isolated linker and saves exact versions. Its
-  `minimumReleaseAge` refuses a version until it has been on npm a while, as a guard against a
-  hijacked release. Renovate bumps a first-party package, such as `@zgeoff/rig` or `@pepys/kit`, as
-  soon as it publishes, so `minimumReleaseAgeExcludes` lists every first-party package boxxy
+  `minimumReleaseAge` refuses a version until it has been on npm for a set time, as a guard against
+  a hijacked release. Renovate bumps a first-party package, such as `@zgeoff/rig` or `@pepys/kit`,
+  as soon as it publishes, so `minimumReleaseAgeExcludes` lists every first-party package boxxy
   installs.
 - **`lefthook.yml`** fixes the staged files and runs gitleaks before a commit, and commitlint on the
   message. Before a push it runs `prose` and `boundaries`, then the shared pre-push baseline that
   repo-sync delivers, which runs chex.
 
-CI runs the shared checks in the `pr / checks` job of `pr.yml`. The `BUN_CHECK_SCRIPTS` repo
-variable, set in GitHub, lists the root scripts it runs:
+CI runs the shared checks in the `pr / checks` job of `pr.yml`, which repo-sync delivers. The
+`BUN_CHECK_SCRIPTS` repo variable, set in GitHub, lists the root scripts it runs:
 `audit deadcode format:check lint:full typecheck boundaries check:test-layout prose test`. The job
 also runs each docs check that `check:docs` lists, as a separate step. The type-aware lint and the
 dead-code check run only in CI, so an agent on a host with little memory never runs them; an agent

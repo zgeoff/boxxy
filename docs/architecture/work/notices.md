@@ -5,7 +5,8 @@ the owner picked, the notice session. The settle that puts the item on hold writ
 the boxxy store, and the runner tries to send it on every tick until atc takes it. It never gives
 up, so a notice written while the owner's machine is off waits in the store and arrives once atc can
 reach the notice session again. Each try carries an idempotency key, so a retry after a lost answer
-still reaches the owner once, apart from two rare cases. Read this doc before you change how holds
+still reaches the owner once, apart from the two cases in
+[what the owner can rely on](#what-the-owner-can-rely-on). Read this doc before you change how holds
 reach the owner, or when notices stop arriving.
 
 [The pipeline](./pipeline.md#when-an-item-needs-the-owner) covers which outcomes hold an item.
@@ -28,10 +29,10 @@ flowchart LR
   stored -.->|"read on each try"| notifier
 ```
 
-The settle writes the notice row in its own store transaction, so the store holds both the hold and
-its notice, or neither. On each tick the runner hands every due, unsent row to the notifier. A
-failed notice never changes an attempt or an item, because the store already records the hold and
-`boxxy item list` shows it.
+The settle writes the notice row in the same store transaction as the hold, so the store holds both
+the hold and its notice, or neither. On each tick the runner hands every due, unsent row to the
+notifier. A failed notice never changes an attempt or an item, because the store already records the
+hold and `boxxy item list` shows it.
 
 The notifier reaches the session through atc's gateway, which passes each call to the daemon it
 names. A daemon runs the sessions on one machine, such as the owner's machine or an imp.
@@ -51,8 +52,8 @@ owner's machine, so a token that can start or stop sessions never reaches it.
 The deployment never names the notice session, because a session ID in the deployment would need a
 deploy for each new session. The server refuses to start while `BOXXY_ATC_NOTICE_SESSION` is set,
 whatever its value, and prints `boxxy notices register <gateway-id>` as the step to take instead. It
-also refuses to start when `BOXXY_ATC_NOTICE_TOKEN` is set but empty. Each error names the variable,
-never its value.
+also refuses to start when `BOXXY_ATC_NOTICE_TOKEN` is set but empty. In each error the server names
+the variable, never its value.
 
 ## The registered notice session
 
@@ -80,7 +81,7 @@ calls the MCP tool `notices_register`, and the store keeps the one registered ID
 Each notice row holds its retry state: a key sequence, a count of uncertain tries under the current
 key, a count of all tries, and the time of the next try. A try sends the key
 `boxxy-notice:<row id>:<key sequence>`, so bumping the sequence makes a new key. The notifier
-answers each try with one of three outcomes:
+answers each try with one of these outcomes:
 
 | Outcome     | Meaning                         | atc answers                                                                                    |
 | ----------- | ------------------------------- | ---------------------------------------------------------------------------------------------- |
@@ -132,8 +133,9 @@ next failed try.
   is eventually bumped and the notice goes to the new session.
 - **A side session under the notice session blocks every notice.** atc lets a token reach a session
   only when it and all its sub-sessions run on machines the grant covers, so it answers
-  `no_such_session` while a sub-session runs elsewhere. Nothing in boxxy stops this, so the owner's
-  agent must start each side session as a top-level session.
+  `no_such_session` while a sub-session runs elsewhere. boxxy can't stop the owner's agent from
+  starting such a sub-session, so the owner's agent must start each side session as a top-level
+  session.
 - **The owner gets each notice once, with two exceptions.** The daemon delivered a send but couldn't
   record it, so a new key sends it again (rule 4 above). Or the server stopped after atc took a send
   but before it marked the row sent, and stayed down past the daemon's retention of completed keys

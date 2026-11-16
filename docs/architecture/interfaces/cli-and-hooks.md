@@ -18,8 +18,9 @@ procedure. [Attempts](../work/attempts.md) covers the attempt a session's comman
 The CLI reads two environment variables and no config file:
 
 - `BOXXY_URL`, required: the server's address, `http` or `https`, with an optional path prefix the
-  CLI puts before `/rpc`. At a terminal it points at the owner listener. In a session, an atc auth
-  profile points it at the host name the imp broker owns ([the paths](./api-and-auth.md#the-paths)).
+  CLI puts before `/rpc`. At a terminal it points at the owner listener. In a session, atc sets it
+  from the session's auth profile, to the host name the imp broker owns
+  ([the paths](./api-and-auth.md#the-paths)).
 - `BOXXY_SKILLS_URL`, optional: where the session-start hook fetches the skills repository from. It
   defaults to `https://github.com`.
 
@@ -56,9 +57,10 @@ The owner's item commands have a few rules the usage lines don't show:
   `item list --held` is the same as `--state held`, so it exits 2 beside another `--state`.
 - **The security mark:** `item file --security` sets it, `item edit --security` and `--no-security`
   set and clear it, both together exit 2, and neither keeps it.
-- **Acceptance edits replace the whole list.** `item edit --acceptance` repeats, and a criterion no
-  value carries is dropped. A value of `[c-3] new text` keeps criterion `c-3` and its evidence with
-  new text, an unknown ID is refused, and a value without an ID adds a criterion.
+- **Acceptance edits replace the whole list.** Each `item edit --acceptance` value is one criterion,
+  and together they replace the whole list, so a criterion missing from every value is dropped. A
+  value of `[c-3] new text` keeps criterion `c-3` and its evidence with new text, an unknown ID is
+  refused, and a value without an ID adds a criterion.
 - **`item show`** prints the item with its body and one revision per edit, each with its time and
   the fields it set.
 - **`plan defer --until`** takes an ISO 8601 time with an offset, which the server checks.
@@ -93,10 +95,10 @@ ready to work:
 
 The hook sets `reloadSkills` whenever the recipe lists a skill, because Claude Code looks for skills
 before the hook ends, and without the reload the agent's first prompt would run without them. It
-also puts a guide in `additionalContext`: the phase, the outcomes its close-out can send, where the
-agent finds its task and input, the session commands, and the evidence kinds for a screenshot, a
-measurement and a long log. A recipe's prompt can leave out how to close out, and a session that
-ends without a valid close-out fails.
+also puts a guide in `additionalContext`, because a recipe's prompt can leave out how to close out,
+and a session that ends without a valid close-out fails. The guide gives the phase, the outcomes its
+close-out can send, where the agent finds its task and input, the session commands, and the evidence
+kinds for a screenshot, a measurement and a long log.
 
 When a skill is missing, the server answers `skill-missing` and moves the attempt to `closing`, the
 runner settles it as failed with `skill-missing`, and the hook exits 1 naming the missing skills.

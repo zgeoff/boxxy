@@ -23,14 +23,14 @@ flowchart LR
 ```
 
 1. The owner files an item with the CLI or the owner's MCP tools.
-2. On each tick, the runner asks the store for a claim. The store picks the next item phase from the
-   pools, and takes a seat in each limit that counts the new attempt.
+2. On each tick, the runner asks the store for a claim. The store picks the next phase of an item to
+   start, from the pools, and takes a seat in each limit that counts the new attempt.
 3. The runner starts an agent session for the attempt through atc, and reads that session's state on
    every later tick.
 4. The agent sends a close-out when its work is done, and the runner settles the attempt. The store
-   keeps no position for the item: the server works out where the item stands from its settled
-   attempts and the pipeline each time it reads it, so the next step follows from the settled
-   outcome's edge.
+   keeps no position for the item. Each time the server reads an item, it works out where the item
+   stands from the item's settled attempts and the pipeline, so the next step follows from the edge
+   of the settled outcome.
 5. When a settle puts the item on hold, it also writes a notice, which the runner sends through atc
    to the session the owner picked for notices.
 
@@ -70,8 +70,8 @@ private network, opened only when the config has a `publicDoor` section.
 each session, and [GitHub](./interfaces/github.md) how boxxy links and merges pull requests.
 
 The runner reaches atc through the atc gateway's MCP tools, and GitHub as a GitHub App. Each outside
-system has one adapter package, which the server builds and hands to the domain packages under
-`modules/`, which do no I/O of their own ([layout](./repo/layout.md)).
+system has one adapter package. The server builds the adapters and hands them to the domain packages
+under `modules/`, and those do no I/O of their own ([layout](./repo/layout.md)).
 
 ## The data
 
@@ -93,9 +93,9 @@ The server loads the rules from a git checkout, and only from a commit in the hi
 configured ref, such as `origin/main`, so every rule it runs has merged through review. A plain
 folder with no git loads with no check, so build that folder only from the reviewed rules branch.
 The rules version is a hash of that commit, the rules file, the recipes' prompt templates and the
-plug-in code the rules file pins, and each claim records it. The owner's levers must act at once
-while a rules change waits for review, so the store keeps levers as rows
-([decision 0003](../decisions/0003-rules-in-git-levers-as-facts.md)).
+code of the planning concepts the rules file pins, such as its pool and lever kinds, and each claim
+records it. The owner's levers must act at once while a rules change waits for review, so the store
+keeps levers as rows ([decision 0003](../decisions/0003-rules-in-git-levers-as-facts.md)).
 [The pipeline](./work/pipeline.md) covers the parts of the rules file the server runs, and the
 [rules](../design/boxxy/rules.md) and [planning](../design/boxxy/planning.md) designs cover the
 parts not yet built.
@@ -115,29 +115,31 @@ behind the system are in [docs/decisions](../decisions/).
 
 ## Terms
 
-| Term          | Meaning                                                                                                                  |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| owner         | the one person who runs boxxy: files work, answers holds and changes the rules                                           |
-| item          | one piece of work, such as a feature or a fix, with a title, the outcome the owner wants, a body and acceptance criteria |
-| phase         | one step of an item's work: triage, design, build, review, verify or merge                                               |
-| pipeline      | the order of an item's phases, and the edge each result of a phase takes; it is data in the rules file                   |
-| edge          | where one result of a phase sends the item: the next phase, an earlier one, the same one again, an end, or a hold        |
-| attempt       | one try at one phase of one item                                                                                         |
-| job           | an attempt that runs with no agent session, such as a merge that the runner drives                                       |
-| close-out     | the JSON result an agent sends when its attempt's work is done, parsed by its phase's format                             |
-| settle        | the server's step that ends an attempt and records its result, in one store transaction                                  |
-| hold          | an item stopped for the owner, who lifts it with `boxxy item retry`                                                      |
-| runner, tick  | the loop inside the server, and one pass of it: claim, start, read every live session, clean up, send notices            |
-| claim         | one store transaction that picks the next item phase to start, creates its attempt, and takes its seats                  |
-| limit, seat   | a named cap on running attempts with a filter for the attempts it counts, and one place under it that an attempt holds   |
-| pool          | a filter and an order over the items ready to start, defined in the rules file                                           |
-| lever         | a change the owner makes to a pool's order without a rules change, such as defer or expedite                             |
-| recipe        | how a phase's session runs: the agent, the model, the prompt template and the skills                                     |
-| rules file    | the YAML file in git that holds the pipelines, limits, pools and recipes                                                 |
-| fact          | a record of one change, such as `boxxy.attempt.claimed`, that the server sends to pepys                                  |
-| pepys         | the event store that keeps every fact and builds the tables the reports read                                             |
-| atc           | the session manager that starts, reads, sleeps and stops agent sessions, reached through its gateway's MCP tools         |
-| imp broker    | the proxy between a session in an imp, a cloud machine, and the server; it adds the worker token and an identity token   |
-| proven caller | the session that the broker's identity token proves made a call                                                          |
-| port, adapter | an interface the domain code calls for one outside system, and the package that implements it for one system             |
-| forge         | the code host, behind the forge port; GitHub is the one adapter                                                          |
+| Term              | Meaning                                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| owner             | the one person who runs boxxy: files work, answers holds and changes the rules                                           |
+| owner's agent     | an agent the owner works with on the private network, which steers boxxy through the owner listener's MCP tools          |
+| owner's assistant | the owner's AI assistant off the private network, which reaches the same tools through the public listener               |
+| item              | one piece of work, such as a feature or a fix, with a title, the outcome the owner wants, a body and acceptance criteria |
+| phase             | one step of an item's work: triage, design, build, review, verify or merge                                               |
+| pipeline          | the order of an item's phases, and the edge each result of a phase takes; it is data in the rules file                   |
+| edge              | where one result of a phase sends the item: the next phase, an earlier one, the same one again, an end, or a hold        |
+| attempt           | one try at one phase of one item                                                                                         |
+| job               | an attempt that runs with no agent session, such as a merge that the runner drives                                       |
+| close-out         | the JSON result an agent sends when its attempt's work is done, parsed by its phase's format                             |
+| settle            | the server's step that ends an attempt and records its result, in one store transaction                                  |
+| hold              | an item stopped for the owner, who lifts it with `boxxy item retry`                                                      |
+| runner, tick      | the loop inside the server, and one pass of it: claim, start, read every live session, clean up, send notices            |
+| claim             | one store transaction that picks the next item phase to start, creates its attempt, and takes its seats                  |
+| limit, seat       | a named cap on running attempts with a filter for the attempts it counts, and one place under it that an attempt holds   |
+| pool              | a filter and an order over the items ready to start, defined in the rules file                                           |
+| lever             | a change the owner makes to a pool's order without a rules change, such as defer or expedite                             |
+| recipe            | how a phase's session runs: the agent, the model, the prompt template and the skills                                     |
+| rules file        | the YAML file in git that holds the pipelines, limits, pools and recipes                                                 |
+| fact              | a record of one change, such as `boxxy.attempt.claimed`, that the server sends to pepys                                  |
+| pepys             | the event store that keeps every fact and builds the tables the reports read                                             |
+| atc               | the session manager that starts, reads, sleeps and stops agent sessions, reached through its gateway's MCP tools         |
+| imp broker        | the proxy between a session in an imp, a cloud machine, and the server; it adds the worker token and an identity token   |
+| proven caller     | the session that the broker's identity token proves made a call                                                          |
+| port, adapter     | an interface the domain code calls for one outside system, and the package that implements it for one system             |
+| forge             | the code host, behind the forge port; GitHub is the one adapter                                                          |

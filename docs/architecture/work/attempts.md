@@ -5,8 +5,9 @@ through atc, reads that session on every tick, and finally settles the attempt a
 failed. An attempt ends on a close-out, on a time bound, or when its session is lost, and never just
 because the agent's turn ended: agents end turns to wait for CI or a scheduled wakeup. The attempt
 keeps its seats and the lease on its phase until its session has stopped, so two sessions never work
-the same phase of an item. Read this doc before you change how the runner reads sessions, puts them
-to sleep, wakes them or settles them.
+the same phase of an item. The one exception is an attempt whose stop atc keeps refusing: after a
+give-up time it settles anyway ([giving up](#stopping-a-session-and-giving-up)). Read this doc
+before you change how the runner reads sessions, puts them to sleep, wakes them or settles them.
 
 [The pipeline](./pipeline.md) covers what an outcome does to the item.
 [Agent sessions](./sessions.md) covers the session itself: keeping it for rework, cleaning it up,
@@ -57,8 +58,8 @@ The runner and a close-out call can change the same attempt at the same moment. 
 attempt, its session rows or its seats therefore goes through one builder in the dispatch module,
 which runs the attempt machine as a pure function, and a repo test fails when any other code in that
 module writes them. The store refuses a change when the stored row differs from the row the builder
-read: its state, every column the machine's guards read, and the generations of the lease and the
-seats. The refused caller reads again on the next tick.
+read: its state, every column the machine's guards read, and the version counters on the lease and
+the seats. The seat counter goes up at each wake. The refused caller reads again on the next tick.
 
 The runner decides each action from a row it read before the session reading, so it adds a check of
 its own. Inside the store's write lock it writes nothing when the row has changed on a guard column,
@@ -87,7 +88,7 @@ session on a sleeping attempt can wake it over its limits ([sleep and wake](#sle
 These rules explain the less obvious cells:
 
 - **atc's `done` reads as running.** It means the turn ended and the session waits for a prompt,
-  which is not an end in either mode.
+  which is not an end in either design mode.
 - **`ended` on a sleeping attempt does nothing,** because a session on a local machine reads as
   ended once boxxy suspends it. A session that truly ended while asleep fails at the wake as
   `resume-lost`.
@@ -103,25 +104,29 @@ A running attempt whose session runs stays as it is until it passes a bound. The
 which only `afterSilentMinutes` has a default. boxxy checks the bounds in this order and acts on the
 first one passed:
 
-| Design mode | Bound                                                                                                                                    | Past it                        |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| both        | the reading carries a reset time for the account's usage limit                                                                           | stop, and settle `usage-limit` |
-| agent       | `timeoutMinutes` since the start or the latest wake                                                                                      | stop, and settle `timed-out`   |
-| attended    | the session has waited for the owner for `afterIdleMinutes`: it asked for input, its turn ended, or it was quiet for `afterQuietMinutes` | sleep                          |
-| agent       | no activity for `afterSilentMinutes` since its last activity, start or wake                                                              | stop, and settle `stalled`     |
-| attended    | the owner hasn't attached for `afterUnattendedMinutes`, while the agent stays active                                                     | sleep, even when active        |
+| Design mode | Bound                                                                                | Past it                        |
+| ----------- | ------------------------------------------------------------------------------------ | ------------------------------ |
+| both        | the reading carries a reset time for the account's usage limit                       | stop, and settle `usage-limit` |
+| agent       | `timeoutMinutes` since the start or the latest wake                                  | stop, and settle `timed-out`   |
+| attended    | the session has waited for the owner for `afterIdleMinutes`                          | sleep                          |
+| agent       | no activity for `afterSilentMinutes` since its last activity, start or wake          | stop, and settle `stalled`     |
+| attended    | the owner hasn't attached for `afterUnattendedMinutes`, while the agent stays active | sleep, even when active        |
 
 boxxy never puts an agent-mode session to sleep, because a sleep cancels the agent's scheduled
 wakeup and no owner is there to wake it. That holds even when the session asks for input, since
 Claude Code sends its idle notice after every turn end and atc reads that as a request for input. A
 silent agent-mode session therefore ends only at `afterSilentMinutes`.
 
-atc counts only the agent's hook events as activity, never a tool call, so a turn shows its activity
-when it ends. A scheduled wakeup can wait longer than the default `afterSilentMinutes`, so the
-example prompts tell the agent to wake more often than that. One case has no bound: an attended
-session that the owner keeps coming back to within each `afterUnattendedMinutes`. atc never reports
-a usage limit, so the first row fires only for a worker that does
-([capacity](./sessions.md#capacity-and-the-usage-limit)).
+An attended session starts waiting when it asks for input, when its turn ends, when it shows no
+activity after a wake, or once it has been quiet for `afterQuietMinutes`.
+
+atc counts only the agent's hook events as activity, such as the end of a turn, and never a tool
+call. A turn the agent starts for a scheduled wakeup or a finished background task therefore shows
+its activity when it ends. A scheduled wakeup can wait longer than the default `afterSilentMinutes`,
+so the example prompts tell the agent to wake more often than that. One case has no bound: an
+attended session that the owner keeps coming back to within each `afterUnattendedMinutes`. The atc
+worker never reports a usage limit, so the first row never fires with it; dispatch keeps the row for
+a worker kind that reports a reset time ([capacity](./sessions.md#capacity-and-the-usage-limit)).
 
 ## Sleep and wake
 
@@ -130,7 +135,7 @@ steps, and the seats go last:
 
 1. boxxy marks the attempt as asked to sleep, in one change, before any call to atc.
 2. boxxy asks atc to suspend the session. The worker refuses when the session showed activity since
-   boxxy judged it idle, except at the unattended bound.
+   boxxy judged it idle. At the unattended bound it suspends the session anyway.
 3. boxxy records the sleep and gives back the seats. A refusal clears the mark instead.
 
 A crash or an unknown answer can stop the sleep between steps, and the next reading finishes it: a
@@ -141,9 +146,10 @@ A wake starts as a wake request, from the owner running `boxxy item wake <item>`
 that shows the session running while the attempt sleeps (the owner revived it in atc), or from a
 reading that shows it suspended when boxxy never asked (the host slept). Each claim takes requested
 wakes before any new work. It takes the attempt's seats first, and only then does boxxy resume the
-session; a session the owner already revived keeps running. When no seat comes free within a fixed
-time, the attempt wakes over its limits, and boxxy claims no new work under those limits until their
-counts are back at or under the maximum.
+session; a session the owner already revived keeps running. When the owner revived the session and
+no seat comes free within a fixed time, the attempt wakes over its limits, because the session
+already runs. A session that is still suspended sleeps until a seat frees. After an over-limit wake,
+boxxy claims no new work under those limits until their counts are back at or under the maximum.
 
 ## Close-outs and their limits
 
@@ -170,7 +176,7 @@ always reaches pepys; it also bounds a design's text, which has no limit of its 
 ## Stopping a session and giving up
 
 Once an attempt is `closing`, the runner stops its session and the attempt settles when the session
-reads as suspended, ended or absent. While the agent is mid-turn, boxxy waits a short grace before
+reads as suspended, ended or absent. While the agent is mid-turn, boxxy waits a fixed grace before
 the stop, so the agent can tell the owner its close-out went in. Closing the item gets no grace.
 
 `item.close` ends the item's live attempts in the same store change. A sleeping attempt settles at
@@ -178,13 +184,13 @@ once as failed with `item-closed`, and boxxy doesn't wake it. Every other live a
 `closing`, including one whose spawn is still in flight: boxxy sends no second spawn, and stops the
 session when it appears.
 
-atc refuses a stop while something else keeps the session's host awake, so an attempt can't wait in
-`closing` forever. After a fixed give-up time it settles anyway, by its close-out or with the
-failure that moved it to `closing`, and gives back its seats and lease. boxxy marks it as a stray, a
-settled attempt whose session may still run, lists it in `runner.status`, and keeps sending the stop
-each tick for a fixed number of hours before [cleanup](./sessions.md#cleanup) takes over. A closing
-attempt whose spawn never produced a session becomes a stray the same way, and the runner keeps
-looking for its session by spawn name.
+atc refuses a stop while something else keeps the session's host awake. So that an attempt never
+waits in `closing` forever, it settles anyway after a fixed give-up time, by its close-out or with
+the failure that moved it to `closing`, and gives back its seats and lease. boxxy marks it as a
+stray, a settled attempt whose session may still run, lists it in `runner.status`, and keeps sending
+the stop each tick for a fixed number of hours before [cleanup](./sessions.md#cleanup) takes over. A
+closing attempt whose spawn never produced a session becomes a stray the same way, and the runner
+keeps looking for its session by spawn name.
 
 ## Settle
 
@@ -207,7 +213,7 @@ kind doesn't list, the attempt fails with `closeout-unsettleable` and the outcom
 which no edge matches. The item holds, and `boxxy item retry <item> --phase <phase>` moves it on.
 
 An attempt fails with `closeout-missing` when it settles with no close-out and none of the failures
-below, and also with the outcome `blocked` or `abandoned` of a
+below. The same failure also marks a close-out with the outcome `blocked` or `abandoned` from a
 [design or build close-out](../../design/boxxy/close-outs.md#the-v1-phase-kinds). The runner sets
 every other failure:
 

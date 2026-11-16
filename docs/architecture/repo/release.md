@@ -138,16 +138,16 @@ one release pull request, because it needs every package at once to give them on
 `node-workspace` runs with `"merge": false` and only updates the `@boxxy/*` dependency ranges.
 
 To add a package, add its entry under `packages` and its component name to the `linked-versions`
-plugin's `components`; a private package needs both too. `release-please-config.test.ts` fails while
-a package folder lacks either. Before 1.0, a breaking change raises the minor version and any other
-releasable change raises the patch.
+plugin's `components`. `release-please-config.test.ts` fails while any package folder lacks either.
+Before 1.0, a breaking change raises the minor version and any other releasable change raises the
+patch.
 
 ## The first publish of a new name
 
 CI publishes through npm trusted publishing, with no npm token. npm accepts a trusted publisher only
-on a package that already exists, and expires one that no publish uses soon after it is added. So a
-new name needs a placeholder published by hand, and the trusted publisher goes on only when a
-release is ready ([the runbook](../../runbooks/releasing.md#publish-a-new-package) gives the
+on a package that already exists, and expires one that no publish uses within a set time of adding
+it. So a new name needs a placeholder published by hand, and the trusted publisher goes on only when
+a release is ready ([the runbook](../../runbooks/releasing.md#publish-a-new-package) gives the
 deadline and commands):
 
 1. A maintainer with two-factor authentication on the `@boxxy` npm org publishes version `0.0.1`
