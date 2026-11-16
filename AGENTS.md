@@ -29,10 +29,12 @@ The mistakes that cost most here:
 
 - Read the [architecture overview](docs/architecture/overview.md), then the architecture doc of
   each part your change touches. They describe the system as it is built.
-- When your task builds a design, read its doc in [docs/design](docs/design/boxxy/README.md), and
-  each doc it links. The [core model](docs/design/boxxy/core-model.md) defines the terms.
-- When the task names work it depends on, check that the work has merged. When it hasn't, stop, and
-  report the task as blocked by that work.
+- When your task builds a design, read the design doc it names, and each doc that doc links. When
+  the task names none, find the doc by its subject in the
+  [design index](docs/design/boxxy/README.md). The [core model](docs/design/boxxy/core-model.md)
+  defines the terms of the designs.
+- When the task names a pull request or an issue it depends on, check with `gh` that the work has
+  merged. When it hasn't, stop, and report the task as blocked by that work.
 - Load the skill for the work before you start it. The skills are in `.claude/skills/`:
 
   | Skill          | Load before                             |
@@ -42,12 +44,13 @@ The mistakes that cost most here:
   | `testing`      | writing or reviewing a test             |
   | `ci-design`    | changing a workflow, a job or a trigger |
 
-- The `verify` skill is in `.claude/skills/` too, and the repo owns it: load it before you grade a
-  change. When `bun verify lint` fails or a new `@wringer/gunshi` ships, run `bun verify guide`,
-  which prints the guide of the installed version.
-- A sync job copies the skills in `.claude/skills/` from
+- A sync job copies the shared skills in `.claude/skills/` from
   [zgeoff/skills](https://github.com/zgeoff/skills) and overwrites local changes. Never edit them
   here. When a skill is wrong, say so in your PR description.
+- The repo owns three skills, and you may edit them: `verify`, `project-testing` and
+  `project-ci-design`. Load `verify` before you grade a change. When `bun verify lint` fails, or when
+  the `@wringer/gunshi` version in the root catalog changes, run `bun verify guide`. It prints the
+  guide of the installed verify tool, `@wringer/gunshi`.
 
 ## Layout
 
@@ -80,8 +83,9 @@ When a check fails, move the code to the package the layout names. Never add an 
 - **Change a doc in the same PR as the code that changes what it says.** When your change makes a
   sentence in an architecture doc or a design doc false, rewrite that sentence in that PR.
 - `docs/architecture/` describes the built system, in the present tense. `docs/design/` holds a
-  design until its work is built. When a change builds the last of a design, move each fact that
-  still holds into its architecture doc, and delete the design doc in the same PR.
+  design until its work is built. When your change builds the last unbuilt part of a design, move
+  each fact that still holds into its architecture doc, and delete the design doc in the same PR.
+  The design is built when no section of it describes code that the repo lacks.
 - Each fact has one doc that owns it. Link to that doc. Never copy the fact.
 - `docs/decisions/` holds the decision records. Add or change one only when your task asks for it.
   Never delete one.
@@ -113,7 +117,8 @@ code, never the journey, unless your change means to change what the feature doe
   `bun.lock`.
 - Give each first-party package that `bun.lock` holds, such as one from `@zgeoff/` or `@impz/`, an
   entry in `minimumReleaseAgeExcludes` in `bunfig.toml`, by its full name. A scope pattern such as
-  `@zgeoff/*` lets nothing through. Never ignore an audit finding to get past the gate.
+  `@zgeoff/*` lets nothing through.
+- Never ignore an audit finding to get past CI's dependency audit.
 
 ## Checks
 
