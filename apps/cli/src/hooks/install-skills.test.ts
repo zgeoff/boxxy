@@ -114,6 +114,38 @@ test('it lists each skill it copies in info/exclude, so git status shows no new 
   expect(alpha).toBe('alpha\n');
 });
 
+test('it copies a skill into a folder the repository ignores and adds no exclude line', async () => {
+  const ctx = await setupTest();
+
+  await createGitRepo({ folder: ctx.workspace, files: { '.gitignore': '/runs/\n' } });
+
+  const repo = await ctx.makeRepo({ alpha: { 'SKILL.md': 'alpha\n' } });
+
+  const exclude = join(ctx.workspace, '.git/info/exclude');
+
+  const before = await readFile(exclude, 'utf8');
+  const missing = await ctx.install(repo, ['alpha'], join(ctx.workspace, 'runs/one'));
+  const after = await readFile(exclude, 'utf8');
+  const status = await runGit(['status', '--porcelain', '--untracked-files=all'], ctx.workspace);
+
+  expect(missing).toStrictEqual([]);
+  expect(after).toBe(before);
+  expect(status).toStrictEqual({ exitCode: 0, output: '' });
+});
+
+test('it makes a missing workspace inside a repository and installs into it', async () => {
+  const ctx = await setupTest();
+
+  await createGitRepo({ folder: ctx.workspace, files: { 'README.md': 'readme\n' } });
+
+  const repo = await ctx.makeRepo({ alpha: { 'SKILL.md': 'alpha\n' } });
+  const missing = await ctx.install(repo, ['alpha'], join(ctx.workspace, 'app'));
+  const status = await runGit(['status', '--porcelain', '--untracked-files=all'], ctx.workspace);
+
+  expect(missing).toStrictEqual([]);
+  expect(status).toStrictEqual({ exitCode: 0, output: '' });
+});
+
 test('it stops listing a skill in info/exclude once the repository commits it', async () => {
   const ctx = await setupTest();
 

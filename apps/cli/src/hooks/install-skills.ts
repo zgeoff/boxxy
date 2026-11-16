@@ -12,6 +12,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join } from 'node:path';
 import { withFileLock } from '@zgeoff/std/with-file-lock';
+import { match } from 'ts-pattern';
 import { skillsRepoFolder, workspaceSkillsFolder } from '../constants.ts';
 import type { CLIDeps } from '../types.ts';
 import { buildSkillExclude } from './build-skill-exclude.ts';
@@ -40,7 +41,8 @@ export interface InstallSkillsInput {
 const sourcePattern = /^[\w.-]+\/[\w.-]+$/u;
 const refPattern = /^[0-9a-f]{40,64}$/u;
 
-type SkillPlan = 'copy' | 'committed' | 'missing';
+// `copy` needs an exclude line, and `copy-ignored` is a folder the repository already ignores
+type SkillPlan = 'copy' | 'copy-ignored' | 'committed' | 'missing';
 
 // A fetch that fails leaves every name missing, because the attempt cannot tell a skill it lacks
 // from one it could not read.
@@ -81,10 +83,14 @@ export async function installSkills(input: InstallSkillsInput): Promise<string[]
 
     const excluded = await writeSkillExclude(repository, namesWith('copy'), namesWith('committed'));
 
-    const missing = new Set(namesWith('missing'));
+    const unexcluded = excluded ? [] : namesWith('copy');
 
-    for (const name of namesWith('copy')) {
-      const copied = excluded ? await copySkill(input, scratch, name) : false;
+    const missing = new Set([...namesWith('missing'), ...unexcluded]);
+
+    const copies = [...namesWith('copy-ignored'), ...(excluded ? namesWith('copy') : [])];
+
+    for (const name of copies) {
+      const copied = await copySkill(input, scratch, name);
 
       if (!copied) {
         missing.add(name);
@@ -135,6 +141,9 @@ async function readWorkspaceRepository(input: InstallSkillsInput): Promise<Works
   if (!inside) {
     return { kind: 'none' };
   }
+
+  // git can't start in a missing folder, and the copies make the workspace anyway
+  await mkdir(input.workspace, { recursive: true }).catch(() => null);
 
   const paths = await input
     .runGit(['rev-parse', '--show-prefix', '--git-path', 'info/exclude'], input.workspace)
@@ -200,7 +209,15 @@ async function readSkillPlan(
   }
 
   if (listed.output.trim() === '') {
-    return 'copy';
+    const ignored = await input.runGit(
+      ['check-ignore', '--quiet', '--', `${workspaceSkillsFolder}/${name}/`],
+      input.workspace,
+    );
+
+    return match(ignored.exitCode)
+      .with(0, () => 'copy-ignored' as const)
+      .with(1, () => 'copy' as const)
+      .otherwise(() => 'missing' as const);
   }
 
   // The repository's checks and docs expect its own copy, and replacing it would show as changed

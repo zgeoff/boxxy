@@ -119,12 +119,14 @@ there, so the agent's pull request and the repository's own checks don't see the
   and copies nothing. The repository's checks and docs expect its own version of the skill.
 - Before any copy, the hook lists each skill it will copy in the repository's `info/exclude`, as
   `/<path from the top>/.claude/skills/<skill>/` with glob characters escaped, and removes the line
-  of each committed skill. Checks that list untracked files, such as
+  of each committed skill. It adds no line for a folder the repository already ignores, as
+  `git check-ignore` reports. Checks that list untracked files, such as
   `git ls-files --others --exclude-standard`, then skip the copied folders. Worktrees of one
   repository share its `info/exclude`, so the hook updates the file under a lock.
 
 The hook treats the workspace as outside any repository only when no folder from the workspace up
-holds a `.git`. Then it runs no git in the workspace and writes no exclude.
+holds a `.git`. Then it runs no git in the workspace and writes no exclude. Inside a repository it
+makes the workspace folder when it is missing, because git can't start in a missing folder.
 
 A skill counts as installed only when its folder in the workspace holds a `SKILL.md`. The copy
 replaces any earlier untracked copy, so a [kept session](../work/sessions.md#the-kept-session) that
