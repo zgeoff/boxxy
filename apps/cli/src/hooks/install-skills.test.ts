@@ -263,3 +263,41 @@ test.each([
     ]);
   },
 );
+
+test.each([
+  ['.claude/skills', '../.agents/skills', '.agents/skills'],
+  ['.claude', '.config/claude', '.config/claude/skills'],
+])(
+  'it installs into the target when %s is a symbolic link to %s inside the workspace',
+  async (linkPath, linkTarget, installFolder) => {
+    const ctx = await setupTest();
+    const repo = await ctx.makeRepo({ alpha: { 'SKILL.md': 'pinned\n' } });
+
+    const link = join(ctx.workspace, linkPath);
+
+    await mkdir(join(ctx.workspace, installFolder), { recursive: true });
+    await mkdir(dirname(link), { recursive: true });
+    await symlink(linkTarget, link);
+
+    const missing = await ctx.install(repo, ['alpha']);
+    const installed = await readFile(join(ctx.workspace, installFolder, 'alpha/SKILL.md'), 'utf8');
+
+    expect([missing, installed]).toStrictEqual([[], 'pinned\n']);
+  },
+);
+
+test.each([
+  ['the workspace itself', '..'],
+  ['a missing folder in the workspace', '../.agents/skills'],
+])('it returns the name as missing when .claude/skills links to %s', async (_, linkTarget) => {
+  const ctx = await setupTest();
+  const repo = await ctx.makeRepo({ alpha: { 'SKILL.md': 'pinned\n' } });
+
+  await mkdir(join(ctx.workspace, '.claude'), { recursive: true });
+  await symlink(linkTarget, join(ctx.workspace, '.claude/skills'));
+
+  const missing = await ctx.install(repo, ['alpha']);
+  const files = await Array.fromAsync(new Bun.Glob('**/*').scan({ cwd: ctx.workspace }));
+
+  expect([missing, files]).toStrictEqual([['alpha'], []]);
+});

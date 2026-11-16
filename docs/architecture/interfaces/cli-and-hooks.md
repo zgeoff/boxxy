@@ -115,12 +115,16 @@ writes only in the scratch folder. A recipe with no skills skips the fetch.
 A skill counts as installed only when its folder in the workspace holds a `SKILL.md`. The copy
 replaces any earlier copy, so a [kept session](../work/sessions.md#the-kept-session) that resumes
 under a new pin gets the new files. The hook reports a skill missing when its name or the pin is
-malformed, the fetch fails, the copy fails or leaves no `SKILL.md`, or the path is unsafe: `.claude`
-or `.claude/skills` is a symbolic link, or `.claude/skills` resolves outside the workspace. A failed
+malformed, the fetch fails, the copy fails or leaves no `SKILL.md`, or the path is unsafe. A failed
 fetch makes every listed skill missing, because the hook can't tell a skill the repository lacks
-from one it couldn't read. The copy deletes the skill's folder first, and a link on the path would
-aim that delete outside the workspace, so the hook checks the path just before each copy, after git
-has run, and touches nothing for a skill whose path fails.
+from one it couldn't read.
+
+When `.claude` or `.claude/skills` is a symbolic link to a folder inside the workspace, such as
+`.claude/skills -> ../.agents/skills`, the hook installs into the link's target. The path is unsafe
+when `.claude/skills` resolves to the workspace itself or outside it, or when a link on the path
+points at a folder that doesn't exist. The copy deletes the skill's folder first, and a link that
+leaves the workspace would aim that delete outside it, so the hook checks the path just before each
+copy, after git has run, and touches nothing for a skill whose path fails.
 
 ## The pull request hook
 

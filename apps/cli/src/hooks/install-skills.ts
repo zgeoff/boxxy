@@ -1,6 +1,6 @@
 import { cp, lstat, mkdir, mkdtemp, realpath, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { isAbsolute, join, relative } from 'node:path';
 import { skillsRepoFolder, workspaceSkillsFolder } from '../constants.ts';
 import type { CLIDeps } from '../types.ts';
 
@@ -104,13 +104,13 @@ async function installSkill(
     return false;
   }
 
-  const inside = await probeSkillsFolderInWorkspace(input.workspace);
+  const skillsFolder = await resolveSkillsFolder(input.workspace);
 
-  if (!inside) {
+  if (skillsFolder === null) {
     return false;
   }
 
-  const target = join(input.workspace, workspaceSkillsFolder, name);
+  const target = join(skillsFolder, name);
 
   // Node has no openat, so a link made between the check above and this rm or cp still moves them
   const copied = await rm(target, { recursive: true, force: true })
@@ -125,22 +125,24 @@ async function installSkill(
   return skillFile?.isFile() === true;
 }
 
-// The copy removes the skill's folder first, so a link in the skills path would point that removal
-// outside the workspace. The check runs after git, so a link made while git ran is still seen.
-async function probeSkillsFolderInWorkspace(workspace: string): Promise<boolean> {
-  const parts = workspaceSkillsFolder.split('/');
-
-  const infos = await Promise.all(
-    parts.map((_, index) => lstat(join(workspace, ...parts.slice(0, index + 1))).catch(() => null)),
-  );
-
-  if (infos.some((info) => info?.isSymbolicLink() === true)) {
-    return false;
-  }
-
+// The copy removes the skill's folder first, so a link in the skills path that leaves the workspace
+// would point that removal outside it. The check runs after git, so a link made while git ran is
+// still seen. Returns the real path of the skills folder, or null when it is outside the workspace.
+async function resolveSkillsFolder(workspace: string): Promise<string | null> {
   const skillsFolder = join(workspace, workspaceSkillsFolder);
 
   try {
+    const existing = await realpath(skillsFolder).catch(() => null);
+
+    // mkdir follows a link, so a folder made through one could land outside the workspace
+    if (existing === null) {
+      const linked = await probeLinkOnSkillsPath(workspace);
+
+      if (linked) {
+        return null;
+      }
+    }
+
     await mkdir(skillsFolder, { recursive: true });
 
     const [resolved, resolvedWorkspace] = await Promise.all([
@@ -148,8 +150,24 @@ async function probeSkillsFolderInWorkspace(workspace: string): Promise<boolean>
       realpath(workspace),
     ]);
 
-    return resolved === join(resolvedWorkspace, workspaceSkillsFolder);
+    return isInsideFolder(resolved, resolvedWorkspace) ? resolved : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+async function probeLinkOnSkillsPath(workspace: string): Promise<boolean> {
+  const parts = workspaceSkillsFolder.split('/');
+
+  const infos = await Promise.all(
+    parts.map((_, index) => lstat(join(workspace, ...parts.slice(0, index + 1))).catch(() => null)),
+  );
+
+  return infos.some((info) => info?.isSymbolicLink() === true);
+}
+
+function isInsideFolder(path: string, folder: string): boolean {
+  const fromFolder = relative(folder, path);
+
+  return fromFolder !== '' && !fromFolder.startsWith('..') && !isAbsolute(fromFolder);
 }

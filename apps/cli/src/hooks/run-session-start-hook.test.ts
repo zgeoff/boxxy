@@ -1,5 +1,5 @@
 import { expect, onTestFinished, test } from 'bun:test';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { brandSchemas } from '@boxxy/model';
@@ -79,6 +79,70 @@ test('it fetches the listed skills into the workspace and binds the agent sessio
 
   expect(installed).toBe('Three sketches.\n');
   expect(after.length - before.length).toBe(1);
+});
+
+test('it installs each listed skill into .agents/skills when .claude/skills links there, and binds', async () => {
+  const ctx = await setupTest();
+
+  const repo = await createSkillsRepo({
+    folder: ctx.skillsFolder,
+    skills: { 'bake-off': { 'SKILL.md': 'Three sketches.\n' } },
+  });
+
+  ctx.pinSkills(repo);
+
+  const attempt = await ctx.server.seedStartedAttempt(brandSchemas.phaseName.parse('design'));
+
+  ctx.server.callerProof.setCaller(attempt.caller);
+
+  await mkdir(join(ctx.workspace, '.agents/skills'), { recursive: true });
+  await mkdir(join(ctx.workspace, '.claude'), { recursive: true });
+  await symlink('../.agents/skills', join(ctx.workspace, '.claude/skills'));
+
+  const result = await ctx.startHook('agent-session-1', repo.baseURL);
+
+  const installed = await Array.fromAsync(
+    new Bun.Glob('**/*').scan({ cwd: join(ctx.workspace, '.agents/skills') }),
+  );
+
+  expect({ exitCode: result.exitCode, stderr: result.stderr }).toStrictEqual({
+    exitCode: 0,
+    stderr: '',
+  });
+
+  expect(installed).toStrictEqual(['bake-off/SKILL.md']);
+});
+
+test('it ends the attempt as skill-missing and writes nothing outside the workspace when .claude/skills links out of it', async () => {
+  const ctx = await setupTest();
+
+  const repo = await createSkillsRepo({
+    folder: ctx.skillsFolder,
+    skills: { 'bake-off': { 'SKILL.md': 'Three sketches.\n' } },
+  });
+
+  ctx.pinSkills(repo);
+
+  const attempt = await ctx.server.seedStartedAttempt(brandSchemas.phaseName.parse('design'));
+
+  ctx.server.callerProof.setCaller(attempt.caller);
+
+  const outside = join(ctx.skillsFolder, '..', 'outside');
+
+  await mkdir(outside, { recursive: true });
+  await mkdir(join(ctx.workspace, '.claude'), { recursive: true });
+  await symlink('../../outside', join(ctx.workspace, '.claude/skills'));
+
+  const result = await ctx.startHook('agent-session-1', repo.baseURL);
+  const outsideFiles = await Array.fromAsync(new Bun.Glob('**/*').scan({ cwd: outside }));
+
+  expect({ exitCode: result.exitCode, stderr: result.stderr }).toStrictEqual({
+    exitCode: 1,
+    stderr:
+      'boxxy ends this attempt: the skills bake-off are not in the pinned skills repository\n',
+  });
+
+  expect(outsideFiles).toStrictEqual([]);
 });
 
 test('it ends the attempt as skill-missing when a listed skill is not in the pinned repository', async () => {
