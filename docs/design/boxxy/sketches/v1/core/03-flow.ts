@@ -204,14 +204,14 @@ export function buildAttemptChange(input: { attempt: AttemptRow | null; event: A
 //       boxxy's own sleep: the host slept with no request. An attempt whose host slept before
 //       atc captured the ID settles as `resume-lost` on its wake.
 //   (9) The stall rule, a cell of `running` × `running`, agent mode only. The
-//       reading's `lastActivityAt` is `sleep.afterSilentMinutes` (45) old: close (stalled). The
-//       runner stops the session and the attempt settles as `failed`, `stalled`, which counts
+//       latest of `lastActivityAt`, the start and the latest wake is `sleep.afterSilentMinutes`
+//       (45) old: close (stalled). The runner stops the session and the attempt settles as `failed`, `stalled`, which counts
 //       against `maxAttempts`. It is checked after `waits` and before `bind-only`, whatever the
 //       attention is. It does not apply to attended mode: such a session sleeps (the quiet
 //       rule). It is the floor under the step timeout, which can be hours.
-//       A turn end alone is no bound, and an agent-mode session that asks for input never
-//       waits: Claude Code's idle notice after each turn end reads as a request for input. So
-//       silence ends an agent-mode attempt only through the stall rule.
+//       A turn end alone is no bound, and an agent-mode session never waits, so boxxy never
+//       sleeps it: a sleep stops its scheduled wakeup, and Claude Code's idle notice after each
+//       turn end reads as a request for input. Silence ends it only through the stall rule.
 //   (10) The usage limit. The worker port reports it on the reading: `usageLimitResetsAt` is
 //       the time at which the account's limit resets, or null. A reading with a time gives
 //       close (usage-limit), in any mode, before every other bound: the session can do no more
@@ -264,10 +264,10 @@ export function pickReadingAction(input: { attempt: AttemptRow; reading: Session
 // "The session waits for the owner", from the reading alone (atc has no such signal):
 //
 //   attention `needs-input` or `turn-ended`, attended   since `lastActivityAt`
-//   a woken session with no activity after `wokenAt`    since `wokenAt` (atc lists a revived session as `running`)
+//   a woken attended session, no activity after `wokenAt`  since `wokenAt` (atc lists a revived session as `running`)
 //   attention `working`, mode `attended`, and           since `lastActivityAt` (the quiet rule)
 //     `lastActivityAt` is `sleep.afterQuietMinutes` old
-//   anything else                                       it does not wait
+//   anything else, and every agent-mode session          it does not wait
 //
 // Why the quiet rule: an attach moves an atc session from `needs_you` to `running`, so a
 // prompt that the owner looked at and left reads `working` with no later activity. The rule

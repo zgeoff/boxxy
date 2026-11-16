@@ -47,12 +47,12 @@ A running attempt whose session runs stays as it is only inside a bound that the
 | --- | --- | --- |
 | both | the session reports that the account hit its usage limit | boxxy stops the session and settles the attempt as `usage-limit` |
 | agent | the step's time limit, counted from the start or the latest wake | boxxy stops the session and settles the attempt as `timed-out` |
-| both | the session waits for the owner for `afterIdleMinutes` (30): an attended session asks for input or its turn ended, or a woken session shows no activity | sleep |
+| attended | the session waits for the owner for `afterIdleMinutes` (30): it asks for input, its turn ended, or it shows no activity since a wake | sleep |
 | attended | the session shows no activity at all for `afterQuietMinutes` (60) | sleep |
-| agent | the session shows no activity for `afterSilentMinutes` (45) | boxxy stops the session and settles the attempt as `stalled` |
+| agent | the session shows no activity for `afterSilentMinutes` (45), counted from its last activity, its start or its latest wake, whichever is latest | boxxy stops the session and settles the attempt as `stalled` |
 | attended | the owner has not attached for `afterUnattendedMinutes` (240), while the agent stays active | sleep, with no idle check |
 
-An agent-mode attempt that the agent does not close out ends at a bound of this table, and never at a turn end, because an agent ends its turn to wait for CI, a subagent or a scheduled wakeup. An agent-mode session that asks for input does not sleep either: Claude Code sends its idle notice 60 seconds after each turn end, and atc reads that notice as a request for input, the same as a real prompt. So silence ends an agent-mode session only at `afterSilentMinutes`.
+An agent-mode attempt that the agent does not close out ends at a bound of this table, and never at a turn end, because an agent ends its turn to wait for CI, a subagent or a scheduled wakeup. boxxy puts no agent-mode session to sleep, because a sleep stops the agent's scheduled wakeup and nobody wakes an agent-mode attempt. A session that asks for input is no exception: Claude Code sends its idle notice 60 seconds after each turn end, and atc reads that notice as a request for input, the same as a real prompt. So silence ends an agent-mode session only at `afterSilentMinutes`.
 
 atc counts only the agent's hook events as activity, such as the end of a turn, and never a tool call. A turn the agent starts for a scheduled wakeup or a finished background task therefore shows its activity when it ends. A scheduled wakeup can wait up to 60 minutes, so the build and design prompts tell the agent to wake at least every 30 minutes, inside the 45-minute default. The rules file sets `afterSilentMinutes`; with no value, the loader uses 45.
 
@@ -71,7 +71,7 @@ The time limits that the rules file does not hold are in `timeouts`, in `modules
 
 Section C of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the rules.
 
-boxxy learns that a session waits for the owner from the reading alone: an attended session asks for input or its turn ended, a woken session shows no activity, or an attended session went quiet. The sleep has three steps, and the seats go last:
+boxxy learns that a session waits for the owner from the reading alone, and only in attended mode: the session asks for input, its turn ended, it shows no activity since a wake, or it went quiet. The sleep has three steps, and the seats go last:
 
 1. boxxy marks the attempt, in one change, before any worker call.
 2. boxxy asks the worker to suspend the session. The adapter refuses when the session shows newer activity.

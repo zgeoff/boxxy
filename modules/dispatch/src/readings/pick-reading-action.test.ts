@@ -214,11 +214,25 @@ test.each<
     { kind: 'bind-only' },
   ],
   [
-    'sleeps a woken session that did nothing since the wake',
-    { wokenAt: brandSchemas.instant.parse(10 * 60_000) },
+    'sleeps a woken attended session that did nothing since the wake',
+    { mode: 'attended', wokenAt: brandSchemas.instant.parse(10 * 60_000) },
     { lastActivityAt: brandSchemas.instant.parse(5 * 60_000) },
     40,
     { kind: 'sleep-if-idle', waitingSince: brandSchemas.instant.parse(10 * 60_000) },
+  ],
+  [
+    'keeps a woken agent-mode session awake 44 minutes after a wake with no activity since',
+    { wokenAt: brandSchemas.instant.parse(10 * 60_000) },
+    { lastActivityAt: brandSchemas.instant.parse(5 * 60_000) },
+    54,
+    { kind: 'bind-only' },
+  ],
+  [
+    'stalls a woken agent-mode session 45 minutes after a wake with no activity since',
+    { wokenAt: brandSchemas.instant.parse(10 * 60_000) },
+    { lastActivityAt: brandSchemas.instant.parse(5 * 60_000) },
+    55,
+    { kind: 'close', cause: 'stalled' },
   ],
   [
     'sleeps an active attended session whose owner has not attached for 240 minutes',
