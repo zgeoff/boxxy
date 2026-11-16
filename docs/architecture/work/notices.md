@@ -1,15 +1,19 @@
 # Notice delivery
 
-When a settle puts an item on hold, the boxxy server tells the owner with a notice: a message that
-it sends through [atc](https://github.com/zgeoff/atc), the session manager, to one agent session
-that the owner picks, the notice session. [The overview](../overview.md#terms) defines the terms
-this doc uses, such as owner, item, hold, settle, runner and tick.
+[The overview](../overview.md#terms) defines the terms this doc uses, such as owner, item, hold,
+settle, runner and tick.
 
-The settle only writes the notice as a row in the boxxy store, the server's SQLite database. The
-runner tries that row on each tick until atc takes it, and never gives up, so a notice still arrives
-after the notice session was stopped or asleep, or after the owner's machine was off. Each try
-carries an idempotency key built from the row, which lets atc tell a repeat of a send from a new
-send. A repeat after a lost answer therefore reaches the owner once, except in the two cases that
+When an item goes on hold, the boxxy server tells the owner with a notice: a message that it sends
+through [atc](https://github.com/zgeoff/atc), the session manager, to one agent session that the
+owner picks, the notice session.
+
+The settle that puts the item on hold only writes the notice as a row in the boxxy store, the
+server's SQLite database. The runner tries that row on each tick until atc takes it, and never gives
+up. A notice written while the notice session is stopped or asleep, or while the owner's machine is
+off, therefore waits in the store, and arrives once atc can reach a running notice session again:
+after the owner starts that session again or registers a new one. Each try carries an idempotency
+key built from the row, which lets atc tell a repeat of a send from a new send. A repeat after a
+lost answer therefore reaches the owner once, except in the two cases that
 [the constraints](#constraints) list. The notice session registers itself with the server, so a new
 notice session needs no deploy and no server restart.
 
@@ -41,25 +45,24 @@ the server that sends a notice. `@boxxy/dispatch` owns that loop and the
 [retry rules](#the-notices-row-and-the-port). A notice that fails never changes an attempt or an
 item, because the store already records the hold and `boxxy item list` shows it.
 
-The server calls atc through two parts of atc. An atc daemon runs the sessions on one target, a
-place where atc runs sessions, such as the owner's machine or an imp. The atc gateway sits in front
-of several daemons and sends each call to the daemon it names.
+The server reaches the notice session through two parts of atc. An atc daemon runs the sessions on
+one machine, such as the owner's machine or an imp, a cloud VM. The atc gateway sits in front of
+several daemons. The caller names a daemon in each call, and the gateway passes the call to that
+daemon.
 
 The server picks the notifier at start. With `BOXXY_ATC_NOTICE_TOKEN` set, it builds the atc
 notifier, which calls the gateway with an atc client of its own that carries only that token.
-Without it, the server uses a notifier that answers `sent` to every try, so the server marks every
-row sent and delivers no notice.
+Without that variable, the server uses a notifier that answers `sent` to every try, so the server
+marks every row sent and delivers no notice.
 
-For notices, the deployment supplies:
-
-- the notice token: an atc service token with only the `message` scope;
-- a grant: an entry in the `principals` config of the atc daemon that runs the notice session, which
-  lets the notice token reach the sessions on the owner's machine.
+To turn notices on, the deployment sets `BOXXY_ATC_NOTICE_TOKEN` to an atc service token that holds
+only the `message` scope. The deployment also adds that token to the `principals` config of the atc
+daemon on the owner's machine, which grants the token access to the sessions on that machine.
 
 The server starts and stops worker sessions with its own atc token, `BOXXY_ATC_TOKEN`, which holds
-the `spawn` and `kill` scopes ([the atc worker](./sessions.md#the-atc-worker)). The notice session
-runs on the owner's machine, and the grant for that machine names only the notice token, so a token
-that can start or stop sessions never reaches the owner's machine.
+the `spawn` and `kill` scopes ([the atc worker](./sessions.md#the-atc-worker)). The grant on the
+owner's machine names only the notice token, so a token that can start or stop sessions never
+reaches the owner's machine.
 
 ## The registered notice session
 
@@ -70,9 +73,9 @@ answers `no_such_session` to any other value, a session's name included. A renam
 a new session gets a new ID.
 
 The ID therefore changes with each new notice session, so the store holds it, in the one row of the
-`notice_session` table. The notice session writes that row itself, with
-`boxxy notices register <gateway-id>` or the MCP tool `notices_register`, and `boxxy notices show`
-prints it.
+`notice_session` table. The notice session writes that row itself through the `notices.register`
+procedure, which the CLI command `boxxy notices register <gateway-id>` and the MCP tool
+`notices_register` both call. `boxxy notices show` calls `notices.show`, which prints the row.
 
 - Only the owner can call `notices.register` and `notices.show`: on the owner listener, or at `/mcp`
   on the public listener, where `notices.register` needs the `write` scope and `notices.show` the
@@ -80,71 +83,70 @@ prints it.
 - `notices.register` checks only the shape of the ID, because the notice token has no scope that
   reads a session. The server learns that an ID names no session at the next try, and
   `runner.status` then shows `no_such_session`.
-- `notices.register` replaces the row and never writes a [fact](../overview.md#terms), because the
-  fact catalog has no fact for the notice session. A `CHECK` constraint on the table keeps it to one
-  row.
-- The atc notifier reads the registered session on each try. A notice that waits therefore goes to a
-  newly registered session on its next try, at most `noticeLimits.longestWaitMs` after the
-  registration, with no server restart. `noticeLimits` is a constant in `@boxxy/dispatch`, so a
-  change to it takes a release.
-- With a notice token set and no session registered, the atc notifier never calls atc, and the try
-  is `refused` with the reason `no-notice-session`. When the read of the registered session fails,
-  the try is `refused` with the reason `notice-session-unread`. In both cases the notice waits like
-  any other refused notice.
+- `notices.register` replaces the row and writes no [fact](../overview.md#terms), so pepys keeps no
+  record of a registration. `boxxy notices show` is the one place that shows the registered session.
+- The atc notifier reads the `notice_session` row from the store on each try. A notice that waits
+  therefore goes to a newly registered session on its next try, at most `noticeLimits.longestWaitMs`
+  after the registration, with no server restart. `noticeLimits` is a constant in `@boxxy/dispatch`,
+  so a change to it takes a release.
+- When no session is registered, the atc notifier never calls atc, and it answers the try as
+  `refused` with the reason `no-notice-session`. When the atc notifier cannot read the row from the
+  store, it answers `refused` with the reason `notice-session-unread`. In both cases the notice
+  waits like any other refused notice.
 
-The server refuses to start when:
-
-- `BOXXY_ATC_NOTICE_TOKEN` is set and empty;
-- the environment holds `BOXXY_ATC_NOTICE_SESSION`, whatever its value, and the server's error asks
-  the owner to register the session instead;
-- the configuration file's `atc` section holds `noticeSession`, which its strict schema refuses.
-
-In each error, the server names the variable or the key, and never a variable's value. The last two
-refusals exist because the store owns the notice session. A session ID in the deployment would need
-a deploy for each new session.
+The deployment never names the notice session, because a session ID in the deployment would need a
+deploy for each new session. The server therefore refuses to start while the environment holds
+`BOXXY_ATC_NOTICE_SESSION`, whatever its value, and prints `boxxy notices register <gateway-id>` as
+the step to take instead. The server also refuses to start when `BOXXY_ATC_NOTICE_TOKEN` is set and
+empty. In each error, the server names the variable, and never its value.
 
 ## The notices row and the port
 
-The `Notifier` port has one method, which takes the notice and the row's current key and answers one
-of three outcomes:
+Each notices row holds its retry state: a key sequence, a count of uncertain tries under the current
+key, a count of all tries, and the time of the next try. The key that a try sends is
+`boxxy-notice:<row id>:<key sequence>`, so a new key sequence makes a new key.
 
-| Outcome     | Meaning                       |
-| ----------- | ----------------------------- |
-| `sent`      | atc took the message          |
-| `refused`   | atc ran nothing               |
-| `uncertain` | atc may have sent the message |
+`@boxxy/dispatch` sends a notice through the `Notifier` port, the interface that the module declares
+for the outside system ([layout](../repo/layout.md)). The port has one method, which takes the
+notice with its current key and answers one of three outcomes:
+
+| Outcome     | Meaning                                  |
+| ----------- | ---------------------------------------- |
+| `sent`      | atc took the message                     |
+| `refused`   | atc did not send the message             |
+| `uncertain` | atc may or may not have sent the message |
 
 The atc notifier, in `@boxxy/notifier-atc`, answers `refused` to the atc error codes that mean atc
-ran nothing: `no_such_session`, `session_dead`, `unsupported`, `daemon_unavailable` and `bad_args`.
-It answers `uncertain` to every other error, `outcome_unknown` and `idempotency_conflict` included.
-It keeps only the error's code, because an error message may carry text that must not reach the log.
-A notifier that throws counts as `uncertain`. The atc notifier keeps no state between calls.
+did not send the message: `no_such_session`, `session_dead`, `unsupported`, `daemon_unavailable` and
+`bad_args`. It answers `uncertain` to every other error, `outcome_unknown` and
+`idempotency_conflict` included. It keeps only the error's code, because an error message may carry
+text that must not reach the log. A notifier that throws counts as `uncertain`. The atc notifier
+keeps no state between calls.
 
-Each notices row holds its retry state: a key sequence, a count of uncertain tries under the current
-key, a count of all tries, and the time of the next try. The row's key is
-`boxxy-notice:<row id>:<key sequence>`. After each try, the server updates the row by these rules:
+After each try, the server updates the row by these rules:
 
 1. On `sent`, the server marks the row sent.
 2. On `refused` while the uncertain count is 0, the key sequence goes up by 1. The gateway answers
    any later call under a refused key without sending, so the next try needs a new key.
 3. On `uncertain`, or on `refused` after an uncertain try, the uncertain count goes up by 1 and the
-   next try repeats the key. The server cannot tell whether the first send reached the atc daemon,
-   so it repeats the key and lets atc answer:
-   - When the daemon took the first send, it returns that send's result, the try comes back `sent`,
-     and the owner gets one message.
-   - When the first send never reached the daemon, the gateway answers `outcome_unknown` to every
-     repeat, so no repeat succeeds.
+   next try repeats the key. The server cannot tell whether atc delivered the first send, so it
+   repeats the key and lets atc answer. When atc delivered the first send and recorded it, the
+   repeat comes back `sent` with that send's result, and the owner gets one message.
 
-   After `noticeLimits.uncertainTriesPerKey` uncertain tries under one key, the key sequence goes up
-   by 1 and the uncertain count goes back to 0, whichever case holds. A second copy costs the owner
-   less than a notice that never arrives.
+   After `noticeLimits.uncertainTriesPerKey` uncertain tries in a row under one key, the key
+   sequence goes up by 1 and the uncertain count goes back to 0. Only a key whose every repeat comes
+   back uncertain gets there, in one of two cases:
+   - The first send never reached the daemon. The gateway answers `outcome_unknown` to every repeat,
+     and the new key delivers the notice once.
+   - The daemon delivered the first send, but could not record it as complete, and holds its key as
+     `outcome_unknown`. The new key delivers the notice a second time.
+
+   The server cannot tell these cases apart, and a second copy costs the owner less than a notice
+   that never arrives.
 
 4. On every try, the try count goes up by 1. The next try comes `noticeLimits.firstWaitMs` after the
    first try, and the wait doubles after each later try, up to `noticeLimits.longestWaitMs`. The
    wait follows the count of all tries, so a new key keeps the current wait.
-
-The store indexes the unsent rows by their next try time, so a tick reads only the rows that are
-due.
 
 ## Unsent notices in `runner.status`
 
@@ -157,8 +159,8 @@ and shows it only while a row is unsent, so a restart clears it until the next f
 ## Constraints
 
 - The server never gives up on a notice. A row stays unsent until atc takes it, with at most
-  `noticeLimits.longestWaitMs` between tries. A cap on tries would lose every notice sent while the
-  owner's machine sleeps.
+  `noticeLimits.longestWaitMs` between tries. A cap on tries would lose every notice written while
+  the owner's machine sleeps.
 - The server never wakes the notice session. A wake needs the `spawn` scope on the owner's machine,
   which the notice token lacks, and atc cannot wake a machine that is off. atc answers
   `session_dead` while the session is stopped or asleep, and `daemon_unavailable` while the owner's
@@ -171,19 +173,19 @@ and shows it only while a row is unsent, so a restart clears it until the next f
   the registration. When atc answers the repeat as `uncertain`, the row gets a new key once it
   reaches `noticeLimits.uncertainTriesPerKey` uncertain tries, and the notice goes to the new
   session.
-- The owner's agent in the notice session starts each side session, a session it starts for other
-  work, as a top-level session. atc lets a token reach a session only when that session and each of
-  its sub-sessions run on a target that the grant covers. A sub-session on another target takes the
-  notice session out of the notice token's reach, so atc answers `no_such_session` and every notice
-  waits while that sub-session stays in the notice session's tree.
+- Every notice waits while the notice session has a sub-session on a machine that the grant does not
+  cover. atc lets a token reach a session only when that session and each of its sub-sessions run on
+  a machine that the grant covers, so atc answers `no_such_session` until that sub-session leaves
+  the notice session's tree. Nothing in boxxy stops the owner's agent from starting such a
+  sub-session. The owner's agent must start each side session, a session it starts for other work,
+  as a top-level session.
 - A server restart never changes a key or loses a notice, because the store holds each row's key
   sequence, counts and next try time, and the registered session. The environment holds the notice
   token.
 - The owner gets each notice once, with two exceptions:
-  - A first send reaches the session, and every repeat of its key still comes back `uncertain`, as
-    when the daemon could not record the first send as complete and holds its key as
-    `outcome_unknown`. The change of key under rule 3 then sends the notice a second time.
-  - The atc daemon keeps a completed key for a fixed retention, which its handshake reports
+  - The daemon delivered a first send but could not record it as complete. The new key under rule 3
+    of [the retry rules](#the-notices-row-and-the-port) sends the notice a second time.
+  - The atc daemon keeps a completed key for a fixed retention that atc sets
     ([atc idempotency](https://github.com/zgeoff/atc/blob/main/docs/architecture/protocol/idempotency.md)).
     When the server stops after atc took a send but before the server marked the row sent, and stays
     down past that retention, the repeat after the restart sends the notice a second time.
