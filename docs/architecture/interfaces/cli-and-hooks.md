@@ -119,12 +119,14 @@ malformed, the fetch fails, the copy fails or leaves no `SKILL.md`, or the path 
 fetch makes every listed skill missing, because the hook can't tell a skill the repository lacks
 from one it couldn't read.
 
-When `.claude` or `.claude/skills` is a symbolic link to a folder inside the workspace, such as
-`.claude/skills -> ../.agents/skills`, the hook installs into the link's target. The path is unsafe
-when `.claude/skills` resolves to the workspace itself or outside it, or when a link on the path
-points at a folder that doesn't exist. The copy deletes the skill's folder first, and a link that
-leaves the workspace would aim that delete outside it, so the hook checks the path just before each
-copy, after git has run, and touches nothing for a skill whose path fails.
+The hook follows a symbolic link on the path to a folder inside the workspace. With
+`.claude/skills -> ../.agents/skills` it installs into `.agents/skills`, and with
+`.claude -> .config/claude` into `.config/claude/skills`, which it makes when it's absent. The path
+is unsafe when `.claude` or `.claude/skills` resolves to the workspace itself, outside it, or into
+`.git`, or when a link on the path points at a folder that doesn't exist. The copy deletes the
+skill's folder first, so an unsafe path would aim that delete at git's own files or outside the
+workspace. The hook checks the path just before each copy, after git has run, and touches nothing
+for a skill whose path fails.
 
 ## The pull request hook
 

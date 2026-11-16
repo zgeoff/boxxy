@@ -1,6 +1,6 @@
-import { cp, lstat, mkdir, mkdtemp, realpath, rm, stat } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, realpath, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { isAbsolute, join, relative } from 'node:path';
+import { isAbsolute, join, relative, sep } from 'node:path';
 import { skillsRepoFolder, workspaceSkillsFolder } from '../constants.ts';
 import type { CLIDeps } from '../types.ts';
 
@@ -127,47 +127,39 @@ async function installSkill(
 
 // The copy removes the skill's folder first, so a link in the skills path that leaves the workspace
 // would point that removal outside it. The check runs after git, so a link made while git ran is
-// still seen. Returns the real path of the skills folder, or null when it is outside the workspace.
+// still seen. mkdir follows a link, so each part is made only under a parent already resolved.
 async function resolveSkillsFolder(workspace: string): Promise<string | null> {
-  const skillsFolder = join(workspace, workspaceSkillsFolder);
-
   try {
-    const existing = await realpath(skillsFolder).catch(() => null);
+    await mkdir(workspace, { recursive: true });
 
-    // mkdir follows a link, so a folder made through one could land outside the workspace
-    if (existing === null) {
-      const linked = await probeLinkOnSkillsPath(workspace);
+    const root = await realpath(workspace);
 
-      if (linked) {
+    let folder = root;
+
+    for (const part of workspaceSkillsFolder.split('/')) {
+      const next = join(folder, part);
+
+      // mkdir fails on a folder or a link already there; realpath then follows the link, and throws
+      // when nothing is there
+      await mkdir(next).catch(() => null);
+
+      folder = await realpath(next);
+
+      if (!isSafeSkillsFolder(folder, root)) {
         return null;
       }
     }
 
-    await mkdir(skillsFolder, { recursive: true });
-
-    const [resolved, resolvedWorkspace] = await Promise.all([
-      realpath(skillsFolder),
-      realpath(workspace),
-    ]);
-
-    return isInsideFolder(resolved, resolvedWorkspace) ? resolved : null;
+    return folder;
   } catch {
     return null;
   }
 }
 
-async function probeLinkOnSkillsPath(workspace: string): Promise<boolean> {
-  const parts = workspaceSkillsFolder.split('/');
+// `.git` is inside the workspace, but a skill's name there, such as `hooks`, would replace git's own
+function isSafeSkillsFolder(folder: string, workspace: string): boolean {
+  const fromWorkspace = relative(workspace, folder);
+  const [first] = fromWorkspace.split(sep);
 
-  const infos = await Promise.all(
-    parts.map((_, index) => lstat(join(workspace, ...parts.slice(0, index + 1))).catch(() => null)),
-  );
-
-  return infos.some((info) => info?.isSymbolicLink() === true);
-}
-
-function isInsideFolder(path: string, folder: string): boolean {
-  const fromFolder = relative(folder, path);
-
-  return fromFolder !== '' && !fromFolder.startsWith('..') && !isAbsolute(fromFolder);
+  return !isAbsolute(fromWorkspace) && first !== '' && first !== '..' && first !== '.git';
 }

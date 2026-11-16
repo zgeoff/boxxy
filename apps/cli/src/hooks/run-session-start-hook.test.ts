@@ -99,7 +99,9 @@ test('it installs each listed skill into .agents/skills when .claude/skills link
   await mkdir(join(ctx.workspace, '.claude'), { recursive: true });
   await symlink('../.agents/skills', join(ctx.workspace, '.claude/skills'));
 
+  const before = await ctx.server.dispatch.listFacts('boxxy.attempt.session_bound');
   const result = await ctx.startHook('agent-session-1', repo.baseURL);
+  const after = await ctx.server.dispatch.listFacts('boxxy.attempt.session_bound');
 
   const installed = await Array.fromAsync(
     new Bun.Glob('**/*').scan({ cwd: join(ctx.workspace, '.agents/skills') }),
@@ -111,6 +113,7 @@ test('it installs each listed skill into .agents/skills when .claude/skills link
   });
 
   expect(installed).toStrictEqual(['bake-off/SKILL.md']);
+  expect(after.length - before.length).toBe(1);
 });
 
 test('it ends the attempt as skill-missing and writes nothing outside the workspace when .claude/skills links out of it', async () => {
