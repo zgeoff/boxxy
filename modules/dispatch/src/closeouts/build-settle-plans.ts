@@ -1,5 +1,5 @@
 import { dedupeOpenItems } from '@boxxy/closeout';
-import type { Effect, ItemId, ItemView, OpenItem, WorkFacts } from '@boxxy/model';
+import type { Effect, ItemId, ItemView, LinkEnd, OpenItem, WorkFacts } from '@boxxy/model';
 import { match } from 'ts-pattern';
 import { effectHandlers } from './effect-handlers.ts';
 import type { EffectContext, EffectPlan } from './types.ts';
@@ -89,7 +89,7 @@ function collectPlans(
   let ctx: EffectContext = { ...input.ctx, filed: matched };
 
   for (const effect of effects) {
-    const reason = findSkipReason(effect, input.held, repeats);
+    const reason = findSkipReason(effect, input.held, repeats, ctx);
 
     const plan: EffectPlan =
       reason === null ? planEffect(effect, ctx) : { kind: 'skip', effect, reason };
@@ -106,12 +106,15 @@ function findSkipReason(
   effect: Effect,
   held: boolean,
   repeats: ReadonlySet<OpenItem>,
+  ctx: EffectContext,
 ): string | null {
   if (effect.kind === 'file-item' && repeats.has(effect.item)) {
     return 'the close-out names this title already';
   }
 
-  return held && isItemChange(effect) && !isWait(effect) ? 'the item holds for the owner' : null;
+  return held && isItemChange(effect, ctx) && !isWait(effect, ctx)
+    ? 'the item holds for the owner'
+    : null;
 }
 
 const itemChanges: ReadonlySet<Effect['kind']> = new Set([
@@ -123,24 +126,31 @@ const itemChanges: ReadonlySet<Effect['kind']> = new Set([
   'set-body',
 ]);
 
-// A link between two filed items changes no existing item.
-function isItemChange(effect: Effect): boolean {
+// A link between two filed items changes no existing item. An open item that the dedupe matched to
+// the attempt's item links as that item.
+function isItemChange(effect: Effect, ctx: EffectContext): boolean {
   if (effect.kind === 'add-relation' && 'link' in effect) {
-    return effect.link.from.kind === 'item' || effect.link.to.kind === 'item';
+    return isAttemptItem(effect.link.from, ctx) || isAttemptItem(effect.link.to, ctx);
   }
 
   return itemChanges.has(effect.kind);
 }
 
+function isAttemptItem(end: LinkEnd, ctx: EffectContext): boolean {
+  return end.kind === 'item' || ctx.filed.get(end.key) === ctx.item.id;
+}
+
 // A wait on another item lands under a hold: a blocked design or build records it so that the
 // item still waits after the owner's retry.
-function isWait(effect: Effect): boolean {
+function isWait(effect: Effect, ctx: EffectContext): boolean {
   if (effect.kind !== 'add-relation') {
     return false;
   }
 
   return 'link' in effect
-    ? effect.link.type === 'blocks' && effect.link.to.kind === 'item'
+    ? effect.link.type === 'blocks' &&
+        isAttemptItem(effect.link.to, ctx) &&
+        !isAttemptItem(effect.link.from, ctx)
     : effect.relation.type === 'blocks' && 'source' in effect.relation;
 }
 

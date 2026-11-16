@@ -662,6 +662,41 @@ test('it makes the designed item wait on the open issue that a blocking open ite
   ]);
 });
 
+test('it withholds a blocks link from an open item that matches the held designed item', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('design');
+
+  ctx.setRules(
+    ctx.mapOutcome(ctx.rules(), 'design', 'designed', {
+      hold: brandSchemas.rulesHoldReason.parse('designed'),
+    }),
+  );
+
+  await ctx.closeOut(attempt, {
+    result: {
+      kind: 'designed',
+      design: { text: 'Export the theme after this work.', location: null },
+      openItems: [
+        {
+          kind: 'core.issue',
+          title: 'Add a dark theme',
+          body: 'The same work.',
+          key: 'same',
+          blocks: ['export'],
+        },
+        { kind: 'core.issue', title: 'Export the theme', body: 'Found.', key: 'export' },
+      ],
+    },
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+
+  expect(detail.relations).toStrictEqual([]);
+});
+
 test('it rejects a design whose open items block each other in a loop', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.claimAt('design');
