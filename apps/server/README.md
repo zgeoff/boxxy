@@ -7,7 +7,7 @@
   </p>
 
   <p>
-    <a href="../../docs/design/boxxy/README.md">Documentation</a>
+    <a href="../../docs/architecture/overview.md">Documentation</a>
   </p>
 </div>
 
@@ -52,9 +52,9 @@ A git checkout in `rules.folder` loads only a commit that `rules.ref` holds, `or
 default. A plain folder loads with no check, so build it only from the reviewed rules branch
 ([rules](../../docs/design/boxxy/rules.md#policy-in-git)). `spawn.repos` gives each repo a folder on
 the target, or a git source `{ url, ref, credentialRef? }` that atc clones
-([the atc worker](../../docs/design/boxxy/v1-lifecycle.md#the-atc-worker)). With a `pepys` section,
+([the atc worker](../../docs/architecture/work/sessions.md#the-atc-worker)). With a `pepys` section,
 also set `BOXXY_PEPYS_SIGNING_SECRET`. With a `github` section, set the `BOXXY_GITHUB_APP_*` keys
-unless a broker adds the credential. [Hold notices](../../docs/design/boxxy/owner-notices.md) and
+unless a broker adds the credential. [Hold notices](../../docs/architecture/work/notices.md) and
 [reviews](../../docs/design/boxxy/review-and-merge.md#the-review-gate) need their own settings.
 
 ## Features
@@ -66,5 +66,5 @@ unless a broker adds the credential. [Hold notices](../../docs/design/boxxy/owne
 
 ## Documentation
 
-[The API and its auth](../../docs/design/boxxy/v1-api-and-auth.md) sets out the listeners, the
+[The API and its auth](../../docs/architecture/interfaces/api-and-auth.md) sets out the listeners, the
 public door and its `publicDoor` configuration, the tokens and which caller may call each procedure.

@@ -64,7 +64,7 @@ flowchart LR
 
 A pool is a filter, a sort and an empty policy. A pool's name carries no meaning: any ordering is
 configuration. Named limits cap the running attempts, and a pool has no slot count of its own
-([v1](./v1.md#limits-and-pools)).
+([the pipeline](../../architecture/work/pipeline.md#limits-and-pools)).
 
 ```yaml
 pools:
@@ -84,7 +84,7 @@ pools:
 
 ### Limits and the decision
 
-A pick takes one seat in each limit whose `counts` filter matches the pick's field values, and `decide` gives a pick only when each of those limits has a free seat. The store's snapshot gives each limit's `max` and the seats held now, and `decide` counts down the seats of its own picks, so one decision never starts more than a limit allows. A limit can hold more seats than its `max` after a wake over the cap ([lifecycle](./v1-lifecycle.md)), and it then gives no pick until the count is under `max` again.
+A pick takes one seat in each limit whose `counts` filter matches the pick's field values, and `decide` gives a pick only when each of those limits has a free seat. The store's snapshot gives each limit's `max` and the seats held now, and `decide` counts down the seats of its own picks, so one decision never starts more than a limit allows. A limit can hold more seats than its `max` after a wake over the cap ([lifecycle](../../architecture/work/attempts.md)), and it then gives no pick until the count is under `max` again.
 
 `decide` returns its picks in this order:
 
@@ -93,7 +93,7 @@ A pick takes one seat in each limit whose `counts` filter matches the pick's fie
 
 `decide` gives no pick in a pool that is in backoff, for a start or for the wake of an attempt in that pool. The runner holds the backoff in memory and passes the pools in backoff to `decide` as an argument, because the store never sees them. Each item and wake that gets no pick gets a wait with its reason: `limit-full` with the first full limit, `backoff` with the pool, or `no-pool` when no pool takes the item. An item that a gate holds gets no wait, because the frame holds the reason.
 
-The filter field `designMode` of the pool concept gives `agent` for an item that sets no design mode, so each design item matches one of the two design pools of [v1](./v1.md#limits-and-pools).
+The filter field `designMode` of the pool concept gives `agent` for an item that sets no design mode, so each design item matches one of the two design pools of [the pipeline](../../architecture/work/pipeline.md#limits-and-pools).
 
 ### The judgement pool
 
@@ -116,7 +116,7 @@ time ([rules](./rules.md#levers-as-facts)).
   - It lifts defer, quiet hours and budget holds on the pulled work and its blockers. A gate declared
     unliftable, such as `blocked`, `held` or `attended`, still holds.
   - It carries a reason and an optional expiry. Only a caller on the owner's path can expedite
-    ([API and auth](./v1-api-and-auth.md#the-paths)). An owner pull
+    ([API and auth](../../architecture/interfaces/api-and-auth.md#the-paths)). An owner pull
     ranks ahead of a judgement phase's pull.
 - **Defer** hides an item from the frontier. `defer --until <time>` wakes it at that time. `defer`
   with no time keeps it out until `undefer`.
@@ -133,8 +133,8 @@ The owner files a held item to keep a draft that boxxy never starts. The owner e
 - **Filing.** `item.file` with `held: { reason }` writes the item and an `item.held` lever in one store change, so no tick sees the item open. A held item needs the same fields as any other item.
 - **The gate.** An item whose latest `item.held` or `item.release` lever is `item.held` has the derived state `held`, with the lever's reason. The state comes right after `archived` in the derived-state table, ahead of every other state, so a held item is never a candidate of the frame and runs no phase, triage included. Like `blocked`, the gate is part of the derived state and no concept of the rules registers it, so no rules file can drop it, and no waiver, expedite, pull or goal lifts it. `item.retry` refuses a held item with `ITEM_HELD`, because a retry moves the item's position and its release would then skip triage.
 - **Release.** `item.release` writes an `item.release` lever, and triage starts on the next tick. It refuses an item that is not held with `not-held`, a closed item included. Both levers write `boxxy.lever.recorded`.
-- **Reading.** `item.list` with the state `held` lists the held items only. `item.get` returns the item's revisions: one for each `boxxy.item.edited` fact in the outbox, with its time, its actor and the names of the fields it set. The outbox keeps every sent row ([facts and pepys](./v1-facts-and-pepys.md#the-outbox)), so the revisions need no table of their own.
-- **Access.** Only the owner's path files, releases or lists held items ([API and auth](./v1-api-and-auth.md#the-procedures)), and a session's reads of other items never return one.
+- **Reading.** `item.list` with the state `held` lists the held items only. `item.get` returns the item's revisions: one for each `boxxy.item.edited` fact in the outbox, with its time, its actor and the names of the fields it set. The outbox keeps every sent row ([facts and pepys](../../architecture/interfaces/facts-and-pepys.md#the-outbox)), so the revisions need no table of their own.
+- **Access.** Only the owner's path files, releases or lists held items ([API and auth](../../architecture/interfaces/api-and-auth.md#the-procedures)), and a session's reads of other items never return one.
 
 ## Projects, areas and goals
 

@@ -55,7 +55,7 @@ const getItemOutput = z.discriminatedUnion('kind', [
 
 // A session's reads of other items, for triage to find a duplicate or an overlap. The repo is
 // that of the session's own item, and a held item or one of another repo answers NOT_FOUND;
-// v1-api-and-auth.md holds the whole rule.
+// docs/architecture/interfaces/api-and-auth.md holds the whole rule.
 export const itemReadContract = {
   listItems: oc
     .meta(

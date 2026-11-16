@@ -6,7 +6,7 @@ Updated: 2026-11-05
 ## Decision
 
 boxxy splits its workspace into `apps/`, `modules/`, `adapters/` and `libs/`, as noslop and nixie
-do, with wringer's package conventions. The [layout design](../design/boxxy/layout.md) gives the
+do, with wringer's package conventions. The [layout design](../architecture/repo/layout.md) gives the
 tree and where a helper goes.
 
 - Apps are composition roots: they build the adapters and pass them to modules.

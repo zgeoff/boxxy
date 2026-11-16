@@ -7,7 +7,7 @@
   </p>
 
   <p>
-    <a href="../../docs/design/boxxy/README.md">Documentation</a>
+    <a href="../../docs/architecture/overview.md">Documentation</a>
   </p>
 </div>
 
@@ -46,6 +46,6 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-[The public door](../../docs/design/boxxy/v1-api-and-auth.md#the-public-door) describes the
+[The public door](../../docs/architecture/interfaces/api-and-auth.md#the-public-door) describes the
 endpoints, the scopes and the token lifetimes, and
 [0018](../../docs/decisions/0018-public-owner-mcp.md) records the decision.

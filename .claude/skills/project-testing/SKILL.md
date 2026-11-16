@@ -40,4 +40,4 @@ metadata:
   `bun run test` runs it, as it runs every test outside `e2e/`, `evals/` and `bench/`.
 - Import the server only from a CLI test or a CLI test util, and only through
   `@boxxy/server/test-utils/*`, such as `make-broker-send`. Lint fails any other import of the
-  server from the CLI, as the [layout](../../../docs/design/boxxy/layout.md#dependency-rules) says.
+  server from the CLI, as the [layout](../../../docs/architecture/repo/layout.md#dependency-rules) says.

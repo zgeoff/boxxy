@@ -27,7 +27,7 @@ function isLiveState(state: AttemptRow['state']): state is LiveAttemptState {
   return state !== 'succeeded' && state !== 'failed';
 }
 
-// Read it as: the reading, then the attempt's state. v1-lifecycle.md has the same table.
+// Read it as: the reading, then the attempt's state. docs/architecture/work/attempts.md has the same table.
 const readingTable: ReadingTable = {
   running: {
     starting: moveToRunning,

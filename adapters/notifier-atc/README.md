@@ -7,7 +7,7 @@
   </p>
 
   <p>
-    <a href="../../docs/design/boxxy/README.md">Documentation</a>
+    <a href="../../docs/architecture/overview.md">Documentation</a>
   </p>
 </div>
 
@@ -35,9 +35,9 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 - The adapter sends the key it gets from the notice as the idempotency key, and keeps no state.
 - A send that atc refuses with a code that ran nothing returns `refused`. Every other failure
   returns `uncertain`. The adapter never throws.
-  [Notice delivery in production](../../docs/design/boxxy/owner-notices.md) lists the codes and says
+  [Notice delivery](../../docs/architecture/work/notices.md) lists the codes and says
   what the server does with each outcome.
 
 ## Documentation
 
-[Notices in v1](../../docs/design/boxxy/v1.md#notices) describes when a notice is written and sent.
+[Notices in v1](../../docs/architecture/work/pipeline.md#notices) describes when a notice is written and sent.

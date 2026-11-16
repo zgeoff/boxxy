@@ -32,8 +32,8 @@ sequenceDiagram
 5. The store takes the item-phase lease and a seat in each limit that counts the first pick, all
    in one change. A unique index on the live item-phase lease makes the lease take compare-and-set. The
    seat take is all or none: the store counts each limit's held seats under the write lock, and
-   refuses the whole change when one limit is full or unknown. The store section of the
-   [core types sketch](./sketches/v1/core/02-types.ts) gives the rules of the take.
+   refuses the whole change when one limit is full or unknown. The `ClaimStore` port in
+   `@boxxy/model` and its SQLite adapter hold the rules of the take.
 6. The store writes the decision row (rules version, input snapshot hash, observation boundary), the
    exposure fact for any live experiment ([measurement](./measurement.md)), the exact spawn request,
    and the outbox facts. Then it commits.
@@ -45,7 +45,7 @@ the lock ([measurement](./measurement.md)).
 ## Leases and generations
 
 - **Each claim holds the item-phase lease and its seats:** one seat in every limit whose filter the
-  attempt matches ([v1](./v1.md#limits-and-pools)). A limit's seats are rows, so a seat count is
+  attempt matches ([the pipeline](../../architecture/work/pipeline.md#limits-and-pools)). A limit's seats are rows, so a seat count is
   atomic. Two runners can't each see the last free seat and claim different items.
 - **Each lease has a generation number.** Every write made under a lease carries its generation, and
   the store refuses a write whose generation is not the live one. A runner that lost its lease, for

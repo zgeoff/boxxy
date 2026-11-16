@@ -1,22 +1,22 @@
 # Working in boxxy
 
 boxxy decides which task a fleet of coding agents works on next, and measures what each task costs.
-Your job here is one change, from one task. Build what the design docs specify, keep those docs
-true, and hand back an open pull request with green CI. Don't merge it: the repo owner merges every
+Your job here is one change, from one task. Build what the task and its design doc specify, keep
+the architecture docs and the design docs true, and hand back an open pull request with green CI. Don't merge it: the repo owner merges every
 pull request.
 
 The mistakes that cost most here:
 
-- code in a package that the [layout](docs/design/boxxy/layout.md) doesn't allow;
-- a behaviour change with no change to the design doc that describes the behaviour;
+- code in a package that the [layout](docs/architecture/repo/layout.md) doesn't allow;
+- a behaviour change with no change to the doc that describes the behaviour;
 - anything private pushed to this public repo.
 
 ## Key rules
 
-- [Before you start](#before-you-start): read the design doc for your task, and load the skills
-  your work needs.
+- [Before you start](#before-you-start): read the architecture docs your change touches and the
+  design doc for your task, and load the skills your work needs.
 - [Layout](#layout): follow the layout doc. Code under `modules/` and `libs/` does no I/O.
-- [Docs and decisions](#docs-and-decisions): a design doc changes in the same PR as the code.
+- [Docs and decisions](#docs-and-decisions): a doc changes in the same PR as the code.
 - [Verify before you hand off](#verify-before-you-hand-off): run the journey of each feature your
   change touches, and put the report in the pull request.
 - [Packages](#packages): one exact version per dependency, in the root catalog.
@@ -27,15 +27,12 @@ The mistakes that cost most here:
 
 ## Before you start
 
-- Find your task's build unit in the [first build spec](docs/design/boxxy/slice-1.md). Read the
-  unit, and each design doc it links. The [core model](docs/design/boxxy/core-model.md) defines the
-  terms.
-- For v1 work, find your slice in the [v1 work list](docs/design/boxxy/v1-work-list.md), and read
-  the [v1 design](docs/design/boxxy/v1.md) and the sketch files the slice names. Where a v1 doc and
-  the first build spec differ, the v1 doc stands.
-- Check the unit's "Depends on" list. When a unit it names hasn't merged, stop, and report the task
-  as blocked by that unit. The repo-setup unit creates the root `package.json`, and every other unit
-  depends on it.
+- Read the [architecture overview](docs/architecture/overview.md), then the architecture doc of
+  each part your change touches. They describe the system as it is built.
+- When your task builds a design, read its doc in [docs/design](docs/design/boxxy/README.md), and
+  each doc it links. The [core model](docs/design/boxxy/core-model.md) defines the terms.
+- When the task names work it depends on, check that the work has merged. When it hasn't, stop, and
+  report the task as blocked by that work.
 - Load the skill for the work before you start it. The skills are in `.claude/skills/`:
 
   | Skill          | Load before                             |
@@ -54,7 +51,7 @@ The mistakes that cost most here:
 
 ## Layout
 
-[The layout doc](docs/design/boxxy/layout.md) sets the rules for packages, folders and imports.
+[The layout doc](docs/architecture/repo/layout.md) sets the rules for packages, folders and imports.
 Read it before you add a package, a file or an import. The workspace has five kinds of package:
 
 - `apps/`: the CLI and the server. They build the adapters and pass them in.
@@ -80,8 +77,11 @@ When a check fails, move the code to the package the layout names. Never add an 
 
 ## Docs and decisions
 
-- **Change a design doc in the same PR as the code that changes the design.** When your change makes
-  a sentence in a design doc false, rewrite that sentence in that PR.
+- **Change a doc in the same PR as the code that changes what it says.** When your change makes a
+  sentence in an architecture doc or a design doc false, rewrite that sentence in that PR.
+- `docs/architecture/` describes the built system, in the present tense. `docs/design/` holds a
+  design until its work is built. When a change builds the last of a design, move each fact that
+  still holds into its architecture doc, and delete the design doc in the same PR.
 - Each fact has one doc that owns it. Link to that doc. Never copy the fact.
 - `docs/decisions/` holds the decision records. Add or change one only when your task asks for it.
   Never delete one.
@@ -91,7 +91,7 @@ When a check fails, move the code to the package the layout names. Never add an 
 
 ## Verify before you hand off
 
-[Wringer journeys](docs/design/boxxy/wringer-journeys.md) owns what each journey proves. Run these
+[Verify journeys](docs/architecture/repo/verify-journeys.md) owns what each journey proves. Run these
 steps before you open or update a pull request, after your last code change:
 
 1. Load the `verify` skill, and run `bun verify report`. Each feature with `changed: true` needs a
@@ -161,4 +161,4 @@ Everything pushed here is public, including commit messages and PR descriptions.
   Remove each match. Search your PR description for the same strings before you open the PR. When a
   match is already in a commit on your branch, rewrite that commit before you push.
 
-**Reply:** the pull request link, its CI state, and each "Depends on" unit that blocked you.
+**Reply:** the pull request link, its CI state, and each piece of work that blocked you.

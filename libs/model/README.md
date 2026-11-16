@@ -7,7 +7,7 @@
   </p>
 
   <p>
-    <a href="../../docs/design/boxxy/README.md">Documentation</a>
+    <a href="../../docs/architecture/overview.md">Documentation</a>
   </p>
 </div>
 
@@ -32,7 +32,7 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 - The branded ids and names, with a zod schema for each in `brandSchemas`.
 - The store rows, the port interfaces, the plug-in interfaces and the loaded rules.
 - The fact catalog `WorkFacts`, with a zod schema for each fact type's payload in `workFactSchemas`
-  ([v1 facts](../../docs/design/boxxy/v1-facts-and-pepys.md)).
+  ([v1 facts](../../docs/architecture/interfaces/facts-and-pepys.md)).
 - The four close-outs of the v1 phases, each with its schema, and `closeOutSchema` for any of them.
 - The output schemas of the two pepys reports, `costToLandSchema` and `stageTimeSchema`.
 - `definePhase`, which registers a phase kind with its close-out type hidden.

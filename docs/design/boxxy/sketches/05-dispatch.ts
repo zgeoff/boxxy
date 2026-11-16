@@ -69,7 +69,7 @@ export declare function claimNext(input: {
  * computes the recipe hash from these. Slice 1. Owner: slice-1.md "claimNext".
  */
 export type SpawnContext = {
-  readonly repos: ReadonlyMap<RepoName, string>; // built: a folder, or a git source that atc clones (v1-lifecycle.md, "The atc worker")
+  readonly repos: ReadonlyMap<RepoName, string>; // built: a folder, or a git source that atc clones (docs/architecture/work/sessions.md, "The atc worker")
   readonly pluginFolder: { readonly path: string; readonly hash: ContentHash };
   readonly promptTemplates: ReadonlyMap<RecipeName, string>;
 };

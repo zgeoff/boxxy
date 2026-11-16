@@ -10,7 +10,7 @@ const liveStates: readonly AttemptState[] = [
   'closing',
 ];
 
-// The table of section A of the core flow sketch. The attempt machine is built from it, and the
+// The table of attempt moves. The attempt machine is built from it, and the
 // first row whose `from` and `when` match an event is the move.
 export const attemptMoves: readonly AttemptMove[] = [
   {

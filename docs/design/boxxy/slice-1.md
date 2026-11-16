@@ -27,16 +27,16 @@ function. This doc owns the behaviour, and links each shape to the sketch file t
 
 ## Where v1 stands
 
-[v1](./v1.md) builds on slice 1 and changes it. Where a v1 doc and this doc differ, the v1 doc
+[the pipeline](../../architecture/work/pipeline.md) builds on slice 1 and changes it. Where a v1 doc and this doc differ, the v1 doc
 stands. A v1 doc owns each of these subjects:
 
 | Subject in this doc | The v1 doc that stands |
 | --- | --- |
-| the pipeline, the pools and their slots, `maxAttempts` per kind | [v1](./v1.md#the-pipeline), [limits and pools](./v1.md#limits-and-pools) |
-| the attempt states, the runner loop's table, settle, close-outs | [attempt lifecycle](./v1-lifecycle.md) |
-| the commands, the API's address and the caller check | [API and auth](./v1-api-and-auth.md) |
-| the fact catalog, the outbox sender, the pepys adapter and its package `@boxxy/facts-pepys`, the consumer and the query | [facts and pepys](./v1-facts-and-pepys.md) |
-| the packages and their folders | [folder layout](./layout-folders.md) |
+| the pipeline, the pools and their slots, `maxAttempts` per kind | [the pipeline](../../architecture/work/pipeline.md#the-pipeline), [limits and pools](../../architecture/work/pipeline.md#limits-and-pools) |
+| the attempt states, the runner loop's table, settle, close-outs | [attempt lifecycle](../../architecture/work/attempts.md) |
+| the commands, the API's address and the caller check | [API and auth](../../architecture/interfaces/api-and-auth.md) |
+| the fact catalog, the outbox sender, the pepys adapter and its package `@boxxy/facts-pepys`, the consumer and the query | [facts and pepys](../../architecture/interfaces/facts-and-pepys.md) |
+| the packages and their folders | [folder layout](../../architecture/repo/layout.md) |
 
 ## Terms
 
@@ -83,11 +83,11 @@ Where another design doc owns a term, the link goes to that doc.
 | the local OTLP sink | An OTLP receiver on the owner's machine that writes the telemetry records it gets to files. atc's agent config points each agent's telemetry at it. boxxy doesn't build it, and S1-09's live check needs one running. |
 | explain | A command that shows why boxxy picked an item, from its decision row. Slice 1 doesn't build it. |
 | replay | A rerun of `decide()` on a decision row's recorded inputs. Slice 1 doesn't build it. |
-| import zones | The `zgeoff/import-zones` lint rule. Each pin in it sets the one package that may import a library ([layout](./layout.md#import-pins)). |
+| import zones | The `zgeoff/import-zones` lint rule. Each pin in it sets the one package that may import a library ([layout](../../architecture/repo/layout.md#import-pins)). |
 | gunshi | The CLI library that the `boxxy` commands use. |
 | msw | An HTTP mocking library for tests. |
 | wringer | [wringer](https://github.com/zgeoff/wringer), a repo that publishes npm packages. boxxy copies its repo setup. |
-| repo-sync | The workflow that copies shared files from [zgeoff/tools](https://github.com/zgeoff/tools) into each repo ([tech stack](./tech-stack.md#what-repo-sync-delivers)). |
+| repo-sync | The workflow that copies shared files from [zgeoff/tools](https://github.com/zgeoff/tools) into each repo ([tech stack](../../architecture/repo/tech-stack.md#what-repo-sync-delivers)). |
 
 ## Scope
 
@@ -128,7 +128,7 @@ does it.
   waits until the owner runs `boxxy item retry`, which calls `item.retry`.
 - A confirmation that only the owner can give before an expedite takes effect, such as a passkey
   approval ([core model](./core-model.md#entry-points)). Any caller on the owner's path may
-  expedite ([API and auth](./v1-api-and-auth.md#the-paths)).
+  expedite ([API and auth](../../architecture/interfaces/api-and-auth.md#the-paths)).
 - `explain` and replay. Each decision row records their inputs: the rules version, the snapshot
   hash, the store version, `pepys_offsets` and the plug-in faults. Slice 1 writes decision rows and
   never reads them.
@@ -155,8 +155,8 @@ on pepys outside boxxy. These rules keep that true:
 ## Packages
 
 Slice 1 creates these packages and no others. Each folder name is the package name under
-`@boxxy/`, and the folder's parent sets the package's dependency tag ([layout](./layout.md)). Every
-package publishes ([tech stack](./tech-stack.md#every-package-publishes)).
+`@boxxy/`, and the folder's parent sets the package's dependency tag ([layout](../../architecture/repo/layout.md)). Every
+package publishes ([tech stack](../../architecture/repo/tech-stack.md#every-package-publishes)).
 
 The apps, tagged `app`:
 
@@ -201,10 +201,10 @@ The libs, tagged `lib`:
   calls. The CLI and the server are both apps, and an app can't import another app, so the contract
   lives in a lib, and it imports its types from `@boxxy/model`.
 
-A lib does no I/O, as a module doesn't ([layout](./layout.md)).
+A lib does no I/O, as a module doesn't ([layout](../../architecture/repo/layout.md)).
 
 Each package keeps its own fakes, factories and end-to-end tests, in the folders that
-[layout](./layout.md#inside-a-package) sets. The end-to-end tests run as their own CI job.
+[layout](../../architecture/repo/layout.md#inside-a-package) sets. The end-to-end tests run as their own CI job.
 
 ## Ports and adapters
 
@@ -721,7 +721,7 @@ the example uses bare names.
   with `/`, sorts by the paths' UTF-8 bytes, and hashes the canonical JSON list of
   `{ path, sha256, executable }`.
 - **The prompt template** is Markdown written as a Liquid template, with `{{name}}` placeholders.
-  The server renders it with each value. [The launch prompt](./v1.md#the-launch-prompt) lists the
+  The server renders it with each value. [The launch prompt](../../architecture/work/pipeline.md#the-launch-prompt) lists the
   placeholders and their values. `claimNext` renders it from the template text in `spawnContext`.
 - **The prompt tells each attempt to make its own git worktree** in the target repo, named after the
   attempt id, and to work only there. Two slots of one pool start their sessions in the same repo
@@ -970,7 +970,7 @@ dedupe.
   dropped an entry before it.
 - **The first valid close-out is final.** It writes `boxxy.attempt.closed_out`, and the attempt
   moves to `closing`. The same body again answers as a repeat and writes nothing, and another body
-  is refused ([close-outs and their limits](./v1-lifecycle.md#close-outs-and-their-limits)).
+  is refused ([close-outs and their limits](../../architecture/work/attempts.md#close-outs-and-their-limits)).
 - **Dedupe matches an `openItems` entry** to an open item of the same repo and kind whose title is
   equal after lowercasing, trimming, and collapsing each run of whitespace to one space. Settle reads
   the open items of the attempt's repo of each kind the entries name with `listOpenItems` and passes
@@ -1180,7 +1180,7 @@ allows for a query across consumer files.
 The server serves one oRPC router on Elysia, under `/rpc` and two MCP endpoints, on one address of
 the owner's private network. `@boxxy/contract` holds its contract, and the CLI calls it through an
 oRPC client. A call from a session or a hook needs the worker token and a proven caller
-([API and auth](./v1-api-and-auth.md#the-proven-caller)). The actor recorded on a fact is `boxxy:owner:local` for CLI commands,
+([API and auth](../../architecture/interfaces/api-and-auth.md#the-proven-caller)). The actor recorded on a fact is `boxxy:owner:local` for CLI commands,
 `boxxy:attempt:<attempt_id>` for the attempt procedures, and `boxxy:hook:<attempt_id>` for the hook
 procedures ([facts and the outbox](#facts-and-the-outbox)).
 
@@ -1327,7 +1327,7 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
 ### S1-01: Repo setup
 
 - **Delivers:** the workspace, toolchain, CI, release and sync, copied from wringer as
-  [tech stack](./tech-stack.md) lists:
+  [tech stack](../../architecture/repo/tech-stack.md) lists:
   - Files:
     - the root `package.json`, with the catalog and the four workspace folders, `apps/`,
       `modules/`, `adapters/` and `libs/`;
@@ -1513,7 +1513,7 @@ are listed in an order that builds. Each unit keeps its id, so S1-07 comes befor
   `createFakeWorker()` and the `WorkerKind` contract suite in `@boxxy/dispatch`, the runner loop in
   `@boxxy/server` with the `attempt_sessions` writes
   ([agent sessions](#agent-sessions)), and the example rules checkout with a minimal
-  `prompts/build-v1.md` that uses the [template values](./v1.md#the-launch-prompt) it needs.
+  `prompts/build-v1.md` that uses the [template values](../../architecture/work/pipeline.md#the-launch-prompt) it needs.
 - **Depends on:** S1-08, A1.
 - **Acceptance:**
   - The `WorkerKind` contract suite passes against the fake and against `worker-atc` with atc's

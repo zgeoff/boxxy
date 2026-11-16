@@ -1,34 +1,19 @@
-# boxxy v1
+# The work pipeline
 
-v1 takes an item of work through four phases: triage, design, build and review. Each phase runs as one attempt in a worker session, and a review that asks for changes sends the item back to build. boxxy records every change as a fact, sends the facts to pepys, and reports what each item cost and how long it spent in each step. Build v1 from this doc, the four docs it links, and the sketches in [`sketches/v1/`](./sketches/v1/). v1 builds on the [slice 1](./slice-1.md) code, and where a v1 doc and the slice 1 doc differ, the v1 doc stands. [Decision 0017](../../decisions/0017-v1-scope.md) records the scope.
+boxxy takes an item of work through a pipeline of phases, such as triage, design, build and review.
+Each phase runs as one attempt: an agent session for most phases, or a job that the runner drives
+for a merge. The pipeline is rules data, so a rules file sets the phases, the edge each outcome
+takes, and the limits on attempts and rounds. boxxy stores no position: it works out where an item
+stands from the item's settled attempts every time it reads the item. When an outcome needs the
+owner, the item holds, and the owner gets a notice.
 
-## The v1 docs
-
-| Doc | Holds |
-| --- | --- |
-| this doc | the pipeline and its rules, design mode, limits, recipes, the ledger, notices, the review |
-| [Attempt lifecycle](./v1-lifecycle.md) | the attempt states, the reconcile table, sleep and wake, close-outs, settle, the kept session, cleanup, capacity |
-| [API and auth](./v1-api-and-auth.md) | the 37 procedures and who may call each, the doors, the public door, the worker token, the proven caller |
-| [Facts and pepys](./v1-facts-and-pepys.md) | the outbox, the 30 fact types, the `boxxy_work` package, the two queries and the two reports |
-| [Open for the builder](./v1-open.md) | everything the sketches mark as not checked, assumed, not decided or not designed |
-| [Work list](./v1-work-list.md) | the build as numbered slices, in dependency order |
-| [Folder layout](./layout-folders.md) | the folders inside each package that v1 adds or grows |
-
-## The sketches, and which one stands
-
-The sketches are TypeScript files that show shapes, tables and call sites. They are not compiled, and no check in the repo reads them. Build to them. Where a v1 doc and a v1 sketch differ, the sketch stands, and you fix the doc. Change a sketch in the same commit as the code when the code needs another shape or rule.
-
-| Folder | Files | Owns |
-| --- | --- | --- |
-| [`core/`](./sketches/v1/core/) | `01-usage.ts`, `02-types.ts`, `03-flow.ts`, `04-facts.ts` | the engine, the attempt lifecycle, the fact types, their payloads and the entity rule |
-| [`edge/`](./sketches/v1/edge/) | `01-api.ts`, `02-outbox.ts` | the procedure names, the access table, auth, the outbox sender, the reader port |
-| [`pepys-package/`](./sketches/v1/pepys-package/) | `01-package.ts` to `04-test.ts`, `lookups.md` | the columns of the pepys tables, the link types, the two queries |
-
-Where two sketches differ, the folder that owns the subject stands. One case is known: section D of [`04-facts.ts`](./sketches/v1/core/04-facts.ts) lists table columns. The columns in [`01-package.ts`](./sketches/v1/pepys-package/01-package.ts) stand.
-
-A sketch names the file that holds each part. Where that path and the [folder layout](./layout-folders.md) differ, the folder layout stands.
+[Attempt lifecycle](./attempts.md) covers one attempt, from claim to settle, and the kept session.
+[Notices](./notices.md) covers how a notice reaches the owner. The design doc
+[Review, verify and merge](../../design/boxxy/review-and-merge.md) owns the steps after a build.
 
 ## The pipeline
+
+The example rules file in `modules/rules/example/` holds the common case, four phases:
 
 ```mermaid
 flowchart LR
@@ -41,152 +26,223 @@ flowchart LR
   build -->|blocked| hold
   review -->|passed| reviewed(["end: reviewed"])
   review -->|"changes-requested, 3 times at most"| build
+  review -->|"failed: once more"| review
 ```
 
-A pipeline is a list of steps in the rules file. Each step names a phase, and maps every outcome of that phase to an edge. Part 1 of [`01-usage.ts`](./sketches/v1/core/01-usage.ts) holds the v1 rules file, and section E of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the engine.
+A pipeline is a list of steps. Each step holds a phase, the attempts it allows in a row, a time
+limit, and an edge for every outcome of its phase kind. In the example, every step allows 2 attempts
+in a row, `abandoned` runs a design or a build again, a review that asks for changes wakes the
+build's kept session, and each step's `timeoutMinutes` sets its time limit: longest for build, then
+design, then review, and shortest for triage.
 
-| Phase | Outcomes and their edges | Attempts in a row | Time limit |
-| --- | --- | --- | --- |
-| triage | `accepted`: next. `duplicate`, `declined`, `needs-owner`: hold. `split`: end | 2 | 20 minutes |
-| design | `designed`: next. `blocked`: hold. `abandoned`: again | 2 | 90 minutes |
-| build | `built`: next. `blocked`: hold. `abandoned`: again | 2 | 180 minutes |
-| review | `passed`: end. `changes-requested`: back to build, 3 times at most, on the kept session | 2 | 45 minutes |
+A rules file can add the verify and merge phase kinds after review, so an agent grades the work on
+the real app and boxxy merges the pull request when every required check is green at its head.
+[Review, verify and merge](../../design/boxxy/review-and-merge.md) shows that pipeline.
 
 An edge is one of five kinds:
 
-- `next` moves the item to the step after this one.
+- `next` moves the item to the step after this one, or ends the pipeline after the last step.
 - `again` runs the same phase again, and counts against the step's `maxAttempts`.
-- `{ to, max, resume }` sends the item back to an earlier phase and raises the item's round. A backward edge needs `max`. `resume: true` keeps the session of the target phase for the rework ([the kept session](./v1-lifecycle.md#the-kept-session)).
+- `{ to, max, resume }` sends the item to another phase and raises the item's round. A backward edge
+  needs `max`, and on one `resume: true` wakes the target's
+  [kept session](./sessions.md#the-kept-session).
 - `{ end }` ends the pipeline with a reason.
-- `{ hold }` holds the item for the owner with a reason. boxxy then withholds every effect of the close-out that changes an item: the close, the relations, and the kind, design mode and acceptance that triage or design sets. Friction still records. One relation still lands: a wait on another item, `{ type: 'blocks', source }`. A blocked design or build records that wait so the item still waits on the other item after the owner's retry.
+- `{ hold }` holds the item for the owner with a reason. boxxy then withholds every effect of the
+  close-out that changes an existing item, except a `blocks` relation, so a blocked design or build
+  still waits on the other item after the owner's retry.
 
 ### Rules of the engine
 
-- **boxxy stores no position.** The engine folds over the item's settled attempts and its retry levers with the rules loaded now, on every read. A settled attempt stores its outcome and its round.
-- **Every outcome has an edge.** A phase kind lists its outcome names once. The loader refuses a step that leaves one out or names one the phase kind lacks, and the type of the phase kind's settle answer comes from the same list.
-- **Two outcomes belong to the engine.** `lost` means the attempt ended with no valid close-out or with a forced failure, and it acts as `again`. `unsettleable` means the phase code could not settle a stored close-out. A phase kind may list neither.
-- **A stored outcome with no edge holds the item**, with the reason `outcome not in rules`. It never reads as `next`.
-- **The round belongs to the item.** It starts at 1 and rises each time a backward edge or `item retry --phase` sends the item back. The review of a reworked build has the build's round.
-- **Three holds come from the engine:** `attempts used up`, `rounds used up` and `outcome not in rules`. The loader refuses a `{ hold }` edge that names one of them, so a report can tell an engine hold from a rules hold. `boxxy item retry <item>` lifts a hold and resets both counts. With `--phase` it also sets the position, which is the only way back to build after a passed review.
-- **Two failures never count.** An attempt that failed with `no-capacity` or `usage-limit` moves no item and counts against no limit of attempts.
+- **The position is a fold.** The engine folds over the item's settled attempts and its retry levers
+  with the rules loaded now. A settled attempt stores its outcome and its round.
+- **Every outcome has an edge.** A phase kind holds its outcome names in one list, and the loader
+  refuses a step that leaves one out or adds one the phase kind lacks.
+- **An outcome with no edge holds the item** with `outcome not in rules`, and never reads as `next`.
+  Two outcomes belong to the engine and no phase kind lists them: `lost`, an attempt with no valid
+  close-out or a forced failure, acts as `again`, and `unsettleable`, a close-out the phase code
+  could not settle, has no edge.
+- **The round belongs to the item.** It starts at 1 and rises with each `{ to }` edge, each
+  `item retry --phase`, and a retry out of `rounds used up`. The review of a reworked build has the
+  build's round.
+- **Three holds come from the engine:** `attempts used up`, `rounds used up` and
+  `outcome not in rules`. The loader refuses a `{ hold }` edge with one of them as its reason, so a
+  report can tell an engine hold from a rules hold. `boxxy item retry <item>` lifts a hold and
+  resets both counts, of attempts in a row and of send-backs. With `--phase` it also sets the
+  position, which is the only way back to build after a passed review.
+- **Two failures never count.** An attempt that failed with `no-capacity` or `usage-limit` moves no
+  item and counts against no limit of attempts, because each says the platform had no room, not that
+  the work failed.
 
-The loader refuses a rules file for each reason in `LoadRejectionReason` in [`02-types.ts`](./sketches/v1/core/02-types.ts). The reasons that v1 adds cover an unmapped or unknown outcome, a backward edge with no `max`, a step with no time limit, sleep times out of order, a phase kind that lists an engine outcome, a recipe with skills and no pin, `resume` on a forward edge, and a hold edge that names an engine hold. An edge back to its own step is a backward edge. The server passes the loader the phase kinds, as it passes the concepts, and [the rules version](./rules.md#the-rules-version) covers each phase kind. [`modules/rules/example/`](../../../modules/rules/example/) holds the v1 rules file of part 1 with its prompts, and a test loads it.
+The loader also refuses a backward edge with no `max` (an edge back to its own step is backward), a
+step with no time limit, and a step whose phase kind runs on a worker the server did not build.
+[The rules version](../../design/boxxy/rules.md#the-rules-version) covers each phase kind.
 
 ### A rules change
 
-A rules change never touches a live attempt: the attempt settles by the phase kind loaded when it settles. An item between attempts stands where the new rules put it, so a changed edge moves it, a raised limit frees a held item, and a lowered limit can hold one. The table at the end of section E of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) lists each case.
+A rules change never touches a live attempt: the attempt settles by the phase kind loaded when it
+settles. An item between attempts stands where the new rules put it, because boxxy derives the
+position on every read. A changed edge therefore moves the item, a raised limit frees an item on
+hold, and a lowered limit can hold one.
 
-Run `boxxy rules dry-run <file>` before a rules change merges. It loads the file and prints, for each open item, the position the item has and the position it would get. It writes nothing.
+Run `boxxy rules dry-run <file>` before a rules change merges. It prints, for each open item, the
+position it has and the position it would get, and writes nothing.
 
 ## Design mode
 
-Section F of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the rule for an attended session. An item's design runs in one of two modes, `agent` or `attended`. The person who files the item or its triage attempt sets `designMode`, and an item that sets none runs in agent mode. In attended mode the owner works with the agent in the session, and the agent sends its close-out when the owner is done.
-
-boxxy starts an attended design session by one rule: `decide` picked the item, and both limits have a free seat. No lever and no "owner is ready" signal exists. An owner who is away costs one session start for each attended item: the session asks its first question, waits, sleeps and frees both seats.
+An item's design runs in one of two modes, `agent` or `attended`. The person who files the item, or
+its triage attempt, sets `designMode`; the default is agent. In attended mode the owner works with
+the agent in the session, and the agent sends its close-out when the owner is done. boxxy starts an
+attended design session by one rule: the planner picked the item, and both limits have a free seat.
+An owner who is away costs one session start for each attended item: the session asks its first
+question, waits, sleeps and frees both seats.
 
 ## Limits and pools
 
-The rules file caps running attempts with named limits, which part 1 of [`01-usage.ts`](./sketches/v1/core/01-usage.ts) lists. v1 has two:
+The rules file caps running attempts with named limits. The example has two:
 
-| Limit | Maximum | Counts |
-| --- | --- | --- |
-| `workers` | 7 | every attempt |
-| `owner-design` | 1 | attended design attempts |
+| Limit          | Maximum | Counts                   |
+| -------------- | ------- | ------------------------ |
+| `workers`      | 7       | every attempt            |
+| `owner-design` | 1       | attended design attempts |
 
-`workers` is an upper bound. The worker target can have fewer free machines, and it then refuses the spawn ([capacity](./v1-lifecycle.md#capacity-and-the-usage-limit)). A sleeping attempt holds no seat. Two cases can put an eighth session on seven machines until a seat comes free: a session that does not stop, and an owner who revives a session when no seat is free.
+`workers` is an upper bound. The worker target can have fewer free machines, and it then refuses the
+spawn ([capacity](./sessions.md#capacity-and-the-usage-limit)). A sleeping attempt holds no seat.
 
-A pool is a filter and a sort, with no count. v1 has five pools: triage, design with the owner, design, review and build. The loader refuses a pool whose attempts no limit is sure to count.
+A pool is a filter and a sort, with no count, so the loader refuses one that no limit is sure to
+count. The example has one pool per phase, plus one for attended designs.
 
 ## Recipes and skills
 
-Every v1 recipe runs Claude, with the model `claude-opus-5-5` at medium effort. The rules file holds one recipe for each phase, and one more for attended design. Part 1 of [`01-usage.ts`](./sketches/v1/core/01-usage.ts) holds the recipes, and `Recipe` and `SkillsPin` in [`02-types.ts`](./sketches/v1/core/02-types.ts) hold their shape.
+A recipe sets how a phase's session runs: the agent, the model and effort, the prompt template, and
+the skills. Each item kind maps each phase to a recipe, and `design/attended` to an attended
+design's recipe. The review recipe runs under a review agent, whose broker profile holds a read-only
+clone token, and the loader refuses a review agent on any other step, so no other session gets the
+token.
 
-- **Skills are pinned.** The rules file pins one full commit of the skills repo, and each recipe lists the skills its phase needs. The recipe hash covers the list and the pin. The `claimed` fact carries the pin.
-- **The session-start hook fetches the skills** at the pin into the session's workspace, then binds the session. A listed skill that is missing after the fetch fails the attempt as `skill-missing`. [The CLI and the hooks](./v1-cli.md#installing-skills) says how the fetch runs and what counts as missing.
-- **The CLI and the hook plug-in are in the agent image.** No recipe and no spawn request names a plug-in folder.
-- **A build recipe names no check command.** Its text says to follow the repo's own agent instructions.
-- **The triage recipe accepts no criterion that only a release or a live run can prove.** boxxy cannot check this in code.
+- **Skills are pinned.** The rules file pins one commit of the skills repo, each recipe lists the
+  skills its phase needs, and the recipe hash covers the list and the pin.
+- **The session-start hook fetches the skills** at the pin into the session's workspace, then binds
+  the session. A listed skill that is missing after the fetch fails the attempt as `skill-missing`.
+  [Installing skills](../interfaces/cli-and-hooks.md#installing-skills) covers how the fetch runs
+  and what counts as missing.
+- **A build recipe has no check command.** The agent follows the repo's own agent instructions, so
+  each repo keeps its own checks.
 
 ### The launch prompt
 
-A session reads its whole task in its launch prompt. The recipe's prompt template is a [Liquid](https://liquidjs.com/) template, and the server renders it at claim with the values below. `{{name}}` and `{{ name }}` both write a value, so a template of plain `{{name}}` placeholders stays valid. Each value is plain text, and an empty section is the empty string, which `{% if name %}` reads as false. So a template writes each section's heading itself, inside an `if` block, and an empty section leaves no bare heading. The `-` in `{%-` drops the line break before the tag, so an empty section leaves no blank line either:
+A session reads its whole task in its launch prompt. The recipe's prompt template is a
+[Liquid](https://liquidjs.com/) template, and the server renders it at claim.
+`@boxxy/prompt-template` holds the engine and the lists of placeholders, tags and filters a template
+may use. Each placeholder but `ticket` holds its content only, with no heading. A template author
+needs these rules:
 
-```liquid
-{{ outcome }}
-{%- if design %}
+- **Each value is plain text, and an empty section is the empty string**, which `{% if name %}`
+  reads as false. A template therefore writes each section's heading itself, inside an `if` block,
+  so an empty section leaves no bare heading. Write `{%-` to drop the line break before the tag, so
+  an empty section leaves no blank line either. The example prompts in
+  `modules/rules/example/prompts/` show both.
+- **A value reaches the agent as written.** Liquid never parses a value again, so a value that holds
+  `{{ }}` or `{% %}` stays text. The engine reads no file and escapes no output.
+- **A template the loader accepts renders at claim with any values.** The loader refuses the rules
+  as `bad-prompt` when a template does not parse, uses a tag or filter off the list, uses a name
+  that is no placeholder, reads a field or a name from a value (`design.text`, `[title]`), builds a
+  range, or loops over anything but a bare placeholder. A tag that binds a name, such as `assign`,
+  is off the list, because a name bound in a branch that did not run would throw at claim.
+- **A `for` loop over a placeholder yields the whole value once**, or never for an empty value.
 
-## Design
+| Placeholder                | Value                                                                                                                                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`, `outcome`, `repo` | the item's title, outcome and repo                                                                                                                                                                                                          |
+| `body`                     | the item's body as the owner wrote it                                                                                                                                                                                                       |
+| `acceptance`               | one `- <id>: <text>` line for each criterion                                                                                                                                                                                                |
+| `design`                   | the design text, then `Location: <location>` when the design has one. Only a build gets it.                                                                                                                                                 |
+| `conclusion`               | the `conclusion` of the latest design, such as the result of an investigation. Only a build gets it.                                                                                                                                        |
+| `findings`                 | after a review that left findings open: one line with the review's head and its open counts by severity, then where to answer them. After a failed verify: one line with the verify's head, then the failed features. Only a build gets it. |
+| `stopped`                  | where the latest attempt of the same phase stopped: the question of a `needs-owner` triage, or the reason of a `blocked` design or build. Empty after any other close-out.                                                                  |
+| `notes`                    | one `- <YYYY-MM-DD>: <text>` line for each note, oldest first                                                                                                                                                                               |
+| `security`                 | `true` when the item has the [security mark](#the-ledger-labels-notes-and-relations), and empty otherwise                                                                                                                                   |
+| `ticket`                   | the whole item in one placeholder: `# <title>`, the outcome, the body, then each section that has content under its own heading. It leaves out `security`.                                                                                  |
+| `attempt_id`, `input`      | the attempt's ID, and its input as JSON                                                                                                                                                                                                     |
 
-{{ design }}
-{%- endif %}
-```
+A recipe may name a second template in `reworkPrompt`. The claim renders it in place of `prompt` for
+a rework round: an attempt of a phase that already succeeded once for the item. A build that a
+review, a verify or a merge sent back is one, and so is a build the owner retried after a build that
+succeeded. The rework template must carry the whole task, such as with `{{ ticket }}`, because the
+claim spawns a fresh session with it when the kept session is gone. The loader checks it as it
+checks `prompt`. A rework round on the [kept session](./sessions.md#the-kept-session) sends the new
+attempt's prompt, so `findings` and `design` carry that round's input.
 
-Liquid writes each value as text and never parses it again, so a value that holds `{{ }}` or `{% %}` reaches the agent as written. The engine reads no file, escapes no output, and fails on an unknown variable or filter. `@boxxy/prompt-template` holds the engine, the placeholder list, and the lists of tags and filters a template may use.
-
-A template may use only the `if`, `unless`, `case`, `for`, `raw` and `comment` tags and the `{% # %}` comment, with `elsif`, `else` and `when` inside them. The engine has no tag that binds a name, such as `assign` or `capture`, because a name bound in a branch that did not run would throw at claim. It also has no `include`, `render`, `layout`, `block`, `break` or `continue` tag. A `for` loop runs over a bare placeholder, with no filter, and yields the whole value once, or not at all for the empty string. A template may use the string, number and list filters, such as `strip`, `upcase`, `replace`, `split` and `join`. The filter list in `@boxxy/prompt-template` leaves out each filter that reads the clock or a random number, such as `date` and `sample`, and each filter that can throw at render, such as `append`, `where` and `url_decode`.
-
-The rules loader parses every prompt template, and refuses the rules as `bad-prompt` when a template does not parse, uses a tag or filter that is not on the list, names a value that is no placeholder, reads a name from a value, such as `[title]`, loops over anything but a bare placeholder, builds a range, such as `(1..3)`, or reads a field of any value, such as `design.text`, in any branch. A template the loader accepts renders at claim with any placeholder values.
-
-| Placeholder | Value |
-| --- | --- |
-| `title` | the item's title |
-| `outcome` | the item's outcome |
-| `body` | the item's [body](./core-model.md#items) as the owner wrote it |
-| `acceptance` | one `- <id>: <text>` line for each criterion |
-| `design` | the design text, then `Location: <location>` when the design has one. Only a build and a review get a design. |
-| `conclusion` | the `conclusion` of the latest design, the answers of an item that asks questions, such as an investigation. Only a build gets one, and it is empty when the design has none. |
-| `findings` | when the latest grading is a review that left findings open, one line with the review's head and its open counts by severity, then the `answerHint` of that review. When it is a failed verify, one line with the verify's head, then a list of the failed features |
-| `stopped` | where the item's latest attempt of the same phase that closed out stopped: the `question` of a `needs-owner` triage, or the `reason` of a `blocked` design or build. Empty after any other close-out. |
-| `notes` | one `- <YYYY-MM-DD>: <text>` line for each note, oldest first |
-| `security` | `true` when the item has the [security mark](#the-ledger-labels-notes-and-relations), and empty otherwise. `ticket` leaves it out. |
-| `ticket` | `# <title>`, the outcome, the body, then each section that has content under its heading (`## Acceptance`, `## Design`, `## Conclusion`, `## Findings to answer`, `## Where the last attempt stopped`, `## Notes from the owner`), with a blank line between parts |
-| `repo` | the item's repo |
-| `attempt_id` | the attempt's ID |
-| `input` | the attempt's input, as JSON |
-
-`acceptance`, `design`, `conclusion`, `findings`, `stopped` and `notes` hold their content only, with no heading. `ticket` is the one-placeholder form of the whole item, so it keeps the headings.
-
-A recipe may name a second template in `reworkPrompt`, a path in the rules checkout as `prompt` is. The claim renders it in place of `prompt` for a rework round: an attempt of a phase whose item has an earlier attempt of the same phase that succeeded.
-
-- **A rework round** is a build that a review, a failed verify or a merge `repair` sent back, or one the owner retried after a build that succeeded. A first build, and the retry of a build that never succeeded, get `prompt`.
-- **The rework template carries the whole task,** such as with `{{ ticket }}`. It gets every placeholder, and the claim spawns a fresh session with it when the kept session is gone.
-- **The loader checks it as it checks `prompt`,** and refuses the rules as `missing-prompt` or `bad-prompt` at `recipes.<recipe>.reworkPrompt`. The rules version covers its bytes, and the recipe hash covers its hash.
-- **A recipe with no `reworkPrompt`** renders `prompt` every round, and its hash stays as it was.
-
-`boxxy attempt current` stays for the attempt ID and the JSON Schema of the close-out body. A rework round on the [kept session](./v1-lifecycle.md#the-kept-session) sends the prompt of the new attempt, so `findings` and `design` carry that round's input. The example prompts in [`modules/rules/example/prompts/`](../../../modules/rules/example/prompts/) lead with one line of the job, then the title, the outcome, the body and each section the phase gets, each in its own `if` block. The build and review prompts add `{{ input }}`, so the agent gets the pull request. The build prompt, the only one whose session commits, forbids attribution in commits and pull request text: no `Co-Authored-By` trailer and no line that names the tool or the model.
+In the example, `{{ input }}` gives the build its pull request and the review its command, and the
+build prompt forbids attribution in commits and pull request text.
 
 ## The ledger: labels, notes and relations
 
-boxxy is the only ledger of the work, which the header of [`04-facts.ts`](./sketches/v1/core/04-facts.ts) states as a rule. Every text of an item is in a fact, in full: the title, the outcome, the body, the acceptance list, the labels, each note and each relation. pepys can therefore rebuild every item from the fact stream. No fact links to an outside tracker.
+boxxy is the only ledger of the work. Every text of an item is in a fact, in full: the title, the
+outcome, the body, the acceptance list, the labels, each note and each relation. pepys can therefore
+rebuild every item from the fact stream. No fact links to an outside tracker.
 
-- **The body** is markdown of 40,000 characters or fewer, empty by default: the context, scope, permissions and notes for the agent, by convention under `## Context`, `## Scope`, `## Permissions` and `## Notes for the agent`. boxxy does not parse it. `item.file` sets it, `item.edit` and a triage close-out's `set.body` replace the whole text, `item.get` shows it and `item.list` leaves it out. `boxxy.item.filed` carries it, and `boxxy.item.edited` carries it when it changes. The owner door refuses a file or an edit whose fact would pass the outbox's limit of one fact, as `FACT_TOO_LARGE`, so no fact is parked later.
+- **The body** is markdown of 40,000 characters or fewer, empty by default: the context, scope,
+  permissions and notes for the agent. boxxy never parses it. `item.edit` and a triage close-out's
+  `set.body` replace the whole text. The owner door refuses a file or an edit whose fact would pass
+  the outbox's limit for one fact, as `FACT_TOO_LARGE`, so no fact is parked later.
 - **Labels** are free short strings. `item.file` sets them, and `item.edit` replaces the whole list.
-- **The security mark** is the typed field `fields.security: true`. It marks an item whose work concerns a security weakness. A close-out sets it on an item it files, with `security: true` on the open item ([close-outs](./close-outs.md#openitems)), and `boxxy.item.filed` carries it. The owner sets it with `security: true` on `item.file` or `item.edit`, and clears it with `security: false` on `item.edit`, which `boxxy.item.edited` records in `fields` ([CLI](./v1-cli.md)). boxxy changes nothing else for a marked item: the launch prompt gives a template the `security` placeholder to branch on. The planner's frame items carry the mark in `fields`, but the pool concept has no filter field for it, so no pool routes on it. Routing on it needs that filter field in a new version of the pool concept, which each rules file then pins.
-- **Notes** are append-only. `item.note` adds one, `item.get` shows them, `item.list` searches them, and the launch prompt of the next attempt carries them in `{{notes}}`.
-- **Relations** have three types, which are rules data: `blocks`, `duplicate-of` and `relates-to`. `item.close` with `--of` closes an item as a duplicate and adds the relation in the same change, unless the relation is live already.
+- **The security mark** is the typed field `fields.security: true`. It marks an item whose work
+  concerns a security weakness. A close-out sets it on an item it files, with `security: true` on
+  the open item ([close-outs](../../design/boxxy/close-outs.md#openitems)), and the owner sets it on
+  `item.file` or `item.edit` and clears it on `item.edit`. boxxy changes nothing else for a marked
+  item: a template branches on the `security` placeholder. The pool concept has no filter field for
+  the mark, so no pool routes on it.
+- **Notes** are append-only. Every later launch prompt carries them in `{{ notes }}`.
+- **Relations** have types that are rules data, such as `blocks`, `duplicate-of` and `relates-to`.
+  `item.close` with `--of` closes an item as a duplicate and adds the relation in the same change,
+  unless that relation is live.
 
 ## Notices
 
-boxxy tells the owner when an item goes on hold, through the `Notifier` port (section "the notice port" of [`02-types.ts`](./sketches/v1/core/02-types.ts)). The port has one method. Three adapters implement it: one sends an atc message to the owner's [notice session](./owner-notices.md#the-registered-notice-session), one is a fake for tests, and one does nothing.
+The settle that leaves an item on hold writes a notice, which the runner sends to the owner. A hold
+that a rules change makes gets no notice, because no settle writes one. [Notices](./notices.md) owns
+how a notice is sent and retried.
 
-1. The change that settles an attempt writes one row in the `notices` table when the item's position after it is a hold.
-2. The runner tick sends each unsent row after the readings, and tries a refused or uncertain one again once its `nextTryAt` has passed. The row waits 5 seconds after its first try, doubling up to 15 minutes, and has no cap on tries. `runner.status` lists the unsent rows. [Notice delivery in production](./owner-notices.md) owns the keys, the retry rules and the outcomes.
-
-A notice that is not sent changes no attempt and no item. Notices use their own table, because the fact outbox sends in order and a notice must not hold facts back. A hold that a rules change makes gets no notice, because no settle writes the row.
-
-An agent's question takes the same path. The agent closes out `blocked` with the question, or `needs-owner` at triage, the item holds, the owner gets the notice, answers with `boxxy item note` and runs `boxxy item retry`. The notice names the hold reason only, and `boxxy item get` shows the question in the attempt's close-out. The next attempt of the phase gets the question in `{{ stopped }}` and the answer in `{{ notes }}`, so a design or a build that stops puts the question and what it did so far in its reason.
+An agent's question takes the same path. The agent closes out `blocked` with the question, or
+`needs-owner` at triage, and the item holds. The owner gets the notice, answers with
+`boxxy item note`, and runs `boxxy item retry`. The notice gives the hold reason only, and
+`boxxy item get` shows the question in the attempt's close-out. The next attempt of the phase gets
+the question in `{{ stopped }}` and the answer in `{{ notes }}`, so a design or a build that stops
+puts the question and what it did so far in its reason.
 
 ## The review
 
-[The review gate](./review-and-merge.md#the-review-gate) owns the review. A review attempt is an agent session, like every other attempt. The session runs the command that the `ReviewGate` port gives, and sends the tool's raw result. The server checks, posts and reads the result through the port, and stores `ReviewCloseOut` in [`02-types.ts`](./sketches/next/review-and-merge/02-types.ts), which holds the reading. The next build attempt gets the open counts and where to answer the findings, never their text, as [decision 0009](../../decisions/0009-close-outs-hold-what-only-the-agent-knows.md) says.
+[The review gate](../../design/boxxy/review-and-merge.md#the-review-gate) owns the review. A review
+session runs the command that the review gate gives, and sends the tool's raw result. The server
+reads and posts the result, and the next build gets the open counts and where to answer the
+findings, never their text, as
+[decision 0009](../../decisions/0009-close-outs-hold-what-only-the-agent-knows.md) sets. A failed
+call, or a result that covers no head, settles `failed`. The review takes a `workers` seat.
 
-- The review takes a `workers` seat. No separate limit for reviews exists.
-- A triage close-out must leave the item with an acceptance list. A design starts without one, and a `designed` close-out may replace it. An item that stands at build with no acceptance list derives `idea`, and no build starts until the owner adds a list with `boxxy item edit` or sends the item back to design with `boxxy item retry`.
+An `accepted` triage close-out must leave the item with an acceptance list. A design starts without
+one, and a `designed` close-out may replace it. An item that stands at build, review, verify or
+merge with no acceptance list derives `idea`, and no attempt starts until the owner adds a list with
+`boxxy item edit` or sends the item back to design with `boxxy item retry`.
 
 ## Derived item state
 
-Section G of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the table. An item is `done` when its position is an end and a pull request linked to a succeeded build attempt has merged. In v1, boxxy never merges: the tools that merge a repo's work today keep doing so. [Review, verify and merge](./review-and-merge.md#the-merge-step) adds a merge phase that merges when every required check is green at the head. An item whose pull request closed unmerged after a passed review waits, and the owner sends it back with `boxxy item retry <item> --phase build` or closes it.
+boxxy derives an item's state on every read, from its position and its rows. The first match wins:
 
-## Open for the builder
+| State               | When                                                                                                                                                                                                        |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `archived`          | the item is closed                                                                                                                                                                                          |
+| `held`              | the owner filed the item held, and `boxxy item release` has not released it                                                                                                                                 |
+| `running`           | the item has a live attempt, a sleeping or closing one included                                                                                                                                             |
+| `waiting`           | the position is a hold, with the hold's reason                                                                                                                                                              |
+| `done` or `waiting` | the position is an end: `done` when a pull request linked to a succeeded build attempt has merged, otherwise `waiting` with `pull request open`, `no pull request linked` or `pull request closed unmerged` |
+| `idea`              | the phase needs an acceptance list and the item has none                                                                                                                                                    |
+| `blocked`           | an item that `blocks` this one is neither done nor archived                                                                                                                                                 |
+| `ready`             | any other case                                                                                                                                                                                              |
 
-[Open for the builder](./v1-open.md) lists every point that the sketches mark as not checked, assumed, not decided or not designed. Read it before you start a slice of the [work list](./v1-work-list.md).
+Once the position is an end, the state reads the merge of the pull request, never a merge phase's
+outcome, so a merge by hand and one by boxxy both make the item `done`. An item on hold stays
+`waiting` even when its pull request merges. Under the example, which ends at review, the item waits
+with `pull request open` until someone merges it;
+[the merge step](../../design/boxxy/review-and-merge.md#the-merge-step) makes boxxy merge it. An
+item whose pull request closed unmerged waits, and the owner sends it back with
+`boxxy item retry <item> --phase build` or closes it.

@@ -162,7 +162,7 @@ for its commands.
 
 The registry is [`verify-registry.ts`](../../../apps/cli/src/test-utils/verify/verify-registry.ts),
 with each feature's `paths` in `feature-paths.ts` beside it.
-[Wringer journeys](../../../docs/design/boxxy/wringer-journeys.md) owns what each journey proves.
+[Verify journeys](../../../docs/architecture/repo/verify-journeys.md) owns what each journey proves.
 
 <!-- /repo -->
 

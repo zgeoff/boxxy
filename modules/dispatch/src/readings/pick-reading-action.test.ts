@@ -59,7 +59,7 @@ function setupTest() {
   };
 }
 
-// One case per cell of the reconcile table in v1-lifecycle.md, half a minute after the move, so
+// One case per cell of the reconcile table in docs/architecture/work/attempts.md, half a minute after the move, so
 // inside every time bound.
 test.each<[reading: SessionReading['kind'], state: LiveAttemptState, expected: ReadingAction]>([
   ['running', 'starting', { kind: 'move-to-running', via: 'reconcile' }],

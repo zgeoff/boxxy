@@ -1,25 +1,22 @@
 # Open for the builder
 
-No sketch in [`sketches/v1/`](./sketches/v1/) was compiled or run. This doc lists every point that the sketches leave open: what has no design, what is not decided, where the sketches disagree, what nobody checked, what the design assumes, and what must land in another repo first. Settle each point in the slice of the [work list](./v1-work-list.md) that meets it, and rewrite the sketch and the doc in the same commit. In a sketch, search for `Not checked:`, `Assumed:`, `Not decided:`, `TODO (not designed):` and `KNOWN FAULT:` to find the point in its place.
+This doc lists every point that the built system leaves open: what has no design, what is not decided, what nobody checked, what the design assumes, and what must land in another repo first. When a change settles a point, remove its row in the same commit, and update the [architecture doc](../../architecture/overview.md) that the point touches.
 
 ## Not designed
 
 | Point | Where |
 | --- | --- |
-| A query for the measure "attempts lost". No query reads the failure of an attempt. | [`04-facts.ts`](./sketches/v1/core/04-facts.ts), section D |
-| A cause on the `slept` fact. Without one, no report can tell an unattended sleep from an idle sleep. | [`02-queries.ts`](./sketches/v1/pepys-package/02-queries.ts), section D |
+| A query for the measure "attempts lost". No query reads the failure of an attempt. | the pepys queries in `@boxxy/pepys` |
+| A cause on the `slept` fact. Without one, no report can tell an unattended sleep from an idle sleep. | the `boxxy.attempt.slept` fact in `@boxxy/model` |
 
 ## Not decided
 
-- Three points of the [folder layout](./layout-folders.md#open-questions).
+- How to split `libs/model/src/types.ts`, which holds the shared core types in one file. A split by subject, such as IDs, rows and recipes, is open.
+- Whether to keep `ports/` and `rows/` in `@boxxy/model`. They name a kind of file more than a subject. The alternative is to split `ports/types.ts` by port into the subject folders.
+- How to name a concept file. A concept file exports under the bare name, such as `pool`, as a phase file does (`review`). The other choice is a name with a suffix, such as `pool-concept.ts`, which breaks the pin script's `concepts/<name>.ts` path.
+- Whether to replace `@tsconfig/strictest` with `@zgeoff/tsconfig` once that config is proven in another repo.
 - What a build from a git source checks out. The design names no branch or commit per item, so every spawn clones the configured ref. A rework round on the kept session keeps the build's work. A fresh spawn after a failed wake starts again from the ref, and reaches the first build's work only through what that build pushed.
 - Whether to make the claim cheaper before the store holds thousands of open items. The built claim holds the lock for 418 ms at p50 with 20,000 open items, and for 2.4 s when every item has a lever ([dispatch](./dispatch.md#the-built-claim-measured)). The expedite signal reads every lever once per item, so its cost grows with the square of the item count. At 5,000 open items the claim's median is 103 to 173 ms, over the store rule's limit of 50 ms, so `rig bench` fails its budget, and CI does not run the claim benchmark until this point is settled.
-
-## Where the sketches disagree
-
-| Point | What stands |
-| --- | --- |
-| The test fixtures of the package sketch give review sessions the product `codex`. | v1 workers are Claude. The fixture keeps a second product so that the lines per product and the cost per turn stay tested. |
 
 ## Lost on a restart
 
@@ -55,7 +52,7 @@ Each row names the test that settles it, where one is known.
 | --- | --- |
 | That the CLI's HTTP client works through the broker: `HTTPS_PROXY`, the broker's CA, HTTP/1.1. | One CLI call from an imp. |
 | That Claude Code can be given the session MCP endpoint in a session that atc starts. The CLI is the path a prompt names. | Start one session with the endpoint set. |
-| That `git fetch` of one commit by ID works from an imp through the broker's proxy and CA, and that the skills repository is public or the broker adds a credential for it. The session-start hook runs this fetch ([the CLI and the hooks](./v1-cli.md#installing-skills)). | Run the hook once in an imp. |
+| That `git fetch` of one commit by ID works from an imp through the broker's proxy and CA, and that the skills repository is public or the broker adds a credential for it. The session-start hook runs this fetch ([the CLI and the hooks](../../architecture/interfaces/cli-and-hooks.md#installing-skills)). | Run the hook once in an imp. |
 | That the agent's first turn waits for the SessionStart hook, so the fetched skills are in place before the agent lists them, and that the Bash `tool_response` of a PostToolUse payload holds the output as `stdout`. The hooks read both from the Claude Code docs. | Run one session with the plug-in and print the payload. |
 | The form of the audience in the broker's identity token: the bare made-up host, or an origin with its scheme. The verifier compares it with the configured audience as an exact string. | Decode one token that the broker adds to a call from an imp. |
 
@@ -75,7 +72,7 @@ Each row names the test that settles it, where one is known.
 | That a scope consumer can write two entity tables and a link from one scope read. | Run the consumer on the real pepys host. |
 | The Rust host, and the scriptc compile in CI. The tests on the kit's test store prove neither. The compile ran once on a dev machine; a fresh install blocks scriptc's install script, so CI does not compile. | The end-to-end test, on a real pepys. |
 | That a fact whose payload does not decode is reported. The scope read leaves it out with no error, so a newer boxxy server can lose a fact from a table. | Send one fact with an unknown field value. |
-| That a webhook's pull request ID equals the ID that REST returns. [`lookups.md`](./sketches/v1/pepys-package/lookups.md) compared REST with the Events API. | Compare one delivery in pepys with one REST read. |
+| That a webhook's pull request ID equals the ID that REST returns. An earlier lookup compared REST with the Events API ([facts and pepys](../../architecture/interfaces/facts-and-pepys.md)). | Compare one delivery in pepys with one REST read. |
 | That the six statements of the two queries run on the real store. They ran on the kit's test store. | Run both queries on the real store. |
 | That a zod schema made in boxxy's copy of zod works as a family type in the kit. The peer dependency is meant to make it one copy. | Build the deployment with the package. |
 | That the GitHub plug-in's delivery module gives the release and deploy times that the stage-time query reads. The end-to-end test sends a merge only, so both stay null there. | Send a release and a deploy webhook in the end-to-end test. |

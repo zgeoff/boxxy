@@ -23,7 +23,7 @@ None.
 ## The check list
 
 - Change the CI script list in the `BUN_CHECK_SCRIPTS` repo variable, which `gh variable list`
-  shows, and in the sentence of [the tech stack](../../../docs/design/boxxy/tech-stack.md) that
+  shows, and in the sentence of [the tech stack](../../../docs/architecture/repo/tech-stack.md) that
   gives its value. Ask the owner to set the variable.
 - Leave `bench` out of the list. The claim benchmark fails its budget, as
   [dispatch](../../../docs/design/boxxy/dispatch.md#the-built-claim-measured) records.
