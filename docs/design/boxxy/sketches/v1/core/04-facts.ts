@@ -193,7 +193,7 @@ export interface WorkFacts {
   // written by: the runner, past the step's `timeoutMinutes`. The attempt moves to `closing`
   'boxxy.attempt.timed_out': OfAttempt & { readonly phase: PhaseName; readonly afterMinutes: Minutes };
 
-  // written by: the runner, in agent mode, when the turn ended with no close-out. ─▶ `closing`
+  // written by: nothing. The schema stays so that stored facts still parse
   'boxxy.attempt.turn_ended': OfAttempt & { readonly phase: PhaseName };
 
   // written by: `settleAttempt`. `at` equals `endedAt`. No `next`: the position is derived

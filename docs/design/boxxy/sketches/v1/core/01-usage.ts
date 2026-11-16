@@ -108,6 +108,8 @@ import { createFakeFactSink, outboxLimits, runSenderOnce, toWireItem } from '@bo
 //                                                # activity at all for this long also counts as waiting
 //     afterUnattendedMinutes: 240                # an attended session whose agent stays active
 //                                                # sleeps when the owner has not attached for this long
+//     afterSilentMinutes: 45                     # optional, 45 by default: an agent-mode session
+//                                                # with no activity this long fails as `stalled`
 //
 // An item that sets no `designMode` has the filter value `agent`, so it lands in the pool `design`.
 //

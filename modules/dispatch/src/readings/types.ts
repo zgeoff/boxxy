@@ -43,7 +43,7 @@ export type ReadingAction =
       readonly cause: 'timed-out';
       readonly afterMinutes: number;
     }
-  | { readonly kind: 'close'; readonly cause: 'turn-ended' | 'stalled' }
+  | { readonly kind: 'close'; readonly cause: 'stalled' }
   | {
       readonly kind: 'close';
       readonly cause: 'usage-limit';

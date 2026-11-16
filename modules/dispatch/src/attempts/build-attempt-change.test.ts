@@ -205,20 +205,6 @@ test.each<MoveCase>([
     [],
   ]),
   [
-    'turn-ended from running in agent mode',
-    'running',
-    { mode: 'agent' },
-    { kind: 'turn-ended' },
-    [
-      {
-        op: 'update',
-        table: 'attempts',
-        set: { state: 'closing', closing: 'turn-ended', closingAt: 5000 },
-      },
-    ],
-    ['boxxy.attempt.turn_ended'],
-  ],
-  [
     'stalled from running in agent mode',
     'running',
     { mode: 'agent' },
@@ -473,7 +459,6 @@ test.each<[title: string, from: AttemptState, overrides: Partial<AttemptRow>, ev
     { mode: 'attended' },
     { kind: 'timed-out', afterMinutes: 90 },
   ],
-  ['turn-ended in attended mode', 'running', { mode: 'attended' }, { kind: 'turn-ended' }],
   ['stalled in attended mode', 'running', { mode: 'attended' }, { kind: 'stalled' }],
   [
     'started on a closing attempt that has a session',

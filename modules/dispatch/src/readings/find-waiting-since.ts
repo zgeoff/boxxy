@@ -15,15 +15,12 @@ interface WaitingInput {
 export function findWaitingSince(input: WaitingInput): Instant | null {
   const reading = input.reading;
 
-  if (reading.kind !== 'running') {
+  // an agent-mode session never waits for the owner: nobody would wake it after a sleep
+  if (reading.kind !== 'running' || input.attempt.mode !== 'attended') {
     return null;
   }
 
-  if (reading.attention === 'needs-input') {
-    return reading.lastActivityAt;
-  }
-
-  if (reading.attention === 'turn-ended' && input.attempt.mode === 'attended') {
+  if (reading.attention !== 'working') {
     return reading.lastActivityAt;
   }
 
@@ -38,7 +35,7 @@ export function findWaitingSince(input: WaitingInput): Instant | null {
   // reads as working with no later activity
   const quietMs = input.now - reading.lastActivityAt;
 
-  if (input.attempt.mode === 'attended' && quietMs >= input.quietAfterMinutes * minuteMs) {
+  if (quietMs >= input.quietAfterMinutes * minuteMs) {
     return reading.lastActivityAt;
   }
 

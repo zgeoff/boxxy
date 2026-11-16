@@ -35,6 +35,7 @@ async function setupTest() {
     agentSession: (name: string) => brandSchemas.agentSessionId.parse(name),
     claimAttended: () => claimAt('design', 'attended'),
     claimAgent: () => claimAt('build', 'agent'),
+    claimAgentDesign: () => claimAt('design', 'agent'),
     claimReview: () => claimAt('review', 'agent'),
     closeOut: (attempt: AttemptRow, body: unknown) =>
       closeOutAttempt({
@@ -181,6 +182,84 @@ test('it does not settle an attended session whose turn ended with no close-out'
   const after = await ctx.readAttempt(attempt.id);
 
   expect(after.state).toBe('running');
+});
+
+test('it keeps an agent-mode attempt live while its turn has ended and it is quiet for 44 minutes', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAgent();
+
+  ctx.worker.setSession(attempt.id, {
+    state: 'running',
+    attention: 'turn-ended',
+    lastActivityAt: ctx.clock.now(),
+    agentSession: ctx.agentSession('agent-session-1'),
+  });
+
+  await ctx.tick();
+
+  ctx.clock.advance(44 * 60_000);
+
+  await ctx.tick();
+
+  const after = await ctx.readAttempt(attempt.id);
+
+  expect([after.state, after.closing]).toStrictEqual(['running', null]);
+});
+
+test('it settles an agent-mode attempt quiet for 45 minutes after its turn ended as lost', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAgent();
+
+  ctx.worker.setSession(attempt.id, {
+    state: 'running',
+    attention: 'turn-ended',
+    lastActivityAt: ctx.clock.now(),
+    agentSession: ctx.agentSession('agent-session-1'),
+  });
+
+  await ctx.tick();
+
+  ctx.clock.advance(45 * 60_000);
+
+  await ctx.tick();
+  await ctx.tick();
+  await ctx.tick();
+
+  const settled = await ctx.readAttempt(attempt.id);
+
+  expect([settled.state, settled.failure, settled.outcome]).toStrictEqual([
+    'failed',
+    'stalled',
+    'lost',
+  ]);
+});
+
+test('it settles an agent-mode attempt that closed out before its turn ended by its close-out', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAgentDesign();
+
+  ctx.worker.setSession(attempt.id, {
+    state: 'running',
+    attention: 'turn-ended',
+    lastActivityAt: ctx.clock.now(),
+    agentSession: ctx.agentSession('agent-session-1'),
+  });
+
+  await ctx.closeOut(attempt, {
+    result: { kind: 'designed', design: { summary: 'Follow the system theme.', location: null } },
+    friction: [],
+  });
+
+  await ctx.tick();
+  await ctx.tick();
+
+  const settled = await ctx.readAttempt(attempt.id);
+
+  expect([settled.state, settled.failure, settled.outcome]).toStrictEqual([
+    'succeeded',
+    null,
+    'designed',
+  ]);
 });
 
 test('it keeps the seats of a closed-out attempt until its session stops', async () => {

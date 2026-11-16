@@ -112,6 +112,7 @@ export const rulesFileSchema = z
       afterIdleMinutes: minutesSchema,
       afterQuietMinutes: minutesSchema,
       afterUnattendedMinutes: minutesSchema,
+      afterSilentMinutes: minutesSchema.default(45),
     }),
   })
   .superRefine((file, ctx) => {

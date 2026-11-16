@@ -100,9 +100,9 @@ function pickRunningBound(
   return { kind: 'bind-only' };
 }
 
-// The bounds of a running attempt whose session runs, in the order they are checked. A session
-// that waits for the owner sleeps before the stall rule can stop it: both fall due 30 minutes
-// after the last activity, and a stall first would leave the idle sleep no case in agent mode.
+// The bounds of a running attempt whose session runs, in the order they are checked. A turn end
+// is no bound, because agents end turns to wait, and boxxy puts no agent-mode session to sleep,
+// because a sleep stops its scheduled wakeup. So only the stall ends a silent agent-mode session.
 const runningBounds: readonly RunningBound[] = [
   {
     name: 'a suspend that did not happen',
@@ -137,13 +137,6 @@ const runningBounds: readonly RunningBound[] = [
     },
   },
   {
-    name: 'a turn that ended with no close-out, agent mode',
-    pick: (input) =>
-      input.attempt.mode === 'agent' && input.reading.attention === 'turn-ended'
-        ? { kind: 'close', cause: 'turn-ended' }
-        : null,
-  },
-  {
     name: 'a session that waits for the owner',
     pick: (input) => {
       const waitingSince = findWaitingSince({
@@ -165,11 +158,14 @@ const runningBounds: readonly RunningBound[] = [
   },
   {
     name: 'a stall, agent mode',
-    pick: (input) =>
-      input.attempt.mode === 'agent' &&
-      input.now - input.reading.lastActivityAt >= timeouts.stallMinutes * minuteMs
+    pick: (input) => {
+      const since = getLater(getStretchStart(input.attempt), input.reading.lastActivityAt);
+
+      return input.attempt.mode === 'agent' &&
+        input.now - since >= input.sleep.afterSilentMinutes * minuteMs
         ? { kind: 'close', cause: 'stalled' }
-        : null,
+        : null;
+    },
   },
   {
     name: 'an owner who has not attached, attended mode',

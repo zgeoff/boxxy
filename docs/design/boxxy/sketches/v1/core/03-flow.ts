@@ -40,7 +40,6 @@ import { hashCanonical } from '@boxxy/content-hash';
 //   closed-out         every live state but closing              closing      clears the mark and the wake request; `closed_out`
 //   timed-out          running, mode `agent`                     closing      `timed_out`
 //   item-closed        starting, reconciling, running, waking    closing      clears the mark and the wake request; the fact is `boxxy.item.closed`
-//   turn-ended         running, mode `agent`                     closing      `turn_ended`
 //   stalled            running, mode `agent`                     closing      no fact of its own; `settled` carries the cause
 //   usage-limited      running                                   closing      no fact of its own; `settled` carries the cause
 //   skill-missing      starting, reconciling, running            closing      no fact of its own; `settled` carries the cause
@@ -168,8 +167,6 @@ export function buildAttemptChange(input: { attempt: AttemptRow | null; event: A
 //                                     usage limit: close (10)      else, 10 s on:
 //                                     agent mode, past the         wake-over-cap (1)
 //                                       timeout: close (timed-out)
-//                                     agent mode, turn-ended:
-//                                       close (turn-ended)
 //                                     waits: sleep-if-idle (8)
 //                                     agent mode, stall (9)
 //                                     attended, unattended:
@@ -207,16 +204,14 @@ export function buildAttemptChange(input: { attempt: AttemptRow | null; event: A
 //       boxxy's own sleep: the host slept with no request. An attempt whose host slept before
 //       atc captured the ID settles as `resume-lost` on its wake.
 //   (9) The stall rule, a cell of `running` × `running`, agent mode only. The
-//       reading's `lastActivityAt` is `timeouts.stallMinutes` (30) old: close (stalled). The
-//       runner stops the session and the attempt settles as `failed`, `stalled`, which counts
+//       latest of `lastActivityAt`, the start and the latest wake is `sleep.afterSilentMinutes`
+//       (45) old: close (stalled). The runner stops the session and the attempt settles as `failed`, `stalled`, which counts
 //       against `maxAttempts`. It is checked after `waits` and before `bind-only`, whatever the
 //       attention is. It does not apply to attended mode: such a session sleeps (the quiet
 //       rule). It is the floor under the step timeout, which can be hours.
-//       The tie: an agent-mode session that asks for input and then shows no activity meets
-//       the idle sleep and the stall at the same instant, 30 minutes after `lastActivityAt`.
-//       `waits` comes first, so the session sleeps. With the stall first, no agent-mode session
-//       could ever sleep idle. With no agent session ID (8), `waits` gives nothing and the
-//       stall rule stops the session.
+//       A turn end alone is no bound, and an agent-mode session never waits, so boxxy never
+//       sleeps it: a sleep stops its scheduled wakeup, and Claude Code's idle notice after each
+//       turn end reads as a request for input. Silence ends it only through the stall rule.
 //   (10) The usage limit. The worker port reports it on the reading: `usageLimitResetsAt` is
 //       the time at which the account's limit resets, or null. A reading with a time gives
 //       close (usage-limit), in any mode, before every other bound: the session can do no more
@@ -260,7 +255,7 @@ export function buildAttemptChange(input: { attempt: AttemptRow | null; event: A
 //   - `closing` beats the mark. A close-out that lands between the mark and the stop moves the
 //     attempt to `closing` and clears the mark; the stop that follows is then the closing's stop.
 
-export function pickReadingAction(input: { attempt: AttemptRow; reading: SessionReading; step: PipelineStep | null; sleep: { afterIdleMinutes: number; afterQuietMinutes: number; afterUnattendedMinutes: number /* the third sleep time, as 02-types.ts has it */ }; now: Instant }): ReadingAction {
+export function pickReadingAction(input: { attempt: AttemptRow; reading: SessionReading; step: PipelineStep | null; sleep: { afterIdleMinutes: number; afterQuietMinutes: number; afterUnattendedMinutes: number; afterSilentMinutes: number /* as 02-types.ts has them */ }; now: Instant }): ReadingAction {
   throw new Error('not implemented'); // the table above
 }
 
@@ -268,12 +263,11 @@ export function pickReadingAction(input: { attempt: AttemptRow; reading: Session
 //
 // "The session waits for the owner", from the reading alone (atc has no such signal):
 //
-//   attention `needs-input`                             every mode: since `lastActivityAt`
-//   attention `turn-ended`, mode `attended`             since `lastActivityAt`
-//   a woken session with no activity after `wokenAt`    since `wokenAt` (atc lists a revived session as `running`)
+//   attention `needs-input` or `turn-ended`, attended   since `lastActivityAt`
+//   a woken attended session, no activity after `wokenAt`  since `wokenAt` (atc lists a revived session as `running`)
 //   attention `working`, mode `attended`, and           since `lastActivityAt` (the quiet rule)
 //     `lastActivityAt` is `sleep.afterQuietMinutes` old
-//   anything else                                       it does not wait
+//   anything else, and every agent-mode session          it does not wait
 //
 // Why the quiet rule: an attach moves an atc session from `needs_you` to `running`, so a
 // prompt that the owner looked at and left reads `working` with no later activity. The rule

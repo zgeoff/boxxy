@@ -50,7 +50,12 @@ export function loadMockRules(input: MockRulesInput): LoadedRules {
         },
       ]),
     ),
-    sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 },
+    sleep: {
+      afterIdleMinutes: 30,
+      afterQuietMinutes: 60,
+      afterUnattendedMinutes: 240,
+      afterSilentMinutes: 45,
+    },
   };
 
   const encoder = new TextEncoder();

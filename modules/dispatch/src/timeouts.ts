@@ -9,7 +9,6 @@ export const timeouts: DispatchTimeouts = {
   // two ticks of the runner's 5-second loop: the reconcile table reads the time, not a tick count
   seatlessSeconds: 10,
   capacityBackoffSeconds: 60,
-  stallMinutes: 30,
   keptSessionHours: 24,
   failedSessionHours: 24,
   usageLimitBackoffHours: 24,
