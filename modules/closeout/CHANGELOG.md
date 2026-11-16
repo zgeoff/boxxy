@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.2.10](https://github.com/zgeoff/boxxy/compare/@boxxy/closeout@0.2.9...@boxxy/closeout@0.2.10) (2026-11-16)
+
+
+### Bug Fixes
+
+* **closeout:** let a design order the open items it files ([#141](https://github.com/zgeoff/boxxy/issues/141)) ([4d4d432](https://github.com/zgeoff/boxxy/commit/4d4d43263a4964decbe6e261bf2c2e91de3f71c5))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/model bumped to 0.2.10
+    * @boxxy/train bumped to 0.2.10
+  * devDependencies
+    * @boxxy/planning bumped to 0.2.10
+    * @boxxy/rules bumped to 0.2.10
+
 ## [0.2.9](https://github.com/zgeoff/boxxy/compare/@boxxy/closeout@0.2.8...@boxxy/closeout@0.2.9) (2026-11-15)
 
 ### Miscellaneous Chores
