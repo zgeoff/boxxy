@@ -19,11 +19,7 @@ export function findWaitingSince(input: WaitingInput): Instant | null {
     return null;
   }
 
-  if (reading.attention === 'needs-input') {
-    return reading.lastActivityAt;
-  }
-
-  if (reading.attention === 'turn-ended' && input.attempt.mode === 'attended') {
+  if (reading.attention !== 'working' && input.attempt.mode === 'attended') {
     return reading.lastActivityAt;
   }
 

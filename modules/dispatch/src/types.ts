@@ -19,7 +19,6 @@ export interface DispatchTimeouts {
   readonly capacityBackoffSeconds: number;
 
   // agent mode: a session with no activity this long is stopped
-  readonly stallMinutes: number;
   readonly keptSessionHours: number;
   readonly failedSessionHours: number;
 

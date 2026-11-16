@@ -204,15 +204,14 @@ export function buildAttemptChange(input: { attempt: AttemptRow | null; event: A
 //       boxxy's own sleep: the host slept with no request. An attempt whose host slept before
 //       atc captured the ID settles as `resume-lost` on its wake.
 //   (9) The stall rule, a cell of `running` × `running`, agent mode only. The
-//       reading's `lastActivityAt` is `timeouts.stallMinutes` (120) old: close (stalled). The
+//       reading's `lastActivityAt` is `sleep.afterSilentMinutes` (45) old: close (stalled). The
 //       runner stops the session and the attempt settles as `failed`, `stalled`, which counts
 //       against `maxAttempts`. It is checked after `waits` and before `bind-only`, whatever the
 //       attention is. It does not apply to attended mode: such a session sleeps (the quiet
 //       rule). It is the floor under the step timeout, which can be hours.
-//       A turn end alone is no bound: an agent-mode attempt ends by its close-out or by the
-//       stall rule. An agent-mode session that asks for input sleeps after 30 minutes, before
-//       the stall. With no agent session ID (8), `waits` gives nothing and the stall rule stops
-//       the session.
+//       A turn end alone is no bound, and an agent-mode session that asks for input never
+//       waits: Claude Code's idle notice after each turn end reads as a request for input. So
+//       silence ends an agent-mode attempt only through the stall rule.
 //   (10) The usage limit. The worker port reports it on the reading: `usageLimitResetsAt` is
 //       the time at which the account's limit resets, or null. A reading with a time gives
 //       close (usage-limit), in any mode, before every other bound: the session can do no more
@@ -256,7 +255,7 @@ export function buildAttemptChange(input: { attempt: AttemptRow | null; event: A
 //   - `closing` beats the mark. A close-out that lands between the mark and the stop moves the
 //     attempt to `closing` and clears the mark; the stop that follows is then the closing's stop.
 
-export function pickReadingAction(input: { attempt: AttemptRow; reading: SessionReading; step: PipelineStep | null; sleep: { afterIdleMinutes: number; afterQuietMinutes: number; afterUnattendedMinutes: number /* the third sleep time, as 02-types.ts has it */ }; now: Instant }): ReadingAction {
+export function pickReadingAction(input: { attempt: AttemptRow; reading: SessionReading; step: PipelineStep | null; sleep: { afterIdleMinutes: number; afterQuietMinutes: number; afterUnattendedMinutes: number; afterSilentMinutes: number /* as 02-types.ts has them */ }; now: Instant }): ReadingAction {
   throw new Error('not implemented'); // the table above
 }
 
@@ -264,8 +263,7 @@ export function pickReadingAction(input: { attempt: AttemptRow; reading: Session
 //
 // "The session waits for the owner", from the reading alone (atc has no such signal):
 //
-//   attention `needs-input`                             every mode: since `lastActivityAt`
-//   attention `turn-ended`, mode `attended`             since `lastActivityAt`
+//   attention `needs-input` or `turn-ended`, attended   since `lastActivityAt`
 //   a woken session with no activity after `wokenAt`    since `wokenAt` (atc lists a revived session as `running`)
 //   attention `working`, mode `attended`, and           since `lastActivityAt` (the quiet rule)
 //     `lastActivityAt` is `sleep.afterQuietMinutes` old

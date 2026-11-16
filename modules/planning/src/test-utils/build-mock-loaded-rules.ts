@@ -40,7 +40,12 @@ export function buildMockLoadedRules(input: MockRulesInput = {}): LoadedRules {
         skills: [],
       },
     },
-    sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 },
+    sleep: {
+      afterIdleMinutes: 30,
+      afterQuietMinutes: 60,
+      afterUnattendedMinutes: 240,
+      afterSilentMinutes: 45,
+    },
   };
 
   const encoder = new TextEncoder();

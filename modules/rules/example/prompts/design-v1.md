@@ -46,3 +46,7 @@ test or a check, record it with
 prints. Before you end, send the close-out body as JSON on stdin to `boxxy attempt close-out`. When
 it prints problems, fix each one and send it again. The first valid close-out is final, and a
 session that ends without one fails.
+
+When you wait for something, such as CI or a background task, you may end your turn, but wake at
+least every 30 minutes to check on it. boxxy fails a session that shows no activity for longer than
+its silence limit.

@@ -142,7 +142,12 @@ test('it loads the example rules file', () => {
           },
         ]),
       ),
-      sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 },
+      sleep: {
+        afterIdleMinutes: 30,
+        afterQuietMinutes: 60,
+        afterUnattendedMinutes: 240,
+        afterSilentMinutes: 45,
+      },
       skills: { source: 'example/skills', ref: '4f1c9e07a2b35d68c0e1f7a9b3d5c2e8f6a4b1d0' },
       relationTypes: new Map([
         ['blocks', { name: 'blocks' }],
@@ -3180,4 +3185,58 @@ sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 24
   invariant(after.kind === 'loaded');
 
   expect(after.rules.version).not.toBe(before.rules.version);
+});
+
+test.each([
+  { title: 'the 45-minute default when the file omits it', line: '', minutes: 45 },
+  { title: 'the time that the file gives', line: ', afterSilentMinutes: 60', minutes: 60 },
+])('it loads $title as the silence that stalls an agent-mode session', (row) => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const result = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+kinds:
+  core.issue: { pipeline: standard, recipes: { build: build-v1 } }
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+pools:
+  - { name: build, takes: {}, order: [oldest] }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240${row.line} }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+      ]),
+    },
+    concepts,
+    phases: [buildMockPhaseKind({ name: 'build', outcomes: ['built'] })],
+    pins,
+  });
+
+  invariant(result.kind === 'loaded', 'the rules file loads');
+
+  expect(result.rules.sleep.afterSilentMinutes).toBe(row.minutes);
 });

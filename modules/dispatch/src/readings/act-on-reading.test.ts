@@ -184,7 +184,7 @@ test('it does not settle an attended session whose turn ended with no close-out'
   expect(after.state).toBe('running');
 });
 
-test('it keeps an agent-mode attempt live while its turn has ended and it is quiet for 119 minutes', async () => {
+test('it keeps an agent-mode attempt live while its turn has ended and it is quiet for 44 minutes', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.claimAgent();
 
@@ -197,7 +197,7 @@ test('it keeps an agent-mode attempt live while its turn has ended and it is qui
 
   await ctx.tick();
 
-  ctx.clock.advance(119 * 60_000);
+  ctx.clock.advance(44 * 60_000);
 
   await ctx.tick();
 
@@ -206,7 +206,7 @@ test('it keeps an agent-mode attempt live while its turn has ended and it is qui
   expect([after.state, after.closing]).toStrictEqual(['running', null]);
 });
 
-test('it settles an agent-mode attempt quiet for 120 minutes after its turn ended as lost', async () => {
+test('it settles an agent-mode attempt quiet for 45 minutes after its turn ended as lost', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.claimAgent();
 
@@ -219,7 +219,7 @@ test('it settles an agent-mode attempt quiet for 120 minutes after its turn ende
 
   await ctx.tick();
 
-  ctx.clock.advance(120 * 60_000);
+  ctx.clock.advance(45 * 60_000);
 
   await ctx.tick();
   await ctx.tick();

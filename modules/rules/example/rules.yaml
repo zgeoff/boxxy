@@ -111,3 +111,4 @@ sleep:
   afterIdleMinutes: 30 # a session that waits for the owner this long sleeps
   afterQuietMinutes: 60 # an attended session with no activity this long counts as waiting
   afterUnattendedMinutes: 240 # an attended session the owner has not attached to this long sleeps
+  afterSilentMinutes: 45 # an agent-mode session with no activity this long fails; the prompts wake every 30

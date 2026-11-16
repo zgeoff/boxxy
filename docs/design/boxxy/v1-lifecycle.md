@@ -47,14 +47,14 @@ A running attempt whose session runs stays as it is only inside a bound that the
 | --- | --- | --- |
 | both | the session reports that the account hit its usage limit | boxxy stops the session and settles the attempt as `usage-limit` |
 | agent | the step's time limit, counted from the start or the latest wake | boxxy stops the session and settles the attempt as `timed-out` |
-| both | the session waits for the owner for `afterIdleMinutes` (30): it asks for input, or an attended turn ended | sleep |
+| both | the session waits for the owner for `afterIdleMinutes` (30): an attended session asks for input or its turn ended, or a woken session shows no activity | sleep |
 | attended | the session shows no activity at all for `afterQuietMinutes` (60) | sleep |
-| agent | 120 minutes with no activity | boxxy stops the session and settles the attempt as `stalled` |
+| agent | the session shows no activity for `afterSilentMinutes` (45) | boxxy stops the session and settles the attempt as `stalled` |
 | attended | the owner has not attached for `afterUnattendedMinutes` (240), while the agent stays active | sleep, with no idle check |
 
-An agent-mode attempt that the agent does not close out ends at a bound of this table, and never at a turn end, because an agent ends its turn to wait for CI, a subagent or a scheduled wakeup. The stall time is 120 minutes because atc counts only the agent's hook events as activity, and a scheduled wakeup waits up to 60 minutes. A wakeup turn or a background task's turn shows its activity when it ends.
+An agent-mode attempt that the agent does not close out ends at a bound of this table, and never at a turn end, because an agent ends its turn to wait for CI, a subagent or a scheduled wakeup. An agent-mode session that asks for input does not sleep either: Claude Code sends its idle notice 60 seconds after each turn end, and atc reads that notice as a request for input, the same as a real prompt. So silence ends an agent-mode session only at `afterSilentMinutes`.
 
-An agent-mode session that asks for input and then shows no activity sleeps after 30 minutes, before the stall rule can stop it. A session with no agent session ID cannot sleep, so the stall rule stops it.
+atc counts only the agent's hook events as activity, such as the end of a turn, and never a tool call. A turn the agent starts for a scheduled wakeup or a finished background task therefore shows its activity when it ends. A scheduled wakeup can wait up to 60 minutes, so the build and design prompts tell the agent to wake at least every 30 minutes, inside the 45-minute default. The rules file sets `afterSilentMinutes`; with no value, the loader uses 45.
 
 One case has no bound, on purpose: an attended session that the owner attaches to again inside every 240 minutes.
 
@@ -65,13 +65,13 @@ Four rules decide the hard cells:
 - A close-out beats a sleep in progress. A close-out that lands between the sleep request and the stop moves the attempt to `closing`.
 - boxxy puts no attempt to sleep before atc reports an agent session ID for it, because atc cannot revive a session that stopped before atc captured the ID.
 
-The time limits that the rules file does not hold are in `timeouts`, in `modules/dispatch/src/timeouts.ts`: 10 minutes for a lost spawn, a lost resume and a session that does not stop, 60 seconds of grace before a stop, 10 seconds before a revived session wakes over the cap, 120 minutes for a stall, 60 seconds of capacity backoff, 24 hours at most of usage-limit backoff, and 24 hours for a stray session, a kept session and the session of a failed attempt that is not a review. A job attempt has two more: 30 seconds at least between two reads of one job (`jobReadSeconds`), and 5 minutes before the drive sends an unanswered action again (`actRetryMinutes`).
+The time limits that the rules file does not hold are in `timeouts`, in `modules/dispatch/src/timeouts.ts`: 10 minutes for a lost spawn, a lost resume and a session that does not stop, 60 seconds of grace before a stop, 10 seconds before a revived session wakes over the cap, 60 seconds of capacity backoff, 24 hours at most of usage-limit backoff, and 24 hours for a stray session, a kept session and the session of a failed attempt that is not a review. A job attempt has two more: 30 seconds at least between two reads of one job (`jobReadSeconds`), and 5 minutes before the drive sends an unanswered action again (`actRetryMinutes`).
 
 ## Sleep and wake
 
 Section C of [`03-flow.ts`](./sketches/v1/core/03-flow.ts) holds the rules.
 
-boxxy learns that a session waits for the owner from the reading alone: the session asks for input, an attended turn ended, a woken session shows no activity, or an attended session went quiet. The sleep has three steps, and the seats go last:
+boxxy learns that a session waits for the owner from the reading alone: an attended session asks for input or its turn ended, a woken session shows no activity, or an attended session went quiet. The sleep has three steps, and the seats go last:
 
 1. boxxy marks the attempt, in one change, before any worker call.
 2. boxxy asks the worker to suspend the session. The adapter refuses when the session shows newer activity.
@@ -137,7 +137,7 @@ An attempt fails with one of ten forced failures, or with `closeout-missing` or 
 | `session-lost` | the session is absent | yes |
 | `resume-lost` | the session did not run 10 minutes after the wake | yes |
 | `timed-out` | an agent-mode attempt passed its step's time limit, or a job attempt's read threw past it ([job attempts](./review-and-merge.md#job-attempts)) | yes |
-| `stalled` | an agent-mode session showed no activity for 120 minutes | yes |
+| `stalled` | an agent-mode session showed no activity for `afterSilentMinutes` | yes |
 | `skill-missing` | a skill the recipe lists was not there after the fetch | yes |
 | `item-closed` | the owner closed the item | the item is archived |
 | `usage-limit` | the session hit the account's usage limit | no |

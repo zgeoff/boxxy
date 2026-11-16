@@ -134,7 +134,7 @@ export type ClosingCause =
   | 'closed-out' // a valid close-out arrived
   | 'timed-out' // agent mode: past the step's `timeoutMinutes`
   | 'item-closed' // the owner closed the item while the attempt's session ran
-  | 'stalled' // agent mode, no activity for `timeouts.stallMinutes`
+  | 'stalled' // agent mode, no activity for `sleep.afterSilentMinutes`
   | 'skill-missing' // the session-start hook reported a named skill that is not there
   | 'turn-ended'; // stored rows only: no move closes an attempt for its turn end
 
@@ -375,7 +375,9 @@ export interface LoadedRules {
   // `afterUnattendedMinutes`: required, at or above `afterQuietMinutes`. The bound of an
   // attended session whose agent keeps working: it sleeps when the owner has not attached to
   // it for this long, counted from the latest of `startedAt`, `wokenAt` and `lastOwnerAt`.
-  readonly sleep: { readonly afterIdleMinutes: Minutes; readonly afterQuietMinutes: Minutes; readonly afterUnattendedMinutes: Minutes };
+  // `afterSilentMinutes`: optional, 45 when the file omits it. An agent-mode session with no
+  // activity for this long is stopped and settles as `stalled`.
+  readonly sleep: { readonly afterIdleMinutes: Minutes; readonly afterQuietMinutes: Minutes; readonly afterUnattendedMinutes: Minutes; readonly afterSilentMinutes: Minutes };
 
   // The pin of the public skills repo: ONE commit for every recipe. Null when the rules file
   // has no `skills` block; the loader then refuses a recipe that lists a skill.
@@ -867,7 +869,6 @@ export interface DispatchTimeouts {
   // wake the host refused for capacity. Without that the claim loop of one tick picks the
   // refused wake again and never ends.
   readonly capacityBackoffSeconds: number;
-  readonly stallMinutes: Minutes; // 30. Agent mode: a session with no activity for this long is stopped
   readonly keptSessionHours: number; // 24. A kept session is forgotten this long after `keptAt`
   readonly failedSessionHours: number; // 24. A failed attempt's stopped session is forgotten after this
   readonly usageLimitBackoffHours: number; // 24: the most a pool waits after `usage-limit`, and the wait when the reset time is not in the future

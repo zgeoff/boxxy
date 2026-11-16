@@ -223,6 +223,9 @@ export interface SleepRules {
   readonly afterIdleMinutes: Minutes;
   readonly afterQuietMinutes: Minutes;
   readonly afterUnattendedMinutes: Minutes;
+
+  // an agent-mode session with no activity this long fails as `stalled`
+  readonly afterSilentMinutes: Minutes;
 }
 
 export type ConceptEntry = `${string}@${number}`;

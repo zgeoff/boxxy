@@ -100,9 +100,9 @@ function pickRunningBound(
   return { kind: 'bind-only' };
 }
 
-// The bounds of a running attempt whose session runs, in the order they are checked. A session
-// that waits for the owner sleeps before the stall rule can stop it, so an agent-mode session
-// that asks for input sleeps idle. A turn end alone is no bound: agents end turns to wait.
+// The bounds of a running attempt whose session runs, in the order they are checked. A turn end
+// is no bound, because agents end turns to wait, and Claude Code's idle notice after it reads as
+// a request for input, so only the stall ends a silent agent-mode session.
 const runningBounds: readonly RunningBound[] = [
   {
     name: 'a suspend that did not happen',
@@ -160,7 +160,7 @@ const runningBounds: readonly RunningBound[] = [
     name: 'a stall, agent mode',
     pick: (input) =>
       input.attempt.mode === 'agent' &&
-      input.now - input.reading.lastActivityAt >= timeouts.stallMinutes * minuteMs
+      input.now - input.reading.lastActivityAt >= input.sleep.afterSilentMinutes * minuteMs
         ? { kind: 'close', cause: 'stalled' }
         : null,
   },
