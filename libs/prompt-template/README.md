@@ -34,5 +34,5 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-[The launch prompt](../../docs/architecture/work/pipeline.md#the-launch-prompt) lists the placeholders and
-their values.
+[The launch prompt](../../docs/architecture/work/pipeline.md#the-launch-prompt) lists the
+placeholders and their values.

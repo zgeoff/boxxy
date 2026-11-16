@@ -37,5 +37,5 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-The [rules design](../../docs/design/boxxy/rules.md) says why rules live in git, and
-`@boxxy/model` holds the shape of the loaded rules.
+The [rules design](../../docs/design/boxxy/rules.md) says why rules live in git, and `@boxxy/model`
+holds the shape of the loaded rules.

@@ -66,5 +66,6 @@ unless a broker adds the credential. [Hold notices](../../docs/architecture/work
 
 ## Documentation
 
-[The API and its auth](../../docs/architecture/interfaces/api-and-auth.md) sets out the listeners, the
-public door and its `publicDoor` configuration, the tokens and which caller may call each procedure.
+[The API and its auth](../../docs/architecture/interfaces/api-and-auth.md) sets out the listeners,
+the public door and its `publicDoor` configuration, the tokens and which caller may call each
+procedure.

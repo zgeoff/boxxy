@@ -27,8 +27,8 @@ compare models, prompts and rules on the same kind of task.
 
 ## Workspace
 
-boxxy is one [Bun](https://bun.sh) workspace. The [layout](./docs/architecture/repo/layout.md) sets which
-folder holds what, and which package may import which.
+boxxy is one [Bun](https://bun.sh) workspace. The [layout](./docs/architecture/repo/layout.md) sets
+which folder holds what, and which package may import which.
 
 | Package                  | Folder                  | Holds                                              |
 | ------------------------ | ----------------------- | -------------------------------------------------- |
@@ -58,8 +58,9 @@ bun run typecheck && bun run lint && bun run test
 
 - `docs/architecture/`: how the built system works. Start at the
   [overview](./docs/architecture/overview.md).
-- `docs/design/boxxy/`: the designs for work not yet built. The [index](./docs/design/boxxy/README.md)
-  lists them, and the [core model](./docs/design/boxxy/core-model.md) defines the terms.
+- `docs/design/boxxy/`: the designs for work not yet built. The
+  [index](./docs/design/boxxy/README.md) lists them, and the
+  [core model](./docs/design/boxxy/core-model.md) defines the terms.
 - `docs/decisions/`: the decision records, numbered in the order they were made.
 - `docs/runbooks/`: the maintainer steps the tooling doesn't do, such as a package's first publish.
 

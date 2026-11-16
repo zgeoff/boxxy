@@ -40,5 +40,5 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-[Facts and pepys in v1](../../docs/architecture/interfaces/facts-and-pepys.md) describes the outbox, the
-fact catalog, the `boxxy_work` package and the two queries.
+[Facts and pepys in v1](../../docs/architecture/interfaces/facts-and-pepys.md) describes the outbox,
+the fact catalog, the `boxxy_work` package and the two queries.

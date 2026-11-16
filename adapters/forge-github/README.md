@@ -52,5 +52,5 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-[The pull request watch](../../docs/architecture/interfaces/github.md#the-pull-request-watch) describes
-the calls and the GitHub permissions they need.
+[The pull request watch](../../docs/architecture/interfaces/github.md#the-pull-request-watch)
+describes the calls and the GitHub permissions they need.

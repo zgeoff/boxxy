@@ -56,5 +56,5 @@ of the fact they recorded.
 
 ## Documentation
 
-[The CLI and the hooks](../../docs/architecture/interfaces/cli-and-hooks.md) lists the environment, the exit codes and
-what each hook does.
+[The CLI and the hooks](../../docs/architecture/interfaces/cli-and-hooks.md) lists the environment,
+the exit codes and what each hook does.
