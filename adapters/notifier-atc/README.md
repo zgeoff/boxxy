@@ -40,5 +40,5 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-[Notices in v1](../../docs/architecture/work/pipeline.md#notices) describes when a notice is written
-and sent.
+[Notices in v1](../../docs/architecture/work/pipeline.md#when-an-item-needs-the-owner) describes
+when a notice is written and sent.

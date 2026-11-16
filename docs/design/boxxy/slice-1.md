@@ -32,7 +32,7 @@ stands. A v1 doc owns each of these subjects:
 
 | Subject in this doc | The v1 doc that stands |
 | --- | --- |
-| the pipeline, the pools and their slots, `maxAttempts` per kind | [the pipeline](../../architecture/work/pipeline.md#the-pipeline), [limits and pools](../../architecture/work/pipeline.md#limits-and-pools) |
+| the pipeline, the pools and their slots, `maxAttempts` per kind | [the pipeline](../../architecture/work/pipeline.md#phases-and-edges), [limits and pools](../../architecture/work/pipeline.md#limits-and-pools) |
 | the attempt states, the runner loop's table, settle, close-outs | [attempt lifecycle](../../architecture/work/attempts.md) |
 | the commands, the API's address and the caller check | [API and auth](../../architecture/interfaces/api-and-auth.md) |
 | the fact catalog, the outbox sender, the pepys adapter and its package `@boxxy/facts-pepys`, the consumer and the query | [facts and pepys](../../architecture/interfaces/facts-and-pepys.md) |
@@ -156,7 +156,7 @@ on pepys outside boxxy. These rules keep that true:
 
 Slice 1 creates these packages and no others. Each folder name is the package name under
 `@boxxy/`, and the folder's parent sets the package's dependency tag ([layout](../../architecture/repo/layout.md)). Every
-package publishes ([tech stack](../../architecture/repo/tech-stack.md#every-package-publishes)).
+package publishes ([tech stack](../../architecture/repo/release.md#the-packages)).
 
 The apps, tagged `app`:
 

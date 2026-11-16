@@ -1,21 +1,19 @@
 # Attempt lifecycle
 
-boxxy runs each phase of an item as an attempt: one try at the phase, in one agent session. A job,
-such as a merge, is an attempt with no session, and
-[job attempts](../../design/boxxy/review-and-merge.md#job-attempts) covers it. The runner starts an
-attempt when it claims the item, and settles it as succeeded or failed. On each tick the runner
-reads the session of every live attempt through the atc worker, as `running`, `suspended`, `ended`
-or `absent`, and one pure table maps the reading and the attempt's state to one action.
+An attempt is one try at one phase of one item. The runner claims it, starts its agent session
+through atc, reads that session on every tick, and finally settles the attempt as succeeded or
+failed. An attempt ends on a close-out, on a time bound, or when its session is lost, and never just
+because the agent's turn ended: agents end turns to wait for CI or a scheduled wakeup. The attempt
+keeps its seats and the lease on its phase until its session has stopped, so two sessions never work
+the same phase of an item. Read this doc before you change how the runner reads sessions, puts them
+to sleep, wakes them or settles them.
 
-An attempt ends on a close-out, on a bound of [the reconcile table](#the-reconcile-table), or when
-its session is lost. It never ends because a turn ended. boxxy stops the session before it settles
-the attempt, so the attempt holds its seats until its session has stopped. The one exception is
-[the give-up rule](#closing-the-stop-and-the-give-up-rule).
-
-[The overview](../overview.md#terms) defines the terms this doc uses, such as runner, tick, claim,
-seat, settle, fact and atc. [The pipeline](./pipeline.md) covers phases, steps, edges, limits and
-holds, [agent sessions](./sessions.md) the kept session, cleanup and the atc worker, and
-[the close-outs design](../../design/boxxy/close-outs.md) the phase kinds.
+[The pipeline](./pipeline.md) covers what an outcome does to the item.
+[Agent sessions](./sessions.md) covers the session itself: keeping it for rework, cleaning it up,
+and the atc adapter. The [close-outs design](../../design/boxxy/close-outs.md) covers each phase
+kind's close-out, and the [job attempts design](../../design/boxxy/review-and-merge.md#job-attempts)
+covers attempts with no session, such as a merge. The [overview](../overview.md#terms) defines the
+shared terms.
 
 ## The states
 
@@ -37,214 +35,191 @@ stateDiagram-v2
   sleeping --> failed: settled
 ```
 
-The table of moves in the attempt machine of `@boxxy/dispatch` holds every move, with the rows and
-facts each one writes; the diagram shows the common ones. An attempt moves to `reconciling` when the
-worker gives no answer to the spawn call. The spawn may still have landed, so the runner reads the
-session by its spawn name. `wake-refused` comes when atc refuses a wake for capacity: the attempt
-sleeps again and keeps its wake request ([capacity](./sessions.md#capacity-and-the-usage-limit)). A
-closing attempt settles by its close-out when it has one, or else with the failure of the event that
-moved it to `closing`. Each failure has its event's name, except that `usage-limited` gives
-`usage-limit`.
+The diagram shows the common moves; the attempt machine in the dispatch module holds every move and
+the rows and facts each one writes.
 
-An attempt takes its seats at the claim, releases them at the sleep, takes them again at the wake
-before the session resumes, and releases them at the settle; `closing` keeps them. From the claim to
-the settle it also holds the lease on its item and phase, a store row that lets one attempt at a
-time run that phase, so a second attempt never starts on it.
+- **`reconciling`** means the spawn call got no answer. The spawn may still have landed, so the
+  runner looks for the session by its spawn name before it tries again.
+- **`wake-refused`** means atc had no room for the wake. The attempt sleeps again and keeps its wake
+  request ([capacity](./sessions.md#capacity-and-the-usage-limit)).
+- **`closing`** means boxxy has decided the attempt is over but its session may still run. The
+  attempt settles once the session has stopped: by its close-out when it has one, otherwise with the
+  failure named by the event that moved it to `closing` (`usage-limited` gives `usage-limit`).
 
-Every write to an attempt, its session rows or its seats goes through one builder in
-`modules/dispatch/src/attempts/`, which runs the XState machine as a pure function, and a repo test
-fails when other code in `modules/dispatch` writes to them.
+An attempt takes its seats at the claim, gives them back when it sleeps, takes them again at the
+wake before the session resumes, and gives them back at the settle; `closing` keeps them. From claim
+to settle it also holds the lease on its item and phase, a store row that lets only one attempt at a
+time run that phase.
 
-Two callers can change one attempt at once, such as the runner and a close-out call. The store
-therefore refuses a change when the stored row differs from the row its builder read: the state,
-every column that the machine's guards read, and the generations of the lease and of the seats. The
-seat generation goes up at each wake. Two moves that leave the state the same can still conflict on
-a guard column. The refused caller reads again on the next tick.
+## Two writers, one attempt
 
-The runner adds a check of its own, because it decides each action from the row it read before the
-session reading. It writes the move inside the store's write lock, which runs one change at a time,
-and writes nothing when the row there differs from the earlier row on a guard column. An action that
-calls the worker first (a respawn, a resume or a stop) also reads the row again before the call.
-That narrows the race, but the worker call runs outside the lock, so the race stays open. A move
-that records the worker's answer, such as `started` or `resumed`, skips the runner's check, and the
-machine refuses it when the answer no longer fits the attempt's state.
+The runner and a close-out call can change the same attempt at the same moment. Every write to an
+attempt, its session rows or its seats therefore goes through one builder in the dispatch module,
+which runs the attempt machine as a pure function, and a repo test fails when any other code in that
+module writes them. The store refuses a change when the stored row differs from the row the builder
+read: its state, every column the machine's guards read, and the generations of the lease and the
+seats. The refused caller reads again on the next tick.
 
-## The reconcile table
+The runner decides each action from a row it read before the session reading, so it adds a check of
+its own. Inside the store's write lock it writes nothing when the row has changed on a guard column,
+and an action that calls atc first (a respawn, a resume or a stop) reads the row again just before
+the call. The atc call runs outside the lock, so this narrows the race without closing it. A move
+that records atc's answer, such as `started`, skips the runner's check, and the machine refuses it
+when the answer no longer fits the attempt's state.
 
-The runner takes the action in this table for each reading:
+## What the runner does with each reading
+
+On each tick the runner reads every live attempt's session as `running`, `suspended`, `ended` or
+`absent`, and one pure table maps the reading and the attempt's state to an action:
 
 | Reading   | starting, reconciling | running                  | sleeping                 | waking                   | closing |
 | --------- | --------------------- | ------------------------ | ------------------------ | ------------------------ | ------- |
-| running   | move to running       | check bounds             | request the wake         | move to running          | stop    |
+| running   | move to running       | check the bounds         | request the wake         | move to running          | stop    |
 | suspended | sleep                 | sleep                    | nothing                  | resume                   | settle  |
 | ended     | settle                | settle                   | nothing                  | resume                   | settle  |
 | absent    | send the spawn again  | settle as `session-lost` | settle as `session-lost` | settle as `session-lost` | settle  |
 
-A time limit or a pending request changes some cells:
+Fixed time limits in the dispatch module change some cells. An absent session settles as
+`spawn-lost` once a starting attempt has waited long enough, and as `resume-lost` for a waking one.
+An `ended` reading on a running attempt that boxxy asked to sleep records the sleep. A running
+session on a sleeping attempt can wake it over its limits ([sleep and wake](#sleep-and-wake)).
 
-- an absent session on a starting or reconciling attempt settles as `spawn-lost` after
-  `timeouts.spawnLostMinutes` (`timeouts` in `@boxxy/dispatch` holds the time limits that the rules
-  file does not set), and a waking one as `resume-lost` after `timeouts.resumeLostMinutes`;
-- a running session on a sleeping attempt can wake it over its limits
-  ([sleep and wake](#sleep-and-wake));
-- a closing attempt follows [the give-up rule](#closing-the-stop-and-the-give-up-rule);
-- an `ended` reading on a running attempt that boxxy asked to sleep records the sleep.
+These rules explain the less obvious cells:
+
+- **atc's `done` reads as running.** It means the turn ended and the session waits for a prompt,
+  which is not an end in either mode.
+- **`ended` on a sleeping attempt does nothing,** because a session on a local machine reads as
+  ended once boxxy suspends it. A session that truly ended while asleep fails at the wake as
+  `resume-lost`.
+- **A host can sleep on its own,** whether a local machine or an imp. The reading then shows
+  `suspended`, and boxxy records the sleep and requests the wake at once.
+- **boxxy never puts a session to sleep before atc reports its agent session ID,** because atc can't
+  revive a session that stopped before atc captured the ID.
+
+### The bounds on a running attempt
 
 A running attempt whose session runs stays as it is until it passes a bound. The pipeline step sets
-`timeoutMinutes`, and the `sleep` block of the [rules file](../overview.md#terms) sets the four
-`after…Minutes` settings; only `afterSilentMinutes` has a default. Each bound applies in one
-[design mode](./pipeline.md#design-mode), `agent` or `attended`, or in both. boxxy checks the bounds
-in this order and acts on the first one that is past:
+`timeoutMinutes`, and the rules file's `sleep` block sets the four `after…Minutes` settings, of
+which only `afterSilentMinutes` has a default. boxxy checks the bounds in this order and acts on the
+first one passed:
 
-| Mode     | Bound                                                                                                                                                                | Past the bound                                                   |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| both     | the reading carries a reset time for the account's usage limit, which atc never reports ([usage limit](./sessions.md#capacity-and-the-usage-limit))                  | boxxy stops the session and settles the attempt as `usage-limit` |
-| agent    | the pipeline step's `timeoutMinutes`, counted from the start or the latest wake                                                                                      | boxxy stops the session and settles the attempt as `timed-out`   |
-| attended | the session waits for the owner for `afterIdleMinutes`: it asks for input, its turn ended, it shows no activity since a wake, or no activity for `afterQuietMinutes` | sleep                                                            |
-| agent    | the session shows no activity for `afterSilentMinutes`, counted from its last activity, its start or its latest wake, whichever is latest                            | boxxy stops the session and settles the attempt as `stalled`     |
-| attended | the owner has not attached for `afterUnattendedMinutes`, while the agent stays active                                                                                | sleep, even when active                                          |
+| Design mode | Bound                                                                                                                                    | Past it                        |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| both        | the reading carries a reset time for the account's usage limit                                                                           | stop, and settle `usage-limit` |
+| agent       | `timeoutMinutes` since the start or the latest wake                                                                                      | stop, and settle `timed-out`   |
+| attended    | the session has waited for the owner for `afterIdleMinutes`: it asked for input, its turn ended, or it was quiet for `afterQuietMinutes` | sleep                          |
+| agent       | no activity for `afterSilentMinutes` since its last activity, start or wake                                                              | stop, and settle `stalled`     |
+| attended    | the owner hasn't attached for `afterUnattendedMinutes`, while the agent stays active                                                     | sleep, even when active        |
 
-In agent mode, an attempt that the agent does not close out ends only at a bound of this table. An
-agent ends its turn to wait for CI, a subagent or a scheduled wakeup, so a turn end is no bound.
-boxxy never asks to put an agent-mode session to sleep, because a sleep stops the agent's scheduled
-wakeup and no owner is there to wake the attempt. This holds when the session asks for input too:
-Claude Code sends its idle notice after each turn end, and atc reads that notice as a request for
-input. So a silent agent-mode session ends only at `afterSilentMinutes`.
+boxxy never puts an agent-mode session to sleep, because a sleep cancels the agent's scheduled
+wakeup and no owner is there to wake it. That holds even when the session asks for input, since
+Claude Code sends its idle notice after every turn end and atc reads that as a request for input. A
+silent agent-mode session therefore ends only at `afterSilentMinutes`.
 
-atc counts only the agent's hook events as activity, such as the end of a turn, and never a tool
-call. A turn the agent starts for a scheduled wakeup or a finished background task therefore shows
-its activity when it ends. A scheduled wakeup can wait longer than the default of
-`afterSilentMinutes`, so the example prompts in `modules/rules/example/prompts/` tell the agent to
-wake more often than that. One case has no bound, on purpose: an attended session that the owner
-attaches to again inside every `afterUnattendedMinutes`.
-
-These rules explain the other cells:
-
-- atc's state `done` means that the turn ended and the session waits for a prompt. It reads as
-  running, never as an end, in either mode.
-- An `ended` reading on a sleeping attempt does nothing, because a session on a local machine reads
-  as ended once boxxy suspends it. A session that truly ended while asleep fails at the wake as
-  `resume-lost`.
-- In either mode, the session's host, the machine it runs on (a local machine or an imp), can sleep
-  on its own. The reading then shows `suspended`, and boxxy records the sleep and requests the wake
-  at once.
-- A close-out that lands between the sleep request and the suspend moves the attempt to `closing`.
-- boxxy puts no attempt to sleep before atc reports an agent session ID for it, because atc cannot
-  revive a session that stopped before atc captured the ID.
+atc counts only the agent's hook events as activity, never a tool call, so a turn shows its activity
+when it ends. A scheduled wakeup can wait longer than the default `afterSilentMinutes`, so the
+example prompts tell the agent to wake more often than that. One case has no bound: an attended
+session that the owner keeps coming back to within each `afterUnattendedMinutes`. atc never reports
+a usage limit, so the first row fires only for a worker that does
+([capacity](./sessions.md#capacity-and-the-usage-limit)).
 
 ## Sleep and wake
 
-boxxy puts a session to sleep only in attended mode, and only on a bound in the table above. The
-sleep has three steps, and the seats go last:
+boxxy puts a session to sleep only in attended mode, and only at a bound. The sleep takes three
+steps, and the seats go last:
 
-1. boxxy records on the attempt, in one change, that it asked for a sleep. This record is the mark,
-   and boxxy writes it before any worker call.
-2. boxxy asks the worker to suspend the session. The worker refuses when the session shows activity
-   since boxxy judged it idle, except at the unattended bound.
-3. boxxy records the sleep and releases the seats. A refusal clears the mark.
+1. boxxy marks the attempt as asked to sleep, in one change, before any call to atc.
+2. boxxy asks atc to suspend the session. The worker refuses when the session showed activity since
+   boxxy judged it idle, except at the unattended bound.
+3. boxxy records the sleep and gives back the seats. A refusal clears the mark instead.
 
-A crash, or an unknown answer from the worker, can stop the sleep between two steps, and the next
-reading finishes it: a running reading clears the mark, and a suspended or ended reading records the
-sleep.
+A crash or an unknown answer can stop the sleep between steps, and the next reading finishes it: a
+running reading clears the mark, and a suspended or ended one records the sleep. A close-out that
+lands between the request and the suspend moves the attempt to `closing`.
 
-Every wake starts as a wake request, from one of these sources:
-
-- the owner runs `boxxy item wake <item>`;
-- a reading shows the session running while the attempt sleeps, because the owner revived it in atc;
-- a reading shows the session suspended when boxxy never asked for a sleep, because the host slept
-  on its own.
-
-Each claim takes requested wakes before any new work. The claim takes the attempt's seats, and only
-then does boxxy resume the session. A session that the owner revived runs at that point, and boxxy
-never stops it. If no seat comes free for it within `timeouts.seatlessSeconds`, the attempt wakes
-over its limits: each limit that counts the attempt holds more running attempts than its maximum,
-and boxxy claims no new work under that limit until its count is back at or under the maximum.
+A wake starts as a wake request, from the owner running `boxxy item wake <item>`, from a reading
+that shows the session running while the attempt sleeps (the owner revived it in atc), or from a
+reading that shows it suspended when boxxy never asked (the host slept). Each claim takes requested
+wakes before any new work. It takes the attempt's seats first, and only then does boxxy resume the
+session; a session the owner already revived keeps running. When no seat comes free within a fixed
+time, the attempt wakes over its limits, and boxxy claims no new work under those limits until their
+counts are back at or under the maximum.
 
 ## Close-outs and their limits
 
-One procedure, `attempt.closeOut`, takes the close-out of every phase. It gives the answer of the
-first case in this table that matches:
+An agent sends its close-out with `attempt.closeOut`, the one procedure for every phase. The first
+matching case decides the answer:
 
-| Case                                                                                                                              | Answer                        | The attempt        |
-| --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ------------------ |
-| the calling session has no attempt, or its current attempt holds another caller                                                   | refused, `no-attempt`         | none               |
-| the call is for an attempt other than the current one, or for one that has ended                                                  | refused, `not-current`        | unchanged          |
-| the same body again                                                                                                               | recorded, as a repeat         | unchanged          |
-| a different body after a valid close-out                                                                                          | refused, `already-closed-out` | unchanged          |
-| an invalid close-out                                                                                                              | rejected, with every problem  | stays open         |
-| a valid close-out whose stored body, which the phase kind builds from what the agent sent, is over `closeOutLimits.closeOutBytes` | rejected, `too-large`         | stays open         |
-| any other close-out of a live attempt                                                                                             | recorded                      | moves to `closing` |
+| Case                                                                          | Answer                        | The attempt        |
+| ----------------------------------------------------------------------------- | ----------------------------- | ------------------ |
+| the calling session has no attempt, or its attempt holds another caller       | refused, `no-attempt`         | none               |
+| the call is for an attempt that isn't the session's current one, or has ended | refused, `not-current`        | unchanged          |
+| the same body again                                                           | recorded, as a repeat         | unchanged          |
+| a different body after a valid close-out                                      | refused, `already-closed-out` | unchanged          |
+| an invalid close-out                                                          | rejected, with every problem  | stays open         |
+| a valid close-out whose stored form is over the close-out size limit          | rejected, `too-large`         | stays open         |
+| any other close-out of a live attempt                                         | recorded                      | moves to `closing` |
 
 A session can carry several attempts in turn, as a [kept session](./sessions.md#the-kept-session)
 does. Its current attempt is the latest one bound to it, whose row records the
-[proven caller](../interfaces/api-and-auth.md#the-proven-caller) that may close it out. The session
-reads that attempt's ID with `attempt.current`.
+[proven caller](../interfaces/api-and-auth.md#the-proven-caller) allowed to close it out, and the
+agent reads that attempt's ID with `attempt.current`. The close-out size limit sits below the
+[outbox's](../interfaces/facts-and-pepys.md#the-outbox) limit on one fact, so an accepted close-out
+always reaches pepys; it also bounds a design's text, which has no limit of its own.
 
-`closeOutLimits.closeOutBytes` sits below the
-[outbox's limit](../interfaces/facts-and-pepys.md#the-outbox) on one fact, so an accepted close-out
-always reaches pepys. It also bounds a design close-out's design text, which has no limit of its
-own.
+## Stopping a session and giving up
 
-## Closing, the stop and the give-up rule
+Once an attempt is `closing`, the runner stops its session and the attempt settles when the session
+reads as suspended, ended or absent. While the agent is mid-turn, boxxy waits a short grace before
+the stop, so the agent can tell the owner its close-out went in. Closing the item gets no grace.
 
-boxxy moves an attempt to `closing` when it has decided that the attempt is over and the session may
-still run. The runner then stops the session, and the attempt settles when the session reads as
-suspended, ended or absent. While the agent is inside a turn, boxxy waits up to
-`timeouts.stopGraceSeconds` after the move before it sends the stop, so the agent can tell the owner
-that the close-out went in. A close of the item gets no such grace.
+`item.close` ends the item's live attempts in the same store change. A sleeping attempt settles at
+once as failed with `item-closed`, and boxxy doesn't wake it. Every other live attempt moves to
+`closing`, including one whose spawn is still in flight: boxxy sends no second spawn, and stops the
+session when it appears.
 
-`item.close` ends the item's live attempts in the store change that closes it. A sleeping attempt
-settles at once as failed, with the failure `item-closed`, and boxxy does not wake it. Any other
-live attempt moves to `closing`, including one whose spawn is still in flight. It sends no second
-spawn, and when its session appears, boxxy stops it and settles. When none appears within
-`timeouts.spawnLostMinutes` of the claim, the attempt settles as a stray, a settled attempt whose
-session may still run. The runner, then cleanup, looks for the session by its spawn name on each
-tick and stops it when it appears.
-
-atc refuses a stop while something else keeps the session's host awake. An attempt whose session
-still runs `timeouts.closingGiveUpMinutes` after the move to `closing` therefore settles anyway, and
-releases its seats and its lease. It settles by its close-out, or with the failure that moved it to
-`closing`, as after a stop. boxxy marks it as a stray, lists it in `runner.status`, and sends the
-stop on each tick for `timeouts.strayHours`. [Cleanup](./sessions.md#cleanup) then takes over.
+atc refuses a stop while something else keeps the session's host awake, so an attempt can't wait in
+`closing` forever. After a fixed give-up time it settles anyway, by its close-out or with the
+failure that moved it to `closing`, and gives back its seats and lease. boxxy marks it as a stray, a
+settled attempt whose session may still run, lists it in `runner.status`, and keeps sending the stop
+each tick for a fixed number of hours before [cleanup](./sessions.md#cleanup) takes over. A closing
+attempt whose spawn never produced a session becomes a stray the same way, and the runner keeps
+looking for its session by spawn name.
 
 ## Settle
 
-Settle runs in one store change. It writes the state, the failure, the outcome, the end time, the
-seat release, the lease release, the rows and facts of the effects, and the `settled` fact. The
-phase kind returns every effect of the outcome, such as a new item, a relation or the close of the
-item. Settle builds one plan of rows and facts for each effect, in order, and counts the relations
-and the close that earlier plans write. Settle skips, with a reason, a relation named twice, a
-second close, and a second new item with the same title in one close-out. Without the skips, the
-second insert breaks a unique key, the store refuses the whole settle, and the attempt stays
-`closing` on every tick.
+Settle ends an attempt in one store change: the state, the failure, the outcome, the end time, the
+seat and lease release, every effect's rows and facts, and the `settled` fact. The phase kind
+returns the outcome's effects, such as a new item, a relation or closing the item. Settle plans each
+effect in order, and skips with a reason a relation named twice, a second close, and a second new
+item with the same title. Without those skips, the second insert would break a unique key, the store
+would refuse the whole settle, and the attempt would sit in `closing` forever.
 
-An item can hold for the owner after the settle. Settle then withholds each effect that changes the
-item: the close, a relation, and a new kind, field, acceptance or body. It still files new items,
-records each [friction](../../design/boxxy/close-outs.md#friction) proposal, and adds a `blocks`
-relation from another item to this one: a blocked design or build records its wait that way, so the
-item still waits after the owner retries it. The `settled` fact lists each withheld effect with its
-reason, and settle writes the hold's [notice](./notices.md) row in the same lock.
+When the item is about to hold, settle withholds each effect that changes the item itself: the
+close, a relation, and a new kind, field, acceptance list or body. It still files new items, records
+each [friction](../../design/boxxy/close-outs.md#friction) proposal, and adds a `blocks` relation
+from another item to this one. The `settled` fact lists each withheld effect with its reason, and
+settle writes the hold's [notice](./notices.md) in the same change.
 
 Settle never throws on stored data. The phase kind loaded now can differ from the one that accepted
-the close-out, so the settle rule of the phase kind runs inside a catch. When it throws, or returns
-an outcome that its kind does not list, the attempt settles as failed with `closeout-unsettleable`
-and the fixed outcome `unsettleable`, which the pipeline's edges never match. The item then holds,
-and `boxxy item retry <item> --phase <phase>` moves it on.
+the close-out, so its settle rule runs inside a catch. When it throws, or returns an outcome its
+kind doesn't list, the attempt fails with `closeout-unsettleable` and the outcome `unsettleable`,
+which no edge matches. The item holds, and `boxxy item retry <item> --phase <phase>` moves it on.
 
-The runner sets each failure in the table below. An attempt also fails with `closeout-missing` when
-it settles with no close-out and none of those failures, with `closeout-unsettleable`, or with the
-outcome `blocked` or `abandoned` of a
-[design or build close-out](../../design/boxxy/close-outs.md#the-v1-phase-kinds).
+An attempt fails with `closeout-missing` when it settles with no close-out and none of the failures
+below, and also with the outcome `blocked` or `abandoned` of a
+[design or build close-out](../../design/boxxy/close-outs.md#the-v1-phase-kinds). The runner sets
+every other failure:
 
-| Failure         | Cause                                                                                                                                                                | Counts against the step's [`maxAttempts`](./pipeline.md#rules-of-the-engine) |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `spawn-refused` | the worker refused the spawn for a cause other than capacity                                                                                                         | yes                                                                          |
-| `no-capacity`   | the worker target has no free machine                                                                                                                                | no                                                                           |
-| `spawn-lost`    | no session appeared `timeouts.spawnLostMinutes` after the claim                                                                                                      | yes                                                                          |
-| `session-lost`  | the session is absent                                                                                                                                                | yes                                                                          |
-| `resume-lost`   | the session did not run `timeouts.resumeLostMinutes` after the wake                                                                                                  | yes                                                                          |
-| `timed-out`     | an agent-mode attempt passed its step's `timeoutMinutes`, or a job's read kept failing past it ([job attempts](../../design/boxxy/review-and-merge.md#job-attempts)) | yes                                                                          |
-| `stalled`       | an agent-mode session showed no activity for `afterSilentMinutes`                                                                                                    | yes                                                                          |
-| `skill-missing` | a skill that the phase's recipe lists was missing after boxxy fetched the skills                                                                                     | yes                                                                          |
-| `item-closed`   | the owner closed the item                                                                                                                                            | yes, on a closed item                                                        |
-| `usage-limit`   | the reading carried a reset time for the account's usage limit                                                                                                       | no                                                                           |
+| Failure         | Cause                                                                                                                                                     | Counts against `maxAttempts` |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `spawn-refused` | atc refused the spawn for a cause other than capacity                                                                                                     | yes                          |
+| `no-capacity`   | the worker target has no free machine                                                                                                                     | no                           |
+| `spawn-lost`    | no session appeared in time after the claim                                                                                                               | yes                          |
+| `session-lost`  | the session is absent                                                                                                                                     | yes                          |
+| `resume-lost`   | the session didn't run in time after the wake                                                                                                             | yes                          |
+| `timed-out`     | an agent-mode attempt passed `timeoutMinutes`, or a job's read kept failing past it ([job attempts](../../design/boxxy/review-and-merge.md#job-attempts)) | yes                          |
+| `stalled`       | an agent-mode session showed no activity for `afterSilentMinutes`                                                                                         | yes                          |
+| `skill-missing` | a skill the recipe lists was missing after the fetch                                                                                                      | yes                          |
+| `item-closed`   | the owner closed the item                                                                                                                                 | yes, on a closed item        |
+| `usage-limit`   | the reading carried a reset time for the account's usage limit                                                                                            | no                           |

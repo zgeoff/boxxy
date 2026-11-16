@@ -174,7 +174,7 @@ The fact catalog of 30 types holds three for these steps: `boxxy.attempt.job_sta
 - each verify close-out, with its grader;
 - each merge close-out, with the verify reading.
 
-pepys's stage-time query reads the review outcomes `passed` and `changes-requested`. For an item with a merge phase, the query starts the merge step when the runner claims the item's first merge attempt after its latest passed review. For an item with no merge attempt after that review, the merge step starts at the review's end. The query also returns the sum of the item's `unrelatedLines` ([`boxxy_stage_time`](../../architecture/interfaces/facts-and-pepys.md#boxxy_stage_time)). A review's close-out carries tokens per model, and pepys prices them as it prices telemetry.
+pepys's stage-time query reads the review outcomes `passed` and `changes-requested`. For an item with a merge phase, the query starts the merge step when the runner claims the item's first merge attempt after its latest passed review. For an item with no merge attempt after that review, the merge step starts at the review's end. The query also returns the sum of the item's `unrelatedLines` ([`boxxy_stage_time`](../../architecture/interfaces/facts-and-pepys.md#how-long-an-item-spent-in-each-stage)). A review's close-out carries tokens per model, and pepys prices them as it prices telemetry.
 
 pepys compares the two graders by recipe. The owner gives one item kind the `session: builder` recipe and another the `session: fresh` recipe. When the build's kept session is gone, a `session: builder` attempt runs on a fresh session, and its `started` fact carries `resumeFallback: true`, so a comparison can leave it out. When the fresh start's reply is lost, the runner's reconcile writes `reconciled` in place of `started`, and that fact carries the same flag.
 
@@ -190,7 +190,7 @@ pepys compares the two graders by recipe. The owner gives one item kind the `ses
 
 ## What the owner sees
 
-Section 5 of [`01-usage.ts`](./sketches/next/review-and-merge/01-usage.ts) shows both views. `boxxy item get` shows the latest review at each head with its open counts, the verify reading and its grader, the merge attempt's wait reason, and the send-backs each loop has used. `boxxy runner status` lists each live merge with its wait reason and age. A hold reaches the owner's notice session through the [notice port](../../architecture/work/pipeline.md#notices).
+Section 5 of [`01-usage.ts`](./sketches/next/review-and-merge/01-usage.ts) shows both views. `boxxy item get` shows the latest review at each head with its open counts, the verify reading and its grader, the merge attempt's wait reason, and the send-backs each loop has used. `boxxy runner status` lists each live merge with its wait reason and age. A hold reaches the owner's notice session through the [notice port](../../architecture/work/pipeline.md#when-an-item-needs-the-owner).
 
 ## Acceptance
 

@@ -1,248 +1,202 @@
 # Facts and pepys
 
-Every change to boxxy's store also records what happened, as facts, and pepys, the event store,
-keeps the long-term record of them. The store writes a change's facts to an outbox table in the same
-transaction as the change. A sender loop sends the unsent rows to pepys in order, and a repeat
-changes nothing there, because each row keeps one event ID. In pepys, boxxy's plug-in builds three
-tables and three link types from the facts, and answers two queries: what an item cost to land, and
-how long it spent in each step. boxxy reads those two queries for two reports and reads nothing else
-from pepys. A decision, a claim, a merge state and a check that a fact arrived all live in the
-store, so every decision of boxxy is the same when pepys is down, behind or absent.
+Every change boxxy makes to its store is also written down as a fact, and pepys, the event store,
+keeps those facts for good. The owner reads two reports built from them: what an item cost to land,
+and how long it spent in each stage. boxxy never asks pepys to decide anything. Claims, merges and
+item state all live in the boxxy store, so the runner works the same when pepys is down, behind or
+not configured. Read this doc before you add a fact type, change how facts are sent, or change what
+a report measures.
 
-[The overview](../overview.md#terms) defines the terms this doc uses.
-[Attempts](../work/attempts.md) covers the attempt lifecycle whose steps the facts record.
-[Review and merge](../../design/boxxy/review-and-merge.md#facts-and-pepys) covers the review and
-merge facts and how the stage-time query reads them.
-[Decision 0013](../../decisions/0013-one-write-path-per-fact.md) records why each fact has one write
-path.
+[Attempts](../work/attempts.md) covers the attempt lifecycle whose steps the facts record. The
+[review and merge design](../../design/boxxy/review-and-merge.md#facts-and-pepys) covers the review
+and merge facts. [Decision 0013](../../decisions/0013-one-write-path-per-fact.md) records why each
+fact has one write path. The [overview](../overview.md#terms) defines the shared terms.
 
-## The path of a fact
+## How a fact reaches pepys
 
 ```mermaid
 flowchart LR
-  change[a store change] --> outbox[the outbox table]
-  outbox --> sender[the sender loop]
-  sender --> sink[the FactSink port]
-  sink --> ingest[pepys ingest]
-  ingest --> work[the boxxy_work consumer]
-  work --> queries[two queries]
-  queries --> reports[report.cost, report.stageTimes]
+  change[a store change] --> outbox[(the outbox)]
+  outbox --> sender[the sender]
+  sender --> ingest[pepys ingest]
+  ingest --> plugin[boxxy's plug-in in pepys]
+  plugin --> reports[the cost and stage-time reports]
 ```
+
+The store writes a change and its facts to the outbox in one transaction. The sender, a loop in the
+server, sends the unsent facts to pepys in store order. boxxy's plug-in inside pepys rebuilds each
+item's rows from its facts, and the two reports read those rows. The facts carry everything pepys
+needs, so pepys can rebuild every item from the facts alone.
 
 ## The outbox
 
-Each outbox row holds one fact. A row is unsent until pepys stores it, and the sender can park an
-unsent row: it marks the row with a reason and skips it until the owner runs `boxxy outbox retry`.
+The store's apply function is the only code that writes an outbox row, and it writes the change and
+every fact of the change together or not at all. A state in the store therefore always has its fact
+in the outbox.
 
-- **One write path.** The store's apply function is the only code that inserts an outbox row. It
-  writes every row of a change and the change itself in one transaction, or none. A state in the
-  store therefore has its fact in the outbox.
-- **The row's sequence number is the store version.** The code that builds a change gives each fact
-  an ID, a UUID version 7, before the store applies the change. Every send of the row carries
-  `event:boxxy:<fact ID>` as the event ID, so pepys drops a resend as a copy.
-- **The store never refuses a change for its size.** Checks in front of the store keep each fact
-  under `outboxLimits.factBytes`. The API bounds every string and list it reads, and the close-out
-  parser rejects a close-out over `closeOutLimits.closeOutBytes`. The
-  [owner listener](../overview.md#processes-and-how-they-reach-each-other) refuses, with
-  `FACT_TOO_LARGE`, to file or edit an item whose fact would exceed `factBytes`. The sender parks a
-  row that still exceeds `factBytes`, so that fact never reaches pepys.
-- **The outbox never drops or caps a row.** The store reads its version as the highest sequence
-  number in the outbox, and `item.get` reads an item's revisions from its `edited` facts there, so
-  removing sent rows would break both.
+- **A resend is harmless.** Each fact gets its ID before the store applies the change, and every
+  send carries `event:boxxy:<fact ID>` as the event ID, so pepys drops a copy.
+- **The store never refuses a change for its size.** The checks in front of it keep each fact under
+  the outbox's per-fact limit: the API bounds every string and list it reads, the close-out parser
+  rejects an oversized close-out, and the owner listener refuses to file or edit an item whose fact
+  would be too large, with `FACT_TOO_LARGE`. The sender parks any fact that still slips over the
+  limit, so it never reaches pepys.
+- **The outbox never drops a row.** The store reads its own version as the highest sequence number
+  in the outbox, and `item.get` reads an item's revisions from its `edited` facts there, so deleting
+  sent rows would break both.
 
-## The sender
+## Sending to pepys
 
-The sender runs as its own loop in the server, apart from the runner's tick, because a send can wait
-up to `outboxLimits.requestTimeoutMs` and a tick must not. Its rules live in `@boxxy/dispatch`.
+The sender runs apart from the runner's tick, because a send can wait on pepys for a long time and a
+tick must not. It sends the longest run of unsent facts that fits one append to the pepys log, and
+keeps one batch in flight, so pepys receives facts in store order.
 
-The sender sends a batch: the longest run of unsent rows, in store order, that holds
-`outboxLimits.batchFacts` facts or fewer and fits `outboxLimits.batchBytes`. That budget keeps one
-batch inside one append to the pepys log. The sender keeps one batch in flight at a time, so pepys
-receives the facts in store order.
+| pepys answers                                                | The sender                                                                    |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| stored                                                       | marks the batch sent and sends the next one                                   |
+| 502, 503, 504, a timeout or no connection                    | waits with a doubling backoff and sends the same batch again                  |
+| 400, 413 or 422 on a batch of several facts                  | splits the batch in half and sends each half, to find the bad fact            |
+| 400, 413 or 422 on one fact                                  | parks that fact with the reason and moves on                                  |
+| anything else, such as a wrong secret or a 500 inside ingest | parks nothing, goes `blocked`, and retries the same batch on a fixed interval |
 
-| Answer from pepys                                                                                     | What the sender does                                                                                                                                                              |
-| ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| stored                                                                                                | marks the batch sent and sends the next one at once                                                                                                                               |
-| 502, 503 or 504, a timeout, no connection                                                             | keeps the batch, waits with a backoff that starts at `outboxLimits.backoff.firstMs` and doubles up to `outboxLimits.backoff.maxMs`, and sends the same rows again; never gives up |
-| the batch is refused with 400, 413 or 422, and it holds more than one row                             | splits the batch in halves and sends each, to find the bad row                                                                                                                    |
-| the batch is refused with 400, 413 or 422, and it holds one row                                       | parks the row with the reason, and goes on                                                                                                                                        |
-| any other refusal, such as a wrong secret, a missing route, or a 500 from a fault inside pepys ingest | parks nothing, goes into the `blocked` state, and sends the same batch again every `outboxLimits.blockedRetryMs`                                                                  |
+A 4xx on a batch means one bad fact, which a split can find. Any other refusal means pepys itself is
+wrong, which no split fixes. When pepys refuses several single facts in a row with nothing stored
+between them, the sender stops parking and goes `blocked` too, because that pattern means the server
+and the deployed `@boxxy/pepys` run different versions, and more parking would hide it.
 
-A 400, 413 or 422 means a bad row, which a split can find. A 500 means ingest failed, which no split
-fixes.
+`boxxy outbox retry` clears every park and wakes the sender. `runner.status` shows the sender's
+state, the unsent and parked counts, the age of the oldest unsent fact and the last error; the
+sender sends no alert. A server with no pepys section in its config runs no sender, so the whole
+history goes out once the owner adds one.
 
-When pepys refuses `outboxLimits.parkRun` single rows one after another, with none stored between,
-the sender stops parking and goes into the `blocked` state. That pattern means the boxxy server and
-the deployed `@boxxy/pepys` differ in version, and parking more rows would only hide it. The sender
-parks a row over `factBytes` before it sends it, so that row never counts toward the run. The run
-resets only when pepys stores a batch.
+## What every fact carries
 
-`boxxy outbox retry` clears every park mark and wakes the sender, which sends at once: a blocked
-sender tries its batch again, and the sender parks a row over `factBytes` again when it reaches it.
+The stream `facts.boxxy.work` carries every fact type. These rules hold for all of them:
 
-A server whose config has no pepys section runs no sender, and its rows stay unsent, so the whole
-history goes out when the owner adds the pepys section.
+- **Every fact is about an item.** Its pepys entity is `boxxy:item:<id>`; an attempt fact carries
+  the attempt in its payload, and a relation fact names its source item. pepys groups facts by
+  entity, so one read gives the plug-in every fact of one item, in any arrival order.
+- **Facts carry the full text they change.** The `filed` fact holds the body, and an `edited` fact
+  holds it again when it changes. The plug-in's tables keep no body or design text, because no
+  report reads them, but the pepys fact log keeps both.
+- **Each fact carries its store version.** The sink adds `storeVersion` to every payload. A
+  `boxxy.decision.recorded` fact, the runner's decision to start or wake an attempt, also carries
+  the version that decision read, as `snapshotStoreVersion`.
+- **Session facts carry the proven caller.** The `started`, `reconciled` and `resumed` facts hold
+  the attempt's [proven caller](./api-and-auth.md#the-proven-caller), which the cost report matches
+  against telemetry.
+- **A pull request link carries GitHub's own ID** for the pull request, which joins it to pepys's
+  GitHub data ([the join keys](#the-join-keys)).
+- **boxxy records the merges it sees**, because item state reads them and boxxy must dispatch while
+  pepys is down. pepys takes the merge time from its GitHub tables instead.
+- **Some changes write no fact.** A runner pause or resume names no item. A settle for `stalled`,
+  `skill-missing` or a capacity refusal shows only on the `settled` fact.
+- **A retired type keeps its schema.** boxxy no longer writes `boxxy.attempt.turn_ended`, but pepys
+  still holds such facts and the plug-in must parse every fact of an item.
 
-`runner.status` shows the sender's state, such as `blocked`, the count of unsent and parked rows,
-the age of the oldest unsent row, the last error and the next try. The sender pushes no alert.
+## boxxy's plug-in in pepys
 
-## The fact catalog
+`@boxxy/pepys`, in `packages/pepys`, is the code a pepys deployment loads to understand boxxy. It
+holds boxxy's pepys source (the stream, the receive route and its signature check, and the wire
+schema of each fact), the `boxxy_work` consumer that builds boxxy's tables, and the two report
+queries. The pepys deployment lives in another repo and imports the plug-in. The boxxy server
+imports only the fact sink and the report reader from it, so it loads no GitHub or telemetry plug-in
+code.
 
-The fact schemas are declared once, in `libs/model/src/facts`, and the pepys stream
-`facts.boxxy.work` carries them. These rules hold for every type:
+When a fact arrives, pepys marks its item dirty, and the consumer then rebuilds all of that item's
+rows and links from its facts:
 
-- **Every fact names an item as its entity**, the thing in pepys that the fact is about, with the ID
-  `boxxy:item:<id>`. A fact about an attempt carries the attempt in its payload, and a relation fact
-  names its source item. pepys groups a consumer's input by entity into scopes, so one scope holds
-  every fact of one item, and the consumer rebuilds an item from one read, in any arrival order.
-- **The item body is in the `filed` fact, and in an `edited` fact when it changes.** The
-  `@boxxy/pepys` schemas accept the body and the design text of a design close-out. The `boxxy_work`
-  tables keep no column for either, because no query reads them, and the pepys fact log keeps them.
-  [The ledger](../work/pipeline.md#the-ledger-labels-notes-and-relations) covers the body.
-- **A runner pause or resume writes no fact**, because it names no item.
-- **Three [settle](../work/attempts.md#settle) causes have no fact of their own.** `stalled`,
-  `skill-missing` and a refusal for capacity show on the `settled` fact.
-- **The store checks each fact against the model's schema.** The sink adds `storeVersion`, the row's
-  sequence number, to every payload, so the wire schema in `@boxxy/pepys` is the model's schema plus
-  that field. The `boxxy.decision.recorded` fact, the runner's decision to start or wake an attempt,
-  also holds the store version that the decision read, as `snapshotStoreVersion`, a name that never
-  clashes with the sink's field.
-- **The `started`, `reconciled` and `resumed` facts carry the attempt's
-  [proven caller](./api-and-auth.md#the-proven-caller)**, an issuer and a subject. The cost query
-  matches each telemetry row's proven origin against that caller.
-- **The `pull_request.linked` fact carries GitHub's own ID of the pull request**, for
-  [the join keys](#the-join-keys). boxxy reads that ID through the forge port first. When the forge
-  does not answer, boxxy writes nothing, and
-  [the pull request watch](./github.md#the-pull-request-watch) links the pull request later.
-- **boxxy records its own sighting of a merge**, because the item's derived state reads it and boxxy
-  must dispatch while pepys is down. pepys takes the merge time from the GitHub tables.
-- **boxxy never writes `boxxy.attempt.turn_ended`, and its schema stays**, because pepys still holds
-  facts of that type and the consumer must parse every fact of an item.
+| Table or link           | One per                             | Built from                                         |
+| ----------------------- | ----------------------------------- | -------------------------------------------------- |
+| `boxxy_item`            | item                                | the filed, edited and closed facts                 |
+| `boxxy_attempt`         | claimed attempt                     | the claim, session, sleep, close-out, settle facts |
+| `boxxy_attempt_session` | attempt and telemetry session pair  | the session facts                                  |
+| `attempt_of` link       | attempt, to its item                | the claim                                          |
+| `ran_in` link           | attempt, to each telemetry session  | the session facts                                  |
+| `produced` link         | attempt, to its GitHub pull request | the pull request link                              |
 
-## The `boxxy_work` package
-
-The `boxxy_work` consumer, its tables and links, and the two queries ship in one package,
-`@boxxy/pepys` at `packages/pepys`, which is one pepys plug-in. The package also holds boxxy's pepys
-source: the definition that tells pepys ingest the stream, the receive route and its signature
-check, and the wire schema of each fact type. The pepys deployment in another repo imports the
-plug-in, and the boxxy server imports only the fact sink and the
-[pepys reader](#what-boxxy-reads-from-pepys), so it loads no GitHub or telemetry plug-in code.
-
-The consumer runs in pepys's scope mode: pepys hands it every fact of one scope at a time, and here
-each scope is one item. When a fact of an item arrives, pepys marks the item's scope dirty, and on
-its next run the consumer gets every fact of that item and writes the item's rows and links again:
-
-| Table                   | One row per                           | From                                                  |
-| ----------------------- | ------------------------------------- | ----------------------------------------------------- |
-| `boxxy_item`            | item                                  | the filed, edited and closed facts                    |
-| `boxxy_attempt`         | claimed attempt                       | the claim, session, sleep, close-out and settle facts |
-| `boxxy_attempt_session` | pair of attempt and telemetry session | the session facts                                     |
-
-| Link         | From       | To                                          |
-| ------------ | ---------- | ------------------------------------------- |
-| `ran_in`     | an attempt | each telemetry session the attempt used     |
-| `produced`   | an attempt | the GitHub pull request, by GitHub's own ID |
-| `attempt_of` | an attempt | its item                                    |
-
-- The consumer writes no row and no link for an attempt until the scope holds the attempt's
-  `claimed` fact. That fact may be parked in boxxy's outbox or not sent yet. When it arrives, it
-  marks the scope dirty, and the consumer's next run writes the attempt's row and links.
-- The consumer copies each fact's time and stores sleep as a list of stretches. It does no date
-  arithmetic.
+The consumer writes nothing for an attempt until the item's facts include its `claimed` fact, which
+may still sit unsent in boxxy's outbox; its arrival marks the item dirty again. The consumer copies
+each fact's time as it is and does no date arithmetic.
 
 ### The join keys
 
 Two links join boxxy's rows to rows that other pepys plug-ins write. Each works only because both
 sides build the same entity ID from the same value.
 
-- **`produced` joins on GitHub's pull request ID.** boxxy stores the `id` that the forge port's
-  GitHub adapter reads over REST, as a decimal string. The GitHub plug-in of pepys builds
-  `github:pull_request:<id>` from the webhook's `pull_request.id`, which GitHub documents as the
-  same value, so both sides build the same text.
-- **`ran_in` joins on the session ID that telemetry carries.**
-  [atc](../work/sessions.md#the-atc-worker) sets the resource attribute `atc.session.id` on every
-  agent it starts. The telemetry plug-in keys each row by `telemetry:session:<atc session ID>`, or
-  by the agent's own session ID when a record has no atc session ID. The consumer therefore links an
-  attempt to both: to its atc session, from the `started`, `reconciled`, `resumed` and
-  `session_bound` facts, and to the agent's own session ID, from `session_bound`. boxxy holds the
-  long atc session ID that a client on another machine gets, `<target>.<daemon>.<id>`, and atc
-  stamps telemetry with the short `<id>`, so the consumer keeps only the last dot-separated part.
-  The join assumes that each agent copies `OTEL_RESOURCE_ATTRIBUTES` onto every record it exports.
+- **`produced` joins on GitHub's pull request ID.** boxxy stores the `id` that GitHub's REST API
+  returns, as a decimal string. pepys's GitHub plug-in builds `github:pull_request:<id>` from the
+  webhook's `pull_request.id`, which GitHub documents as the same value.
+- **`ran_in` joins on the session ID in telemetry.** atc stamps every agent it starts with the
+  resource attribute `atc.session.id`, and the telemetry plug-in keys each row by that ID, or by the
+  agent's own session ID when a record has none. The consumer therefore links an attempt to both
+  IDs. boxxy holds the long atc ID, `<target>.<daemon>.<id>`, while telemetry carries only `<id>`,
+  so the consumer keeps the last dot-separated part. The join assumes each agent copies
+  `OTEL_RESOURCE_ATTRIBUTES` onto every record it exports.
 
-## The two queries
+The pepys deployment hands the plug-in the GitHub and telemetry tables the reports read, and the
+GitHub plug-in's delivery data: when a pull request merged, was released and was deployed. The
+plug-in depends only on their shape, so a deployment whose tables lack a column the reports read
+fails its type check, not at run time.
 
-Both queries take one item, and their output schemas are declared once, in `@boxxy/model`. The pepys
-deployment builds the plug-in with `buildBoxxyPlugin`, and passes in the GitHub and telemetry
-consumers whose tables the queries read, and the GitHub plug-in's delivery module, which reads when
-a pull request merged, was released and was deployed. `@boxxy/pepys` types that module and those
-columns by their shape, so it has no run-time dependency on the GitHub plug-in, and the type check
-fails when the deployment passes a consumer with fewer columns. Each query reads plain rows with one
-select per table, and TypeScript does the sleep stretches, the caller match, the dates and the sums.
+## What an item cost to land
 
-### `boxxy_cost_to_land`
+`boxxy_cost_to_land` returns an item's totals and a list of cost lines. Each line sums the requests
+of one phase, rework flag, agent product, model and cost basis. An attempt is rework when its
+[round](../work/pipeline.md#how-boxxy-decides-where-an-item-stands) is above 1. The cost basis is
+`reported` when telemetry recorded each request's cost, `none` when it recorded none, and `turn` for
+a product that reports cost per turn.
 
-The query returns totals and a list of cost lines. Each cost line sums the requests of one phase,
-rework flag, product, model and cost basis, with four token counts and the cost. An attempt counts
-as rework when its [round](../work/pipeline.md#rules-of-the-engine) is above 1. The product is the
-agent tool that telemetry names. The cost basis comes from telemetry for a line of requests:
-`reported` when telemetry recorded each request's cost, `none` when it recorded no cost. A product
-that reports its cost per turn instead of per request gets lines of its own, with the basis `turn`.
-
-- **The query treats an item as landed** once a pull request that one of its attempts produced has
-  merged, by the GitHub table. The landing time is the earliest such merge. An item that has not
-  landed returns its cost so far.
-- **Every attempt counts**, whatever its state or outcome, and one claimed after the merge counts
-  too. One exception: an attempt that failed with `no-capacity` ran no session and gets no line.
-- **Each telemetry row counts for one attempt.** The row's session and its proven origin must match
-  the attempt's session and caller. When one session carried several attempts, each attempt owns the
-  stretch from the time it was bound to the session until the next attempt was bound. A
-  [kept session](../work/sessions.md#the-kept-session) is such a case.
+- **An item lands when a pull request it produced merges.** The landing time is the earliest such
+  merge. An item that hasn't landed returns its cost so far.
+- **Every attempt counts**, whatever its outcome, including one claimed after the merge. An attempt
+  that failed with `no-capacity` ran no session, so it gets no line.
+- **Each telemetry row counts once.** Its session and proven origin must match the attempt's session
+  and caller. When one session carried several attempts in turn, as a
+  [kept session](../work/sessions.md#the-kept-session) does, each attempt owns the stretch from its
+  bind to the next attempt's bind.
 - **An unknown cost is null, never 0.** A request with no cost counts in `requestsWithoutCost`,
-  unless its session has a turn cost for the same phase, rework flag and product: that turn cost
-  already holds the request's cost. When `requestsWithoutCost` is above 0, the total is a lower
-  bound.
+  unless its session has a turn cost for the same line, which already includes it. While
+  `requestsWithoutCost` is above 0, the total is a lower bound.
 
-### `boxxy_stage_time`
+## How long an item spent in each stage
 
-The query returns seven steps: triage, design, build, review, merge, release and deploy. It also
-returns the rework count, the rework minutes, the unrelated line count, the wait for review, and the
-time the item's attempts slept. A step that has not happened has null minutes.
+`boxxy_stage_time` returns the minutes of seven stages (triage, design, build, review, merge,
+release and deploy), plus the rework count and minutes, the unrelated line count, the wait for
+review, and the time the item's attempts slept. A stage that hasn't happened is null.
 
-- The first four steps are phases. A phase's minutes are the sum over its settled attempts of the
-  time from claim to end, less the attempt's sleep. An open sleep counts as none, because the query
-  reads no clock. The rework minutes are that sum over attempts whose round is above 1.
-- The merge, release and deploy steps measure delivery, so the GitHub plug-in's delivery module,
-  reached through the `produced` link, gives their ends. The time of verify and merge attempts
-  counts in no step: verify has no step, and the merge step runs on the delivery times.
-- The merge step starts at the claim of the first merge attempt, live or settled, that was claimed
-  at or after the end of the latest review that passed. With no such attempt, as for an item with no
-  merge phase, the merge step starts at that review's end. A review that settled `unsettleable`
-  starts no merge step, because boxxy could not read whether it passed, so such an item has null
-  merge minutes after its pull request merged. Release starts at the merge, and deploy at the
-  release. An item with two pull requests takes the earliest time of each step.
-- An attempt that failed with `no-capacity` is in no measure. A `usage-limit` one counts.
-- The rework count is the number of reviews that asked for changes. Don't compute it from the item's
-  highest round: the round also rises on other backward edges and on retries.
-- The unrelated line count sums `unrelatedLines` over the item's review close-outs: the changed
-  lines of code outside the files of the earlier review's findings
+- **A phase stage is attempt time less sleep.** Triage, design, build and review sum each settled
+  attempt's time from claim to end, less its sleep. An open sleep counts as none, because the query
+  reads no clock. Rework minutes are the same sum over attempts whose round is above 1.
+- **The delivery stages run on GitHub's times.** Merge, release and deploy end at the times pepys's
+  GitHub data records. Verify and merge attempts count in no stage.
+- **The merge stage starts at the first merge attempt claimed after the latest passed review**, or
+  at that review's end when there is none, as for a pipeline with no merge phase. A review that
+  settled `unsettleable` starts no merge stage, because boxxy can't tell whether it passed. Release
+  starts at the merge, and deploy at the release. With two pull requests, each stage takes the
+  earliest time.
+- **The rework count is the number of reviews that asked for changes.** Don't derive it from the
+  item's highest round, which also rises on other backward edges and on retries.
+- **The unrelated line count** sums each review's count of changed lines outside the files of the
+  earlier review's findings
   ([the review gate](../../design/boxxy/review-and-merge.md#the-review-gate)). A first review
   records null.
-- The wait for review runs, for each build that ended with the outcome `built`, from the build's end
-  to the claim of the first review claimed after that end. The query orders the build and the review
-  by claim time, because boxxy numbers attempts within each phase.
-- The query matches three outcome names: `built`, `passed` and `changes-requested`. Whoever renames
-  one of them in a [phase kind](../work/pipeline.md#the-pipeline) must change the query's list too.
+- **The wait for review** runs from each `built` build's end to the claim of the first review after
+  it, ordered by claim time, because boxxy numbers attempts within each phase.
+- **A `no-capacity` failure counts nowhere; a `usage-limit` one counts.**
 
-## What boxxy reads from pepys
+The query matches three outcome names: `built`, `passed` and `changes-requested`. Rename one in a
+phase kind and you must change the query too.
 
-- `report.cost` and `report.stageTimes` return the query's output, whole, plus `behind`: the count
-  of that item's rows that the outbox has not sent, parked ones included, and the time of the
-  oldest.
-- An item that pepys holds no fact of yet gives an empty value. With pepys down, both reports answer
-  `PEPYS_UNAVAILABLE`, and with no pepys section, `PEPYS_NOT_CONFIGURED`. `item.get` still shows
-  each attempt's times.
-- The pepys adapter of the `PepysReader` port never throws and never retries. An answer that its
-  schema refuses reads as unavailable, because it means the pepys deployment runs another version of
-  `@boxxy/pepys` than the server.
-- A [dependency rule](../repo/layout.md#dependency-rules) keeps `@boxxy/pepys` out of every module
-  and lib, so the server app passes the sink and the reader in through the ports.
+## What boxxy reads back
+
+`report.cost` and `report.stageTimes` return a query's output whole, plus `behind`: how many of the
+item's facts the outbox hasn't sent yet, parked ones included, and the time of the oldest. An item
+pepys has no fact for yet gives an empty value. With pepys down, both reports answer
+`PEPYS_UNAVAILABLE`, and with no pepys section in the config, `PEPYS_NOT_CONFIGURED`; `item.get`
+still shows each attempt's times.
+
+The reader never throws and never retries. It treats an answer that fails its schema as unavailable,
+because that means pepys runs a different `@boxxy/pepys` version from the server. A
+[dependency rule](../repo/layout.md#dependency-rules) keeps `@boxxy/pepys` out of every module and
+lib, so the server passes the sink and the reader in through ports.

@@ -31,7 +31,7 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 ## Features
 
 - `loadRules`, which returns the loaded rules, or every rejection with its file, its path in the
-  file and its reason ([the pipeline](../../docs/architecture/work/pipeline.md#the-pipeline)).
+  file and its reason ([the pipeline](../../docs/architecture/work/pipeline.md#phases-and-edges)).
 - The rules version, a content hash of the commit, the files the loader read, each concept pin and
   each phase kind ([the rules version](../../docs/design/boxxy/rules.md#the-rules-version)).
 
