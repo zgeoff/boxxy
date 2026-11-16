@@ -55,7 +55,6 @@ export function buildEventColumns(
           'session-seen',
           'timed-out',
           'item-closed',
-          'turn-ended',
           'stalled',
           'skill-missing',
           'usage-limited',

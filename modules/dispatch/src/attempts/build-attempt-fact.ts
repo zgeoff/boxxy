@@ -141,11 +141,6 @@ export function buildAttemptFact(
         afterMinutes: event('timed-out').afterMinutes,
       }),
     )
-    .with('boxxy.attempt.turn_ended', (factType) => {
-      event('turn-ended');
-
-      return wrap(factType, { attempt, phase: after.phase });
-    })
     .with('boxxy.attempt.settled', (factType) => {
       const settled = event('settled');
 

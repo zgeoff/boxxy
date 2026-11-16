@@ -201,9 +201,6 @@ function runAction(
     .with({ kind: 'close', cause: 'timed-out' }, async (close) => {
       await writeMove({ kind: 'timed-out', afterMinutes: close.afterMinutes });
     })
-    .with({ kind: 'close', cause: 'turn-ended' }, async () => {
-      await writeMove({ kind: 'turn-ended' });
-    })
     .with({ kind: 'close', cause: 'stalled' }, async () => {
       await writeMove({ kind: 'stalled' });
     })

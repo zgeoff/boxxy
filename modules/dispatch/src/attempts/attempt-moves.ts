@@ -85,14 +85,6 @@ export const attemptMoves: readonly AttemptMove[] = [
     context: () => ({ closing: 'item-closed', mark: false, wakeRequested: false }),
   },
   {
-    event: 'turn-ended',
-    from: ['running'],
-    when: (context) => context.mode === 'agent',
-    to: 'closing',
-    effects: ['boxxy.attempt.turn_ended'],
-    context: () => ({ closing: 'turn-ended' }),
-  },
-  {
     // `boxxy.attempt.settled` carries the cause
     event: 'stalled',
     from: ['running'],

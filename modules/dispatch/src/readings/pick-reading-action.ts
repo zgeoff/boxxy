@@ -101,8 +101,8 @@ function pickRunningBound(
 }
 
 // The bounds of a running attempt whose session runs, in the order they are checked. A session
-// that waits for the owner sleeps before the stall rule can stop it: both fall due 30 minutes
-// after the last activity, and a stall first would leave the idle sleep no case in agent mode.
+// that waits for the owner sleeps before the stall rule can stop it, so an agent-mode session
+// that asks for input sleeps idle. A turn end alone is no bound: agents end turns to wait.
 const runningBounds: readonly RunningBound[] = [
   {
     name: 'a suspend that did not happen',
@@ -135,13 +135,6 @@ const runningBounds: readonly RunningBound[] = [
           }
         : null;
     },
-  },
-  {
-    name: 'a turn that ended with no close-out, agent mode',
-    pick: (input) =>
-      input.attempt.mode === 'agent' && input.reading.attention === 'turn-ended'
-        ? { kind: 'close', cause: 'turn-ended' }
-        : null,
   },
   {
     name: 'a session that waits for the owner',

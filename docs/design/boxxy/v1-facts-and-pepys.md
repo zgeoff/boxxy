@@ -57,7 +57,7 @@ The stream `facts.boxxy.work` carries 30 fact types. [`04-facts.ts`](./sketches/
 | the claim | `boxxy.attempt.claimed`, `boxxy.decision.recorded` |
 | the session | `boxxy.attempt.started`, `.spawn_unanswered`, `.reconciled`, `.session_bound` |
 | sleep and wake | `boxxy.attempt.slept`, `.wake_requested`, `.woken`, `.resumed` |
-| the end | `boxxy.attempt.closed_out`, `.timed_out`, `.turn_ended`, `.settled`, `boxxy.proposal.recorded` |
+| the end | `boxxy.attempt.closed_out`, `.timed_out`, `.settled`, `boxxy.proposal.recorded`; `.turn_ended` parses stored facts, and boxxy never writes it |
 | evidence and pull requests | `boxxy.evidence.recorded`, `boxxy.pull_request.linked`, `.merged`, `.closed`, `boxxy.commit.linked` |
 | jobs and the merge | `boxxy.attempt.job_started`, `boxxy.merge.requested`, `.answered` |
 

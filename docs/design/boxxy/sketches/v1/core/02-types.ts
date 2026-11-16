@@ -136,7 +136,7 @@ export type ClosingCause =
   | 'item-closed' // the owner closed the item while the attempt's session ran
   | 'stalled' // agent mode, no activity for `timeouts.stallMinutes`
   | 'skill-missing' // the session-start hook reported a named skill that is not there
-  | 'turn-ended'; // agent mode: the agent's turn ended with no close-out, and nobody will prompt it
+  | 'turn-ended'; // stored rows only: no move closes an attempt for its turn end
 
 // Ten forced failures in all.
 // `no-capacity`: the worker refused the spawn because the target has no free imp slot. The
@@ -838,7 +838,7 @@ export type ReadingAction =
   | { readonly kind: 'resume' } // gives up with `resume-lost` after `timeouts.resumeLostMinutes`
   | { readonly kind: 'close'; readonly cause: 'timed-out'; readonly afterMinutes: Minutes }
   | { readonly kind: 'close'; readonly cause: 'usage-limit'; readonly resetsAt: Instant }
-  | { readonly kind: 'close'; readonly cause: 'turn-ended' | 'stalled' }
+  | { readonly kind: 'close'; readonly cause: 'stalled' }
   | { readonly kind: 'stop' }
   | { readonly kind: 'settle'; readonly forced: ForcedFailure | null; readonly sessionStopped: boolean };
 

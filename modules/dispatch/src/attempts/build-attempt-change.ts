@@ -426,7 +426,6 @@ function toMachineEvent(event: MoveEvent): AttemptMachineEvent {
           'closed-out',
           'timed-out',
           'item-closed',
-          'turn-ended',
           'stalled',
           'skill-missing',
           'usage-limited',

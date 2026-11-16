@@ -70,7 +70,6 @@ export type AttemptMachineEvent =
         | 'closed-out'
         | 'timed-out'
         | 'item-closed'
-        | 'turn-ended'
         | 'stalled'
         | 'skill-missing'
         | 'usage-limited'
@@ -100,10 +99,14 @@ export type MoveEffect =
   | AttemptFactType;
 
 // The facts that a move records: each attempt fact, the decision of a claim or a wake, and a
-// job's request and the answer to it.
-export type AttemptFactType = Extract<
-  FactType,
-  `boxxy.attempt.${string}` | 'boxxy.decision.recorded' | `boxxy.merge.${string}`
+// job's request and the answer to it. No move records `boxxy.attempt.turn_ended`; its schema
+// stays so that stored facts still parse.
+export type AttemptFactType = Exclude<
+  Extract<
+    FactType,
+    `boxxy.attempt.${string}` | 'boxxy.decision.recorded' | `boxxy.merge.${string}`
+  >,
+  'boxxy.attempt.turn_ended'
 >;
 
 // One row of the table of moves.
@@ -170,7 +173,6 @@ export type MoveEvent =
     }
   | { readonly kind: 'timed-out'; readonly afterMinutes: Minutes }
   | { readonly kind: 'item-closed' }
-  | { readonly kind: 'turn-ended' }
   | { readonly kind: 'stalled' }
   | { readonly kind: 'skill-missing' }
   | { readonly kind: 'usage-limited' }

@@ -40,7 +40,6 @@ import { hashCanonical } from '@boxxy/content-hash';
 //   closed-out         every live state but closing              closing      clears the mark and the wake request; `closed_out`
 //   timed-out          running, mode `agent`                     closing      `timed_out`
 //   item-closed        starting, reconciling, running, waking    closing      clears the mark and the wake request; the fact is `boxxy.item.closed`
-//   turn-ended         running, mode `agent`                     closing      `turn_ended`
 //   stalled            running, mode `agent`                     closing      no fact of its own; `settled` carries the cause
 //   usage-limited      running                                   closing      no fact of its own; `settled` carries the cause
 //   skill-missing      starting, reconciling, running            closing      no fact of its own; `settled` carries the cause
@@ -168,8 +167,6 @@ export function buildAttemptChange(input: { attempt: AttemptRow | null; event: A
 //                                     usage limit: close (10)      else, 10 s on:
 //                                     agent mode, past the         wake-over-cap (1)
 //                                       timeout: close (timed-out)
-//                                     agent mode, turn-ended:
-//                                       close (turn-ended)
 //                                     waits: sleep-if-idle (8)
 //                                     agent mode, stall (9)
 //                                     attended, unattended:
@@ -207,16 +204,15 @@ export function buildAttemptChange(input: { attempt: AttemptRow | null; event: A
 //       boxxy's own sleep: the host slept with no request. An attempt whose host slept before
 //       atc captured the ID settles as `resume-lost` on its wake.
 //   (9) The stall rule, a cell of `running` × `running`, agent mode only. The
-//       reading's `lastActivityAt` is `timeouts.stallMinutes` (30) old: close (stalled). The
+//       reading's `lastActivityAt` is `timeouts.stallMinutes` (120) old: close (stalled). The
 //       runner stops the session and the attempt settles as `failed`, `stalled`, which counts
 //       against `maxAttempts`. It is checked after `waits` and before `bind-only`, whatever the
 //       attention is. It does not apply to attended mode: such a session sleeps (the quiet
 //       rule). It is the floor under the step timeout, which can be hours.
-//       The tie: an agent-mode session that asks for input and then shows no activity meets
-//       the idle sleep and the stall at the same instant, 30 minutes after `lastActivityAt`.
-//       `waits` comes first, so the session sleeps. With the stall first, no agent-mode session
-//       could ever sleep idle. With no agent session ID (8), `waits` gives nothing and the
-//       stall rule stops the session.
+//       A turn end alone is no bound: an agent-mode attempt ends by its close-out or by the
+//       stall rule. An agent-mode session that asks for input sleeps after 30 minutes, before
+//       the stall. With no agent session ID (8), `waits` gives nothing and the stall rule stops
+//       the session.
 //   (10) The usage limit. The worker port reports it on the reading: `usageLimitResetsAt` is
 //       the time at which the account's limit resets, or null. A reading with a time gives
 //       close (usage-limit), in any mode, before every other bound: the session can do no more

@@ -139,7 +139,6 @@ test.each<
     { kind: 'timed-out', afterMinutes: 90 },
     { phase: 'build', afterMinutes: 90 },
   ],
-  ['turn_ended', 'boxxy.attempt.turn_ended', {}, { kind: 'turn-ended' }, { phase: 'build' }],
   [
     'settled of an attempt that slept',
     'boxxy.attempt.settled',
@@ -199,7 +198,7 @@ test('it throws on a fact the move does not record', () => {
 
   expect(() =>
     buildAttemptFact(
-      'boxxy.attempt.turn_ended',
+      'boxxy.attempt.timed_out',
       { before: attempt, after: attempt, event: { kind: 'stalled' }, decision: null },
       ctx.envelope,
     ),
