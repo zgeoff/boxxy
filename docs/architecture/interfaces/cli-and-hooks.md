@@ -85,7 +85,7 @@ ready to work:
 1. It calls `attempt.current` until the server has an attempt for the session, waiting between a
    fixed number of tries, and exits 1 when every try finds none.
 2. It installs each skill the attempt's [recipe](../work/pipeline.md#recipes-and-skills) lists into
-   `<cwd>/.claude/skills/<skill>`, at the commit the rules file pins
+   `<cwd>/.agents/skills/<skill>`, at the commit the rules file pins
    ([installing skills](#installing-skills)).
 3. It calls `attempt.bindSession` with the session ID from the payload, the agent product
    `claude_code`, and any missing skills.
@@ -112,15 +112,44 @@ copies it into the workspace. It first strips git's environment of every variabl
 `git rev-parse --local-env-vars` lists, such as `GIT_DIR`, and of `GIT_CEILING_DIRECTORIES`, so git
 writes only in the scratch folder. A recipe with no skills skips the fetch.
 
+The hook writes into `.agents/skills/` and never through `.claude/skills`. Each zgeoff repository
+commits `.agents/skills/` and links `.claude/skills` to `../.agents/skills`, so Claude Code loads
+the copies through the link. git refuses a path that runs through a symbolic link, so the hook's git
+calls name `.agents/skills/<skill>`. The hook never makes `.agents/skills/`: in a workspace without
+it as a folder, Claude Code would find no link to the copies, so every listed skill is reported
+missing and the hook's message names the folder.
+
+When the workspace is in a git repository, the install changes nothing that `git status` shows
+there, so the agent's pull request and the repository's own checks don't see the installed skills:
+
+- When the repository tracks a file in `.agents/skills/<skill>`, the hook keeps the committed skill
+  and copies nothing. The repository's checks and docs expect its own version of the skill.
+- Before any copy, the hook lists each skill it will copy in the repository's `info/exclude`, as
+  `/<path from the top>/.agents/skills/<skill>/` with glob characters escaped. It adds no line for a
+  folder the repository already ignores, as `git check-ignore` reports. Checks that list untracked
+  files, such as `git ls-files --others --exclude-standard`, then skip the copied folders.
+- Worktrees of one repository share its `info/exclude`, so the hook updates the file under a lock,
+  and never removes a line: a skill that one worktree commits can be an untracked copy in another. A
+  line never hides a change to a tracked file. The hook refuses to write when `info/exclude` or its
+  lock file is a symbolic link, because the write would follow the link.
+
+The hook treats the workspace as outside any repository only when no folder from the workspace up
+holds a `.git`. Then it runs no git in the workspace and writes no exclude. In any workspace the
+hook checks `.agents/skills/` before it writes anything, so a workspace without the folder is left
+as it was, git's files included.
+
 A skill counts as installed only when its folder in the workspace holds a `SKILL.md`. The copy
-replaces any earlier copy, so a [kept session](../work/sessions.md#the-kept-session) that resumes
-under a new pin gets the new files. The hook reports a skill missing when its name or the pin is
-malformed, the fetch fails, the copy fails or leaves no `SKILL.md`, or the path is unsafe: `.claude`
-or `.claude/skills` is a symbolic link, or `.claude/skills` resolves outside the workspace. A failed
-fetch makes every listed skill missing, because the hook can't tell a skill the repository lacks
-from one it couldn't read. The copy deletes the skill's folder first, and a link on the path would
-aim that delete outside the workspace, so the hook checks the path just before each copy, after git
-has run, and touches nothing for a skill whose path fails.
+replaces any earlier untracked copy, so a [kept session](../work/sessions.md#the-kept-session) that
+resumes under a new pin gets the new files. The hook reports a skill missing when its name or the
+pin is malformed, the fetch fails, the copy fails, the copied or committed folder has no `SKILL.md`,
+or the path is unsafe: `.agents` or `.agents/skills` is missing, is not a folder, or is a symbolic
+link, or `.agents/skills` resolves outside the workspace. It also reports a skill missing, and
+leaves the workspace as it is, when git fails in the workspace's repository or the hook can't write
+`info/exclude`, or when either file is a symbolic link. A failed fetch makes every listed skill
+missing, because the hook can't tell a skill the repository lacks from one it couldn't read. The
+copy deletes the skill's folder first, and a link on the path would aim that delete outside the
+workspace, so the hook checks the path just before each copy, after git has run, and touches nothing
+for a skill whose path fails.
 
 ## The pull request hook
 
