@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.11](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.2.10...@boxxy/cli@0.2.11) (2026-11-17)
+
+
+### Bug Fixes
+
+* **cli:** install skills into .agents/skills and keep committed skills ([#148](https://github.com/zgeoff/boxxy/issues/148)) ([a9afeaf](https://github.com/zgeoff/boxxy/commit/a9afeaf9b6cba7deb9140f11a699ebb644790ca8))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/contract bumped to 0.2.11
+    * @boxxy/model bumped to 0.2.11
+  * devDependencies
+    * @boxxy/auth-oauth bumped to 0.2.11
+    * @boxxy/dispatch bumped to 0.2.11
+    * @boxxy/rules bumped to 0.2.11
+    * @boxxy/server bumped to 0.2.11
+    * @boxxy/store-sqlite bumped to 0.2.11
+
 ## [0.2.10](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.2.9...@boxxy/cli@0.2.10) (2026-11-16)
 
 ### Miscellaneous Chores
