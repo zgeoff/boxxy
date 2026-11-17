@@ -23,6 +23,7 @@ export const envNames = {
 export const defaultSkillsURL = 'https://github.com';
 
 // the folder of the skills repository that holds one folder per skill, and the folder of the
-// workspace that the agent reads skills from
+// workspace that holds the workspace's skills; Claude Code reads it through the repository's
+// `.claude/skills` link, and git refuses a path that runs through a link
 export const skillsRepoFolder = 'skills';
-export const workspaceSkillsFolder = '.claude/skills';
+export const workspaceSkillsFolder = '.agents/skills';

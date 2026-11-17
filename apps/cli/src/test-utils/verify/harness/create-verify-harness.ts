@@ -1,3 +1,4 @@
+import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { brandSchemas } from '@boxxy/model';
 import { createTestServer } from '@boxxy/server/test-utils/create-test-server';
@@ -26,6 +27,9 @@ export async function createVerifyHarness(runDirectory: string): Promise<VerifyH
     folder: join(runDirectory, 'skills'),
     skills: { 'bake-off': { 'SKILL.md': 'Sketch three designs.\n' } },
   });
+
+  // the session start installs skills into the workspace's committed skills folder
+  await mkdir(join(runDirectory, 'workspace/.agents/skills'), { recursive: true });
 
   server.dispatch.setRules({
     ...server.dispatch.rules(),

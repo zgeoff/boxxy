@@ -1,6 +1,6 @@
 import { match } from 'ts-pattern';
 import { buildErrorResult, buildTextResult } from '../cli/build-answer-result.ts';
-import { defaultSkillsURL, envNames } from '../constants.ts';
+import { defaultSkillsURL, envNames, workspaceSkillsFolder } from '../constants.ts';
 import type { CLIResult, CommandCall } from '../types.ts';
 import { formatSessionGuide } from './format-session-guide.ts';
 import { installSkills } from './install-skills.ts';
@@ -56,7 +56,7 @@ export async function runSessionStartHook(call: CommandCall): Promise<CLIResult>
     )
     .with({ kind: 'skill-missing' }, () =>
       buildErrorResult(
-        `boxxy ends this attempt: the skills ${missing.join(', ')} are not in the pinned skills repository`,
+        `boxxy ends this attempt: the skills ${missing.join(', ')} are missing: the pinned skills repository lacks them, the fetch failed, or the workspace has no ${workspaceSkillsFolder} folder`,
       ),
     )
     .with({ kind: 'no-attempt' }, { kind: 'not-current' }, (refused) =>

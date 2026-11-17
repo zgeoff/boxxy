@@ -1,5 +1,5 @@
 import { expect, onTestFinished, test } from 'bun:test';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { brandSchemas } from '@boxxy/model';
@@ -14,6 +14,9 @@ async function setupTest() {
   onTestFinished(() => rm(folder, { recursive: true, force: true }));
 
   const workspace = join(folder, 'workspace');
+
+  await mkdir(join(workspace, '.agents/skills'), { recursive: true });
+
   const skillsFolder = join(folder, 'remote');
 
   const startHook = (agentSession: string, baseURL: string) =>
@@ -57,7 +60,7 @@ test('it fetches the listed skills into the workspace and binds the agent sessio
   const before = await ctx.server.dispatch.listFacts('boxxy.attempt.session_bound');
   const result = await ctx.startHook('agent-session-1', repo.baseURL);
   const after = await ctx.server.dispatch.listFacts('boxxy.attempt.session_bound');
-  const installed = await readFile(join(ctx.workspace, '.claude/skills/bake-off/SKILL.md'), 'utf8');
+  const installed = await readFile(join(ctx.workspace, '.agents/skills/bake-off/SKILL.md'), 'utf8');
 
   const output: unknown = JSON.parse(result.stdout);
 
@@ -106,7 +109,7 @@ test('it ends the attempt as skill-missing when a listed skill is not in the pin
   expect({ exitCode: result.exitCode, stderr: result.stderr }).toStrictEqual({
     exitCode: 1,
     stderr:
-      'boxxy ends this attempt: the skills bake-off are not in the pinned skills repository\n',
+      'boxxy ends this attempt: the skills bake-off are missing: the pinned skills repository lacks them, the fetch failed, or the workspace has no .agents/skills folder\n',
   });
 
   expect([settled.state, settled.failure]).toStrictEqual(['failed', 'skill-missing']);
