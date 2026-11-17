@@ -226,21 +226,15 @@ test('it returns every name and creates nothing when the workspace is missing', 
 
   const missing = await ctx.install(repo, ['alpha', 'beta'], join(ctx.workspace, 'app'));
   const status = await runGit(['status', '--porcelain', '--untracked-files=all'], ctx.workspace);
-  const made = await Bun.file(join(ctx.workspace, 'app')).exists();
-
-  const gitFiles = await Array.fromAsync(
-    new Bun.Glob('*').scan({ cwd: join(ctx.workspace, '.git/info') }),
-  );
-
+  const workspaceEntries = await readdir(ctx.workspace);
+  const gitFiles = await readdir(join(ctx.workspace, '.git/info'));
   const exclude = await readFile(join(ctx.workspace, '.git/info/exclude'), 'utf8');
 
-  expect([missing, status, made, gitFiles, exclude.includes('.agents')]).toStrictEqual([
-    ['alpha', 'beta'],
-    { exitCode: 0, output: '' },
-    false,
-    ['exclude'],
-    false,
-  ]);
+  expect(missing).toStrictEqual(['alpha', 'beta']);
+  expect(status).toStrictEqual({ exitCode: 0, output: '' });
+  expect(workspaceEntries.toSorted()).toStrictEqual(['.git', 'README.md']);
+  expect(gitFiles).toStrictEqual(['exclude']);
+  expect(exclude).not.toInclude('.agents');
 });
 
 test('it keeps the exclude line of a copy in one worktree when another worktree commits the skill', async () => {

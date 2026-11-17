@@ -56,7 +56,7 @@ export async function runSessionStartHook(call: CommandCall): Promise<CLIResult>
     )
     .with({ kind: 'skill-missing' }, () =>
       buildErrorResult(
-        `boxxy ends this attempt: the skills ${missing.join(', ')} are missing: the pinned skills repository lacks them, the fetch failed, or a part of the workspace's ${workspaceSkillsFolder} path is a link or a file`,
+        `boxxy ends this attempt: the skills ${missing.join(', ')} are missing: the pinned skills repository lacks them, the fetch failed, or the hook could not copy them into the workspace's ${workspaceSkillsFolder}`,
       ),
     )
     .with({ kind: 'no-attempt' }, { kind: 'not-current' }, (refused) =>

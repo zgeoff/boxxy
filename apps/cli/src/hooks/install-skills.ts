@@ -131,7 +131,8 @@ async function runFetch(
 }
 
 // A recursive mkdir follows a link in the path, and would make `skills` in the link's target, so the
-// walk makes one part at a time and stops at a part that is a link or a file.
+// walk makes one part at a time and stops at a part that is a link or a file. A link swapped in
+// during the walk can still get an empty `skills`, and the check after the walk refuses it.
 async function createSkillsFolder(workspace: string): Promise<boolean> {
   const parts = workspaceSkillsFolder.split('/');
 
