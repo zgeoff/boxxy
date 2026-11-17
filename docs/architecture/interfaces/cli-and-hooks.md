@@ -125,14 +125,18 @@ there, so the agent's pull request and the repository's own checks don't see the
 - When the repository tracks a file in `.agents/skills/<skill>`, the hook keeps the committed skill
   and copies nothing. The repository's checks and docs expect its own version of the skill.
 - Before any copy, the hook lists each skill it will copy in the repository's `info/exclude`, as
-  `/<path from the top>/.agents/skills/<skill>/` with glob characters escaped, and removes the line
-  of each committed skill. It adds no line for a folder the repository already ignores, as
-  `git check-ignore` reports. Checks that list untracked files, such as
-  `git ls-files --others --exclude-standard`, then skip the copied folders. Worktrees of one
-  repository share its `info/exclude`, so the hook updates the file under a lock.
+  `/<path from the top>/.agents/skills/<skill>/` with glob characters escaped. It adds no line for a
+  folder the repository already ignores, as `git check-ignore` reports. Checks that list untracked
+  files, such as `git ls-files --others --exclude-standard`, then skip the copied folders.
+- Worktrees of one repository share its `info/exclude`, so the hook updates the file under a lock,
+  and never removes a line: a skill that one worktree commits can be an untracked copy in another. A
+  line never hides a change to a tracked file. The hook refuses to write when `info/exclude` or its
+  lock file is a symbolic link, because the write would follow the link.
 
 The hook treats the workspace as outside any repository only when no folder from the workspace up
-holds a `.git`. Then it runs no git in the workspace and writes no exclude.
+holds a `.git`. Then it runs no git in the workspace and writes no exclude. In any workspace the
+hook checks `.agents/skills/` before it writes anything, so a workspace without the folder is left
+as it was, git's files included.
 
 A skill counts as installed only when its folder in the workspace holds a `SKILL.md`. The copy
 replaces any earlier untracked copy, so a [kept session](../work/sessions.md#the-kept-session) that
@@ -141,10 +145,11 @@ pin is malformed, the fetch fails, the copy fails, the copied or committed folde
 or the path is unsafe: `.agents` or `.agents/skills` is missing, is not a folder, or is a symbolic
 link, or `.agents/skills` resolves outside the workspace. It also reports a skill missing, and
 leaves the workspace as it is, when git fails in the workspace's repository or the hook can't write
-`info/exclude`. A failed fetch makes every listed skill missing, because the hook can't tell a skill
-the repository lacks from one it couldn't read. The copy deletes the skill's folder first, and a
-link on the path would aim that delete outside the workspace, so the hook checks the path just
-before each copy, after git has run, and touches nothing for a skill whose path fails.
+`info/exclude`, or when either file is a symbolic link. A failed fetch makes every listed skill
+missing, because the hook can't tell a skill the repository lacks from one it couldn't read. The
+copy deletes the skill's folder first, and a link on the path would aim that delete outside the
+workspace, so the hook checks the path just before each copy, after git has run, and touches nothing
+for a skill whose path fails.
 
 ## The pull request hook
 

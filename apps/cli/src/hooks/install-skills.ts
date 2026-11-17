@@ -66,6 +66,14 @@ export async function installSkills(input: InstallSkillsInput): Promise<string[]
       return [...input.names];
     }
 
+    // checked before any write to git's files, so a workspace that can't hold the copies is left as
+    // it was; each copy checks again, after git has run
+    const ready = await probeSkillsFolderInWorkspace(input.workspace);
+
+    if (!ready) {
+      return [...input.names];
+    }
+
     const repository = await readWorkspaceRepository(input);
 
     if (repository.kind === 'unreadable') {
@@ -81,7 +89,7 @@ export async function installSkills(input: InstallSkillsInput): Promise<string[]
     const namesWith = (plan: SkillPlan) =>
       plans.filter((entry) => entry.plan === plan).map((entry) => entry.name);
 
-    const excluded = await writeSkillExclude(repository, namesWith('copy'), namesWith('committed'));
+    const excluded = await writeSkillExclude(repository, namesWith('copy'));
 
     const unexcluded = excluded ? [] : namesWith('copy');
 
@@ -120,6 +128,33 @@ async function runFetch(
   );
 
   return fetched.exitCode === 0;
+}
+
+// The copy removes the skill's folder first, so a link in the skills path would point that removal
+// outside the workspace. The check runs after git, so a link made while git ran is still seen.
+async function probeSkillsFolderInWorkspace(workspace: string): Promise<boolean> {
+  const parts = workspaceSkillsFolder.split('/');
+
+  const infos = await Promise.all(
+    parts.map((_, index) => lstat(join(workspace, ...parts.slice(0, index + 1))).catch(() => null)),
+  );
+
+  if (infos.some((info) => info === null || !info.isDirectory())) {
+    return false;
+  }
+
+  const skillsFolder = join(workspace, workspaceSkillsFolder);
+
+  try {
+    const [resolved, resolvedWorkspace] = await Promise.all([
+      realpath(skillsFolder),
+      realpath(workspace),
+    ]);
+
+    return resolved === join(resolvedWorkspace, workspaceSkillsFolder);
+  } catch {
+    return false;
+  }
 }
 
 type WorkspaceRepository =
@@ -232,25 +267,41 @@ async function probeSkillFile(folder: string): Promise<boolean> {
 
 const excludeLockWaitMs = 10_000;
 
-// Worktrees of one repository share its exclude file, so two sessions can update it at once.
+// Worktrees of one repository share its exclude file, so two sessions can update it at once, and a
+// line stays when one worktree commits the skill: another worktree can still hold an untracked copy.
 async function writeSkillExclude(
   repository: WorkspaceRepository,
   add: readonly string[],
-  remove: readonly string[],
 ): Promise<boolean> {
-  if (repository.kind !== 'found') {
+  if (repository.kind !== 'found' || add.length === 0) {
     return true;
   }
+
+  const lockPath = `${repository.excludePath}.boxxy-lock`;
 
   try {
     await mkdir(dirname(repository.excludePath), { recursive: true });
 
+    // the lock helper and writeFile follow a link, which would aim the write at another file
+    const linked = await Promise.all(
+      [repository.excludePath, lockPath].map((path) =>
+        lstat(path).then(
+          (info) => info.isSymbolicLink(),
+          () => false,
+        ),
+      ),
+    );
+
+    if (linked.includes(true)) {
+      return false;
+    }
+
     const result = await withFileLock(
-      `${repository.excludePath}.boxxy-lock`,
+      lockPath,
       async () => {
         const existing = await readFile(repository.excludePath, 'utf8').catch(() => '');
 
-        const next = buildSkillExclude({ existing, prefix: repository.prefix, add, remove });
+        const next = buildSkillExclude({ existing, prefix: repository.prefix, add });
 
         if (next !== existing) {
           await writeFile(repository.excludePath, next);
@@ -287,31 +338,4 @@ async function copySkill(
     );
 
   return copied ? probeSkillFile(target) : false;
-}
-
-// The copy removes the skill's folder first, so a link in the skills path would point that removal
-// outside the workspace. The check runs after git, so a link made while git ran is still seen.
-async function probeSkillsFolderInWorkspace(workspace: string): Promise<boolean> {
-  const parts = workspaceSkillsFolder.split('/');
-
-  const infos = await Promise.all(
-    parts.map((_, index) => lstat(join(workspace, ...parts.slice(0, index + 1))).catch(() => null)),
-  );
-
-  if (infos.some((info) => info === null || !info.isDirectory())) {
-    return false;
-  }
-
-  const skillsFolder = join(workspace, workspaceSkillsFolder);
-
-  try {
-    const [resolved, resolvedWorkspace] = await Promise.all([
-      realpath(skillsFolder),
-      realpath(workspace),
-    ]);
-
-    return resolved === join(resolvedWorkspace, workspaceSkillsFolder);
-  } catch {
-    return false;
-  }
 }

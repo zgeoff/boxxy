@@ -7,7 +7,6 @@ test.each([
     existing: '',
     prefix: '',
     add: ['alpha'],
-    remove: [],
     next: '/.agents/skills/alpha/\n',
   },
   {
@@ -15,7 +14,6 @@ test.each([
     existing: '# git\n',
     prefix: '',
     add: ['alpha'],
-    remove: [],
     next: '# git\n/.agents/skills/alpha/\n',
   },
   {
@@ -23,7 +21,6 @@ test.each([
     existing: '# git',
     prefix: '',
     add: ['alpha'],
-    remove: [],
     next: '# git\n/.agents/skills/alpha/\n',
   },
   {
@@ -31,7 +28,6 @@ test.each([
     existing: '# git\r\n/.agents/skills/alpha/\r\n',
     prefix: '',
     add: ['alpha'],
-    remove: [],
     next: '# git\r\n/.agents/skills/alpha/\r\n',
   },
   {
@@ -39,7 +35,6 @@ test.each([
     existing: '/.agents/skills/alpha/\n',
     prefix: '',
     add: ['alpha', 'beta'],
-    remove: [],
     next: '/.agents/skills/alpha/\n/.agents/skills/beta/\n',
   },
   {
@@ -47,23 +42,20 @@ test.each([
     existing: '',
     prefix: '',
     add: ['alpha', 'alpha'],
-    remove: [],
     next: '/.agents/skills/alpha/\n',
   },
   {
-    file: 'a skill the repository now commits',
-    existing: '# git\n/.agents/skills/alpha/\n/.agents/skills/beta/\n',
+    file: 'a file that lists a skill this install does not copy',
+    existing: '# git\n/.agents/skills/alpha/\n',
     prefix: '',
     add: ['beta'],
-    remove: ['alpha'],
-    next: '# git\n/.agents/skills/beta/\n',
+    next: '# git\n/.agents/skills/alpha/\n/.agents/skills/beta/\n',
   },
   {
     file: 'a workspace in a subfolder',
     existing: '',
     prefix: 'app/',
     add: ['alpha'],
-    remove: [],
     next: '/app/.agents/skills/alpha/\n',
   },
   {
@@ -71,7 +63,6 @@ test.each([
     existing: '',
     prefix: String.raw`a b[1]/c*d?\e/`,
     add: ['alpha'],
-    remove: [],
     next: `${String.raw`/a b\[1]/c\*d\?\\e/.agents/skills/alpha/`}\n`,
   },
 ])('it returns the next exclude text for $file', (row) => {
@@ -79,15 +70,14 @@ test.each([
     existing: row.existing,
     prefix: row.prefix,
     add: row.add,
-    remove: row.remove,
   });
 
   expect(next).toBe(row.next);
 });
 
-test('it returns the text unchanged when it lists each added skill and no removed one', () => {
+test('it returns the text unchanged when it lists each added skill', () => {
   const existing = '# git\n/.agents/skills/alpha/';
-  const next = buildSkillExclude({ existing, prefix: '', add: ['alpha'], remove: ['beta'] });
+  const next = buildSkillExclude({ existing, prefix: '', add: ['alpha'] });
 
   expect(next).toBe('# git\n/.agents/skills/alpha/');
 });

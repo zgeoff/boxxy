@@ -7,32 +7,25 @@ export interface SkillExcludeInput {
   // the workspace's path from the repository's top, as `git rev-parse --show-prefix` prints it
   readonly prefix: string;
 
-  // the skills whose folders the file lists, and the skills whose folders it stops listing
+  // the skills whose folders the file lists
   readonly add: readonly string[];
-  readonly remove: readonly string[];
 }
 
 // Returns the exclude file's next text, which lists each added skill's folder once, by its path
 // from the repository's top. It returns `existing` itself when nothing changes.
 export function buildSkillExclude(input: SkillExcludeInput): string {
   const toLine = (name: string) => `/${escapeGlob(input.prefix)}${workspaceSkillsFolder}/${name}/`;
-
-  const removed = new Set(input.remove.map(toLine));
-
   const lines = input.existing === '' ? [] : input.existing.replace(/\n$/u, '').split('\n');
-  const kept = lines.filter((line) => !removed.has(trimCarriageReturn(line)));
 
-  const present = new Set(kept.map((line) => trimCarriageReturn(line)));
+  const present = new Set(lines.map((line) => trimCarriageReturn(line)));
 
   const added = [...new Set(input.add.map(toLine))].filter((line) => !present.has(line));
 
-  if (kept.length === lines.length && added.length === 0) {
+  if (added.length === 0) {
     return input.existing;
   }
 
-  const next = [...kept, ...added];
-
-  return next.length === 0 ? '' : `${next.join('\n')}\n`;
+  return `${[...lines, ...added].join('\n')}\n`;
 }
 
 // git reads `*`, `?`, `[` and `\` in an exclude line as a pattern, so a folder named `a[1]` would

@@ -190,33 +190,90 @@ test.each([
   const status = await runGit(['status', '--porcelain', '--untracked-files=all'], ctx.workspace);
   const made = await Bun.file(join(ctx.workspace, cwd, '.agents')).exists();
 
-  expect([missing, status, made]).toStrictEqual([
+  const gitFiles = await Array.fromAsync(
+    new Bun.Glob('*').scan({ cwd: join(ctx.workspace, '.git/info') }),
+  );
+
+  const exclude = await readFile(join(ctx.workspace, '.git/info/exclude'), 'utf8');
+
+  expect([missing, status, made, gitFiles, exclude.includes('.agents')]).toStrictEqual([
     ['alpha', 'beta'],
     { exitCode: 0, output: '' },
+    false,
+    ['exclude'],
     false,
   ]);
 });
 
-test('it stops listing a skill in info/exclude once the repository commits it', async () => {
+test('it keeps the exclude line of a copy in one worktree when another worktree commits the skill', async () => {
   const ctx = await setupTest();
 
   await createGitRepo({
     folder: ctx.workspace,
-    files: { '.agents/skills/alpha/SKILL.md': 'committed\n' },
+    files: { '.agents/skills/kept/SKILL.md': 'kept\n' },
   });
 
-  const exclude = join(ctx.workspace, '.git/info/exclude');
+  const other = join(ctx.folder, 'other');
 
-  await writeFile(exclude, '# git\n/.agents/skills/alpha/\n');
+  await runGit(['worktree', 'add', '--quiet', '-b', 'other', other], ctx.workspace);
+  await mkdir(join(other, '.agents/skills/alpha'), { recursive: true });
+  await writeFile(join(other, '.agents/skills/alpha/SKILL.md'), 'committed\n');
+  await runGit(['add', '.agents/skills/alpha'], other);
+
+  await runGit(
+    [
+      '-c',
+      'user.name=Test',
+      '-c',
+      'user.email=test@example.com',
+      '-c',
+      'commit.gpgsign=false',
+      'commit',
+      '--quiet',
+      '-m',
+      'alpha',
+    ],
+    other,
+  );
 
   const repo = await ctx.makeRepo({ alpha: { 'SKILL.md': 'pinned\n' } });
 
   await ctx.install(repo, ['alpha']);
+  await ctx.install(repo, ['alpha'], other);
 
-  const text = await readFile(exclude, 'utf8');
+  const statuses = await Promise.all(
+    [ctx.workspace, other].map((folder) =>
+      runGit(['status', '--porcelain', '--untracked-files=all'], folder),
+    ),
+  );
 
-  expect(text).toBe('# git\n');
+  expect(statuses).toStrictEqual([
+    { exitCode: 0, output: '' },
+    { exitCode: 0, output: '' },
+  ]);
 });
+
+test.each(['info/exclude', 'info/exclude.boxxy-lock'])(
+  'it returns a skill as missing and leaves the target untouched when %s is a symbolic link',
+  async (file) => {
+    const ctx = await setupTest();
+
+    await createGitRepo({ folder: ctx.workspace, files: { 'README.md': 'readme\n' } });
+
+    const outside = join(ctx.folder, 'outside.txt');
+    const path = join(ctx.workspace, '.git', file);
+
+    await writeFile(outside, 'keep\n');
+    await rm(path, { force: true });
+    await symlink(outside, path);
+
+    const repo = await ctx.makeRepo({ alpha: { 'SKILL.md': 'alpha\n' } });
+    const missing = await ctx.install(repo, ['alpha']);
+    const kept = await readFile(outside, 'utf8');
+
+    expect([missing, kept]).toStrictEqual([['alpha'], 'keep\n']);
+  },
+);
 
 test('it returns a skill it cannot exclude as missing and copies nothing', async () => {
   const ctx = await setupTest();
