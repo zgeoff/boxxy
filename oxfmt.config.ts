@@ -7,6 +7,8 @@ export default defineConfig({
     ...config.ignorePatterns,
 
     // verbatim copies that repo-sync delivers from zgeoff/tools; edit them there
+    '.agents/skills/docs-writing/**',
+    '.agents/skills/testing/**',
     '.claude/skills/docs-writing/**',
     '.claude/skills/testing/**',
     '.claude/hooks/skill-gate/**',

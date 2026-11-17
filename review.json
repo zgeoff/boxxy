@@ -33,11 +33,11 @@
     "scripts/parse-rig-lane-limits.ts",
     "scripts/pull-request-triggers.ts",
     "scripts/workflow-context.ts",
-    ".claude/skills/testing/**",
-    ".claude/skills/code-style/**",
-    ".claude/skills/docs-writing/**",
-    ".claude/skills/skill-writing/**",
-    ".claude/skills/ci-design/**",
+    ".agents/skills/testing/**",
+    ".agents/skills/code-style/**",
+    ".agents/skills/docs-writing/**",
+    ".agents/skills/skill-writing/**",
+    ".agents/skills/ci-design/**",
     ".claude/hooks/skill-gate/skill-gate.ts",
     "scripts/dependency-gates/**",
     ".github/ISSUE_TEMPLATE/**",
@@ -48,8 +48,8 @@
     "scripts/run-knip.sh",
     "scripts/read-checks-profile.ts",
     "scripts/read-optional-text.ts",
-    ".claude/skills/cold-read/**",
-    ".claude/skills/deslop/**",
-    ".claude/skills/pr-evidence/**"
+    ".agents/skills/cold-read/**",
+    ".agents/skills/deslop/**",
+    ".agents/skills/pr-evidence/**"
   ]
 }

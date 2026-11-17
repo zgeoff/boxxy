@@ -38,7 +38,8 @@ The mistakes that cost most here:
 - When the task names a pull request or an issue it depends on, check with `gh` that the pull
   request has merged, or that the issue is closed as completed. When it isn't, stop: open no pull
   request, and name that work in your reply.
-- Load the skill for the work before you start it. The skills are in `.claude/skills/`:
+- Load the skill for the work before you start it. The skills are in `.agents/skills/`, and
+  `.claude/skills` links to that folder:
 
   | Skill                               | Load before                                                   |
   | ----------------------------------- | ------------------------------------------------------------- |
@@ -48,7 +49,7 @@ The mistakes that cost most here:
   | `ci-design` and `project-ci-design` | changing a workflow, a job or a trigger                       |
   | `verify`                            | checking a change in the running app                          |
 
-- A sync job copies the shared skills in `.claude/skills/` from
+- A sync job copies the shared skills in `.agents/skills/` from
   [zgeoff/skills](https://github.com/zgeoff/skills) and overwrites local changes. Never edit them
   here. When a skill is wrong, say so in your PR description.
 - The repo owns `verify`, `project-testing` and `project-ci-design`, and you may edit them. The
