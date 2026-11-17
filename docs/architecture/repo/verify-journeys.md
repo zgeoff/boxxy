@@ -9,7 +9,7 @@ a feature's files with no fresh verdict for it, and boxxy's merge step never mer
 hasn't passed. Read this doc before you change the harness, the map from paths to features, or the
 gate.
 
-The `verify` skill in `.claude/skills/verify/` holds each journey and its end state; this doc owns
+The `verify` skill in `.agents/skills/verify/` holds each journey and its end state; this doc owns
 what each journey proves. `bun verify` is built on [wringer](https://github.com/zgeoff/wringer)
 ([its terms](https://github.com/zgeoff/wringer/blob/main/docs/reference/terms.md)). The
 [overview](../overview.md#terms) defines the boxxy terms.

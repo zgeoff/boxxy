@@ -67,6 +67,7 @@ export const ignoredPaths = [
   'renovate.json',
 
   // the skills, the verify skill's feature map among them
+  '.agents/**',
   '.claude/**',
   '.github/**',
   'scripts/**',
