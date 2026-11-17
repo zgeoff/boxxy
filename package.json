@@ -24,7 +24,7 @@
       "@modelcontextprotocol/server": "2.4.0",
       "@msw/data": "1.1.8",
       "@mswjs/interceptors": "0.45.11",
-      "@noslop/cli": "0.4.29",
+      "@noslop/cli": "0.4.30",
       "@octokit/auth-app": "8.3.1",
       "@octokit/request": "10.0.16",
       "@orpc/client": "2.0.0-beta.50",
