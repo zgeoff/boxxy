@@ -109,7 +109,7 @@ test('it ends the attempt as skill-missing when a listed skill is not in the pin
   expect({ exitCode: result.exitCode, stderr: result.stderr }).toStrictEqual({
     exitCode: 1,
     stderr:
-      'boxxy ends this attempt: the skills bake-off are missing: the pinned skills repository lacks them, the fetch failed, or the workspace has no .agents/skills folder\n',
+      "boxxy ends this attempt: the skills bake-off are missing: the pinned skills repository lacks them, the fetch failed, or a part of the workspace's .agents/skills path is a link or a file\n",
   });
 
   expect([settled.state, settled.failure]).toStrictEqual(['failed', 'skill-missing']);

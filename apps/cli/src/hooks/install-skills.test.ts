@@ -1,5 +1,14 @@
 import { expect, onTestFinished, test } from 'bun:test';
-import { mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rename,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { runGit } from '../run-git.ts';
@@ -15,7 +24,7 @@ async function setupTest() {
 
   const workspace = join(folder, 'workspace');
 
-  // every zgeoff repository commits this folder, and the install never makes it
+  // most zgeoff repositories commit this folder
   await mkdir(join(workspace, '.agents/skills'), { recursive: true });
 
   const install = (repo: SkillsRepo, names: readonly string[], cwd = workspace) =>
@@ -172,10 +181,39 @@ test('it copies a skill into a folder the repository ignores and adds no exclude
   expect(status).toStrictEqual({ exitCode: 0, output: '' });
 });
 
-test.each([
-  ['the workspace has no .agents/skills folder', '.'],
-  ['the workspace is missing', 'app'],
-])('it returns every name and copies nothing when %s', async (_, cwd) => {
+test('it creates .agents/skills in a repository with no .agents folder and installs each skill', async () => {
+  const ctx = await setupTest();
+
+  await rm(join(ctx.workspace, '.agents'), { recursive: true });
+
+  await createGitRepo({
+    folder: ctx.workspace,
+    files: { 'skills/docs-writing/SKILL.md': 'source\n' },
+    links: { '.claude/skills': '../skills' },
+  });
+
+  const repo = await ctx.makeRepo({
+    alpha: { 'SKILL.md': 'alpha\n' },
+    beta: { 'SKILL.md': 'beta\n' },
+  });
+
+  const missing = await ctx.install(repo, ['alpha', 'beta']);
+
+  expect(missing).toStrictEqual([]);
+
+  const status = await runGit(['status', '--porcelain', '--untracked-files=all'], ctx.workspace);
+
+  const installed = await Promise.all(
+    ['alpha', 'beta'].map((name) =>
+      readFile(join(ctx.workspace, '.agents/skills', name, 'SKILL.md'), 'utf8'),
+    ),
+  );
+
+  expect(status).toStrictEqual({ exitCode: 0, output: '' });
+  expect(installed).toStrictEqual(['alpha\n', 'beta\n']);
+});
+
+test('it returns every name and creates nothing when the workspace is missing', async () => {
   const ctx = await setupTest();
 
   await rm(join(ctx.workspace, '.agents'), { recursive: true });
@@ -186,9 +224,9 @@ test.each([
     beta: { 'SKILL.md': 'beta\n' },
   });
 
-  const missing = await ctx.install(repo, ['alpha', 'beta'], join(ctx.workspace, cwd));
+  const missing = await ctx.install(repo, ['alpha', 'beta'], join(ctx.workspace, 'app'));
   const status = await runGit(['status', '--porcelain', '--untracked-files=all'], ctx.workspace);
-  const made = await Bun.file(join(ctx.workspace, cwd, '.agents')).exists();
+  const made = await Bun.file(join(ctx.workspace, 'app')).exists();
 
   const gitFiles = await Array.fromAsync(
     new Bun.Glob('*').scan({ cwd: join(ctx.workspace, '.git/info') }),
@@ -479,17 +517,23 @@ test('it returns the name as missing when .agents/skills becomes a symbolic link
   expect([missing, outsideFiles]).toStrictEqual([['alpha'], ['alpha/keep.txt']]);
 });
 
-test('it returns the name as missing when .agents is a file', async () => {
-  const ctx = await setupTest();
-  const repo = await ctx.makeRepo({ alpha: { 'SKILL.md': 'pinned\n' } });
+test.each(['.agents', '.agents/skills'])(
+  'it returns the name as missing and replaces nothing when %s is a file',
+  async (file) => {
+    const ctx = await setupTest();
+    const repo = await ctx.makeRepo({ alpha: { 'SKILL.md': 'pinned\n' } });
 
-  await rm(join(ctx.workspace, '.agents'), { recursive: true });
-  await writeFile(join(ctx.workspace, '.agents'), 'a file\n');
+    await rm(join(ctx.workspace, '.agents'), { recursive: true });
+    await mkdir(dirname(join(ctx.workspace, file)), { recursive: true });
+    await writeFile(join(ctx.workspace, file), 'a file\n');
 
-  const missing = await ctx.install(repo, ['alpha']);
+    const missing = await ctx.install(repo, ['alpha']);
+    const kept = await readFile(join(ctx.workspace, file), 'utf8');
 
-  expect(missing).toStrictEqual(['alpha']);
-});
+    expect(missing).toStrictEqual(['alpha']);
+    expect(kept).toBe('a file\n');
+  },
+);
 
 test('it replaces a skill folder that is a symbolic link and leaves its target untouched', async () => {
   const ctx = await setupTest();
@@ -539,3 +583,22 @@ test.each([
     ]);
   },
 );
+
+test('it returns the name as missing and makes no folder in the target when .agents links to an empty folder', async () => {
+  const ctx = await setupTest();
+  const repo = await ctx.makeRepo({ alpha: { 'SKILL.md': 'pinned\n' } });
+
+  const outside = join(ctx.folder, 'outside');
+
+  await rm(join(ctx.workspace, '.agents'), { recursive: true });
+  await mkdir(outside);
+  await symlink('../outside', join(ctx.workspace, '.agents'));
+
+  const missing = await ctx.install(repo, ['alpha']);
+
+  expect(missing).toStrictEqual(['alpha']);
+
+  const outsideEntries = await readdir(outside);
+
+  expect(outsideEntries).toStrictEqual([]);
+});

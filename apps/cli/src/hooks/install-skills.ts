@@ -30,7 +30,7 @@ export interface InstallSkillsInput {
   readonly pin: SkillsPin | null;
   readonly names: readonly string[];
 
-  // the folder the agent works in; the skills land in its `.agents/skills`, which must exist
+  // the folder the agent works in, which must exist; the skills land in its `.agents/skills`
   readonly workspace: string;
 
   // where `<owner>/<name>.git` is fetched from
@@ -66,9 +66,9 @@ export async function installSkills(input: InstallSkillsInput): Promise<string[]
       return [...input.names];
     }
 
-    // checked before any write to git's files, so a workspace that can't hold the copies is left as
-    // it was; each copy checks again, after git has run
-    const ready = await probeSkillsFolderInWorkspace(input.workspace);
+    // made and checked before any write to git's files, so a workspace that can't hold the copies
+    // keeps git's files as they were; each copy checks again, after git has run
+    const ready = await createSkillsFolder(input.workspace);
 
     if (!ready) {
       return [...input.names];
@@ -128,6 +128,37 @@ async function runFetch(
   );
 
   return fetched.exitCode === 0;
+}
+
+// A recursive mkdir follows a link in the path, and would make `skills` in the link's target, so the
+// walk makes one part at a time and stops at a part that is a link or a file.
+async function createSkillsFolder(workspace: string): Promise<boolean> {
+  const parts = workspaceSkillsFolder.split('/');
+
+  for (const index of parts.keys()) {
+    const path = join(workspace, ...parts.slice(0, index + 1));
+
+    const info = await lstat(path).catch(() => null);
+
+    if (info !== null && !info.isDirectory()) {
+      return false;
+    }
+
+    if (info !== null) {
+      continue;
+    }
+
+    const made = await mkdir(path).then(
+      () => true,
+      () => false,
+    );
+
+    if (!made) {
+      return false;
+    }
+  }
+
+  return probeSkillsFolderInWorkspace(workspace);
 }
 
 // The copy removes the skill's folder first, so a link in the skills path would point that removal

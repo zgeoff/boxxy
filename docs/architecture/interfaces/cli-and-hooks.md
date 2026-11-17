@@ -112,12 +112,13 @@ copies it into the workspace. It first strips git's environment of every variabl
 `git rev-parse --local-env-vars` lists, such as `GIT_DIR`, and of `GIT_CEILING_DIRECTORIES`, so git
 writes only in the scratch folder. A recipe with no skills skips the fetch.
 
-The hook writes into `.agents/skills/` and never through `.claude/skills`. Each zgeoff repository
-commits `.agents/skills/` and links `.claude/skills` to `../.agents/skills`, so Claude Code loads
-the copies through the link. git refuses a path that runs through a symbolic link, so the hook's git
-calls name `.agents/skills/<skill>`. The hook never makes `.agents/skills/`: in a workspace without
-it as a folder, Claude Code would find no link to the copies, so every listed skill is reported
-missing and the hook's message names the folder.
+The hook writes into `.agents/skills/` and never through `.claude/skills`. Most zgeoff repositories
+commit `.agents/skills/` and link `.claude/skills` to `../.agents/skills`, so Claude Code loads the
+copies through the link. git refuses a path that runs through a symbolic link, so the hook's git
+calls name `.agents/skills/<skill>`. In a workspace without `.agents` or `.agents/skills`, the hook
+makes each absent folder, one at a time, and stops at a part that is a symbolic link or a file. A
+repository whose `.claude/skills` links elsewhere, such as zgeoff/skills, which links it to
+`../skills`, still gets the copies, but Claude Code loads that repository's own skills.
 
 When the workspace is in a git repository, the install changes nothing that `git status` shows
 there, so the agent's pull request and the repository's own checks don't see the installed skills:
@@ -135,21 +136,21 @@ there, so the agent's pull request and the repository's own checks don't see the
 
 The hook treats the workspace as outside any repository only when no folder from the workspace up
 holds a `.git`. Then it runs no git in the workspace and writes no exclude. In any workspace the
-hook checks `.agents/skills/` before it writes anything, so a workspace without the folder is left
-as it was, git's files included.
+hook makes and checks `.agents/skills/` before it writes to git's files, so a workspace where a part
+of that path is a symbolic link or a file is left as it was, git's files included.
 
 A skill counts as installed only when its folder in the workspace holds a `SKILL.md`. The copy
 replaces any earlier untracked copy, so a [kept session](../work/sessions.md#the-kept-session) that
 resumes under a new pin gets the new files. The hook reports a skill missing when its name or the
 pin is malformed, the fetch fails, the copy fails, the copied or committed folder has no `SKILL.md`,
-or the path is unsafe: `.agents` or `.agents/skills` is missing, is not a folder, or is a symbolic
-link, or `.agents/skills` resolves outside the workspace. It also reports a skill missing, and
-leaves the workspace as it is, when git fails in the workspace's repository or the hook can't write
-`info/exclude`, or when either file is a symbolic link. A failed fetch makes every listed skill
-missing, because the hook can't tell a skill the repository lacks from one it couldn't read. The
-copy deletes the skill's folder first, and a link on the path would aim that delete outside the
-workspace, so the hook checks the path just before each copy, after git has run, and touches nothing
-for a skill whose path fails.
+or the path is unsafe: `.agents` or `.agents/skills` is a file or a symbolic link, the hook can't
+make either folder, or `.agents/skills` resolves outside the workspace. It also reports a skill
+missing, and leaves the workspace as it is, when git fails in the workspace's repository or the hook
+can't write `info/exclude`, or when either file is a symbolic link. A failed fetch makes every
+listed skill missing, because the hook can't tell a skill the repository lacks from one it couldn't
+read. The copy deletes the skill's folder first, and a link on the path would aim that delete
+outside the workspace, so the hook checks the path just before each copy, after git has run, and
+touches nothing for a skill whose path fails.
 
 ## The pull request hook
 
