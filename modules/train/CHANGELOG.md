@@ -2,17 +2,15 @@
 
 ## [0.2.11](https://github.com/zgeoff/boxxy/compare/@boxxy/train@0.2.10...@boxxy/train@0.2.11) (2026-11-17)
 
-
 ### Miscellaneous Chores
 
-* **@boxxy/train:** Synchronize boxxy versions
-
+- **@boxxy/train:** Synchronize boxxy versions
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.2.11
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.11
 
 ## [0.2.10](https://github.com/zgeoff/boxxy/compare/@boxxy/train@0.2.9...@boxxy/train@0.2.10) (2026-11-16)
 

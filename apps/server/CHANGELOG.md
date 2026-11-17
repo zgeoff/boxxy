@@ -2,32 +2,30 @@
 
 ## [0.2.11](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.10...@boxxy/server@0.2.11) (2026-11-17)
 
-
 ### Miscellaneous Chores
 
-* **@boxxy/server:** Synchronize boxxy versions
-
+- **@boxxy/server:** Synchronize boxxy versions
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/auth-oauth bumped to 0.2.11
-    * @boxxy/caller-proof-imp bumped to 0.2.11
-    * @boxxy/closeout bumped to 0.2.11
-    * @boxxy/content-hash bumped to 0.2.11
-    * @boxxy/contract bumped to 0.2.11
-    * @boxxy/dispatch bumped to 0.2.11
-    * @boxxy/forge-github bumped to 0.2.11
-    * @boxxy/model bumped to 0.2.11
-    * @boxxy/notifier-atc bumped to 0.2.11
-    * @boxxy/pepys bumped to 0.2.11
-    * @boxxy/planning bumped to 0.2.11
-    * @boxxy/review-noslop bumped to 0.2.11
-    * @boxxy/rules bumped to 0.2.11
-    * @boxxy/store-sqlite bumped to 0.2.11
-    * @boxxy/verifier-wringer bumped to 0.2.11
-    * @boxxy/worker-atc bumped to 0.2.11
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/auth-oauth bumped to 0.2.11
+    - @boxxy/caller-proof-imp bumped to 0.2.11
+    - @boxxy/closeout bumped to 0.2.11
+    - @boxxy/content-hash bumped to 0.2.11
+    - @boxxy/contract bumped to 0.2.11
+    - @boxxy/dispatch bumped to 0.2.11
+    - @boxxy/forge-github bumped to 0.2.11
+    - @boxxy/model bumped to 0.2.11
+    - @boxxy/notifier-atc bumped to 0.2.11
+    - @boxxy/pepys bumped to 0.2.11
+    - @boxxy/planning bumped to 0.2.11
+    - @boxxy/review-noslop bumped to 0.2.11
+    - @boxxy/rules bumped to 0.2.11
+    - @boxxy/store-sqlite bumped to 0.2.11
+    - @boxxy/verifier-wringer bumped to 0.2.11
+    - @boxxy/worker-atc bumped to 0.2.11
 
 ## [0.2.10](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.9...@boxxy/server@0.2.10) (2026-11-16)
 

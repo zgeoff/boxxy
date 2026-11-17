@@ -2,19 +2,17 @@
 
 ## [0.2.11](https://github.com/zgeoff/boxxy/compare/@boxxy/caller-proof-imp@0.2.10...@boxxy/caller-proof-imp@0.2.11) (2026-11-17)
 
-
 ### Miscellaneous Chores
 
-* **@boxxy/caller-proof-imp:** Synchronize boxxy versions
-
+- **@boxxy/caller-proof-imp:** Synchronize boxxy versions
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.2.11
-  * devDependencies
-    * @boxxy/dispatch bumped to 0.2.11
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.2.11
+  - devDependencies
+    - @boxxy/dispatch bumped to 0.2.11
 
 ## [0.2.10](https://github.com/zgeoff/boxxy/compare/@boxxy/caller-proof-imp@0.2.9...@boxxy/caller-proof-imp@0.2.10) (2026-11-16)
 
