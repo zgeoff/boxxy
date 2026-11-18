@@ -230,7 +230,7 @@ test('it starts the merge step at the claim of the first merge attempt after the
         id: 'boxxy:attempt:a5',
         number: 2,
         phase: 'merge',
-        outcome: 'unverified',
+        outcome: 'stale',
         claimed_at: '2026-11-11T04:40:00.000Z',
         ended_at: '2026-11-11T04:45:00.000Z',
       }),

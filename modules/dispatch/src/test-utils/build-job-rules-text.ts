@@ -13,7 +13,6 @@ const replacements: readonly (readonly [string, string])[] = [
       '        merged: { end: merged }\n',
       '        repair: { to: build, max: 3, resume: true }\n',
       '        stale: { to: review, max: 3 }\n',
-      '        unverified: { to: review, max: 2 }\n',
       '        closed: { hold: pull-request-closed }\n',
       '        stalled: { hold: checks-stalled }\n',
       '        refused: { hold: merge-refused }\n',

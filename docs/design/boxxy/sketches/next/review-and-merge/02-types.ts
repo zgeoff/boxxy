@@ -177,7 +177,7 @@ export type MergeReading = MergeObservation | UnreadableMerge;
 
 export interface GateRecord { readonly head: CommitSha; readonly status: GateReading['status']; readonly attempt: AttemptId }
 
-export type MergeOutcome = 'merged' | 'repair' | 'stale' | 'unverified' | 'closed' | 'stalled' | 'refused' | 'blocked';
+export type MergeOutcome = 'merged' | 'repair' | 'stale' | 'closed' | 'stalled' | 'refused' | 'blocked';
 
 // `acted` comes from the attempt row: the last request boxxy sent, and the forge's answer to it,
 // or null when that call got no answer.

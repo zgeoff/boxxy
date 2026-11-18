@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
 import { HttpResponse, http } from 'msw';
+import { z } from 'zod';
 import { createGithubClient } from '../create-github-client.ts';
 import { GithubForgeError } from '../github-forge-error.ts';
 import mergeAnswers from '../test-utils/fixtures/merge-answers.json' with { type: 'json' };
@@ -16,8 +17,15 @@ function setupTest() {
   });
 
   const repo = brandSchemas.repoName.parse('acme/lamps');
+  const title = 'feat(lamps): dim the lamp at dusk';
+
+  // the title that the pull request holds when the merge reads it
+  mockNetwork.use(
+    http.get(`${GITHUB_API_URL}/repos/acme/lamps/pulls/7`, () => HttpResponse.json({ title })),
+  );
 
   return {
+    title,
     client,
     ref: { repo, number: 7 },
     head: brandSchemas.commitSha.parse('7a1c'.padEnd(40, '0')),
@@ -44,8 +52,33 @@ test('it sends one PUT with the head as `sha`, the method, a JSON body and the t
   await mergeAtHead(ctx.client, ctx.ref, ctx.head, 'squash');
 
   expect(sent).toStrictEqual([
-    ['application/json', 'Bearer token-for-tests', { sha: ctx.head, merge_method: 'squash' }],
+    [
+      'application/json',
+      'Bearer token-for-tests',
+      { sha: ctx.head, merge_method: 'squash', commit_title: ctx.title },
+    ],
   ]);
+});
+
+test('it sends the pull request title as the commit title of the squash merge', async () => {
+  const ctx = setupTest();
+  const titles: unknown[] = [];
+
+  mockNetwork.use(
+    http.put(ctx.mergeURL, async (info) => {
+      const body: unknown = await info.request.json();
+
+      const sent = z.object({ commit_title: z.string() }).parse(body);
+
+      titles.push(sent.commit_title);
+
+      return HttpResponse.json(mergeAnswers.merged);
+    }),
+  );
+
+  await mergeAtHead(ctx.client, ctx.ref, ctx.head, 'squash');
+
+  expect(titles).toStrictEqual(['feat(lamps): dim the lamp at dusk']);
 });
 
 test('it answers merged with the merge commit that GitHub gives', () => {

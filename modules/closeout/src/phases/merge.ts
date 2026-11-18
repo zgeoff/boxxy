@@ -18,7 +18,7 @@ export const merge = definePhase({
   name: brandSchemas.phaseName.parse('merge'),
   version: 1,
   worker: brandSchemas.workerKindName.parse('merge.forge'),
-  outcomes: ['merged', 'repair', 'stale', 'unverified', 'closed', 'stalled', 'refused', 'blocked'],
+  outcomes: ['merged', 'repair', 'stale', 'closed', 'stalled', 'refused', 'blocked'],
   needsAcceptance: true,
   input: (ctx) => {
     const input: MergeInput = { pullRequest: findPullRequestLink(ctx.pullRequests) };

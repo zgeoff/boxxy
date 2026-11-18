@@ -2318,7 +2318,7 @@ pipelines:
   standard:
     - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
     - { phase: verify, maxAttempts: 2, timeoutMinutes: 90, on: { verified: next, failed: { to: build, max: 2, resume: true } } }
-    - { phase: merge, maxAttempts: 2, timeoutMinutes: 240, on: { merged: { end: merged }, unverified: { to: verify, max: 2 } } }
+    - { phase: merge, maxAttempts: 2, timeoutMinutes: 240, on: { merged: { end: merged } } }
 kinds:
   core.issue: { pipeline: standard, recipes: { build: build-v1, verify: verify-builder, merge: build-v1 } }
 recipes:
@@ -2344,7 +2344,7 @@ sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 24
       buildMockPhaseKind({ name: 'verify', outcomes: ['verified', 'failed'] }),
       buildMockPhaseKind({
         name: 'merge',
-        outcomes: ['merged', 'unverified'],
+        outcomes: ['merged'],
         worker: 'merge.forge',
       }),
     ],

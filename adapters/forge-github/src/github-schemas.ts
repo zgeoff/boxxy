@@ -38,6 +38,7 @@ export const githubSchemas = {
   pullRequestPage: z.array(z.object({ number: z.number().int().positive() })),
   compare: z.object({ files: z.array(compareFile).optional() }),
   pullRequestBody: z.object({ body: z.string().nullable() }),
+  pullRequestTitle: z.object({ title: z.string() }),
   checkRunPage: z.object({ total_count: runCount, check_runs: z.array(checkRun) }),
   combinedStatus: z.object({ total_count: runCount, statuses: z.array(commitStatus) }),
 

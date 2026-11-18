@@ -13,7 +13,8 @@ import type { DecideMergeInput } from './types.ts';
 const minuteMs = 60_000;
 
 // The merge rule: one step for each read of a merge attempt. It checks the rows of the merge
-// table from the top, and the first match wins. Every green answer needs a record at the head.
+// table from the top, and the first match wins. A merge needs a passed review at the head and
+// every required check green; the base branch's own rules say which checks those are.
 export function decideMerge(input: DecideMergeInput): JobStep {
   const observed = input.observed;
 
@@ -65,11 +66,6 @@ export function decideMerge(input: DecideMergeInput): JobStep {
           reason: pending.length > 0 ? 'checks pending' : 'mergeable state unknown',
           pending,
         };
-  }
-
-  // a rules file without the verify gate in its checks must still never merge an unverified head
-  if (observed.verify.status !== 'verified') {
-    return finish('unverified');
   }
 
   const sent = input.acted?.head === observed.head ? input.acted : null;

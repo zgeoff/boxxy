@@ -27,7 +27,10 @@ test.each([
     {
       state: 'unreadable',
       problem: 'pull-request-not-found',
-      pullRequest: { repo: brandSchemas.repoName.parse('acme/lamps'), number: 7 },
+      pullRequest: {
+        repo: brandSchemas.repoName.parse('acme/lamps'),
+        number: 7,
+      },
     } as const,
     'the forge holds no pull request acme/lamps#7',
   ],
@@ -35,7 +38,10 @@ test.each([
     {
       state: 'unreadable',
       problem: 'no-commit',
-      pullRequest: { repo: brandSchemas.repoName.parse('acme/lamps'), number: 7 },
+      pullRequest: {
+        repo: brandSchemas.repoName.parse('acme/lamps'),
+        number: 7,
+      },
     } as const,
     'the pull request acme/lamps#7 has no commit',
   ],
@@ -90,7 +96,11 @@ test('it finishes merged by boxxy when boxxy asked to merge the head that merged
 
   const step = ctx.decide({
     observed,
-    acted: { at: brandSchemas.instant.parse(1000), head: observed.head, answer: null },
+    acted: {
+      at: brandSchemas.instant.parse(1000),
+      head: observed.head,
+      answer: null,
+    },
     now: brandSchemas.instant.parse(61_000),
   });
 
@@ -259,13 +269,22 @@ test('it waits within the time limit while the mergeable state is unknown', () =
   const ctx = setupTest();
 
   expect(
-    ctx.decide({ observed: buildMockMergeObservation({ mergeable: 'unknown' }) }),
-  ).toStrictEqual({ kind: 'wait', reason: 'mergeable state unknown', pending: [] });
+    ctx.decide({
+      observed: buildMockMergeObservation({ mergeable: 'unknown' }),
+    }),
+  ).toStrictEqual({
+    kind: 'wait',
+    reason: 'mergeable state unknown',
+    pending: [],
+  });
 });
 
 test('it finishes stalled while a required check is pending past the time limit', () => {
   const ctx = setupTest();
-  const observed = buildMockMergeObservation({ checks: new Map([['pr / checks', 'pending']]) });
+
+  const observed = buildMockMergeObservation({
+    checks: new Map([['pr / checks', 'pending']]),
+  });
 
   expect(ctx.decide({ observed, deadlinePassed: true })).toStrictEqual({
     kind: 'finish',
@@ -285,25 +304,84 @@ test('it finishes stalled while a required check is pending past the time limit'
   });
 });
 
-test('it finishes unverified when every check is green and the verify reading is incomplete', () => {
+test.each([
+  ['incomplete', ['verify / gate'], ['pr / checks', 'verify / gate']],
+  ['not-covered', ['verify / gate'], ['pr / checks', 'verify / gate']],
+  ['not-covered', [], ['pr / checks']],
+] as const)(
+  'it asks to merge a reviewed head with every required check green and a verify reading of %s, with required checks %j',
+  (status, baseRequired, required) => {
+    const ctx = setupTest();
+    const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+    const verify = status === 'incomplete' ? { status, head, features: [] } : { status, head };
+
+    const observed = buildMockMergeObservation({
+      head,
+      verify,
+      baseRequired: [...baseRequired],
+      checks: new Map(required.map((name) => [name, 'success'] as const)),
+    });
+
+    expect(ctx.decide({ observed })).toStrictEqual({
+      kind: 'act',
+      action: {
+        kind: 'merge',
+        unit: { members: [{ pullRequest: observed.pullRequest, head }] },
+        method: 'squash',
+        required: [...required],
+      },
+    });
+  },
+);
+
+test.each([
+  [
+    'pending',
+    new Map([
+      ['pr / checks', 'success'],
+      ['verify / gate', 'pending'],
+    ] as const),
+  ],
+  ['missing', new Map([['pr / checks', 'success']] as const)],
+])('it waits for a check that the base branch requires while it is %s', (_state, checks) => {
   const ctx = setupTest();
-  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
-  const verify = { status: 'incomplete', head, features: [] } as const;
-  const observed = buildMockMergeObservation({ head, verify });
+
+  const observed = buildMockMergeObservation({
+    baseRequired: ['verify / gate'],
+    checks,
+  });
+
+  expect(ctx.decide({ observed })).toStrictEqual({
+    kind: 'wait',
+    reason: 'checks pending',
+    pending: ['verify / gate'],
+  });
+});
+
+test('it finishes repair when a check that the base branch requires is red', () => {
+  const ctx = setupTest();
+
+  const observed = buildMockMergeObservation({
+    baseRequired: ['verify / gate'],
+    checks: new Map([
+      ['pr / checks', 'success'],
+      ['verify / gate', 'failure'],
+    ]),
+  });
 
   expect(ctx.decide({ observed })).toStrictEqual({
     kind: 'finish',
     closeOut: toJSONValue(
       buildMockMergeCloseOut({
-        outcome: 'unverified',
-        head,
-        required: ['pr / checks'],
-        failed: [],
-        cause: null,
+        outcome: 'repair',
+        head: observed.head,
+        required: ['pr / checks', 'verify / gate'],
+        failed: ['verify / gate'],
+        cause: 'checks-red',
         mergeCommit: null,
         reason: null,
         byBoxxy: false,
-        verify,
+        verify: observed.verify,
       }),
     ),
   });
@@ -347,7 +425,11 @@ test('it finishes stalled when a merge request sent at this head has no merge pa
 
   const step = ctx.decide({
     observed,
-    acted: { at: brandSchemas.instant.parse(1000), head: observed.head, answer: null },
+    acted: {
+      at: brandSchemas.instant.parse(1000),
+      head: observed.head,
+      answer: null,
+    },
     now: brandSchemas.instant.parse(61_000),
     deadlinePassed: true,
   });
@@ -376,11 +458,19 @@ test('it waits when a merge request sent at this head is less than 5 minutes old
 
   const step = ctx.decide({
     observed,
-    acted: { at: brandSchemas.instant.parse(1000), head: observed.head, answer: null },
+    acted: {
+      at: brandSchemas.instant.parse(1000),
+      head: observed.head,
+      answer: null,
+    },
     now: brandSchemas.instant.parse(1000 + 4 * 60_000),
   });
 
-  expect(step).toStrictEqual({ kind: 'wait', reason: 'merge requested', pending: [] });
+  expect(step).toStrictEqual({
+    kind: 'wait',
+    reason: 'merge requested',
+    pending: [],
+  });
 });
 
 test('it asks again to merge when a request at this head got no answer in 5 minutes', () => {
@@ -389,7 +479,11 @@ test('it asks again to merge when a request at this head got no answer in 5 minu
 
   const step = ctx.decide({
     observed,
-    acted: { at: brandSchemas.instant.parse(1000), head: observed.head, answer: null },
+    acted: {
+      at: brandSchemas.instant.parse(1000),
+      head: observed.head,
+      answer: null,
+    },
     now: brandSchemas.instant.parse(1000 + 5 * 60_000),
   });
 
@@ -397,7 +491,9 @@ test('it asks again to merge when a request at this head got no answer in 5 minu
     kind: 'act',
     action: {
       kind: 'merge',
-      unit: { members: [{ pullRequest: observed.pullRequest, head: observed.head }] },
+      unit: {
+        members: [{ pullRequest: observed.pullRequest, head: observed.head }],
+      },
       method: 'squash',
       required: ['pr / checks'],
     },
@@ -422,7 +518,9 @@ test('it asks to merge a head that moved since the last request', () => {
     kind: 'act',
     action: {
       kind: 'merge',
-      unit: { members: [{ pullRequest: observed.pullRequest, head: observed.head }] },
+      unit: {
+        members: [{ pullRequest: observed.pullRequest, head: observed.head }],
+      },
       method: 'squash',
       required: ['pr / checks'],
     },
@@ -437,7 +535,9 @@ test('it asks to merge the head when every check is green and the verify reading
     kind: 'act',
     action: {
       kind: 'merge',
-      unit: { members: [{ pullRequest: observed.pullRequest, head: observed.head }] },
+      unit: {
+        members: [{ pullRequest: observed.pullRequest, head: observed.head }],
+      },
       method: 'squash',
       required: ['pr / checks'],
     },

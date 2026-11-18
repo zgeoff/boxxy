@@ -9,7 +9,7 @@ import { buildJobRulesText } from './build-job-rules-text.ts';
 import { createFakeReviewGate } from './create-fake-review-gate.ts';
 
 // The job rules with a `verify` step between review and merge, graded by the builder's kept
-// session. A failed verify goes back to build, and an `unverified` merge goes back to verify.
+// session. A failed verify goes back to build.
 export function loadVerifyJobRules(): LoadedRules {
   const example = buildExampleLoadInput();
 
@@ -48,7 +48,6 @@ const replacements: readonly (readonly [string, string])[] = [
       '    - phase: merge\n',
     ].join(''),
   ],
-  ['        unverified: { to: review, max: 2 }\n', '        unverified: { to: verify, max: 2 }\n'],
   ['      merge: merge-v1\n', '      verify: verify-v1\n      merge: merge-v1\n'],
   [
     'counts: { phase: [triage, design, build, review] }',
