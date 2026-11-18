@@ -91,34 +91,7 @@ A step's recipe resolves in this order, and the first match wins: the repo's `<p
 
 ### The server config
 
-`spawn.agents` replaces `spawn.reviewAgents`. It lists each atc agent whose broker profile holds a credential, with where that agent may run.
-
-```jsonc
-{
-  "spawn": {
-    "agents": {
-      "boxxy-review": { "phases": ["review"] }, // any repo
-      "app-live": { "phases": ["live"], "repos": ["example/app"] },
-    },
-    "phases": {
-      "review": { "requireScopedAgent": true }, // a recipe that can run review must name an agent listed for review
-    },
-  },
-}
-```
-
-```ts
-// apps/server config schema
-interface AgentScope {
-  phases: readonly string[]; // at least one
-  repos?: readonly RepoName[]; // absent: any repo; each must be in spawn.repos
-}
-interface PhaseSpawnPolicy {
-  requireScopedAgent?: boolean;
-}
-```
-
-The rules repository's CI check loads each rules pull request as the server does, so it gets a copy of `spawn.agents` and of the repo names in `spawn.repos`.
+Built: [who holds a credential](../../architecture/work/sessions.md#who-holds-a-credential) describes `spawn.agents` and `spawn.phases.<phase>.requireScopedAgent`. The rules repository's CI check loads each rules pull request as the server does, so it gets a copy of `spawn.agents` and of the repo names in `spawn.repos`.
 
 ### Criteria tags
 
@@ -256,26 +229,13 @@ interface LineResult {
 
 ### Spawn
 
-```ts
-// @boxxy/worker-atc: the stored spawn request gains the repo and the phase
-interface SpawnRequest {
-  // …existing fields
-  repo: RepoName;
-  phase: string;
-}
-```
+Built: the stored spawn request carries the item's `repo` and the attempt's `phase`, as [who holds a credential](../../architecture/work/sessions.md#who-holds-a-credential) describes.
 
 ## Constraints
 
 ### Who holds a credential
 
-- The rules loader refuses a rules file when a recipe that can run a step names an agent in `spawn.agents` outside that agent's phases or repos (`agent-outside-scope`). It resolves every repo in `spawn.repos` against every kind and step, to find each recipe that can run each step.
-- The loader refuses a phase with `requireScopedAgent` when a recipe that can run it names an agent that `spawn.agents` doesn't list for that phase (`phase-without-scoped-agent`).
-- The loader refuses a scoped agent's recipe with `session: builder`, and a `resume: true` edge into a phase that a scoped agent runs, so a kept session never carries a credential into another phase.
-- The operator keeps every credential in the broker profile of an agent that `spawn.agents` lists, because boxxy can't read a broker profile. An agent missing from `spawn.agents` runs any phase in any repo.
-- The atc worker refuses a spawn or a respawn whose agent is listed in `spawn.agents` without the request's repo or phase, with `agent not scoped`. A config change between the claim and a respawn therefore can't move a credential.
-- The worker reads a stored request that has no `repo` or `phase` with the attempt's repo and phase.
-- The server refuses to start with `spawn.reviewAgents` in its config, with a message that gives the `spawn.agents` shape.
+Built: [who holds a credential](../../architecture/work/sessions.md#who-holds-a-credential) and [the pipeline's recipes](../../architecture/work/pipeline.md#recipes-and-skills) describe the loader refusals, the worker check and the refusal of `spawn.reviewAgents`. A repo's own recipe for a phase, in `repos.<repo>.recipes`, is not built: when it is, the loader resolves it per repo in place of the kind's recipe, and checks it against the same scope.
 
 ### The ship watch
 
