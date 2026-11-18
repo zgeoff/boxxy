@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.2.12](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.11...@boxxy/server@0.2.12) (2026-11-18)
+
+### Miscellaneous Chores
+
+- **@boxxy/server:** Synchronize boxxy versions
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/auth-oauth bumped to 0.2.12
+    - @boxxy/caller-proof-imp bumped to 0.2.12
+    - @boxxy/closeout bumped to 0.2.12
+    - @boxxy/content-hash bumped to 0.2.12
+    - @boxxy/contract bumped to 0.2.12
+    - @boxxy/dispatch bumped to 0.2.12
+    - @boxxy/forge-github bumped to 0.2.12
+    - @boxxy/model bumped to 0.2.12
+    - @boxxy/notifier-atc bumped to 0.2.12
+    - @boxxy/pepys bumped to 0.2.12
+    - @boxxy/planning bumped to 0.2.12
+    - @boxxy/review-noslop bumped to 0.2.12
+    - @boxxy/rules bumped to 0.2.12
+    - @boxxy/store-sqlite bumped to 0.2.12
+    - @boxxy/verifier-wringer bumped to 0.2.12
+    - @boxxy/worker-atc bumped to 0.2.12
+
 ## [0.2.11](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.10...@boxxy/server@0.2.11) (2026-11-17)
 
 ### Miscellaneous Chores

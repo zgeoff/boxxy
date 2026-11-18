@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.12](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.2.11...@boxxy/cli@0.2.12) (2026-11-18)
+
+### Bug Fixes
+
+- **cli:** create .agents/skills when a workspace lacks it
+  ([#156](https://github.com/zgeoff/boxxy/issues/156))
+  ([ec07183](https://github.com/zgeoff/boxxy/commit/ec071839c94bdb2402df1a0fe7ac6e4bfb938db2))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/contract bumped to 0.2.12
+    - @boxxy/model bumped to 0.2.12
+  - devDependencies
+    - @boxxy/auth-oauth bumped to 0.2.12
+    - @boxxy/dispatch bumped to 0.2.12
+    - @boxxy/rules bumped to 0.2.12
+    - @boxxy/server bumped to 0.2.12
+    - @boxxy/store-sqlite bumped to 0.2.12
+
 ## [0.2.11](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.2.10...@boxxy/cli@0.2.11) (2026-11-17)
 
 ### Bug Fixes
