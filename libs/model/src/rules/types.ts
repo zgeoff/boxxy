@@ -348,37 +348,54 @@ export type LoadRejectionReason =
   // is kept for it to wake
   | { readonly kind: 'builder-session-not-kept'; readonly recipe: string }
 
-  // A review agent is an atc agent whose broker profile holds the read-only clone token. The
-  // recipe of a step other than review names one, so its session would get the token.
+  // The recipe of a step names an agent that `spawn.agents` lists, and the step's phase, or a repo
+  // in `spawn.repos`, is outside the agent's scope. `repo` is null when the phase is the cause.
   | {
-      readonly kind: 'review-agent-outside-review';
+      readonly kind: 'agent-outside-scope';
       readonly itemKind: string;
       readonly phase: string;
       readonly recipe: string;
+      readonly agent: string;
+      readonly repo: string | null;
     }
 
-  // the server names review agents, and a kind's review recipe names another agent
+  // a phase has `requireScopedAgent`, and a kind's recipe for it names an agent that `spawn.agents`
+  // doesn't list for that phase
   | {
-      readonly kind: 'review-without-review-agent';
+      readonly kind: 'phase-without-scoped-agent';
+      readonly itemKind: string;
+      readonly phase: string;
+      readonly recipe: string;
+      readonly agent: string;
+    }
+
+  // a `session: builder` recipe runs a scoped agent, or wakes the session of a build that runs a
+  // scoped agent; `agent` is that scoped agent
+  | {
+      readonly kind: 'scoped-agent-builder-session';
       readonly itemKind: string;
       readonly recipe: string;
+      readonly agent: string;
     }
 
-  // the server names review agents, and a kind's review recipe has `session: builder`, so the
-  // review runs in the build's session, or the item keeps a review session for the next build
+  // an edge with `resume: true` goes to a phase that a scoped agent runs, or the build of its
+  // pipeline runs a scoped agent, so the resumed session holds a credential outside its phase
   | {
-      readonly kind: 'review-builder-session';
-      readonly itemKind: string;
-      readonly recipe: string;
-    }
-
-  // the server names review agents, and an edge with `resume: true` goes to the review step, so
-  // the item would keep a review session that a later resume wakes for another phase
-  | {
-      readonly kind: 'review-session-resumed';
+      readonly kind: 'scoped-agent-session-resumed';
       readonly phase: PhaseName;
       readonly outcome: string;
+      readonly to: string;
     };
+
+// The server config's spawn scope, as the rules loader reads it: where each credentialed agent may
+// run, the phases that need one, and the repos the server serves
+export interface SpawnScope {
+  readonly agents: Readonly<
+    Record<string, { readonly phases: readonly string[]; readonly repos?: readonly string[] }>
+  >;
+  readonly phases: Readonly<Record<string, { readonly requireScopedAgent?: boolean }>>;
+  readonly repos: readonly string[];
+}
 
 export type LoadResult =
   | { readonly kind: 'loaded'; readonly rules: LoadedRules; readonly warnings: readonly string[] }

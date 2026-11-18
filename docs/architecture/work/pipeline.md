@@ -144,14 +144,17 @@ attended design.
 - **`session: builder` on a recipe** runs its phase in the build's
   [kept session](./sessions.md#the-kept-session) instead of a fresh one, such as a verify that
   grades the build where it was built.
-- **A build recipe has no check command.** The agent follows the repo's own agent instructions, so
-  each repo keeps its own checks.
-- **Review runs on a review agent**, an atc agent set up with a read-only clone token. When the
-  server config lists review agents in `spawn.reviewAgents`, the loader keeps them to fresh review
-  sessions only. It refuses a review recipe on any other agent, a review agent in any other phase,
-  and a review recipe that could leave its session kept for the next build to wake
-  (`session: builder`, or a `resume: true` edge to review). With the list empty, the default, it
-  checks none of this.
+- **A build recipe has no check command.** The agent follows the repo's own agent instructions.
+- **A credentialed agent runs only where the server config scopes it.** The loader checks each
+  recipe against `spawn.agents`, for every repo in `spawn.repos`
+  ([who holds a credential](./sessions.md#who-holds-a-credential)). It refuses a recipe that names a
+  listed agent outside its phases or repos (`agent-outside-scope`), a recipe for a
+  `requireScopedAgent` phase whose agent isn't listed for it (`phase-without-scoped-agent`), a
+  `session: builder` recipe that runs a listed agent, or that wakes the session of a build that runs
+  a listed agent (`scoped-agent-builder-session`), and a `resume: true` edge into a phase a listed
+  agent runs, or in a pipeline whose build runs a listed agent (`scoped-agent-session-resumed`). The
+  loader checks each kind with its own pipeline and recipes. The review phase sets
+  `requireScopedAgent`, so every review runs on the review agent.
 
 ## The launch prompt
 

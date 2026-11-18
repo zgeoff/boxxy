@@ -182,6 +182,40 @@ URL and a ref. A target whose machines start empty, such as an imp target, needs
 `item.file` refuses a repo that `spawn.repos` doesn't name, and when a repo leaves the list after
 its items were filed, the claim passes over those items.
 
+### Who holds a credential
+
+Some sessions need a credential that others must never hold, such as a review session's clone token.
+atc's broker adds the credentials in an agent's broker profile to its session's outbound calls, and
+each session runs as the atc agent its recipe names. The server config's `spawn.agents` lists each
+agent whose profile holds a credential:
+
+```json
+{
+  "spawn": {
+    "agents": {
+      "boxxy-review": { "phases": ["review"] },
+      "app-live": { "phases": ["live"], "repos": ["example/app"] }
+    },
+    "phases": { "review": { "requireScopedAgent": true } }
+  }
+}
+```
+
+- An entry lists at least one phase. Its `repos`, when present, each name a repo in `spawn.repos`,
+  and with none the agent may run in any repo.
+- An agent that `spawn.agents` doesn't list may run any phase in any repo. The operator keeps every
+  credential in a listed agent's profile, because boxxy can't read a broker profile.
+- `spawn.phases.<phase>.requireScopedAgent` makes every recipe that can run the phase name an agent
+  listed for it. [The pipeline](./pipeline.md#recipes-and-skills) lists what the rules loader
+  refuses, and the rules repository's check loads a rules pull request with the same scope.
+- A spawn request carries the item's `repo` and the attempt's `phase`. Before each spawn, respawn
+  and kept-session wake, the worker refuses a request whose agent is listed in `spawn.agents` and
+  whose phase or repo is outside the entry, with `agent not scoped`. A config change after the claim
+  therefore can't move a credential. A stored request with no `repo` or `phase` reads with the
+  attempt's repo and phase.
+- The server refuses to start with `spawn.reviewAgents` in its config, and its message shows the
+  `spawn.agents` shape.
+
 A session in a folder its agent doesn't trust stops at Claude Code's trust dialog and never runs a
 turn. atc has no call that reads which folders an agent trusts, so boxxy keeps the list itself, in
 the server config's `atc.trustedFolders` by target, and refuses a folder spawn outside a listed

@@ -28,7 +28,11 @@ test('it reads a configuration file that passes the schema', async () => {
     spawn: {
       target: 'cloud',
       repos: { 'example/app': '/tmp/boxxy-test/app' },
-      reviewAgents: ['claude-review'],
+      agents: {
+        'claude-review': { phases: ['review'] },
+        'app-live': { phases: ['live'], repos: ['example/app'] },
+      },
+      phases: { review: { requireScopedAgent: true } },
     },
     atc: { url: 'http://127.0.0.1:7777/mcp', trustedFolders: { cloud: ['/tmp/boxxy-test'] } },
   };
@@ -84,7 +88,7 @@ test('it reads a spawn section with no review agents as an empty list', async ()
 
   const answer = await readServerConfig(ctx.file);
 
-  expect(answer.kind === 'read' && answer.config.spawn.reviewAgents).toStrictEqual([]);
+  expect(answer.kind === 'read' && answer.config.spawn.agents).toStrictEqual({});
 });
 
 test('it reads a repo as a git source of a URL and a ref', async () => {
@@ -202,7 +206,7 @@ test('it reads the optional sections: trusted issuers, pepys and github', async 
       listen: { hostname: '127.0.0.1', port: 4400 },
       workerListen: { hostname: '127.0.0.1', port: 4401 },
     },
-    spawn: { target: 'cloud', repos: {}, reviewAgents: [] },
+    spawn: { target: 'cloud', repos: {}, agents: {}, phases: {} },
     atc: {
       url: 'http://atc-gateway.example.test:8080/mcp',
       host: 'atc.example.test',
@@ -337,4 +341,61 @@ test('it defaults the public door to loopback with no trusted proxy', async () =
       },
     }),
   });
+});
+
+test.each([
+  ['spawn.reviewAgents', { reviewAgents: ['claude-review'] }],
+  ['spawn.reviewAgents when empty', { reviewAgents: [] }],
+])('it refuses %s and shows the spawn.agents shape', async (_title, extra) => {
+  const ctx = await setupTest();
+
+  await ctx.writeConfig(
+    JSON.stringify({
+      runner: 'runner-1',
+      store: { file: '/tmp/boxxy-test/boxxy.db' },
+      rules: { folder: '/tmp/boxxy-test/rules' },
+      api: {
+        listen: { hostname: '127.0.0.1', port: 4400 },
+        workerListen: { hostname: '127.0.0.1', port: 4401 },
+      },
+      spawn: { target: 'cloud', repos: {}, ...extra },
+      atc: { url: 'http://127.0.0.1:7777/mcp', trustedFolders: {} },
+    }),
+  );
+
+  const answer = await readServerConfig(ctx.file);
+
+  expect(answer).toStrictEqual({
+    kind: 'invalid',
+    message: expect.stringContaining('"agents": { "claude-review": { "phases": ["review"] } }'),
+  });
+});
+
+test.each([
+  ['an agent with no phases', { 'app-live': { phases: [] } }, 'phases'],
+  [
+    'an agent with a repo that spawn.repos lacks',
+    { 'app-live': { phases: ['live'], repos: ['example/other'] } },
+    'example/other is not in spawn.repos',
+  ],
+])('it refuses %s', async (_title, agents, problem) => {
+  const ctx = await setupTest();
+
+  await ctx.writeConfig(
+    JSON.stringify({
+      runner: 'runner-1',
+      store: { file: '/tmp/boxxy-test/boxxy.db' },
+      rules: { folder: '/tmp/boxxy-test/rules' },
+      api: {
+        listen: { hostname: '127.0.0.1', port: 4400 },
+        workerListen: { hostname: '127.0.0.1', port: 4401 },
+      },
+      spawn: { target: 'cloud', repos: { 'example/app': '/tmp/boxxy-test/app' }, agents },
+      atc: { url: 'http://127.0.0.1:7777/mcp', trustedFolders: {} },
+    }),
+  );
+
+  const answer = await readServerConfig(ctx.file);
+
+  expect(answer).toStrictEqual({ kind: 'invalid', message: expect.stringContaining(problem) });
 });

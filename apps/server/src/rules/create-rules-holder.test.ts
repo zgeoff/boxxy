@@ -23,7 +23,10 @@ async function setupTest() {
     folder,
     logged,
     log: { warn: (message: string) => logged.push(message) },
-    registrations: buildServerRegistrations({ buildCommand: () => 'noslop review' }, []),
+    registrations: buildServerRegistrations(
+      { buildCommand: () => 'noslop review' },
+      { agents: {}, phases: {}, repos: [] },
+    ),
     readRulesFile: () => Bun.file(path.join(folder, 'rules.yaml')).text(),
     writeRulesFile: (text: string) => Bun.write(path.join(folder, 'rules.yaml'), text),
     runGit: (args: readonly string[]) =>

@@ -14,7 +14,7 @@ import { isCapacityRefusal } from './is-capacity-refusal.ts';
 import { isFolderTrusted } from './is-folder-trusted.ts';
 import { AtcCallError } from './mcp/atc-call-error.ts';
 import { toSessionReading } from './to-session-reading.ts';
-import type { AtcClient, AtcSession, AtcSpawnPlace } from './types.ts';
+import type { AgentScope, AtcClient, AtcSession, AtcSpawnPlace } from './types.ts';
 
 interface AtcWorkerInput {
   readonly client: AtcClient;
@@ -25,6 +25,10 @@ interface AtcWorkerInput {
   // the configured git sources with a `credentialRef`; a spawn sends a variable name only with the
   // URL that the configuration pairs it with, whatever the attempt row holds
   readonly credentialSources: readonly GitSource[];
+
+  // the server config's `spawn.agents`: a listed agent runs only the phases, and in the repos, that
+  // its entry names
+  readonly agents: Readonly<Record<string, AgentScope>>;
 }
 
 // The worker port on atc. Every call reaches atc through the client; a refusal that carries an atc
@@ -78,6 +82,10 @@ export function createAtcWorker(input: AtcWorkerInput): WorkerKind {
 
   return {
     start: async (request) => {
+      if (!isAgentScoped(input.agents, request)) {
+        return { kind: 'refused', cause: 'other', reason: 'agent not scoped' };
+      }
+
       // with a git source, atc verifies the clone and trusts that clone alone
       if (
         'cwd' in request &&
@@ -187,6 +195,10 @@ export function createAtcWorker(input: AtcWorkerInput): WorkerKind {
       }
     },
     resumeKept: async (kept, request) => {
+      if (!isAgentScoped(input.agents, request)) {
+        return { kind: 'refused', cause: 'other', reason: 'agent not scoped' };
+      }
+
       const woken = await resumeSession(kept.atcSession);
 
       if (woken.kind !== 'started') {
@@ -280,6 +292,24 @@ function formatRefusalReason(error: AtcCallError): string {
   return refusal.problem === null
     ? `${refusal.code}: ${refusal.message}`
     : `${refusal.code} (${refusal.problem}): ${refusal.message}`;
+}
+
+// An agent that `spawn.agents` doesn't list runs anywhere. A listed agent runs the request only
+// when the request's phase is in its phases and its repo is in its repos, or it names no repos.
+function isAgentScoped(
+  agents: Readonly<Record<string, AgentScope>>,
+  request: SpawnRequest,
+): boolean {
+  const scope = Object.hasOwn(agents, request.agent) ? agents[request.agent] : undefined;
+
+  if (scope === undefined) {
+    return true;
+  }
+
+  return (
+    scope.phases.includes(request.phase) &&
+    (scope.repos === undefined || scope.repos.includes(request.repo))
+  );
 }
 
 function isCredentialConfigured(configured: readonly GitSource[], source: GitSource): boolean {

@@ -158,7 +158,12 @@ test('it starts with a review agent that only the review recipe names', async ()
   const ctx = await setupTest();
 
   await ctx.addConfigSections({
-    spawn: { target: 'cloud', repos: {}, reviewAgents: ['claude-review'] },
+    spawn: {
+      target: 'cloud',
+      repos: {},
+      agents: { 'claude-review': { phases: ['review'] } },
+      phases: { review: { requireScopedAgent: true } },
+    },
   });
 
   const answer = await ctx.start({});
@@ -166,18 +171,58 @@ test('it starts with a review agent that only the review recipe names', async ()
   expect(answer.kind).toBe('started');
 });
 
-test('it refuses to start when a build recipe names a review agent', async () => {
+test('it refuses to start when a build recipe names a scoped review agent', async () => {
   const ctx = await setupTest();
 
   await ctx.addConfigSections({
-    spawn: { target: 'cloud', repos: {}, reviewAgents: ['claude-review', 'claude'] },
+    spawn: {
+      target: 'cloud',
+      repos: {},
+      agents: { 'claude-review': { phases: ['review'] }, claude: { phases: ['review'] } },
+      phases: { review: { requireScopedAgent: true } },
+    },
   });
 
   const answer = await ctx.start({});
 
   expect(answer).toStrictEqual({
     kind: 'refused',
-    message: expect.stringContaining('review-agent-outside-review'),
+    message: expect.stringContaining('agent-outside-scope'),
+  });
+});
+
+test('it refuses to start when a review recipe names an agent that is not scoped', async () => {
+  const ctx = await setupTest();
+
+  await ctx.addConfigSections({
+    spawn: {
+      target: 'cloud',
+      repos: {},
+      agents: { 'other-review': { phases: ['review'] } },
+      phases: { review: { requireScopedAgent: true } },
+    },
+  });
+
+  const answer = await ctx.start({});
+
+  expect(answer).toStrictEqual({
+    kind: 'refused',
+    message: expect.stringContaining('phase-without-scoped-agent'),
+  });
+});
+
+test('it refuses to start with spawn.reviewAgents in its config', async () => {
+  const ctx = await setupTest();
+
+  await ctx.addConfigSections({
+    spawn: { target: 'cloud', repos: {}, reviewAgents: ['claude-review'] },
+  });
+
+  const answer = await ctx.start({});
+
+  expect(answer).toStrictEqual({
+    kind: 'refused',
+    message: expect.stringContaining('spawn.agents'),
   });
 });
 

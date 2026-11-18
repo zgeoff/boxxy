@@ -1,5 +1,7 @@
+import type { JsonValue } from '@boxxy/content-hash';
 import { z } from 'zod';
 import type { GitSource, SpawnRequest } from '../ports/types.ts';
+import type { RepoName } from '../types.ts';
 import { brandSchemas } from './brand-schemas.ts';
 
 // git must never read the URL or the ref as an option, and atc refuses a URL with a credential
@@ -34,6 +36,8 @@ const spawnRequestFields = z.strictObject({
   effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']),
   name: z.templateLiteral(['boxxy/', z.string()]),
   idempotencyKey: brandSchemas.attemptId,
+  repo: brandSchemas.repoName,
+  phase: z.string().min(1),
 });
 
 // The spawn request as the attempt row stores it, read back for a respawn. A request with both a
@@ -55,6 +59,27 @@ export const spawnRequestSchema: z.ZodType<SpawnRequest> = spawnRequestFields
 
     return z.NEVER;
   });
+
+// the attempt that a stored spawn request belongs to
+interface StoredSpawnOwner {
+  readonly repo: RepoName;
+  readonly phase: string;
+}
+
+// Reads a stored spawn request. A request stored before it carried a repo and a phase reads with
+// the attempt's own.
+export function parseStoredSpawnRequest(
+  stored: JsonValue,
+  attempt: StoredSpawnOwner,
+): SpawnRequest {
+  const fields = z.record(z.string(), z.unknown()).safeParse(stored);
+
+  if (!fields.success) {
+    return spawnRequestSchema.parse(stored);
+  }
+
+  return spawnRequestSchema.parse({ repo: attempt.repo, phase: attempt.phase, ...fields.data });
+}
 
 function isURLWithoutCredential(url: string): boolean {
   const parsed = URL.parse(url);

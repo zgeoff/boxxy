@@ -39,6 +39,7 @@ import { pickServerSecrets } from './config/pick-server-secrets.ts';
 import { readCallerProof } from './config/read-caller-proof.ts';
 import { readServerConfig } from './config/read-server-config.ts';
 import type { ServerConfig } from './config/server-config-schema.ts';
+import { toSpawnScope } from './config/to-spawn-scope.ts';
 import { verifyGateCheck } from './constants.ts';
 import { createCapacityBackoff } from './create-capacity-backoff.ts';
 import { formatErrorChain } from './format-error-chain.ts';
@@ -152,6 +153,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
           client: atc,
           trustedFolders: config.atc.trustedFolders,
           credentialSources: collectCredentialSources(config.spawn.repos),
+          agents: config.spawn.agents,
         }),
       },
     ],
@@ -161,7 +163,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
   const rules = await createRulesHolder(
     config.rules,
     input.log,
-    buildServerRegistrations(reviewGate, config.spawn.reviewAgents, [...workers.keys()]),
+    buildServerRegistrations(reviewGate, toSpawnScope(config.spawn), [...workers.keys()]),
   );
 
   if (rules.kind !== 'loaded') {

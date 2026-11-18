@@ -23,6 +23,8 @@ function setupTest() {
         effort: 'medium' as const,
         name: `boxxy/${attempt}` as const,
         idempotencyKey: attempt,
+        repo: brandSchemas.repoName.parse('example/widget'),
+        phase: 'build',
       }),
     },
   };

@@ -49,22 +49,27 @@ const loadRejectionReasonSchema: z.ZodType<LoadRejectionReason> = z.discriminate
   z.object({ kind: z.literal('empty-merge-checks') }),
   z.object({ kind: z.literal('builder-session-not-kept'), recipe: z.string() }),
   z.object({
-    kind: z.literal('review-agent-outside-review'),
+    kind: z.literal('agent-outside-scope'),
     itemKind: z.string(),
     phase: z.string(),
     recipe: z.string(),
+    agent: z.string(),
+    repo: z.string().nullable(),
   }),
   z.object({
-    kind: z.literal('review-without-review-agent'),
+    kind: z.literal('phase-without-scoped-agent'),
     itemKind: z.string(),
+    phase: z.string(),
     recipe: z.string(),
+    agent: z.string(),
   }),
   z.object({
-    kind: z.literal('review-builder-session'),
+    kind: z.literal('scoped-agent-builder-session'),
     itemKind: z.string(),
     recipe: z.string(),
+    agent: z.string(),
   }),
-  z.object({ kind: z.literal('review-session-resumed'), ...outcomeOfPhase }),
+  z.object({ kind: z.literal('scoped-agent-session-resumed'), ...outcomeOfPhase, to: z.string() }),
 ]);
 
 export const loadRejectionSchema: z.ZodType<LoadRejection> = z.object({
