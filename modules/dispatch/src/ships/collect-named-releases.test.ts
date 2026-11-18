@@ -36,6 +36,21 @@ test.each([
     ['v1.0.1'],
   ],
   ['a URL with a build suffix', 'https://github.com/acme/lamps/releases/tag/v1.0+patch', []],
+  [
+    'a URL with a dot and a dash after the tag',
+    'https://github.com/acme/lamps/releases/tag/v1.0.-patch',
+    [],
+  ],
+  [
+    'a URL with a comma and a letter after the tag',
+    'https://github.com/acme/lamps/releases/tag/v1.0,x',
+    [],
+  ],
+  [
+    'a URL followed by a full stop and a new line',
+    'https://github.com/acme/lamps/releases/tag/v1.0.\nNext',
+    ['v1.0'],
+  ],
   ['a URL of another repo', 'https://github.com/acme/shades/releases/tag/v1.0', []],
   ['a URL glued to a word before it', 'xhttps://github.com/acme/lamps/releases/tag/v1.0', []],
   ['a URL after a list dash', '- https://github.com/acme/lamps/releases/tag/v1.0', ['v1.0']],
