@@ -418,7 +418,7 @@
     "@pepys/ingest": "0.4.3",
     "@pepys/kit": "0.4.3",
     "@pepys/source-github": "0.4.3",
-    "@pepys/source-telemetry": "0.4.3",
+    "@pepys/source-telemetry": "0.4.4",
     "@pepys/testing": "0.4.3",
     "@stylistic/eslint-plugin": "5.10.0",
     "@tsconfig/strictest": "2.0.8",
@@ -907,7 +907,7 @@
 
     "@pepys/source-github": ["@pepys/source-github@0.4.3", "", { "dependencies": { "@pepys/api": "0.4.3", "@pepys/ingest": "0.4.3", "@pepys/kit": "0.4.3", "@zgeoff/std": "0.4.3", "kysely": "0.29.8", "ts-pattern": "5.9.2", "zod": "4.6.7" } }, "sha512-Q36q1K3dEdxdkazsnANdSUz6Dn6POMyfknp0TuvOkOCTS8ZTihKcw5GzS9yqes3mxAa+DtlRnme8dGsSz3VVuQ=="],
 
-    "@pepys/source-telemetry": ["@pepys/source-telemetry@0.4.3", "", { "dependencies": { "@pepys/kit": "0.4.3", "@zgeoff/std": "0.4.3", "tiny-invariant": "1.3.3", "zod": "4.6.7" } }, "sha512-pY0EA84ALXXScKHMtlUSkmRY6/Z9XKfAQ5FauIo2re0QynNFwv17O/LzicD0TtCxdg8ywjw4lti02MhahRmv/A=="],
+    "@pepys/source-telemetry": ["@pepys/source-telemetry@0.4.4", "", { "dependencies": { "@pepys/kit": "0.4.4", "@zgeoff/std": "0.4.3", "tiny-invariant": "1.3.3", "zod": "4.6.7" } }, "sha512-m2HR4BFj2MuDx0krwjbbQ50fAYPWmwPEvVcdm2eQUfnJsxL7dE7TBIJ9DbQEoyOsj070vv2lGA5FNs1nBrW/rA=="],
 
     "@pepys/testing": ["@pepys/testing@0.4.3", "", { "dependencies": { "@pepys/ingest": "0.4.3", "@pepys/kit": "0.4.3", "@pepys/kysely-turso": "0.4.3", "@tursodatabase/database": "0.8.3", "kysely": "0.29.8", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2", "zod": "4.6.7" } }, "sha512-u1U5lEfAufS9VDq1evjBW+rO32s57EW4tyCFveSGxaakpiGdydMxPrCr8XA8XZ0BSrjhPp71b9u2FwwoeTwHnw=="],
 
@@ -1522,6 +1522,8 @@
     "@pepys/cli/xstate": ["xstate@5.33.4", "", {}, "sha512-eGNMu3BNqU0Z85P+ouYG5OCZqIABU+QsW6vUieFt9p9gOGs3C+BL10Exg7XdRPSXPQKlP6XoYpYf93r9VmW8mQ=="],
 
     "@pepys/ingest/@impz/client": ["@impz/client@7.2.0", "", { "dependencies": { "@orpc/client": "^1.16.1", "@orpc/contract": "^1.16.1", "p-retry": "^8.0.1", "ts-pattern": "^5.9.2", "zod": "^4.6.7" }, "peerDependencies": { "@opentelemetry/api": ">=1.9.0" }, "optionalPeers": ["@opentelemetry/api"] }, "sha512-SX6rr67AFmWe24WjlKkPWI5HA9m4wDWykSJdBHBYVGKEVBEmf2+EAQwGE0i39DVse5oZPwHjSgnfhS80k+nJmA=="],
+
+    "@pepys/source-telemetry/@pepys/kit": ["@pepys/kit@0.4.4", "", { "dependencies": { "@zgeoff/std": "0.4.3", "kysely": "0.29.8", "ts-pattern": "5.9.2", "type-fest": "5.10.0", "zod": "4.6.7" } }, "sha512-D/IOkYrHhXV7hP8ozz6rU92qRQEOm6W2tLVQcRGlJiT2DiM5xOLTWH7utGZtIMcC5M8NiQ2z7lrRqcAxwR76qQ=="],
 
     "@wringer/core/xstate": ["xstate@5.33.3", "", {}, "sha512-AnDRjS/GyKHmbA1PyhVCYBqYsA7EGe3KGgeD0ht3NFsXzoz7leX/HQDFX9QlHFJ/ltLHPsgChJYwPzRvB/0b4g=="],
 
