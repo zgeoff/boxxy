@@ -80,8 +80,9 @@ stream `facts.boxxy.runner`. These rules hold for the work facts:
 - **The runner's facts name the runner.** `boxxy.runner.paused` and `boxxy.runner.resumed` have the
   entity `boxxy:runner:<runner id>`, because a pause is about no item. They are a second fact family
   of the same source, and no consumer reads them: pepys keeps them in its fact log. A pepys
-  deployment must load a `@boxxy/pepys` that holds the family before the server sends the first one,
-  or pepys refuses the batch.
+  deployment whose `@boxxy/pepys` lacks the family refuses each runner fact with 422, so the sender
+  parks it and goes on with the work facts. After pepys loads the family, run `boxxy outbox retry`
+  to send the parked runner facts.
 - **Facts carry the full text they change.** The `filed` fact holds the body, and an `edited` fact
   holds it again when it changes. The plug-in's tables keep no body or design text, because no
   report reads them, but the pepys fact log keeps both.

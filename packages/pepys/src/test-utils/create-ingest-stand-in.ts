@@ -1,4 +1,5 @@
 import { createLogger, isDeliveryAuthentic } from '@pepys/kit';
+import type { FactFamily } from '@pepys/kit';
 import { boxxySource } from '../boxxy-source.ts';
 
 export interface IngestStandIn {
@@ -12,7 +13,10 @@ export interface IngestStandIn {
 // Ingest's receive route in memory, with the kit's own signature check and batch read. The kit
 // exports no route handler of ingest, so the answers are written here: 401, the read's 400 or
 // 422, or the batch stored whole with a copy of an event dropped.
-export function createIngestStandIn(secret: string): IngestStandIn {
+export function createIngestStandIn(
+  secret: string,
+  families: readonly FactFamily[] = boxxySource.families,
+): IngestStandIn {
   const path = boxxySource.live;
 
   if (path?.kind !== 'receive') {
@@ -34,7 +38,7 @@ export function createIngestStandIn(secret: string): IngestStandIn {
 
       const received = path.read(
         { headers: request.headers, body },
-        { name: boxxySource.name, families: boxxySource.families, log },
+        { name: boxxySource.name, families, log },
       );
 
       if (received.kind === 'refused') {
