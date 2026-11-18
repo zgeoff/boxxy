@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { AttemptRow, WorkerKind } from '@boxxy/model';
+import type { AttemptRow, ForcedFailure, WorkerKind } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { settleAttempt } from '../closeouts/settle-attempt.ts';
@@ -49,7 +49,7 @@ async function setupTest() {
         newId: dispatch.newId,
       });
     },
-    failBuild: async () => {
+    failBuild: async (forced: ForcedFailure) => {
       await dispatch.seedItem({ phase: brandSchemas.phaseName.parse('build') });
 
       const claim = await dispatch.claim();
@@ -59,7 +59,7 @@ async function setupTest() {
       await settleAttempt({
         store: dispatch.store,
         attempt: claim.attempt.id,
-        forced: 'stalled',
+        forced,
         sessionStopped: true,
         rules: dispatch.rules(),
         actor: 'boxxy:runner:runner-1',
@@ -212,23 +212,23 @@ test('it forgets the kept session of an item that is closed', async () => {
   ]).toStrictEqual([true, []]);
 });
 
-test('it keeps a failed attempt session for 24 hours and then forgets it', async () => {
-  const ctx = await setupTest();
-  const failed = await ctx.failBuild();
+test.each(['stalled', 'session-lost', 'timed-out', 'usage-limit'] as const)(
+  'it forgets the session of a build failed %s on the next tick',
+  async (forced) => {
+    const ctx = await setupTest();
+    const failed = await ctx.failBuild(forced);
 
-  ctx.clock.advance(24 * ctx.hourMs - 1000);
+    ctx.clock.advance(5000);
 
-  const early = await ctx.forget();
+    const report = await ctx.forget();
+    const after = await ctx.readAttempt(failed.id);
 
-  ctx.clock.advance(2000);
-
-  const late = await ctx.forget();
-
-  expect([
-    early.forgotten.includes(ctx.getSession(failed)),
-    late.forgotten.includes(ctx.getSession(failed)),
-  ]).toStrictEqual([false, true]);
-});
+    expect([report.forgotten, after.sessionForgottenAt]).toStrictEqual([
+      [ctx.getSession(failed)],
+      ctx.clock.now(),
+    ]);
+  },
+);
 
 test('it forgets the session of a failed review on the next tick', async () => {
   const ctx = await setupTest();
@@ -248,7 +248,7 @@ test('it forgets the session of a failed review on the next tick', async () => {
 
 test('it tries a refused forget again on the next tick and records nothing for the refusal', async () => {
   const ctx = await setupTest();
-  const failed = await ctx.failBuild();
+  const failed = await ctx.failBuild('stalled');
 
   ctx.clock.advance(25 * ctx.hourMs);
   ctx.worker.failNext('forget', { kind: 'refused', cause: 'other', reason: 'host busy' });
@@ -276,7 +276,7 @@ test('it tries a refused forget again on the next tick and records nothing for t
 test('it forgets a session once', async () => {
   const ctx = await setupTest();
 
-  await ctx.failBuild();
+  await ctx.failBuild('stalled');
 
   ctx.clock.advance(25 * ctx.hourMs);
 

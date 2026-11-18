@@ -228,7 +228,7 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
         kept.toSorted((first, second) => first.kept.keptAt - second.kept.keptAt),
       );
     },
-    listSessionsToForget: (failedEndedBefore, strayedBefore) => {
+    listSessionsToForget: (strayedBefore) => {
       const tables = getTables();
 
       const kept = new Set(
@@ -256,11 +256,7 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
             (attempt.strayedAt === null ||
               attempt.sessionStoppedAt !== null ||
               attempt.strayedAt < strayedBefore) &&
-            (attempt.state === 'succeeded' ||
-              (attempt.state === 'failed' && attempt.phase === 'review') ||
-              (attempt.state === 'failed' &&
-                attempt.endedAt !== null &&
-                attempt.endedAt <= failedEndedBefore)),
+            (attempt.state === 'succeeded' || attempt.state === 'failed'),
         ),
       );
     },

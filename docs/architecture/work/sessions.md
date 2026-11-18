@@ -65,10 +65,11 @@ whichever comes first. It never forgets one whose latest attempt is still live.
 
 atc keeps a stopped session's record until boxxy forgets it, and on an imp target the forget also
 destroys the session's imp. Cleanup is the last session step of each tick. It forgets each kept
-session that is due, and the session of each settled attempt that isn't kept: a succeeded attempt or
-a failed review right away, since nothing resumes a review session, and any other failed attempt
-after a fixed number of hours, so the owner can diagnose it. A forget that atc doesn't confirm
-changes nothing, and cleanup tries again next tick.
+session that is due, and the session of each settled attempt that isn't kept, on the first tick
+after the attempt settles, whatever its outcome. Only the kept session lets a later attempt carry on
+in the same session, so no other settled session waits. Cleanup never forgets the session of a live
+attempt, a sleeping one included, because the attempt still runs in it. A forget that atc doesn't
+confirm changes nothing, and cleanup tries again next tick.
 
 atc refuses to forget a live session, so a stray's session needs a confirmed stop first. A stray is
 an attempt that settled while its session may still run

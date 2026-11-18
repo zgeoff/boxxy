@@ -170,73 +170,61 @@ export const claimStoreSessionCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
-    '#listSessionsToForget returns a failed review at once and leaves a failed build until the cutoff',
+    '#listSessionsToForget returns each settled attempt at once, whatever its outcome',
     async (store) => {
-      const review = buildMockV1AttemptRow({
+      const endedAt = brandSchemas.instant.parse(5000);
+
+      const passed = buildMockV1AttemptRow({
         phase: brandSchemas.phaseName.parse('review'),
-        state: 'failed',
-        endedAt: brandSchemas.instant.parse(5000),
-        claimedAt: brandSchemas.instant.parse(1000),
-      });
-
-      const build = buildMockV1AttemptRow({
-        state: 'failed',
-        endedAt: brandSchemas.instant.parse(5000),
-        claimedAt: brandSchemas.instant.parse(1100),
-      });
-
-      await store.exclusive(async (transaction) => {
-        for (const attempt of [review, build]) {
-          await transaction.applyChange(
-            buildMockFileItemChange(buildMockV1ItemRow({ id: attempt.item })),
-          );
-
-          await transaction.applyChange(buildMockClaimChange(attempt));
-        }
-      });
-
-      const listed = await store.read((transaction) =>
-        transaction.listSessionsToForget(
-          brandSchemas.instant.parse(3000),
-          brandSchemas.instant.parse(1500),
-        ),
-      );
-
-      return { received: listed.map((attempt) => attempt.id), expected: [review.id] };
-    },
-  ],
-  [
-    '#listSessionsToForget returns a succeeded session at once and a failed one past the cutoff',
-    async (store) => {
-      const succeeded = buildMockV1AttemptRow({
         state: 'succeeded',
-        endedAt: brandSchemas.instant.parse(5000),
+        outcome: brandSchemas.outcomeName.parse('passed'),
+        endedAt,
         claimedAt: brandSchemas.instant.parse(1000),
       });
 
-      const failedOld = buildMockV1AttemptRow({
+      const blocked = buildMockV1AttemptRow({
+        phase: brandSchemas.phaseName.parse('design'),
         state: 'failed',
-        endedAt: brandSchemas.instant.parse(2000),
+        outcome: brandSchemas.outcomeName.parse('blocked'),
+        endedAt,
         claimedAt: brandSchemas.instant.parse(1100),
       });
 
-      const failedNew = buildMockV1AttemptRow({
+      const lost = buildMockV1AttemptRow({
         state: 'failed',
-        endedAt: brandSchemas.instant.parse(5000),
+        failure: 'session-lost',
+        outcome: 'lost',
+        endedAt,
         claimedAt: brandSchemas.instant.parse(1200),
       });
 
-      const forgotten = buildMockV1AttemptRow({
-        state: 'succeeded',
-        endedAt: brandSchemas.instant.parse(2000),
-        sessionForgottenAt: brandSchemas.instant.parse(2500),
+      const missing = buildMockV1AttemptRow({
+        state: 'failed',
+        failure: 'closeout-missing',
+        outcome: 'lost',
+        endedAt,
         claimedAt: brandSchemas.instant.parse(1300),
       });
 
-      const running = buildMockV1AttemptRow({ claimedAt: brandSchemas.instant.parse(1400) });
+      const noCapacity = buildMockV1AttemptRow({
+        state: 'failed',
+        failure: 'no-capacity',
+        outcome: 'lost',
+        endedAt,
+        claimedAt: brandSchemas.instant.parse(1400),
+      });
+
+      const forgotten = buildMockV1AttemptRow({
+        state: 'failed',
+        endedAt: brandSchemas.instant.parse(2000),
+        sessionForgottenAt: brandSchemas.instant.parse(2500),
+        claimedAt: brandSchemas.instant.parse(1500),
+      });
+
+      const running = buildMockV1AttemptRow({ claimedAt: brandSchemas.instant.parse(1600) });
 
       await store.exclusive(async (transaction) => {
-        for (const attempt of [succeeded, failedOld, failedNew, forgotten, running]) {
+        for (const attempt of [passed, blocked, lost, missing, noCapacity, forgotten, running]) {
           await transaction.applyChange(
             buildMockFileItemChange(buildMockV1ItemRow({ id: attempt.item })),
           );
@@ -246,15 +234,77 @@ export const claimStoreSessionCases: readonly ClaimStoreCase[] = [
       });
 
       const listed = await store.read((transaction) =>
-        transaction.listSessionsToForget(
-          brandSchemas.instant.parse(3000),
-          brandSchemas.instant.parse(1500),
-        ),
+        transaction.listSessionsToForget(brandSchemas.instant.parse(1500)),
       );
 
       return {
         received: listed.map((attempt) => attempt.id),
-        expected: [succeeded.id, failedOld.id],
+        expected: [passed.id, blocked.id, lost.id, missing.id, noCapacity.id],
+      };
+    },
+  ],
+  [
+    '#listSessionsToForget leaves out a sleeping attempt and a failed wake of a kept session',
+    async (store) => {
+      const sleeping = buildMockV1AttemptRow({
+        phase: brandSchemas.phaseName.parse('design'),
+        state: 'sleeping',
+        sleptAt: brandSchemas.instant.parse(2000),
+        claimedAt: brandSchemas.instant.parse(1000),
+      });
+
+      const keptSession = brandSchemas.atcSessionId.parse('atc-session-kept');
+
+      const built = buildMockV1AttemptRow({
+        atcSession: keptSession,
+        claimedAt: brandSchemas.instant.parse(1100),
+      });
+
+      const wake = buildMockV1AttemptRow({
+        item: built.item,
+        number: 2,
+        leaseGen: 2,
+        state: 'failed',
+        atcSession: keptSession,
+        failure: 'no-capacity',
+        outcome: 'lost',
+        endedAt: brandSchemas.instant.parse(4000),
+        claimedAt: brandSchemas.instant.parse(3500),
+      });
+
+      const keptItem = buildMockV1ItemRow({
+        id: built.item,
+        keptSession: {
+          atcSession: keptSession,
+          target: 'worker-host-a',
+          attempt: built.id,
+          keptAt: brandSchemas.instant.parse(2000),
+          caller: null,
+        },
+      });
+
+      const results = await store.exclusive(async (transaction) => [
+        await transaction.applyChange(
+          buildMockFileItemChange(buildMockV1ItemRow({ id: sleeping.item })),
+        ),
+        await transaction.applyChange(buildMockFileItemChange(keptItem)),
+        await transaction.applyChange(buildMockClaimChange(sleeping)),
+        await transaction.applyChange(buildMockClaimChange(built)),
+        await transaction.applyChange(
+          buildMockSettleChange({ attempt: built, state: 'succeeded' }),
+        ),
+        await transaction.applyChange(buildMockClaimChange(wake)),
+      ]);
+
+      const listed = await store.read((transaction) =>
+        transaction.listSessionsToForget(brandSchemas.instant.parse(1500)),
+      );
+
+      const applied = { kind: 'applied' };
+
+      return {
+        received: { results, listed },
+        expected: { results: [applied, applied, applied, applied, applied, applied], listed: [] },
       };
     },
   ],
@@ -318,10 +368,7 @@ export const claimStoreSessionCases: readonly ClaimStoreCase[] = [
       });
 
       const listed = await store.read((transaction) =>
-        transaction.listSessionsToForget(
-          brandSchemas.instant.parse(3000),
-          brandSchemas.instant.parse(1500),
-        ),
+        transaction.listSessionsToForget(brandSchemas.instant.parse(1500)),
       );
 
       return { received: listed, expected: [] };
@@ -345,10 +392,7 @@ export const claimStoreSessionCases: readonly ClaimStoreCase[] = [
       });
 
       const listed = await store.read((transaction) =>
-        transaction.listSessionsToForget(
-          brandSchemas.instant.parse(3000),
-          brandSchemas.instant.parse(2001),
-        ),
+        transaction.listSessionsToForget(brandSchemas.instant.parse(2001)),
       );
 
       return { received: listed.map((attempt) => attempt.id), expected: [stray.id] };
@@ -372,10 +416,7 @@ export const claimStoreSessionCases: readonly ClaimStoreCase[] = [
       });
 
       const listed = await store.read((transaction) =>
-        transaction.listSessionsToForget(
-          brandSchemas.instant.parse(3000),
-          brandSchemas.instant.parse(2000),
-        ),
+        transaction.listSessionsToForget(brandSchemas.instant.parse(2000)),
       );
 
       return { received: listed.map((attempt) => attempt.id), expected: [] };
@@ -418,10 +459,7 @@ export const claimStoreSessionCases: readonly ClaimStoreCase[] = [
       });
 
       const listed = await store.read((transaction) =>
-        transaction.listSessionsToForget(
-          brandSchemas.instant.parse(3000),
-          brandSchemas.instant.parse(2000),
-        ),
+        transaction.listSessionsToForget(brandSchemas.instant.parse(2000)),
       );
 
       return { received: listed.map((attempt) => attempt.id), expected: [old.id] };

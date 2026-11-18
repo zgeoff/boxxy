@@ -12,17 +12,13 @@ const hourMs = 3_600_000;
 // kept sessions that are due. A forget the worker does not confirm changes nothing and is tried
 // again on the next tick.
 export async function forgetSessions(input: ForgetSessionsInput): Promise<ForgetReport> {
-  const cutoff = brandSchemas.instant.parse(
-    Math.max(0, input.now - timeouts.failedSessionHours * hourMs),
-  );
-
   const strayCutoff = brandSchemas.instant.parse(
     Math.max(0, input.now - timeouts.strayHours * hourMs),
   );
 
   const rows = await input.store.read(async (tx) => ({
     kept: await tx.listKeptSessions(),
-    due: await tx.listSessionsToForget(cutoff, strayCutoff),
+    due: await tx.listSessionsToForget(strayCutoff),
   }));
 
   const kept = rows.kept;

@@ -20,7 +20,6 @@ export interface DispatchTimeouts {
 
   // agent mode: a session with no activity this long is stopped
   readonly keptSessionHours: number;
-  readonly failedSessionHours: number;
 
   // the most a pool waits after `usage-limit`, and the wait when the reading's reset time is not
   // in the future

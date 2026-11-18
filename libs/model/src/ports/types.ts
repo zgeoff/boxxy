@@ -124,13 +124,10 @@ export interface StoreReader extends OutboxReader {
   // oldest kept first
   listKeptSessions: () => Promise<{ readonly item: ItemId; readonly kept: KeptSession }[]>;
 
-  // The latest attempt of each unkept session that cleanup forgets now: a succeeded one or failed
-  // review at once, another failed one that ended at `failedEndedBefore` or earlier. An unstopped
-  // stray, with a session or none, is listed only once it strayed before `strayedBefore`.
-  listSessionsToForget: (
-    failedEndedBefore: Instant,
-    strayedBefore: Instant,
-  ) => Promise<AttemptRow[]>;
+  // The latest attempt of each unkept session that cleanup forgets now: every settled one, whatever
+  // its outcome. An unstopped stray, with a session or none, is listed only once it strayed before
+  // `strayedBefore`.
+  listSessionsToForget: (strayedBefore: Instant) => Promise<AttemptRow[]>;
 
   // null before the runner's first heartbeat, which reads as not paused
   readRunner: (id: RunnerId) => Promise<RunnerRow | null>;
