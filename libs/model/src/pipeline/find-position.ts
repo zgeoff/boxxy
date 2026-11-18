@@ -1,5 +1,5 @@
 import type { Pipeline } from '../rules/types.ts';
-import type { PhaseName } from '../types.ts';
+import type { Instant, PhaseName } from '../types.ts';
 import { advance } from './advance.ts';
 import { findStep } from './find-step.ts';
 import { mergeByTime } from './merge-by-time.ts';
@@ -14,6 +14,11 @@ interface FindPositionInput {
 
   // the item's `item.retry` levers, oldest first
   readonly retries: readonly RetryLever[];
+
+  // The instant of the read. A lever stamped after it has not happened yet, so it moves nothing:
+  // a claim that skips a step at `now` then moves past the step, even when a retry carries a
+  // later stamp, and cannot record the same skip again. Absent: every lever counts.
+  readonly now?: Instant;
 }
 
 const skippedOutcome = 'skipped';
@@ -32,6 +37,10 @@ export function findPosition(input: FindPositionInput): Position {
 
   for (const event of mergeByTime(input.attempts, input.retries)) {
     if (event.kind === 'retry') {
+      if (input.now !== undefined && event.lever.at > input.now) {
+        continue;
+      }
+
       counted = [];
 
       const phase: PhaseName | null = event.lever.phase ?? pickResumePhase(position);

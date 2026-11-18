@@ -68,13 +68,13 @@ file's `criterionTags`. `item file`, `item edit` and a triage or design close-ou
 acceptance refuse a tag the list lacks, and a tag stays on its line in the item's state, its facts
 and `item show`.
 
-A skip comes after a retry lever filed at its own instant, so a skip always moves the item on. A
-step with a gate has a `skip` edge: `next`, `{ end }` or `{ hold }`, never `again` or `{ to }`. A
-skipped attempt follows that edge, counts toward no `maxAttempts` and no `max`, and a tag added
-after the step skipped doesn't bring it back: `boxxy item retry <item> --phase <phase>` does. A
-claim that finds the runner paused, or an item whose repo is missing from `spawn.repos`, records no
-skip. With no GitHub forge configured a `checkPassed` condition never skips, and a forge error reads
-as not passed.
+A skip comes after a retry lever filed at its own instant, and a retry lever stamped after the
+claim's time moves nothing, so a skip always moves the item on. A step with a gate has a `skip`
+edge: `next`, `{ end }` or `{ hold }`, never `again` or `{ to }`. A skipped attempt follows that
+edge, counts toward no `maxAttempts` and no `max`, and a tag added after the step skipped doesn't
+bring it back: `boxxy item retry <item> --phase <phase>` does. A claim that finds the runner paused,
+or an item whose repo is missing from `spawn.repos`, records no skip. With no GitHub forge
+configured a `checkPassed` condition never skips, and a forge error reads as not passed.
 
 The loader refuses a gate with no `skip` edge, a condition it doesn't know, a `criteria.tagged` tag
 that `criterionTags` doesn't list, and a `skip` hold that uses an engine hold reason.

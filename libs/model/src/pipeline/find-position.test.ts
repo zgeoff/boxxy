@@ -527,3 +527,37 @@ test('it passes a skipped step when a retry lever carries the instant of the ski
 
   expect(position).toStrictEqual({ kind: 'phase', phase: 'review', round: 2 });
 });
+
+test('it passes a skipped step when a retry lever is stamped after the instant of the read', () => {
+  const position: unknown = findPosition({
+    pipeline: buildMockPipeline({ steps: { build: { skip: 'next' } } }),
+    attempts: [
+      buildMockSettled({ phase: 'triage', outcome: 'accepted', endedAt: 500 }),
+      buildMockSettled({ phase: 'design', outcome: 'designed', endedAt: 600 }),
+      buildMockSettled({ phase: 'build', outcome: 'skipped', endedAt: 1000 }),
+    ],
+    retries: [
+      { at: brandSchemas.instant.parse(1001), phase: brandSchemas.phaseName.parse('build') },
+    ],
+    now: brandSchemas.instant.parse(1000),
+  });
+
+  expect(position).toStrictEqual({ kind: 'phase', phase: 'review', round: 1 });
+});
+
+test('it sends the item back to the skipped step when a retry lever is stamped by the instant of the read', () => {
+  const position: unknown = findPosition({
+    pipeline: buildMockPipeline({ steps: { build: { skip: 'next' } } }),
+    attempts: [
+      buildMockSettled({ phase: 'triage', outcome: 'accepted', endedAt: 500 }),
+      buildMockSettled({ phase: 'design', outcome: 'designed', endedAt: 600 }),
+      buildMockSettled({ phase: 'build', outcome: 'skipped', endedAt: 1000 }),
+    ],
+    retries: [
+      { at: brandSchemas.instant.parse(1001), phase: brandSchemas.phaseName.parse('build') },
+    ],
+    now: brandSchemas.instant.parse(1001),
+  });
+
+  expect(position).toStrictEqual({ kind: 'phase', phase: 'build', round: 2 });
+});
