@@ -71,11 +71,17 @@ history goes out once the owner adds one.
 
 ## What every fact carries
 
-The stream `facts.boxxy.work` carries every fact type. These rules hold for all of them:
+The stream `facts.boxxy.work` carries every fact type except the runner's two, which go to the
+stream `facts.boxxy.runner`. These rules hold for the work facts:
 
-- **Every fact is about an item.** Its pepys entity is `boxxy:item:<id>`; an attempt fact carries
-  the attempt in its payload, and a relation fact names its source item. pepys groups facts by
-  entity, so one read gives the plug-in every fact of one item, in any arrival order.
+- **Every work fact is about an item.** Its pepys entity is `boxxy:item:<id>`; an attempt fact
+  carries the attempt in its payload, and a relation fact names its source item. pepys groups facts
+  by entity, so one read gives the plug-in every fact of one item, in any arrival order.
+- **The runner's facts name the runner.** `boxxy.runner.paused` and `boxxy.runner.resumed` have the
+  entity `boxxy:runner:<runner id>`, because a pause is about no item. They are a second fact family
+  of the same source, and no consumer reads them: pepys keeps them in its fact log. A pepys
+  deployment must load a `@boxxy/pepys` that holds the family before the server sends the first one,
+  or pepys refuses the batch.
 - **Facts carry the full text they change.** The `filed` fact holds the body, and an `edited` fact
   holds it again when it changes. The plug-in's tables keep no body or design text, because no
   report reads them, but the pepys fact log keeps both.
@@ -90,8 +96,8 @@ The stream `facts.boxxy.work` carries every fact type. These rules hold for all 
   GitHub data ([the join keys](#the-join-keys)).
 - **boxxy records the merges it sees**, because item state reads them and boxxy must dispatch while
   pepys is down. pepys takes the merge time from its GitHub tables instead.
-- **Some changes write no fact.** A runner pause or resume names no item. A settle for `stalled`,
-  `skill-missing` or a capacity refusal shows only on the `settled` fact.
+- **Some outcomes write no fact of their own.** A settle for `stalled`, `skill-missing` or a
+  capacity refusal shows only on the `settled` fact.
 - **`boxxy.attempt.turn_ended` keeps its schema** though boxxy never writes it, because pepys holds
   facts of that type and the plug-in must parse every fact of an item.
 
