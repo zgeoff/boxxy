@@ -42,6 +42,16 @@ test.each([
     [],
   ],
   [
+    'a URL with a dot, a bracket and a dash after the tag',
+    'https://github.com/acme/lamps/releases/tag/v1.0.)-patch',
+    [],
+  ],
+  [
+    'a link that ends a sentence',
+    'See [v1.0](https://github.com/acme/lamps/releases/tag/v1.0).',
+    ['v1.0'],
+  ],
+  [
     'a URL with a comma and a letter after the tag',
     'https://github.com/acme/lamps/releases/tag/v1.0,x',
     [],
