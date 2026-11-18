@@ -314,6 +314,28 @@ test.each(['incomplete', 'not-covered'] as const)(
   },
 );
 
+test('it asks to merge a reviewed head of a repo without verify setup once its required checks are green', () => {
+  const ctx = setupTest();
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+
+  const observed = buildMockMergeObservation({
+    head,
+    verify: { status: 'not-covered', head },
+    baseRequired: [],
+    checks: new Map([['pr / checks', 'success']]),
+  });
+
+  expect(ctx.decide({ observed })).toStrictEqual({
+    kind: 'act',
+    action: {
+      kind: 'merge',
+      unit: { members: [{ pullRequest: observed.pullRequest, head }] },
+      method: 'squash',
+      required: ['pr / checks'],
+    },
+  });
+});
+
 test.each([
   [
     'pending',

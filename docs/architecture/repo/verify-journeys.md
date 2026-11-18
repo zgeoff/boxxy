@@ -205,8 +205,8 @@ which reads the gate's check run at the pull request's head and the body's data 
 An entry carries no status of its own: staleness needs a checkout, which only the gate has, so the
 adapter takes the gate's result as the staleness check. Only a check run counts, never a commit
 status of the gate's name, because any token that may write statuses could post one. The merge step
-merges only a `verified` head, even when the rules' `merge.checks` leave the gate out, and waits for
-the gate like any other check when they list it.
+waits for the checks that the base branch requires, and for the gate like any other check when the
+base branch's ruleset or the rules' `merge.checks` list it.
 
 The repo owns the `verify` skill, written from wringer's template with one feature file per feature,
 and the job that syncs shared skills from `zgeoff/skills` never writes it. Only the verify CLI
