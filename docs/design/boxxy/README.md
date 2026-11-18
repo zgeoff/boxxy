@@ -28,6 +28,8 @@ These docs hold the designs whose work is not fully built. The built system is i
 - [Merge train](./merge-train.md): review and merge, stacks as units, batching and the conflict
   rules.
 - [Slice 1](./slice-1.md): what the first build includes and leaves out.
+- [Tuning proposal, November 2026](./tuning-2026-11.md): five changes from the first two days of
+  running real work, for the owner to pick from.
 - [Open for the builder](./v1-open.md): what the built system leaves unchecked, assumed or not
   designed.
 - [Rules from the rules repository](./rules-repository.md): how the deployed server gets new rules
