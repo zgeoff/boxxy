@@ -197,6 +197,7 @@ export type MoveEvent =
       | 'state'
       | 'failure'
       | 'returnedOutcome'
+      | 'refusal'
       | 'sessionStopped'
       | 'criteria'
       | 'matched'

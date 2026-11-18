@@ -78,6 +78,24 @@ async function setupTest() {
     revisions: z.array(heldRevision),
   });
 
+  const nullableText = z.string().nullable();
+  const refusal = z.object({ code: z.string(), problem: nullableText, message: z.string() });
+  const refusedAttempt = z.object({ failure: nullableText, refusal: refusal.nullable() });
+  const refusedShownSchema = z.object({ attempts: z.array(refusedAttempt) });
+
+  const latestRefusal = z.object({
+    at: z.string(),
+    code: nullableText,
+    problem: nullableText,
+    message: nullableText,
+  });
+
+  const capacityRefusals = z.object({
+    latest: latestRefusal.nullable(),
+    sinceLastSpawn: z.number(),
+  });
+
+  const capacityStatusSchema = z.object({ capacityRefusals });
   const heldListedItem = z.object({ id: z.string(), derived: heldDerived });
   const heldListedSchema = z.object({ items: z.array(heldListedItem) });
 
@@ -136,6 +154,8 @@ async function setupTest() {
       fileItem: fileHeldItem,
       showItem: showHeldItem,
       listedSchema: heldListedSchema,
+      refusedShownSchema,
+      capacityStatusSchema,
     },
     mergeAtHead: {
       ...mergeCLI,
@@ -724,4 +744,42 @@ test('it merges a reviewed pull request at its head through the server tick, and
     state: 'done',
     logged: [],
   });
+});
+
+test('#item show and #status show why atc refused a spawn for capacity', async () => {
+  const setup = await setupTest();
+
+  const ctx = setup.held;
+
+  const item = await ctx.fileItem();
+
+  const refusal = { code: 'host_unavailable', problem: 'ram_budget_exceeded', message: 'no pages' };
+
+  ctx.server.dispatch.worker.failNext('start', {
+    kind: 'refused',
+    cause: 'capacity',
+    reason: 'host_unavailable (ram_budget_exceeded): no pages',
+    refusal,
+  });
+
+  await ctx.server.tick();
+
+  const shown = await ctx.run(['item', 'show', item]);
+  const status = await ctx.run(['status']);
+
+  expect([
+    readJSONOutput(shown, ctx.refusedShownSchema).attempts,
+    readJSONOutput(status, ctx.capacityStatusSchema).capacityRefusals,
+  ]).toStrictEqual([
+    [{ failure: 'no-capacity', refusal }],
+    {
+      latest: {
+        at: new Date(ctx.server.dispatch.clock.now()).toISOString(),
+        code: 'host_unavailable',
+        problem: 'ram_budget_exceeded',
+        message: 'no pages',
+      },
+      sinceLastSpawn: 1,
+    },
+  ]);
 });

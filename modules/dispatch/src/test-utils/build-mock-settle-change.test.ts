@@ -40,6 +40,7 @@ test('it builds a settle under the live generations that releases the lease and 
           failure: null,
           outcome: 'built',
           returnedOutcome: null,
+          refusal: null,
           closing: null,
           asleep: false,
           sessionStopped: true,

@@ -41,6 +41,7 @@ export function buildEventColumns(
       failure: settled.failure,
       outcome: settled.outcome,
       returnedOutcome: settled.returnedOutcome,
+      refusal: settled.refusal,
       endedAt: now,
     }))
     .with({ kind: 'stray-stopped' }, (stopped) =>

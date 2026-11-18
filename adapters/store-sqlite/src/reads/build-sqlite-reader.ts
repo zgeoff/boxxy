@@ -12,6 +12,7 @@ import { parseJSONText } from '../codecs/parse-json-text.ts';
 import { parseStoreRow } from '../codecs/parse-store-row.ts';
 import type { StoreDatabase } from '../types.ts';
 import { isLatestOfSession } from './is-latest-of-session.ts';
+import { readCapacityRefusals } from './read-capacity-refusals.ts';
 import { readItemViews } from './read-item-views.ts';
 import { readLimitFills } from './read-limit-fills.ts';
 import { readWakes } from './read-wakes.ts';
@@ -240,6 +241,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
 
       return rows.map((row) => parseStoreRow('attempts', row));
     },
+    readCapacityRefusals: () => readCapacityRefusals(db),
     listSucceededAttemptsWithoutPullRequest: async () => {
       const linked = db.selectFrom('pull_requests').select('attempt');
 

@@ -37,6 +37,7 @@ import type {
   PoolName,
   PullRequestRef,
   PullRequestRow,
+  RefusalDetail,
   RelationRow,
   RepoName,
   RunnerId,
@@ -89,6 +90,7 @@ export interface StoreReader extends OutboxReader {
 
   // settled by the give-up rule at `since` or later, with the session not yet seen stopped
   listStrayAttempts: (since: Instant) => Promise<AttemptRow[]>;
+  readCapacityRefusals: () => Promise<CapacityRefusals>;
   listSucceededAttemptsWithoutPullRequest: () => Promise<AttemptRow[]>;
 
   // the latest attempt that the session carries, live or settled
@@ -282,6 +284,18 @@ export interface WorkerKind {
   resumeKept: (kept: KeptSession, request: SpawnRequest) => Promise<StartOutcome>;
 }
 
+// The attempts that settled as `no-capacity`, counted back to the latest attempt that started a
+// session.
+export interface CapacityRefusals {
+  // null when no attempt settled as `no-capacity`; `refusal` is null for one stored without it
+  readonly latest: {
+    readonly attempt: AttemptId;
+    readonly at: Instant;
+    readonly refusal: RefusalDetail | null;
+  } | null;
+  readonly count: number;
+}
+
 export type StartOutcome =
   | {
       readonly kind: 'started';
@@ -291,7 +305,14 @@ export type StartOutcome =
     }
 
   // `capacity`: the target has no free slot for a session
-  | { readonly kind: 'refused'; readonly cause: 'capacity' | 'other'; readonly reason: string }
+  | {
+      readonly kind: 'refused';
+      readonly cause: 'capacity' | 'other';
+      readonly reason: string;
+
+      // atc's own answer; absent when boxxy refused before it called atc
+      readonly refusal?: RefusalDetail;
+    }
   | { readonly kind: 'unknown'; readonly reason: string };
 
 export type SuspendOutcome =

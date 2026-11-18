@@ -136,6 +136,33 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
           ),
         ),
       ),
+    readCapacityRefusals: () => {
+      const attempts = getTables().attempts;
+
+      const startedAts = attempts.flatMap((attempt) =>
+        attempt.atcSession !== null && attempt.startedAt !== null ? [attempt.startedAt] : [],
+      );
+
+      const lastStartedAt = Math.max(0, ...startedAts);
+
+      const refused = sortAttempts(
+        attempts.filter((attempt) => attempt.failure === 'no-capacity'),
+      ).toSorted((first, second) => (second.endedAt ?? 0) - (first.endedAt ?? 0));
+
+      const [latest] = refused;
+
+      return Promise.resolve({
+        latest:
+          latest === undefined
+            ? null
+            : {
+                attempt: latest.id,
+                at: latest.endedAt ?? latest.claimedAt,
+                refusal: latest.refusal,
+              },
+        count: refused.filter((attempt) => (attempt.endedAt ?? 0) > lastStartedAt).length,
+      });
+    },
     listSucceededAttemptsWithoutPullRequest: () => {
       const tables = getTables();
 

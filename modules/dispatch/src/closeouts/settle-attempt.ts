@@ -92,6 +92,7 @@ export function settleAttempt(input: SettleAttemptInput): Promise<MoveResult> {
         outcome: settlement.outcome,
         returnedOutcome: settlement.returnedOutcome,
         sessionStopped: input.sessionStopped,
+        refusal: input.refusal ?? null,
         frictionDropped: settlement.frictionDropped,
         criteria: settled.criteria,
         matched: settled.matched,

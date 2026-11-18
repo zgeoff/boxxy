@@ -113,6 +113,53 @@ test('it settles a spawn refused for capacity as no-capacity, and holds the pool
   ]);
 });
 
+test("it stores atc's refusal on the no-capacity attempt and in its settled fact", async () => {
+  const ctx = await setupTest();
+  const claim = await ctx.claimBuild();
+
+  const refusal = {
+    code: 'host_unavailable',
+    problem: 'ram_budget_exceeded',
+    message: 'not enough pages',
+  };
+
+  ctx.worker.failNext('start', {
+    kind: 'refused',
+    cause: 'capacity',
+    reason: 'host_unavailable (ram_budget_exceeded): not enough pages',
+    refusal,
+  });
+
+  await ctx.start(claim);
+
+  const after = await ctx.readAttempt(claim.attempt.id);
+  const settled = await ctx.listFacts('boxxy.attempt.settled');
+
+  expect(after.refusal).toStrictEqual(refusal);
+
+  expect(settled).toStrictEqual([
+    expect.objectContaining({ payload: expect.objectContaining({ refusal }) }),
+  ]);
+});
+
+test('it stores no refusal on a spawn refused for another cause', async () => {
+  const ctx = await setupTest();
+  const claim = await ctx.claimBuild();
+
+  ctx.worker.failNext('start', {
+    kind: 'refused',
+    cause: 'other',
+    reason: 'unknown_target: no such target',
+    refusal: { code: 'unknown_target', problem: null, message: 'no such target' },
+  });
+
+  await ctx.start(claim);
+
+  const after = await ctx.readAttempt(claim.attempt.id);
+
+  expect(after.refusal).toBeNull();
+});
+
 test('it settles a spawn refused for another cause as spawn-refused, with no backoff', async () => {
   const ctx = await setupTest();
   const claim = await ctx.claimBuild();

@@ -14,6 +14,7 @@ import type {
   LoadedRules,
   NewId,
   PullRequestRow,
+  RefusalDetail,
   RelationRow,
   RowWrite,
 } from '@boxxy/model';
@@ -82,6 +83,9 @@ export interface SettleAttemptInput {
 
   // false: settled by the give-up rule while the session still ran
   readonly sessionStopped: boolean;
+
+  // atc's answer, stored on an attempt that settles as `no-capacity`
+  readonly refusal?: RefusalDetail | undefined;
 
   // the guard columns of the row the caller decided on, when it read the row before the lock
   readonly seen?: Partial<AttemptGuard>;

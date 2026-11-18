@@ -73,6 +73,7 @@ export async function startClaim(input: StartClaimInput): Promise<RunnerFault | 
         attempt: attempt.id,
         forced: refused.cause === 'capacity' ? 'no-capacity' : 'spawn-refused',
         sessionStopped: true,
+        refusal: refused.cause === 'capacity' ? refused.refusal : undefined,
 
         // a session recorded since, by another start of the same attempt, keeps it alive
         seen: { atcSession: attempt.atcSession },

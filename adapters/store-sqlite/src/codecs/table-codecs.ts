@@ -85,8 +85,9 @@ export const tableCodecs: { readonly [T in TableName]: TableCodec<Tables[T]> } =
       'actedAnswer',
       'readAt',
       'waitReason',
+      'refusal',
     ],
-    json: ['spawnRequest', 'caller', 'fields', 'input', 'closeOut', 'actedAnswer'],
+    json: ['spawnRequest', 'caller', 'fields', 'input', 'closeOut', 'actedAnswer', 'refusal'],
     flags: [],
   },
   attempt_sessions: {

@@ -81,6 +81,7 @@ function pickEndEvent(attempt: AttemptRow): MoveEvent | null {
       failure: 'item-closed',
       outcome: 'lost',
       returnedOutcome: null,
+      refusal: null,
       sessionStopped: true,
       criteria: [],
       matched: [],

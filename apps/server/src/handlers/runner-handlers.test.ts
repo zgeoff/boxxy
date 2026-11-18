@@ -63,6 +63,16 @@ async function setupTest() {
 
       return z.object({ json: z.object({ pause: z.unknown() }) }).parse(body).json.pause;
     },
+    readCapacityRefusals: async () => {
+      const response = await server.owner(
+        buildRPCRequest({ procedure: 'runner.status', input: {} }),
+      );
+
+      const body: unknown = await response.json();
+
+      return z.object({ json: z.object({ capacityRefusals: z.unknown() }) }).parse(body).json
+        .capacityRefusals;
+    },
     readNotices: async () => {
       const response = await server.owner(
         buildRPCRequest({ procedure: 'runner.status', input: {} }),
@@ -74,6 +84,13 @@ async function setupTest() {
     },
   };
 }
+
+test('#status shows no capacity refusal before any attempt ran out of capacity', async () => {
+  const ctx = await setupTest();
+  const refusals = await ctx.readCapacityRefusals();
+
+  expect(refusals).toStrictEqual({ latest: null, sinceLastSpawn: 0 });
+});
 
 test('#status shows no oldest time and no error when every notice is sent', async () => {
   const ctx = await setupTest();

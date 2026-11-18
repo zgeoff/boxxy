@@ -6,6 +6,7 @@ import type {
   Attention,
   Clock,
   Instant,
+  RefusalDetail,
   SessionReading,
   StartOutcome,
   WorkerKind,
@@ -16,7 +17,12 @@ import { match } from 'ts-pattern';
 type FailableMethod = 'start' | 'suspend' | 'resume' | 'stop' | 'forget' | 'resumeKept';
 
 export type FakeFailure =
-  | { readonly kind: 'refused'; readonly cause: 'capacity' | 'other'; readonly reason: string }
+  | {
+      readonly kind: 'refused';
+      readonly cause: 'capacity' | 'other';
+      readonly reason: string;
+      readonly refusal?: RefusalDetail;
+    }
   | { readonly kind: 'unknown'; readonly reason: string };
 
 // What a test sets a session to. A field left out keeps the session's value.

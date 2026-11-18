@@ -152,6 +152,7 @@ export function buildAttemptFact(
         failure: settled.failure,
         outcome: settled.outcome,
         returnedOutcome: settled.returnedOutcome,
+        refusal: settled.refusal,
         closing: parts.before.closing,
         asleep: parts.before.state === 'sleeping',
         sessionStopped: settled.sessionStopped,

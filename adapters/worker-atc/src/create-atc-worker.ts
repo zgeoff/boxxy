@@ -8,6 +8,7 @@ import type {
   WorkerKind,
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
+import { buildRefusal } from './build-refusal.ts';
 import { findCallerIdentity } from './find-caller-identity.ts';
 import { isCapacityRefusal } from './is-capacity-refusal.ts';
 import { isFolderTrusted } from './is-folder-trusted.ts';
@@ -252,6 +253,7 @@ function toStartFailure(error: unknown): StartOutcome {
     kind: 'refused',
     cause: isCapacityRefusal(error) ? 'capacity' : 'other',
     reason: formatRefusalReason(error),
+    refusal: buildRefusal(error),
   };
 }
 
@@ -273,15 +275,11 @@ function toCallFailure(error: unknown): {
 // `<code> (<problem>): <message>`. atc writes its text as `<code>: <message>`, so the code is not
 // repeated.
 function formatRefusalReason(error: AtcCallError): string {
-  const prefix = `${error.code}: `;
+  const refusal = buildRefusal(error);
 
-  const message = error.message.startsWith(prefix)
-    ? error.message.slice(prefix.length)
-    : error.message;
-
-  return error.problem === null
-    ? `${error.code}: ${message}`
-    : `${error.code} (${error.problem}): ${message}`;
+  return refusal.problem === null
+    ? `${refusal.code}: ${refusal.message}`
+    : `${refusal.code} (${refusal.problem}): ${refusal.message}`;
 }
 
 function isCredentialConfigured(configured: readonly GitSource[], source: GitSource): boolean {

@@ -5,6 +5,7 @@ import type { MergeAnswer } from '../ports/types.ts';
 import type { AttemptRow } from '../types.ts';
 import { brandSchemas } from './brand-schemas.ts';
 import { callerIdentitySchema } from './caller-identity-schema.ts';
+import { refusalDetailSchema } from './refusal-detail-schema.ts';
 
 const mergeAnswerSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('merged'), mergeCommit: brandSchemas.commitSha }),
@@ -71,6 +72,7 @@ export const attemptRowSchema: z.ZodType<AttemptRow> = z.object({
   wokenAt: instantOrNullSchema,
   outcome: z.union([brandSchemas.outcomeName, z.enum(['lost', 'unsettleable'])]).nullable(),
   returnedOutcome: z.string().nullable(),
+  refusal: refusalDetailSchema.nullable(),
   strayedAt: instantOrNullSchema,
   sessionStoppedAt: instantOrNullSchema,
   sessionForgottenAt: instantOrNullSchema,
