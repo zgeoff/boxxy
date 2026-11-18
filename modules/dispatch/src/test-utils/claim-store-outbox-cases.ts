@@ -250,8 +250,10 @@ export const claimStoreOutboxCases: readonly ClaimStoreCase[] = [
 
       const notice = {
         id: 0,
+        kind: 'hold',
         item: item.id,
         reason: 'attempts used up',
+        pause: null,
         at: brandSchemas.instant.parse(3000),
         tries: 0,
         sentAt: null,
@@ -305,14 +307,53 @@ export const claimStoreOutboxCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
+    '#listUnsentNotices lists a paused-runner notice with its detail and no item',
+    async (store) => {
+      const at = brandSchemas.instant.parse(3000);
+
+      const notice = {
+        id: 0,
+        kind: 'runner-paused',
+        item: null,
+        reason: null,
+        pause: {
+          pausedAt: brandSchemas.instant.parse(1000),
+          pausedBy: 'boxxy:owner:local',
+          reason: null,
+          waiting: 2,
+        },
+        at,
+        tries: 0,
+        sentAt: null,
+        keySeq: 0,
+        keyTries: 0,
+        nextTryAt: at,
+      } as const;
+
+      await store.exclusive((transaction) =>
+        transaction.applyChange({
+          at,
+          writes: [{ op: 'insert', table: 'notices', row: notice }],
+          facts: [],
+        }),
+      );
+
+      const unsent: unknown = await store.read((transaction) => transaction.listUnsentNotices(10));
+
+      return { received: unsent, expected: [{ ...notice, id: 1 }] };
+    },
+  ],
+  [
     '#listNoticesDue leaves out a sent notice and one before its next try, oldest next try first',
     async (store) => {
       const item = buildMockV1ItemRow();
 
       const notice = {
         id: 0,
+        kind: 'hold',
         item: item.id,
         reason: 'attempts used up',
+        pause: null,
         at: brandSchemas.instant.parse(3000),
         tries: 0,
         sentAt: null,

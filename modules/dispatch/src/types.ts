@@ -33,4 +33,7 @@ export interface DispatchTimeouts {
 
   // a job's action that got no answer is sent again only this long after its mark
   readonly actRetryMinutes: number;
+
+  // a runner paused this long with an item ready to claim sends the owner one notice
+  readonly pausedNoticeHours: number;
 }

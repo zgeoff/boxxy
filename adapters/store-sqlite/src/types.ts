@@ -148,6 +148,10 @@ export interface StoreDatabase {
     id: string;
     heartbeat_at: number;
     paused: number;
+    paused_at: number | null;
+    paused_by: string | null;
+    pause_reason: string | null;
+    pause_noticed_at: number | null;
   };
   notes: {
     item: string;
@@ -158,14 +162,16 @@ export interface StoreDatabase {
   };
   notices: {
     id: Generated<number>;
-    item: string;
-    reason: string;
+    item: string | null;
+    reason: string | null;
     at: number;
     tries: number;
     sent_at: number | null;
     key_seq: number;
     key_tries: number;
     next_try_at: number;
+    kind: string;
+    pause: string | null;
   };
   notice_session: {
     id: number;

@@ -19,7 +19,16 @@ test.each([
 });
 
 test('it parses a runner row', () => {
-  const row = { id: 'runner-1', heartbeatAt: 1000, paused: true };
+  const row = {
+    id: 'runner-1',
+    heartbeatAt: 1000,
+    paused: true,
+    pausedAt: null,
+    pausedBy: null,
+    pauseReason: null,
+    pauseNoticedAt: null,
+  };
+
   const parsed: unknown = rowSchemas.runners.parse(row);
 
   expect(parsed).toStrictEqual(row);

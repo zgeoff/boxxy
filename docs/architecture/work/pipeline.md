@@ -118,6 +118,16 @@ A pool decides which ready item the claim takes next: it takes the items its fil
 order, and the owner's levers, defer and expedite, change that order. A pool sets no count, so the
 loader refuses a pool unless some limit counts every attempt it can start.
 
+## Pausing the runner
+
+`boxxy runner pause` stops the claim, so no ready item starts or wakes, and `boxxy runner resume`
+lets it run again. Live attempts go on, and a restart keeps the pause. Each switch writes a fact in
+the same change as the row, `boxxy.runner.paused` or `boxxy.runner.resumed`, with the runner as its
+entity, the owner as its actor, and any `--reason` of a pause. The server logs one line for each
+switch, and `boxxy status` shows the pause: since when, by whom, and the reason. A repeat pause or
+resume changes nothing and writes no fact, so the first pause keeps its time and reason. The owner
+gets a [notice](./notices.md#the-paused-runner-notice) when a long pause leaves work ready.
+
 ## Recipes and skills
 
 The rules file's `kinds` section gives each item kind, such as `core.issue`, a pipeline and a recipe

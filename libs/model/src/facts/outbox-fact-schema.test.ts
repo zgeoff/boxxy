@@ -20,9 +20,28 @@ test('it parses an outbox row with its JSON payload', () => {
   expect(parsed).toStrictEqual(row);
 });
 
+test('it parses an outbox row of a runner fact', () => {
+  const row = {
+    seq: 2,
+    factId: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b78',
+    type: 'boxxy.runner.paused',
+    entity: 'boxxy:runner:runner-1',
+    actor: 'boxxy:owner:local',
+    at: 1700,
+    payload: { runner: 'runner-1', reason: 'rules change in review' },
+    sentAt: null,
+    parkedAt: null,
+    parkedReason: null,
+  };
+
+  const parsed: unknown = outboxFactSchema.parse(row);
+
+  expect(parsed).toStrictEqual(row);
+});
+
 test.each([
-  ['an entity that is not an item', { entity: 'boxxy:attempt:a1' }],
-  ['a type outside the catalog', { type: 'boxxy.runner.paused' }],
+  ['an entity that is not an item or a runner', { entity: 'boxxy:attempt:a1' }],
+  ['a type outside the catalog', { type: 'boxxy.runner.stopped' }],
 ])('it rejects an outbox row with %s', (_title, override) => {
   const row = {
     seq: 1,

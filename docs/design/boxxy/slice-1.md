@@ -539,6 +539,10 @@ fact.
 | `id` | the runner id | no |
 | `heartbeat_at` | the runner's last heartbeat | no |
 | `paused` | 1 when `runner.pause` stopped new claims | no |
+| `paused_at` | when the runner was paused | yes |
+| `paused_by` | the actor that paused it | yes |
+| `pause_reason` | the reason the owner gave | yes |
+| `pause_noticed_at` | when the notice of this pause was queued | yes |
 
 ### `outbox`
 
@@ -1128,7 +1132,7 @@ registration for boxxy's fact types.
 | `boxxy.pr.merged` | `boxxy:attempt:<attempt_id>` | the PR watch | repo, number, merge time and merge commit |
 | `boxxy.pr.closed` | `boxxy:attempt:<attempt_id>` | the PR watch | repo and number |
 | `boxxy.proposal.recorded` | `boxxy:attempt:<attempt_id>` | settle, for friction | target and change |
-| `boxxy.runner.paused` | `boxxy:runner:<runner_id>` | `runner.pause` | runner id |
+| `boxxy.runner.paused` | `boxxy:runner:<runner_id>` | `runner.pause` | runner id and reason |
 | `boxxy.runner.resumed` | `boxxy:runner:<runner_id>` | `runner.resume` | runner id |
 
 ## The pepys consumer and the query

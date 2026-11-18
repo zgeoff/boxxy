@@ -536,8 +536,10 @@ test('it sends a hold notice to the notice session that the store holds, with th
           table: 'notices',
           row: {
             id: 1,
+            kind: 'hold',
             item: brandSchemas.itemId.parse('0190a6f4-0000-7000-8000-0000000000a1'),
             reason: brandSchemas.rulesHoldReason.parse('blocked'),
+            pause: null,
             at,
             tries: 0,
             sentAt: null,

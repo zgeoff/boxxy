@@ -283,8 +283,17 @@ const rulesStatus = z.object({
   lastRejected: rulesLastRejected.nullable(),
 });
 
+// While the runner is paused: since when, by whom, and why. `since` and `by` are null for a pause
+// stored before the runner recorded them.
+const runnerPause = z.object({
+  since: time.nullable(),
+  by: z.string().nullable(),
+  reason: z.string().nullable(),
+});
+
 const runnerStatusOutput = z.object({
   paused: z.boolean(),
+  pause: runnerPause.nullable(),
   limits: z.array(limitFillSchema),
   attempts: z.array(runnerAttempt),
   strays: z.array(attemptRowSchema),
@@ -510,14 +519,14 @@ export const contract = {
   runner: {
     status: tool(
       'runner_status',
-      'Returns what boxxy does now: each limit and its seats, each live or sleeping attempt with its atc session, stray sessions, the paused flag, the rules version, and how far the fact outbox is behind.',
+      'Returns what boxxy does now: each limit and its seats, each live or sleeping attempt with its atc session, stray sessions, the paused flag with who paused the runner, when and why, the rules version, and how far the fact outbox is behind.',
     )
       .input(emptyInput)
       .output(runnerStatusOutput),
 
-    // These two write the runner row and no fact.
+    // These two write the runner row and one fact each, unless the runner is already in that state.
     pause: tool('runner_pause', 'Stops boxxy from claiming new work. Running attempts go on.')
-      .input(emptyInput)
+      .input(z.object({ reason: reason.optional() }))
       .output(z.object({ paused: z.literal(true) })),
     resume: tool('runner_resume', 'Lets boxxy claim new work again.')
       .input(emptyInput)

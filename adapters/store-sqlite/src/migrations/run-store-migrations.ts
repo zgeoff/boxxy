@@ -10,6 +10,7 @@ import { jobAttemptsMigration } from './job-attempts-migration.ts';
 import { noticeKeysMigration } from './notice-keys-migration.ts';
 import { noticeSessionMigration } from './notice-session-migration.ts';
 import { renameRelationsMigration } from './rename-relations-migration.ts';
+import { runnerPauseMigration } from './runner-pause-migration.ts';
 import { v1TablesMigration } from './v1-tables-migration.ts';
 
 // Kysely's SQLite migration lock does nothing, so two openers of a new file would both find nothing
@@ -33,6 +34,7 @@ const migrations = {
   '0005-item-body': itemBodyMigration,
   '0006-job-attempts': jobAttemptsMigration,
   '0007-notice-session': noticeSessionMigration,
+  '0008-runner-pause': runnerPauseMigration,
 };
 
 async function runMigrator(db: Kysely<StoreDatabase>): Promise<void> {

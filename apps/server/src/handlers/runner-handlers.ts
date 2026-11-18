@@ -1,13 +1,15 @@
 import { findWaitingSince, noticeLimits, timeouts } from '@boxxy/dispatch';
-import type { AttemptRow, Instant, RowWrite, RunnerRow } from '@boxxy/model';
+import type { AnyNewFact, AttemptRow, Instant, RowWrite, RunnerRow } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import type { ServerDeps } from '../types.ts';
 import { api } from './api.ts';
+import { buildRunnerFact } from './build-runner-fact.ts';
 
 const hourMs = 3_600_000;
+const owner = 'boxxy:owner:local';
 
-// The runner's status, and its two switches. A switch writes the runner's row and no fact: the
-// fact catalog has no runner fact.
+// The runner's status, and its two switches. A switch writes the runner's row and one fact in one
+// change.
 export const runnerHandlers = {
   status: api.runner.status.handler(async (options) => {
     const deps = options.context.deps;
@@ -37,6 +39,14 @@ export const runnerHandlers = {
 
     return {
       paused: read.runner?.paused ?? false,
+      pause:
+        read.runner?.paused === true
+          ? {
+              since: toISOOrNull(read.runner.pausedAt),
+              by: read.runner.pausedBy,
+              reason: read.runner.pauseReason,
+            }
+          : null,
       limits: read.limits,
       attempts: read.attempts.map((entry) => ({
         ...entry,
@@ -63,16 +73,33 @@ export const runnerHandlers = {
     };
   }),
   pause: api.runner.pause.handler(async (options) => {
-    await writePaused(options.context.deps, true);
+    const deps = options.context.deps;
+    const reason = options.input.reason ?? null;
+
+    const changed = await writePaused(deps, true, reason);
+
+    if (changed) {
+      deps.log.warn('the runner was paused', { by: owner, reason });
+    }
 
     return { paused: true } as const;
   }),
   resume: api.runner.resume.handler(async (options) => {
-    await writePaused(options.context.deps, false);
+    const deps = options.context.deps;
+
+    const changed = await writePaused(deps, false, null);
+
+    if (changed) {
+      deps.log.warn('the runner was resumed', { by: owner });
+    }
 
     return { paused: false } as const;
   }),
 };
+
+function toISOOrNull(at: Instant | null): string | null {
+  return at === null ? null : new Date(at).toISOString();
+}
 
 function findAttemptWaitingSince(deps: ServerDeps, attempt: AttemptRow) {
   const reading = deps.readings.get(attempt.id);
@@ -87,38 +114,78 @@ function findAttemptWaitingSince(deps: ServerDeps, attempt: AttemptRow) {
       });
 }
 
-function writePaused(deps: ServerDeps, paused: boolean) {
+// The runner's row, its fact and one log line change together. Only the owner reaches the two
+// switches, so the actor is always the owner. A switch to the state the runner is in writes no
+// fact and logs nothing.
+function writePaused(deps: ServerDeps, paused: boolean, reason: string | null) {
   return deps.store.exclusive(async (tx) => {
     const now = deps.clock.now();
 
     const row = await tx.readRunner(deps.runner);
 
-    const write = pickPausedWrite(row, deps, paused, now);
+    const change = pickPausedChange(row, deps, { paused, reason, now });
 
-    if (write !== null) {
-      await tx.applyChange({ at: now, writes: [write], facts: [] });
+    if (change !== null) {
+      await tx.applyChange({ at: now, writes: [change.write], facts: [change.fact] });
     }
+
+    return change !== null;
   });
 }
 
-// the runner's row before its first heartbeat is inserted, so a pause holds from the start
-function pickPausedWrite(
+interface PausedChange {
+  readonly write: RowWrite;
+  readonly fact: AnyNewFact;
+}
+
+interface PausedRequest {
+  readonly paused: boolean;
+  readonly reason: string | null;
+  readonly now: Instant;
+}
+
+// The runner's row is missing before its first heartbeat, so a pause holds from the start. A
+// resume of a runner with no row finds nothing paused.
+function pickPausedChange(
   row: RunnerRow | null,
   deps: ServerDeps,
-  paused: boolean,
-  now: Instant,
-): RowWrite | null {
-  if (row === null) {
-    return { op: 'insert', table: 'runners', row: { id: deps.runner, heartbeatAt: now, paused } };
+  request: PausedRequest,
+): PausedChange | null {
+  if (row?.paused === request.paused || (row === null && !request.paused)) {
+    return null;
   }
 
-  return row.paused === paused
-    ? null
-    : {
-        op: 'update',
-        table: 'runners',
-        key: { id: deps.runner },
-        expect: { paused: !paused },
-        set: { paused },
-      };
+  const fact = request.paused
+    ? buildRunnerFact(deps, 'boxxy.runner.paused', {
+        runner: deps.runner,
+        reason: request.reason,
+      })
+    : buildRunnerFact(deps, 'boxxy.runner.resumed', { runner: deps.runner });
+
+  const state: Omit<RunnerRow, 'id' | 'heartbeatAt'> = request.paused
+    ? {
+        paused: true,
+        pausedAt: request.now,
+        pausedBy: owner,
+        pauseReason: request.reason,
+        pauseNoticedAt: null,
+      }
+    : { paused: false, pausedAt: null, pausedBy: null, pauseReason: null, pauseNoticedAt: null };
+
+  const write: RowWrite =
+    row === null
+      ? {
+          op: 'insert',
+          table: 'runners',
+          row: { id: deps.runner, heartbeatAt: request.now, ...state },
+        }
+      : {
+          op: 'update',
+          table: 'runners',
+          key: { id: deps.runner },
+          expect: { paused: !request.paused },
+          set: state,
+        };
+
+  return { write, fact };
 }

@@ -2,12 +2,13 @@
 
 When an item goes on hold, boxxy tells the owner with a notice: an atc message to one agent session
 the owner picked, the notice session. The settle that puts the item on hold writes the notice into
-the boxxy store, and the runner tries to send it on every tick until atc takes it. It never gives
-up, so a notice written while the owner's machine is off waits in the store and arrives once atc can
-reach the notice session again. Each try carries an idempotency key, so a retry after a lost answer
-still reaches the owner once, apart from the two cases in
-[what the owner can rely on](#what-the-owner-can-rely-on). Read this doc before you change how holds
-reach the owner, or when notices stop arriving.
+the boxxy store, and the runner tries to send it on every tick until atc takes it. A runner that
+stays paused with work ready sends the owner a second kind of notice
+([the paused-runner notice](#the-paused-runner-notice)). It never gives up, so a notice written
+while the owner's machine is off waits in the store and arrives once atc can reach the notice
+session again. Each try carries an idempotency key, so a retry after a lost answer still reaches the
+owner once, apart from the two cases in [what the owner can rely on](#what-the-owner-can-rely-on).
+Read this doc before you change how holds reach the owner, or when notices stop arriving.
 
 [The pipeline](./pipeline.md#when-an-item-needs-the-owner) covers which outcomes hold an item.
 [Attempts](./attempts.md#settle) covers the settle that writes the notice.
@@ -36,6 +37,23 @@ hold and `boxxy item list` shows it.
 
 The notifier reaches the session through atc's gateway, which passes each call to the daemon it
 names. A daemon runs the sessions on one machine, such as the owner's machine or an imp.
+
+## The paused-runner notice
+
+A runner that has stayed paused for the `pausedNoticeHours` timeout while at least one item is ready
+to claim sends the owner one notice. It names how long the runner has been paused, who paused it,
+the reason, and how many items wait. The notice exists because a paused runner starts nothing and
+shows nothing, so ready work can sit for a night with no sign of why
+([pausing the runner](./pipeline.md#pausing-the-runner)).
+
+The tick checks for it before it sends notices, and writes it as a notice row of the kind
+`runner-paused`, with the detail fixed at that moment. The runner's row records when the notice was
+queued, in the same change, so a later tick queues no second one. A resume clears the mark, and the
+next pause starts a new count. A notice that atc has not taken follows the same retries as a hold
+notice, and a resume after it is queued does not recall it.
+
+The timeout is a constant beside the other timeouts in the dispatch module, not a config option. A
+pause stored before the runner recorded its start time has no length, so it gets no notice.
 
 ## Turning notices on
 
@@ -111,11 +129,11 @@ between tries.
 
 ## Unsent notices in `runner.status`
 
-`runner.status` shows the count of unsent notices, the time of the oldest, and `lastError`, the
-reason of the latest try that wasn't `sent`. `lastError` reads `no-notice-session` while no session
-is registered, and `session_dead` while the registered session is stopped. The server keeps
-`lastError` in memory and shows it only while a notice is unsent, so a restart clears it until the
-next failed try.
+`runner.status` counts both kinds of notice. It shows the count of unsent notices, the time of the
+oldest, and `lastError`, the reason of the latest try that wasn't `sent`. `lastError` reads
+`no-notice-session` while no session is registered, and `session_dead` while the registered session
+is stopped. The server keeps `lastError` in memory and shows it only while a notice is unsent, so a
+restart clears it until the next failed try.
 
 ## What the owner can rely on
 

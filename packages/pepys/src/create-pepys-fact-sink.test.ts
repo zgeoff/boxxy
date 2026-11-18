@@ -3,6 +3,7 @@ import { brandSchemas } from '@boxxy/model';
 import type { OutboxFact } from '@boxxy/model';
 import { buildMockOutboxFact } from '@boxxy/model/test-utils/build-mock-outbox-fact';
 import { factSinkContract } from '@boxxy/model/test-utils/fact-sink-contract';
+import { workFamily } from './boxxy-source.ts';
 import { createPepysFactSink } from './create-pepys-fact-sink.ts';
 import { createIngestStandIn } from './test-utils/create-ingest-stand-in.ts';
 
@@ -131,4 +132,47 @@ test('it answers retry when the sender gives no answer in the time limit', async
   const answer = await sink.send([buildMockOutboxFact()]);
 
   expect(answer).toStrictEqual({ kind: 'retry', reason: 'no answer in 5 ms' });
+});
+
+test('it sends a runner fact to the runner family, which ingest reads and stores', async () => {
+  const ctx = setupTest();
+
+  const fact = buildMockOutboxFact({
+    seq: 3,
+    type: 'boxxy.runner.paused',
+    entity: 'boxxy:runner:runner-1',
+    payload: { runner: 'runner-1', reason: 'the rules change is in review' },
+  });
+
+  const answer = await ctx.harness.sink.send([fact]);
+
+  expect([answer, await ctx.harness.readStored()]).toStrictEqual([
+    { kind: 'stored' },
+    [fact.factId],
+  ]);
+});
+
+test('it answers refused-batch for a runner fact that an older ingest has no family for', async () => {
+  const ingest = createIngestStandIn('a-test-secret', [workFamily]);
+
+  const sink = createPepysFactSink({
+    url: 'http://ingest.test/boxxy/facts',
+    secret: 'a-test-secret',
+    timeoutMs: 10_000,
+    fetch: ingest.handleRequest,
+  });
+
+  const fact = buildMockOutboxFact({
+    type: 'boxxy.runner.resumed',
+    entity: 'boxxy:runner:runner-1',
+    payload: { runner: 'runner-1' },
+  });
+
+  const answer = await sink.send([fact]);
+
+  expect(answer).toStrictEqual({
+    kind: 'refused-batch',
+    status: 422,
+    reason: '{"error":"fact 0: the source has no fact type boxxy.runner.resumed"}',
+  });
 });

@@ -29,8 +29,8 @@ test('it gives each fact type a schema whose output is its payload type', () => 
   expect(mismatched).toBe('none');
 });
 
-test('it has a schema for each of the 30 fact types', () => {
-  expect(Object.keys(workFactSchemas)).toHaveLength(30);
+test('it has a schema for each of the 32 fact types', () => {
+  expect(Object.keys(workFactSchemas)).toHaveLength(32);
 });
 
 test.each([
@@ -100,6 +100,8 @@ test.each([
       at: 1_762_300_000_000,
     },
   ],
+  ['boxxy.runner.paused', { runner: 'runner-1', reason: 'rules change in review' }],
+  ['boxxy.runner.resumed', { runner: 'runner-1' }],
   [
     'boxxy.attempt.claimed',
     {
@@ -330,6 +332,8 @@ test.each([
   ['boxxy.relation.added', ['target'], { type: 'blocks' }],
   ['boxxy.relation.removed', ['source'], { type: 'blocks' }],
   ['boxxy.lever.recorded', ['phase'], { kind: 'item.retry' }],
+  ['boxxy.runner.paused', ['reason'], { reason: '' }],
+  ['boxxy.runner.resumed', ['runner'], { runner: 'Runner 1' }],
   ['boxxy.attempt.claimed', ['seats', 0, 'limit'], { seats: [{ limit: '' }] }],
   ['boxxy.decision.recorded', ['kind'], { kind: 'stop' }],
   ['boxxy.attempt.started', ['caller'], { resumeFallback: false }],

@@ -9,6 +9,7 @@ import {
   startClaim,
   stopStraySession,
   timeouts,
+  writePausedNotice,
 } from '@boxxy/dispatch';
 import type { JobFault, NoticeReport, SpawnSettings } from '@boxxy/dispatch';
 import type {
@@ -321,6 +322,8 @@ async function runForget(deps: TickDeps): Promise<number> {
 }
 
 async function runNotices(deps: TickDeps): Promise<NoticeReport | null> {
+  await runPausedNotice(deps);
+
   try {
     const report = await sendNotices(deps);
 
@@ -333,5 +336,20 @@ async function runNotices(deps: TickDeps): Promise<NoticeReport | null> {
     deps.log.warn('the send of the hold notices failed', { error: formatErrorChain(error) });
 
     return null;
+  }
+}
+
+// Queues the owner's notice for a runner paused for long with work ready; the send that follows
+// takes it like a hold notice.
+async function runPausedNotice(deps: TickDeps): Promise<void> {
+  try {
+    await writePausedNotice({
+      store: deps.store,
+      runner: deps.runner,
+      rules: deps.rules,
+      now: deps.now,
+    });
+  } catch (error) {
+    deps.log.warn('the paused-runner notice was not queued', { error: formatErrorChain(error) });
   }
 }

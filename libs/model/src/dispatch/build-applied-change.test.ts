@@ -52,8 +52,10 @@ test('it numbers each notice insert after the last id', () => {
 
   const notice = {
     id: 0,
+    kind: 'hold',
     item: item.id,
     reason: 'attempts used up',
+    pause: null,
     at: brandSchemas.instant.parse(5000),
     tries: 0,
     sentAt: null,

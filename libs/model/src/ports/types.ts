@@ -7,6 +7,7 @@ import type { Limit, LimitFill, SeatRelease, SeatTake, Snapshot } from '../plann
 import type { CostToLand, StageTime } from '../reports/types.ts';
 import type { ItemRules } from '../rules/types.ts';
 import type {
+  ActorRef,
   AgentSessionId,
   AtcSessionId,
   AttemptId,
@@ -372,6 +373,22 @@ export type WakeSource = 'command' | 'session-ran' | 'host-slept-unasked';
 // Called after the store change that puts an item on hold, never inside it.
 export interface Notifier {
   tellHold: (notice: HoldNotice) => Promise<NoticeOutcome>;
+  tellPaused: (notice: PausedNotice) => Promise<NoticeOutcome>;
+}
+
+// The runner has been paused long enough, with work ready, that the owner should know.
+export interface PausedNotice {
+  // when the notice was queued, which is how long after `pausedAt` the owner hears of it
+  readonly at: Instant;
+  readonly pausedAt: Instant;
+  readonly pausedBy: ActorRef;
+  readonly reason: string | null;
+
+  // the items ready to claim when the notice was queued
+  readonly waiting: number;
+
+  // the row's current key; the adapter sends it unchanged
+  readonly key: string;
 }
 
 export interface HoldNotice {

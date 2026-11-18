@@ -11,7 +11,14 @@ async function setupTest() {
   const cli = await createTestCLI();
 
   const outbox = z.object({ sink: z.string() });
-  const statusSchema = z.object({ paused: z.boolean(), outbox });
+
+  const pause = z.object({
+    since: z.string().nullable(),
+    by: z.string().nullable(),
+    reason: z.string().nullable(),
+  });
+
+  const statusSchema = z.object({ paused: z.boolean(), pause: pause.nullable(), outbox });
   const dryRunSchema = z.object({ kind: z.string(), moved: z.number() });
   const rejectedSchema = z.object({ kind: z.string() });
 
@@ -31,7 +38,7 @@ test('#status prints the runner state', async () => {
     status: readJSONOutput(result, ctx.statusSchema),
   }).toStrictEqual({
     exitCode: 0,
-    status: { paused: false, outbox: { sink: 'none' } },
+    status: { paused: false, pause: null, outbox: { sink: 'none' } },
   });
 });
 
@@ -46,6 +53,31 @@ test('#runner pause pauses the runner and #runner resume resumes it', async () =
     readJSONOutput(whilePaused, ctx.statusSchema).paused,
     readJSONOutput(resumed, z.json()),
   ]).toStrictEqual([{ paused: true }, true, { paused: false }]);
+});
+
+test('#runner pause --reason shows the reason, the actor and the time in #status', async () => {
+  const ctx = await setupTest();
+
+  await ctx.run(['runner', 'pause', '--reason', 'the deploy is half done']);
+
+  const status = await ctx.run(['status']);
+
+  expect(readJSONOutput(status, ctx.statusSchema).pause).toStrictEqual({
+    since: new Date(ctx.server.dispatch.clock.now()).toISOString(),
+    by: 'boxxy:owner:local',
+    reason: 'the deploy is half done',
+  });
+});
+
+test('#runner resume clears the pause that #status shows', async () => {
+  const ctx = await setupTest();
+
+  await ctx.run(['runner', 'pause']);
+  await ctx.run(['runner', 'resume']);
+
+  const status = await ctx.run(['status']);
+
+  expect(readJSONOutput(status, ctx.statusSchema).pause).toBeNull();
 });
 
 test('#outbox retry reports how many rows it unparked', async () => {

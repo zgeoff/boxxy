@@ -352,7 +352,93 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
 
       const read: unknown = await store.read((transaction) => transaction.readRunner(runner));
 
-      return { received: read, expected: { id: 'runner-1', heartbeatAt: 1000, paused: false } };
+      return {
+        received: read,
+        expected: {
+          id: 'runner-1',
+          heartbeatAt: 1000,
+          paused: false,
+          pausedAt: null,
+          pausedBy: null,
+          pauseReason: null,
+          pauseNoticedAt: null,
+        },
+      };
+    },
+  ],
+  [
+    '#applyChange stores who paused the runner, when and why, and clears it on resume',
+    async (store) => {
+      const runner = brandSchemas.runnerId.parse('runner-1');
+      const at = brandSchemas.instant.parse(1500);
+
+      const state = {
+        paused: true,
+        pausedAt: at,
+        pausedBy: 'boxxy:owner:local',
+        pauseReason: 'the rules change is in review',
+        pauseNoticedAt: brandSchemas.instant.parse(1600),
+      } as const;
+
+      await store.exclusive(async (transaction) => {
+        await transaction.writeHeartbeat(runner, brandSchemas.instant.parse(1000));
+
+        await transaction.applyChange({
+          at,
+          writes: [
+            {
+              op: 'update',
+              table: 'runners',
+              key: { id: runner },
+              expect: { paused: false },
+              set: state,
+            },
+          ],
+          facts: [],
+        });
+      });
+
+      const paused: unknown = await store.read((transaction) => transaction.readRunner(runner));
+
+      await store.exclusive((transaction) =>
+        transaction.applyChange({
+          at,
+          writes: [
+            {
+              op: 'update',
+              table: 'runners',
+              key: { id: runner },
+              expect: { paused: true },
+              set: {
+                paused: false,
+                pausedAt: null,
+                pausedBy: null,
+                pauseReason: null,
+                pauseNoticedAt: null,
+              },
+            },
+          ],
+          facts: [],
+        }),
+      );
+
+      const resumed: unknown = await store.read((transaction) => transaction.readRunner(runner));
+
+      return {
+        received: [paused, resumed],
+        expected: [
+          { id: 'runner-1', heartbeatAt: 1000, ...state },
+          {
+            id: 'runner-1',
+            heartbeatAt: 1000,
+            paused: false,
+            pausedAt: null,
+            pausedBy: null,
+            pauseReason: null,
+            pauseNoticedAt: null,
+          },
+        ],
+      };
     },
   ],
   [
@@ -368,7 +454,18 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
 
       const read: unknown = await store.read((transaction) => transaction.readRunner(runner));
 
-      return { received: read, expected: { id: 'runner-1', heartbeatAt: 2000, paused: true } };
+      return {
+        received: read,
+        expected: {
+          id: 'runner-1',
+          heartbeatAt: 2000,
+          paused: true,
+          pausedAt: null,
+          pausedBy: null,
+          pauseReason: null,
+          pauseNoticedAt: null,
+        },
+      };
     },
   ],
   [

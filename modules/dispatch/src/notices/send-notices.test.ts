@@ -11,7 +11,7 @@ async function setupTest() {
 
   const notifier = createFakeNotifier();
 
-  const insertNotice = (overrides: Partial<NoticeRow> = {}) =>
+  const insertNotice = (overrides: Partial<Extract<NoticeRow, { kind: 'hold' }>> = {}) =>
     dispatch.store.exclusive((tx) =>
       tx.applyChange({
         at: dispatch.clock.now(),
@@ -21,8 +21,10 @@ async function setupTest() {
             table: 'notices',
             row: {
               id: 1,
+              kind: 'hold',
               item: brandSchemas.itemId.parse('0190a6f4-0000-7000-8000-0000000000a1'),
               reason: brandSchemas.rulesHoldReason.parse('blocked'),
+              pause: null,
               at: dispatch.clock.now(),
               tries: 0,
               sentAt: null,
@@ -248,7 +250,11 @@ test('it counts a notifier that throws as an uncertain try', async () => {
 
   await ctx.insertNotice();
 
-  const report = await ctx.send({ tellHold: () => Promise.reject(new Error('socket closed')) });
+  const report = await ctx.send({
+    tellHold: () => Promise.reject(new Error('socket closed')),
+    tellPaused: () => Promise.reject(new Error('socket closed')),
+  });
+
   const [row] = await ctx.listUnsent();
 
   expect([report, row?.tries, row?.keyTries]).toStrictEqual([

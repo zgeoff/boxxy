@@ -13,6 +13,7 @@ import { jobAttemptsMigration } from './job-attempts-migration.ts';
 import { noticeKeysMigration } from './notice-keys-migration.ts';
 import { renameRelationsMigration } from './rename-relations-migration.ts';
 import { runStoreMigrations } from './run-store-migrations.ts';
+import { runnerPauseMigration } from './runner-pause-migration.ts';
 import { v1TablesMigration } from './v1-tables-migration.ts';
 
 async function setupTest() {
@@ -42,6 +43,7 @@ async function setupTest() {
     migrateNoticeKeys: () => noticeKeysMigration.up(db),
     migrateItemBody: () => itemBodyMigration.up(db),
     migrateJobAttempts: () => jobAttemptsMigration.up(db),
+    migrateRunnerPause: () => runnerPauseMigration.up(db),
     writeRaw: (statement: string, ...values: number[]) => {
       sqlite.query(statement).run(...values);
     },
@@ -282,5 +284,75 @@ test('it gives an attempt of a version 5 file the atc worker and no job columns'
       read_at: null,
       wait_reason: null,
     },
+  ]);
+});
+
+test('it keeps each old notice as a hold notice and the runner row as it was, with no pause recorded', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createTables();
+  await ctx.renameRelations();
+  await ctx.migrateV1Tables();
+  await ctx.migrateNoticeKeys();
+
+  ctx.writeRaw(
+    "INSERT INTO notices (item, reason, at, tries, sent_at, key_seq, key_tries, next_try_at) VALUES ('item-a', 'blocked', ?, 7, NULL, 2, 1, 3000)",
+    1000,
+  );
+
+  ctx.writeRaw("INSERT INTO runners (id, heartbeat_at, paused) VALUES ('runner-1', ?, 1)", 1500);
+
+  await ctx.migrateRunnerPause();
+
+  const index = ctx.readSchema().find((entry) => entry.name === 'notices_unsent')?.sql;
+
+  expect([
+    ctx.readRaw(
+      'SELECT id, kind, item, reason, pause, tries, key_seq, key_tries, next_try_at FROM notices',
+    ),
+    ctx.readRaw(
+      'SELECT id, paused, paused_at, paused_by, pause_reason, pause_noticed_at FROM runners',
+    ),
+    index,
+  ]).toStrictEqual([
+    [
+      {
+        id: 1,
+        kind: 'hold',
+        item: 'item-a',
+        reason: 'blocked',
+        pause: null,
+        tries: 7,
+        key_seq: 2,
+        key_tries: 1,
+        next_try_at: 3000,
+      },
+    ],
+    [
+      {
+        id: 'runner-1',
+        paused: 1,
+        paused_at: null,
+        paused_by: null,
+        pause_reason: null,
+        pause_noticed_at: null,
+      },
+    ],
+    'CREATE INDEX notices_unsent ON notices (next_try_at) WHERE sent_at IS NULL',
+  ]);
+});
+
+test('it lets a paused-runner notice hold no item', async () => {
+  const ctx = await setupTest();
+
+  await ctx.migrate();
+
+  ctx.writeRaw(
+    "INSERT INTO notices (kind, pause, at, tries) VALUES ('runner-paused', '{}', ?, 0)",
+    1000,
+  );
+
+  expect(ctx.readRaw('SELECT kind, item, reason FROM notices')).toStrictEqual([
+    { kind: 'runner-paused', item: null, reason: null },
   ]);
 });

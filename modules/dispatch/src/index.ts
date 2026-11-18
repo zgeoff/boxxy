@@ -28,7 +28,8 @@ export type { CallRef, CloseOutInput, EffectPlan, SettleAttemptInput } from './c
 export { noticeLimits } from './notices/constants.ts';
 export { createNullNotifier } from './notices/create-null-notifier.ts';
 export { sendNotices } from './notices/send-notices.ts';
-export type { NoticeReport, SendNoticesInput } from './notices/types.ts';
+export { writePausedNotice } from './notices/write-paused-notice.ts';
+export type { NoticeReport, QueuePausedNoticeInput, SendNoticesInput } from './notices/types.ts';
 export { packageName } from './package-name.ts';
 export { buildInitialSenderState } from './outbox/build-initial-sender-state.ts';
 export { buildOutboxStatus } from './outbox/build-outbox-status.ts';
