@@ -58,6 +58,7 @@ export function buildMockV1AttemptRow(overrides: Partial<AttemptRow> = {}): Atte
     actedAnswer: null,
     readAt: null,
     waitReason: null,
+    skipReason: null,
     ...overrides,
   };
 }

@@ -20,6 +20,7 @@ export const wireFactSchemas = {
   'boxxy.attempt.claimed': workFactSchemas['boxxy.attempt.claimed'].extend(storeVersion),
   'boxxy.decision.recorded': workFactSchemas['boxxy.decision.recorded'].extend(storeVersion),
   'boxxy.attempt.started': workFactSchemas['boxxy.attempt.started'].extend(storeVersion),
+  'boxxy.attempt.skipped': workFactSchemas['boxxy.attempt.skipped'].extend(storeVersion),
   'boxxy.attempt.spawn_unanswered':
     workFactSchemas['boxxy.attempt.spawn_unanswered'].extend(storeVersion),
   'boxxy.attempt.reconciled': workFactSchemas['boxxy.attempt.reconciled'].extend(storeVersion),

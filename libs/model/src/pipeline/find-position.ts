@@ -16,6 +16,8 @@ interface FindPositionInput {
   readonly retries: readonly RetryLever[];
 }
 
+const skippedOutcome = 'skipped';
+
 export function findPosition(input: FindPositionInput): Position {
   const pipeline = input.pipeline;
   const first = pipeline?.steps[0];
@@ -59,7 +61,10 @@ export function findPosition(input: FindPositionInput): Position {
     position = advance({ pipeline, settled, counted, round });
     round = position.kind === 'end' ? round : position.round;
 
-    counted.push(settled);
+    // a skip counts toward no `maxAttempts` and no edge `max`
+    if (settled.outcome !== skippedOutcome) {
+      counted.push(settled);
+    }
   }
 
   return position;

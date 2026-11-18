@@ -7,6 +7,7 @@ import type {
   CapacityBackoff,
   Claim,
   ClaimStore,
+  Forge,
   GitSource,
   Instant,
   ItemId,
@@ -42,6 +43,10 @@ export interface ClaimInput {
   // the runner's memory of the pools in backoff
   readonly backoff: CapacityBackoff;
   readonly spawn: SpawnSettings;
+
+  // reads the checks that a `checkPassed` condition names; null on a server with no `github`
+  // section, where no such condition passes
+  readonly forge?: Forge | null;
 
   // the items that the runner's tick claimed already; the claim gives no second pick of one
   readonly claimed?: ReadonlySet<ItemId>;

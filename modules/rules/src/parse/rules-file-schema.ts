@@ -24,12 +24,30 @@ const edgeSchema = z.union([
   z.strictObject({ hold: brandSchemas.rulesHoldReason }),
 ]);
 
+// never `again` or `{ to }`: a skipped step must not run, and the edge must leave it
+const skipEdgeSchema = z.union([
+  z.literal('next'),
+  z.strictObject({ end: nameSchema }),
+  z.strictObject({ hold: brandSchemas.rulesHoldReason }),
+]);
+
+// A condition is a map with one key, the condition name. The loader refuses a name it does not
+// read, by its own reason.
+const skipConditionSchema = z
+  .record(nameSchema, z.json())
+  .refine((condition) => Object.keys(condition).length === 1, {
+    message: 'a skip condition is a map with one key, the condition name',
+  });
+
 // `timeoutMinutes` is optional here so that the loader refuses a step without it by its own reason
 const stepSchema = z.strictObject({
   phase: brandSchemas.phaseName,
   maxAttempts: z.int().positive(),
   timeoutMinutes: z.int().positive().optional(),
   on: z.record(nameSchema, edgeSchema),
+  criteria: z.strictObject({ tagged: nameSchema }).exactOptional(),
+  skipWhen: z.array(skipConditionSchema).exactOptional(),
+  skip: skipEdgeSchema.exactOptional(),
 });
 
 const kindSchema = z.strictObject({
@@ -98,6 +116,7 @@ export const rulesFileSchema = z
   .strictObject({
     version: z.literal(1),
     concepts: z.array(conceptEntrySchema),
+    criterionTags: z.array(nameSchema).default([]),
     pipelines: z.record(brandSchemas.pipelineName, z.array(stepSchema).min(1)),
     kinds: z.record(brandSchemas.itemKindName, kindSchema),
     skills: skillsPinSchema.optional(),
@@ -134,6 +153,12 @@ export const rulesFileSchema = z
         ['limits'],
         ['name'],
         (name) => `the limit name ${name} is used twice`,
+      ),
+      ...collectRepeats(
+        file.criterionTags,
+        ['criterionTags'],
+        [],
+        (name) => `the criterion tag ${name} is listed twice`,
       ),
       ...collectRepeats(
         file.relationTypes,

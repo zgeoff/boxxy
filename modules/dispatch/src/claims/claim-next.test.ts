@@ -3,10 +3,10 @@ import type { ItemId } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
 import invariant from 'tiny-invariant';
+import { claimNextPick } from '../test-utils/claim-next-pick.ts';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
 import { loadReworkPromptRules } from '../test-utils/load-rework-prompt-rules.ts';
 import { loadVerifyRules } from '../test-utils/load-verify-rules.ts';
-import { claimNext } from './claim-next.ts';
 import { requestWake } from './request-wake.ts';
 import type { SpawnSettings } from './types.ts';
 
@@ -16,7 +16,7 @@ async function setupTest() {
   return {
     ...dispatch,
     claimNext: () =>
-      claimNext({
+      claimNextPick({
         store: dispatch.store,
         runner: dispatch.runner,
         rules: dispatch.rules(),
@@ -26,7 +26,7 @@ async function setupTest() {
         spawn: dispatch.spawn,
       }),
     claimNextWithRepos: (repos: SpawnSettings['repos']) =>
-      claimNext({
+      claimNextPick({
         store: dispatch.store,
         runner: dispatch.runner,
         rules: dispatch.rules(),
@@ -36,7 +36,7 @@ async function setupTest() {
         spawn: { ...dispatch.spawn, repos },
       }),
     claimNextWithPrompts: (prompts: SpawnSettings['prompts']) =>
-      claimNext({
+      claimNextPick({
         store: dispatch.store,
         runner: dispatch.runner,
         rules: dispatch.rules(),
@@ -46,7 +46,7 @@ async function setupTest() {
         spawn: { ...dispatch.spawn, prompts },
       }),
     claimNextAfter: (claimed: readonly ItemId[]) =>
-      claimNext({
+      claimNextPick({
         store: dispatch.store,
         runner: dispatch.runner,
         rules: dispatch.rules(),

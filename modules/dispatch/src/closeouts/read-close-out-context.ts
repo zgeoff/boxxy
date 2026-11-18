@@ -31,5 +31,6 @@ function buildWorld(rules: LoadedRules, items: readonly CloseOutContext['item'][
     items: new Set(items),
     kinds: new Set(rules.kinds.keys()),
     relationTypes: new Set(rules.relationTypes.keys()),
+    criterionTags: new Set(rules.criterionTags),
   };
 }

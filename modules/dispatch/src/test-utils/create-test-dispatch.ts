@@ -6,12 +6,12 @@ import type {
   AttemptRow,
   CallerIdentity,
   CapacityBackoff,
-  Claim,
   FactType,
   ItemId,
   LoadedRules,
   NewId,
   OutboxFact,
+  PickedClaim,
   PipelineStep,
   RepoName,
   RunnerId,
@@ -24,7 +24,6 @@ import { buildExampleLoadInput } from '@boxxy/rules/test-utils/build-example-loa
 import invariant from 'tiny-invariant';
 import { endItemAttempts } from '../attempts/end-item-attempts.ts';
 import { writeAttemptMove } from '../attempts/write-attempt-move.ts';
-import { claimNext } from '../claims/claim-next.ts';
 import { resumeClaim } from '../claims/resume-claim.ts';
 import { startClaim } from '../claims/start-claim.ts';
 import type { SpawnSettings } from '../claims/types.ts';
@@ -37,6 +36,7 @@ import { pickReadingAction } from '../readings/pick-reading-action.ts';
 import { buildMockNewId } from './build-mock-new-id.ts';
 import type { SeedItemInput } from './build-seed-item-change.ts';
 import { buildSeedItemChange } from './build-seed-item-change.ts';
+import { claimNextPick } from './claim-next-pick.ts';
 import { createFakeBackoff } from './create-fake-backoff.ts';
 import type { FakeClock } from './create-fake-clock.ts';
 import { createFakeClock } from './create-fake-clock.ts';
@@ -87,7 +87,7 @@ export interface TestDispatch {
   readonly tick: () => Promise<void>;
 
   // one claim, started or resumed; null when `decide` gives no pick
-  readonly claim: () => Promise<Claim | null>;
+  readonly claim: () => Promise<PickedClaim | null>;
   readonly seedItem: (input: SeedItemInput) => Promise<ItemId>;
 
   // a build that closed out as `built` and settled, so it succeeded; its session is kept
@@ -165,11 +165,11 @@ export async function createTestDispatch(options: TestDispatchOptions = {}): Pro
 
   await store.exclusive((tx) => tx.syncLimits(rules.limits, clock.now()));
 
-  const claim = async (): Promise<Claim | null> => {
+  const claim = async (): Promise<PickedClaim | null> => {
     const now = clock.now();
     const deps = { store, worker, rules, backoff, now, newId };
 
-    const picked = await claimNext({ ...deps, runner, spawn });
+    const picked = await claimNextPick({ ...deps, runner, spawn });
 
     if (picked?.kind === 'start') {
       await startClaim({ ...deps, claim: picked });
@@ -521,7 +521,7 @@ async function claimResumed(
 
   const now = dispatch.clock.now();
 
-  const claim = await claimNext({
+  const claim = await claimNextPick({
     store: dispatch.store,
     runner: dispatch.runner,
     rules: dispatch.rules(),

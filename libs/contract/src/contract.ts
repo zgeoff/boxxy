@@ -21,6 +21,7 @@ import { z } from 'zod';
 import { authContract } from './auth-contract.ts';
 import { capacityRefusalsSchema } from './capacity-refusals-schema.ts';
 import { itemReadContract } from './item-read-contract.ts';
+import { criterionDraftInput, criterionInput } from './items/criterion-input.ts';
 import { noticesContract } from './notices-contract.ts';
 import { outboxStatusSchema } from './outbox-status-schema.ts';
 
@@ -67,13 +68,6 @@ const pepysErrors = {
   PEPYS_UNAVAILABLE: { message: 'pepys did not answer', data: pepysUnavailableData },
 };
 
-// An entry that names the `id` of a criterion keeps that criterion's evidence; an entry with no
-// `id` is a new criterion.
-const criterionInput = z.object({
-  id: id.optional().describe('The ID of an existing criterion to keep.'),
-  text: text1000,
-});
-
 const itemDetail = z.object({
   item: itemViewSchema,
   notes: z.array(noteRowSchema),
@@ -112,7 +106,7 @@ const itemFileInput = z.object({
   outcome: z.string().min(1).max(4000).describe('What is true when the item is done.'),
   body: itemBody.default(''),
   acceptance: z
-    .array(text1000)
+    .array(criterionDraftInput)
     .max(30)
     .default([])
     .describe('One check per entry. Triage writes the list when it is empty.'),

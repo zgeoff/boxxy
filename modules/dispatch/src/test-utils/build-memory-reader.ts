@@ -186,7 +186,8 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
       return Promise.resolve(
         sortAttempts(
           tables.attempts.filter(
-            (attempt) => attempt.state === 'succeeded' && !linked.has(attempt.id),
+            (attempt) =>
+              attempt.state === 'succeeded' && attempt.worker !== 'skip' && !linked.has(attempt.id),
           ),
         ),
       );
@@ -347,10 +348,10 @@ function sortItems(items: readonly ItemRow[]): ItemRow[] {
   );
 }
 
+// two attempts claimed in one millisecond stay in the order they were written, as the SQLite
+// store's row order keeps them
 function sortAttempts(attempts: readonly AttemptRow[]): AttemptRow[] {
-  return attempts.toSorted(
-    (first, second) => first.claimedAt - second.claimedAt || compareText(first.id, second.id),
-  );
+  return attempts.toSorted((first, second) => first.claimedAt - second.claimedAt);
 }
 
 function isOpen(item: ItemView): boolean {
@@ -374,7 +375,7 @@ function sortRelations(relations: readonly RelationRow[]): RelationRow[] {
 
 function collectWakes(attempts: readonly AttemptRow[]): Wake[] {
   const wakes = sortAttempts(attempts).flatMap((attempt) =>
-    attempt.state === 'sleeping' && attempt.wakeRequestedAt !== null
+    attempt.state === 'sleeping' && attempt.wakeRequestedAt !== null && attempt.pool !== null
       ? [
           {
             attempt: attempt.id,

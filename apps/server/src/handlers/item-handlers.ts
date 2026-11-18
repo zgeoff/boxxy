@@ -1,7 +1,6 @@
 import { endItemAttempts, measureNewFactBytes, outboxLimits, requestWake } from '@boxxy/dispatch';
 import type {
   AnyNewFact,
-  Criterion,
   DesignMode,
   ItemFields,
   ItemId,
@@ -19,6 +18,7 @@ import { brandSchemas, heldLeverKind, releaseLeverKind } from '@boxxy/model';
 import { ORPCError } from '@orpc/server';
 import type { ServerDeps } from '../types.ts';
 import { api } from './api.ts';
+import { buildAcceptance, buildCriterion, refuseUnknownTags } from './build-acceptance.ts';
 import { buildOwnerFact } from './build-owner-fact.ts';
 import { collectItemPage } from './collect-item-page.ts';
 import { readItemIds } from './read-item-ids.ts';
@@ -48,6 +48,15 @@ export const itemHandlers = {
       throw repoNotConfigured({ data: { repo: repo.data } });
     }
 
+    const drafts = input.acceptance.map((entry) =>
+      typeof entry === 'string' ? { text: entry } : entry,
+    );
+
+    refuseUnknownTags(
+      deps,
+      drafts.flatMap((draft) => draft.tags ?? []),
+    );
+
     return deps.store.exclusive(async (tx) => {
       const now = deps.clock.now();
 
@@ -64,7 +73,7 @@ export const itemHandlers = {
         title: input.title,
         outcome: input.outcome,
         body: input.body,
-        acceptance: input.acceptance.map((text, index) => buildCriterion(index + 1, text)),
+        acceptance: drafts.map((draft, index) => buildCriterion(index + 1, draft)),
         fields: buildEditedFields({}, input) ?? {},
         labels: input.labels,
         foundInAttempt: null,
@@ -114,6 +123,8 @@ export const itemHandlers = {
   edit: api.item.edit.handler((options) => {
     const input = options.input;
     const deps = options.context.deps;
+
+    refuseUnknownTags(deps, input.acceptance?.flatMap((entry) => entry.tags ?? []) ?? []);
 
     return deps.store.exclusive(async (tx) => {
       const item = await readItemOrThrow(tx, deps, input.item, options.errors.NOT_FOUND);
@@ -406,10 +417,6 @@ function parseKnownKind(deps: ServerDeps, raw: string): ItemKindName | null {
   return kind.success && deps.rulesState().rules.kinds.has(kind.data) ? kind.data : null;
 }
 
-function buildCriterion(index: number, text: string): Criterion {
-  return { id: brandSchemas.criterionId.parse(`a${index}`), text, evidence: [] };
-}
-
 interface FieldsInput {
   readonly designMode?: DesignMode | undefined;
   readonly security?: boolean | undefined;
@@ -511,37 +518,6 @@ async function readItemOrThrow(
   }
 
   return item;
-}
-
-// An entry with the ID of a criterion keeps that criterion's evidence; an entry with no ID is a
-// new criterion. null: an entry names a criterion the item does not have.
-function buildAcceptance(
-  item: ItemView,
-  entries: readonly { readonly id?: string | undefined; readonly text: string }[],
-): Criterion[] | null {
-  const known = new Map(item.acceptance.map((criterion) => [String(criterion.id), criterion]));
-
-  let next = Math.max(0, ...item.acceptance.map((criterion) => Number(criterion.id.slice(1))));
-  const built: Criterion[] = [];
-
-  for (const entry of entries) {
-    if (entry.id === undefined) {
-      next += 1;
-
-      built.push(buildCriterion(next, entry.text));
-      continue;
-    }
-
-    const kept = known.get(entry.id);
-
-    if (kept === undefined) {
-      return null;
-    }
-
-    built.push({ ...kept, text: entry.text });
-  }
-
-  return built;
 }
 
 // A close as a duplicate adds the duplicate-of relation unless it is live already: the store holds

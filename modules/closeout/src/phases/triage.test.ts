@@ -29,6 +29,7 @@ test('it accepts an accepted close-out that sets the kind, the design mode and t
       items: new Set([item.id, other]),
       kinds: new Set([brandSchemas.itemKindName.parse('core.issue')]),
       relationTypes: new Set([brandSchemas.relationTypeName.parse('relates-to')]),
+      criterionTags: new Set(),
     },
     input: null,
   });
@@ -55,6 +56,7 @@ test('it returns both problems of a close-out with an unknown kind and an unknow
       items: new Set([item.id, other]),
       kinds: new Set([brandSchemas.itemKindName.parse('core.issue')]),
       relationTypes: new Set([brandSchemas.relationTypeName.parse('relates-to')]),
+      criterionTags: new Set(),
     },
     input: null,
   });
@@ -76,7 +78,12 @@ test('it refuses to accept an item that has no acceptance list and gets none', (
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: null,
   });
 
@@ -97,7 +104,12 @@ test('it refuses to accept an item with an empty acceptance list in place of its
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: null,
   });
 
@@ -122,6 +134,7 @@ test('it refuses a duplicate of an item the store does not have, and of the item
       items: new Set([item.id]),
       kinds: new Set(),
       relationTypes: new Set([brandSchemas.relationTypeName.parse('relates-to')]),
+      criterionTags: new Set(),
     },
     input: null,
   });
@@ -156,6 +169,7 @@ test('it rejects a relation from an unknown item, and one from the item itself',
       items: new Set([item.id]),
       kinds: new Set(),
       relationTypes: new Set([brandSchemas.relationTypeName.parse('blocks')]),
+      criterionTags: new Set(),
     },
     input: null,
   });
@@ -191,6 +205,7 @@ test('it accepts a relation from another item and one to it, and refuses only a 
       items: new Set([item.id, other]),
       kinds: new Set(),
       relationTypes: new Set([brandSchemas.relationTypeName.parse('blocks')]),
+      criterionTags: new Set(),
     },
     input: null,
   });
@@ -220,6 +235,7 @@ test('it rejects a split whose part is of a kind the rules lack', () => {
       items: new Set([item.id]),
       kinds: new Set([brandSchemas.itemKindName.parse('core.issue')]),
       relationTypes: new Set(),
+      criterionTags: new Set(),
     },
     input: null,
   });
@@ -254,6 +270,7 @@ test('it refuses each repeat of a relation, the duplicate-of relation of a dupli
       relationTypes: new Set(
         ['relates-to', 'duplicate-of'].map((type) => brandSchemas.relationTypeName.parse(type)),
       ),
+      criterionTags: new Set(),
     },
     input: null,
   });
@@ -470,4 +487,69 @@ test.each<[string, (TriageCloseOut['result'] | null)[], string | null]>([
   });
 
   expect(input).toStrictEqual({ acceptance: [], stopped });
+});
+
+test('it refuses an acceptance line with a tag the rules file does not list, once for each tag', () => {
+  const item = buildMockV1ItemView({ acceptance: [] });
+
+  const raw = {
+    result: { kind: 'accepted' },
+    set: {
+      acceptance: [
+        { text: 'The page loads', tags: ['prod', 'smoke'] },
+        { text: 'The page caches', tags: ['smoke'] },
+      ],
+    },
+    relations: [],
+    friction: [],
+  };
+
+  const parsed: unknown = triage.closeOut.parse(raw, {
+    item,
+    attempt: buildMockV1AttemptRow().id,
+    evidence: [],
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(['prod']),
+    },
+    input: null,
+  });
+
+  expect(parsed).toStrictEqual({
+    kind: 'invalid',
+    problems: [{ kind: 'unknown-criterion-tag', tag: 'smoke' }],
+  });
+});
+
+test('it settles an accepted close-out with the tags of each acceptance line', () => {
+  const settlement: unknown = triage.settle({
+    attempt: buildMockV1AttemptRow({ phase: brandSchemas.phaseName.parse('triage') }),
+    item: buildMockV1ItemView({ acceptance: [] }),
+    closeOut: {
+      result: { kind: 'accepted' },
+      set: { acceptance: [{ text: 'The page loads', tags: ['prod'] }, { text: 'It is logged' }] },
+      relations: [],
+      friction: [],
+      frictionDropped: 0,
+    },
+    now: brandSchemas.instant.parse(1000),
+  });
+
+  expect(settlement).toStrictEqual({
+    state: 'succeeded',
+    failure: null,
+    outcome: 'accepted',
+    effects: [
+      {
+        kind: 'set-acceptance',
+        criteria: [
+          { id: 'a1', text: 'The page loads', evidence: [], tags: ['prod'] },
+          { id: 'a2', text: 'It is logged', evidence: [] },
+        ],
+      },
+    ],
+    frictionDropped: 0,
+  });
 });

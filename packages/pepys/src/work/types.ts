@@ -82,7 +82,7 @@ interface PullRequestLinkedFact extends FactBase {
   payload: { attempt: string; pullRequestId: string };
 }
 
-// the 14 fact types the fold passes over
+// the fact types the fold passes over
 export interface PassedOverFact extends FactBase {
   type:
     | 'boxxy.item.noted'
@@ -90,6 +90,7 @@ export interface PassedOverFact extends FactBase {
     | 'boxxy.relation.removed'
     | 'boxxy.lever.recorded'
     | 'boxxy.decision.recorded'
+    | 'boxxy.attempt.skipped'
     | 'boxxy.attempt.spawn_unanswered'
     | 'boxxy.attempt.wake_requested'
     | 'boxxy.attempt.timed_out'

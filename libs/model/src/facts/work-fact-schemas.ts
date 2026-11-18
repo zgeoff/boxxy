@@ -2,6 +2,7 @@ import { contentHashSchema } from '@boxxy/content-hash';
 import { z } from 'zod';
 import { closeOutSchema } from '../closeouts/close-out-schema.ts';
 import { frictionSchema } from '../closeouts/friction-schema.ts';
+import { skipReasonSchema } from '../rows/attempt-row-schema.ts';
 import { brandSchemas } from '../rows/brand-schemas.ts';
 import { callerIdentitySchema } from '../rows/caller-identity-schema.ts';
 import { criterionSchema } from '../rows/criterion-schema.ts';
@@ -108,6 +109,13 @@ export const workFactSchemas = {
     atcSession: brandSchemas.atcSessionId,
     resumeFallback: z.boolean(),
     caller: callerIdentitySchema.nullable(),
+  }),
+  'boxxy.attempt.skipped': z.object({
+    attemptId: brandSchemas.attemptId,
+    itemId: brandSchemas.itemId,
+    phase: brandSchemas.phaseName,
+    round: roundSchema,
+    reason: skipReasonSchema,
   }),
   'boxxy.attempt.spawn_unanswered': z.object({ ...ofAttempt, reason: z.string().min(1) }),
   'boxxy.attempt.reconciled': z.object({

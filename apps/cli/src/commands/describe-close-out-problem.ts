@@ -21,6 +21,10 @@ export function describeCloseOutProblem(problem: CloseOutProblem): string {
     .with({ kind: 'unknown-item' }, (found) => `unknown item ${found.item}`)
     .with({ kind: 'unknown-kind' }, (found) => `unknown item kind ${found.itemKind}`)
     .with(
+      { kind: 'unknown-criterion-tag' },
+      (found) => `unknown criterion tag ${found.tag}: the rules file does not list it`,
+    )
+    .with(
       { kind: 'refused-relation' },
       (found) => `relation ${found.type} to ${found.target} refused: ${found.reason}`,
     )

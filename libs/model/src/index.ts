@@ -17,6 +17,7 @@ export { closeOutSchema } from './closeouts/close-out-schema.ts';
 export { collectSeatSync, type SeatSync } from './dispatch/collect-seat-sync.ts';
 export { costToLandSchema } from './reports/cost-to-land-schema.ts';
 export { criterionSchema } from './rows/criterion-schema.ts';
+export { skipReasonSchema } from './rows/attempt-row-schema.ts';
 export { decisionRowSchema } from './rows/decision-row-schema.ts';
 export { defineAdmission } from './planning/define-admission.ts';
 export { defineGate } from './planning/define-gate.ts';
@@ -156,6 +157,7 @@ export type {
   SessionItemListView,
   SessionItemView,
   SessionMode,
+  SkipReason,
   SnapshotHash,
   SourceName,
   StreamName,
@@ -182,6 +184,7 @@ export type {
   CloseOutParser,
   CloseOutProblem,
   CloseOutWorld,
+  CriterionDraft,
   CriterionText,
   DesignCloseOut,
   DesignOpenItem,
@@ -221,7 +224,13 @@ export type {
   VerifyReading,
 } from './merge/types.ts';
 
-export type { Claim, KeptPick } from './dispatch/types.ts';
+export type {
+  Claim,
+  ClaimNextResult,
+  KeptPick,
+  PickedClaim,
+  SkippedClaim,
+} from './dispatch/types.ts';
 
 export type {
   AnyNewFact,
@@ -340,6 +349,7 @@ export type {
   Concept,
   ConceptEntry,
   ConceptName,
+  CriteriaGate,
   DriveContext,
   Edge,
   FilterField,
@@ -370,5 +380,7 @@ export type {
   Settlement,
   SignalRef,
   SkillsPin,
+  SkipCondition,
+  SkipEdge,
   SleepRules,
 } from './rules/types.ts';

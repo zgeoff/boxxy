@@ -156,6 +156,7 @@ function buildClaimedChange(base: BuildAttemptChangeBase, event: ClaimedEvent): 
     actedAnswer: null,
     readAt: null,
     waitReason: null,
+    skipReason: null,
   };
 
   const parts: MoveParts = {

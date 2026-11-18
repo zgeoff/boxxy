@@ -43,7 +43,7 @@ export interface TriageCloseOut {
     readonly designMode?: DesignMode;
 
     // required with `accepted` when the item has no acceptance list (`no-acceptance`)
-    readonly acceptance?: readonly { readonly text: string }[];
+    readonly acceptance?: readonly CriterionDraft[];
 
     // the whole new body, in place of the item's body
     readonly body?: string;
@@ -64,7 +64,7 @@ export interface DesignCloseOut {
         readonly conclusion?: string;
         readonly set?: {
           // the whole new list, in place of the item's list
-          readonly acceptance?: readonly { readonly text: string }[];
+          readonly acceptance?: readonly CriterionDraft[];
         };
 
         // the follow-up work the design found, filed as new items
@@ -242,6 +242,7 @@ export type CloseOutProblem =
   | { readonly kind: 'no-acceptance' }
   | { readonly kind: 'unknown-item'; readonly item: string }
   | { readonly kind: 'unknown-kind'; readonly itemKind: string }
+  | { readonly kind: 'unknown-criterion-tag'; readonly tag: string }
   | {
       readonly kind: 'refused-relation';
       readonly type: string;
@@ -284,11 +285,21 @@ export interface CloseOutWorld {
   readonly items: ReadonlySet<ItemId>;
   readonly kinds: ReadonlySet<ItemKindName>;
   readonly relationTypes: ReadonlySet<RelationTypeName>;
+
+  // the tags that the rules file lists for an acceptance line
+  readonly criterionTags: ReadonlySet<string>;
+}
+
+// One line of an acceptance list that a close-out sets
+export interface CriterionDraft {
+  readonly text: string;
+  readonly tags?: readonly string[];
 }
 
 export interface CriterionText {
   readonly id: CriterionId;
   readonly text: string;
+  readonly tags?: readonly string[];
 }
 
 // The input of a triage or a design attempt: the item's acceptance list, which may be empty, and

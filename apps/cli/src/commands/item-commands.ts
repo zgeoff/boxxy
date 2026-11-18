@@ -1,7 +1,7 @@
 import { makeAnswerRun } from '../cli/make-answer-run.ts';
 import { UsageError } from '../cli/usage-error.ts';
 import type { Command, CommandArgs } from '../types.ts';
-import { parseCriterionFlag } from './parse-criterion-flag.ts';
+import { parseCriterionFlag, parseCriterionTags } from './parse-criterion-flag.ts';
 import { readItemBody } from './read-item-body.ts';
 
 const designModes = ['agent', 'attended'] as const;
@@ -45,7 +45,7 @@ export const itemCommands: readonly Command[] = [
         title: call.args.requireString('title'),
         outcome: call.args.requireString('outcome'),
         body: await readItemBody(call),
-        acceptance: call.args.strings('acceptance'),
+        acceptance: call.args.strings('acceptance').map((entry) => parseCriterionTags(entry)),
         blockedBy: call.args.strings('blocked-by'),
         labels: call.args.strings('label'),
         kind: call.args.string('kind'),

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { contentHash } from '@boxxy/content-hash';
 import type { AttemptRow } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
@@ -118,7 +119,7 @@ test.each<
         friction: [],
         frictionDropped: 0,
       },
-      hash: buildMockV1AttemptRow({ spawnRequest: { prompt: 'close' } }).spawnRequestHash,
+      hash: contentHash({ prompt: 'close' }),
     },
     {
       phase: 'build',
@@ -129,7 +130,7 @@ test.each<
         friction: [],
         frictionDropped: 0,
       },
-      hash: buildMockV1AttemptRow({ spawnRequest: { prompt: 'close' } }).spawnRequestHash,
+      hash: contentHash({ prompt: 'close' }),
     },
   ],
   [

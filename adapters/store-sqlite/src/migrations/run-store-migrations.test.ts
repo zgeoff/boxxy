@@ -15,6 +15,7 @@ import { refusalMigration } from './refusal-migration.ts';
 import { renameRelationsMigration } from './rename-relations-migration.ts';
 import { runStoreMigrations } from './run-store-migrations.ts';
 import { runnerPauseMigration } from './runner-pause-migration.ts';
+import { skippedAttemptsMigration } from './skipped-attempts-migration.ts';
 import { v1TablesMigration } from './v1-tables-migration.ts';
 
 async function setupTest() {
@@ -46,6 +47,7 @@ async function setupTest() {
     migrateJobAttempts: () => jobAttemptsMigration.up(db),
     migrateRunnerPause: () => runnerPauseMigration.up(db),
     migrateRefusal: () => refusalMigration.up(db),
+    migrateSkippedAttempts: () => skippedAttemptsMigration.up(db),
     writeRaw: (statement: string, ...values: number[]) => {
       sqlite.query(statement).run(...values);
     },
@@ -379,4 +381,59 @@ test("it gives an attempt stored before atc's refusal was kept a null refusal", 
   expect(ctx.readRaw('SELECT failure, refusal FROM attempts')).toStrictEqual([
     { failure: 'no-capacity', refusal: null },
   ]);
+});
+
+test('it keeps each attempt of an older file and lets a new one hold no pool or spawn request', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createTables();
+  await ctx.renameRelations();
+  await ctx.migrateV1Tables();
+  await ctx.migrateNoticeKeys();
+  await ctx.migrateItemBody();
+  await ctx.migrateJobAttempts();
+  await ctx.migrateRefusal();
+
+  ctx.writeRaw(
+    "INSERT INTO attempts (id, item, phase, number, runner, recipe_hash, rules_version, pool, lease_gen, spawn_request, spawn_request_hash, state, failure, claimed_at, fields, mode, round, hold_gen) VALUES ('attempt-a', 'item-a', 'build', 1, 'runner-1', 'hash-a', 'rules-a', 'build', 1, '{}', 'hash-b', 'failed', 'no-capacity', ?, '{}', 'agent', 1, 1)",
+    1000,
+  );
+
+  await ctx.migrateSkippedAttempts();
+
+  ctx.writeRaw(
+    "INSERT INTO attempts (id, item, phase, number, runner, recipe_hash, rules_version, lease_gen, state, claimed_at, fields, mode, round, hold_gen, worker, skip_reason) VALUES ('attempt-b', 'item-a', 'verify', 1, 'runner-1', 'hash-a', 'rules-a', 0, 'succeeded', ?, '{}', 'agent', 1, 1, 'skip', 'check-passed:verify / gate')",
+    2000,
+  );
+
+  expect(
+    ctx.readRaw(
+      'SELECT id, pool, spawn_request, spawn_request_hash, worker, skip_reason FROM attempts ORDER BY id',
+    ),
+  ).toStrictEqual([
+    {
+      id: 'attempt-a',
+      pool: 'build',
+      spawn_request: '{}',
+      spawn_request_hash: 'hash-b',
+      worker: 'atc.session',
+      skip_reason: null,
+    },
+    {
+      id: 'attempt-b',
+      pool: null,
+      spawn_request: null,
+      spawn_request_hash: null,
+      worker: 'skip',
+      skip_reason: 'check-passed:verify / gate',
+    },
+  ]);
+});
+
+test('it keeps the index on the atc session of the attempts after the rebuild', async () => {
+  const ctx = await setupTest();
+
+  await ctx.migrate();
+
+  expect(ctx.readSchema().filter((entry) => entry.name === 'attempts_atc_session').length).toBe(1);
 });

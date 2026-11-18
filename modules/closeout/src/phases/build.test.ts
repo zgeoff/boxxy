@@ -32,6 +32,7 @@ test('it accepts a built close-out that cites the attempt evidence for every cri
       items: new Set([item.id]),
       kinds: new Set([brandSchemas.itemKindName.parse('core.issue')]),
       relationTypes: new Set(),
+      criterionTags: new Set(),
     },
     input: null,
   });
@@ -64,6 +65,7 @@ test('it rejects an open item of a kind the rules lack, once for each kind', () 
       items: new Set([item.id]),
       kinds: new Set([brandSchemas.itemKindName.parse('core.issue')]),
       relationTypes: new Set(),
+      criterionTags: new Set(),
     },
     input: null,
   });
@@ -92,7 +94,12 @@ test('it accepts a blocked close-out that cites no evidence', () => {
     item,
     attempt: row.attempt,
     evidence: [row],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: null,
   });
 
@@ -126,6 +133,7 @@ test('it rejects a relation to an item the store lacks and a relation named twic
       items: new Set([item.id]),
       kinds: new Set(),
       relationTypes: new Set([brandSchemas.relationTypeName.parse('blocks')]),
+      criterionTags: new Set(),
     },
     input: null,
   });
@@ -176,7 +184,12 @@ test('it rejects a close-out that fails the schema, with the path of the bad fie
     item,
     attempt: row.attempt,
     evidence: [row],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: null,
   });
 
@@ -204,7 +217,12 @@ test('it rejects a close-out that cites a criterion the item lacks', () => {
     item,
     attempt: row.attempt,
     evidence: [row],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: null,
   });
 
@@ -233,7 +251,12 @@ test('it rejects a close-out that cites evidence of another attempt', () => {
     item,
     attempt: row.attempt,
     evidence: [row],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: null,
   });
 
@@ -264,7 +287,12 @@ test('it rejects a built close-out with a criterion that has no evidence', () =>
     item,
     attempt: row.attempt,
     evidence: [row],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: null,
   });
 
@@ -299,7 +327,12 @@ test('it returns all three problems of a close-out that has three', () => {
     item,
     attempt: row.attempt,
     evidence: [row],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: null,
   });
 
@@ -328,7 +361,12 @@ test('it returns every schema problem of a close-out at once', () => {
     item,
     attempt: row.attempt,
     evidence: [row],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: null,
   });
 
@@ -360,7 +398,12 @@ test('it rejects a friction entry whose target kind is outside the list, at its 
     item,
     attempt: row.attempt,
     evidence: [row],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: null,
   });
 
@@ -389,7 +432,12 @@ test('it drops each friction entry with no target and counts it in frictionDropp
     item,
     attempt: row.attempt,
     evidence: [row],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: null,
   });
 
@@ -421,7 +469,12 @@ test('it sets frictionDropped itself and ignores a count the agent sends', () =>
     item,
     attempt: row.attempt,
     evidence: [row],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: null,
   });
 
@@ -439,7 +492,12 @@ test('it rejects a close-out that is not an object', () => {
     item,
     attempt: row.attempt,
     evidence: [row],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: null,
   });
 
@@ -458,7 +516,12 @@ test('it rejects a close-out whose friction is not a list', () => {
     item,
     attempt: row.attempt,
     evidence: [row],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: null,
   });
 
@@ -484,7 +547,12 @@ test('it rejects a close-out with a key that no build close-out has', () => {
     item,
     attempt: row.attempt,
     evidence: [row],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: null,
   });
 

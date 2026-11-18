@@ -103,7 +103,7 @@ test('it reads incomplete with no features when the body holds a version 1 repor
   });
 });
 
-test('it reads incomplete with no features when the gate passed and the body holds no report', async () => {
+test('it reads verified with no features when the gate passed and the body holds no report', async () => {
   const ctx = setupTest();
 
   ctx.forge.seed({
@@ -114,6 +114,23 @@ test('it reads incomplete with no features when the gate passed and the body hol
   });
 
   ctx.forge.seedChecks({ repo: ctx.repo, head: ctx.head, checks: { 'verify / gate': 'success' } });
+
+  const reading = await ctx.verifier.readAt(ctx.ref, ctx.head);
+
+  expect(reading).toStrictEqual({ status: 'verified', head: ctx.head, features: [] });
+});
+
+test('it reads incomplete with no features when the gate failed and the body holds no report', async () => {
+  const ctx = setupTest();
+
+  ctx.forge.seed({
+    ref: ctx.ref,
+    githubId: 7_000_087,
+    reading: { state: 'open', mergedAt: null, mergeCommit: null, commits: [] },
+    body: 'Fix the item list.',
+  });
+
+  ctx.forge.seedChecks({ repo: ctx.repo, head: ctx.head, checks: { 'verify / gate': 'failure' } });
 
   const reading = await ctx.verifier.readAt(ctx.ref, ctx.head);
 

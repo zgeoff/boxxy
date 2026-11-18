@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
 import type { ItemId } from '@boxxy/model';
+import invariant from 'tiny-invariant';
 import { z } from 'zod';
 import { buildRPCRequest } from '../test-utils/build-rpc-request.ts';
 import { createTestServer } from '../test-utils/create-test-server.ts';
@@ -336,4 +337,93 @@ test('#get returns the body, and #list leaves it out', async () => {
   const listed = await ctx.readAnswer('item.list', {});
 
   expect([shown.shownBody, listed.listedKeys.includes('body')]).toStrictEqual(['The body.', false]);
+});
+
+test('#file stores a listed tag on its acceptance line, and writes it in the filed fact', async () => {
+  const ctx = await setupTest();
+
+  const answer = await ctx.readAnswer('item.file', {
+    repo: 'example/app',
+    title: 'Check the page',
+    outcome: 'The page loads.',
+    acceptance: ['The unit tests pass', { text: 'The page loads in production', tags: ['prod'] }],
+  });
+
+  const item = brandSchemas.itemId.parse(answer.item);
+
+  const stored = await ctx.readItem(item);
+  const facts = await ctx.dispatch.listFacts('boxxy.item.filed');
+
+  const acceptance: unknown = stored?.acceptance;
+
+  expect(acceptance).toStrictEqual([
+    { id: 'a1', text: 'The unit tests pass', evidence: [] },
+    { id: 'a2', text: 'The page loads in production', evidence: [], tags: ['prod'] },
+  ]);
+
+  expect(facts.map((fact) => fact.payload)).toStrictEqual([
+    expect.objectContaining({ acceptance }),
+  ]);
+});
+
+test('#file refuses a tag the rules file does not list, and files nothing', async () => {
+  const ctx = await setupTest();
+
+  const answer = await ctx.callOwner('item.file', {
+    repo: 'example/app',
+    title: 'Check the page',
+    outcome: 'The page loads.',
+    acceptance: [{ text: 'The page loads', tags: ['smoke'] }],
+  });
+
+  const filed = await ctx.dispatch.listFacts('boxxy.item.filed');
+
+  expect([answer.status, filed]).toStrictEqual([400, []]);
+});
+
+test('#edit sets a tag, keeps it when a later edit names the line with no tags, and refuses an unlisted tag', async () => {
+  const ctx = await setupTest();
+  const item = await ctx.dispatch.seedItem({});
+  const seeded = await ctx.readItem(item);
+
+  const line = seeded?.acceptance[0];
+
+  invariant(line !== undefined, 'the seeded item has an acceptance line');
+
+  await ctx.callOwner('item.edit', {
+    item,
+    acceptance: [{ id: line.id, text: line.text, tags: ['prod'] }],
+  });
+
+  await ctx.callOwner('item.edit', { item, acceptance: [{ id: line.id, text: 'A new text' }] });
+
+  const edited = await ctx.readItem(item);
+
+  const kept = edited?.acceptance[0];
+
+  const refused = await ctx.callOwner('item.edit', {
+    item,
+    acceptance: [{ id: line.id, text: line.text, tags: ['smoke'] }],
+  });
+
+  expect([kept?.text, kept?.tags, refused.status]).toStrictEqual(['A new text', ['prod'], 400]);
+});
+
+test('#get returns the tags of an acceptance line', async () => {
+  const ctx = await setupTest();
+
+  const answer = await ctx.callOwner('item.file', {
+    repo: 'example/app',
+    title: 'Check the page',
+    outcome: 'The page loads.',
+    acceptance: [{ text: 'The page loads', tags: ['prod'] }],
+  });
+
+  const answerSchema = z.object({ json: z.object({ item: z.string() }) });
+  const filed = answerSchema.parse(answer.body).json.item;
+  const item = brandSchemas.itemId.parse(filed);
+
+  const shown = await ctx.callOwner('item.get', { item });
+
+  expect(JSON.stringify(shown.body)).toContain('"tags":["prod"]');
 });

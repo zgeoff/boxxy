@@ -6,4 +6,5 @@ export const criterionSchema: z.ZodType<Criterion> = z.object({
   id: brandSchemas.criterionId,
   text: z.string().min(1),
   evidence: z.array(brandSchemas.factId),
+  tags: z.array(z.string().min(1)).exactOptional(),
 });

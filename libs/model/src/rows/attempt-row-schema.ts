@@ -2,7 +2,7 @@ import { contentHashSchema } from '@boxxy/content-hash';
 import { z } from 'zod';
 import { closeOutSchema } from '../closeouts/close-out-schema.ts';
 import type { MergeAnswer } from '../ports/types.ts';
-import type { AttemptRow } from '../types.ts';
+import type { AttemptRow, SkipReason } from '../types.ts';
 import { brandSchemas } from './brand-schemas.ts';
 import { callerIdentitySchema } from './caller-identity-schema.ts';
 import { refusalDetailSchema } from './refusal-detail-schema.ts';
@@ -13,6 +13,11 @@ const mergeAnswerSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('head-moved') }),
   z.object({ kind: z.literal('not-mergeable'), reason: z.string() }),
 ]) satisfies z.ZodType<MergeAnswer>;
+
+export const skipReasonSchema: z.ZodType<SkipReason> = z.union([
+  z.templateLiteral(['no-criteria-tagged:', z.string()]),
+  z.templateLiteral(['check-passed:', z.string()]),
+]);
 
 const countSchema = z.number().int().nonnegative();
 const instantOrNullSchema = brandSchemas.instant.nullable();
@@ -26,10 +31,10 @@ export const attemptRowSchema: z.ZodType<AttemptRow> = z.object({
   runner: brandSchemas.runnerId,
   recipeHash: brandSchemas.recipeHash,
   rulesVersion: brandSchemas.rulesVersion,
-  pool: brandSchemas.poolName,
+  pool: brandSchemas.poolName.nullable(),
   leaseGen: countSchema,
-  spawnRequest: z.json(),
-  spawnRequestHash: contentHashSchema,
+  spawnRequest: z.json().nullable(),
+  spawnRequestHash: contentHashSchema.nullable(),
   state: z.enum([
     'starting',
     'running',
@@ -70,7 +75,9 @@ export const attemptRowSchema: z.ZodType<AttemptRow> = z.object({
   sleptAt: instantOrNullSchema,
   wakeRequestedAt: instantOrNullSchema,
   wokenAt: instantOrNullSchema,
-  outcome: z.union([brandSchemas.outcomeName, z.enum(['lost', 'unsettleable'])]).nullable(),
+  outcome: z
+    .union([brandSchemas.outcomeName, z.enum(['lost', 'unsettleable', 'skipped'])])
+    .nullable(),
   returnedOutcome: z.string().nullable(),
   refusal: refusalDetailSchema.nullable(),
   strayedAt: instantOrNullSchema,
@@ -82,4 +89,5 @@ export const attemptRowSchema: z.ZodType<AttemptRow> = z.object({
   actedAnswer: mergeAnswerSchema.nullable(),
   readAt: instantOrNullSchema,
   waitReason: z.string().nullable(),
+  skipReason: skipReasonSchema.nullable(),
 });

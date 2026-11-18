@@ -305,6 +305,7 @@ test('it finishes stalled while a required check is pending past the time limit'
 });
 
 test.each([
+  ['verified', ['verify / gate'], ['pr / checks', 'verify / gate']],
   ['incomplete', ['verify / gate'], ['pr / checks', 'verify / gate']],
   ['not-covered', ['verify / gate'], ['pr / checks', 'verify / gate']],
   ['not-covered', [], ['pr / checks']],
@@ -313,7 +314,7 @@ test.each([
   (status, baseRequired, required) => {
     const ctx = setupTest();
     const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
-    const verify = status === 'incomplete' ? { status, head, features: [] } : { status, head };
+    const verify = status === 'not-covered' ? { status, head } : { status, head, features: [] };
 
     const observed = buildMockMergeObservation({
       head,

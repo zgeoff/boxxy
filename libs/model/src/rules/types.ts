@@ -199,6 +199,24 @@ export interface PipelineStep {
 
   // an entry for every outcome of the phase kind
   readonly on: Readonly<Record<string, Edge>>;
+
+  // The gates the claim checks before it starts the step, in the order `criteria`, then
+  // `skipWhen`. The first that says skip settles the step as skipped, with the `skip` edge.
+  readonly criteria?: CriteriaGate;
+  readonly skipWhen?: readonly SkipCondition[];
+
+  // set whenever a gate is: the loader refuses a gate with no skip edge
+  readonly skip?: SkipEdge;
+}
+
+// The step runs on the item's lines with this tag; with none, the step skips.
+export interface CriteriaGate {
+  readonly tagged: string;
+}
+
+// the latest run of the named check at the pull request's head passed
+export interface SkipCondition {
+  readonly checkPassed: string;
 }
 
 export type Edge =
@@ -207,6 +225,9 @@ export type Edge =
   | { readonly to: PhaseName; readonly max?: number; readonly resume?: boolean }
   | { readonly end: string }
   | { readonly hold: RulesHoldReason };
+
+// never `again`, which would run the skipped step, and never `{ to }`, which skips nothing
+export type SkipEdge = 'next' | { readonly end: string } | { readonly hold: RulesHoldReason };
 
 export interface SkillsPin {
   // the repository, as owner/name
@@ -255,6 +276,9 @@ export interface LoadedRules {
   readonly propagation: readonly PropagationLine[];
   readonly recipes: ReadonlyMap<RecipeName, RecipeMaterial>;
   readonly sleep: SleepRules;
+
+  // the tags an acceptance line may carry
+  readonly criterionTags: readonly string[];
 
   // null when the rules file has no `skills` block
   readonly skills: SkillsPin | null;
@@ -315,6 +339,19 @@ export type LoadRejectionReason =
       readonly phase: PhaseName;
     }
   | { readonly kind: 'step-without-timeout'; readonly phase: PhaseName }
+
+  // a step sets `criteria` or `skipWhen` with no `skip` edge
+  | { readonly kind: 'gate-without-skip'; readonly phase: PhaseName }
+
+  // a `skipWhen` entry names no condition that this server reads
+  | {
+      readonly kind: 'unknown-skip-condition';
+      readonly phase: PhaseName;
+      readonly condition: string;
+    }
+
+  // `criteria.tagged` names a tag that `criterionTags` does not list
+  | { readonly kind: 'unknown-criterion-tag'; readonly phase: PhaseName; readonly tag: string }
   | { readonly kind: 'quiet-below-idle' }
   | { readonly kind: 'unattended-below-quiet' }
   | {

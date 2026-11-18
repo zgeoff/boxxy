@@ -12,6 +12,14 @@ export interface VerifyRulesInput {
 
   // false: no edge of the pipeline carries `resume: true`, so only the grader keeps a session
   readonly resume: boolean;
+
+  // criterion tags for the file, and the gate lines of the review and verify steps, each line
+  // indented as a key of the step
+  readonly gates?: {
+    readonly criterionTags: readonly string[];
+    readonly review?: readonly string[];
+    readonly verify?: readonly string[];
+  };
 }
 
 // The example rules with a `verify` step after review, on a `verify-v1` recipe. A failed verify
@@ -85,9 +93,33 @@ function buildVerifyRulesText(text: string, input: VerifyRulesInput): string {
     ],
   ];
 
-  return replacements.reduce((rules, [from, to]) => {
+  const gated =
+    input.gates === undefined
+      ? replacements
+      : [...replacements, ...buildGateReplacements(input.gates)];
+
+  return gated.reduce((rules, [from, to]) => {
     invariant(rules.includes(from), `the example rules hold ${from}`);
 
     return rules.replaceAll(from, to);
   }, text);
+}
+
+function buildGateReplacements(
+  gates: NonNullable<VerifyRulesInput['gates']>,
+): readonly (readonly [string, string])[] {
+  const review = (gates.review ?? []).map((line) => `${line}\n`).join('');
+  const verify = (gates.verify ?? []).map((line) => `${line}\n`).join('');
+
+  return [
+    [
+      'criterionTags: [prod] # the only tags that an acceptance line may carry\n',
+      `criterionTags: [${gates.criterionTags.join(', ')}]\n`,
+    ],
+    ['      timeoutMinutes: 45\n', `      timeoutMinutes: 45\n${review}`],
+    [
+      '      timeoutMinutes: 90\n      on:\n        verified:',
+      `      timeoutMinutes: 90\n${verify}      on:\n        verified:`,
+    ],
+  ];
 }

@@ -127,6 +127,7 @@ export interface BoxxyItemFiledPayloadAcceptanceItem {
   id: string;
   text: string;
   evidence: string[];
+  tags?: string[];
 }
 
 export interface BoxxyItemFiledPayloadFields {
@@ -156,6 +157,7 @@ export interface BoxxyItemEditedPayloadAcceptanceItem {
   id: string;
   text: string;
   evidence: string[];
+  tags?: string[];
 }
 
 export interface BoxxyItemEditedPayloadFields {
@@ -261,6 +263,15 @@ export interface BoxxyAttemptStartedPayload {
 export interface BoxxyAttemptStartedPayloadCaller {
   issuer: string;
   subject: string;
+}
+
+export interface BoxxyAttemptSkippedPayload {
+  attemptId: string;
+  itemId: string;
+  phase: string;
+  round: number;
+  reason: unknown;
+  storeVersion: number;
 }
 
 export interface BoxxyAttemptSpawnUnansweredPayload {
@@ -477,6 +488,7 @@ export type BoxxyWorkFact =
   | { id: FactID; type: 'boxxy.attempt.claimed'; entity: EntityID; at: string; payload: BoxxyAttemptClaimedPayload }
   | { id: FactID; type: 'boxxy.decision.recorded'; entity: EntityID; at: string; payload: BoxxyDecisionRecordedPayload }
   | { id: FactID; type: 'boxxy.attempt.started'; entity: EntityID; at: string; payload: BoxxyAttemptStartedPayload }
+  | { id: FactID; type: 'boxxy.attempt.skipped'; entity: EntityID; at: string; payload: BoxxyAttemptSkippedPayload }
   | { id: FactID; type: 'boxxy.attempt.spawn_unanswered'; entity: EntityID; at: string; payload: BoxxyAttemptSpawnUnansweredPayload }
   | { id: FactID; type: 'boxxy.attempt.reconciled'; entity: EntityID; at: string; payload: BoxxyAttemptReconciledPayload }
   | { id: FactID; type: 'boxxy.attempt.session_bound'; entity: EntityID; at: string; payload: BoxxyAttemptSessionBoundPayload }
@@ -636,6 +648,16 @@ function decodeBoxxyWorkFact(value: unknown): BoxxyWorkFact | undefined {
 
   if (type === 'boxxy.attempt.started') {
     const decoded = decodeBoxxyAttemptStartedPayload(payload);
+
+    if (decoded === undefined) {
+      return undefined;
+    }
+
+    return { id, type, entity, at, payload: decoded };
+  }
+
+  if (type === 'boxxy.attempt.skipped') {
+    const decoded = decodeBoxxyAttemptSkippedPayload(payload);
 
     if (decoded === undefined) {
       return undefined;
@@ -1026,14 +1048,43 @@ function decodeBoxxyItemFiledPayloadAcceptanceItem(value: unknown): BoxxyItemFil
     return undefined;
   }
 
+  const raw3 = 'tags' in value ? value.tags : undefined;
+  const field3 = raw3 === undefined ? undefined : decodeBoxxyItemFiledPayloadAcceptanceItemTags(raw3);
+
+  if (raw3 !== undefined && field3 === undefined) {
+    return undefined;
+  }
+
   return {
     id: field0,
     text: field1,
     evidence: field2,
+    ...(field3 === undefined ? {} : { tags: field3 }),
   };
 }
 
 function decodeBoxxyItemFiledPayloadAcceptanceItemEvidence(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const items: string[] = [];
+
+  for (let index = 0; index < value.length; index += 1) {
+    const element: unknown = value[index];
+    const item = typeof element === 'string' ? element : undefined;
+
+    if (item === undefined) {
+      return undefined;
+    }
+
+    items.push(item);
+  }
+
+  return items;
+}
+
+function decodeBoxxyItemFiledPayloadAcceptanceItemTags(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
   }
@@ -1261,14 +1312,43 @@ function decodeBoxxyItemEditedPayloadAcceptanceItem(value: unknown): BoxxyItemEd
     return undefined;
   }
 
+  const raw3 = 'tags' in value ? value.tags : undefined;
+  const field3 = raw3 === undefined ? undefined : decodeBoxxyItemEditedPayloadAcceptanceItemTags(raw3);
+
+  if (raw3 !== undefined && field3 === undefined) {
+    return undefined;
+  }
+
   return {
     id: field0,
     text: field1,
     evidence: field2,
+    ...(field3 === undefined ? {} : { tags: field3 }),
   };
 }
 
 function decodeBoxxyItemEditedPayloadAcceptanceItemEvidence(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const items: string[] = [];
+
+  for (let index = 0; index < value.length; index += 1) {
+    const element: unknown = value[index];
+    const item = typeof element === 'string' ? element : undefined;
+
+    if (item === undefined) {
+      return undefined;
+    }
+
+    items.push(item);
+  }
+
+  return items;
+}
+
+function decodeBoxxyItemEditedPayloadAcceptanceItemTags(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
   }
@@ -2016,6 +2096,58 @@ function decodeBoxxyAttemptStartedPayloadCaller(value: unknown): BoxxyAttemptSta
   return {
     issuer: field0,
     subject: field1,
+  };
+}
+
+function decodeBoxxyAttemptSkippedPayload(value: unknown): BoxxyAttemptSkippedPayload | undefined {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const raw0 = 'attemptId' in value ? value.attemptId : undefined;
+  const field0 = typeof raw0 === 'string' ? raw0 : undefined;
+
+  if (field0 === undefined) {
+    return undefined;
+  }
+
+  const raw1 = 'itemId' in value ? value.itemId : undefined;
+  const field1 = typeof raw1 === 'string' ? raw1 : undefined;
+
+  if (field1 === undefined) {
+    return undefined;
+  }
+
+  const raw2 = 'phase' in value ? value.phase : undefined;
+  const field2 = typeof raw2 === 'string' ? raw2 : undefined;
+
+  if (field2 === undefined) {
+    return undefined;
+  }
+
+  const raw3 = 'round' in value ? value.round : undefined;
+  const field3 = typeof raw3 === 'number' ? raw3 : undefined;
+
+  if (field3 === undefined) {
+    return undefined;
+  }
+
+  const field4 = 'reason' in value ? value.reason : undefined;
+
+  const raw5 = 'storeVersion' in value ? value.storeVersion : undefined;
+  const field5 = typeof raw5 === 'number' ? raw5 : undefined;
+
+  if (field5 === undefined) {
+    return undefined;
+  }
+
+  return {
+    attemptId: field0,
+    itemId: field1,
+    phase: field2,
+    round: field3,
+    reason: field4,
+    storeVersion: field5,
   };
 }
 

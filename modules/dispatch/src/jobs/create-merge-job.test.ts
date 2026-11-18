@@ -3,8 +3,8 @@ import type { AttemptRow, CommitSha } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
 import invariant from 'tiny-invariant';
-import { claimNext } from '../claims/claim-next.ts';
 import { watchPullRequests } from '../pull-requests/watch-pull-requests.ts';
+import { claimNextPick } from '../test-utils/claim-next-pick.ts';
 import { createFakeForge } from '../test-utils/create-fake-forge.ts';
 import { createFakeVerifier } from '../test-utils/create-fake-verifier.ts';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
@@ -34,7 +34,7 @@ async function setupTest() {
   const job = createMergeJob({ forge, verifier, store: dispatch.store });
 
   const claimMerge = () =>
-    claimNext({
+    claimNextPick({
       store: dispatch.store,
       runner: dispatch.runner,
       rules: dispatch.rules(),

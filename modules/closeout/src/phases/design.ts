@@ -12,6 +12,7 @@ import type { z } from 'zod';
 import { buildSchemaParser } from '../build-schema-parser.ts';
 import { buildCriteria } from '../utils/build-criteria.ts';
 import { buildCriterionTexts } from '../utils/build-criterion-texts.ts';
+import { collectCriterionTagProblems } from '../utils/collect-criterion-tag-problems.ts';
 import { collectOpenItemLinkProblems } from '../utils/collect-open-item-link-problems.ts';
 import { collectOpenItemLinks } from '../utils/collect-open-item-links.ts';
 import { collectOpenItemProblems } from '../utils/collect-open-item-problems.ts';
@@ -62,8 +63,10 @@ export const design = definePhase({
 
 function collectDesignProblems(closeOut: DesignCloseOut, ctx: CloseOutContext): CloseOutProblem[] {
   const openItems = closeOut.result.kind === 'designed' ? (closeOut.result.openItems ?? []) : [];
+  const designed = closeOut.result.kind === 'designed' ? closeOut.result : null;
 
   return [
+    ...collectCriterionTagProblems(designed?.set?.acceptance ?? [], ctx),
     ...collectOpenItemProblems(openItems, ctx),
     ...collectOpenItemLinkProblems(openItems, ctx),
     ...collectRelationProblems(getDesignRelations(closeOut), [], ctx),

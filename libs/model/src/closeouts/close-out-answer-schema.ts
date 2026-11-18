@@ -13,6 +13,7 @@ const closeOutProblemSchema: z.ZodType<CloseOutProblem> = z.discriminatedUnion('
   z.object({ kind: z.literal('no-acceptance') }),
   z.object({ kind: z.literal('unknown-item'), item: z.string() }),
   z.object({ kind: z.literal('unknown-kind'), itemKind: z.string() }),
+  z.object({ kind: z.literal('unknown-criterion-tag'), tag: z.string() }),
   z.object({
     kind: z.literal('refused-relation'),
     type: z.string(),

@@ -1,7 +1,7 @@
-// The one file of modules/dispatch that may write the attempts table, the attempt sessions table
-// or a limit seat. Tests and the store fixtures in test-utils seed those tables, so they are left
-// out of the search.
-const writerPath = 'attempts/build-attempt-change.ts';
+// The files of modules/dispatch that may write the attempts table, the attempt sessions table or a
+// limit seat: the attempt builder, and the builder of a skip, which has no machine. Tests and the
+// store fixtures in test-utils seed those tables, so they are left out of the search.
+const writerPaths = new Set(['attempts/build-attempt-change.ts', 'attempts/build-skip-change.ts']);
 
 const writePattern =
   /\btable:\s*["'`](?:attempts|attempt_sessions)["'`]|\bop:\s*["'`](?:take|release)-seats["'`]/u;
@@ -11,7 +11,7 @@ export function collectAttemptWrites(files: ReadonlyMap<string, string>): string
   return [...files]
     .filter(
       ([path, text]) =>
-        path !== writerPath &&
+        !writerPaths.has(path) &&
         !path.startsWith('test-utils/') &&
         !path.endsWith('.test.ts') &&
         writePattern.test(text),

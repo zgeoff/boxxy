@@ -40,7 +40,7 @@ export function buildAttemptFact(
         number: after.number,
         round: after.round,
         mode: after.mode,
-        pool: after.pool,
+        pool: claimed.pick.pool,
         fields: after.fields,
         seats: claimed.pick.limits.map((limit) => ({ limit })),
         recipeHash: after.recipeHash,

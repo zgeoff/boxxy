@@ -44,10 +44,10 @@ export interface StoreDatabase {
     runner: string;
     recipe_hash: string;
     rules_version: string;
-    pool: string;
+    pool: string | null;
     lease_gen: number;
-    spawn_request: string;
-    spawn_request_hash: string;
+    spawn_request: string | null;
+    spawn_request_hash: string | null;
     state: string;
     failure: string | null;
     atc_session: string | null;
@@ -81,6 +81,7 @@ export interface StoreDatabase {
     read_at: number | null;
     wait_reason: string | null;
     refusal: string | null;
+    skip_reason: string | null;
   };
   attempt_sessions: {
     attempt: string;
