@@ -1,4 +1,5 @@
 import { claimStoreAttemptReaderCases } from './claim-store-attempt-reader-cases.ts';
+import { claimStoreCapacityRefusalCases } from './claim-store-capacity-refusal-cases.ts';
 import { claimStoreClaimCases } from './claim-store-claim-cases.ts';
 import { claimStoreCloseCases } from './claim-store-close-cases.ts';
 import { claimStoreCopyCases } from './claim-store-copy-cases.ts';
@@ -24,6 +25,7 @@ export const claimStoreContract: readonly ClaimStoreCase[] = [
   ...claimStoreItemReaderCases,
   ...claimStoreHeldItemCases,
   ...claimStoreAttemptReaderCases,
+  ...claimStoreCapacityRefusalCases,
   ...claimStoreSessionCases,
   ...claimStoreOutboxCases,
   ...claimStoreRaceCases,

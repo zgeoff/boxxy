@@ -67,69 +67,6 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
-    '#readCapacityRefusals returns the latest refusal and the count since the last started session',
-    async (store) => {
-      const refusal = {
-        code: 'host_unavailable',
-        problem: 'ram_budget_exceeded',
-        message: 'not enough 2 MiB pages',
-      };
-
-      const refused = (endedAt: number, withRefusal: boolean) =>
-        buildMockV1AttemptRow({
-          state: 'failed',
-          failure: 'no-capacity',
-          outcome: 'lost',
-          atcSession: null,
-          startedAt: null,
-          endedAt: brandSchemas.instant.parse(endedAt),
-          refusal: withRefusal ? refusal : null,
-        });
-
-      const before = refused(1000, true);
-      const first = refused(3000, false);
-      const latest = refused(4000, true);
-
-      const started = buildMockV1AttemptRow({
-        state: 'running',
-        atcSession: brandSchemas.atcSessionId.parse('s1'),
-        startedAt: brandSchemas.instant.parse(2000),
-      });
-
-      await store.exclusive(async (transaction) => {
-        for (const attempt of [before, started, first, latest]) {
-          await transaction.applyChange(
-            buildMockFileItemChange(buildMockV1ItemRow({ id: attempt.item })),
-          );
-
-          await transaction.applyChange(buildMockClaimChange(attempt));
-        }
-      });
-
-      const read = await store.read((transaction) => transaction.readCapacityRefusals());
-
-      return {
-        received: read,
-        expected: {
-          latest: {
-            attempt: latest.id,
-            at: brandSchemas.instant.parse(4000),
-            refusal,
-          },
-          count: 2,
-        },
-      };
-    },
-  ],
-  [
-    '#readCapacityRefusals returns no latest refusal when no attempt ran out of capacity',
-    async (store) => {
-      const read = await store.read((transaction) => transaction.readCapacityRefusals());
-
-      return { received: read, expected: { latest: null, count: 0 } };
-    },
-  ],
-  [
     '#readLastLeaseGen returns 0 for an item phase with no lease',
     async (store) => {
       const generation = await store.read((transaction) =>

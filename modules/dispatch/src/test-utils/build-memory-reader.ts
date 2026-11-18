@@ -139,11 +139,26 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
     readCapacityRefusals: () => {
       const attempts = getTables().attempts;
 
-      const startedAts = attempts.flatMap((attempt) =>
-        attempt.atcSession !== null && attempt.startedAt !== null ? [attempt.startedAt] : [],
-      );
+      // Rows keep the order they were claimed in, so a position breaks a tie between a spawn and a
+      // refusal of the same tick.
+      const started = attempts
+        .flatMap((attempt, position) =>
+          attempt.atcSession !== null && attempt.startedAt !== null
+            ? [{ at: attempt.startedAt, position }]
+            : [],
+        )
+        .toSorted((first, second) => second.at - first.at || second.position - first.position)
+        .at(0);
 
-      const lastStartedAt = Math.max(0, ...startedAts);
+      const isAfterSpawn = (attempt: AttemptRow): boolean => {
+        const endedAt = attempt.endedAt ?? 0;
+
+        return (
+          started === undefined ||
+          endedAt > started.at ||
+          (endedAt === started.at && attempts.indexOf(attempt) > started.position)
+        );
+      };
 
       const refused = sortAttempts(
         attempts.filter((attempt) => attempt.failure === 'no-capacity'),
@@ -160,7 +175,7 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
                 at: latest.endedAt ?? latest.claimedAt,
                 refusal: latest.refusal,
               },
-        count: refused.filter((attempt) => (attempt.endedAt ?? 0) > lastStartedAt).length,
+        count: refused.filter((attempt) => isAfterSpawn(attempt)).length,
       });
     },
     listSucceededAttemptsWithoutPullRequest: () => {
