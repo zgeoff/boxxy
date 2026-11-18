@@ -19,7 +19,9 @@ export function createNoslopReviewGate(options: NoslopReviewGateOptions): Review
       const parsed = parseReviewBody(round, result);
 
       if (parsed.kind === 'not-covered') {
-        return { status: 'not-covered', head: parsed.head, cost: parsed.cost };
+        return parsed.reason === undefined
+          ? { status: 'not-covered', head: parsed.head, cost: parsed.cost }
+          : { status: 'not-covered', head: parsed.head, cost: parsed.cost, reason: parsed.reason };
       }
 
       const cost = buildGateCost(parsed.review);

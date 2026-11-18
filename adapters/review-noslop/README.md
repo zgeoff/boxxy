@@ -30,11 +30,12 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
   which only the server has.
 - `buildCommand(round)` gives a command that writes `noslop-review.json` in the pull request's
   checkout. A first round runs a full review. A later round runs `--fixes-only`, and runs a plain
-  review when that run judged no fix.
+  review when that run judged no fix and `noslop findings` succeeds.
 - `accept(round, result)` posts the result with `sendResult` from `@noslop/cli/post`, then reads the
   findings still open with `check` from `@noslop/cli/check`.
 - `accept` reads a result that it can't post as `not-covered` and posts nothing. That covers a
-  result for an old head and a fixes-only run that judged no fix.
+  result for an old head and a fixes-only run that judged no fix. When `noslop findings` failed in
+  that run, the reading's `reason` holds noslop's error, such as a missing `github.app`.
 - `accept` throws only when GitHub gives no answer, so the session sends the file again.
 
 ## Documentation

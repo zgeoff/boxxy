@@ -6,11 +6,16 @@ import { z } from 'zod';
 import { buildGateCost } from './build-gate-cost.ts';
 
 // The file the review command writes: the git head of the checkout, the review's JSON, and the
-// output of `noslop findings` with its exit code. A part the command could not read is null.
+// output of `noslop findings` with its exit code and stderr. A part the command could not read is
+// null.
 const reviewBodySchema = z.object({
   head: z.string().nullable(),
   review: z.unknown(),
-  findings: z.object({ exitCode: z.number().int().nullable(), list: z.unknown() }),
+  findings: z.object({
+    exitCode: z.number().int().nullable(),
+    list: z.unknown(),
+    error: z.string().default(''),
+  }),
 });
 
 export type ParsedReviewBody =
@@ -22,7 +27,14 @@ export type ParsedReviewBody =
       // null when `noslop findings` failed or printed no list
       readonly list: FindingList | null;
     }
-  | { readonly kind: 'not-covered'; readonly head: CommitSha; readonly cost: GateCost };
+  | {
+      readonly kind: 'not-covered';
+      readonly head: CommitSha;
+      readonly cost: GateCost;
+
+      // why the session ran no review of the head, when the owner has to act
+      readonly reason?: string;
+    };
 
 const noHead = brandSchemas.commitSha.parse('0'.repeat(40));
 
@@ -54,8 +66,21 @@ export function parseReviewBody(round: GateRound, body: JsonValue): ParsedReview
     return { kind: 'not-covered', head: noHead, cost: buildGateCost(review.data) };
   }
 
-  if (!isRoundPullRequest(round, review.data) || isFixesOnlyWithNoVerdict(review.data)) {
+  if (!isRoundPullRequest(round, review.data)) {
     return { kind: 'not-covered', head: head.data, cost: buildGateCost(review.data) };
+  }
+
+  if (isFixesOnlyWithNoVerdict(review.data)) {
+    const findings = envelope.data.findings;
+
+    return findings.exitCode === 0
+      ? { kind: 'not-covered', head: head.data, cost: buildGateCost(review.data) }
+      : {
+          kind: 'not-covered',
+          head: head.data,
+          cost: buildGateCost(review.data),
+          reason: buildUntrustedReason(findings.exitCode, findings.error),
+        };
   }
 
   const list = findingListSchema.safeParse(envelope.data.findings.list);
@@ -78,4 +103,10 @@ function isRoundPullRequest(round: GateRound, review: ReviewResult): boolean {
 
 function isFixesOnlyWithNoVerdict(review: ReviewResult): boolean {
   return review.fixesOnly === true && (review.fixChecks ?? []).length === 0;
+}
+
+// Without the earlier findings, a plain review would read the whole pull request again, so the
+// session runs none, and the owner reads why in the item's attempts.
+function buildUntrustedReason(exitCode: number | null, error: string): string {
+  return `The fixes-only review judged no fix, and \`noslop findings\` failed with exit code ${exitCode ?? 'none'}, so the session ran no plain review: without the earlier findings, a plain review would read the whole pull request again. When noslop names \`github.app\`, set \`github.app\` in the base branch's noslop config to the slug of the App that posts the reviews. noslop said: ${error === '' ? 'nothing' : error}`;
 }

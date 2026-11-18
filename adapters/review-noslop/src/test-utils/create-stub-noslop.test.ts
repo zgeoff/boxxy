@@ -13,10 +13,15 @@ async function setupTest() {
     const child = Bun.spawn(argv, {
       cwd: root,
       stdout: 'pipe',
+      stderr: 'pipe',
       env: { PATH: `${binPath}:${process.env['PATH'] ?? ''}` },
     });
 
-    return { exitCode: await child.exited, stdout: await new Response(child.stdout).text() };
+    return {
+      exitCode: await child.exited,
+      stdout: await new Response(child.stdout).text(),
+      stderr: await new Response(child.stderr).text(),
+    };
   };
 
   return { root, runIn };
@@ -29,7 +34,7 @@ test('it answers each noslop call with its answer, and records the arguments', a
     full: '{"run":"full"}',
     fixesOnly: null,
     plain: '{"run":"plain"}',
-    findings: { stdout: '{"findings":[]}', exitCode: 1 },
+    findings: { stdout: '{"findings":[]}', stderr: 'noslop: no list', exitCode: 1 },
     head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
   });
 
@@ -43,11 +48,11 @@ test('it answers each noslop call with its answer, and records the arguments', a
 
   expect([answers, await stub.readCalls()]).toStrictEqual([
     [
-      { exitCode: 0, stdout: '{"run":"full"}' },
-      { exitCode: 0, stdout: '' },
-      { exitCode: 0, stdout: '{"run":"plain"}' },
-      { exitCode: 1, stdout: '{"findings":[]}' },
-      { exitCode: 0, stdout: 'e83c5163316f89bfbde7d9ab23ca2e25604af290\n' },
+      { exitCode: 0, stdout: '{"run":"full"}', stderr: '' },
+      { exitCode: 0, stdout: '', stderr: '' },
+      { exitCode: 0, stdout: '{"run":"plain"}', stderr: '' },
+      { exitCode: 1, stdout: '{"findings":[]}', stderr: 'noslop: no list' },
+      { exitCode: 0, stdout: 'e83c5163316f89bfbde7d9ab23ca2e25604af290\n', stderr: '' },
     ],
     ['review --full --pr 7', 'review --fixes-only --pr 7', 'review --pr 7', 'findings --pr 7'],
   ]);

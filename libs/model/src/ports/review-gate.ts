@@ -28,8 +28,8 @@ export interface ReviewGate {
 }
 
 // `not-covered`: the result is for another head than the pull request's current head, it read no
-// part of that head, or the forge refused the gate's read or post, which `reason` then states. A
-// tool check that passes at a head no review read is never `passed`.
+// part of that head, or the forge refused the gate's read or post. `reason` states a cause the
+// owner acts on, such as that refusal. A tool check that passes at an unread head is not `passed`.
 export type GateReading =
   | ({ readonly status: 'passed' } & GateRun)
   | ({

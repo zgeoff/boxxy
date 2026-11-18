@@ -21,6 +21,7 @@ async function setupTest() {
     const child = Bun.spawn(['sh', '-c', command], {
       cwd: root,
       stdout: 'ignore',
+      stderr: 'ignore',
       env: { PATH: `${stub.binPath}:${process.env['PATH'] ?? ''}` },
     });
 
@@ -51,7 +52,7 @@ test('it runs a full review in the first round, and writes it with the findings 
     full: JSON.stringify(review),
     fixesOnly: null,
     plain: null,
-    findings: { stdout: '{"findings":[]}', exitCode: 0 },
+    findings: { stdout: '{"findings":[]}', stderr: '', exitCode: 0 },
     head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
   });
 
@@ -64,7 +65,7 @@ test('it runs a full review in the first round, and writes it with the findings 
     body: {
       head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
       review,
-      findings: { exitCode: 0, list: { findings: [] } },
+      findings: { exitCode: 0, list: { findings: [] }, error: '' },
     },
   });
 });
@@ -92,7 +93,7 @@ test.each(['rework', 'recheck'] as const)(
       full: null,
       fixesOnly: JSON.stringify(review),
       plain: null,
-      findings: { stdout: '{"findings":[]}', exitCode: 0 },
+      findings: { stdout: '{"findings":[]}', stderr: '', exitCode: 0 },
       head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
     });
 
@@ -129,17 +130,63 @@ test('it runs a plain review after a fixes-only review that judged no fix, and k
       }),
     ),
     plain: JSON.stringify(plain),
-    findings: { stdout: '{"findings":[]}', exitCode: 0 },
+    findings: { stdout: '{"findings":[]}', stderr: '', exitCode: 0 },
     head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
   });
 
   expect([run.calls, run.body.review]).toStrictEqual([
     [
       `review --fixes-only --pr 7 --repo example/app --adapter claude --report json --json`,
-      `review --pr 7 --repo example/app --adapter claude --report json --json`,
       'findings --pr 7 --repo example/app --json',
+      `review --pr 7 --repo example/app --adapter claude --report json --json`,
     ],
     plain,
+  ]);
+});
+
+test('it runs no plain review after a fixes-only review that judged no fix when noslop findings fails, and writes its error', async () => {
+  const ctx = await setupTest();
+
+  const round: GateRound = {
+    attempt: brandSchemas.attemptId.parse('01890a5d-ac96-774b-bcce-b302099a8058'),
+    pullRequest: { repo: brandSchemas.repoName.parse('example/app'), number: 7 },
+    round: 2,
+    cause: 'rework',
+  };
+
+  const fixesOnly = buildMockReviewResult({
+    owner: 'example',
+    repo: 'app',
+    number: 7,
+    fixesOnly: { fixChecks: [] },
+  });
+
+  const run = await ctx.runCommand(buildReviewCommand(round), {
+    full: null,
+    fixesOnly: JSON.stringify(fixesOnly),
+    plain: JSON.stringify(buildMockReviewResult({ owner: 'example', repo: 'app', number: 7 })),
+    findings: {
+      stdout: '',
+      stderr: 'noslop: the config on main names no github.app\n',
+      exitCode: 1,
+    },
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+  });
+
+  expect([run.calls, run.body]).toStrictEqual([
+    [
+      `review --fixes-only --pr 7 --repo example/app --adapter claude --report json --json`,
+      'findings --pr 7 --repo example/app --json',
+    ],
+    {
+      head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+      review: fixesOnly,
+      findings: {
+        exitCode: 1,
+        list: null,
+        error: 'noslop: the config on main names no github.app',
+      },
+    },
   ]);
 });
 
@@ -157,13 +204,13 @@ test('it writes a null review and the findings exit code when noslop prints noth
     full: null,
     fixesOnly: null,
     plain: null,
-    findings: { stdout: '', exitCode: 1 },
+    findings: { stdout: '', stderr: '', exitCode: 1 },
     head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
   });
 
   expect(run.body).toStrictEqual({
     head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
     review: null,
-    findings: { exitCode: 1, list: null },
+    findings: { exitCode: 1, list: null, error: '' },
   });
 });
