@@ -58,6 +58,17 @@ async function setupTest(
         spawn: dispatch.spawn,
         forge,
       }),
+    claimAt: (now: ReturnType<typeof dispatch.clock.now>) =>
+      claimNext({
+        store: dispatch.store,
+        runner: dispatch.runner,
+        rules: dispatch.rules(),
+        now,
+        newId: dispatch.newId,
+        backoff: dispatch.backoff,
+        spawn: dispatch.spawn,
+        forge,
+      }),
     readItem: async (item: Parameters<typeof dispatch.closeItem>[0]) => {
       const view = await dispatch.store.read((tx) =>
         tx.readItem(item, dispatch.clock.now(), dispatch.rules()),
@@ -117,6 +128,43 @@ test('it skips a step whose criteria gate finds no tagged line, and records the 
       reason: 'no-criteria-tagged:prod',
     },
   ]);
+});
+
+test('it skips the step of an item with no acceptance line', async () => {
+  const ctx = await setupTest({ verifyProd: true });
+
+  const item = await ctx.seedItem({
+    phase: brandSchemas.phaseName.parse('verify'),
+    acceptance: [],
+  });
+
+  const result = await ctx.claim();
+  const view = await ctx.readItem(item);
+
+  const received: unknown = [result, view.position];
+
+  expect(received).toStrictEqual([
+    {
+      skips: [
+        { kind: 'skipped', itemId: item, phase: 'verify', reason: 'no-criteria-tagged:prod' },
+      ],
+      pick: null,
+    },
+    { kind: 'end', reason: 'nothing-to-check-live' },
+  ]);
+});
+
+test('it skips a step once when a retry lever carries the instant of the claim', async () => {
+  const ctx = await setupTest({ verifyProd: true });
+  const item = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('verify') });
+
+  // the seed filed its lever one second before the clock now
+  const result = await ctx.claimAt(brandSchemas.instant.parse(ctx.clock.now() - 1000));
+  const view = await ctx.readItem(item);
+
+  const received: unknown = [result.skips.length, view.position];
+
+  expect(received).toStrictEqual([1, { kind: 'end', reason: 'nothing-to-check-live' }]);
 });
 
 test('it writes no lease, seat or decision for a skip', async () => {

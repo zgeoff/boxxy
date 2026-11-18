@@ -511,3 +511,19 @@ test('it holds the item when a skipped attempt finds its step without a skip edg
     round: 1,
   });
 });
+
+test('it passes a skipped step when a retry lever carries the instant of the skip', () => {
+  const position: unknown = findPosition({
+    pipeline: buildMockPipeline({ steps: { build: { skip: 'next' } } }),
+    attempts: [
+      buildMockSettled({ phase: 'triage', outcome: 'accepted', endedAt: 500 }),
+      buildMockSettled({ phase: 'design', outcome: 'designed', endedAt: 600 }),
+      buildMockSettled({ phase: 'build', outcome: 'skipped', endedAt: 1000 }),
+    ],
+    retries: [
+      { at: brandSchemas.instant.parse(1000), phase: brandSchemas.phaseName.parse('build') },
+    ],
+  });
+
+  expect(position).toStrictEqual({ kind: 'phase', phase: 'review', round: 2 });
+});

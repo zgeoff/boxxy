@@ -93,10 +93,17 @@ async function writeSkipPass(
 ): Promise<SkippedClaim[]> {
   const snapshot = await tx.readSnapshot(input.now, input.rules);
 
-  const frame = buildFrame({ snapshot, rules: input.rules, now: input.now });
   const skips: SkippedClaim[] = [];
 
-  for (const candidate of frame.candidates) {
+  // an item with no acceptance lines reads as an idea, and no step takes it; a `criteria` gate
+  // still says skip for it, because no line carries the tag
+  for (const item of snapshot.items) {
+    const candidate = pickSkipCandidate(item);
+
+    if (candidate === null) {
+      continue;
+    }
+
     const step = input.rules.kinds
       .get(candidate.kind)
       ?.pipeline.steps.find((each) => each.phase === candidate.phase);
@@ -130,6 +137,16 @@ async function writeSkipPass(
   }
 
   return skips;
+}
+
+function pickSkipCandidate(item: ItemView): (ItemView & { readonly phase: PhaseName }) | null {
+  const position = item.position;
+
+  if (position.kind !== 'phase' || !['ready', 'idea'].includes(item.derived.state)) {
+    return null;
+  }
+
+  return { ...item, phase: position.phase };
 }
 
 function hasGate(step: PipelineStep): boolean {

@@ -61,12 +61,15 @@ gate that says skip settles the step as skipped, with no session, pool, seat or 
 
 The claim checks `criteria` first, then `skipWhen`, and any one true condition of `skipWhen` skips.
 A step with `criteria` runs on the matching lines alone: the phase input and the launch prompt's
-`acceptance` list only the lines with the tag. The tags an acceptance line may carry are the rules
+`acceptance` list only the lines with the tag, and so does the close-out check of its attempt. An
+item with an empty acceptance list, which reads as an idea and which no step takes, has no tagged
+line, so a `criteria` gate skips its step. The tags an acceptance line may carry are the rules
 file's `criterionTags`. `item file`, `item edit` and a triage or design close-out that sets
 acceptance refuse a tag the list lacks, and a tag stays on its line in the item's state, its facts
 and `item show`.
 
-A step with a gate has a `skip` edge: `next`, `{ end }` or `{ hold }`, never `again` or `{ to }`. A
+A skip comes after a retry lever filed at its own instant, so a skip always moves the item on. A
+step with a gate has a `skip` edge: `next`, `{ end }` or `{ hold }`, never `again` or `{ to }`. A
 skipped attempt follows that edge, counts toward no `maxAttempts` and no `max`, and a tag added
 after the step skipped doesn't bring it back: `boxxy item retry <item> --phase <phase>` does. A
 claim that finds the runner paused, or an item whose repo is missing from `spawn.repos`, records no
