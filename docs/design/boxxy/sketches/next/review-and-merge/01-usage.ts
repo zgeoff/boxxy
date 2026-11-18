@@ -45,7 +45,6 @@ import { decideMerge } from '@boxxy/train';
 //           merged: { end: merged }
 //           repair: { to: build, max: 3, resume: true }   # a conflict or a red check: 3 repair rounds
 //           stale: { to: review, max: 3 }                 # the head is not the head the review passed
-//           unverified: { to: verify, max: 2 }            # no verdict at the head
 //           closed: { hold: pull-request-closed }
 //           stalled: { hold: checks-stalled }
 //           refused: { hold: merge-refused }
@@ -116,7 +115,7 @@ export const merge = definePhase({
   name: brandSchemas.phaseName.parse('merge'),
   version: 1,
   worker: brandSchemas.workerKindName.parse('merge.forge'),
-  outcomes: ['merged', 'repair', 'stale', 'unverified', 'closed', 'stalled', 'refused', 'blocked'],
+  outcomes: ['merged', 'repair', 'stale', 'closed', 'stalled', 'refused', 'blocked'],
   needsAcceptance: true,
   input: (ctx) => toJSONValue({ pullRequest: findPullRequestLink(ctx.pullRequests) }),
   // No agent decides the merge: the runner calls this pure rule on each read of the job.

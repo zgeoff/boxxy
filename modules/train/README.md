@@ -20,10 +20,9 @@ that is ready to merge. The server reads the pull request and calls `decideMerge
 - wait, and read the pull request again later;
 - merge the pull request at the head commit the server read.
 
-The server merges only when boxxy's review passed, every required check passed and the verify gate
-passed, all at that head commit. The package does no I/O: the server passes in what it read, the
-merge rules, the time, and the last merge it asked for, so that `decideMerge` does not ask again too
-soon.
+The server merges only when boxxy's review passed, every required check of the base branch passed,
+all at that head commit. The package does no I/O: the server passes in what it read, the merge
+rules, the time, and the last merge it asked for, so that `decideMerge` does not ask again too soon.
 
 The package is named for the merge train, a later rule that would merge several pull requests at
 once. Its [design](../../docs/design/boxxy/merge-train.md) is not built.

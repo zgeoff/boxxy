@@ -93,7 +93,6 @@ export type MergeOutcome =
   | 'merged'
   | 'repair'
   | 'stale'
-  | 'unverified'
   | 'closed'
   | 'stalled'
   | 'refused'

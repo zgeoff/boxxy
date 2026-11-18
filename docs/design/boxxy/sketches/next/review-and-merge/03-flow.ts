@@ -168,18 +168,13 @@ export function decideMerge(input: { observed: MergeReading; rules: MergeRules; 
     return input.deadlinePassed ? finish('stalled') : { kind: 'wait', reason, pending };
   }
 
-  // 7. Every check is green. The verify reading must cover this head too. `incomplete` cannot
-  //    reach here while the gate check is in `required`; it is checked so a rules file without
-  //    the gate check never merges an unverified head.
-  if (observed.verify.status !== 'verified') return finish('unverified');
-
-  // 8. GitHub refused a merge of this clean, green head: a ruleset or a repo setting that boxxy
+  // 7. GitHub refused a merge of this clean, green head: a ruleset or a repo setting that boxxy
   //    cannot fix. The item holds for the owner.
   const sent = input.acted?.head === observed.head ? input.acted : null;
 
   if (sent?.answer?.kind === 'not-mergeable') return finish('refused', { reason: sent.answer.reason });
 
-  // 9. A request already sent at this head: wait for step 1, and send it again only after
+  // 8. A request already sent at this head: wait for step 1, and send it again only after
   //    `actRetryMinutes`. A second call is safe: GitHub merges only at `sha`. Past the step's time
   //    limit, hold.
   if (sent !== null && input.deadlinePassed) return finish('stalled');
@@ -212,8 +207,8 @@ function isPassedAt(review: GateRecord | null, head: CommitSha): boolean {
 //   3. When the forge answered: the move `answered` sets `actedAnswer` and writes
 //      `boxxy.merge.answered`. The next read decides the outcome: `merged` and `queued` reach
 //      step 1 of the rule; `head-moved` reads as `stale` at step 3; `not-mergeable` finishes
-//      `refused` at step 8 when the head is still clean and green, and otherwise reaches the step
-//      that matches what changed. With no answer, nothing more is written, and step 9 sends the
+//      `refused` at step 7 when the head is still clean and green, and otherwise reaches the step
+//      that matches what changed. With no answer, nothing more is written, and step 8 sends the
 //      call again.
 
 export async function runJobAction(deps: JobDeps, action: { kind: 'merge' }): Promise<void> {
@@ -251,7 +246,6 @@ export async function runJobAction(deps: JobDeps, action: { kind: 'merge' }): Pr
 //   review  changes-requested { max: 3 }       the 4th one             rounds used up (review changes-requested)
 //   merge   repair            { max: 3 }       the 4th one                rounds used up (merge repair)
 //   merge   stale             { max: 3 }       the 4th one                rounds used up (merge stale)
-//   merge   unverified        { max: 2 }       the 3rd one                rounds used up (merge unverified)
 //   verify  failed            { max: 2 }       the 3rd one                rounds used up (verify failed)
 //   review  failed            again, maxAttempts 2   the 2nd in a row    attempts used up (review)
 //   verify  abandoned         again, maxAttempts 2   the 2nd in a row    attempts used up (verify)

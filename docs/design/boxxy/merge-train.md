@@ -14,7 +14,7 @@ The decisions behind this doc are
 
 The train merges a unit only when each of its heads passes the merge rule of
 [review, verify and merge](./review-and-merge.md#the-merge-step): every required check green, a
-passed review at that head, and a verified verify reading at that head.
+passed review at that head.
 
 - **boxxy reads its own review record at the head, never the review tool's GitHub check.** The
   review tool, noslop, passes its check at a head that no review has read, and after a failed

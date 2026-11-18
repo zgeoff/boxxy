@@ -20,7 +20,6 @@ flowchart LR
   verify -->|verified| merge
   merge -->|"repair, max 3"| build
   merge -->|"stale, max 3"| review
-  merge -->|"unverified, max 2"| verify
   merge -->|"merged, or a hold"| done(["end or hold"])
 ```
 
@@ -53,7 +52,8 @@ The sketches in [`sketches/next/review-and-merge/`](./sketches/next/review-and-m
 - **The merge runs on a job worker.** The runner reads a merge attempt on each tick, as it reads every live attempt. A webhook never starts a merge.
 - **An agent never decides a merge.** `decideMerge` in `modules/train` is pure, and the runner calls it on each read of a merge attempt.
 - **boxxy reads required checks from its rules and the branch.** It takes the union of `merge.checks` in the rules file and the base branch's required status checks. The loader refuses an empty `merge.checks`, so the union is never empty, even on a branch that requires no check.
-- **boxxy's own repo requires no check on GitHub.** Its `main` keeps direct pushes open, so a broken boxxy never blocks its own fix. Its rules file lists `pr / checks` and `verify / gate` in `merge.checks`, and the merge step waits for both.
+- **Each repo's own `main` ruleset says what a merge needs.** boxxy adds no gate of its own: a merge needs a review that passed at the head and every required check green there. boxxy's own repo requires `pr / checks` and `verify / gate` in its ruleset, so its merges wait for both. A repo with no verify setup merges on its other required checks.
+- **The squash merge makes the pull request's title the commit subject.** The merge call sends the title as `commit_title` and leaves the message to GitHub's default.
 - **boxxy decides "reviewed at this head" from its own review close-out.** boxxy never reads noslop's GitHub check, because that check passes at a head that no review has read.
 - **The owner picks who grades, with a recipe field.** The verify phase always runs as its own agent attempt. A verify recipe with `session: builder` wakes the build's kept session, so the builder grades its own work. `session: fresh` starts a new session.
 
@@ -108,7 +108,7 @@ The verdict reaches the merge in three steps, and only the last one decides the 
 
 1. The verify agent runs the journeys, writes wringer's report into the pull request body with `bun verify publish`, and then closes out `verified`, which moves the item on to merge.
 2. The CI check `verify / gate` reads that report and fails a change whose features lack a fresh verdict. The gate computes wringer's fingerprint of the change, which needs a checkout, and the server has none.
-3. The merge job calls `Verifier.readAt(pullRequest, head)`. The wringer adapter builds the `VerifyReading` from the latest `verify / gate` run at the head and the data comment of the report in the body, which holds one claim for each recorded verdict. A head with no gate check run that passed or failed reads `not-covered`, never `verified`; a cancelled or skipped run gave no verdict. A commit status of the gate's name never counts, because any token that may write statuses can post one. `decideMerge` reads only this reading, so a `verified` close-out with no green gate never merges.
+3. The merge job calls `Verifier.readAt(pullRequest, head)`. The wringer adapter builds the `VerifyReading` from the latest `verify / gate` run at the head and the data comment of the report in the body, which holds one claim for each recorded verdict. A head with no gate check run that passed or failed reads `not-covered`, never `verified`; a cancelled or skipped run gave no verdict. A commit status of the gate's name never counts, because any token that may write statuses can post one. `decideMerge` does not gate on this reading, and the close-out records it. A repo that wants the gate to hold a merge requires `verify / gate` in its ruleset, and the merge waits for that check like any other.
 
 [wringer journeys](../../architecture/repo/verify-journeys.md) owns what the grading agent does, the report, and the `verify / gate` workflow. The workflow runs on `pull_request` with the types `opened`, `synchronize`, `reopened` and `edited`, because the report lives in the body.
 
@@ -118,7 +118,7 @@ The merge phase runs on the job worker `merge.forge`. The server builds that wor
 
 - the pull request's state, head, base branch and mergeable state;
 - the latest run of each check at the head, and the required checks of the base branch;
-- the verify reading at the head;
+- the verify reading at the head, which the close-out records;
 - the item's latest settled review.
 
 `decideMerge`, in section D of [`03-flow.ts`](./sketches/next/review-and-merge/03-flow.ts), then finishes the attempt, waits, or asks GitHub to merge. It checks these rows from the top, and the first match wins:
@@ -133,11 +133,10 @@ The merge phase runs on the job worker `merge.forge`. The server builds that wor
 | a required check failed at this head | `repair` | back to build, `max: 3` |
 | a check pending, skipped or missing, within the time limit | wait | read again |
 | a check pending, skipped or missing, past the time limit | `stalled` | hold |
-| every check green and the verify reading not `verified` | `unverified` | back to verify, `max: 2` |
 | GitHub refused a merge of this clean, green head | `refused` | hold |
 | a merge request sent at this head, past the time limit | `stalled` | hold |
 | a merge request sent at this head less than 5 minutes ago | wait | read again |
-| every check green and the verify reading `verified` | merge request | read again |
+| the review passed at this head and every required check green | merge request | read again |
 
 - **The time limit is 240 minutes per merge attempt, from its claim.** A send-back ends the attempt, so the next merge attempt starts its own 240 minutes. The send-back caps bound the total. When the forge gives no answer past the limit, the attempt times out, as [Job attempts](#job-attempts) says, so with `maxAttempts: 2` a forge that stays down holds the item with `attempts used up` after two attempts.
 - **A read that no later read can change ends the attempt `blocked`.** When the item has no pull request, the forge answers not-found for the link, or the pull request has no commit, the job reads that as an unreadable merge, and `decideMerge` finishes `blocked` with the reason. The close-out holds no head and no verify reading. A forge call that throws is different: the read throws, and the next tick reads again.

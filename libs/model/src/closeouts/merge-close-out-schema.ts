@@ -6,16 +6,7 @@ import type { MergeCloseOut } from './types.ts';
 const checkNamesSchema = z.array(z.string().min(1));
 
 export const mergeCloseOutSchema = z.strictObject({
-  outcome: z.enum([
-    'merged',
-    'repair',
-    'stale',
-    'unverified',
-    'closed',
-    'stalled',
-    'refused',
-    'blocked',
-  ]),
+  outcome: z.enum(['merged', 'repair', 'stale', 'closed', 'stalled', 'refused', 'blocked']),
   head: brandSchemas.commitSha.nullable(),
   required: checkNamesSchema,
   failed: checkNamesSchema,

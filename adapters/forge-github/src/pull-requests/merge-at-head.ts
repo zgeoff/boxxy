@@ -5,9 +5,9 @@ import { GithubForgeError } from '../github-forge-error.ts';
 import { githubSchemas } from '../github-schemas.ts';
 import { toPullPath } from './to-pull-path.ts';
 
-// One call, never retried here: the merge step sends a lost call again at the same head, and
-// GitHub merges only while the head is still `sha`. GitHub answers 409 when the head moved and
-// 405 when the pull request cannot merge, such as for a conflict or a closed pull request.
+// Reads the title, then sends one merge call, never retried here: the merge step sends a lost
+// call again at the same head. GitHub answers 409 when the head moved and 405 when the pull
+// request cannot merge. The title goes as `commit_title`, so a squash takes it as the subject.
 export async function mergeAtHead(
   client: GithubClient,
   ref: PullRequestRef,
@@ -16,7 +16,17 @@ export async function mergeAtHead(
 ): Promise<MergeAnswer> {
   const path = `${toPullPath(ref)}/merge`;
 
-  const answer = await client.writeJson(path, { sha: head, merge_method: method });
+  const pullRequest = await client.readJson(toPullPath(ref), githubSchemas.pullRequestTitle);
+
+  if (pullRequest === null) {
+    throw new GithubForgeError(`GitHub did not find GET ${toPullPath(ref)}`, 404);
+  }
+
+  const answer = await client.writeJson(path, {
+    sha: head,
+    merge_method: method,
+    commit_title: pullRequest.title,
+  });
 
   if (answer.status === 409) {
     return { kind: 'head-moved' };

@@ -285,25 +285,79 @@ test('it finishes stalled while a required check is pending past the time limit'
   });
 });
 
-test('it finishes unverified when every check is green and the verify reading is incomplete', () => {
+test.each(['incomplete', 'not-covered'] as const)(
+  'it asks to merge a reviewed head with every required check green and a verify reading of %s',
+  (status) => {
+    const ctx = setupTest();
+    const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+    const verify = status === 'incomplete' ? { status, head, features: [] } : { status, head };
+
+    const observed = buildMockMergeObservation({
+      head,
+      verify,
+      baseRequired: ['verify / gate'],
+      checks: new Map([
+        ['pr / checks', 'success'],
+        ['verify / gate', 'success'],
+      ]),
+    });
+
+    expect(ctx.decide({ observed })).toStrictEqual({
+      kind: 'act',
+      action: {
+        kind: 'merge',
+        unit: { members: [{ pullRequest: observed.pullRequest, head }] },
+        method: 'squash',
+        required: ['pr / checks', 'verify / gate'],
+      },
+    });
+  },
+);
+
+test.each([
+  [
+    'pending',
+    new Map([
+      ['pr / checks', 'success'],
+      ['verify / gate', 'pending'],
+    ] as const),
+  ],
+  ['missing', new Map([['pr / checks', 'success']] as const)],
+])('it waits for a check that the base branch requires while it is %s', (_state, checks) => {
   const ctx = setupTest();
-  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
-  const verify = { status: 'incomplete', head, features: [] } as const;
-  const observed = buildMockMergeObservation({ head, verify });
+  const observed = buildMockMergeObservation({ baseRequired: ['verify / gate'], checks });
+
+  expect(ctx.decide({ observed })).toStrictEqual({
+    kind: 'wait',
+    reason: 'checks pending',
+    pending: ['verify / gate'],
+  });
+});
+
+test('it finishes repair when a check that the base branch requires is red', () => {
+  const ctx = setupTest();
+
+  const observed = buildMockMergeObservation({
+    baseRequired: ['verify / gate'],
+    checks: new Map([
+      ['pr / checks', 'success'],
+      ['verify / gate', 'failure'],
+    ]),
+  });
 
   expect(ctx.decide({ observed })).toStrictEqual({
     kind: 'finish',
     closeOut: toJSONValue(
       buildMockMergeCloseOut({
-        outcome: 'unverified',
-        head,
-        required: ['pr / checks'],
-        failed: [],
-        cause: null,
+        outcome: 'repair',
+        head: observed.head,
+        required: ['pr / checks', 'verify / gate'],
+        failed: ['verify / gate'],
+        cause: 'checks-red',
         mergeCommit: null,
         reason: null,
         byBoxxy: false,
-        verify,
+        verify: observed.verify,
       }),
     ),
   });

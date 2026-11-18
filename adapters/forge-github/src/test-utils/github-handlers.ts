@@ -24,6 +24,7 @@ export const githubPullRequests = new Collection({
     repo: z.string().default('acme/lamps'),
     number: recordID,
     id: recordID,
+    title: z.string().default(() => faker.lorem.sentence()),
     body: z.string().nullable().default(null),
     state: z.enum(['open', 'closed']).default('open'),
     base: z.string().default('main'),
@@ -84,9 +85,11 @@ const repos = `${GITHUB_API_URL}/repos/:owner/:name`;
 const mergeRequest = z.object({
   sha: z.string(),
   merge_method: z.enum(['merge', 'squash', 'rebase']),
+  commit_title: z.string().optional(),
 });
 
 type PullRequestAnswer = z.input<typeof githubSchemas.pullRequest> &
+  z.input<typeof githubSchemas.pullRequestTitle> &
   z.input<typeof githubSchemas.pullRequestBody> &
   z.input<typeof githubSchemas.mergeability>;
 
@@ -106,6 +109,7 @@ export const githubHandlers = [
       base: { ref: found.base },
       merged_at: found.mergedAt,
       merge_commit_sha: found.mergeCommit,
+      title: found.title,
       body: found.body,
       mergeable: found.state === 'open' ? found.mergeable : null,
     };
