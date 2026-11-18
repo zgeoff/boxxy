@@ -60,7 +60,6 @@ export const ignoredPaths = [
   '.gitleaks.toml',
   'commitlint.config.js',
   'lefthook.yml',
-  '.lefthook/**',
   'audit-ignores.json',
   'socket.yml',
   'review.json',
