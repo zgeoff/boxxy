@@ -12,5 +12,8 @@ export function filterTaggedCriteria<Item extends ItemView>(
     return item;
   }
 
-  return { ...item, acceptance: item.acceptance.filter((line) => line.tags?.includes(tag)) };
+  return {
+    ...item,
+    acceptance: item.acceptance.filter((line) => line.tags?.includes(tag) === true),
+  };
 }
