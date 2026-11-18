@@ -26,7 +26,7 @@ export function buildItemViews(
   now: Instant,
   rules: ItemRules,
 ): ItemWithLevers[] {
-  const groups = collectItemGroups(rows, rules);
+  const groups = collectItemGroups(rows, rules, now);
 
   // A blocking source counts only when it is done or archived, and no relation makes an item either,
   // so each source's state derived without its relations settles its targets.
@@ -57,7 +57,7 @@ interface ItemGroup {
 }
 
 // in the order of `rows.items`
-function collectItemGroups(rows: ItemSetRows, rules: ItemRules): ItemGroup[] {
+function collectItemGroups(rows: ItemSetRows, rules: ItemRules, now: Instant): ItemGroup[] {
   const groups = new Map<ItemId, ItemGroup>(
     rows.items.map((item) => [
       item.id,
@@ -109,6 +109,7 @@ function collectItemGroups(rows: ItemSetRows, rules: ItemRules): ItemGroup[] {
       pipeline: rules.kinds.get(group.item.kind)?.pipeline ?? null,
       attempts: collectSettled(group.attempts),
       retries: collectRetries(group.levers),
+      now,
     });
   }
 

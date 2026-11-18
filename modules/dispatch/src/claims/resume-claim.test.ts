@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
 import invariant from 'tiny-invariant';
+import { claimNextPick } from '../test-utils/claim-next-pick.ts';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
-import { claimNext } from './claim-next.ts';
 import { requestWake } from './request-wake.ts';
 import { resumeClaim } from './resume-claim.ts';
 
@@ -34,7 +34,7 @@ async function setupTest() {
         newId: dispatch.newId,
       });
 
-      const claim = await claimNext({
+      const claim = await claimNextPick({
         store: dispatch.store,
         runner: dispatch.runner,
         rules: dispatch.rules(),

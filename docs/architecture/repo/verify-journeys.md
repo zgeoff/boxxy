@@ -197,8 +197,9 @@ which reads the gate's check run at the pull request's head and the body's data 
 
 - `verified` when the gate's check run succeeded and the comment parses, with one verified feature
   per entry;
-- `incomplete` when the check run failed, or the body has no data comment that parses, as on a
-  Renovate pull request or one written in an older wringer format;
+- `verified` with no features when the gate's check run succeeded and the body holds no report, as
+  after a skipped verify step, which publishes none;
+- `incomplete` when the check run failed, or the body has a data comment that doesn't parse.
 - `not-covered` when the head has no gate check run that finished as passed or failed: none yet, one
   still running, or one cancelled or skipped.
 

@@ -60,7 +60,10 @@ The owner's item commands have a few rules the usage lines don't show:
 - **Acceptance edits replace the whole list.** Each `item edit --acceptance` value is one criterion,
   and together they replace the whole list, so a criterion missing from every value is dropped. A
   value of `[c-3] new text` keeps criterion `c-3` and its evidence with new text, an unknown ID is
-  refused, and a value without an ID adds a criterion.
+  refused, and a value without an ID adds a criterion. Leading `#tag` words after the ID, such as
+  `[c-3] #prod new text`, tag the criterion. A tag the rules file's `criterionTags` doesn't list is
+  refused, and a value with no `#tag` word keeps the tags the criterion has.
+  `item file --acceptance` takes the same `#tag` words.
 - **`item show`** prints the item with its body and one revision per edit, each with its time and
   the fields it set.
 - **`plan defer --until`** takes an ISO 8601 time with an offset, which the server checks.

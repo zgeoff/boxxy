@@ -1,6 +1,7 @@
 # The v1 rules file: four phases, two limits, five pools and the sleep times.
 version: 1
 concepts: [pool@2, defer@1, expedite@1] # pool@2 adds the filter field `designMode`
+criterionTags: [prod] # the only tags that an acceptance line may carry
 
 pipelines:
   standard:

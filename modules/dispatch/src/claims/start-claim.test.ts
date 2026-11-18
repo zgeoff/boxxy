@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
 import invariant from 'tiny-invariant';
+import { claimNextPick } from '../test-utils/claim-next-pick.ts';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
-import { claimNext } from './claim-next.ts';
 import { startClaim } from './start-claim.ts';
 
 async function setupTest() {
@@ -13,7 +13,7 @@ async function setupTest() {
     claimBuild: async () => {
       await dispatch.seedItem({ phase: brandSchemas.phaseName.parse('build') });
 
-      const claim = await claimNext({
+      const claim = await claimNextPick({
         store: dispatch.store,
         runner: dispatch.runner,
         rules: dispatch.rules(),
@@ -108,7 +108,7 @@ test('it settles a spawn refused for capacity as no-capacity, and holds the pool
   ]);
 
   expect([ctx.backoff.listHeld(inside), ctx.backoff.listHeld(atEnd)]).toStrictEqual([
-    [claim.attempt.pool],
+    claim.attempt.pool === null ? [] : [claim.attempt.pool],
     [],
   ]);
 });

@@ -11,6 +11,7 @@ import type { z } from 'zod';
 import { buildSchemaParser } from '../build-schema-parser.ts';
 import { buildCriteria } from '../utils/build-criteria.ts';
 import { buildCriterionTexts } from '../utils/build-criterion-texts.ts';
+import { collectCriterionTagProblems } from '../utils/collect-criterion-tag-problems.ts';
 import { collectOpenItemProblems } from '../utils/collect-open-item-problems.ts';
 import { collectRelationProblems } from '../utils/collect-relation-problems.ts';
 import { findStoppedReason } from '../utils/find-stopped-reason.ts';
@@ -65,6 +66,7 @@ function collectTriageProblems(closeOut: TriageCloseOut, ctx: CloseOutContext): 
     ...(kind !== undefined && !ctx.world.kinds.has(kind)
       ? [{ kind: 'unknown-kind' as const, itemKind: kind }]
       : []),
+    ...collectCriterionTagProblems(closeOut.set?.acceptance ?? [], ctx),
     ...collectOpenItemProblems(parts, ctx),
     ...duplicateOf
       .filter((item) => item === ctx.item.id)

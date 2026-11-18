@@ -1,5 +1,5 @@
 import invariant from 'tiny-invariant';
-import type { Edge, Pipeline } from '../rules/types.ts';
+import type { Edge, Pipeline, PipelineStep } from '../rules/types.ts';
 import { countTrailing } from './count-trailing.ts';
 import { findStep } from './find-step.ts';
 import type { Position, Settled } from './types.ts';
@@ -23,9 +23,7 @@ export function advance(input: AdvanceInput): Position {
   invariant(step !== undefined, 'the settled attempt must belong to a step of the pipeline');
 
   const round = input.round;
-
-  const edge: Edge | undefined =
-    input.settled.outcome === 'lost' ? 'again' : step.on[input.settled.outcome];
+  const edge: Edge | undefined = pickEdge(step, input.settled.outcome);
 
   if (edge === undefined) {
     // oxlint-disable-next-line unicorn/no-thenable -- `then` names the phase a hold resumes; the object is never awaited
@@ -75,4 +73,14 @@ export function advance(input: AdvanceInput): Position {
     ? // oxlint-disable-next-line unicorn/no-thenable -- `then` names the phase a hold resumes; the object is never awaited
       { kind: 'hold', reason: 'rounds used up', then: edge.to, round }
     : { kind: 'phase', phase: edge.to, round: round + 1 };
+}
+
+// A skipped attempt takes the step's `skip` edge; a rules change that dropped the edge leaves the
+// item on hold, as a dropped outcome does.
+function pickEdge(step: PipelineStep, outcome: string): Edge | undefined {
+  if (outcome === 'lost') {
+    return 'again';
+  }
+
+  return outcome === 'skipped' ? step.skip : step.on[outcome];
 }

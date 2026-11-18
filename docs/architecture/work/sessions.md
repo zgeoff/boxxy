@@ -17,6 +17,9 @@ when it binds the session to an attempt.
 
 ## The kept session
 
+A [skipped attempt](./attempts.md#skipped-attempts) has no session, so every session read, stop and
+forget passes over it.
+
 boxxy keeps the stopped session of a succeeded attempt on the item, so a later attempt can wake it
 and carry on where the agent left off. It keeps the session when:
 

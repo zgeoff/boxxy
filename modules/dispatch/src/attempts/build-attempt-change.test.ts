@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { contentHash } from '@boxxy/content-hash';
 import type { AttemptRow, AttemptState } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
@@ -144,7 +145,7 @@ test.each<MoveCase>([
           friction: [],
           frictionDropped: 0,
         },
-        hash: buildMockV1AttemptRow().spawnRequestHash,
+        hash: contentHash('hash'),
       },
       [
         {
@@ -506,7 +507,7 @@ test.each<[title: string, from: AttemptState, overrides: Partial<AttemptRow>, ev
         friction: [],
         frictionDropped: 0,
       },
-      hash: buildMockV1AttemptRow().spawnRequestHash,
+      hash: contentHash('hash'),
     },
   ],
   ['item-closed from sleeping', 'sleeping', {}, { kind: 'item-closed' }],
@@ -611,7 +612,7 @@ test('#buildAttemptChange claims a new attempt with its lease, seats and decisio
   const workers = brandSchemas.limitName.parse('workers');
   const recipeHash = brandSchemas.recipeHash.parse('c'.repeat(64));
   const rulesVersion = brandSchemas.rulesVersion.parse('a'.repeat(64));
-  const spawnRequestHash = buildMockV1AttemptRow().spawnRequestHash;
+  const spawnRequestHash = contentHash('hash');
 
   const decision = {
     item,
@@ -702,6 +703,7 @@ test('#buildAttemptChange claims a new attempt with its lease, seats and decisio
     actedAnswer: null,
     readAt: null,
     waitReason: null,
+    skipReason: null,
   };
 
   const decisionRow = {
@@ -885,7 +887,7 @@ test('#buildAttemptChange wakes over the cap with seats past the max under the n
       decision: {
         item: attempt.item,
         kind: 'wake',
-        pool: attempt.pool,
+        pool: brandSchemas.poolName.parse('build'),
         rulesVersion: attempt.rulesVersion,
         snapshotHash: brandSchemas.snapshotHash.parse('b'.repeat(64)),
         storeVersion: 7,
@@ -985,7 +987,7 @@ test.each<
         friction: [],
         frictionDropped: 0,
       },
-      hash: buildMockV1AttemptRow().spawnRequestHash,
+      hash: contentHash('hash'),
     },
     { kind: 'slept', idleSince: brandSchemas.instant.parse(3000), asked: true },
     'state',

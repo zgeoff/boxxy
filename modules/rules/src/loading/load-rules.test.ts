@@ -143,6 +143,7 @@ test('it loads the example rules file', () => {
           },
         ]),
       ),
+      criterionTags: ['prod'],
       sleep: {
         afterIdleMinutes: 30,
         afterQuietMinutes: 60,

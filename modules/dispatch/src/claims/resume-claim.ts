@@ -1,5 +1,6 @@
 import type { ActorRef, RunnerFault } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
+import invariant from 'tiny-invariant';
 import { writeAttemptMove } from '../attempts/write-attempt-move.ts';
 import { writeSessionBind } from '../attempts/write-session-bind.ts';
 import { timeouts } from '../timeouts.ts';
@@ -14,6 +15,8 @@ export async function resumeClaim(input: ResumeClaimInput): Promise<RunnerFault 
   const attempt = input.claim.attempt;
   const actor: ActorRef = `boxxy:runner:${attempt.runner}`;
   const base = { actor, now: input.now, newId: input.newId };
+
+  invariant(attempt.pool !== null, 'a woken attempt was picked into a pool');
 
   const outcome = await input.worker.resume(attempt);
 

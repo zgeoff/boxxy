@@ -7,6 +7,7 @@ import {
   toJSONValue,
 } from '@boxxy/model';
 import type { ItemView, ItemWithLevers, OutboxFact, StoreReader } from '@boxxy/model';
+import { sql } from 'kysely';
 import type { Kysely, Selectable } from 'kysely';
 import { parseJSONText } from '../codecs/parse-json-text.ts';
 import { parseStoreRow } from '../codecs/parse-store-row.ts';
@@ -77,7 +78,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         .selectAll()
         .where('item', '=', id)
         .orderBy('claimed_at')
-        .orderBy('id')
+        .orderBy(sql`rowid`)
         .execute();
 
       const relations = await db
@@ -213,7 +214,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         .selectAll()
         .where('item', '=', item)
         .orderBy('claimed_at')
-        .orderBy('id')
+        .orderBy(sql`rowid`)
         .execute();
 
       return rows.map((row) => parseStoreRow('attempts', row));
@@ -249,6 +250,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         .selectFrom('attempts')
         .selectAll()
         .where('state', '=', 'succeeded')
+        .where('worker', '!=', 'skip')
         .where('id', 'not in', linked)
         .orderBy('claimed_at')
         .orderBy('id')

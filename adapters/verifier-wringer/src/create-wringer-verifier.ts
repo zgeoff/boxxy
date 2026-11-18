@@ -42,6 +42,11 @@ function buildVerifyReading(
 ): VerifyReading {
   const parsed = parseReportComment(body);
 
+  // a verify step that skipped on the passed gate published no report
+  if (!parsed.ok && parsed.reason === 'none' && gate === 'success') {
+    return { status: 'verified', head, features: [] };
+  }
+
   if (!parsed.ok) {
     const note =
       parsed.reason === 'version-1'

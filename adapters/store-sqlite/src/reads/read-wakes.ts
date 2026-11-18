@@ -18,7 +18,7 @@ export async function readWakes(db: Kysely<StoreDatabase>): Promise<Wake[]> {
   return rows.flatMap((row) => {
     const attempt = parseStoreRow('attempts', row);
 
-    return attempt.wakeRequestedAt === null
+    return attempt.wakeRequestedAt === null || attempt.pool === null
       ? []
       : [
           {

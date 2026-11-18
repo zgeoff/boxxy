@@ -17,6 +17,7 @@ import type {
   AttemptRow,
   CapacityBackoff,
   ClaimStore,
+  Forge,
   Instant,
   ItemId,
   LoadedRules,
@@ -47,6 +48,9 @@ export interface TickDeps {
   readonly backoff: CapacityBackoff;
   readonly spawn: SpawnSettings;
   readonly notifier: Notifier;
+
+  // reads the checks of a `checkPassed` condition; null with no `github` section
+  readonly forge?: Forge | null;
 
   // one value for the whole tick
   readonly now: Instant;
@@ -83,6 +87,7 @@ export async function runTick(deps: TickDeps): Promise<TickReport> {
   return { claimed, read, strays, forgotten, notices };
 }
 
+// A skip that `claimNext` records writes its own attempt row and fact, so the loop only goes on.
 // The claim loop ends on three rules: `claimNext` gives no pick in a pool in backoff, it gives no
 // pick of an item that the tick claimed already, and an error ends the loop and not the tick.
 async function runClaimLoop(deps: TickDeps): Promise<number> {
@@ -91,7 +96,13 @@ async function runClaimLoop(deps: TickDeps): Promise<number> {
   const input = { ...deps, claimed };
 
   try {
-    for (let claim = await claimNext(input); claim !== null; claim = await claimNext(input)) {
+    for (let next = await claimNext(input); ; next = await claimNext(input)) {
+      const claim = next.pick;
+
+      if (claim === null) {
+        break;
+      }
+
       const shape = getWorkerShape(deps.workers, claim.attempt.worker);
 
       // a job starts nothing: the first reading moves it to running

@@ -106,6 +106,9 @@ export interface Criterion {
   readonly id: CriterionId;
   readonly text: string;
   readonly evidence: readonly FactId[];
+
+  // each one in the rules file's `criterionTags`; absent on a line with none
+  readonly tags?: readonly string[];
 }
 
 export type DesignMode = 'agent' | 'attended';
@@ -263,8 +266,12 @@ export type ForcedFailure =
 
 export type KnownFailure = ForcedFailure | 'closeout-missing' | 'closeout-unsettleable';
 
-// The engine's own outcomes. No phase kind may list either name.
-export type EngineOutcome = 'lost' | 'unsettleable';
+// The engine's own outcomes. No phase kind may list any of the names. `skipped` takes the step's
+// `skip` edge.
+export type EngineOutcome = 'lost' | 'unsettleable' | 'skipped';
+
+// Why a claim skipped a step: the first gate that said skip, and what it read.
+export type SkipReason = `no-criteria-tagged:${string}` | `check-passed:${string}`;
 
 // each field holds a list of values, never one string
 export type FieldValues = Readonly<Record<string, readonly string[]>>;
@@ -277,10 +284,12 @@ export interface AttemptRow {
   readonly runner: RunnerId;
   readonly recipeHash: RecipeHash;
   readonly rulesVersion: RulesVersion;
-  readonly pool: PoolName;
+
+  // null on a skipped attempt, with the spawn request and its hash
+  readonly pool: PoolName | null;
   readonly leaseGen: number;
-  readonly spawnRequest: JsonValue;
-  readonly spawnRequestHash: ContentHash;
+  readonly spawnRequest: JsonValue | null;
+  readonly spawnRequestHash: ContentHash | null;
   readonly state: AttemptState;
   readonly failure: string | null;
   readonly atcSession: AtcSessionId | null;
@@ -334,6 +343,9 @@ export interface AttemptRow {
   // the last read of a job that waited or acted, and the reason of its last wait
   readonly readAt: Instant | null;
   readonly waitReason: string | null;
+
+  // why a skipped attempt skipped; null on every other attempt
+  readonly skipReason: SkipReason | null;
 }
 
 export interface AttemptSessionRow {

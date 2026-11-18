@@ -1,4 +1,5 @@
 import type { AttemptRow, LimitName, StoreChange } from '@boxxy/model';
+import { brandSchemas } from '@boxxy/model';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
 
 // A claim that takes the lease and a seat in each named limit, and inserts the attempt as given.
@@ -39,7 +40,7 @@ export function buildMockClaimChange(
           number: attempt.number,
           round: attempt.round,
           mode: attempt.mode,
-          pool: attempt.pool,
+          pool: attempt.pool ?? brandSchemas.poolName.parse('build'),
           fields: attempt.fields,
           seats: limits.map((limit) => ({ limit })),
           recipeHash: attempt.recipeHash,

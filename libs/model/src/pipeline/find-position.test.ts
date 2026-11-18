@@ -460,3 +460,104 @@ test('it handles a rules change where an item whose kind changed goes on from th
 
   expect(position).toStrictEqual({ kind: 'phase', phase: 'build', round: 1 });
 });
+
+test.each([
+  ['next', 'next' as const, { kind: 'phase', phase: 'review', round: 1 }],
+  ['an end', { end: 'merged' }, { kind: 'end', reason: 'merged' }],
+])('it takes the skip edge %s after a skipped attempt', (_label, skip, expected) => {
+  const position: unknown = findPosition({
+    pipeline: buildMockPipeline({ steps: { build: { skip } } }),
+    attempts: [
+      buildMockSettled({ phase: 'triage', outcome: 'accepted', endedAt: 1000 }),
+      buildMockSettled({ phase: 'design', outcome: 'designed', endedAt: 2000 }),
+      buildMockSettled({ phase: 'build', outcome: 'skipped', endedAt: 3000 }),
+    ],
+    retries: [],
+  });
+
+  expect(position).toStrictEqual(expected);
+});
+
+test('it holds with the skip edge reason after a skipped attempt', () => {
+  const position: unknown = findPosition({
+    pipeline: buildMockPipeline({
+      steps: { build: { skip: { hold: brandSchemas.rulesHoldReason.parse('no-live-check') } } },
+    }),
+    attempts: [buildMockSettled({ phase: 'build', outcome: 'skipped', endedAt: 1000 })],
+    retries: [],
+  });
+
+  expect(position).toStrictEqual({
+    kind: 'hold',
+    reason: 'no-live-check',
+    // oxlint-disable-next-line unicorn/no-thenable -- `then` names the phase a hold resumes; the object is never awaited
+    then: 'build',
+    round: 1,
+  });
+});
+
+test('it holds the item when a skipped attempt finds its step without a skip edge', () => {
+  const position: unknown = findPosition({
+    pipeline: buildMockPipeline(),
+    attempts: [buildMockSettled({ phase: 'build', outcome: 'skipped', endedAt: 1000 })],
+    retries: [],
+  });
+
+  expect(position).toStrictEqual({
+    kind: 'hold',
+    reason: 'outcome not in rules',
+    // oxlint-disable-next-line unicorn/no-thenable -- `then` names the phase a hold resumes; the object is never awaited
+    then: 'build',
+    round: 1,
+  });
+});
+
+test('it passes a skipped step when a retry lever carries the instant of the skip', () => {
+  const position: unknown = findPosition({
+    pipeline: buildMockPipeline({ steps: { build: { skip: 'next' } } }),
+    attempts: [
+      buildMockSettled({ phase: 'triage', outcome: 'accepted', endedAt: 500 }),
+      buildMockSettled({ phase: 'design', outcome: 'designed', endedAt: 600 }),
+      buildMockSettled({ phase: 'build', outcome: 'skipped', endedAt: 1000 }),
+    ],
+    retries: [
+      { at: brandSchemas.instant.parse(1000), phase: brandSchemas.phaseName.parse('build') },
+    ],
+  });
+
+  expect(position).toStrictEqual({ kind: 'phase', phase: 'review', round: 2 });
+});
+
+test('it passes a skipped step when a retry lever is stamped after the instant of the read', () => {
+  const position: unknown = findPosition({
+    pipeline: buildMockPipeline({ steps: { build: { skip: 'next' } } }),
+    attempts: [
+      buildMockSettled({ phase: 'triage', outcome: 'accepted', endedAt: 500 }),
+      buildMockSettled({ phase: 'design', outcome: 'designed', endedAt: 600 }),
+      buildMockSettled({ phase: 'build', outcome: 'skipped', endedAt: 1000 }),
+    ],
+    retries: [
+      { at: brandSchemas.instant.parse(1001), phase: brandSchemas.phaseName.parse('build') },
+    ],
+    now: brandSchemas.instant.parse(1000),
+  });
+
+  expect(position).toStrictEqual({ kind: 'phase', phase: 'review', round: 1 });
+});
+
+test('it sends the item back to the skipped step when a retry lever is stamped by the instant of the read', () => {
+  const position: unknown = findPosition({
+    pipeline: buildMockPipeline({ steps: { build: { skip: 'next' } } }),
+    attempts: [
+      buildMockSettled({ phase: 'triage', outcome: 'accepted', endedAt: 500 }),
+      buildMockSettled({ phase: 'design', outcome: 'designed', endedAt: 600 }),
+      buildMockSettled({ phase: 'build', outcome: 'skipped', endedAt: 1000 }),
+    ],
+    retries: [
+      { at: brandSchemas.instant.parse(1001), phase: brandSchemas.phaseName.parse('build') },
+    ],
+    now: brandSchemas.instant.parse(1001),
+  });
+
+  expect(position).toStrictEqual({ kind: 'phase', phase: 'build', round: 2 });
+});

@@ -4,7 +4,7 @@ import { brandSchemas, toJSONValue } from '@boxxy/model';
 import { buildMockMergeAction } from '@boxxy/model/test-utils/build-mock-merge-action';
 import { buildMockMergeCloseOut } from '@boxxy/model/test-utils/build-mock-merge-close-out';
 import invariant from 'tiny-invariant';
-import { claimNext } from '../claims/claim-next.ts';
+import { claimNextPick } from '../test-utils/claim-next-pick.ts';
 import { createFakeJob } from '../test-utils/create-fake-job.ts';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
 import { loadJobRules } from '../test-utils/load-job-rules.ts';
@@ -33,7 +33,7 @@ async function setupTest() {
     claimMerge: async () => {
       const item = await dispatch.seedItem({ phase: brandSchemas.phaseName.parse('merge') });
 
-      const claim = await claimNext({
+      const claim = await claimNextPick({
         store: dispatch.store,
         runner: dispatch.runner,
         rules,

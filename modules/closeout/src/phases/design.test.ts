@@ -21,7 +21,12 @@ test('it accepts a designed close-out with the design text and the place of the 
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: null,
   });
 
@@ -40,7 +45,12 @@ test('it returns both problems of a blocked close-out with no reason and a bad f
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: null,
   });
 
@@ -199,6 +209,7 @@ test('it returns the problems of open item links that name an unknown key, a rep
       items: new Set([item.id]),
       kinds: new Set([brandSchemas.itemKindName.parse('core.issue')]),
       relationTypes: new Set([brandSchemas.relationTypeName.parse('blocks')]),
+      criterionTags: new Set(),
     },
     input: null,
   });
@@ -240,6 +251,7 @@ test('it returns the relation problems of a blocked close-out', () => {
       items: new Set([item.id]),
       kinds: new Set(),
       relationTypes: new Set([brandSchemas.relationTypeName.parse('blocks')]),
+      criterionTags: new Set(),
     },
     input: null,
   });
@@ -270,7 +282,12 @@ test('it refuses relations with an abandoned design', () => {
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: null,
   });
 
@@ -386,4 +403,61 @@ test.each<[string, (DesignCloseOut['result'] | null)[], string | null]>([
 test('it gives the agent a close-out schema that names the design text', () => {
   expect(JSON.stringify(design.closeOut.jsonSchema)).toContain('"text"');
   expect(JSON.stringify(design.closeOut.jsonSchema)).not.toContain('"summary"');
+});
+
+test('it refuses a design close-out whose acceptance list holds a tag the rules file does not list', () => {
+  const item = buildMockV1ItemView();
+
+  const raw = {
+    result: {
+      kind: 'designed',
+      design: { text: 'Retry once', location: null },
+      set: { acceptance: [{ text: 'The page loads', tags: ['smoke'] }] },
+    },
+    friction: [],
+  };
+
+  const parsed: unknown = design.closeOut.parse(raw, {
+    item,
+    attempt: buildMockV1AttemptRow().id,
+    evidence: [],
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(['prod']),
+    },
+    input: null,
+  });
+
+  expect(parsed).toStrictEqual({
+    kind: 'invalid',
+    problems: [{ kind: 'unknown-criterion-tag', tag: 'smoke' }],
+  });
+});
+
+test('it gives the design input the tags of each acceptance line', () => {
+  const item = buildMockV1ItemView({
+    acceptance: [
+      {
+        id: brandSchemas.criterionId.parse('a1'),
+        text: 'The page loads',
+        evidence: [],
+        tags: ['prod'],
+      },
+    ],
+  });
+
+  const input: unknown = design.input({
+    item,
+    attempt: buildMockV1AttemptRow().id,
+    history: [],
+    retries: [],
+    pullRequests: [],
+    session: null,
+  });
+
+  expect(input).toMatchObject({
+    acceptance: [{ id: 'a1', text: 'The page loads', tags: ['prod'] }],
+  });
 });

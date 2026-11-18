@@ -33,6 +33,7 @@ import type {
   RulesVersion,
   RunnerId,
   SessionMode,
+  SkipReason,
   WorkerKindName,
 } from '../types.ts';
 
@@ -150,6 +151,16 @@ export interface WorkFacts {
     readonly caller: CallerIdentity | null;
   };
   'boxxy.attempt.spawn_unanswered': OfAttempt & { readonly reason: string };
+
+  // A claim that skipped a step: the attempt row it wrote has no session, and no other fact
+  // follows it.
+  'boxxy.attempt.skipped': {
+    readonly attemptId: AttemptId;
+    readonly itemId: ItemId;
+    readonly phase: PhaseName;
+    readonly round: number;
+    readonly reason: SkipReason;
+  };
   'boxxy.attempt.reconciled': OfAttempt & {
     readonly atcSession: AtcSessionId;
     readonly resumeFallback: boolean;

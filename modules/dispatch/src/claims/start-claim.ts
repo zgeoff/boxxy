@@ -1,5 +1,6 @@
 import type { ActorRef, RunnerFault, StartOutcome } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
+import invariant from 'tiny-invariant';
 import { match } from 'ts-pattern';
 import { writeAttemptMove } from '../attempts/write-attempt-move.ts';
 import { settleAttempt } from '../closeouts/settle-attempt.ts';
@@ -18,6 +19,10 @@ export async function startClaim(input: StartClaimInput): Promise<RunnerFault | 
   const actor: ActorRef = `boxxy:runner:${attempt.runner}`;
   const base = { actor, now: input.now, newId: input.newId };
   const pick = input.claim.kept;
+
+  invariant(attempt.pool !== null, 'a started attempt was picked into a pool');
+
+  const pool = attempt.pool;
   const kept = pick.kind === 'kept' ? pick.session : null;
 
   // a claim that wants a kept session and finds none starts fresh, as a fallback
@@ -62,7 +67,7 @@ export async function startClaim(input: StartClaimInput): Promise<RunnerFault | 
     .with({ kind: 'refused' }, async (refused) => {
       if (refused.cause === 'capacity') {
         input.backoff.hold(
-          attempt.pool,
+          pool,
           brandSchemas.instant.parse(input.now + timeouts.capacityBackoffSeconds * secondMs),
         );
       }

@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { claimNext } from '@boxxy/dispatch';
+import { claimNextPick } from '@boxxy/dispatch/test-utils/claim-next-pick';
 import { createTestDispatch } from '@boxxy/dispatch/test-utils/create-test-dispatch';
 import type { ItemId } from '@boxxy/model';
 import { createSQLiteClaimStore } from '../create-sqlite-claim-store.ts';
@@ -45,7 +45,7 @@ export async function createClaimBench(options: ClaimBenchOptions): Promise<Clai
 
   return {
     claim: async () => {
-      const claim = await claimNext({
+      const claim = await claimNextPick({
         store,
         runner: dispatch.runner,
         rules: dispatch.rules(),

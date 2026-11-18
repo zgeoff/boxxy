@@ -19,6 +19,7 @@ import type {
   RelationType,
   RelationTypeName,
   RulesVersion,
+  SkipCondition,
   SpawnScope,
   WorkerKindName,
 } from '@boxxy/model';
@@ -36,6 +37,7 @@ import { resolveSignalRef } from '../registry/resolve-signal-ref.ts';
 import type { Checked, PinnedConcept, ResolvedSignal } from '../types.ts';
 import { buildRejection } from './build-rejection.ts';
 import { collectFilterRejections } from './collect-filter-rejections.ts';
+import { collectGateRejections } from './collect-gate-rejections.ts';
 import { collectMergeRejections } from './collect-merge-rejections.ts';
 import { collectRecipeRejections } from './collect-recipe-rejections.ts';
 import { collectScopeRejections } from './collect-scope-rejections.ts';
@@ -120,6 +122,7 @@ function buildLoadResult(
     ...[...signals, ...gates].flatMap((checked) => checked.rejections),
     ...collectPropagationRejections(file, propagation),
     ...collectStepRejections(file, phases, input.workers),
+    ...collectGateRejections(file),
     ...collectMergeRejections(file),
     ...collectRecipeRejections(file),
     ...collectScopeRejections(file, input.spawn ?? { agents: {}, phases: {}, repos: [] }),
@@ -183,6 +186,7 @@ function buildLoadResult(
         ]),
       ),
       sleep: file.sleep,
+      criterionTags: file.criterionTags,
       skills: file.skills ?? null,
       merge: file.merge ?? null,
       relationTypes: new Map(
@@ -402,5 +406,16 @@ function buildStep(step: ParsedStep): PipelineStep {
     maxAttempts: step.maxAttempts,
     timeoutMinutes: step.timeoutMinutes,
     on: step.on,
+    ...(step.criteria === undefined ? {} : { criteria: step.criteria }),
+    ...(step.skipWhen === undefined ? {} : { skipWhen: step.skipWhen.map(toSkipCondition) }),
+    ...(step.skip === undefined ? {} : { skip: step.skip }),
   };
+}
+
+function toSkipCondition(condition: Readonly<Record<string, unknown>>): SkipCondition {
+  const check = condition['checkPassed'];
+
+  invariant(typeof check === 'string', 'the loader refuses a skip condition it does not read');
+
+  return { checkPassed: check };
 }

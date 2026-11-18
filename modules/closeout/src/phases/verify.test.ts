@@ -74,7 +74,12 @@ test('it copies the grader from the attempt input into the close-out', () => {
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
-    world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+    world: {
+      items: new Set([item.id]),
+      kinds: new Set(),
+      relationTypes: new Set(),
+      criterionTags: new Set(),
+    },
     input: { pullRequest: null, head: null, session: 'builder' },
   });
 
@@ -98,7 +103,12 @@ test('it rejects a close-out that names its own grader', () => {
       item,
       attempt: buildMockV1AttemptRow().id,
       evidence: [],
-      world: { items: new Set([item.id]), kinds: new Set(), relationTypes: new Set() },
+      world: {
+        items: new Set([item.id]),
+        kinds: new Set(),
+        relationTypes: new Set(),
+        criterionTags: new Set(),
+      },
       input: { pullRequest: null, head: null, session: 'fresh' },
     },
   );

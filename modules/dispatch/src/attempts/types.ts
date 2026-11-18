@@ -106,7 +106,7 @@ export type AttemptFactType = Exclude<
     FactType,
     `boxxy.attempt.${string}` | 'boxxy.decision.recorded' | `boxxy.merge.${string}`
   >,
-  'boxxy.attempt.turn_ended'
+  'boxxy.attempt.turn_ended' | 'boxxy.attempt.skipped'
 >;
 
 // One row of the table of moves.

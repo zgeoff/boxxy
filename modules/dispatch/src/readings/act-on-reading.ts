@@ -219,6 +219,8 @@ function runAction(
       const moved = await writeMove({ kind: 'usage-limited' });
 
       if (moved.kind === 'applied') {
+        invariant(input.attempt.pool !== null, 'a live attempt was picked into a pool');
+
         input.backoff.hold(input.attempt.pool, brandSchemas.instant.parse(until));
       }
     })
@@ -373,6 +375,9 @@ async function writeWakeOverCap(tx: StoreTx, input: ActOnReadingInput, base: Mov
   const row = await tx.readAttempt(input.attempt.id);
 
   invariant(row !== null, `the runner read a stored attempt: ${input.attempt.id}`);
+  invariant(row.pool !== null, 'a woken attempt was picked into a pool');
+
+  const pool = row.pool;
 
   const limits = await tx.listLimits();
 
@@ -389,7 +394,7 @@ async function writeWakeOverCap(tx: StoreTx, input: ActOnReadingInput, base: Mov
       decision: {
         item: row.item,
         kind: 'wake',
-        pool: row.pool,
+        pool,
         rulesVersion: input.rules.version,
         snapshotHash: buildSnapshotHash(snapshot, input.backoff.listHeld(input.now)),
         storeVersion: snapshot.storeVersion,

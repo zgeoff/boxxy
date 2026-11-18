@@ -416,3 +416,11 @@ test('it ends the last sleep at the settle of an attempt that settled asleep, an
     ],
   ]);
 });
+
+test('it folds no attempt row for a skipped attempt', () => {
+  const scenario = buildMockItemFacts();
+  const skipped = buildMockScopeFact('boxxy.attempt.skipped');
+  const withSkip = foldWorkFacts([...scenario.facts, skipped]);
+
+  expect(withSkip).toStrictEqual(foldWorkFacts(scenario.facts));
+});

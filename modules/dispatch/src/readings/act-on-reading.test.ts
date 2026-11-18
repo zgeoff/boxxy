@@ -4,11 +4,11 @@ import { brandSchemas } from '@boxxy/model';
 import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
 import { buildMockPhaseKind } from '@boxxy/model/test-utils/build-mock-phase-kind';
 import invariant from 'tiny-invariant';
-import { claimNext } from '../claims/claim-next.ts';
 import { requestWake } from '../claims/request-wake.ts';
 import { resumeClaim } from '../claims/resume-claim.ts';
 import { closeOutAttempt } from '../closeouts/close-out-attempt.ts';
 import { forgetSessions } from '../sessions/forget-sessions.ts';
+import { claimNextPick } from '../test-utils/claim-next-pick.ts';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
 import { loadVerifyRules } from '../test-utils/load-verify-rules.ts';
 import { actOnReading } from './act-on-reading.ts';
@@ -157,8 +157,8 @@ test.each([
     const atEnd = brandSchemas.instant.parse(now + heldMinutes * 60_000);
 
     const held = [
-      ctx.backoff.listHeld(before).includes(attempt.pool),
-      ctx.backoff.listHeld(atEnd).includes(attempt.pool),
+      ctx.backoff.listHeld(before).some((pool) => pool === attempt.pool),
+      ctx.backoff.listHeld(atEnd).some((pool) => pool === attempt.pool),
     ];
 
     expect([after.state, after.closing]).toStrictEqual(['closing', 'usage-limit']);
@@ -567,7 +567,7 @@ test('it discards a settle that the table picked before the session resumed', as
   await ctx.tick();
   await ctx.wake(attempt.item);
 
-  const claim = await claimNext({
+  const claim = await claimNextPick({
     store: ctx.store,
     runner: ctx.runner,
     rules: ctx.rules(),
@@ -687,7 +687,7 @@ test('it returns a respawn that the worker refused, with its reason', async () =
   const ctx = await setupTest();
   const item = await ctx.seedItem({ phase: brandSchemas.phaseName.parse('build') });
 
-  const claim = await claimNext({
+  const claim = await claimNextPick({
     store: ctx.store,
     runner: ctx.runner,
     rules: ctx.rules(),
@@ -740,7 +740,7 @@ test('it respawns with the git source and the key that the claim stored', async 
   const repo = brandSchemas.repoName.parse('example/app');
   const source = { url: 'https://git.example.test/example/app.git', ref: 'main' };
 
-  const claim = await claimNext({
+  const claim = await claimNextPick({
     store: ctx.store,
     runner: ctx.runner,
     rules: ctx.rules(),

@@ -257,6 +257,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
         backoff,
         spawn: buildSpawnSettings(config, holder.texts()),
         notifier,
+        forge,
         now: clock.now(),
         newId,
         readings,

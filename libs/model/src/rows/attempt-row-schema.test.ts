@@ -47,6 +47,7 @@ test('it accepts a sleeping attended design attempt with its close-out', () => {
     actedAnswer: null,
     readAt: null,
     waitReason: null,
+    skipReason: null,
   };
 
   const parsed: unknown = attemptRowSchema.safeParse(row).data;
@@ -100,6 +101,7 @@ test('it accepts a running merge job with the answer to its merge request', () =
     actedAnswer: { kind: 'not-mergeable', reason: 'a ruleset blocks the merge' },
     readAt: 3000,
     waitReason: 'checks pending',
+    skipReason: null,
   };
 
   const parsed: unknown = attemptRowSchema.safeParse(row).data;
@@ -111,4 +113,58 @@ test('it rejects an attempt in a state the store never writes', () => {
   expect(attemptRowSchema.safeParse({ state: 'paused' }).error?.issues).toPartiallyContain({
     path: ['state'],
   });
+});
+
+test('it accepts a skipped attempt with no pool, spawn request or session', () => {
+  const row = {
+    id: '0192f0c5-1a2b-7c3d-8e4f-5a6b7c8d9e0f',
+    item: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77',
+    phase: 'verify',
+    number: 1,
+    runner: 'runner-1',
+    recipeHash: 'a'.repeat(64),
+    rulesVersion: 'b'.repeat(64),
+    pool: null,
+    leaseGen: 0,
+    spawnRequest: null,
+    spawnRequestHash: null,
+    state: 'succeeded',
+    failure: null,
+    atcSession: null,
+    caller: null,
+    claimedAt: 1000,
+    startedAt: null,
+    endedAt: 1000,
+    fields: {},
+    mode: 'agent',
+    round: 1,
+    input: null,
+    holdGen: 1,
+    closeOut: null,
+    closeOutHash: null,
+    closeOutFact: null,
+    closing: null,
+    closingAt: null,
+    suspendRequestedAt: null,
+    sleptAt: null,
+    wakeRequestedAt: null,
+    wokenAt: null,
+    outcome: 'skipped',
+    returnedOutcome: null,
+    refusal: null,
+    strayedAt: null,
+    sessionStoppedAt: null,
+    sessionForgottenAt: null,
+    worker: 'skip',
+    actedAt: null,
+    actedHead: null,
+    actedAnswer: null,
+    readAt: null,
+    waitReason: null,
+    skipReason: 'no-criteria-tagged:prod',
+  };
+
+  const parsed: unknown = attemptRowSchema.safeParse(row).data;
+
+  expect(parsed).toStrictEqual(row);
 });
