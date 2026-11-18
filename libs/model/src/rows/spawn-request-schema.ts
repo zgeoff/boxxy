@@ -72,11 +72,13 @@ export function parseStoredSpawnRequest(
   stored: JsonValue,
   attempt: StoredSpawnOwner,
 ): SpawnRequest {
-  if (typeof stored !== 'object' || stored === null || Array.isArray(stored)) {
+  const fields = z.record(z.string(), z.unknown()).safeParse(stored);
+
+  if (!fields.success) {
     return spawnRequestSchema.parse(stored);
   }
 
-  return spawnRequestSchema.parse({ repo: attempt.repo, phase: attempt.phase, ...stored });
+  return spawnRequestSchema.parse({ repo: attempt.repo, phase: attempt.phase, ...fields.data });
 }
 
 function isURLWithoutCredential(url: string): boolean {
