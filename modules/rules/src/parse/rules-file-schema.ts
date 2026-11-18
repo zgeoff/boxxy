@@ -47,8 +47,26 @@ const stepSchema = z.strictObject({
   on: z.record(nameSchema, edgeSchema),
   criteria: z.strictObject({ tagged: nameSchema }).exactOptional(),
   skipWhen: z.array(skipConditionSchema).exactOptional(),
+  waits: z.array(nameSchema).min(1).exactOptional(),
   skip: skipEdgeSchema.exactOptional(),
 });
+
+const deployTagSchema = z.strictObject({ tag: nameSchema });
+const releaseSchema = z.strictObject({ prerelease: z.boolean().exactOptional() });
+const deploySchema = z.strictObject({ repo: brandSchemas.repoName, tag: nameSchema });
+
+// how a repo's merged code ships; a repo with no entry ships `none`
+const shipRuleSchema = z.union([
+  z.literal('none'),
+  z.strictObject({ 'deploy-tag': deployTagSchema }),
+  z.strictObject({
+    release: releaseSchema,
+    // oxlint-disable-next-line unicorn/no-thenable -- `then` is the rules file's key for the deploy step of a release
+    then: deploySchema.exactOptional(),
+  }),
+]);
+
+const repoSchema = z.strictObject({ ships: shipRuleSchema.default('none') });
 
 const kindSchema = z.strictObject({
   pipeline: brandSchemas.pipelineName,
@@ -117,6 +135,7 @@ export const rulesFileSchema = z
     version: z.literal(1),
     concepts: z.array(conceptEntrySchema),
     criterionTags: z.array(nameSchema).default([]),
+    repos: z.record(brandSchemas.repoName, repoSchema).default({}),
     pipelines: z.record(brandSchemas.pipelineName, z.array(stepSchema).min(1)),
     kinds: z.record(brandSchemas.itemKindName, kindSchema),
     skills: skillsPinSchema.optional(),

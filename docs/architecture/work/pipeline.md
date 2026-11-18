@@ -10,8 +10,9 @@ or a launch prompt.
 
 [Attempts](./attempts.md) covers one try at one phase. [Agent sessions](./sessions.md) covers the
 session an attempt runs in, and capacity. [Notices](./notices.md) covers how a hold reaches the
-owner. The [review, verify and merge design](../../design/boxxy/review-and-merge.md) owns the steps
-after a build. The [overview](../overview.md#terms) defines the shared terms.
+owner. The [ship watch](./ship-watch.md) covers the steps that wait for a merge to ship. The
+[review, verify and merge design](../../design/boxxy/review-and-merge.md) owns the steps after a
+build. The [overview](../overview.md#terms) defines the shared terms.
 
 ## Phases and edges
 
@@ -58,9 +59,13 @@ gate that says skip settles the step as skipped, with no session, pool, seat or 
 | ----------------------------------- | -------------------------------------------------------------------------------- | -------------------------- |
 | `criteria: { tagged: t }`           | no acceptance line of the item carries the tag `t`                               | `no-criteria-tagged:<tag>` |
 | `skipWhen: [{ checkPassed: name }]` | the latest run of the check `name` at the head of the item's pull request passed | `check-passed:<name>`      |
+| `waits: [kind]`                     | a [wait kind](./ship-watch.md#the-shipped-wait) the server registers says `skip` | `wait-skip:<kind>`         |
 
-The claim checks `criteria` first, then `skipWhen`, and any one true condition of `skipWhen` skips.
-A step with `criteria` runs on the matching lines alone: the phase input and the launch prompt's
+The claim checks `criteria` first, then `skipWhen`, then `waits`, and any one true condition of
+`skipWhen` skips. A wait that says `waiting` leaves the item where it is, and the item's state is
+`waiting` with the reason `wait:<kind>`. A wait that says `holds` leaves the step to run. The caller
+of the state code runs each wait and passes the answers in, so the state code names no wait kind. A
+step with `criteria` runs on the matching lines alone: the phase input and the launch prompt's
 `acceptance` list only the lines with the tag, and so does the close-out check of its attempt. An
 item with an empty acceptance list, which reads as an idea and which no step takes, has no tagged
 line, so a `criteria` gate skips its step. The tags an acceptance line may carry are the rules
@@ -76,8 +81,10 @@ bring it back: `boxxy item retry <item> --phase <phase>` does. A claim that find
 or an item whose repo is missing from `spawn.repos`, records no skip. With no GitHub forge
 configured a `checkPassed` condition never skips, and a forge error reads as not passed.
 
-The loader refuses a gate with no `skip` edge, a condition it doesn't know, a `criteria.tagged` tag
-that `criterionTags` doesn't list, and a `skip` hold that uses an engine hold reason.
+The loader refuses a gate or a wait with no `skip` edge, a condition or a wait kind it doesn't know,
+a wait whose `after` outcome no earlier step's phase kind has, a `criteria.tagged` tag that
+`criterionTags` doesn't list, and a `skip` hold that uses an engine hold reason. The rules file's
+`repos` section sets how each repo ships, which the [ship watch](./ship-watch.md) reads.
 
 The loader refuses a step that leaves out an outcome of its phase kind, or adds one the kind lacks,
 so every outcome has an edge. It also refuses a step with no time limit, and a phase kind this
@@ -267,6 +274,7 @@ requests and relations. The first row that matches wins:
 | `done`     | its position is an end, and a pull request linked to a succeeded build has merged                                          |
 | `waiting`  | its position is an end and nothing merged: `pull request open`, `no pull request linked` or `pull request closed unmerged` |
 | `idea`     | its phase needs an acceptance list and it has none                                                                         |
+| `waiting`  | its step has a [wait](./ship-watch.md#the-shipped-wait) that says waiting, with the reason `wait:<kind>`                   |
 | `blocked`  | an item that `blocks` it is neither done nor archived                                                                      |
 | `ready`    | anything else                                                                                                              |
 

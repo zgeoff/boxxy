@@ -6,6 +6,7 @@ import {
   createNullNotifier,
   outboxLimits,
   watchPullRequests,
+  watchShips,
 } from '@boxxy/dispatch';
 import type { SpawnSettings } from '@boxxy/dispatch';
 import { createGithubAppAuth, createGithubForge } from '@boxxy/forge-github';
@@ -15,6 +16,8 @@ import type {
   ClaimStore,
   Forge,
   GitSource,
+  Instant,
+  ItemId,
   Notifier,
   SessionReading,
   WorkerKindName,
@@ -86,9 +89,11 @@ export type StartAnswer =
 const tickMs = 5000;
 const atcTimeoutMs = 30_000;
 const watchMs = 5 * 60 * 1000;
+const shipWatchMs = 5 * 60 * 1000;
 
 // Reads the configuration and the secrets, loads the rules, opens the store, builds the adapters,
-// starts both listeners, the runner tick, the pull request watch and the outbox sender.
+// starts both listeners, the runner tick, the pull request watch, the ship watch and the outbox
+// sender.
 export async function startServer(input: StartServerInput): Promise<StartAnswer> {
   const configPath = input.env['BOXXY_CONFIG'] ?? '';
 
@@ -293,6 +298,33 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
           log: input.log,
         });
 
+  // reads GitHub for each item that waits on `shipped`, and runs while the runner is paused
+  const shipChecks = new Map<ItemId, Instant>();
+
+  const shipWatch =
+    forge === null
+      ? null
+      : startTickLoop({
+          runOnce: async () => {
+            await watchShips({
+              store,
+              forge,
+              rules: holder.state().rules,
+              runner,
+              now: clock.now(),
+              newId,
+              lastChecked: shipChecks,
+              spawnRepos: deps.repos,
+              warn: (message, detail) => {
+                input.log.warn(message, { ...detail });
+              },
+            });
+          },
+          intervalMs: shipWatchMs,
+          failureMessage: 'the ship watch failed',
+          log: input.log,
+        });
+
   return {
     kind: 'started',
     server: {
@@ -302,6 +334,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
       stop: async () => {
         await ticks.stop();
         await watch?.stop();
+        await shipWatch?.stop();
         await pepys?.sender.stop();
         await owner.stop();
         await workerListener.stop();

@@ -9,6 +9,7 @@ import type {
   ItemRow,
   ItemRules,
   ItemSetRows,
+  ItemShipped,
   ItemView,
   ItemWithLevers,
   OutboxFact,
@@ -77,6 +78,7 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
         pullRequests: sortPullRequests(
           tables.pull_requests.filter((row) => attemptIds.has(row.attempt)),
         ),
+        shipped: sortShipped(tables.item_shipped.filter((row) => row.itemId === id)),
         notes: tables.notes
           .filter((note) => note.item === id)
           .toSorted((first, second) => first.seq - second.seq),
@@ -242,6 +244,8 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
         ),
       );
     },
+    listShipped: (item) =>
+      Promise.resolve(sortShipped(getTables().item_shipped.filter((row) => row.itemId === item))),
     listItemNotes: (item) =>
       Promise.resolve(
         getTables()
@@ -339,6 +343,7 @@ function toItemSetRows(tables: MemoryTables): ItemSetRows {
     attempts: sortAttempts(tables.attempts),
     liveLeases: tables.leases.filter((lease) => lease.releasedAt === null),
     pullRequests: tables.pull_requests,
+    shipped: tables.item_shipped,
   };
 }
 
@@ -401,6 +406,12 @@ function sortEvidence(rows: readonly EvidenceRow[]): EvidenceRow[] {
 function sortPullRequests(rows: readonly PullRequestRow[]): PullRequestRow[] {
   return rows.toSorted(
     (first, second) => compareText(first.repo, second.repo) || first.number - second.number,
+  );
+}
+
+function sortShipped(rows: readonly ItemShipped[]): ItemShipped[] {
+  return rows.toSorted(
+    (first, second) => first.seenAt - second.seenAt || compareText(first.commit, second.commit),
   );
 }
 

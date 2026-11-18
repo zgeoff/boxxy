@@ -5,6 +5,7 @@ import { attemptSessionRowSchema } from './attempt-session-row-schema.ts';
 import { decisionRowSchema } from './decision-row-schema.ts';
 import { evidenceRowSchema } from './evidence-row-schema.ts';
 import { itemRowSchema } from './item-row-schema.ts';
+import { itemShippedRowSchema } from './item-shipped-row-schema.ts';
 import { leaseRowSchema } from './lease-row-schema.ts';
 import { leverRowSchema } from './lever-row-schema.ts';
 import { noteRowSchema } from './note-row-schema.ts';
@@ -27,4 +28,5 @@ export const rowSchemas: { readonly [T in TableName]: z.ZodType<Tables[T]> } = {
   runners: runnerRowSchema,
   notes: noteRowSchema,
   notices: noticeRowSchema,
+  item_shipped: itemShippedRowSchema,
 };

@@ -67,3 +67,7 @@ export type {
 } from './pull-requests/types.ts';
 
 export { watchPullRequests } from './pull-requests/watch-pull-requests.ts';
+export { createShippedWaitKind } from './ships/create-shipped-wait-kind.ts';
+export { shipWatchLimits } from './ships/constants.ts';
+export type { WatchShipsInput } from './ships/types.ts';
+export { watchShips } from './ships/watch-ships.ts';

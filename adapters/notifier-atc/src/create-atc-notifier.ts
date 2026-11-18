@@ -1,10 +1,11 @@
-import type { HoldNotice, NoticeOutcome, Notifier, PausedNotice } from '@boxxy/model';
+import type { HoldNotice, NoticeOutcome, Notifier, NotifyNotice, PausedNotice } from '@boxxy/model';
 import type { AtcNotifierOptions } from './types.ts';
 
 export function createAtcNotifier(options: AtcNotifierOptions): Notifier {
   return {
     tellHold: (notice) => sendMessage(options, formatHoldMessage(notice), notice.key),
     tellPaused: (notice) => sendMessage(options, formatPausedMessage(notice), notice.key),
+    tellNotify: (notice) => sendMessage(options, formatNotifyMessage(notice), notice.key),
   };
 }
 
@@ -87,5 +88,12 @@ function formatPausedMessage(notice: PausedNotice): string {
     `The boxxy runner has been paused for ${hours} hours, by ${notice.pausedBy}. ${ready} ready to claim.`,
     `Reason: ${notice.reason ?? 'none given'}.`,
     'Run `boxxy runner resume` to start claiming again.',
+  ].join('\n');
+}
+
+function formatNotifyMessage(notice: NotifyNotice): string {
+  return [
+    `boxxy ended the ${notice.phase} step of ${notice.item} with no session: ${notice.reason}.`,
+    `Read the item with \`boxxy item show ${notice.item}\`.`,
   ].join('\n');
 }

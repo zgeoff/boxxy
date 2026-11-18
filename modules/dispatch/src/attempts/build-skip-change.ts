@@ -27,6 +27,9 @@ interface BuildSkipChangeInput {
   // one above the item's attempts of the phase, skipped ones included
   readonly number: number;
   readonly reason: SkipReason;
+
+  // true: the skip also writes a notify notice for the owner
+  readonly notice: boolean;
   readonly recipeHash: RecipeHash;
   readonly rulesVersion: RulesVersion;
 }
@@ -86,7 +89,33 @@ export function buildSkipChange(input: BuildSkipChangeInput): StoreChange {
 
   return {
     at: input.now,
-    writes: [{ op: 'insert', table: 'attempts', row }],
+    writes: [
+      { op: 'insert', table: 'attempts', row },
+      ...(input.notice
+        ? [
+            {
+              op: 'insert',
+              table: 'notices',
+
+              // the store numbers each notice, so the ID here is replaced
+              row: {
+                id: 1,
+                kind: 'notify',
+                item: input.item,
+                phase: input.phase,
+                reason: input.reason,
+                pause: null,
+                at: input.now,
+                tries: 0,
+                sentAt: null,
+                keySeq: 0,
+                keyTries: 0,
+                nextTryAt: input.now,
+              },
+            } as const,
+          ]
+        : []),
+    ],
     facts: [
       {
         id: input.fact,

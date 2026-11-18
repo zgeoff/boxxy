@@ -1,4 +1,5 @@
 import type { Position } from '../pipeline/types.ts';
+import type { WaitAnswer } from '../rules/types.ts';
 import type {
   AttemptRow,
   DerivedState,
@@ -10,6 +11,12 @@ import type {
   PullRequestRow,
   RelationRow,
 } from '../types.ts';
+import { collectBuildPullRequests } from './collect-build-pull-requests.ts';
+
+export interface WaitedAnswer {
+  readonly kind: string;
+  readonly answer: WaitAnswer;
+}
 
 interface DeriveItemStateInput {
   readonly item: ItemRow;
@@ -29,6 +36,10 @@ interface DeriveItemStateInput {
   // the live relations whose target is the item
   readonly relations: readonly RelationRow[];
   readonly blockerStates: ReadonlyMap<ItemId, ItemState>;
+
+  // The answer of each wait of the item's step, which the caller runs, so this code names no
+  // wait kind. Empty when the item is not at a step with waits.
+  readonly waitAnswers: readonly WaitedAnswer[];
 }
 
 // The table of section G of the engine sketch; the first match wins.
@@ -60,6 +71,13 @@ export function deriveItemState(input: DeriveItemStateInput): DerivedState {
     return { state: 'idea' };
   }
 
+  // `holds` and `skip` leave the item ready, so the claim sees it
+  const waiting = input.waitAnswers.find((wait) => wait.answer === 'waiting');
+
+  if (waiting !== undefined) {
+    return { state: 'waiting', reason: `wait:${waiting.kind}` };
+  }
+
   return hasOpenBlocker(input) ? { state: 'blocked' } : { state: 'ready' };
 }
 
@@ -75,22 +93,6 @@ function deriveEndedState(linked: readonly PullRequestRow[]): DerivedState {
   return linked.length === 0
     ? { state: 'waiting', reason: 'no pull request linked' }
     : { state: 'waiting', reason: 'pull request closed unmerged' };
-}
-
-export const buildPhase = 'build';
-
-// the pull requests linked to a succeeded build attempt
-function collectBuildPullRequests(
-  attempts: readonly AttemptRow[],
-  pullRequests: readonly PullRequestRow[],
-): PullRequestRow[] {
-  const succeededBuilds = new Set(
-    attempts
-      .filter((attempt) => attempt.phase === buildPhase && attempt.state === 'succeeded')
-      .map((attempt) => attempt.id),
-  );
-
-  return pullRequests.filter((pullRequest) => succeededBuilds.has(pullRequest.attempt));
 }
 
 function hasOpenBlocker(input: DeriveItemStateInput): boolean {

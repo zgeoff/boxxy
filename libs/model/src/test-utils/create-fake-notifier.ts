@@ -1,4 +1,10 @@
-import type { HoldNotice, NoticeOutcome, Notifier, PausedNotice } from '../ports/types.ts';
+import type {
+  HoldNotice,
+  NoticeOutcome,
+  Notifier,
+  NotifyNotice,
+  PausedNotice,
+} from '../ports/types.ts';
 
 export interface FakeNotifier extends Notifier {
   // each hold notice that was sent, in order
@@ -10,7 +16,10 @@ export interface FakeNotifier extends Notifier {
   // each paused-runner notice that was sent, in order
   readonly toldPaused: readonly PausedNotice[];
 
-  // the number of calls of either kind, sent or not
+  // each notify notice that was sent, in order
+  readonly toldNotify: readonly NotifyNotice[];
+
+  // the number of calls of any kind, sent or not
   readonly calls: () => number;
 
   // the next call ends with the outcome
@@ -25,7 +34,8 @@ export function createFakeNotifier(): FakeNotifier {
   const told: HoldNotice[] = [];
   const attempts: HoldNotice[] = [];
   const toldPaused: PausedNotice[] = [];
-  let pausedCalls = 0;
+  const toldNotify: NotifyNotice[] = [];
+  let otherCalls = 0;
   let next: NoticeOutcome | null = null;
   let always: NoticeOutcome | null = null;
 
@@ -41,7 +51,8 @@ export function createFakeNotifier(): FakeNotifier {
     told,
     attempts,
     toldPaused,
-    calls: () => attempts.length + pausedCalls,
+    toldNotify,
+    calls: () => attempts.length + otherCalls,
     failNext: (outcome) => {
       next = outcome;
     },
@@ -65,7 +76,7 @@ export function createFakeNotifier(): FakeNotifier {
       return Promise.resolve({ kind: 'sent' });
     },
     tellPaused: (notice) => {
-      pausedCalls += 1;
+      otherCalls += 1;
 
       const outcome = takeFailure();
 
@@ -74,6 +85,19 @@ export function createFakeNotifier(): FakeNotifier {
       }
 
       toldPaused.push(notice);
+
+      return Promise.resolve({ kind: 'sent' });
+    },
+    tellNotify: (notice) => {
+      otherCalls += 1;
+
+      const outcome = takeFailure();
+
+      if (outcome !== null) {
+        return Promise.resolve(outcome);
+      }
+
+      toldNotify.push(notice);
 
       return Promise.resolve({ kind: 'sent' });
     },

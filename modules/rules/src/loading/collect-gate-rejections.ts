@@ -3,7 +3,7 @@ import { engineHoldReasons } from '@boxxy/model';
 import type { ParsedRulesFile, ParsedStep } from '../parse/rules-file-schema.ts';
 import { buildRejection } from './build-rejection.ts';
 
-// A step's gates are `criteria` and `skipWhen`; each needs the `skip` edge to settle the step.
+// A step's gates are `criteria`, `skipWhen` and `waits`; each needs the `skip` edge to settle the step.
 export function collectGateRejections(file: ParsedRulesFile): LoadRejection[] {
   return Object.entries(file.pipelines).flatMap(([pipeline, steps]) =>
     steps.flatMap((step, index) =>
@@ -17,7 +17,9 @@ function collectStepGateRejections(
   criterionTags: readonly string[],
   path: readonly PropertyKey[],
 ): LoadRejection[] {
-  const hasGate = step.criteria !== undefined || step.skipWhen !== undefined;
+  const hasGate =
+    step.criteria !== undefined || step.skipWhen !== undefined || step.waits !== undefined;
+
   const skip = step.skip;
   const engineReasons: readonly string[] = engineHoldReasons;
 

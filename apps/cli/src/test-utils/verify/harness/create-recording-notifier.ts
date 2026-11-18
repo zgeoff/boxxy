@@ -24,5 +24,10 @@ export function createRecordingNotifier(store: ClaimStore, sent: SentNotice[]): 
 
       return session === null ? { kind: 'refused', reason: 'no-notice-session' } : { kind: 'sent' };
     },
+    tellNotify: async () => {
+      const session = await store.read((tx) => tx.readNoticeSession());
+
+      return session === null ? { kind: 'refused', reason: 'no-notice-session' } : { kind: 'sent' };
+    },
   };
 }

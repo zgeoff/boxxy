@@ -424,3 +424,11 @@ test('it folds no attempt row for a skipped attempt', () => {
 
   expect(withSkip).toStrictEqual(foldWorkFacts(scenario.facts));
 });
+
+test('it folds no row for a shipped fact', () => {
+  const scenario = buildMockItemFacts();
+  const shipped = buildMockScopeFact('boxxy.item.shipped');
+  const withShipped = foldWorkFacts([...scenario.facts, shipped]);
+
+  expect(withShipped).toStrictEqual(foldWorkFacts(scenario.facts));
+});

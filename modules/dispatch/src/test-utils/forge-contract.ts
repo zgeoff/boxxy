@@ -1,10 +1,15 @@
 import type { CommitSha, Forge, PullRequestRef } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import type {
+  SeededBumps,
   SeededCompare,
+  SeededHistory,
   SeededMergeable,
   SeededPullRequest,
+  SeededReleases,
+  SeededRepo,
   SeededRequiredChecks,
+  SeededTag,
 } from './create-fake-forge.ts';
 
 // What a forge adapter's test gives each case: the forge, and a way to put state on the service
@@ -15,6 +20,11 @@ export interface ForgeHarness {
   seedCompare: (compare: SeededCompare) => void | Promise<void>;
   seedRequiredChecks: (required: SeededRequiredChecks) => void | Promise<void>;
   seedMergeable: (mergeable: SeededMergeable) => void | Promise<void>;
+  seedRepo: (repo: SeededRepo) => void | Promise<void>;
+  seedTag: (tag: SeededTag) => void | Promise<void>;
+  seedHistory: (history: SeededHistory) => void | Promise<void>;
+  seedReleases: (releases: SeededReleases) => void | Promise<void>;
+  seedBumps: (bumps: SeededBumps) => void | Promise<void>;
 }
 
 export interface ForgeContractOutcome {

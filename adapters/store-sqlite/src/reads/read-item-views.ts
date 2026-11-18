@@ -76,6 +76,14 @@ export async function readItemViews(
     .where('attempt', 'in', attemptsOfLoaded)
     .execute();
 
+  const shipped = await db
+    .selectFrom('item_shipped')
+    .selectAll()
+    .where('item_id', 'in', loaded)
+    .orderBy('seen_at')
+    .orderBy('commit')
+    .execute();
+
   const views = buildItemViews(
     {
       items: items.map((row) => parseStoreRow('items', row)),
@@ -84,6 +92,7 @@ export async function readItemViews(
       attempts: attempts.map((row) => parseStoreRow('attempts', row)),
       liveLeases: leases.map((row) => parseStoreRow('leases', row)),
       pullRequests: pullRequests.map((row) => parseStoreRow('pull_requests', row)),
+      shipped: shipped.map((row) => parseStoreRow('item_shipped', row)),
     },
     now,
     rules,

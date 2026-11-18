@@ -32,6 +32,47 @@ export const githubPullRequests = new Collection({
     mergeCommit: z.string().nullable().default(null),
     mergeable: z.boolean().nullable().default(true),
     commits: z.array(commit).default([]),
+
+    // the type of the author's GitHub user, which is `Bot` for an App
+    authorType: z.string().default('User'),
+
+    // null reads as the merge time, or the time of the test
+    updatedAt: z.string().nullable().default(null),
+  }),
+});
+
+export const githubRepos = new Collection({
+  schema: z.object({ repo: z.string() }),
+});
+
+export const githubTags = new Collection({
+  schema: z.object({
+    repo: z.string(),
+    tag: z.string(),
+    commit: z.string(),
+
+    // an annotated tag's ref names a tag object, which names the commit
+    annotated: z.boolean().default(false),
+  }),
+});
+
+// the commits that the history of a ref holds
+const historySchema = z.object({
+  repo: z.string(),
+  ref: z.string(),
+  commits: z.array(z.string()),
+});
+
+export const githubHistories = new Collection({ schema: historySchema });
+
+export const githubReleases = new Collection({
+  schema: z.object({
+    repo: z.string(),
+    tag: z.string(),
+    url: z.string(),
+    draft: z.boolean().default(false),
+    prerelease: z.boolean().default(false),
+    publishedAt: z.string().nullable(),
   }),
 });
 
@@ -133,6 +174,26 @@ export const githubHandlers = [
   http.get(`${repos}/pulls`, (info) => {
     const repo = toRepo(info.params);
 
+    if (new URL(info.request.url).searchParams.get('state') === 'closed') {
+      const closed = githubPullRequests
+        .findMany((query) => query.where({ repo, state: 'closed' }))
+        .toSorted((first, second) => toUpdatedAt(second).localeCompare(toUpdatedAt(first)));
+
+      const page: z.input<typeof githubSchemas.closedPullRequestPage> = slicePage(
+        info.request,
+        closed,
+      ).map((row) => ({
+        number: row.number,
+        body: row.body,
+        merged_at: row.mergedAt,
+        merge_commit_sha: row.mergeCommit,
+        updated_at: toUpdatedAt(row),
+        user: { type: row.authorType },
+      }));
+
+      return HttpResponse.json(page);
+    }
+
     const open = githubPullRequests
       .findMany((query) => query.where({ repo, state: 'open' }))
       .toSorted((first, second) => first.number - second.number);
@@ -185,11 +246,82 @@ export const githubHandlers = [
     const [from = '', to = ''] = String(info.params['range']).split('...');
     const found = githubCompares.findFirst((query) => query.where({ repo, from, to }));
 
+    if (found !== undefined) {
+      const answer: z.input<typeof githubSchemas.compare> = { files: found.files };
+
+      return HttpResponse.json(answer);
+    }
+
+    const history = githubHistories.findFirst((query) => query.where({ repo, ref: to }));
+
+    if (history === undefined) {
+      return HttpResponse.json(notFound, { status: 404 });
+    }
+
+    const answer: z.input<typeof githubSchemas.compare> = {
+      status: pickCompareStatus(history.commits, from, to),
+    };
+
+    return HttpResponse.json(answer);
+  }),
+  http.get(`${repos}/git/ref/tags/*`, (info) => {
+    const found = findTag(info.request, info.params);
+
     if (found === undefined) {
       return HttpResponse.json(notFound, { status: 404 });
     }
 
-    const answer: z.input<typeof githubSchemas.compare> = { files: found.files };
+    const answer: z.input<typeof githubSchemas.gitRef> = {
+      object: found.annotated
+        ? { sha: toTagObjectSha(found.commit), type: 'tag' }
+        : { sha: found.commit, type: 'commit' },
+    };
+
+    return HttpResponse.json(answer);
+  }),
+  http.get(`${repos}/git/tags/:sha`, (info) => {
+    const sha = String(info.params['sha']);
+    const repo = toRepo(info.params);
+    const found = githubTags.findFirst((query) => query.where({ repo, annotated: true }));
+
+    if (found === undefined || toTagObjectSha(found.commit) !== sha) {
+      return HttpResponse.json(notFound, { status: 404 });
+    }
+
+    const answer: z.input<typeof githubSchemas.gitTag> = {
+      object: { sha: found.commit, type: 'commit' },
+    };
+
+    return HttpResponse.json(answer);
+  }),
+  http.get(`${repos}/releases`, (info) => {
+    const repo = toRepo(info.params);
+
+    const answer: z.input<typeof githubSchemas.releasePage> = slicePage(
+      info.request,
+      githubReleases
+        .findMany((query) => query.where({ repo }))
+        .toSorted((first, second) =>
+          (second.publishedAt ?? '9').localeCompare(first.publishedAt ?? '9'),
+        ),
+    ).map((row) => ({
+      tag_name: row.tag,
+      html_url: row.url,
+      draft: row.draft,
+      prerelease: row.prerelease,
+      published_at: row.publishedAt,
+    }));
+
+    return HttpResponse.json(answer);
+  }),
+  http.get(repos, (info) => {
+    const repo = toRepo(info.params);
+
+    if (githubRepos.findFirst((query) => query.where({ repo })) === undefined) {
+      return HttpResponse.json(notFound, { status: 404 });
+    }
+
+    const answer: z.input<typeof githubSchemas.repository> = { full_name: repo };
 
     return HttpResponse.json(answer);
   }),
@@ -279,6 +411,10 @@ export function resetGithub(): void {
   githubBranches.clear();
   githubCheckRuns.clear();
   githubCommitStatuses.clear();
+  githubRepos.clear();
+  githubTags.clear();
+  githubHistories.clear();
+  githubReleases.clear();
 }
 
 function findPullRequest(params: PathParams) {
@@ -299,6 +435,44 @@ function slicePage<Item>(request: Request, items: readonly Item[]): Item[] {
   const page = Number(search.get('page') ?? '1');
 
   return items.slice((page - 1) * perPage, page * perPage);
+}
+
+interface UpdatedAtRow {
+  readonly updatedAt: string | null;
+  readonly mergedAt: string | null;
+}
+
+function toUpdatedAt(row: UpdatedAtRow): string {
+  return row.updatedAt ?? row.mergedAt ?? new Date(0).toISOString();
+}
+
+function pickCompareStatus(commits: readonly string[], from: string, to: string) {
+  if (from === to) {
+    return 'identical';
+  }
+
+  return commits.includes(from) ? 'ahead' : 'diverged';
+}
+
+// A tag name can hold a slash, so the route takes the rest of the path.
+function findTag(request: Request, params: PathParams) {
+  const repo = toRepo(params);
+  const marker = '/git/ref/tags/';
+
+  const pathname = new URL(request.url).pathname;
+
+  const tag = pathname
+    .slice(pathname.indexOf(marker) + marker.length)
+    .split('/')
+    .map((segment) => decodeURIComponent(segment))
+    .join('/');
+
+  return githubTags.findFirst((query) => query.where({ repo, tag }));
+}
+
+// the SHA of an annotated tag's own object, which the tests derive from its commit
+function toTagObjectSha(sha: string): string {
+  return `a${sha.slice(1)}`;
 }
 
 // A branch name can hold a slash, so the route takes the rest of the path after `marker`.

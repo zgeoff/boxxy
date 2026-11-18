@@ -12,6 +12,7 @@ import { noticeSessionMigration } from './notice-session-migration.ts';
 import { refusalMigration } from './refusal-migration.ts';
 import { renameRelationsMigration } from './rename-relations-migration.ts';
 import { runnerPauseMigration } from './runner-pause-migration.ts';
+import { shipWatchMigration } from './ship-watch-migration.ts';
 import { skippedAttemptsMigration } from './skipped-attempts-migration.ts';
 import { v1TablesMigration } from './v1-tables-migration.ts';
 
@@ -39,6 +40,7 @@ const migrations = {
   '0008-runner-pause': runnerPauseMigration,
   '0009-refusal': refusalMigration,
   '0010-skipped-attempts': skippedAttemptsMigration,
+  '0011-ship-watch': shipWatchMigration,
 };
 
 async function runMigrator(db: Kysely<StoreDatabase>): Promise<void> {

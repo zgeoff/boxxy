@@ -23,7 +23,12 @@ export { defineAdmission } from './planning/define-admission.ts';
 export { defineGate } from './planning/define-gate.ts';
 export { definePhase } from './rules/define-phase.ts';
 export { defineSignal } from './planning/define-signal.ts';
-export { buildPhase, deriveItemState } from './items/derive-item-state.ts';
+export { deriveItemState } from './items/derive-item-state.ts';
+export type { WaitedAnswer } from './items/derive-item-state.ts';
+export { buildPhase, shippedWaitName } from './items/constants.ts';
+export { collectBuildPullRequests } from './items/collect-build-pull-requests.ts';
+export { collectWaitAnswers, pickWaitSkip } from './items/collect-wait-answers.ts';
+export { findMergeCommit } from './items/find-merge-commit.ts';
 export { designCloseOutSchema } from './closeouts/design-close-out-schema.ts';
 export { evidenceRowSchema } from './rows/evidence-row-schema.ts';
 export { getLaunchSections } from './closeouts/get-launch-sections.ts';
@@ -44,6 +49,8 @@ export {
 
 export { itemRevisionSchema } from './rows/item-revision-schema.ts';
 export { itemRowSchema } from './rows/item-row-schema.ts';
+export { itemShippedFactSchema } from './rows/item-shipped-fact-schema.ts';
+export { itemShippedRowSchema } from './rows/item-shipped-row-schema.ts';
 export { leverRowSchema } from './rows/lever-row-schema.ts';
 export { limitFillSchema } from './planning/limit-fill-schema.ts';
 export { limitSchema } from './rows/limit-schema.ts';
@@ -157,6 +164,8 @@ export type {
   SessionItemListView,
   SessionItemView,
   SessionMode,
+  ShipRule,
+  ItemShipped,
   SkipReason,
   SnapshotHash,
   SourceName,
@@ -283,6 +292,9 @@ export type {
 
 export type {
   ApplyResult,
+  MergedPullRequest,
+  NotifyNotice,
+  Release,
   Attention,
   CallerProof,
   CapacityBackoff,
@@ -379,8 +391,12 @@ export type {
   SettleInput,
   Settlement,
   SignalRef,
+  RepoPolicy,
   SkillsPin,
   SkipCondition,
+  WaitAnswer,
+  WaitKind,
+  WaitSubject,
   SkipEdge,
   SleepRules,
 } from './rules/types.ts';

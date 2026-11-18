@@ -141,6 +141,16 @@ export interface BoxxyItemNotedPayload {
   storeVersion: number;
 }
 
+export interface BoxxyItemShippedPayload {
+  itemId: string;
+  commit: string;
+  rule: 'deploy-tag' | 'release' | 'release-then-deploy';
+  ref: string;
+  release?: string;
+  seenAt: number;
+  storeVersion: number;
+}
+
 export interface BoxxyItemEditedPayload {
   title?: string;
   outcome?: string;
@@ -480,6 +490,7 @@ export interface BoxxyMergeAnsweredPayload {
 export type BoxxyWorkFact =
   | { id: FactID; type: 'boxxy.item.filed'; entity: EntityID; at: string; payload: BoxxyItemFiledPayload }
   | { id: FactID; type: 'boxxy.item.noted'; entity: EntityID; at: string; payload: BoxxyItemNotedPayload }
+  | { id: FactID; type: 'boxxy.item.shipped'; entity: EntityID; at: string; payload: BoxxyItemShippedPayload }
   | { id: FactID; type: 'boxxy.item.edited'; entity: EntityID; at: string; payload: BoxxyItemEditedPayload }
   | { id: FactID; type: 'boxxy.item.closed'; entity: EntityID; at: string; payload: BoxxyItemClosedPayload }
   | { id: FactID; type: 'boxxy.relation.added'; entity: EntityID; at: string; payload: BoxxyRelationAddedPayload }
@@ -568,6 +579,16 @@ function decodeBoxxyWorkFact(value: unknown): BoxxyWorkFact | undefined {
 
   if (type === 'boxxy.item.noted') {
     const decoded = decodeBoxxyItemNotedPayload(payload);
+
+    if (decoded === undefined) {
+      return undefined;
+    }
+
+    return { id, type, entity, at, payload: decoded };
+  }
+
+  if (type === 'boxxy.item.shipped') {
+    const decoded = decodeBoxxyItemShippedPayload(payload);
 
     if (decoded === undefined) {
       return undefined;
@@ -1181,6 +1202,71 @@ function decodeBoxxyItemNotedPayload(value: unknown): BoxxyItemNotedPayload | un
     seq: field0,
     text: field1,
     storeVersion: field2,
+  };
+}
+
+function decodeBoxxyItemShippedPayload(value: unknown): BoxxyItemShippedPayload | undefined {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const raw0 = 'itemId' in value ? value.itemId : undefined;
+  const field0 = typeof raw0 === 'string' ? raw0 : undefined;
+
+  if (field0 === undefined) {
+    return undefined;
+  }
+
+  const raw1 = 'commit' in value ? value.commit : undefined;
+  const field1 = typeof raw1 === 'string' ? raw1 : undefined;
+
+  if (field1 === undefined) {
+    return undefined;
+  }
+
+  const raw2 = 'rule' in value ? value.rule : undefined;
+  const field2 = raw2 === 'deploy-tag' || raw2 === 'release' || raw2 === 'release-then-deploy' ? raw2 : undefined;
+
+  if (field2 === undefined) {
+    return undefined;
+  }
+
+  const raw3 = 'ref' in value ? value.ref : undefined;
+  const field3 = typeof raw3 === 'string' ? raw3 : undefined;
+
+  if (field3 === undefined) {
+    return undefined;
+  }
+
+  const raw4 = 'release' in value ? value.release : undefined;
+  const field4 = raw4 === undefined ? undefined : typeof raw4 === 'string' ? raw4 : undefined;
+
+  if (raw4 !== undefined && field4 === undefined) {
+    return undefined;
+  }
+
+  const raw5 = 'seenAt' in value ? value.seenAt : undefined;
+  const field5 = typeof raw5 === 'number' ? raw5 : undefined;
+
+  if (field5 === undefined) {
+    return undefined;
+  }
+
+  const raw6 = 'storeVersion' in value ? value.storeVersion : undefined;
+  const field6 = typeof raw6 === 'number' ? raw6 : undefined;
+
+  if (field6 === undefined) {
+    return undefined;
+  }
+
+  return {
+    itemId: field0,
+    commit: field1,
+    rule: field2,
+    ref: field3,
+    ...(field4 === undefined ? {} : { release: field4 }),
+    seenAt: field5,
+    storeVersion: field6,
   };
 }
 

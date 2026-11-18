@@ -18,9 +18,12 @@ import type {
   RecipeName,
   RelationType,
   RelationTypeName,
+  RepoName,
+  RepoPolicy,
   RulesVersion,
   SkipCondition,
   SpawnScope,
+  WaitKind,
   WorkerKindName,
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
@@ -41,7 +44,9 @@ import { collectGateRejections } from './collect-gate-rejections.ts';
 import { collectMergeRejections } from './collect-merge-rejections.ts';
 import { collectRecipeRejections } from './collect-recipe-rejections.ts';
 import { collectScopeRejections } from './collect-scope-rejections.ts';
+import { collectShipWarnings } from './collect-ship-warnings.ts';
 import { collectStepRejections } from './collect-step-rejections.ts';
+import { collectWaitRejections } from './collect-wait-rejections.ts';
 import { toFilter } from './to-filter.ts';
 
 interface LoadRulesInput {
@@ -60,6 +65,9 @@ interface LoadRulesInput {
 
   // where each credentialed atc agent may run; with none, any recipe may name any agent
   readonly spawn?: SpawnScope;
+
+  // the wait kinds the server registers; with none, no step may wait
+  readonly waits?: readonly WaitKind[];
 }
 
 export function loadRules(input: LoadRulesInput): LoadResult {
@@ -80,6 +88,8 @@ export function loadRules(input: LoadRulesInput): LoadResult {
     .exhaustive();
 }
 
+const noSpawn: SpawnScope = { agents: {}, phases: {}, repos: [] };
+
 function buildLoadResult(
   file: ParsedRulesFile,
   rulesBytes: Uint8Array,
@@ -94,6 +104,7 @@ function buildLoadResult(
 
   const registry = built.value;
   const phases = buildPhases(input.phases);
+  const waits = buildWaits(input.waits ?? []);
   const lead = file.lead.map((ref, index) => resolveSignalRef(ref, ['lead', index], registry));
 
   const pools = file.pools.map((pool, poolIndex) => ({
@@ -123,9 +134,10 @@ function buildLoadResult(
     ...collectPropagationRejections(file, propagation),
     ...collectStepRejections(file, phases, input.workers),
     ...collectGateRejections(file),
+    ...collectWaitRejections(file, { waits, phases, workers: input.workers }),
     ...collectMergeRejections(file),
     ...collectRecipeRejections(file),
-    ...collectScopeRejections(file, input.spawn ?? { agents: {}, phases: {}, repos: [] }),
+    ...collectScopeRejections(file, input.spawn ?? noSpawn),
     ...collectFilterRejections(file, registry),
     ...collectSleepRejections(file),
     ...prompts.rejections,
@@ -162,6 +174,8 @@ function buildLoadResult(
       gates: gates.map((checked) => getValue(checked)),
       kinds: buildKinds(file),
       phases,
+      waits,
+      repos: buildRepos(file),
       limits: file.limits.map((limit): Limit => ({
         name: limit.name,
         max: limit.max,
@@ -193,7 +207,7 @@ function buildLoadResult(
         file.relationTypes.map((name): [RelationTypeName, RelationType] => [name, { name }]),
       ),
     },
-    warnings: [],
+    warnings: collectShipWarnings(file, (input.spawn ?? noSpawn).repos),
   };
 }
 
@@ -236,6 +250,14 @@ function buildPhases(phases: readonly PhaseKind[]): ReadonlyMap<PhaseName, Phase
   const byName = new Map(phases.map((phase) => [phase.name, phase]));
 
   invariant(byName.size === phases.length, 'the server registers each phase kind once');
+
+  return byName;
+}
+
+function buildWaits(waits: readonly WaitKind[]): ReadonlyMap<string, WaitKind> {
+  const byName = new Map(waits.map((wait) => [wait.name, wait]));
+
+  invariant(byName.size === waits.length, 'the server registers each wait kind once');
 
   return byName;
 }
@@ -408,6 +430,7 @@ function buildStep(step: ParsedStep): PipelineStep {
     on: step.on,
     ...(step.criteria === undefined ? {} : { criteria: step.criteria }),
     ...(step.skipWhen === undefined ? {} : { skipWhen: step.skipWhen.map(toSkipCondition) }),
+    ...(step.waits === undefined ? {} : { waits: step.waits }),
     ...(step.skip === undefined ? {} : { skip: step.skip }),
   };
 }
@@ -418,4 +441,13 @@ function toSkipCondition(condition: Readonly<Record<string, unknown>>): SkipCond
   invariant(typeof check === 'string', 'the loader refuses a skip condition it does not read');
 
   return { checkPassed: check };
+}
+
+function buildRepos(file: ParsedRulesFile): ReadonlyMap<RepoName, RepoPolicy> {
+  return new Map(
+    Object.entries(file.repos).map(([repo, policy]): [RepoName, RepoPolicy] => [
+      brandSchemas.repoName.parse(repo),
+      { ships: policy.ships },
+    ]),
+  );
 }

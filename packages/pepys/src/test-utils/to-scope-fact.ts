@@ -74,6 +74,7 @@ const scopeFactSchema: z.ZodType<WorkFact> = z.discriminatedUnion('type', [
   z.object({ ...base, type: z.literal('boxxy.attempt.settled'), payload: settledPayload }),
   z.object({ ...base, type: z.literal('boxxy.pull_request.linked'), payload: linkedPayload }),
   z.object({ ...base, type: z.literal('boxxy.attempt.skipped'), payload: z.unknown() }),
+  z.object({ ...base, type: z.literal('boxxy.item.shipped'), payload: z.unknown() }),
 ]);
 
 // One fact of a batch as the consumer reads it from its scope, with the fact ID that ingest gives

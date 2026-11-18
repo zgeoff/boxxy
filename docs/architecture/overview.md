@@ -37,7 +37,8 @@ flowchart LR
 [The pipeline](./work/pipeline.md) covers phases, edges, holds, limits, pools, recipes and the
 launch prompt. [Attempts](./work/attempts.md) covers one attempt from claim to settle.
 [Agent sessions](./work/sessions.md) covers keeping, cleaning up and starting sessions.
-[Notices](./work/notices.md) covers how a hold reaches the owner.
+[Notices](./work/notices.md) covers how a hold reaches the owner. The
+[ship watch](./work/ship-watch.md) covers the steps that wait for a merge to ship.
 
 When a pipeline has a merge step, the runner merges the pull request itself, as a job with no agent
 session: it reads the pull request's checks and merges at the head commit once every required check

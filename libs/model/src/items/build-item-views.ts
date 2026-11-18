@@ -1,6 +1,7 @@
 import { findPosition } from '../pipeline/find-position.ts';
+import { findStep } from '../pipeline/find-step.ts';
 import type { Position } from '../pipeline/types.ts';
-import type { ItemRules } from '../rules/types.ts';
+import type { ItemRules, PipelineStep } from '../rules/types.ts';
 import type {
   AttemptId,
   AttemptRow,
@@ -8,6 +9,7 @@ import type {
   Instant,
   ItemId,
   ItemRow,
+  ItemShipped,
   ItemState,
   LeaseRow,
   LeverRow,
@@ -16,6 +18,7 @@ import type {
 } from '../types.ts';
 import { collectRetries } from './collect-retries.ts';
 import { collectSettled } from './collect-settled.ts';
+import { collectWaitAnswers } from './collect-wait-answers.ts';
 import { deriveItemState } from './derive-item-state.ts';
 import { findHeldReason } from './find-held-reason.ts';
 import { liveLevers } from './live-levers.ts';
@@ -51,6 +54,7 @@ interface ItemGroup {
   readonly relations: RelationRow[];
   readonly attempts: AttemptRow[];
   readonly pullRequests: PullRequestRow[];
+  readonly shipped: ItemShipped[];
   readonly levers: LeverRow[];
   liveLease: LeaseRow | null;
   position: Position;
@@ -66,6 +70,7 @@ function collectItemGroups(rows: ItemSetRows, rules: ItemRules, now: Instant): I
         relations: [],
         attempts: [],
         pullRequests: [],
+        shipped: [],
         levers: [],
         liveLease: null,
         position: { kind: 'end', reason: 'no-pipeline' },
@@ -90,6 +95,10 @@ function collectItemGroups(rows: ItemSetRows, rules: ItemRules, now: Instant): I
     if (item !== undefined) {
       groups.get(item)?.pullRequests.push(pullRequest);
     }
+  }
+
+  for (const row of rows.shipped) {
+    groups.get(row.itemId)?.shipped.push(row);
   }
 
   for (const lever of rows.levers) {
@@ -132,7 +141,23 @@ function deriveGroupState(group: ItemGroup, rules: ItemRules, blocking: Blocking
     phases: rules.phases,
     attempts: group.attempts,
     pullRequests: group.pullRequests,
+    waitAnswers: collectWaitAnswers({
+      step: findGroupStep(group, rules),
+      item: group.item,
+      attempts: group.attempts,
+      pullRequests: group.pullRequests,
+      shipped: group.shipped,
+      rules,
+    }),
   });
+}
+
+function findGroupStep(group: ItemGroup, rules: ItemRules): PipelineStep | undefined {
+  const pipeline = rules.kinds.get(group.item.kind)?.pipeline;
+
+  return group.position.kind === 'phase' && pipeline !== undefined
+    ? findStep(pipeline, group.position.phase)
+    : undefined;
 }
 
 function buildItemWithLevers(

@@ -23,6 +23,7 @@ export type MockedFactType =
   | 'boxxy.attempt.closed_out'
   | 'boxxy.attempt.settled'
   | 'boxxy.attempt.skipped'
+  | 'boxxy.item.shipped'
   | 'boxxy.pull_request.linked';
 
 // The payload's values are checked by the schema, so a test may give a plain string for a brand.
@@ -142,6 +143,13 @@ const defaultPayloads: { readonly [Type in MockedFactType]: () => WorkFacts[Type
     phase: brandSchemas.phaseName.parse('verify'),
     round: 1,
     reason: 'check-passed:verify / gate',
+  }),
+  'boxxy.item.shipped': () => ({
+    itemId: brandSchemas.itemId.parse(faker.string.uuid({ version: 7 })),
+    commit: brandSchemas.commitSha.parse(faker.git.commitSha()),
+    rule: 'release',
+    ref: 'v1.4.0',
+    seenAt: brandSchemas.instant.parse(1_762_300_000_000),
   }),
   'boxxy.pull_request.linked': () => ({
     attempt: buildAttemptId(),

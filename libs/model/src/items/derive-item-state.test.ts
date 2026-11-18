@@ -31,6 +31,7 @@ function setupTest() {
       pullRequests: [],
       relations: [],
       blockerStates: new Map(),
+      waitAnswers: [],
     },
   };
 }
@@ -291,6 +292,35 @@ test('it derives ready for an item that no other row matches', () => {
     ...ctx.base,
     item: buildMockV1ItemView(),
     position: ctx.buildPosition,
+  });
+
+  expect(state).toStrictEqual({ state: 'ready' });
+});
+
+test('it derives waiting with the wait reason when a wait of the step says waiting', () => {
+  const ctx = setupTest();
+
+  const state = deriveItemState({
+    ...ctx.base,
+    item: buildMockV1ItemView(),
+    position: ctx.buildPosition,
+    waitAnswers: [
+      { kind: 'first', answer: 'holds' },
+      { kind: 'shipped', answer: 'waiting' },
+    ],
+  });
+
+  expect(state).toStrictEqual({ state: 'waiting', reason: 'wait:shipped' });
+});
+
+test.each(['holds', 'skip'] as const)('it derives ready when the wait says %s', (answer) => {
+  const ctx = setupTest();
+
+  const state = deriveItemState({
+    ...ctx.base,
+    item: buildMockV1ItemView(),
+    position: ctx.buildPosition,
+    waitAnswers: [{ kind: 'shipped', answer }],
   });
 
   expect(state).toStrictEqual({ state: 'ready' });

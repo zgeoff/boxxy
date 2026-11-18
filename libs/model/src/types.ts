@@ -187,6 +187,9 @@ export type WaitingReason =
   | 'pull request open'
   | 'no pull request linked'
   | 'pull request closed unmerged'
+
+  // the item's step waits on the named wait kind
+  | `wait:${string}`
   | HoldReason;
 
 export type DerivedState =
@@ -271,7 +274,10 @@ export type KnownFailure = ForcedFailure | 'closeout-missing' | 'closeout-unsett
 export type EngineOutcome = 'lost' | 'unsettleable' | 'skipped';
 
 // Why a claim skipped a step: the first gate that said skip, and what it read.
-export type SkipReason = `no-criteria-tagged:${string}` | `check-passed:${string}`;
+export type SkipReason =
+  | `no-criteria-tagged:${string}`
+  | `check-passed:${string}`
+  | `wait-skip:${string}`;
 
 // each field holds a list of values, never one string
 export type FieldValues = Readonly<Record<string, readonly string[]>>;
@@ -473,7 +479,7 @@ export interface PausedDetail {
   readonly waiting: number;
 }
 
-// A notice for the `Notifier` port: a hold notice, or a paused-runner notice. The tick tries it
+// A notice for the `Notifier` port: a hold notice, a paused-runner notice, or a notify notice. The tick tries it
 // again, with no cap, until atc takes it.
 export type NoticeRow = NoticeRowBase &
   (
@@ -489,10 +495,20 @@ export type NoticeRow = NoticeRowBase &
         readonly reason: null;
         readonly pause: PausedDetail;
       }
+    | {
+        readonly kind: 'notify';
+        readonly item: ItemId;
+        readonly phase: PhaseName;
+        readonly reason: string;
+        readonly pause: null;
+      }
   );
 
 interface NoticeRowBase {
   readonly id: number;
+
+  // set only on a notify notice; the column of any other row is null
+  readonly phase?: PhaseName;
   readonly at: Instant;
   readonly tries: number;
   readonly sentAt: Instant | null;
@@ -542,4 +558,34 @@ export interface RecipeMaterial {
 
 export interface ResolvedRecipe extends RecipeMaterial {
   readonly hash: RecipeHash;
+}
+
+// How a repo's merged code ships. `release` with `then` ships when a deploy repo's bump of the
+// release reaches its deploy tag.
+export type ShipRule =
+  | 'none'
+  | { readonly 'deploy-tag': { readonly tag: string } }
+  | {
+      readonly release: { readonly prerelease?: boolean };
+      readonly then?: { readonly repo: RepoName; readonly tag: string };
+    };
+
+// The ship watch's record that an item's merge commit shipped. One row for each item and commit.
+export interface ItemShipped {
+  readonly itemId: ItemId;
+
+  // the merge commit of the item's latest merged pull request
+  readonly commit: CommitSha;
+
+  // `release-then-deploy` is the rule of a `release` with `then`
+  readonly rule: 'deploy-tag' | 'release' | 'release-then-deploy';
+
+  // the deploy tag, or the release tag for `release`
+  readonly ref: string;
+
+  // for `release-then-deploy`: the release tag that the deploy repo's bump names
+  readonly release?: string;
+
+  // when the watch saw it, not when it shipped
+  readonly seenAt: Instant;
 }

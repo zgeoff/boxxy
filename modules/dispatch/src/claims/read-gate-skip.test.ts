@@ -3,9 +3,12 @@ import type { Criterion } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { buildMockPauseChange } from '../test-utils/build-mock-pause-change.ts';
+import { buildMockShippedChange } from '../test-utils/build-mock-shipped-change.ts';
 import { createFakeForge } from '../test-utils/create-fake-forge.ts';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
+import { loadShipRules } from '../test-utils/load-ship-rules.ts';
 import { loadVerifyRules } from '../test-utils/load-verify-rules.ts';
+import { seedMergedItem, seededMergeCommit } from '../test-utils/seed-merged-item.ts';
 import { claimNext } from './claim-next.ts';
 
 async function setupTest(
@@ -80,6 +83,11 @@ async function setupTest(
     },
     listAttempts: (item: Parameters<typeof dispatch.closeItem>[0]) =>
       dispatch.store.read((tx) => tx.listItemAttempts(item)),
+    listNotices: () => dispatch.store.read((tx) => tx.listUnsentNotices(10)),
+    useShipRules: (lines: readonly string[]) => {
+      dispatch.setRules(loadShipRules({ repos: lines }));
+    },
+    mergeItem: (tags: readonly string[]) => seedMergedItem(dispatch, forge, tags),
   };
 }
 
@@ -324,4 +332,116 @@ test('it records no skip for an item of a repo the configuration does not name',
   const attempts = await ctx.listAttempts(item);
 
   expect([result, attempts]).toStrictEqual([{ skips: [], pick: null }, []]);
+});
+
+test('it derives waiting with the wait reason for an item whose repo ships by release and has no shipped row', async () => {
+  const ctx = await setupTest();
+
+  ctx.useShipRules(['  example/app: { ships: { release: {} } }']);
+
+  const item = await ctx.mergeItem(['prod']);
+  const view = await ctx.readItem(item);
+
+  expect(view.derived).toStrictEqual({ state: 'waiting', reason: 'wait:shipped' });
+});
+
+test('it claims no step and records no skip while the wait says waiting', async () => {
+  const ctx = await setupTest();
+
+  ctx.useShipRules(['  example/app: { ships: { release: {} } }']);
+
+  await ctx.mergeItem(['prod']);
+
+  const result = await ctx.claim();
+
+  expect(result).toStrictEqual({ skips: [], pick: null });
+});
+
+test('it starts the step once a shipped row names the merge commit', async () => {
+  const ctx = await setupTest();
+
+  ctx.useShipRules(['  example/app: { ships: { release: {} } }']);
+
+  const item = await ctx.mergeItem(['prod']);
+
+  await ctx.store.exclusive((tx) =>
+    tx.applyChange(
+      buildMockShippedChange({
+        itemId: item,
+        commit: seededMergeCommit,
+        rule: 'release',
+        ref: 'v1.0.0',
+        seenAt: ctx.clock.now(),
+      }),
+    ),
+  );
+
+  const result = await ctx.claim();
+
+  const received: unknown = [result.skips, result.pick?.kind, result.pick?.attempt.phase];
+
+  expect(received).toStrictEqual([[], 'start', 'verify']);
+});
+
+test('it does not read a shipped row of an earlier commit as the item having shipped', async () => {
+  const ctx = await setupTest();
+
+  ctx.useShipRules(['  example/app: { ships: { release: {} } }']);
+
+  const item = await ctx.mergeItem(['prod']);
+
+  const earlier = buildMockShippedChange({
+    itemId: item,
+    commit: brandSchemas.commitSha.parse('d1'.repeat(20)),
+    rule: 'release',
+    ref: 'v0.9.0',
+    seenAt: ctx.clock.now(),
+  });
+
+  await ctx.store.exclusive((tx) => tx.applyChange(earlier));
+
+  const view = await ctx.readItem(item);
+
+  expect(view.derived).toStrictEqual({ state: 'waiting', reason: 'wait:shipped' });
+});
+
+test('it skips the step with the wait-skip reason, and writes a notice, for a repo that ships nothing', async () => {
+  const ctx = await setupTest();
+
+  ctx.useShipRules(['  example/other: { ships: none }']);
+
+  const item = await ctx.mergeItem(['prod']);
+  const result: unknown = await ctx.claim();
+  const view = await ctx.readItem(item);
+  const attempts = await ctx.listAttempts(item);
+  const notices = await ctx.listNotices();
+
+  expect(result).toStrictEqual({
+    skips: [{ kind: 'skipped', itemId: item, phase: 'verify', reason: 'wait-skip:shipped' }],
+    pick: null,
+  });
+
+  expect(view.position).toStrictEqual({ kind: 'end', reason: 'merged' });
+  expect(attempts.at(-1)?.skipReason).toBe('wait-skip:shipped');
+
+  const rows: unknown = notices.map((row) => [row.kind, row.item, row.phase, row.reason]);
+
+  expect(rows).toStrictEqual([['notify', item, 'verify', 'wait-skip:shipped']]);
+});
+
+test('it skips on the criteria gate before the wait, with no notice, when no line carries the tag', async () => {
+  const ctx = await setupTest();
+
+  ctx.useShipRules(['  example/app: { ships: { release: {} } }']);
+
+  const item = await ctx.mergeItem([]);
+  const result: unknown = await ctx.claim();
+  const notices = await ctx.listNotices();
+
+  expect(result).toStrictEqual({
+    skips: [{ kind: 'skipped', itemId: item, phase: 'verify', reason: 'no-criteria-tagged:prod' }],
+    pick: null,
+  });
+
+  expect(notices).toStrictEqual([]);
 });

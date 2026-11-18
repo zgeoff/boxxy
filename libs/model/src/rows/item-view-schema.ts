@@ -11,6 +11,7 @@ const holdReasonOrWaitingSchema = z.union([
   z.literal('attempts used up'),
   z.literal('rounds used up'),
   z.literal('outcome not in rules'),
+  z.templateLiteral(['wait:', z.string()]),
   brandSchemas.rulesHoldReason,
 ]);
 

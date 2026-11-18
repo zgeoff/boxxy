@@ -5,5 +5,6 @@ export function createNullNotifier(): Notifier {
   return {
     tellHold: () => Promise.resolve({ kind: 'sent' }),
     tellPaused: () => Promise.resolve({ kind: 'sent' }),
+    tellNotify: () => Promise.resolve({ kind: 'sent' }),
   };
 }

@@ -86,6 +86,7 @@ interface PullRequestLinkedFact extends FactBase {
 export interface PassedOverFact extends FactBase {
   type:
     | 'boxxy.item.noted'
+    | 'boxxy.item.shipped'
     | 'boxxy.relation.added'
     | 'boxxy.relation.removed'
     | 'boxxy.lever.recorded'

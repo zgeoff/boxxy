@@ -1,5 +1,6 @@
 import type { Instant, NoticeOutcome, NoticeRow, NoticeTryUpdate } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
+import { match } from 'ts-pattern';
 import { noticeLimits } from './constants.ts';
 import type { NoticeReport, SendNoticesInput } from './types.ts';
 
@@ -33,20 +34,38 @@ export async function sendNotices(input: SendNoticesInput): Promise<NoticeReport
 
 async function tell(input: SendNoticesInput, row: NoticeRow): Promise<NoticeOutcome> {
   try {
-    return row.kind === 'hold'
-      ? await input.notifier.tellHold({
-          item: row.item,
-          reason: row.reason,
-          at: row.at,
-          key: buildNoticeKey(row),
-        })
-      : await input.notifier.tellPaused({ ...row.pause, at: row.at, key: buildNoticeKey(row) });
+    return await sendRow(input, row);
   } catch (error) {
     return {
       kind: 'uncertain',
       reason: error instanceof Error ? error.message : 'notifier threw',
     };
   }
+}
+
+function sendRow(input: SendNoticesInput, row: NoticeRow): Promise<NoticeOutcome> {
+  return match(row)
+    .with({ kind: 'hold' }, (hold) =>
+      input.notifier.tellHold({
+        item: hold.item,
+        reason: hold.reason,
+        at: hold.at,
+        key: buildNoticeKey(hold),
+      }),
+    )
+    .with({ kind: 'runner-paused' }, (paused) =>
+      input.notifier.tellPaused({ ...paused.pause, at: paused.at, key: buildNoticeKey(paused) }),
+    )
+    .with({ kind: 'notify' }, (notify) =>
+      input.notifier.tellNotify({
+        item: notify.item,
+        phase: notify.phase,
+        reason: notify.reason,
+        at: notify.at,
+        key: buildNoticeKey(notify),
+      }),
+    )
+    .exhaustive();
 }
 
 function buildNoticeKey(row: NoticeRow): string {

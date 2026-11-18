@@ -6,6 +6,8 @@ const commit = z.object({ sha: z.string(), commit: z.object({ message: z.string(
 const changedLines = z.number().int().nonnegative();
 const compareFile = z.object({ filename: z.string().min(1), changes: changedLines });
 const runID = z.number().int().positive();
+const author = z.object({ type: z.string() });
+const timestamp = z.iso.datetime({ offset: true });
 const runCount = z.number().int().nonnegative();
 
 const checkRun = z.object({
@@ -31,12 +33,38 @@ export const githubSchemas = {
     html_url: z.url(),
     state: z.enum(['open', 'closed']),
     base: z.object({ ref: z.string().min(1) }),
-    merged_at: z.iso.datetime({ offset: true }).nullable(),
+    merged_at: timestamp.nullable(),
     merge_commit_sha: z.string().nullable(),
   }),
   commitPage: z.array(commit),
   pullRequestPage: z.array(z.object({ number: z.number().int().positive() })),
-  compare: z.object({ files: z.array(compareFile).optional() }),
+  compare: z.object({ status: z.string().optional(), files: z.array(compareFile).optional() }),
+  repository: z.object({ full_name: z.string() }),
+  gitRef: z.object({ object: z.object({ sha: z.string(), type: z.string() }) }),
+  gitTag: z.object({ object: z.object({ sha: z.string(), type: z.string() }) }),
+
+  // a draft has no `published_at`, and a release that GitHub lists has the rest
+  releasePage: z.array(
+    z.object({
+      tag_name: z.string().min(1),
+      html_url: z.url(),
+      draft: z.boolean(),
+      prerelease: z.boolean(),
+      published_at: timestamp.nullable(),
+    }),
+  ),
+
+  // pull requests as the list endpoint gives them; `user.type` is `Bot` for an App's author
+  closedPullRequestPage: z.array(
+    z.object({
+      number: z.number().int().positive(),
+      body: z.string().nullable(),
+      merged_at: timestamp.nullable(),
+      merge_commit_sha: z.string().nullable(),
+      updated_at: timestamp,
+      user: author.nullable(),
+    }),
+  ),
   pullRequestBody: z.object({ body: z.string().nullable() }),
   pullRequestTitle: z.object({ title: z.string() }),
   checkRunPage: z.object({ total_count: runCount, check_runs: z.array(checkRun) }),

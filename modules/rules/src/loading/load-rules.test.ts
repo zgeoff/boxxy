@@ -143,6 +143,8 @@ test('it loads the example rules file', () => {
           },
         ]),
       ),
+      waits: new Map(),
+      repos: new Map(),
       criterionTags: ['prod'],
       sleep: {
         afterIdleMinutes: 30,
