@@ -126,7 +126,7 @@ export const forgeShipContract: readonly ForgeContractCase[] = [
     },
   ],
   [
-    '#findBumps lists the Bot pull requests merged at or after the time, oldest merge first',
+    '#readBumps lists the Bot pull requests merged at or after the time, oldest merge first',
     async (harness) => {
       await harness.seedBumps({
         repo,
@@ -138,7 +138,7 @@ export const forgeShipContract: readonly ForgeContractCase[] = [
         ],
       });
 
-      const bumps = await harness.forge.findBumps(repo, brandSchemas.instant.parse(2000));
+      const bumps = await harness.forge.readBumps(repo, brandSchemas.instant.parse(2000));
 
       return {
         received: bumps.map((bump) => bump.number),
@@ -147,12 +147,12 @@ export const forgeShipContract: readonly ForgeContractCase[] = [
     },
   ],
   [
-    '#findBumps gives the body, merge commit and merge time of a bump',
+    '#readBumps gives the body, merge commit and merge time of a bump',
     async (harness) => {
       await harness.seedBumps({ repo, bumps: [buildBump(7, 4000, 'Bot')] });
 
       return {
-        received: await harness.forge.findBumps(repo, brandSchemas.instant.parse(0)),
+        received: await harness.forge.readBumps(repo, brandSchemas.instant.parse(0)),
         expected: [
           {
             number: 7,
@@ -165,7 +165,7 @@ export const forgeShipContract: readonly ForgeContractCase[] = [
     },
   ],
   [
-    '#findBumps reads a deploy repo with more than 100 closed pull requests',
+    '#readBumps reads a deploy repo with more than 100 closed pull requests',
     async (harness) => {
       await harness.seedBumps({
         repo,
@@ -174,7 +174,7 @@ export const forgeShipContract: readonly ForgeContractCase[] = [
         ),
       });
 
-      const bumps = await harness.forge.findBumps(repo, brandSchemas.instant.parse(1000));
+      const bumps = await harness.forge.readBumps(repo, brandSchemas.instant.parse(1000));
 
       return { received: bumps.length, expected: 130 };
     },

@@ -130,7 +130,7 @@ The [ship watch](../work/ship-watch.md#the-watch) reads five more things through
   the commit or the same as it. A commit or ref GitHub does not find is false.
 - `listReleases` gives the published releases of a repo, newest first, with the first 100 of them
   read. A draft has no publish time and is left out.
-- `findBumps` gives the pull requests that GitHub types as `Bot` and that merged at or after a time,
+- `readBumps` gives the pull requests that GitHub types as `Bot` and that merged at or after a time,
   oldest merge first. It reads closed pull requests by last update and stops at the first page that
   ends before the time, within a page cap.
 

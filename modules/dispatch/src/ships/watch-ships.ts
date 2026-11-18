@@ -112,7 +112,7 @@ function buildReads(input: WatchShipsInput): ShipReads {
     readRepo: memoize((repo: RepoName) => forge.readRepo(repo)),
     readTag: memoize((repo: RepoName, tag: string) => forge.readTag(repo, tag)),
     listReleases: memoize((repo: RepoName) => forge.listReleases(repo)),
-    findBumps: memoize((repo: RepoName, since: Instant) => forge.findBumps(repo, since)),
+    readBumps: memoize((repo: RepoName, since: Instant) => forge.readBumps(repo, since)),
     contains: (repo, ref, commit) => forge.contains(repo, ref, commit),
     onUnreadable: (repo) => {
       if (!unreadable.has(repo)) {

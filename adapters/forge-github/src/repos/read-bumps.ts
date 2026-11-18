@@ -52,9 +52,3 @@ export async function readBumps(
 
   return bumps.toSorted((first, second) => first.mergedAt - second.mergedAt);
 }
-
-export function makeBumpsReader(
-  client: GithubClient,
-): (repo: RepoName, since: Instant) => Promise<MergedPullRequest[]> {
-  return (repo, since) => readBumps(client, repo, since);
-}

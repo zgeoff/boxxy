@@ -12,7 +12,7 @@ import { toPullPath } from './pull-requests/to-pull-path.ts';
 import { toPullRequestReading } from './pull-requests/to-pull-request-reading.ts';
 import { listReleases } from './repos/list-releases.ts';
 import { probeContains } from './repos/probe-contains.ts';
-import { makeBumpsReader } from './repos/read-bumps.ts';
+import { readBumps } from './repos/read-bumps.ts';
 import { readRepo } from './repos/read-repo.ts';
 import { readTag } from './repos/read-tag.ts';
 import type { GithubForgeOptions } from './types.ts';
@@ -59,7 +59,7 @@ export function createGithubForge(options: GithubForgeOptions): Forge {
     readRepo: (repo) => readRepo(client, repo),
     readTag: (repo, tag) => readTag(client, repo, tag),
     listReleases: (repo) => listReleases(client, repo),
-    findBumps: makeBumpsReader(client),
+    readBumps: (repo, since) => readBumps(client, repo, since),
 
     // GitHub's compare lists at most 300 files, and a paged compare lists them on its first page
     // only, so one call reads every file it gives

@@ -379,8 +379,8 @@ export function createFakeForge(): FakeForge {
         published.toSorted((first, second) => second.publishedAt - first.publishedAt).slice(0, 100),
       );
     },
-    findBumps: (repo, since) => {
-      calls.push(`findBumps ${repo} ${since}`);
+    readBumps: (repo, since) => {
+      calls.push(`readBumps ${repo} ${since}`);
 
       if (isDown) {
         return Promise.reject(new Error('the fake forge is down'));

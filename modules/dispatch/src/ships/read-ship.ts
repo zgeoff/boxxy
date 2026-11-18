@@ -16,7 +16,7 @@ export interface ShipReads {
   readonly readRepo: (repo: RepoName) => Promise<'readable' | 'not-found'>;
   readonly readTag: (repo: RepoName, tag: string) => Promise<CommitSha | null>;
   readonly listReleases: (repo: RepoName) => Promise<readonly Release[]>;
-  readonly findBumps: (repo: RepoName, since: Instant) => Promise<readonly MergedPullRequest[]>;
+  readonly readBumps: (repo: RepoName, since: Instant) => Promise<readonly MergedPullRequest[]>;
   readonly contains: Forge['contains'];
 
   // told once for each repo that the App cannot read
@@ -140,7 +140,7 @@ async function readDeploy(input: ReadShipInput, deploy: DeployInput): Promise<Sh
     return null;
   }
 
-  const bumps = await reads.findBumps(deploy.target.repo, deploy.oldest.publishedAt);
+  const bumps = await reads.readBumps(deploy.target.repo, deploy.oldest.publishedAt);
 
   for (const bump of bumps) {
     const [named] = collectNamedReleases(bump.body, deploy.releases);

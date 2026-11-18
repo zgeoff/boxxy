@@ -35,7 +35,7 @@ export interface Forge {
   listReleases: (repo: RepoName) => Promise<readonly Release[]>;
 
   // The pull requests merged at `since` or later whose author is a Bot, oldest merge first.
-  findBumps: (repo: RepoName, since: Instant) => Promise<readonly MergedPullRequest[]>;
+  readBumps: (repo: RepoName, since: Instant) => Promise<readonly MergedPullRequest[]>;
 }
 
 export interface Release {
