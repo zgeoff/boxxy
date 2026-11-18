@@ -10,7 +10,6 @@ export const timeouts: DispatchTimeouts = {
   seatlessSeconds: 10,
   capacityBackoffSeconds: 60,
   keptSessionHours: 24,
-  failedSessionHours: 24,
   usageLimitBackoffHours: 24,
   strayHours: 24,
   jobReadSeconds: 30,
