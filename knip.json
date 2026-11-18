@@ -5,8 +5,6 @@
   // the shared oxlint config loads the plugin, and the synced skill-gate hook in .claude/ imports
   // the package, so knip sees neither
   "ignoreDependencies": ["@stylistic/eslint-plugin", "@zgeoff/skill-gate"],
-  // repo-sync delivers these scripts from zgeoff/tools and overwrites a local edit, and they export
-  // types that only their own file uses
   // the test script names its roots, so knip reads no package's tests from it
   "workspaces": {
     ".": { "entry": ["*.test.ts", "scripts/**/*.test.ts", "rig.config.ts"] },
@@ -17,8 +15,6 @@
   "ignoreIssues": {
     // `pepys build` writes the glue whole: an ID helper or a row type of a table that the entry
     // file does not use is still part of the generated boundary
-    "packages/pepys/src/generated/*.ts": ["exports", "types"],
-    "scripts/parse-shell-words.ts": ["types"],
-    "scripts/shell-escape-parsers.ts": ["types"]
+    "packages/pepys/src/generated/*.ts": ["exports", "types"]
   }
 }

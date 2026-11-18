@@ -55,7 +55,7 @@ writes `"catalog:"` for an external dependency and `"workspace:*"` for another `
 | Tests                 | `bun test` through `@zgeoff/rig`, `@zgeoff/bun-test-extended`, `@faker-js/faker`  | rig runs each kind of test in its own lane with its own limits; the shared matchers                                                 |
 | GitHub                | `@octokit/auth-app`, `@octokit/request`; `msw` and `@msw/data` in tests           | sign the App's JWT and mint its token; fake the REST API in the adapter's tests                                                     |
 | Git hooks and commits | `lefthook`, gitleaks, `@commitlint/cli`, `@zgeoff/commitlint-config`              | fix staged files, scan for secrets, and enforce Conventional Commits, which release-please reads                                    |
-| Repo checks           | `@zgeoff/chex`, `knip`, `@zgeoff/skill-gate`                                      | the test layout and docs checks; dead code; the skills an agent loads before an edit                                                |
+| Repo checks           | `@zgeoff/chex`, `@zgeoff/diet`, `knip`, `@zgeoff/skill-gate`                      | the test layout and docs checks; dead code; the skills an agent loads before an edit                                                |
 
 A function returns an expected failure as one variant of a union type, so boxxy needs no result
 library. The server writes its logs as JSON lines to stderr, with no log library. boxxy has no
@@ -88,8 +88,9 @@ with its session ID, and pepys joins that telemetry to attempts by the session I
   as soon as it publishes, so `minimumReleaseAgeExcludes` lists every first-party package boxxy
   installs.
 - **`lefthook.yml`** fixes the staged files and runs gitleaks before a commit, and commitlint on the
-  message. Before a push it runs `prose` and `boundaries`, then the shared pre-push baseline that
-  repo-sync delivers, which runs chex.
+  message. Before a push it runs `prose` and `boundaries`, then the pre-push baseline that
+  `@zgeoff/chex` ships, which `lefthook.yml` extends from `node_modules`. The baseline runs each job
+  under the memory cap of `@zgeoff/diet`.
 
 CI runs the shared checks in the `pr / checks` job of `pr.yml`, which repo-sync delivers. The
 `BUN_CHECK_SCRIPTS` repo variable, set in GitHub, lists the root scripts it runs:
@@ -105,11 +106,12 @@ lists in `include`:
 
 - `.github/workflows/pr.yml`, whose `pr / checks` job the repo's GitHub ruleset requires;
 - `.github/workflows/audit-fix.yml` and `.github/workflows/repo-sync-guard.yml`;
-- `.lefthook/pre-push-baseline.yml` and the scripts it calls, each under a memory cap;
 - the shared skills, and `scripts/run-knip.sh` for the dead-code check;
 - the PR template, the issue templates, `.editorconfig` and `socket.yml`.
 
-repo-sync overwrites a synced file on the next sync, so change it in zgeoff/tools. Its
+`repo-sync.yml` lists `memory-cap` in `skip`, because diet replaces that entry, and the chex
+baseline comes from the `@zgeoff/chex` package. repo-sync overwrites a synced file on the next sync,
+so change it in zgeoff/tools. Its
 [downstream repo setup runbook](https://github.com/zgeoff/tools/blob/main/docs/runbooks/downstream-repo-setup.md)
 gives the one-time steps for a new repo.
 

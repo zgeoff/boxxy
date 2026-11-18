@@ -1,8 +1,8 @@
 # 0015: The stack
 
 Date: 2026-11-04
-Updated: 2026-11-12: the API moved to oRPC v2 beta, the CLI to `parseArgs`, and the logs to JSON
-lines with no log library.
+Updated: 2026-11-19: the API moved to oRPC v2 beta, the CLI to `parseArgs`, and the logs to JSON
+lines with no log library, and the chex checks and pre-push baseline now come from `@zgeoff/chex`.
 
 ## Decision
 
@@ -21,7 +21,7 @@ catalog pins each version.
   `parseArgs` ([the CLI](../architecture/interfaces/cli-and-hooks.md#commands)).
 - Tests: `bun test`, run through `@zgeoff/rig`.
 - Release: release-please, with npm trusted publishing.
-- Shared files: repo-sync, like every other repo. It also delivers the chex checks.
+- Shared files: repo-sync, like every other repo. The chex checks and the pre-push baseline come from `@zgeoff/chex`, which `lefthook.yml` extends, and `@zgeoff/diet` caps their memory.
 
 ## Rejected alternatives
 
@@ -32,7 +32,6 @@ catalog pins each version.
 | gunshi for the CLI                               | a table of commands needs only flags and words, which `parseArgs` reads                                                         |
 | Turso with pepys's own Kysely dialect            | boxxy needs one local SQLite file with a write transaction, which `bun:sqlite` gives                                            |
 | oxlint-tsgolint for type-aware lint              | the older setup; the other repos moved to tsrslint                                                                              |
-| the chex lefthook baseline in place of repo-sync | repo-sync already delivers the chex baseline, as `.lefthook/pre-push-baseline.yml`, with the other shared files |
 | tsdown for declarations                          | the newer repos emit declarations with tsrs                                                                                     |
 | a result library such as Effect or neverthrow    | no repo uses one; expected outcomes are union values branched with ts-pattern                                                   |
 

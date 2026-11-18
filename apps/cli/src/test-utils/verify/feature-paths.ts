@@ -59,8 +59,9 @@ export const ignoredPaths = [
   '.gitignore',
   '.gitleaks.toml',
   'commitlint.config.js',
-  'lefthook.yml',
-  '.lefthook/**',
+
+  // the hook config, and the old shared baseline it replaced, which this change deletes
+  '{lefthook.yml,.lefthook/**}',
   'audit-ignores.json',
   'socket.yml',
   'review.json',

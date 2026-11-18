@@ -219,14 +219,6 @@
           }
         ]
       }
-    },
-    // repo-sync delivers this script from zgeoff/tools and overwrites a local edit, so its verbs
-    // are fixed at that source
-    {
-      "files": ["scripts/read-branch-files.ts"],
-      "rules": {
-        "zgeoff/verb-contract": "off"
-      }
     }
   ]
 }
