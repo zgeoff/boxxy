@@ -43,7 +43,7 @@ jobs:
       checks: read
       statuses: read
       actions: read
-    uses: zgeoff/tools/.github/workflows/repo-sync.yml@3e33eaf7f813130450c62b46048b9962b43b1729 # main
+    uses: zgeoff/tools/.github/workflows/repo-sync.yml@12619271a364eae804b55ddfe1e9fd1651a9c80d # main
     with:
       ref: ${{ github.event.client_payload.sha }}
       # hook-skill-gate left the manifest, and a name in skip keeps the copy that
