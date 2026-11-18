@@ -332,6 +332,17 @@ function writeEvidence(deps: ServerDeps, call: CallRef, draft: EvidenceDraft) {
     }
 
     const attempt = picked.attempt;
+
+    // A session re-sends evidence when it loses the answer, and the store refuses a second row
+    // with the same attempt, kind and ref.
+    const recorded = await tx.listEvidence(attempt.id);
+
+    const repeat = recorded.find((row) => row.kind === draft.kind && row.ref === draft.ref);
+
+    if (repeat !== undefined) {
+      return { kind: 'recorded', factId: repeat.factId } as const;
+    }
+
     const factId = brandSchemas.factId.parse(deps.newId());
     const at = deps.clock.now();
 

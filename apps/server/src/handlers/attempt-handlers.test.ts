@@ -182,6 +182,28 @@ test('#recordPullRequest refuses another attempt and never reads the forge', asy
   });
 });
 
+test('#evidence answers the first evidence ID and writes nothing when a session sends the same evidence again', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.seedStartedAttempt(brandSchemas.phaseName.parse('build'));
+
+  const input = { session: { attempt: attempt.id }, kind: 'test', ref: 'bun test' };
+
+  ctx.callerProof.setCaller(attempt.caller);
+
+  const first = await ctx.callSession('attempt.evidence', input);
+  const repeat = await ctx.callSession('attempt.evidence', input);
+  const recorded = await ctx.deps.store.read((tx) => tx.listEvidence(attempt.id));
+
+  expect(repeat).toStrictEqual(first);
+
+  expect(repeat).toStrictEqual({
+    status: 200,
+    body: { json: { kind: 'recorded', factId: expect.any(String) } },
+  });
+
+  expect(recorded).toHaveLength(1);
+});
+
 test('#listItems lists the items of the repo of the session, newest first, without held items', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.seedStartedAttempt(brandSchemas.phaseName.parse('triage'));

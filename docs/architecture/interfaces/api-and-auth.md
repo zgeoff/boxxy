@@ -64,9 +64,10 @@ needs it:
 - **A session** gets five tools on its own endpoint, `/mcp/session`, so its tool list holds nothing
   that changes another item. `attempt.current` gives the session its attempt ID, phase, close-out
   schema, outcome names, skills and the item's notes. `attempt.evidence` records evidence such as a
-  test run or a commit. `attempt.closeOut` sends the close-out, including any new work the session
-  found, which settle drops when it duplicates an existing item. `attempt.listItems` and
-  `attempt.getItem` read other items of the session's repo
+  test run or a commit. When a session sends evidence again with the same kind and ref, the server
+  writes nothing and returns the first evidence ID. `attempt.closeOut` sends the close-out,
+  including any new work the session found, which settle drops when it duplicates an existing item.
+  `attempt.listItems` and `attempt.getItem` read other items of the session's repo
   ([the session's reads](#a-sessions-view-of-other-items)).
 - **The hooks** call `attempt.bindSession`, which binds a session to its attempt, and
   `attempt.recordPullRequest`, which links a pull request. Neither is an MCP tool.
