@@ -435,7 +435,7 @@
     "@zgeoff/mcp-auth": "0.2.2",
     "@zgeoff/oxfmt-config": "0.1.0",
     "@zgeoff/oxlint-config": "0.10.9",
-    "@zgeoff/rig": "0.2.4",
+    "@zgeoff/rig": "0.2.5",
     "@zgeoff/skill-gate": "0.2.29",
     "@zgeoff/std": "0.4.3",
     "elysia": "2.0.0-rc.4",
@@ -1081,7 +1081,7 @@
 
     "@zgeoff/oxlint-config": ["@zgeoff/oxlint-config@0.10.9", "", { "dependencies": { "@stylistic/eslint-plugin": "5.10.0" }, "peerDependencies": { "oxlint": ">=1.78.0" } }, "sha512-vN0bzKZPaQyLJALLKFm2mSaea9Mb5+76Chqstnt9leH9fEp0Q9JWb9LPKZqqtj8AqdMljr1ZtWK4bzxgDTtkKw=="],
 
-    "@zgeoff/rig": ["@zgeoff/rig@0.2.4", "", { "dependencies": { "@zgeoff/diet": "0.2.2", "@zgeoff/std": "0.4.3", "gunshi": "1.0.0-rc.1", "ts-pattern": "5.9.2", "zod": "4.6.7" }, "bin": { "rig": "src/cli.ts" } }, "sha512-WmrumuATsN8icjus1/84sBMnf00sZmsKOm3dJaZim4l8R+VOuOwrswAlKC4K6tfaWE/Pgv153p+zHxCy313ffw=="],
+    "@zgeoff/rig": ["@zgeoff/rig@0.2.5", "", { "dependencies": { "@zgeoff/diet": "0.2.2", "@zgeoff/std": "0.4.3", "gunshi": "1.0.0-rc.1", "ts-pattern": "5.9.2", "zod": "4.6.7" }, "bin": { "rig": "src/cli.ts" } }, "sha512-R+uLuLGTJYh63FyTP+p5cegayalFuYyi54Q6h1bvx25ym6I/BsNX9vGB+sz+0ym+duVoVefwuiAaIJC5pu6Ycw=="],
 
     "@zgeoff/skill-gate": ["@zgeoff/skill-gate@0.2.29", "", { "dependencies": { "@zgeoff/agent-hooks": "0.2.13" } }, "sha512-/R0dOEezRciPzVAezO+wHNCpPwAQWxYwfWTZGZnIeXTvBtEp/fFGhM4y7fbZGMcXbmXrQvT2Oq9MtbwSzH4MIw=="],
 
