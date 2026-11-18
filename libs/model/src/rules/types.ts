@@ -369,8 +369,8 @@ export type LoadRejectionReason =
       readonly agent: string;
     }
 
-  // a scoped agent's recipe has `session: builder`, so it would run in the build's session, or the
-  // item would keep its session for the next build
+  // a `session: builder` recipe runs a scoped agent, or wakes the session of a build that runs a
+  // scoped agent; `agent` is that scoped agent
   | {
       readonly kind: 'scoped-agent-builder-session';
       readonly itemKind: string;
@@ -378,8 +378,8 @@ export type LoadRejectionReason =
       readonly agent: string;
     }
 
-  // an edge with `resume: true` goes to a phase that a scoped agent runs, so the item would keep a
-  // session that holds a credential, and a later resume would wake it for another phase
+  // an edge with `resume: true` goes to a phase that a scoped agent runs, or the build of its
+  // pipeline runs a scoped agent, so the resumed session holds a credential outside its phase
   | {
       readonly kind: 'scoped-agent-session-resumed';
       readonly phase: PhaseName;

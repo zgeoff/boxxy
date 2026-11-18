@@ -2210,6 +2210,43 @@ test.each([
       agent: 'claude-review',
     },
   },
+  {
+    title: 'an unscoped recipe with session: builder after a scoped build agent',
+    steps: `    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+    - { phase: review, maxAttempts: 2, timeoutMinutes: 45, on: { passed: { end: reviewed } } }`,
+    recipes: '{ build: build-v1, review: plain-builder }',
+    spawn: {
+      ...buildMockSpawnScope(),
+      agents: { claude: { phases: ['build'] } },
+      phases: {},
+    },
+    path: 'kinds["core.issue"].recipes.review',
+    reason: {
+      kind: 'scoped-agent-builder-session',
+      itemKind: 'core.issue',
+      recipe: 'plain-builder',
+      agent: 'claude',
+    },
+  },
+  {
+    title: 'an edge with resume: true after a scoped build agent',
+    steps: `    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+    - { phase: review, maxAttempts: 2, timeoutMinutes: 45, on: { passed: next } }
+    - { phase: verify, maxAttempts: 2, timeoutMinutes: 90, on: { verified: { end: verified }, failed: { to: review, max: 2, resume: true } } }`,
+    recipes: '{ build: build-v1, review: plain-run, verify: plain-run }',
+    spawn: {
+      ...buildMockSpawnScope(),
+      agents: { claude: { phases: ['build'] } },
+      phases: {},
+    },
+    path: 'pipelines.standard[2].on.failed',
+    reason: {
+      kind: 'scoped-agent-session-resumed',
+      phase: 'verify',
+      outcome: 'failed',
+      to: 'review',
+    },
+  },
 ])('it rejects $title when the server scopes agents', (row) => {
   const concepts: Concept[] = [
     {
@@ -2242,6 +2279,8 @@ kinds:
 recipes:
   build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
   review-run: { agent: claude-review, model: example-model, effort: low, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+  plain-builder: { agent: claude-plain, model: example-model, effort: low, prompt: prompts/build-v1.md, source: subscription, skills: [], session: builder }
+  plain-run: { agent: claude-plain, model: example-model, effort: low, prompt: prompts/build-v1.md, source: subscription, skills: [] }
   review-builder: { agent: claude-review, model: example-model, effort: low, prompt: prompts/build-v1.md, source: subscription, skills: [], session: builder }
 relationTypes: [blocks]
 limits:
@@ -2305,6 +2344,68 @@ kinds:
 recipes:
   build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
   review-run: { agent: claude-review, model: example-model, effort: low, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+relationTypes: [blocks]
+limits:
+  - { name: workers, max: 7, counts: {} }
+pools:
+  - { name: build, takes: {}, order: [oldest] }
+sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
+`),
+        ],
+        ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+      ]),
+    },
+    concepts,
+    phases: [
+      buildMockPhaseKind({ name: 'build', outcomes: ['built'] }),
+      buildMockPhaseKind({ name: 'review', outcomes: ['passed', 'failed'] }),
+    ],
+    pins,
+  });
+
+  expect(result.kind).toBe('loaded');
+});
+
+test('it loads a resume edge of one kind when only another kind scopes its build agent', () => {
+  const concepts: Concept[] = [
+    {
+      name: 'pool',
+      version: 1,
+      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+    },
+  ];
+
+  const pins = new Map<string, ConceptPin>([
+    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+  ]);
+
+  const result = loadRules({
+    workers: [brandSchemas.workerKindName.parse('atc.session')],
+    spawn: {
+      ...buildMockSpawnScope(),
+      agents: { 'claude-scoped': { phases: ['build'] } },
+      phases: {},
+    },
+    checkout: {
+      commit: '3f2a1c0',
+      files: new Map([
+        [
+          'rules.yaml',
+          new TextEncoder().encode(`
+version: 1
+concepts: [pool@1]
+pipelines:
+  solo:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: { end: built } } }
+  standard:
+    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+    - { phase: review, maxAttempts: 2, timeoutMinutes: 45, on: { passed: { end: reviewed }, failed: { to: build, max: 3, resume: true } } }
+kinds:
+  core.chore: { pipeline: solo, recipes: { build: scoped-build } }
+  core.issue: { pipeline: standard, recipes: { build: build-v1, review: build-v1 } }
+recipes:
+  build-v1: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
+  scoped-build: { agent: claude-scoped, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [] }
 relationTypes: [blocks]
 limits:
   - { name: workers, max: 7, counts: {} }

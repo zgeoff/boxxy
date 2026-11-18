@@ -150,8 +150,10 @@ attended design.
   ([who holds a credential](./sessions.md#who-holds-a-credential)). It refuses a recipe that names a
   listed agent outside its phases or repos (`agent-outside-scope`), a recipe for a
   `requireScopedAgent` phase whose agent isn't listed for it (`phase-without-scoped-agent`), a
-  listed agent's `session: builder` recipe (`scoped-agent-builder-session`), and a `resume: true`
-  edge into a phase a listed agent runs (`scoped-agent-session-resumed`). The review phase sets
+  `session: builder` recipe that runs a listed agent, or that wakes the session of a build that runs
+  a listed agent (`scoped-agent-builder-session`), and a `resume: true` edge into a phase a listed
+  agent runs, or in a pipeline whose build runs a listed agent (`scoped-agent-session-resumed`). The
+  loader checks each kind with its own pipeline and recipes. The review phase sets
   `requireScopedAgent`, so every review runs on the review agent.
 
 ## The launch prompt
