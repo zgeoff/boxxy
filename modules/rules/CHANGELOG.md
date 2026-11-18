@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.12](https://github.com/zgeoff/boxxy/compare/@boxxy/rules@0.2.11...@boxxy/rules@0.2.12) (2026-11-18)
+
+
+### Miscellaneous Chores
+
+* **@boxxy/rules:** Synchronize boxxy versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/content-hash bumped to 0.2.12
+    * @boxxy/model bumped to 0.2.12
+    * @boxxy/prompt-template bumped to 0.2.12
+
 ## [0.2.11](https://github.com/zgeoff/boxxy/compare/@boxxy/rules@0.2.10...@boxxy/rules@0.2.11) (2026-11-17)
 
 ### Miscellaneous Chores
