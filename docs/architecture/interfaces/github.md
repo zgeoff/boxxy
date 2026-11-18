@@ -118,6 +118,25 @@ job exists, so the loader refuses a rules file with a merge step.
   status. A check run wins over a commit status of the same name, and a run that ended with neither
   a pass nor a failure, such as `cancelled` or `skipped`, reads as `other`.
 
+### The ship reads of the adapter
+
+The [ship watch](../work/ship-watch.md#the-watch) reads five more things through the adapter:
+
+- `readRepo` answers `readable`, or `not-found` for a repo that is missing or that the App cannot
+  read.
+- `readTag` gives the commit a tag names, through any annotated tag objects, or `null` for no such
+  tag. A tag name with a slash is read as one name.
+- `contains` asks GitHub's compare of the commit with the ref, and is true when the ref is ahead of
+  the commit or the same as it. A commit or ref GitHub does not find is false.
+- `listReleases` gives the published releases of a repo, newest first, with the first 100 of them
+  read. A draft has no publish time and is left out.
+- `findBumps` gives the pull requests that GitHub types as `Bot` and that merged at or after a time,
+  oldest merge first. It reads closed pull requests by last update and stops at the first page that
+  ends before the time, within a page cap.
+
+The App needs `Contents: read` on every repo that a `ships` rule names, the deploy repo of a `then`
+included.
+
 The owner installs the boxxy App on each repo boxxy works on, with these repository permissions:
 
 | Permission        | Access         | boxxy reads or writes                                      |

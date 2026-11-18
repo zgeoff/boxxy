@@ -4,11 +4,13 @@ When an item goes on hold, boxxy tells the owner with a notice: an atc message t
 the owner picked, the notice session. The settle that puts the item on hold writes the notice into
 the boxxy store, and the runner tries to send it on every tick until atc takes it. A runner that
 stays paused with work ready sends the owner a second kind of notice
-([the paused-runner notice](#the-paused-runner-notice)). It never gives up, so a notice written
-while the owner's machine is off waits in the store and arrives once atc can reach the notice
-session again. Each try carries an idempotency key, so a retry after a lost answer still reaches the
-owner once, apart from the two cases in [what the owner can rely on](#what-the-owner-can-rely-on).
-Read this doc before you change how holds reach the owner, or when notices stop arriving.
+([the paused-runner notice](#the-paused-runner-notice)) and a third when a wait skips a step that
+leaves a tagged line unproven ([the notify notice](#the-notify-notice)). It never gives up, so a
+notice written while the owner's machine is off waits in the store and arrives once atc can reach
+the notice session again. Each try carries an idempotency key, so a retry after a lost answer still
+reaches the owner once, apart from the two cases in
+[what the owner can rely on](#what-the-owner-can-rely-on). Read this doc before you change how holds
+reach the owner, or when notices stop arriving.
 
 [The pipeline](./pipeline.md#when-an-item-needs-the-owner) covers which outcomes hold an item.
 [Attempts](./attempts.md#settle) covers the settle that writes the notice.
@@ -54,6 +56,14 @@ notice, and a resume after it is queued does not recall it.
 
 The timeout is a constant beside the other timeouts in the dispatch module, not a config option. A
 pause stored before the runner recorded its start time has no length, so it gets no notice.
+
+## The notify notice
+
+A step skipped by a [wait](./ship-watch.md#the-shipped-wait) that has no later check to prove a
+tagged acceptance line sends a third kind of notice, `notify`. It names the item, the phase and the
+skip reason, and the message tells the owner that boxxy ended that step with no session. The claim
+writes the row in the same change as the skipped attempt, with the phase in the row, and the notice
+follows the same retries, key and session as a hold notice.
 
 ## Turning notices on
 
@@ -129,7 +139,7 @@ between tries.
 
 ## Unsent notices in `runner.status`
 
-`runner.status` counts both kinds of notice. It shows the count of unsent notices, the time of the
+`runner.status` counts every kind of notice. It shows the count of unsent notices, the time of the
 oldest, and `lastError`, the reason of the latest try that wasn't `sent`. `lastError` reads
 `no-notice-session` while no session is registered, and `session_dead` while the registered session
 is stopped. The server keeps `lastError` in memory and shows it only while a notice is unsent, so a
