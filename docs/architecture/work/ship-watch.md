@@ -51,8 +51,8 @@ skip the step. The server logs each warning on load and on each rules reload.
 When the server config has a `github` section, the server runs a pass on a fixed interval, whether
 or not the runner is paused. A pass reads each item that is not held or closed, whose repo is in
 `spawn.repos`, whose position is a step that waits on `shipped`, whose repo ships something, and
-that has no shipped row for its merge commit. It reads at most 50 such items, and the rest wait for
-the next pass.
+that has no shipped row for its merge commit. It reads at most 50 such items, the ones it read least
+recently first, so no item waits behind items that never ship, and the rest wait for the next pass.
 
 The pass calls `readRepo` on each repo before any other call there. When the answer is `not-found`,
 it logs that the App cannot read the repo and the item waits. Each forge answer is read once per
@@ -65,8 +65,9 @@ pass, however many items share it. Then it applies the item's own repo's rule:
   item waits.
 - **`release` with `then`:** once the item has a release, the pass lists the bot-authored pull
   requests of the deploy repo merged at or after that release was published. A bump counts when its
-  body holds, as a whole URL, the release's URL or the URL of a later release. The item ships when
-  `then.tag`'s commit contains a counted bump's merge commit.
+  body holds, as a whole URL, the release's URL or the URL of any release published after it, a
+  prerelease included. The item ships when `then.tag`'s commit contains a counted bump's merge
+  commit.
 
 A forge call that throws writes nothing for the items that needed it, logs a warning, and the next
 pass reads again.

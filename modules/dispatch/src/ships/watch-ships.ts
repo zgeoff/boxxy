@@ -8,8 +8,8 @@ import type {
   StoreReader,
 } from '@boxxy/model';
 import { brandSchemas, findMergeCommit, shippedWaitName } from '@boxxy/model';
-import { shipWatchLimits } from './constants.ts';
 import { memoize } from './memoize.ts';
+import { pickCandidates } from './pick-candidates.ts';
 import type { ShipReads } from './read-ship.ts';
 import { readShip } from './read-ship.ts';
 import type { ShipCandidate, ShipFinding, WatchShipsInput } from './types.ts';
@@ -17,8 +17,9 @@ import type { ShipCandidate, ShipFinding, WatchShipsInput } from './types.ts';
 // One pass of the ship watch, which runs whether or not the runner is paused. A forge call that
 // throws writes nothing for the items that needed it, and the next pass reads again.
 export async function watchShips(input: WatchShipsInput): Promise<ItemShipped[]> {
-  const candidates = await input.store.read((reader) => readCandidates(reader, input));
+  const found = await input.store.read((reader) => readCandidates(reader, input));
 
+  const candidates = pickCandidates(found, input.lastChecked, input.now);
   const reads = buildReads(input);
   const written: ItemShipped[] = [];
 
@@ -55,10 +56,6 @@ async function readCandidates(
   const candidates: ShipCandidate[] = [];
 
   for (const item of items) {
-    if (candidates.length >= shipWatchLimits.itemsPerPass) {
-      break;
-    }
-
     const rule = findWatchedRule(item, input);
 
     if (rule === null) {

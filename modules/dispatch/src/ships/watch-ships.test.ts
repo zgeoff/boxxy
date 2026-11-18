@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { CommitSha, ItemId, Release } from '@boxxy/model';
+import type { CommitSha, Instant, ItemId, Release } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockPauseChange } from '../test-utils/build-mock-pause-change.ts';
 import type { SeededBumps } from '../test-utils/create-fake-forge.ts';
@@ -46,6 +46,8 @@ async function setupTest(ruleName: RuleName) {
   const buildSha = (index: number): CommitSha =>
     brandSchemas.commitSha.parse(index.toString(16).padStart(shaWidth, 'f'));
 
+  const lastChecked = new Map<ItemId, Instant>();
+
   const watchWith = (spawnRepos: ReadonlySet<typeof app>) =>
     watchShips({
       forge,
@@ -54,6 +56,7 @@ async function setupTest(ruleName: RuleName) {
       runner: dispatch.runner,
       now: dispatch.clock.now(),
       newId: dispatch.newId,
+      lastChecked,
       spawnRepos,
       warn: (message, detail) => {
         warnings.push(`${message} ${JSON.stringify(detail)}`);
@@ -255,6 +258,27 @@ test('it ships with a prerelease when the rule allows prereleases', async () => 
   expect(shipped.map((row) => row.ref)).toStrictEqual(['v2.0.0-rc.1']);
 });
 
+test('it counts a bump that names a prerelease published after the eligible release', async () => {
+  const ctx = await setupTest('releaseThenDeploy');
+  const item = await ctx.mergeItem();
+
+  const body = 'Bump app to https://github.com/example/app/releases/tag/v3.0.0-rc.1';
+
+  ctx.putReleases([
+    { tag: 'v3.0.0-rc.1', publishedAt: 3000, isContaining: true, prerelease: true },
+    { tag: 'v2.0.0', publishedAt: 2000, isContaining: true },
+    { tag: 'v1.0.0', publishedAt: 1000, isContaining: false },
+  ]);
+
+  ctx.putDeploy([ctx.buildBump(41, 3500, body, 'Bot')], [ctx.buildSha(41)]);
+
+  const shipped = await ctx.watch();
+
+  const received: unknown = shipped.map((row) => [row.itemId, row.rule, row.release]);
+
+  expect(received).toStrictEqual([[item, 'release-then-deploy', 'v3.0.0-rc.1']]);
+});
+
 test('it ships by release then deploy when the deploy tag holds a bump that names a release', async () => {
   const ctx = await setupTest('releaseThenDeploy');
   const item = await ctx.mergeItem();
@@ -304,6 +328,13 @@ test.each([
   {
     title: 'a bump that names a longer tag than the release',
     tag: 'v1.0.01',
+    mergedAt: 2500,
+    author: 'Bot' as const,
+    isHeld: true,
+  },
+  {
+    title: 'a bump that names a tag with a build suffix',
+    tag: 'v1.0.0+patch',
     mergedAt: 2500,
     author: 'Bot' as const,
     isHeld: true,

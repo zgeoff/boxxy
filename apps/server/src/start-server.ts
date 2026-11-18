@@ -16,6 +16,8 @@ import type {
   ClaimStore,
   Forge,
   GitSource,
+  Instant,
+  ItemId,
   Notifier,
   SessionReading,
   WorkerKindName,
@@ -297,6 +299,8 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
         });
 
   // reads GitHub for each item that waits on `shipped`, and runs while the runner is paused
+  const shipChecks = new Map<ItemId, Instant>();
+
   const shipWatch =
     forge === null
       ? null
@@ -309,6 +313,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
               runner,
               now: clock.now(),
               newId,
+              lastChecked: shipChecks,
               spawnRepos: deps.repos,
               warn: (message, detail) => {
                 input.log.warn(message, { ...detail });

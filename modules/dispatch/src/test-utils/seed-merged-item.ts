@@ -43,7 +43,11 @@ export async function seedMergedItem(
                 table: 'pull_requests',
                 key: { repo, number },
                 expect: { state: 'open' },
-                set: { state: 'merged', mergedAt: now, mergeCommit: seededMergeCommit },
+                set: {
+                  state: 'merged',
+                  mergedAt: now,
+                  mergeCommit: seededMergeCommit,
+                },
               } as const,
             ]),
         {

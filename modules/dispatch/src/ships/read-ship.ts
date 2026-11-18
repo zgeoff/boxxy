@@ -65,7 +65,9 @@ export async function readShip(input: ReadShipInput): Promise<ShipFinding | null
     return { rule: 'release', ref: oldest.tag };
   }
 
-  return readDeploy(input, { target: deploy, releases, oldest });
+  const later = await readLaterReleases(input, oldest);
+
+  return readDeploy(input, { target: deploy, releases: later, oldest });
 }
 
 // the tag's commit holds the merge commit; a missing tag holds nothing
@@ -109,13 +111,23 @@ async function readContainingReleases(
   return containing;
 }
 
+// Every published release from the oldest containing one on, prereleases included, oldest first.
+async function readLaterReleases(input: ReadShipInput, oldest: Release): Promise<Release[]> {
+  const published = await input.reads.listReleases(input.repo);
+
+  return published
+    .filter((release) => !release.draft && release.publishedAt >= oldest.publishedAt)
+    .toReversed();
+}
+
 interface DeployInput {
   readonly target: { readonly repo: RepoName; readonly tag: string };
   readonly releases: readonly Release[];
   readonly oldest: Release;
 }
 
-// A bump counts when its body names the oldest containing release, or a later one. The item ships
+// A bump counts when its body names the oldest containing release, or any release published after
+// it. The item ships
 // when the deploy tag holds a counted bump's merge commit.
 async function readDeploy(input: ReadShipInput, deploy: DeployInput): Promise<ShipFinding | null> {
   const reads = input.reads;
@@ -130,10 +142,8 @@ async function readDeploy(input: ReadShipInput, deploy: DeployInput): Promise<Sh
 
   const bumps = await reads.findBumps(deploy.target.repo, deploy.oldest.publishedAt);
 
-  const oldestFirst = deploy.releases.toReversed();
-
   for (const bump of bumps) {
-    const [named] = collectNamedReleases(bump.body, oldestFirst);
+    const [named] = collectNamedReleases(bump.body, deploy.releases);
 
     if (named === undefined) {
       continue;

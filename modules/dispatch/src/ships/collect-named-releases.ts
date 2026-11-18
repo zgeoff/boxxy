@@ -7,7 +7,7 @@ export function collectNamedReleases(body: string, releases: readonly Release[])
     const escaped = release.url.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`);
 
     const whole = new RegExp(
-      String.raw`(?<![A-Za-z0-9])${escaped}(?![A-Za-z0-9_%/~-]|\.[A-Za-z0-9])`,
+      String.raw`(?<![A-Za-z0-9])${escaped}(?![A-Za-z0-9_%/~+@=&-]|\.[A-Za-z0-9])`,
       'u',
     );
 
