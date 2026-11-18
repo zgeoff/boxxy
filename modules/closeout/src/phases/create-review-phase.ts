@@ -47,13 +47,15 @@ export function createReviewPhase(deps: Pick<ReviewGate, 'buildCommand'>) {
   });
 }
 
-// The round counts the reviews since the item's latest retry that asked for changes.
+// The round counts the reviews since the item's latest retry that asked for changes. The cause
+// reads the whole history, so a retry does not turn a confirmation pass into a full review.
 function buildReviewInput(
   ctx: PhaseInputContext,
   deps: Pick<ReviewGate, 'buildCommand'>,
 ): ReviewInput {
   const since = ctx.retries.at(-1)?.at ?? Number.NEGATIVE_INFINITY;
-  const settled = collectSettled(ctx.history).filter((attempt) => attempt.endedAt > since);
+  const allSettled = collectSettled(ctx.history);
+  const settled = allSettled.filter((attempt) => attempt.endedAt > since);
 
   const round =
     1 +
@@ -61,14 +63,13 @@ function buildReviewInput(
       (attempt) => attempt.phase === 'review' && attempt.outcome === 'changes-requested',
     ).length;
 
-  const cause = buildRoundCause(settled);
   const link = findPullRequestLink(ctx.pullRequests);
+  const pullRequest = link === null ? null : { repo: link.repo, number: link.number };
+  const cause = buildRoundCause(allSettled, pullRequest);
 
-  if (link === null) {
+  if (pullRequest === null) {
     return { pullRequest: null, round, cause, command: null };
   }
-
-  const pullRequest = { repo: link.repo, number: link.number };
 
   return {
     pullRequest,

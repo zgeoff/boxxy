@@ -49,17 +49,28 @@ test('it gives the first review of a pull request round 1, cause first, and the 
 
 test('it gives the review after a review that asked for changes round 2 and cause rework', () => {
   const ctx = setupTest();
+  const pullRequest = buildMockV1PullRequestRow();
 
   const input = ctx.review.input({
     item: buildMockV1ItemView(),
     attempt: buildMockV1AttemptRow().id,
     history: [
       buildMockSettledAttemptRow({ phase: 'build', outcome: 'built', endedAt: 1000 }),
-      buildMockSettledAttemptRow({ phase: 'review', outcome: 'changes-requested', endedAt: 2000 }),
+      buildMockSettledAttemptRow({
+        phase: 'review',
+        outcome: 'changes-requested',
+        endedAt: 2000,
+        input: {
+          pullRequest: { repo: pullRequest.repo, number: pullRequest.number },
+          round: 1,
+          cause: 'first',
+          command: 'review first 1',
+        },
+      }),
       buildMockSettledAttemptRow({ phase: 'build', outcome: 'built', endedAt: 3000 }),
     ],
     retries: [],
-    pullRequests: [buildMockV1PullRequestRow()],
+    pullRequests: [pullRequest],
     session: null,
   });
 
@@ -68,8 +79,9 @@ test('it gives the review after a review that asked for changes round 2 and caus
   );
 });
 
-test('it counts no review that settled before the latest retry', () => {
+test('it counts no review that settled before the latest retry in the round', () => {
   const ctx = setupTest();
+  const pullRequest = buildMockV1PullRequestRow();
 
   const input = ctx.review.input({
     item: buildMockV1ItemView(),
@@ -83,12 +95,43 @@ test('it counts no review that settled before the latest retry', () => {
     retries: [
       { at: brandSchemas.instant.parse(4000), phase: brandSchemas.phaseName.parse('build') },
     ],
-    pullRequests: [buildMockV1PullRequestRow()],
+    pullRequests: [pullRequest],
+    session: null,
+  });
+
+  expect(input).toStrictEqual(expect.objectContaining({ round: 1 }));
+});
+
+test('it gives the review after a retry on the same pull request the cause rework', () => {
+  const ctx = setupTest();
+  const pullRequest = buildMockV1PullRequestRow();
+
+  const input = ctx.review.input({
+    item: buildMockV1ItemView(),
+    attempt: buildMockV1AttemptRow().id,
+    history: [
+      buildMockSettledAttemptRow({
+        phase: 'review',
+        outcome: 'changes-requested',
+        endedAt: 1000,
+        input: {
+          pullRequest: { repo: pullRequest.repo, number: pullRequest.number },
+          round: 1,
+          cause: 'first',
+          command: 'review first 1',
+        },
+      }),
+      buildMockSettledAttemptRow({ phase: 'build', outcome: 'built', endedAt: 3000 }),
+    ],
+    retries: [
+      { at: brandSchemas.instant.parse(2000), phase: brandSchemas.phaseName.parse('build') },
+    ],
+    pullRequests: [pullRequest],
     session: null,
   });
 
   expect(input).toStrictEqual(
-    expect.objectContaining({ round: 1, cause: 'first', command: 'review first 1' }),
+    expect.objectContaining({ round: 1, cause: 'rework', command: 'review rework 1' }),
   );
 });
 
