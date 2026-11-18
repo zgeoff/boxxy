@@ -34,6 +34,8 @@ reads one item and its repo's ship rule, and answers:
 - `skip` when the repo ships `none`;
 - `waiting` otherwise.
 
+An item waits for its ship with no time limit.
+
 A shipped row satisfies the wait only for the commit it names. After
 `boxxy item retry <item> --phase build` and a second merge, the watch reads the new commit. A rules
 change never removes or rewrites a shipped row.
@@ -78,4 +80,8 @@ the release tag for `release`), the release tag a bump named for `release-then-d
 watch saw the ship, which is not when it happened. A row that exists already for the item and commit
 is never written twice. A webhook never changes boxxy state: only the watch writes `item_shipped`.
 
+The watch reads GitHub through the forge adapter, never pepys. boxxy reads pepys only for reports,
+through a reader that never retries, and pepys records no deploy for a repo that deploys its own
+code with no bump pull request. pepys's stage times keep reading GitHub's own release and deploy
+times, and never the shipped fact.
 [Facts and pepys](../interfaces/facts-and-pepys.md#what-every-fact-carries) covers the fact.

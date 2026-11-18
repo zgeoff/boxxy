@@ -226,7 +226,9 @@ open item whose kind must be `bug` and whose `acceptance` lists the failing line
   the checked item, so the rules file must list `relates-to` in `relationTypes`. The filed item
   keeps the acceptance lines and their tags, so its own live step, when its pipeline has one, checks
   them again. Any open item a close-out files may carry `acceptance`, and each tag must be in
-  `criterionTags`.
+  `criterionTags`. The checked item ends rather than going back to build, because its pull request
+  has already merged: a fix needs a new pull request, and a new item keeps each item's cost and land
+  time apart in pepys.
 - The evidence stays in the item and the close-out. boxxy posts nothing to a pull request.
 
 ## The launch prompt

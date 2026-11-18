@@ -190,6 +190,29 @@ graded outcome, so the next build wakes it. The grader never changes the code, s
 the head the review passed. When a rework pushes a new head, the next grader reruns only the
 journeys of features the rework touched; the others keep their verdicts.
 
+A rules file that skips the verify step when `verify / gate` already passes
+([step gates and skips](../work/pipeline.md#step-gates-and-skips)) leaves every verdict to the
+verify phase, so its prompts split the work:
+
+- The build phase writes or changes the journey, the feature file and the path map of each feature
+  it adds or changes, and runs `bun verify lint`. It records no verdict and publishes no report.
+- The build and rework prompts say that `verify / gate` stays red until the verify phase runs, so
+  the builder leaves it red.
+- Only the verify phase records verdicts and runs `bun verify publish`.
+
+## A prod target for live checks
+
+A [live step](../work/pipeline.md#the-live-phase-kind) checks an item's tagged acceptance lines
+against the deployed system, through the repo's own verify CLI. A repo gives its live agent:
+
+- a prod target in its verify registry, with `access: 'read-only'` and `evidence: 'local'`, which
+  the agent checks with `bun verify doctor --target prod` before any line;
+- a guard in each of its own QA scripts that writes to prod, which confines the write to a QA area
+  and refuses outside it. A line that needs a write outside the guards closes out `blocked`, with
+  the write it needs;
+- its prod credentials in its own vault, which only the broker profile of its scoped agent reads
+  ([who holds a credential](../work/sessions.md#who-holds-a-credential)).
+
 ## What the merge step reads
 
 The merge step never reads the grader's outcome. It reads the gate through the verifier adapter,
