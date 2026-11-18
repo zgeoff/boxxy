@@ -223,7 +223,7 @@ const rules = loadRules(text, { phases: [...phaseKinds, createReviewPhase(review
 //   The session runs `noslop findings` with its read-only token, and noslop then trusts only the
 //   comments of the App that the base branch's `github.app` names; with none named, it exits 1.
 //   noslop takes the slug from no flag or variable. A later review then judges no fix, and reads
-//   `not-covered`, as step 1 says. On a first review, a `findings` run that failed adds nothing:
+//   `not-covered`, as step 1 says. On a posted review, a `findings` run that failed adds nothing:
 //   step 3 reads with the App's keys and decides the status, the open finding the result does
 //   not name counts as high with no path, and `closedWithoutFix` counts 0.
 //   findingPaths        the `path` of each open finding
