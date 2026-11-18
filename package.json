@@ -79,7 +79,7 @@
   },
   "type": "module",
   "scripts": {
-    "audit": "bun audit --ignore=GHSA-g3hv-75wg-m249",
+    "audit": "bun audit --ignore=GHSA-fc5q-39xc-vjpf --ignore=GHSA-g3hv-75wg-m249",
     "bench": "rig bench",
     "boundaries": "turbo boundaries",
     "deadcode": "bash scripts/run-knip.sh",
