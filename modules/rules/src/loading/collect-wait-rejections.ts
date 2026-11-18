@@ -58,7 +58,10 @@ function collectWaitRejection(input: WaitRejectionInput): LoadRejection[] {
 
   const isOutcomeEarlier = input.steps
     .slice(0, input.index)
-    .some((earlier) => registry.phases.get(earlier.phase)?.outcomes.includes(kind.after.outcome));
+    .some(
+      (earlier) =>
+        registry.phases.get(earlier.phase)?.outcomes.includes(kind.after.outcome) === true,
+    );
 
   if (!isOutcomeEarlier) {
     rejections.push(

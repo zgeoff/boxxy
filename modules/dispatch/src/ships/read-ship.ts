@@ -59,7 +59,7 @@ export async function readShip(input: ReadShipInput): Promise<ShipFinding | null
     return null;
   }
 
-  const deploy = rule['then'];
+  const deploy = rule.then;
 
   if (deploy === undefined) {
     return { rule: 'release', ref: oldest.tag };
