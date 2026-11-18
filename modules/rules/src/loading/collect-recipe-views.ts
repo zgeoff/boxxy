@@ -37,15 +37,12 @@ interface ViewInput {
 // order, first match wins: the repo's `<phase>/attended`, the repo's `<phase>`, the kind's
 // `<phase>/attended`, the kind's `<phase>`; a plain `<phase>` key skips the attended ones.
 export function collectRecipeViews(input: ViewInput): RecipeView[] {
-  const base: RecipeView = {
-    repo: null,
-    recipes: Object.entries(input.kindRecipes).map(([key, recipe]) => ({
-      key,
-      recipe,
-      path: ['kinds', input.itemKind, 'recipes', key],
-      isRepoRecipe: false,
-    })),
-  };
+  const baseRecipes: ViewRecipe[] = Object.entries(input.kindRecipes).map(([key, recipe]) => ({
+    key,
+    recipe,
+    path: ['kinds', input.itemKind, 'recipes', key],
+    isRepoRecipe: false,
+  }));
 
   const repoViews = input.repos
     .filter((entry) => Object.keys(entry.recipes).length > 0)
@@ -88,6 +85,12 @@ export function collectRecipeViews(input: ViewInput): RecipeView[] {
       };
     });
 
+  // a kind recipe that every repo overrides runs nowhere, so no check reaches it
+  const base: RecipeView = {
+    repo: null,
+    recipes: baseRecipes.filter((entry) => isUsedInAnyRepo(input.repos, repoViews, entry)),
+  };
+
   return [base, ...repoViews];
 }
 
@@ -108,6 +111,26 @@ function pickRecipeKey(
   }
 
   return undefined;
+}
+
+function isUsedInAnyRepo(
+  repos: ViewInput['repos'],
+  repoViews: readonly RecipeView[],
+  entry: ViewRecipe,
+): boolean {
+  return (
+    repos.length === 0 ||
+    repos.some((candidate) => {
+      const view = repoViews.find((held) => held.repo === candidate.repo);
+
+      return (
+        view === undefined ||
+        view.recipes.some(
+          (held) => !held.isRepoRecipe && held.path.join('/') === entry.path.join('/'),
+        )
+      );
+    })
+  );
 }
 
 // a recipe key is `<phase>` or `<phase>/attended`

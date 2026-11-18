@@ -81,6 +81,21 @@ test('it loads a kind recipe on a scoped agent once each repo outside its scope 
   expect(result.kind).toBe('loaded');
 });
 
+test('it loads a scoped repo recipe when the only repo overrides the unscoped kind default', () => {
+  const spawn: SpawnScope = {
+    agents: { 'scoped-agent': { phases: ['review'], repos: ['example/app'] } },
+    phases: { review: { requireScopedAgent: true } },
+    repos: ['example/app'],
+  };
+
+  const result = loadRepoRules({
+    repos: { 'example/app': { recipes: { review: 'scoped' } } },
+    spawn,
+  });
+
+  expect(result.kind).toBe('loaded');
+});
+
 test('it rejects a repo recipe on an unscoped agent for a phase that needs a scoped one', () => {
   const spawn: SpawnScope = {
     agents: { 'scoped-agent': { phases: ['review'] } },

@@ -662,6 +662,37 @@ test('it makes the designed item wait on the open issue that a blocking open ite
   ]);
 });
 
+test('it files an open item that shares the title of the item it links to', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('design');
+
+  await ctx.closeOut(attempt, {
+    result: {
+      kind: 'designed',
+      design: { text: 'Theme the app once the dark theme lands.', location: null },
+      openItems: [
+        { kind: 'core.issue', title: 'Add a dark theme', body: 'Found.', blocks: ['item'] },
+      ],
+    },
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+  const [settled] = await ctx.listFacts('boxxy.attempt.settled');
+
+  const received: unknown = [
+    detail.relations.map((relation) => [relation.target, relation.type]),
+    settled?.payload,
+  ];
+
+  expect(received).toStrictEqual([
+    [[attempt.item, 'blocks']],
+    expect.objectContaining({ skippedEffects: [] }),
+  ]);
+});
+
 test('it withholds a blocks link from an open item that matches the held designed item', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.claimAt('design');
