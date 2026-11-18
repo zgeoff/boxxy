@@ -48,6 +48,7 @@ export function buildMockV1AttemptRow(overrides: Partial<AttemptRow> = {}): Atte
     wokenAt: null,
     outcome: null,
     returnedOutcome: null,
+    refusal: null,
     strayedAt: null,
     sessionStoppedAt: null,
     sessionForgottenAt: null,

@@ -98,7 +98,8 @@ stream `facts.boxxy.runner`. These rules hold for the work facts:
 - **boxxy records the merges it sees**, because item state reads them and boxxy must dispatch while
   pepys is down. pepys takes the merge time from its GitHub tables instead.
 - **Some outcomes write no fact of their own.** A settle for `stalled`, `skill-missing` or a
-  capacity refusal shows only on the `settled` fact.
+  capacity refusal shows only on the `settled` fact. A capacity refusal carries atc's code, cause
+  and message in the fact's `refusal` field; a fact written before the field reads as no refusal.
 - **`boxxy.attempt.turn_ended` keeps its schema** though boxxy never writes it, because pepys holds
   facts of that type and the plug-in must parse every fact of an item.
 

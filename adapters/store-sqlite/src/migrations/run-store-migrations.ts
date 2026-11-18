@@ -9,6 +9,7 @@ import { itemBodyMigration } from './item-body-migration.ts';
 import { jobAttemptsMigration } from './job-attempts-migration.ts';
 import { noticeKeysMigration } from './notice-keys-migration.ts';
 import { noticeSessionMigration } from './notice-session-migration.ts';
+import { refusalMigration } from './refusal-migration.ts';
 import { renameRelationsMigration } from './rename-relations-migration.ts';
 import { runnerPauseMigration } from './runner-pause-migration.ts';
 import { v1TablesMigration } from './v1-tables-migration.ts';
@@ -35,6 +36,7 @@ const migrations = {
   '0006-job-attempts': jobAttemptsMigration,
   '0007-notice-session': noticeSessionMigration,
   '0008-runner-pause': runnerPauseMigration,
+  '0009-refusal': refusalMigration,
 };
 
 async function runMigrator(db: Kysely<StoreDatabase>): Promise<void> {

@@ -19,6 +19,7 @@ import { oc } from '@orpc/contract';
 import { mcp } from '@orpc/mcp';
 import { z } from 'zod';
 import { authContract } from './auth-contract.ts';
+import { capacityRefusalsSchema } from './capacity-refusals-schema.ts';
 import { itemReadContract } from './item-read-contract.ts';
 import { noticesContract } from './notices-contract.ts';
 import { outboxStatusSchema } from './outbox-status-schema.ts';
@@ -297,6 +298,7 @@ const runnerStatusOutput = z.object({
   limits: z.array(limitFillSchema),
   attempts: z.array(runnerAttempt),
   strays: z.array(attemptRowSchema),
+  capacityRefusals: capacityRefusalsSchema,
 
   // hold notices that the notifier has not sent; `lastError` is the reason of the most recent
   // try that was not sent

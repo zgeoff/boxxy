@@ -358,6 +358,7 @@ export interface BoxxyAttemptSettledPayload {
   failure: string | null;
   outcome: string;
   returnedOutcome: string | null;
+  refusal?: BoxxyAttemptSettledPayloadRefusal | null;
   closing: 'closed-out' | 'timed-out' | 'item-closed' | 'stalled' | 'skill-missing' | 'turn-ended' | 'usage-limit' | null;
   asleep: boolean;
   sessionStopped: boolean;
@@ -367,6 +368,12 @@ export interface BoxxyAttemptSettledPayload {
   frictionDropped: number;
   skippedEffects: BoxxyAttemptSettledPayloadSkippedEffectsItem[];
   storeVersion: number;
+}
+
+export interface BoxxyAttemptSettledPayloadRefusal {
+  code: string;
+  problem: string | null;
+  message: string;
 }
 
 export interface BoxxyAttemptSettledPayloadCriteriaItem {
@@ -2583,66 +2590,73 @@ function decodeBoxxyAttemptSettledPayload(value: unknown): BoxxyAttemptSettledPa
     return undefined;
   }
 
-  const raw7 = 'closing' in value ? value.closing : undefined;
-  const field7 = raw7 === null ? null : raw7 === 'closed-out' || raw7 === 'timed-out' || raw7 === 'item-closed' || raw7 === 'stalled' || raw7 === 'skill-missing' || raw7 === 'turn-ended' || raw7 === 'usage-limit' ? raw7 : undefined;
+  const raw7 = 'refusal' in value ? value.refusal : undefined;
+  const field7 = raw7 === undefined ? undefined : raw7 === null ? null : decodeBoxxyAttemptSettledPayloadRefusal(raw7);
 
-  if (field7 === undefined) {
+  if (raw7 !== undefined && field7 === undefined) {
     return undefined;
   }
 
-  const raw8 = 'asleep' in value ? value.asleep : undefined;
-  const field8 = typeof raw8 === 'boolean' ? raw8 : undefined;
+  const raw8 = 'closing' in value ? value.closing : undefined;
+  const field8 = raw8 === null ? null : raw8 === 'closed-out' || raw8 === 'timed-out' || raw8 === 'item-closed' || raw8 === 'stalled' || raw8 === 'skill-missing' || raw8 === 'turn-ended' || raw8 === 'usage-limit' ? raw8 : undefined;
 
   if (field8 === undefined) {
     return undefined;
   }
 
-  const raw9 = 'sessionStopped' in value ? value.sessionStopped : undefined;
+  const raw9 = 'asleep' in value ? value.asleep : undefined;
   const field9 = typeof raw9 === 'boolean' ? raw9 : undefined;
 
   if (field9 === undefined) {
     return undefined;
   }
 
-  const raw10 = 'endedAt' in value ? value.endedAt : undefined;
-  const field10 = typeof raw10 === 'number' ? raw10 : undefined;
+  const raw10 = 'sessionStopped' in value ? value.sessionStopped : undefined;
+  const field10 = typeof raw10 === 'boolean' ? raw10 : undefined;
 
   if (field10 === undefined) {
     return undefined;
   }
 
-  const raw11 = 'criteria' in value ? value.criteria : undefined;
-  const field11 = decodeBoxxyAttemptSettledPayloadCriteria(raw11);
+  const raw11 = 'endedAt' in value ? value.endedAt : undefined;
+  const field11 = typeof raw11 === 'number' ? raw11 : undefined;
 
   if (field11 === undefined) {
     return undefined;
   }
 
-  const raw12 = 'matched' in value ? value.matched : undefined;
-  const field12 = decodeBoxxyAttemptSettledPayloadMatched(raw12);
+  const raw12 = 'criteria' in value ? value.criteria : undefined;
+  const field12 = decodeBoxxyAttemptSettledPayloadCriteria(raw12);
 
   if (field12 === undefined) {
     return undefined;
   }
 
-  const raw13 = 'frictionDropped' in value ? value.frictionDropped : undefined;
-  const field13 = typeof raw13 === 'number' ? raw13 : undefined;
+  const raw13 = 'matched' in value ? value.matched : undefined;
+  const field13 = decodeBoxxyAttemptSettledPayloadMatched(raw13);
 
   if (field13 === undefined) {
     return undefined;
   }
 
-  const raw14 = 'skippedEffects' in value ? value.skippedEffects : undefined;
-  const field14 = decodeBoxxyAttemptSettledPayloadSkippedEffects(raw14);
+  const raw14 = 'frictionDropped' in value ? value.frictionDropped : undefined;
+  const field14 = typeof raw14 === 'number' ? raw14 : undefined;
 
   if (field14 === undefined) {
     return undefined;
   }
 
-  const raw15 = 'storeVersion' in value ? value.storeVersion : undefined;
-  const field15 = typeof raw15 === 'number' ? raw15 : undefined;
+  const raw15 = 'skippedEffects' in value ? value.skippedEffects : undefined;
+  const field15 = decodeBoxxyAttemptSettledPayloadSkippedEffects(raw15);
 
   if (field15 === undefined) {
+    return undefined;
+  }
+
+  const raw16 = 'storeVersion' in value ? value.storeVersion : undefined;
+  const field16 = typeof raw16 === 'number' ? raw16 : undefined;
+
+  if (field16 === undefined) {
     return undefined;
   }
 
@@ -2654,15 +2668,49 @@ function decodeBoxxyAttemptSettledPayload(value: unknown): BoxxyAttemptSettledPa
     failure: field4,
     outcome: field5,
     returnedOutcome: field6,
-    closing: field7,
-    asleep: field8,
-    sessionStopped: field9,
-    endedAt: field10,
-    criteria: field11,
-    matched: field12,
-    frictionDropped: field13,
-    skippedEffects: field14,
-    storeVersion: field15,
+    ...(field7 === undefined ? {} : { refusal: field7 }),
+    closing: field8,
+    asleep: field9,
+    sessionStopped: field10,
+    endedAt: field11,
+    criteria: field12,
+    matched: field13,
+    frictionDropped: field14,
+    skippedEffects: field15,
+    storeVersion: field16,
+  };
+}
+
+function decodeBoxxyAttemptSettledPayloadRefusal(value: unknown): BoxxyAttemptSettledPayloadRefusal | undefined {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const raw0 = 'code' in value ? value.code : undefined;
+  const field0 = typeof raw0 === 'string' ? raw0 : undefined;
+
+  if (field0 === undefined) {
+    return undefined;
+  }
+
+  const raw1 = 'problem' in value ? value.problem : undefined;
+  const field1 = raw1 === null ? null : typeof raw1 === 'string' ? raw1 : undefined;
+
+  if (field1 === undefined) {
+    return undefined;
+  }
+
+  const raw2 = 'message' in value ? value.message : undefined;
+  const field2 = typeof raw2 === 'string' ? raw2 : undefined;
+
+  if (field2 === undefined) {
+    return undefined;
+  }
+
+  return {
+    code: field0,
+    problem: field1,
+    message: field2,
   };
 }
 

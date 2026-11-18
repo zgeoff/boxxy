@@ -125,6 +125,7 @@ const defaultPayloads: { readonly [Type in MockedFactType]: () => WorkFacts[Type
     failure: null,
     outcome: 'built',
     returnedOutcome: null,
+    refusal: null,
     closing: 'closed-out',
     asleep: false,
     sessionStopped: true,

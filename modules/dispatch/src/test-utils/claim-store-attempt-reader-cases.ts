@@ -39,6 +39,34 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
+    '#readAttempt returns the refusal stored on a no-capacity attempt',
+    async (store) => {
+      const attempt = buildMockV1AttemptRow({
+        state: 'failed',
+        failure: 'no-capacity',
+        outcome: 'lost',
+        endedAt: brandSchemas.instant.parse(3000),
+        refusal: {
+          code: 'host_unavailable',
+          problem: 'ram_budget_exceeded',
+          message: 'not enough 2 MiB pages',
+        },
+      });
+
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(
+          buildMockFileItemChange(buildMockV1ItemRow({ id: attempt.item })),
+        );
+
+        await transaction.applyChange(buildMockClaimChange(attempt));
+      });
+
+      const read = await store.read((transaction) => transaction.readAttempt(attempt.id));
+
+      return { received: read?.refusal, expected: attempt.refusal };
+    },
+  ],
+  [
     '#readLastLeaseGen returns 0 for an item phase with no lease',
     async (store) => {
       const generation = await store.read((transaction) =>

@@ -221,7 +221,7 @@ every other failure:
 | Failure         | Cause                                                                                                                                                     | Counts against `maxAttempts` |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
 | `spawn-refused` | atc refused the spawn for a cause other than capacity                                                                                                     | yes                          |
-| `no-capacity`   | the worker target has no free machine                                                                                                                     | no                           |
+| `no-capacity`   | the worker target has no free machine; the attempt stores [atc's refusal](#the-refusal-of-a-no-capacity-attempt)                                          | no                           |
 | `spawn-lost`    | no session appeared in time after the claim                                                                                                               | yes                          |
 | `session-lost`  | the session is absent                                                                                                                                     | yes                          |
 | `resume-lost`   | the session didn't run in time after the wake                                                                                                             | yes                          |
@@ -230,3 +230,16 @@ every other failure:
 | `skill-missing` | a skill the recipe lists was missing after the fetch                                                                                                      | yes                          |
 | `item-closed`   | the owner closed the item                                                                                                                                 | yes, on a closed item        |
 | `usage-limit`   | the reading carried a reset time for the account's usage limit                                                                                            | no                           |
+
+### The refusal of a no-capacity attempt
+
+An attempt that settles as `no-capacity` stores what atc answered: its error code, the cause it
+names under that code (`ram_budget_exceeded`, for example), and its message, cut to 500 characters.
+The attempt row holds them in its `refusal` column and the `settled` fact in its `refusal` field.
+Both are null for every other failure, and for an attempt that settled before boxxy stored the
+refusal. `item_get` shows the column in each attempt of the item.
+
+`runner.status` shows `capacityRefusals`: the time and refusal of the latest `no-capacity` attempt,
+and `sinceLastSpawn`, the count of `no-capacity` attempts that ended after the latest attempt that
+started a session. A burst of refusals therefore reads as one growing count with its cause beside
+it. The refusal changes nothing about scheduling or retries.

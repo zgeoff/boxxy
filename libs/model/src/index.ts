@@ -12,6 +12,7 @@ export { collectRetries } from './items/collect-retries.ts';
 export { collectSettled } from './items/collect-settled.ts';
 export { closeOutAnswerSchema } from './closeouts/close-out-answer-schema.ts';
 export { callerIdentitySchema } from './rows/caller-identity-schema.ts';
+export { refusalDetailSchema, refusalMessageMaxChars } from './rows/refusal-detail-schema.ts';
 export { closeOutSchema } from './closeouts/close-out-schema.ts';
 export { collectSeatSync, type SeatSync } from './dispatch/collect-seat-sync.ts';
 export { costToLandSchema } from './reports/cost-to-land-schema.ts';
@@ -86,6 +87,7 @@ export type {
   AttemptSessionRow,
   AttemptState,
   CallerIdentity,
+  RefusalDetail,
   ClosingCause,
   CommitSha,
   ConceptPin,
@@ -309,6 +311,7 @@ export type {
   SeverityCounts,
   SpawnRequest,
   StartOutcome,
+  CapacityRefusals,
   StopOutcome,
   StoreChange,
   StoreReader,

@@ -88,6 +88,13 @@ export type ActorRef =
 
 // A proven caller: who runs an attempt's session, or who sent a request. The core compares two
 // of these for equality, on both fields, and reads nothing else from them.
+// What atc answered when it refused a spawn: its code, the cause under that code, and its text.
+export interface RefusalDetail {
+  readonly code: string;
+  readonly problem: string | null;
+  readonly message: string;
+}
+
 export interface CallerIdentity {
   readonly issuer: string;
   readonly subject: string;
@@ -307,6 +314,10 @@ export interface AttemptRow {
 
   // what the phase code returned, for an attempt settled as `closeout-unsettleable`
   readonly returnedOutcome: string | null;
+
+  // atc's answer to a spawn that settled the attempt as `no-capacity`; null for every other
+  // attempt and for one settled before boxxy stored it
+  readonly refusal: RefusalDetail | null;
   readonly strayedAt: Instant | null;
   readonly sessionStoppedAt: Instant | null;
   readonly sessionForgottenAt: Instant | null;

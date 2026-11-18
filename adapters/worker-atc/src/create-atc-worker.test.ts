@@ -212,6 +212,11 @@ test('#start answers capacity when the host has no RAM budget for another machin
     kind: 'refused',
     cause: 'capacity',
     reason: 'host_unavailable (ram_budget_exceeded): the fake atc refused the call',
+    refusal: {
+      code: 'host_unavailable',
+      problem: 'ram_budget_exceeded',
+      message: 'the fake atc refused the call',
+    },
   });
 });
 
@@ -231,6 +236,11 @@ test('#start answers the cause other for a host atc cannot ready for another pro
     kind: 'refused',
     cause: 'other',
     reason: 'host_unavailable (impd_outdated): the fake atc refused the call',
+    refusal: {
+      code: 'host_unavailable',
+      problem: 'impd_outdated',
+      message: 'the fake atc refused the call',
+    },
   });
 });
 
@@ -249,6 +259,7 @@ test('#start answers refused when atc answers a spawn with a result that fails i
     kind: 'refused',
     cause: 'other',
     reason: expect.stringContaining('malformed_answer'),
+    refusal: expect.objectContaining({ code: 'malformed_answer', problem: null }),
   });
 });
 
@@ -303,6 +314,11 @@ test('#start answers refused with the cause other for any other atc refusal', as
     kind: 'refused',
     cause: 'other',
     reason: 'auth_signin_needed: the fake atc refused the call',
+    refusal: {
+      code: 'auth_signin_needed',
+      problem: null,
+      message: 'the fake atc refused the call',
+    },
   });
 });
 
@@ -476,6 +492,7 @@ test('#resume answers refused when atc cannot ready the host to wake', async () 
     kind: 'refused',
     cause: 'other',
     reason: 'host_unavailable: the fake atc refused the call',
+    refusal: { code: 'host_unavailable', problem: null, message: 'the fake atc refused the call' },
   });
 });
 
@@ -504,6 +521,11 @@ test('#resume answers capacity when the host has no RAM budget to wake', async (
     kind: 'refused',
     cause: 'capacity',
     reason: 'host_unavailable (ram_budget_exceeded): the fake atc refused the call',
+    refusal: {
+      code: 'host_unavailable',
+      problem: 'ram_budget_exceeded',
+      message: 'the fake atc refused the call',
+    },
   });
 });
 

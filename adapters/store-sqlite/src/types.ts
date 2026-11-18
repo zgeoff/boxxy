@@ -80,6 +80,7 @@ export interface StoreDatabase {
     acted_answer: string | null;
     read_at: number | null;
     wait_reason: string | null;
+    refusal: string | null;
   };
   attempt_sessions: {
     attempt: string;

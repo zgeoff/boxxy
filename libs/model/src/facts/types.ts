@@ -27,6 +27,7 @@ import type {
   PoolName,
   Product,
   RecipeHash,
+  RefusalDetail,
   RelationTypeName,
   RepoName,
   RulesVersion,
@@ -191,6 +192,9 @@ export interface WorkFacts {
     // a name the phase kind lists, or an engine outcome
     readonly outcome: string;
     readonly returnedOutcome: string | null;
+
+    // atc's answer when the attempt settled as `no-capacity`
+    readonly refusal: RefusalDetail | null;
 
     // null: the session was already gone
     readonly closing: ClosingCause | null;

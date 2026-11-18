@@ -224,6 +224,7 @@ test.each([
       failure: 'stalled',
       outcome: 'lost',
       returnedOutcome: null,
+      refusal: null,
       closing: 'stalled',
       asleep: false,
       sessionStopped: true,

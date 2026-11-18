@@ -11,6 +11,7 @@ import { createTablesMigration } from './create-tables-migration.ts';
 import { itemBodyMigration } from './item-body-migration.ts';
 import { jobAttemptsMigration } from './job-attempts-migration.ts';
 import { noticeKeysMigration } from './notice-keys-migration.ts';
+import { refusalMigration } from './refusal-migration.ts';
 import { renameRelationsMigration } from './rename-relations-migration.ts';
 import { runStoreMigrations } from './run-store-migrations.ts';
 import { runnerPauseMigration } from './runner-pause-migration.ts';
@@ -44,6 +45,7 @@ async function setupTest() {
     migrateItemBody: () => itemBodyMigration.up(db),
     migrateJobAttempts: () => jobAttemptsMigration.up(db),
     migrateRunnerPause: () => runnerPauseMigration.up(db),
+    migrateRefusal: () => refusalMigration.up(db),
     writeRaw: (statement: string, ...values: number[]) => {
       sqlite.query(statement).run(...values);
     },
@@ -354,5 +356,27 @@ test('it lets a paused-runner notice hold no item', async () => {
 
   expect(ctx.readRaw('SELECT kind, item, reason FROM notices')).toStrictEqual([
     { kind: 'runner-paused', item: null, reason: null },
+  ]);
+});
+
+test("it gives an attempt stored before atc's refusal was kept a null refusal", async () => {
+  const ctx = await setupTest();
+
+  await ctx.createTables();
+  await ctx.renameRelations();
+  await ctx.migrateV1Tables();
+  await ctx.migrateNoticeKeys();
+  await ctx.migrateItemBody();
+  await ctx.migrateJobAttempts();
+
+  ctx.writeRaw(
+    "INSERT INTO attempts (id, item, phase, number, runner, recipe_hash, rules_version, pool, lease_gen, spawn_request, spawn_request_hash, state, failure, claimed_at, fields, mode, round, hold_gen) VALUES ('attempt-a', 'item-a', 'build', 1, 'runner-1', 'hash-a', 'rules-a', 'build', 1, '{}', 'hash-b', 'failed', 'no-capacity', ?, '{}', 'agent', 1, 1)",
+    1000,
+  );
+
+  await ctx.migrateRefusal();
+
+  expect(ctx.readRaw('SELECT failure, refusal FROM attempts')).toStrictEqual([
+    { failure: 'no-capacity', refusal: null },
   ]);
 });

@@ -55,6 +55,7 @@ export function buildMockSettleChange(input: SettleInput): StoreChange {
           failure,
           outcome,
           returnedOutcome: null,
+          refusal: null,
           closing: null,
           asleep: false,
           sessionStopped: true,

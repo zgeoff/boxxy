@@ -9,6 +9,7 @@ import { decisionRowSchema } from '../rows/decision-row-schema.ts';
 import { itemFieldsSchema } from '../rows/item-fields-schema.ts';
 import { itemRowSchema } from '../rows/item-row-schema.ts';
 import { leverRowSchema } from '../rows/lever-row-schema.ts';
+import { refusalDetailSchema } from '../rows/refusal-detail-schema.ts';
 import type { FactType, WorkFacts } from './types.ts';
 
 const countSchema = z.number().int().nonnegative();
@@ -165,6 +166,9 @@ export const workFactSchemas = {
     failure: z.string().min(1).nullable(),
     outcome: z.string().min(1),
     returnedOutcome: z.string().min(1).nullable(),
+
+    // a fact written before the field existed reads as no refusal
+    refusal: refusalDetailSchema.nullable().default(null),
     closing: closingCauseSchema.nullable(),
     asleep: z.boolean(),
     sessionStopped: z.boolean(),

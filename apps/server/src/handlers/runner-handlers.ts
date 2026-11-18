@@ -32,6 +32,7 @@ export const runnerHandlers = {
         ),
         strays: await tx.listStrayAttempts(brandSchemas.instant.parse(Math.max(0, since))),
         notices: await tx.listUnsentNotices(noticeLimits.readRows),
+        capacity: await tx.readCapacityRefusals(),
       };
     });
 
@@ -53,6 +54,18 @@ export const runnerHandlers = {
         waitingSince: findAttemptWaitingSince(deps, entry.attempt),
       })),
       strays: read.strays,
+      capacityRefusals: {
+        latest:
+          read.capacity.latest === null
+            ? null
+            : {
+                at: new Date(read.capacity.latest.at).toISOString(),
+                code: read.capacity.latest.refusal?.code ?? null,
+                problem: read.capacity.latest.refusal?.problem ?? null,
+                message: read.capacity.latest.refusal?.message ?? null,
+              },
+        sinceLastSpawn: read.capacity.count,
+      },
       notices: {
         unsent: read.notices.length,
         oldestUnsentAt:
