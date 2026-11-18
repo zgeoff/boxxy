@@ -52,6 +52,12 @@ test.each([
     ['v1.0'],
   ],
   [
+    'a link followed by text',
+    '[v1.0](https://github.com/acme/lamps/releases/tag/v1.0),then',
+    ['v1.0'],
+  ],
+  ['a link to a longer tag', '[v1.0](https://github.com/acme/lamps/releases/tag/v1.0.)-patch)', []],
+  [
     'a URL with a comma and a letter after the tag',
     'https://github.com/acme/lamps/releases/tag/v1.0,x',
     [],
