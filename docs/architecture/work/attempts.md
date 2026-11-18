@@ -193,6 +193,17 @@ the stop each tick for a fixed number of hours before [cleanup](./sessions.md#cl
 closing attempt whose spawn never produced a session becomes a stray the same way, and the runner
 keeps looking for its session by spawn name.
 
+## Skipped attempts
+
+When a [gate](./pipeline.md#step-gates-and-skips) skips a step, `claimNext` writes the skip as one
+attempt row, before it decides which item to claim, and returns the skips beside its pick. The row
+has the state `succeeded`, the worker `skip`, the engine outcome `skipped` and the skip reason, and
+holds no session, pool, spawn request or lease. One `boxxy.attempt.skipped` fact goes with it. The
+skip is the one attempt write that skips the attempt machine: a separate builder writes it, and the
+repo test that guards attempt writes names both builders. One call can skip an item through several
+steps in a row. The runner's session reads, stops and forgets pass over the row, because it has no
+session.
+
 ## Settle
 
 Settle ends an attempt in one store change: the state, the failure, the outcome, the end time, the

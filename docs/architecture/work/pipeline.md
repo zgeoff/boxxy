@@ -49,6 +49,33 @@ An edge is one of these:
 - `{ end }` ends the pipeline with a reason.
 - `{ hold }` holds the item for the owner with a reason.
 
+## Step gates and skips
+
+A step may gate its attempt. The claim checks the gates before it starts the step, and the first
+gate that says skip settles the step as skipped, with no session, pool, seat or lease.
+
+| Step field                          | The step is skipped when                                                         | Reason recorded            |
+| ----------------------------------- | -------------------------------------------------------------------------------- | -------------------------- |
+| `criteria: { tagged: t }`           | no acceptance line of the item carries the tag `t`                               | `no-criteria-tagged:<tag>` |
+| `skipWhen: [{ checkPassed: name }]` | the latest run of the check `name` at the head of the item's pull request passed | `check-passed:<name>`      |
+
+The claim checks `criteria` first, then `skipWhen`, and any one true condition of `skipWhen` skips.
+A step with `criteria` runs on the matching lines alone: the phase input and the launch prompt's
+`acceptance` list only the lines with the tag. The tags an acceptance line may carry are the rules
+file's `criterionTags`. `item file`, `item edit` and a triage or design close-out that sets
+acceptance refuse a tag the list lacks, and a tag stays on its line in the item's state, its facts
+and `item show`.
+
+A step with a gate has a `skip` edge: `next`, `{ end }` or `{ hold }`, never `again` or `{ to }`. A
+skipped attempt follows that edge, counts toward no `maxAttempts` and no `max`, and a tag added
+after the step skipped doesn't bring it back: `boxxy item retry <item> --phase <phase>` does. A
+claim that finds the runner paused, or an item whose repo is missing from `spawn.repos`, records no
+skip. With no GitHub forge configured a `checkPassed` condition never skips, and a forge error reads
+as not passed.
+
+The loader refuses a gate with no `skip` edge, a condition it doesn't know, a `criteria.tagged` tag
+that `criterionTags` doesn't list, and a `skip` hold that uses an engine hold reason.
+
 The loader refuses a step that leaves out an outcome of its phase kind, or adds one the kind lacks,
 so every outcome has an edge. It also refuses a step with no time limit, and a phase kind this
 server can't run: a merge step needs a server with a `github` section in its config.
@@ -62,11 +89,12 @@ the item's position: a phase, an end or a hold.
 - **The round belongs to the item.** It starts at 1 and rises with each `{ to }` edge, each
   `boxxy item retry --phase`, and each retry that lifts a `rounds used up` hold. A review of
   reworked code has the build's round, and the reports count any attempt above round 1 as rework.
-- **The engine adds two outcomes.** `lost` is the outcome of an attempt that failed without an
+- **The engine adds three outcomes.** `lost` is the outcome of an attempt that failed without an
   outcome of its phase, such as one with no valid close-out. `lost` acts as `again`. One exception:
   the engine skips a `no-capacity` or `usage-limit` failure, because that work never ran.
   `unsettleable` marks a close-out the phase code could not settle; it has no edge, so the item
-  holds.
+  holds. `skipped` marks a step a [gate](#step-gates-and-skips) skipped, and takes the step's `skip`
+  edge.
 - **The engine adds three holds:** `attempts used up`, `rounds used up` and `outcome not in rules`.
   When a newer phase kind drops an outcome, an item whose stored outcome lost its edge holds with
   `outcome not in rules`. It never falls through to `next`, so no item skips a phase unchecked. The
@@ -161,19 +189,19 @@ attended design.
 A session reads its whole task from its launch prompt. The claim renders it from the recipe's
 [Liquid](https://liquidjs.com/) template, filling these placeholders:
 
-| Placeholder           | Value                                                                                                  |
-| --------------------- | ------------------------------------------------------------------------------------------------------ |
-| `title`, `repo`       | the item's title and repo                                                                              |
-| `outcome`, `body`     | the outcome the owner wants, and the body, as written                                                  |
-| `acceptance`          | one `- <id>: <text>` line per criterion                                                                |
-| `design`              | the latest design's text, then `Location: <location>` when it has one; a build only                    |
-| `conclusion`          | the latest design's conclusion, such as the result of an investigation; a build only                   |
-| `findings`            | what sent the build back, from a [review](#the-review) or a verify; a build only                       |
-| `stopped`             | the question or reason where the latest attempt of this phase stopped; empty after any other close-out |
-| `notes`               | one `- <YYYY-MM-DD>: <text>` line per note, oldest first                                               |
-| `security`            | `true` when the item has the security mark, else empty                                                 |
-| `ticket`              | the whole item, `# <title>` then each non-empty section under its own heading; leaves out `security`   |
-| `attempt_id`, `input` | the attempt's ID, and its input as JSON                                                                |
+| Placeholder           | Value                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `title`, `repo`       | the item's title and repo                                                                                     |
+| `outcome`, `body`     | the outcome the owner wants, and the body, as written                                                         |
+| `acceptance`          | one `- <id>: <text>` line per criterion; only the lines with the step's `criteria.tagged` tag when it has one |
+| `design`              | the latest design's text, then `Location: <location>` when it has one; a build only                           |
+| `conclusion`          | the latest design's conclusion, such as the result of an investigation; a build only                          |
+| `findings`            | what sent the build back, from a [review](#the-review) or a verify; a build only                              |
+| `stopped`             | the question or reason where the latest attempt of this phase stopped; empty after any other close-out        |
+| `notes`               | one `- <YYYY-MM-DD>: <text>` line per note, oldest first                                                      |
+| `security`            | `true` when the item has the security mark, else empty                                                        |
+| `ticket`              | the whole item, `# <title>` then each non-empty section under its own heading; leaves out `security`          |
+| `attempt_id`, `input` | the attempt's ID, and its input as JSON                                                                       |
 
 Every placeholder but `ticket` gives its content only, with no heading. A template author needs four
 rules:

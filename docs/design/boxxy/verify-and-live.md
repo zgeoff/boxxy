@@ -95,31 +95,16 @@ Built: [who holds a credential](../../architecture/work/sessions.md#who-holds-a-
 
 ### Criteria tags
 
-```ts
-// @boxxy/model
-interface Criterion {
-  // …existing fields
-  readonly tags?: readonly string[]; // each one in the rules file's criterionTags
-}
-```
-
-Triage, design and the owner set tags through the existing acceptance fields: `item.file`, `item.edit`, a triage close-out's `acceptance` and a design close-out's `set.acceptance`. The triage and design prompts say when to tag a line `prod`: when only the deployed system can prove it.
+The tags are built: see [step gates and skips](../../architecture/work/pipeline.md#step-gates-and-skips). The triage and design prompts still need a line that says when to tag a line `prod`: when only the deployed system can prove it.
 
 ### Step gates and the skip
 
 ```ts
-// @boxxy/rules: step fields
+// @boxxy/rules: the step field still to build; `criteria`, `skipWhen` and `skip` are built
 interface StepGates {
-  criteria?: { tagged: string }; // filters the phase input and the launch prompt; no match skips
-  skipWhen?: readonly SkipCondition[]; // any one true skips
   waits?: readonly string[]; // wait kinds the server registers; the claim passes over the step until each holds
-  skip?: SkipEdge; // required when any of the three is set
+  skip?: SkipEdge; // required when `waits`, `criteria` or `skipWhen` is set
 }
-type SkipCondition = { checkPassed: string }; // the latest run of the named check at the pull request's head passed
-type SkipEdge = 'next' | { end: string } | { hold: string }; // never `again`, never `{ to }`
-
-// @boxxy/model
-type EngineOutcome = 'lost' | 'unsettleable' | 'skipped'; // `skipped` takes the step's `skip` edge
 
 // @boxxy/model: the server registers each wait kind, as it registers phase kinds
 interface WaitKind {
@@ -137,14 +122,12 @@ interface RepoPolicy {
   recipes: Readonly<Record<string, string>>;
 }
 
-// @boxxy/model: a third Claim kind; claimNext returns the skips it recorded beside its pick
-type Claim = /* …existing kinds */ { kind: 'skipped'; itemId: ItemId; phase: string; reason: SkipReason };
-type SkipReason = `no-criteria-tagged:${string}` | `check-passed:${string}` | `wait-skip:${string}`;
+// @boxxy/model: the skip reason a wait adds to the built ones
+type SkipReason = /* …built reasons */ | `wait-skip:${string}`;
 ```
 
 ```ts
-// fact payloads; both join the pepys wire schemas
-type AttemptSkipped = { attemptId: AttemptId; itemId: ItemId; phase: string; round: number; reason: SkipReason }; // boxxy.attempt.skipped
+// fact payload; joins the pepys wire schemas
 type ItemShippedFact = ItemShipped; // boxxy.item.shipped
 ```
 
@@ -255,18 +238,14 @@ Built: [who holds a credential](../../architecture/work/sessions.md#who-holds-a-
 
 ### Gates and skips
 
-- The claim checks a step's gates in this order: `criteria`, then `skipWhen`, then each wait. The first one that says skip settles the step as skipped. A wait that says `waiting` leaves the item where it is.
+The built gates, the skip edge and the skipped attempt are in [step gates and skips](../../architecture/work/pipeline.md#step-gates-and-skips) and [skipped attempts](../../architecture/work/attempts.md#skipped-attempts). What is left is the `waits` gate.
+
+- A step's `waits` gate slots in third, after `criteria` and `skipWhen`. The first gate that says skip settles the step as skipped. A wait that says `waiting` leaves the item where it is.
 - The caller of `deriveItemState` runs each wait of the item's step and passes the answers in, so the state code stays pure and names no wait. An item whose wait says `waiting` derives as waiting, with the reason `wait:<kind>`. A wait that says `holds` or `skip` leaves it `ready`, so the claim sees it.
-- `claimNext` records every skip before `decide` runs, and returns the skips beside its pick. One call can skip an item through several steps in a row, such as a skipped verify followed by a later step that also skips. A skip needs no pool, no seat and no lease, and writes no decision row. A paused runner records no skip, and neither does a claim for a repo missing from `spawn.repos`.
-- The claim records a skip as one attempt row, in the state `succeeded`, with the worker `skip`, no session, no pool, no spawn request, the engine outcome `skipped` and the skip reason, and one fact, `boxxy.attempt.skipped`. The runner's session reads, stops and forgets all pass over that row, because it has no session. pepys leaves skipped attempts out of each stage's time.
-- A skip counts toward no `maxAttempts` and no edge `max`.
-- The item's replay reads a skip like any settled attempt. A tag added to an item's line after its step skipped therefore doesn't bring the step back: `boxxy item retry <item> --phase <phase>` does.
 - The `shipped` wait says `skip` when the item's repo ships `none`. When that item has a line with the step's `criteria.tagged` tag, the skip also writes a notice, because no live check will prove that line.
 - That notice and the notice of a `notify: true` edge are one notice kind: the item, the phase and the reason, sent to the owner's notice session as a hold notice is.
-- Build order: whichever pull request builds the first of the three gates also builds what they share, which is the gate order, the `skip` edge, the `skipped` outcome and the parse of `repos`.
-- `criteria.tagged` filters both the phase input and the launch prompt's acceptance lines.
-- `item.file`, `item.edit` and every close-out that sets acceptance refuse a tag that `criterionTags` doesn't list.
-- The loader refuses a step that sets `criteria`, `skipWhen` or `waits` with no `skip` edge, an unknown wait kind or condition, a `criteria.tagged` tag missing from `criterionTags`, and a wait whose `after` outcome no earlier step's phase kind has.
+- Build order: the gate order, the skip edge and the skipped outcome are built. The ship watch pull request parses `repos`, and builds the `waits` gate that reads it.
+- The loader refuses a step that sets `waits` with no `skip` edge, an unknown wait kind, and a wait whose `after` outcome no earlier step's phase kind has.
 
 ### Verify, in the example rules
 
@@ -276,7 +255,7 @@ The example's build and verify prompts hold the first three rules. The last two 
 - Only the verify phase records verdicts and runs `bun verify publish`.
 - The build and rework launch prompts say that `verify / gate` stays red until the verify phase runs, and that the builder leaves it.
 - The verify step skips when the latest `verify / gate` check run at the head passed. The gate passes only when every changed feature has a fresh verdict, so a skip never merges an ungraded change.
-- The wringer verifier, which the merge job calls ([what the merge step reads](../../architecture/repo/verify-journeys.md#what-the-merge-step-reads)), reads a passed gate whose pull request body holds no report as `verified` with no features. A skipped verify publishes no report. Without this rule the verifier reads `incomplete`, the merge job settles `unverified`, and the item goes back to a verify step that skips again.
+- The wringer verifier reads a passed gate with no report as `verified` with no features: [what the merge step reads](../../architecture/repo/verify-journeys.md#what-the-merge-step-reads).
 
 ### The live phase kind
 
