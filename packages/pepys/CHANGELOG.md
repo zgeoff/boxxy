@@ -2,25 +2,32 @@
 
 ## [0.3.0](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.2.12...@boxxy/pepys@0.3.0) (2026-11-18)
 
-
 ### Features
 
-* **rules:** add step gates, skips and criterion tags ([#183](https://github.com/zgeoff/boxxy/issues/183)) ([bc4033f](https://github.com/zgeoff/boxxy/commit/bc4033f20dec573d0d3dad7a22eafa5887dc5087))
-* **runner:** record each pause and resume, and notice a long pause ([#173](https://github.com/zgeoff/boxxy/issues/173)) ([dc2d9c6](https://github.com/zgeoff/boxxy/commit/dc2d9c6eab4d67d8a9cc218e6d3d4e8645e94fb2))
-* **ships:** add the ship watch and the shipped wait ([#185](https://github.com/zgeoff/boxxy/issues/185)) ([75e3a90](https://github.com/zgeoff/boxxy/commit/75e3a905760d5b3932805090f3137a8bc052637f))
-
+- **rules:** add step gates, skips and criterion tags
+  ([#183](https://github.com/zgeoff/boxxy/issues/183))
+  ([bc4033f](https://github.com/zgeoff/boxxy/commit/bc4033f20dec573d0d3dad7a22eafa5887dc5087))
+- **runner:** record each pause and resume, and notice a long pause
+  ([#173](https://github.com/zgeoff/boxxy/issues/173))
+  ([dc2d9c6](https://github.com/zgeoff/boxxy/commit/dc2d9c6eab4d67d8a9cc218e6d3d4e8645e94fb2))
+- **ships:** add the ship watch and the shipped wait
+  ([#185](https://github.com/zgeoff/boxxy/issues/185))
+  ([75e3a90](https://github.com/zgeoff/boxxy/commit/75e3a905760d5b3932805090f3137a8bc052637f))
 
 ### Bug Fixes
 
-* **dispatch:** record why atc refused a no-capacity attempt ([#176](https://github.com/zgeoff/boxxy/issues/176)) ([f8f6607](https://github.com/zgeoff/boxxy/commit/f8f6607e19e05cb7a62b52875a57ef11d246849f))
-* **merge:** merge on required checks with the pr title ([#175](https://github.com/zgeoff/boxxy/issues/175)) ([bd87c78](https://github.com/zgeoff/boxxy/commit/bd87c780b4e4e5808bcc3b9be3ce5a1f6211b0e3))
-
+- **dispatch:** record why atc refused a no-capacity attempt
+  ([#176](https://github.com/zgeoff/boxxy/issues/176))
+  ([f8f6607](https://github.com/zgeoff/boxxy/commit/f8f6607e19e05cb7a62b52875a57ef11d246849f))
+- **merge:** merge on required checks with the pr title
+  ([#175](https://github.com/zgeoff/boxxy/issues/175))
+  ([bd87c78](https://github.com/zgeoff/boxxy/commit/bd87c780b4e4e5808bcc3b9be3ce5a1f6211b0e3))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.3.0
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.3.0
 
 ## [0.2.12](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.2.11...@boxxy/pepys@0.2.12) (2026-11-18)
 

@@ -2,17 +2,17 @@
 
 ## [0.3.0](https://github.com/zgeoff/boxxy/compare/@boxxy/review-noslop@0.2.12...@boxxy/review-noslop@0.3.0) (2026-11-18)
 
-
 ### Bug Fixes
 
-* **review:** fail a later review when noslop findings fails ([#162](https://github.com/zgeoff/boxxy/issues/162)) ([eb7ec90](https://github.com/zgeoff/boxxy/commit/eb7ec90aaeb7ae59035f94cf497874154e129eba))
-
+- **review:** fail a later review when noslop findings fails
+  ([#162](https://github.com/zgeoff/boxxy/issues/162))
+  ([eb7ec90](https://github.com/zgeoff/boxxy/commit/eb7ec90aaeb7ae59035f94cf497874154e129eba))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.3.0
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.3.0
 
 ## [0.2.12](https://github.com/zgeoff/boxxy/compare/@boxxy/review-noslop@0.2.11...@boxxy/review-noslop@0.2.12) (2026-11-18)
 
