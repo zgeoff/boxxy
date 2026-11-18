@@ -1,8 +1,8 @@
 # 0015: The stack
 
 Date: 2026-11-04
-Updated: 2026-11-12: the API moved to oRPC v2 beta, the CLI to `parseArgs`, and the logs to JSON
-lines with no log library.
+Updated: 2026-11-19: the API moved to oRPC v2 beta, the CLI to `parseArgs`, and the logs to JSON
+lines with no log library, and the chex checks and pre-push baseline now come from `@zgeoff/chex`.
 
 ## Decision
 
