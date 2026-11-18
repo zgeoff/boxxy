@@ -106,6 +106,48 @@ test('it reads a fixes-only result that judged no fix as not covered, and posts 
   ]);
 });
 
+test('it reads a fixes-only result that judged no fix as not covered with the findings error when noslop findings failed, and posts nothing', async () => {
+  const ctx = setupTest();
+
+  const client = createFakeNoslopClient({
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+    outcome: { conclusion: 'success', title: '', summary: '', open: [] },
+  });
+
+  const review = buildMockReviewResult({
+    owner: 'example',
+    repo: 'app',
+    number: 7,
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+    fixesOnly: { fixChecks: [] },
+  });
+
+  const body = toJSONValue({
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+    review,
+    findings: {
+      exitCode: 1,
+      list: null,
+      error: 'noslop: the config on main names no github.app',
+    },
+  });
+
+  const reading = await ctx.accept(client, body);
+
+  expect([reading, client.posted, client.checked]).toStrictEqual([
+    {
+      status: 'not-covered',
+      head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+      cost: expect.any(Object),
+      reason: expect.stringContaining(
+        "set `github.app` in the base branch's noslop config to the slug of the App that posts the reviews. noslop said: noslop: the config on main names no github.app",
+      ),
+    },
+    [],
+    0,
+  ]);
+});
+
 test('it reads a result for an old head as not covered, because noslop refuses to post it', async () => {
   const ctx = setupTest();
 

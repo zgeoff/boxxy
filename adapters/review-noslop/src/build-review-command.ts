@@ -9,9 +9,9 @@ export const reviewFileName = 'noslop-review.json';
 // nothing; `--adapter claude` uses the model sign-in the host's broker gives.
 const script = `
 const args = __ARGS__;
-const run = (argv) => {
-  const child = Bun.spawnSync(argv, { stdout: 'pipe', stderr: 'inherit' });
-  return { exitCode: child.exitCode, text: child.stdout.toString() };
+const run = (argv, stderr = 'inherit') => {
+  const child = Bun.spawnSync(argv, { stdout: 'pipe', stderr });
+  return { exitCode: child.exitCode, text: child.stdout.toString(), error: child.stderr?.toString() ?? '' };
 };
 const parse = (text) => {
   try { return JSON.parse(text); } catch { return null; }
@@ -19,16 +19,18 @@ const parse = (text) => {
 const target = ['--pr', String(args.pr), '--repo', args.repo];
 const options = [...target, '--adapter', 'claude', '--report', 'json', '--json'];
 let review = parse(run(['noslop', 'review', args.mode, ...options]).text);
-if (args.mode === '--fixes-only' && (review?.fixChecks ?? []).length === 0) {
+const listed = run(['noslop', 'findings', ...target, '--json'], 'pipe');
+process.stderr.write(listed.error);
+if (args.mode === '--fixes-only' && (review?.fixChecks ?? []).length === 0 && listed.exitCode === 0) {
   review = parse(run(['noslop', 'review', ...options]).text);
 }
-const listed = run(['noslop', 'findings', ...target, '--json']);
 const head = run(['git', 'rev-parse', 'HEAD']).text.trim();
-await Bun.write(args.file, JSON.stringify({ head, review, findings: { exitCode: listed.exitCode, list: parse(listed.text) } }));
+await Bun.write(args.file, JSON.stringify({ head, review, findings: { exitCode: listed.exitCode, list: parse(listed.text), error: listed.error.trim() } }));
 `;
 
 // A first review reads the whole pull request. A later one checks the fixes, and falls back to a
-// plain review when no `fixed` answer got a verdict, because that run read nothing at its head.
+// plain review when no `fixed` answer got a verdict and `noslop findings` succeeds. A failed
+// `findings` means noslop read no earlier review, so a plain review would read the whole PR.
 export function buildReviewCommand(round: GateRound): string {
   const mode = match(round.cause)
     .with('first', () => '--full')

@@ -7,7 +7,11 @@ export interface StubNoslopAnswers {
   readonly full: string | null;
   readonly fixesOnly: string | null;
   readonly plain: string | null;
-  readonly findings: { readonly stdout: string; readonly exitCode: number };
+  readonly findings: {
+    readonly stdout: string;
+    readonly stderr: string;
+    readonly exitCode: number;
+  };
 
   // what `git rev-parse HEAD` prints
   readonly head: string;
@@ -47,7 +51,7 @@ export async function createStubNoslop(
     `  "review --full") cat '${await answerPath('full', answers.full)}' ;;`,
     `  "review --fixes-only") cat '${await answerPath('fixes-only', answers.fixesOnly)}' ;;`,
     `  "review --pr") cat '${await answerPath('plain', answers.plain)}' ;;`,
-    `  "findings --pr") cat '${await answerPath('findings', answers.findings.stdout)}'; exit ${answers.findings.exitCode} ;;`,
+    `  "findings --pr") cat '${await answerPath('findings', answers.findings.stdout)}'; cat '${await answerPath('findings-stderr', answers.findings.stderr)}' >&2; exit ${answers.findings.exitCode} ;;`,
     'esac',
     '',
   ].join('\n');

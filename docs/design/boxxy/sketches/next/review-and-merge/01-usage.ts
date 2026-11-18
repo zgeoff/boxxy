@@ -192,13 +192,17 @@ const rules = loadRules(text, { phases: [...phaseKinds, createReviewPhase(review
 //   first     `noslop review --full`
 //   rework,   `noslop review --fixes-only`. When its `fixChecks` is empty (no `fixed` answer got a
 //   recheck   verdict, such as when every answer is `not-a-defect`, or a repair added no answer),
-//             the run read nothing at its head, though its `head` field names that head. The
-//             command then runs `noslop review`, which reads the files whose patch changed since
-//             the last review, and keeps that result, so the review covers the head.
+//             the run read nothing at its head, though its `head` field names that head. When
+//             `noslop findings` succeeds, the command then runs `noslop review`, which reads the
+//             files whose patch changed since the last review, and keeps that result, so the
+//             review covers the head. When `findings` fails, noslop read no earlier review, so a
+//             plain review would read the whole pull request: the command runs none, and keeps
+//             the `--fixes-only` result and the `findings` stderr in `findings.error`.
 //
 // `accept(round, body)`, in the server:
 //   1. A `--fixes-only` result with an empty `fixChecks` reads `not-covered`, and nothing is
-//      posted. The command never sends one; the check stops a session that skipped the fallback.
+//      posted. When `findings` failed, the reading's `reason` holds `findings.error` and asks
+//      for `github.app`, so the owner reads it in the item's attempts.
 //   2. `sendResult` from `@noslop/cli/post` checks the result against the pull request's head and
 //      the base branch's config, then posts it as the App. A refused result reads `not-covered`.
 //   3. `check(pr, { readOnly: true })` from `@noslop/cli/check` gives the findings still open.
@@ -218,7 +222,8 @@ const rules = loadRules(text, { phases: [...phaseKinds, createReviewPhase(review
 //
 //   The session runs `noslop findings` with its read-only token, and noslop then trusts only the
 //   comments of the App that the base branch's `github.app` names; with none named, it exits 1.
-//   noslop takes the slug from no flag or variable. A `findings` run that failed adds nothing:
+//   noslop takes the slug from no flag or variable. A later review then judges no fix, and reads
+//   `not-covered`, as step 1 says. On a first review, a `findings` run that failed adds nothing:
 //   step 3 reads with the App's keys and decides the status, the open finding the result does
 //   not name counts as high with no path, and `closedWithoutFix` counts 0.
 //   findingPaths        the `path` of each open finding
