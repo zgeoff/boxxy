@@ -34,9 +34,6 @@ These docs hold the designs whose work is not fully built. The built system is i
   commits with no deploy: the sync sidecar, the rules check and the ruleset.
 - [Review, verify and merge](./review-and-merge.md): the `ReviewGate` and `Verifier` ports, the
   job worker, and the merge step that lands a pull request when its checks are green.
-- [Verify and live phases](./verify-and-live.md): a fresh agent for verify and for live, the ship
-  watch that starts live once a merged commit ships, per-repo ship rules and recipes, and
-  credentials scoped by the server config.
 - [Next work list](./next-work-list.md): the slices that build the review, verify and merge design,
   the verify journeys and owner notices.
 - [Interface sketches](./sketches/README.md): the shape of each interface, as TypeScript files.
