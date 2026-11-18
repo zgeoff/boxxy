@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.3.0](https://github.com/zgeoff/boxxy/compare/@boxxy/notifier-atc@0.2.12...@boxxy/notifier-atc@0.3.0) (2026-11-18)
+
+### Features
+
+- **live:** add the live phase kind, notify edges and repo recipes
+  ([#186](https://github.com/zgeoff/boxxy/issues/186))
+  ([4d20a6e](https://github.com/zgeoff/boxxy/commit/4d20a6ee897cc4f083549253044da78eeb102208))
+- **runner:** record each pause and resume, and notice a long pause
+  ([#173](https://github.com/zgeoff/boxxy/issues/173))
+  ([dc2d9c6](https://github.com/zgeoff/boxxy/commit/dc2d9c6eab4d67d8a9cc218e6d3d4e8645e94fb2))
+- **ships:** add the ship watch and the shipped wait
+  ([#185](https://github.com/zgeoff/boxxy/issues/185))
+  ([75e3a90](https://github.com/zgeoff/boxxy/commit/75e3a905760d5b3932805090f3137a8bc052637f))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.3.0
+
 ## [0.2.12](https://github.com/zgeoff/boxxy/compare/@boxxy/notifier-atc@0.2.11...@boxxy/notifier-atc@0.2.12) (2026-11-18)
 
 ### Miscellaneous Chores

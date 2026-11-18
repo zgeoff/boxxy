@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.3.0](https://github.com/zgeoff/boxxy/compare/@boxxy/worker-atc@0.2.12...@boxxy/worker-atc@0.3.0) (2026-11-18)
+
+### ⚠ BREAKING CHANGES
+
+- **spawn:** scope credentialed agents with spawn.agents
+  ([#178](https://github.com/zgeoff/boxxy/issues/178))
+
+### Features
+
+- **spawn:** scope credentialed agents with spawn.agents
+  ([#178](https://github.com/zgeoff/boxxy/issues/178))
+  ([b0954ca](https://github.com/zgeoff/boxxy/commit/b0954cafc8e728abcfd07976d60dc367a3ca4fb2))
+
+### Bug Fixes
+
+- **dispatch:** record why atc refused a no-capacity attempt
+  ([#176](https://github.com/zgeoff/boxxy/issues/176))
+  ([f8f6607](https://github.com/zgeoff/boxxy/commit/f8f6607e19e05cb7a62b52875a57ef11d246849f))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.3.0
+  - devDependencies
+    - @boxxy/dispatch bumped to 0.3.0
+
 ## [0.2.12](https://github.com/zgeoff/boxxy/compare/@boxxy/worker-atc@0.2.11...@boxxy/worker-atc@0.2.12) (2026-11-18)
 
 ### Miscellaneous Chores

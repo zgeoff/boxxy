@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.3.0](https://github.com/zgeoff/boxxy/compare/@boxxy/forge-github@0.2.12...@boxxy/forge-github@0.3.0) (2026-11-18)
+
+### Features
+
+- **ships:** add the ship watch and the shipped wait
+  ([#185](https://github.com/zgeoff/boxxy/issues/185))
+  ([75e3a90](https://github.com/zgeoff/boxxy/commit/75e3a905760d5b3932805090f3137a8bc052637f))
+
+### Bug Fixes
+
+- **merge:** merge on required checks with the pr title
+  ([#175](https://github.com/zgeoff/boxxy/issues/175))
+  ([bd87c78](https://github.com/zgeoff/boxxy/commit/bd87c780b4e4e5808bcc3b9be3ce5a1f6211b0e3))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.3.0
+  - devDependencies
+    - @boxxy/dispatch bumped to 0.3.0
+  - peerDependencies
+    - @boxxy/dispatch bumped to 0.3.0
+
 ## [0.2.12](https://github.com/zgeoff/boxxy/compare/@boxxy/forge-github@0.2.11...@boxxy/forge-github@0.2.12) (2026-11-18)
 
 ### Miscellaneous Chores

@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.3.0](https://github.com/zgeoff/boxxy/compare/@boxxy/train@0.2.12...@boxxy/train@0.3.0) (2026-11-18)
+
+### Features
+
+- **rules:** add step gates, skips and criterion tags
+  ([#183](https://github.com/zgeoff/boxxy/issues/183))
+  ([bc4033f](https://github.com/zgeoff/boxxy/commit/bc4033f20dec573d0d3dad7a22eafa5887dc5087))
+
+### Bug Fixes
+
+- **merge:** merge on required checks with the pr title
+  ([#175](https://github.com/zgeoff/boxxy/issues/175))
+  ([bd87c78](https://github.com/zgeoff/boxxy/commit/bd87c780b4e4e5808bcc3b9be3ce5a1f6211b0e3))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.3.0
+
 ## [0.2.12](https://github.com/zgeoff/boxxy/compare/@boxxy/train@0.2.11...@boxxy/train@0.2.12) (2026-11-18)
 
 ### Miscellaneous Chores
