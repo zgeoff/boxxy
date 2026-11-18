@@ -22,3 +22,16 @@ test('it rejects a security mark that is not a boolean', () => {
     path: ['security'],
   });
 });
+
+test('it accepts an open item with acceptance lines and their tags', () => {
+  const item = {
+    kind: 'core.bug',
+    title: 'Escape the upload name',
+    body: '',
+    acceptance: [{ text: 'The name is escaped', tags: ['prod'] }, { text: 'Uploads still work' }],
+  };
+
+  const parsed: unknown = openItemSchema.safeParse(item).data;
+
+  expect(parsed).toStrictEqual(item);
+});

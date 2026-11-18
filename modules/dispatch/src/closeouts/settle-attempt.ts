@@ -130,6 +130,14 @@ export function settleAttempt(input: SettleAttemptInput): Promise<MoveResult> {
 
     await writeHoldNotice(tx, attempt, input.rules, input.now);
 
+    await writeNotifyNotice(tx, {
+      attempt,
+      item,
+      rules: input.rules,
+      now: input.now,
+      outcome: settlement.outcome,
+    });
+
     return result;
   });
 }
@@ -181,6 +189,60 @@ async function writeHoldNotice(
           keySeq: 0,
           keyTries: 0,
           nextTryAt: now,
+        },
+      },
+    ],
+    facts: [],
+  });
+}
+
+interface NotifyNoticeInput {
+  readonly attempt: AttemptRow;
+  readonly item: ItemView;
+  readonly rules: LoadedRules;
+  readonly now: Instant;
+  readonly outcome: OutcomeName | EngineOutcome;
+}
+
+// An edge with `notify: true` tells the owner at settle and holds nothing. A hold edge already
+// writes its hold notice, so it gets no second one.
+async function writeNotifyNotice(tx: StoreTx, input: NotifyNoticeInput): Promise<void> {
+  const step = input.rules.kinds
+    .get(input.item.kind)
+    ?.pipeline.steps.find((candidate) => candidate.phase === input.attempt.phase);
+
+  const edge = step?.on[input.outcome];
+
+  if (typeof edge !== 'object' || edge.notify !== true) {
+    return;
+  }
+
+  const after = await tx.readItem(input.attempt.item, input.now, input.rules);
+
+  if (after === null || after.position.kind === 'hold') {
+    return;
+  }
+
+  // the store numbers each notice, so the ID here is replaced
+  await tx.applyChange({
+    at: input.now,
+    writes: [
+      {
+        op: 'insert',
+        table: 'notices',
+        row: {
+          id: 1,
+          kind: 'notify',
+          item: input.attempt.item,
+          phase: input.attempt.phase,
+          reason: `the step closed out ${input.outcome}`,
+          pause: null,
+          at: input.now,
+          tries: 0,
+          sentAt: null,
+          keySeq: 0,
+          keyTries: 0,
+          nextTryAt: input.now,
         },
       },
     ],

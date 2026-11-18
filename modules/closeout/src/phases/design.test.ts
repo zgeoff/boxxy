@@ -394,6 +394,7 @@ test.each<[string, (DesignCloseOut['result'] | null)[], string | null]>([
     history,
     retries: [],
     pullRequests: [],
+    shipped: [],
     session: null,
   });
 
@@ -454,6 +455,7 @@ test('it gives the design input the tags of each acceptance line', () => {
     history: [],
     retries: [],
     pullRequests: [],
+    shipped: [],
     session: null,
   });
 

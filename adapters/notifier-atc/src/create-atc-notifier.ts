@@ -93,7 +93,7 @@ function formatPausedMessage(notice: PausedNotice): string {
 
 function formatNotifyMessage(notice: NotifyNotice): string {
   return [
-    `boxxy ended the ${notice.phase} step of ${notice.item} with no session: ${notice.reason}.`,
+    `boxxy settled the ${notice.phase} step of ${notice.item}: ${notice.reason}.`,
     `Read the item with \`boxxy item show ${notice.item}\`.`,
   ].join('\n');
 }

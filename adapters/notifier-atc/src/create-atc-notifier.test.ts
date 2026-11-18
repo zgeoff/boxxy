@@ -229,7 +229,7 @@ test('#tellNotify sends one message that names the phase, the reason, the item a
       {
         session: 'daemon.1.s1',
         text: [
-          'boxxy ended the live step of 01900000-0000-7000-8000-000000000007 with no session: wait-skip:shipped.',
+          'boxxy settled the live step of 01900000-0000-7000-8000-000000000007: wait-skip:shipped.',
           'Read the item with `boxxy item show 01900000-0000-7000-8000-000000000007`.',
         ].join('\n'),
         idempotencyKey: 'boxxy-notice:15:0',

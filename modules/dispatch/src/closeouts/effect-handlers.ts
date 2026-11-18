@@ -1,3 +1,4 @@
+import { buildCriteria } from '@boxxy/closeout';
 import type {
   AnyNewFact,
   ItemId,
@@ -30,7 +31,7 @@ export const effectHandlers: EffectHandlers = {
       title: effect.item.title,
       outcome: effect.item.body,
       body: '',
-      acceptance: [],
+      acceptance: buildCriteria(effect.item.acceptance ?? []),
       fields: effect.item.security === true ? { security: true } : {},
       labels: [],
       foundInAttempt: ctx.attempt.id,

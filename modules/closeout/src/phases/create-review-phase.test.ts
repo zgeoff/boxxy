@@ -25,6 +25,7 @@ test('it gives the first review of a pull request round 1, cause first, and the 
     history: [buildMockSettledAttemptRow({ phase: 'build', outcome: 'built', endedAt: 1000 })],
     retries: [],
     pullRequests: [pullRequest],
+    shipped: [],
     session: null,
   });
 
@@ -71,6 +72,7 @@ test('it gives the review after a review that asked for changes round 2 and caus
     ],
     retries: [],
     pullRequests: [pullRequest],
+    shipped: [],
     session: null,
   });
 
@@ -96,6 +98,7 @@ test('it counts no review that settled before the latest retry in the round', ()
       { at: brandSchemas.instant.parse(4000), phase: brandSchemas.phaseName.parse('build') },
     ],
     pullRequests: [pullRequest],
+    shipped: [],
     session: null,
   });
 
@@ -127,6 +130,7 @@ test('it gives the review after a retry on the same pull request the cause rewor
       { at: brandSchemas.instant.parse(2000), phase: brandSchemas.phaseName.parse('build') },
     ],
     pullRequests: [pullRequest],
+    shipped: [],
     session: null,
   });
 
@@ -144,6 +148,7 @@ test('it gives a review of an item with no pull request no command, and asks the
     history: [buildMockSettledAttemptRow({ phase: 'build', outcome: 'built', endedAt: 1000 })],
     retries: [],
     pullRequests: [],
+    shipped: [],
     session: null,
   });
 

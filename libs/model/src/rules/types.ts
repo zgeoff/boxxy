@@ -161,6 +161,9 @@ export interface PhaseInputContext {
   readonly retries: readonly RetryLever[];
   readonly pullRequests: readonly PullRequestRow[];
 
+  // the ship watch's rows for the item, oldest first
+  readonly shipped: readonly ItemShipped[];
+
   // the `session` field of the claim's recipe; null when the recipe sets none
   readonly session: 'builder' | 'fresh' | null;
 }
@@ -246,6 +249,9 @@ export interface WaitSubject {
 export interface RepoPolicy {
   // `none` when the repo has no `repos` entry
   readonly ships: ShipRule;
+
+  // by phase, and by `<phase>/attended`; each replaces the kind's recipe for the phase in this repo
+  readonly recipes: Readonly<Record<string, RecipeName>>;
 }
 
 // The step runs on the item's lines with this tag; with none, the step skips.
@@ -261,9 +267,14 @@ export interface SkipCondition {
 export type Edge =
   | 'next'
   | 'again'
-  | { readonly to: PhaseName; readonly max?: number; readonly resume?: boolean }
-  | { readonly end: string }
-  | { readonly hold: RulesHoldReason };
+  | {
+      readonly to: PhaseName;
+      readonly max?: number;
+      readonly resume?: boolean;
+      readonly notify?: boolean;
+    }
+  | { readonly end: string; readonly notify?: boolean }
+  | { readonly hold: RulesHoldReason; readonly notify?: boolean };
 
 // never `again`, which would run the skipped step, and never `{ to }`, which skips nothing
 export type SkipEdge = 'next' | { readonly end: string } | { readonly hold: RulesHoldReason };
@@ -362,6 +373,7 @@ export type LoadRejectionReason =
   | { readonly kind: 'unknown-relation-type'; readonly relation: string }
   | { readonly kind: 'signal-without-combine'; readonly signal: string }
   | { readonly kind: 'missing-recipe'; readonly itemKind: string; readonly phase: string }
+  | { readonly kind: 'missing-repo-recipe'; readonly repo: string; readonly phase: string }
   | { readonly kind: 'missing-prompt'; readonly path: string }
 
   // the prompt template does not parse, uses a tag or filter off the list, names a value that is

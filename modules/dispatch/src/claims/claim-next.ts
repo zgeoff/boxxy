@@ -26,7 +26,13 @@ import type {
   StoreTx,
   WakePick,
 } from '@boxxy/model';
-import { brandSchemas, collectRetries, collectWaitAnswers, toJSONValue } from '@boxxy/model';
+import {
+  brandSchemas,
+  collectRetries,
+  collectWaitAnswers,
+  findRecipeName,
+  toJSONValue,
+} from '@boxxy/model';
 import { buildFrame, decide } from '@boxxy/planning';
 import { renderPromptTemplate } from '@boxxy/prompt-template';
 import invariant from 'tiny-invariant';
@@ -39,7 +45,6 @@ import { buildPromptValues } from './build-prompt-values.ts';
 import { buildRecipeHash } from './build-recipe-hash.ts';
 import { buildSnapshotHash } from './build-snapshot-hash.ts';
 import { filterTaggedCriteria } from './filter-tagged-criteria.ts';
-import { findRecipeName } from './find-recipe-name.ts';
 import { pickKeptSession } from './pick-kept-session.ts';
 import { pickPromptPath } from './pick-prompt-path.ts';
 import { readGateSkip } from './read-gate-skip.ts';
@@ -179,7 +184,10 @@ interface SkipParts {
 async function writeSkip(tx: StoreTx, input: ClaimInput, parts: SkipParts): Promise<SkippedClaim> {
   const item = parts.detail.item;
   const kind = input.rules.kinds.get(item.kind);
-  const recipeName = kind === undefined ? undefined : findRecipeName(kind, parts.phase, 'agent');
+
+  const recipeName =
+    kind === undefined ? undefined : findRecipeName(input.rules, item, parts.phase, 'agent');
+
   const material = recipeName === undefined ? undefined : input.rules.recipes.get(recipeName);
 
   invariant(material !== undefined, `the loader refuses a step with no recipe: ${parts.phase}`);
@@ -336,7 +344,7 @@ function buildClaimedEvent(parts: ClaimedParts): {
   );
 
   const mode: SessionMode = phase.mode?.(item) ?? 'agent';
-  const recipeName = findRecipeName(kind, parts.pick.phase, mode);
+  const recipeName = findRecipeName(parts.rules, item, parts.pick.phase, mode);
   const material = recipeName === undefined ? undefined : parts.rules.recipes.get(recipeName);
 
   invariant(
@@ -350,6 +358,7 @@ function buildClaimedEvent(parts: ClaimedParts): {
     history: parts.detail.attempts,
     retries: collectRetries(item.levers),
     pullRequests: parts.detail.pullRequests,
+    shipped: parts.detail.shipped,
     session: material.recipe.session ?? null,
   });
 
@@ -369,7 +378,7 @@ function buildClaimedEvent(parts: ClaimedParts): {
     attempts: parts.detail.attempts,
     pipeline: kind.pipeline,
     phase: parts.pick.phase,
-    isBuilderSession: isBuilderSession(parts.rules, kind, parts.pick.phase, mode),
+    isBuilderSession: isBuilderSession(parts.rules, item, parts.pick.phase, mode),
   });
 
   return {

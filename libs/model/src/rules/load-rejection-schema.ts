@@ -18,6 +18,7 @@ const loadRejectionReasonSchema: z.ZodType<LoadRejectionReason> = z.discriminate
   z.object({ kind: z.literal('unknown-relation-type'), relation: z.string() }),
   z.object({ kind: z.literal('signal-without-combine'), signal: z.string() }),
   z.object({ kind: z.literal('missing-recipe'), itemKind: z.string(), phase: z.string() }),
+  z.object({ kind: z.literal('missing-repo-recipe'), repo: z.string(), phase: z.string() }),
   z.object({ kind: z.literal('missing-prompt'), path: z.string() }),
   z.object({ kind: z.literal('bad-prompt'), path: z.string(), message: z.string() }),
   z.object({ kind: z.literal('uncommitted-changes') }),

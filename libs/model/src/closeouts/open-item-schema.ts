@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { brandSchemas } from '../rows/brand-schemas.ts';
+import { acceptanceDraftSchema } from './acceptance-draft-schema.ts';
 import type { OpenItem } from './types.ts';
 
 export const openItemSchema = z.object({
@@ -7,4 +8,5 @@ export const openItemSchema = z.object({
   title: z.string().min(1),
   body: z.string(),
   security: z.boolean().exactOptional(),
+  acceptance: acceptanceDraftSchema.exactOptional(),
 }) satisfies z.ZodType<OpenItem>;

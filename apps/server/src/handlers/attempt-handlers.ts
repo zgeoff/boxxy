@@ -8,13 +8,12 @@ import type { CallRef } from '@boxxy/dispatch';
 import type {
   AttemptRow,
   EvidenceKind,
-  ItemKindName,
   ItemView,
   LoadedRules,
   RepoName,
   StoreChange,
 } from '@boxxy/model';
-import { brandSchemas } from '@boxxy/model';
+import { brandSchemas, findRecipeName } from '@boxxy/model';
 import type { ProvenCall, ServerDeps } from '../types.ts';
 import { api } from './api.ts';
 import { collectItemPage } from './collect-item-page.ts';
@@ -275,17 +274,17 @@ async function readCurrent(deps: ServerDeps, attempt: AttemptRow) {
       schema: toWireJSON(phase.closeOut.jsonSchema),
       outcomes: [...phase.outcomes],
     },
-    skills: { pin: rules.skills, names: collectSkillNames(rules, item.kind, attempt) },
+    skills: { pin: rules.skills, names: collectSkillNames(rules, item, attempt) },
     notes: notes.map((note) => ({ seq: note.seq, text: note.text, at: note.at })),
   };
 }
 
-function collectSkillNames(rules: LoadedRules, kind: ItemKindName, attempt: AttemptRow): string[] {
-  const recipes = rules.kinds.get(kind)?.recipes ?? {};
-
-  const name =
-    (attempt.mode === 'attended' ? recipes[`${attempt.phase}/attended`] : undefined) ??
-    recipes[attempt.phase];
+function collectSkillNames(
+  rules: LoadedRules,
+  item: Pick<ItemView, 'kind' | 'repo'>,
+  attempt: AttemptRow,
+): string[] {
+  const name = findRecipeName(rules, item, attempt.phase, attempt.mode);
 
   return name === undefined ? [] : [...(rules.recipes.get(name)?.recipe.skills ?? [])];
 }

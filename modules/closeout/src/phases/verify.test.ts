@@ -31,6 +31,7 @@ test('it gives a verify the pull request, the head its review passed, and the re
     ],
     retries: [],
     pullRequests: [pullRequest],
+    shipped: [],
     session: 'builder',
   });
 
@@ -60,6 +61,7 @@ test('it gives a verify with no passed review no head, and a fresh grader when t
     ],
     retries: [],
     pullRequests: [],
+    shipped: [],
     session: null,
   });
 

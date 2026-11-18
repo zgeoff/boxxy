@@ -8,8 +8,8 @@ function setupTest() {
   const item = buildMockV1ItemRow();
   const commit = brandSchemas.commitSha.parse('a1'.repeat(20));
   const other = brandSchemas.commitSha.parse('b2'.repeat(20));
-  const ships: RepoPolicy = { ships: { release: {} } };
-  const none: RepoPolicy = { ships: 'none' };
+  const ships: RepoPolicy = { ships: { release: {} }, recipes: {} };
+  const none: RepoPolicy = { ships: 'none', recipes: {} };
 
   const buildShipped = (shippedCommit: CommitSha): ItemShipped => ({
     itemId: item.id,

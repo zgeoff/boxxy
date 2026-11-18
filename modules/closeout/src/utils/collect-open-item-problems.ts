@@ -1,13 +1,21 @@
 import type { CloseOutContext, CloseOutProblem, OpenItem } from '@boxxy/model';
+import { collectCriterionTagProblems } from './collect-criterion-tag-problems.ts';
 
-// An open item files as an item of its kind, so a kind the rules lack is refused, once per kind.
+// An open item files as an item of its kind, so a kind the rules lack is refused, once per kind,
+// and a tag on its acceptance lines must be one the rules list.
 export function collectOpenItemProblems(
   openItems: readonly OpenItem[],
   ctx: CloseOutContext,
 ): CloseOutProblem[] {
   const kinds = new Set(openItems.map((openItem) => openItem.kind));
 
-  return [...kinds]
-    .filter((kind) => !ctx.world.kinds.has(kind))
-    .map((kind) => ({ kind: 'unknown-kind', itemKind: kind }));
+  return [
+    ...[...kinds]
+      .filter((kind) => !ctx.world.kinds.has(kind))
+      .map((kind) => ({ kind: 'unknown-kind' as const, itemKind: kind })),
+    ...collectCriterionTagProblems(
+      openItems.flatMap((openItem) => openItem.acceptance ?? []),
+      ctx,
+    ),
+  ];
 }

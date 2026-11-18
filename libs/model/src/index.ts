@@ -22,6 +22,7 @@ export { decisionRowSchema } from './rows/decision-row-schema.ts';
 export { defineAdmission } from './planning/define-admission.ts';
 export { defineGate } from './planning/define-gate.ts';
 export { definePhase } from './rules/define-phase.ts';
+export { findRecipeName } from './rules/find-recipe-name.ts';
 export { defineSignal } from './planning/define-signal.ts';
 export { deriveItemState } from './items/derive-item-state.ts';
 export type { WaitedAnswer } from './items/derive-item-state.ts';
@@ -82,6 +83,8 @@ export { toJSONValue } from './utils/to-json-value.ts';
 export { triageCloseOutSchema } from './closeouts/triage-close-out-schema.ts';
 export { verifyCloseOutSchema } from './closeouts/verify-close-out-schema.ts';
 export { verifyInputSchema } from './closeouts/verify-input-schema.ts';
+export { liveCloseOutSchema } from './closeouts/live-close-out-schema.ts';
+export { liveInputSchema } from './closeouts/live-input-schema.ts';
 export { mergeCloseOutSchema } from './closeouts/merge-close-out-schema.ts';
 export { mergeInputSchema } from './closeouts/merge-input-schema.ts';
 export { mergeObservationSchema } from './merge/merge-observation-schema.ts';
@@ -201,7 +204,11 @@ export type {
   Effect,
   Friction,
   FrictionTargetKind,
+  LineResult,
   LinkEnd,
+  LiveBug,
+  LiveCloseOut,
+  LiveInput,
   MergeCloseOut,
   MergeInput,
   OpenItem,
