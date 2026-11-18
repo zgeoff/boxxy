@@ -3,11 +3,15 @@
 - **Status:** agreed
 - **Decision records:** [0019](../../decisions/0019-credential-scope-in-server-config.md)
 
-An item's pipeline runs `triage → design → build → review → verify → merge → live`, and each phase after build runs as its own single-purpose agent. The builder writes the journeys, and a fresh verify agent alone grades them. After the merge, a ship watch reads GitHub until the merged commit is released or deployed, and only then starts a live agent, which checks on prod the acceptance lines tagged for it. The rules file sets, per repo, what counts as shipped, and only a server-config grant gives a live agent one repo's prod credentials.
+boxxy gains the generic parts that let a rules file run a single-purpose agent after a merge, started once the merged commit ships: step gates that skip a step, wait kinds such as `shipped`, a ship watch that reads GitHub, per-repo policy, criterion tags, a `live` phase kind, and agents whose credentials the server config scopes. boxxy's code fixes no pipeline: the rules file composes these parts, and no module or lib names a phase, a tag or an environment.
+
+The example rules file in [Contracts](#the-rules-file) composes them into the owner's pipeline, `triage → design → build → review → verify → merge → live`. In it the builder writes the journeys, a fresh verify agent alone grades them, and a live agent checks on prod only the acceptance lines tagged `prod`. Another rules file can use any of the parts, in any order, or none.
 
 This doc uses the terms of the [core model](./core-model.md), [the pipeline](../../architecture/work/pipeline.md), [attempts](../../architecture/work/attempts.md), [agent sessions](../../architecture/work/sessions.md) and [review, verify and merge](./review-and-merge.md#terms). [Verify journeys](../../architecture/repo/verify-journeys.md) defines journeys, feature files, the path map and the `verify / gate` check, and [facts and pepys](../../architecture/interfaces/facts-and-pepys.md) covers pepys, the fact store that holds boxxy's reports.
 
 ## Shape
+
+The example pipeline:
 
 ```mermaid
 flowchart LR
@@ -26,7 +30,7 @@ The diagram leaves out the send-backs of review, verify and merge, which [review
 
 ### The rules file
 
-The rules file gains a `repos` section, a list of criterion tags and four step fields. Each new word in it, such as `shipped`, `prod` or `live`, is data or a name the server registers. Modules and libs never name a phase, a tag or an environment.
+The rules file gains a `repos` section, a list of criterion tags and four step fields. The file below is the example: its steps, their order, the tag `prod`, the pools and the recipes are the owner's choices, and each one is data. Only the field names and the wait kind `shipped` come from boxxy.
 
 ```yaml
 criterionTags: [prod] # the only tags an item's acceptance line may carry
@@ -304,7 +308,9 @@ interface SpawnRequest {
 - `item.file`, `item.edit` and every close-out that sets acceptance refuse a tag that `criterionTags` doesn't list.
 - The loader refuses a step that sets `criteria`, `skipWhen` or `waits` with no `skip` edge, an unknown wait kind or condition, a `criteria.tagged` tag missing from `criterionTags`, and a wait whose `after` outcome no earlier step's phase kind has.
 
-### Verify
+### Verify, in the example rules
+
+The example's build and verify prompts hold the first three rules. The last two hold for any rules file that skips its verify step on the gate.
 
 - The build phase writes or changes the journey, the feature file and the path map for each feature it adds or changes, and runs `bun verify lint`. It records no verdict and publishes no report.
 - Only the verify phase records verdicts and runs `bun verify publish`.
@@ -312,11 +318,11 @@ interface SpawnRequest {
 - The verify step skips when the latest `verify / gate` check run at the head passed. The gate passes only when every changed feature has a fresh verdict, so a skip never merges an ungraded change.
 - The wringer verifier, which the merge job calls ([what the merge step reads](../../architecture/repo/verify-journeys.md#what-the-merge-step-reads)), reads a passed gate whose pull request body holds no report as `verified` with no features. A skipped verify publishes no report. Without this rule the verifier reads `incomplete`, the merge job settles `unverified`, and the item goes back to a verify step that skips again.
 
-### Live
+### The live phase kind
 
-- The live agent runs `bun verify doctor --target prod`, then checks each line it got against the repo's prod target, read-only.
+- The example live prompt runs `bun verify doctor --target prod`, then checks each line it got against the repo's prod target, read-only.
 - When a line needs a write that the repo's QA guards don't allow ([what a repo gives its live agent](#what-a-repo-gives-its-live-agent)), the agent closes out `blocked` with the write it needs.
-- A `broken` close-out files its bug through the existing `openItems` effect, with the failing lines and their tags, so the bug's own live step checks them again.
+- A `broken` close-out files its bug through the existing `openItems` effect, with the failing lines and their tags, so the bug's own live step, when its pipeline has one, checks them again.
 - `notify: true` on an edge writes a notice at settle without a hold.
 - Live evidence goes into the item and the close-out, never into a pull request: the repos are public, and prod data is not.
 
@@ -328,7 +334,7 @@ interface SpawnRequest {
 
 ## Decisions
 
-- **Throughput keeps the shared `workers` limit of 7 agent sessions.** Verify and live add no limit of their own, and the pool order runs later phases first. Until the claim reads the worker target's free compute, the `workers` limit stands in for it.
+- **The example rules keep the shared `workers` limit of 7 agent sessions.** Verify and live add no limit of their own, and the example's pool order runs later phases first. Until the claim reads the worker target's free compute, the `workers` limit stands in for it.
 - **The ship watch reads GitHub through the forge adapter, never pepys.** boxxy reads pepys only for reports, and that reader never retries. pepys also records no deploy for a repo that deploys its own code with no bump pull request.
 - **Each repo's ship rule is data.** A deploy tag, a release, or a release then a deploy repo's tag cover the repos with no new workflow in any of them.
 - **A failed live check ends the item and files a bug.** The item's pull request has already merged, so a fix needs a new pull request, and a new item keeps each item's cost and land time true in pepys.
