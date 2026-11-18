@@ -14,7 +14,7 @@ export async function sendNotices(input: SendNoticesInput): Promise<NoticeReport
   let lastError: string | null = null;
 
   for (const row of due) {
-    const outcome = await tellHold(input, row);
+    const outcome = await tell(input, row);
 
     await input.store.exclusive((tx) =>
       tx.markNoticeTried(row.id, buildNoticeTry(row, outcome, input.now)),
@@ -31,14 +31,16 @@ export async function sendNotices(input: SendNoticesInput): Promise<NoticeReport
   return { sent, failed, lastError };
 }
 
-async function tellHold(input: SendNoticesInput, row: NoticeRow): Promise<NoticeOutcome> {
+async function tell(input: SendNoticesInput, row: NoticeRow): Promise<NoticeOutcome> {
   try {
-    return await input.notifier.tellHold({
-      item: row.item,
-      reason: row.reason,
-      at: row.at,
-      key: buildNoticeKey(row),
-    });
+    return row.kind === 'hold'
+      ? await input.notifier.tellHold({
+          item: row.item,
+          reason: row.reason,
+          at: row.at,
+          key: buildNoticeKey(row),
+        })
+      : await input.notifier.tellPaused({ ...row.pause, at: row.at, key: buildNoticeKey(row) });
   } catch (error) {
     return {
       kind: 'uncertain',

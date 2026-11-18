@@ -36,8 +36,8 @@ export const access = {
   'item.note': buildOwnerWrite('boxxy item note <item> --text'),
   'relation.add': buildOwnerWrite('boxxy relation add <source> <type> <target>'),
   'relation.remove': buildOwnerWrite('boxxy relation remove <source> <type> <target>'),
-  'runner.pause': buildOwnerSwitch('boxxy runner pause'),
-  'runner.resume': buildOwnerSwitch('boxxy runner resume'),
+  'runner.pause': buildOwnerWrite('boxxy runner pause [--reason]'),
+  'runner.resume': buildOwnerWrite('boxxy runner resume'),
   'notices.register': buildOwnerSwitch('boxxy notices register <gateway-id>'),
   'notices.show': buildOwnerRead('boxxy notices show'),
   'plan.defer': buildOwnerWrite('boxxy defer <item> [--until] --reason'),
@@ -142,7 +142,7 @@ function buildOwnerWrite(cli: string): Access {
   return { caller: 'owner', actor: 'boxxy:owner:local', tool: 'owner', cli, scope: 'write' };
 }
 
-// A switch of the server itself writes no fact that would show who did it, so it has no actor.
+// The notice session's registration writes no fact that would show who did it, so it has no actor.
 function buildOwnerSwitch(cli: string): Access {
   return { caller: 'owner', actor: 'none', tool: 'owner', cli, scope: 'write' };
 }

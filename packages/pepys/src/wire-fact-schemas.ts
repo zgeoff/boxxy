@@ -2,6 +2,8 @@ import { workFactSchemas } from '@boxxy/model';
 import type { FactType } from '@boxxy/model';
 import { z } from 'zod';
 
+type RunnerFactType = 'boxxy.runner.paused' | 'boxxy.runner.resumed';
+
 // The sink adds the store version to every payload, and no model schema holds it, so the wire
 // schema of a type is the model's schema plus that one field. These are the `types` of the fact
 // family.
@@ -41,4 +43,10 @@ export const wireFactSchemas = {
   'boxxy.attempt.job_started': workFactSchemas['boxxy.attempt.job_started'].extend(storeVersion),
   'boxxy.merge.requested': workFactSchemas['boxxy.merge.requested'].extend(storeVersion),
   'boxxy.merge.answered': workFactSchemas['boxxy.merge.answered'].extend(storeVersion),
-} satisfies Readonly<Record<FactType, z.ZodObject>>;
+} satisfies Readonly<Record<Exclude<FactType, RunnerFactType>, z.ZodObject>>;
+
+// The runner's own facts name the runner and no item, so they form a family of their own.
+export const wireRunnerFactSchemas = {
+  'boxxy.runner.paused': workFactSchemas['boxxy.runner.paused'].extend(storeVersion),
+  'boxxy.runner.resumed': workFactSchemas['boxxy.runner.resumed'].extend(storeVersion),
+} satisfies Readonly<Record<RunnerFactType, z.ZodObject>>;

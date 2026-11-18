@@ -170,8 +170,10 @@ async function writeHoldNotice(
         table: 'notices',
         row: {
           id: 1,
+          kind: 'hold',
           item: attempt.item,
           reason: after.position.reason,
+          pause: null,
           at: now,
           tries: 0,
           sentAt: null,

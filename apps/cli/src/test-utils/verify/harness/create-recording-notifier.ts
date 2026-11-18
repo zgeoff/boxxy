@@ -17,5 +17,12 @@ export function createRecordingNotifier(store: ClaimStore, sent: SentNotice[]): 
 
       return { kind: 'sent' };
     },
+
+    // no journey runs a runner paused for hours, so the harness records only hold notices
+    tellPaused: async () => {
+      const session = await store.read((tx) => tx.readNoticeSession());
+
+      return session === null ? { kind: 'refused', reason: 'no-notice-session' } : { kind: 'sent' };
+    },
   };
 }

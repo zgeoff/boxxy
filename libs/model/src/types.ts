@@ -422,6 +422,15 @@ export interface RunnerRow {
   readonly id: RunnerId;
   readonly heartbeatAt: Instant;
   readonly paused: boolean;
+
+  // who paused the runner, when and why; all null while the runner runs, and null for a pause
+  // that predates these columns
+  readonly pausedAt: Instant | null;
+  readonly pausedBy: ActorRef | null;
+  readonly pauseReason: string | null;
+
+  // when the notice for this pause was queued; null until then, and reset by each new pause
+  readonly pauseNoticedAt: Instant | null;
 }
 
 // The session that gets each hold notice. The store holds at most one.
@@ -431,11 +440,36 @@ export interface NoticeSessionRow {
   readonly setAt: Instant;
 }
 
-// A hold notice for the `Notifier` port. The tick tries it again, with no cap, until atc takes it.
-export interface NoticeRow {
+// What a paused-runner notice says, fixed when the notice is queued.
+export interface PausedDetail {
+  readonly pausedAt: Instant;
+  readonly pausedBy: ActorRef;
+  readonly reason: string | null;
+
+  // the items ready to claim when the notice was queued
+  readonly waiting: number;
+}
+
+// A notice for the `Notifier` port: a hold notice, or a paused-runner notice. The tick tries it
+// again, with no cap, until atc takes it.
+export type NoticeRow = NoticeRowBase &
+  (
+    | {
+        readonly kind: 'hold';
+        readonly item: ItemId;
+        readonly reason: HoldReason;
+        readonly pause: null;
+      }
+    | {
+        readonly kind: 'runner-paused';
+        readonly item: null;
+        readonly reason: null;
+        readonly pause: PausedDetail;
+      }
+  );
+
+interface NoticeRowBase {
   readonly id: number;
-  readonly item: ItemId;
-  readonly reason: HoldReason;
   readonly at: Instant;
   readonly tries: number;
   readonly sentAt: Instant | null;

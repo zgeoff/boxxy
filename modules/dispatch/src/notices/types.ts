@@ -1,8 +1,15 @@
-import type { ClaimStore, Instant, Notifier } from '@boxxy/model';
+import type { ClaimStore, Instant, ItemRules, Notifier, RunnerId } from '@boxxy/model';
 
 export interface SendNoticesInput {
   readonly store: ClaimStore;
   readonly notifier: Notifier;
+  readonly now: Instant;
+}
+
+export interface QueuePausedNoticeInput {
+  readonly store: ClaimStore;
+  readonly runner: RunnerId;
+  readonly rules: ItemRules;
   readonly now: Instant;
 }
 

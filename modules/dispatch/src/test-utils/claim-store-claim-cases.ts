@@ -306,7 +306,18 @@ export const claimStoreClaimCases: readonly ClaimStoreCase[] = [
         received: { result, state },
         expected: {
           result: { kind: 'applied' },
-          state: { runner: { id: 'runner-1', heartbeatAt: 1000, paused: true }, version: 1 },
+          state: {
+            runner: {
+              id: 'runner-1',
+              heartbeatAt: 1000,
+              paused: true,
+              pausedAt: null,
+              pausedBy: null,
+              pauseReason: null,
+              pauseNoticedAt: null,
+            },
+            version: 1,
+          },
         },
       };
     },

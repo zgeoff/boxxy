@@ -1,13 +1,16 @@
-import type { HoldNotice, NoticeOutcome, Notifier } from '../ports/types.ts';
+import type { HoldNotice, NoticeOutcome, Notifier, PausedNotice } from '../ports/types.ts';
 
 export interface FakeNotifier extends Notifier {
-  // each notice that was sent, in order
+  // each hold notice that was sent, in order
   readonly told: readonly HoldNotice[];
 
-  // every call, sent or not, in order
+  // every hold notice call, sent or not, in order
   readonly attempts: readonly HoldNotice[];
 
-  // the number of calls, sent or not
+  // each paused-runner notice that was sent, in order
+  readonly toldPaused: readonly PausedNotice[];
+
+  // the number of calls of either kind, sent or not
   readonly calls: () => number;
 
   // the next call ends with the outcome
@@ -21,13 +24,24 @@ export interface FakeNotifier extends Notifier {
 export function createFakeNotifier(): FakeNotifier {
   const told: HoldNotice[] = [];
   const attempts: HoldNotice[] = [];
+  const toldPaused: PausedNotice[] = [];
+  let pausedCalls = 0;
   let next: NoticeOutcome | null = null;
   let always: NoticeOutcome | null = null;
+
+  const takeFailure = (): NoticeOutcome | null => {
+    const outcome = next ?? always;
+
+    next = null;
+
+    return outcome;
+  };
 
   return {
     told,
     attempts,
-    calls: () => attempts.length,
+    toldPaused,
+    calls: () => attempts.length + pausedCalls,
     failNext: (outcome) => {
       next = outcome;
     },
@@ -40,15 +54,26 @@ export function createFakeNotifier(): FakeNotifier {
     tellHold: (notice) => {
       attempts.push(notice);
 
-      const outcome = next ?? always;
-
-      next = null;
+      const outcome = takeFailure();
 
       if (outcome !== null) {
         return Promise.resolve(outcome);
       }
 
       told.push(notice);
+
+      return Promise.resolve({ kind: 'sent' });
+    },
+    tellPaused: (notice) => {
+      pausedCalls += 1;
+
+      const outcome = takeFailure();
+
+      if (outcome !== null) {
+        return Promise.resolve(outcome);
+      }
+
+      toldPaused.push(notice);
 
       return Promise.resolve({ kind: 'sent' });
     },

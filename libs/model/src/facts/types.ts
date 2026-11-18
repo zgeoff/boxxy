@@ -30,13 +30,14 @@ import type {
   RelationTypeName,
   RepoName,
   RulesVersion,
+  RunnerId,
   SessionMode,
   WorkerKindName,
 } from '../types.ts';
 
 // Every fact on the stream names an item; a fact about an attempt names the attempt in its
 // payload. The consumer rebuilds an item from the one scope of the item.
-export type EntityRef = `boxxy:item:${string}`;
+export type EntityRef = `boxxy:item:${string}` | `boxxy:runner:${string}`;
 
 export interface FactEnvelope<M extends object, T extends keyof M & string = keyof M & string> {
   readonly id: FactId;
@@ -243,6 +244,8 @@ export interface WorkFacts {
   };
 
   // written on a job's first read, in place of `boxxy.attempt.started`, which names an atc session
+  'boxxy.runner.paused': { readonly runner: RunnerId; readonly reason: string | null };
+  'boxxy.runner.resumed': { readonly runner: RunnerId };
   'boxxy.attempt.job_started': OfAttempt & { readonly worker: WorkerKindName };
 
   // written in the change that marks the merge request, before the forge call

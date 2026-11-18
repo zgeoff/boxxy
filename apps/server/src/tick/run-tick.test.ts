@@ -176,6 +176,10 @@ test('it writes the heartbeat of the runner', async () => {
     id: ctx.dispatch.runner,
     heartbeatAt: ctx.dispatch.clock.now(),
     paused: false,
+    pausedAt: null,
+    pausedBy: null,
+    pauseReason: null,
+    pauseNoticedAt: null,
   });
 });
 

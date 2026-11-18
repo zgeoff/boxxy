@@ -132,3 +132,21 @@ test('it answers retry when the sender gives no answer in the time limit', async
 
   expect(answer).toStrictEqual({ kind: 'retry', reason: 'no answer in 5 ms' });
 });
+
+test('it sends a runner fact to the runner family, which ingest reads and stores', async () => {
+  const ctx = setupTest();
+
+  const fact = buildMockOutboxFact({
+    seq: 3,
+    type: 'boxxy.runner.paused',
+    entity: 'boxxy:runner:runner-1',
+    payload: { runner: 'runner-1', reason: 'the rules change is in review' },
+  });
+
+  const answer = await ctx.harness.sink.send([fact]);
+
+  expect([answer, await ctx.harness.readStored()]).toStrictEqual([
+    { kind: 'stored' },
+    [fact.factId],
+  ]);
+});

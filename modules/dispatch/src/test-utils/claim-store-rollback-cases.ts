@@ -130,7 +130,18 @@ export const claimStoreRollbackCases: readonly ClaimStoreCase[] = [
 
       const read: unknown = await store.read((transaction) => transaction.readRunner(runner));
 
-      return { received: read, expected: { id: 'runner-1', heartbeatAt: 1000, paused: false } };
+      return {
+        received: read,
+        expected: {
+          id: 'runner-1',
+          heartbeatAt: 1000,
+          paused: false,
+          pausedAt: null,
+          pausedBy: null,
+          pauseReason: null,
+          pauseNoticedAt: null,
+        },
+      };
     },
   ],
   [

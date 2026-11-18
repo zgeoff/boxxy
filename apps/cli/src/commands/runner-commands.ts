@@ -13,9 +13,10 @@ export const runnerCommands: readonly Command[] = [
   {
     path: ['runner', 'pause'],
     procedure: 'runner.pause',
-    summary: 'Pauses the runner. It starts no new attempt until resume.',
-    options: {},
-    run: makeAnswerRun((call) => call.client.runner.pause({})),
+    summary:
+      'Pauses the runner. It starts no new attempt until resume. --reason says why, in one sentence.',
+    options: { reason: { type: 'string' } },
+    run: makeAnswerRun((call) => call.client.runner.pause({ reason: call.args.string('reason') })),
   },
   {
     path: ['runner', 'resume'],

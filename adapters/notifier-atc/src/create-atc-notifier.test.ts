@@ -156,3 +156,57 @@ test('it returns refused without the error text and sends nothing when the sessi
     [],
   ]);
 });
+
+test('#tellPaused sends one message that names the pause time, the actor, the reason, the count and the key', async () => {
+  const ctx = setupTest();
+  const notifier = ctx.createNotifier(null);
+
+  const outcome = await notifier.tellPaused({
+    at: brandSchemas.instant.parse(1_800_000_000_000 + 2 * 3_600_000 + 60_000),
+    pausedAt: brandSchemas.instant.parse(1_800_000_000_000),
+    pausedBy: 'boxxy:owner:local',
+    reason: 'the rules change is in review',
+    waiting: 3,
+    key: 'boxxy-notice:13:0',
+  });
+
+  expect([outcome, ctx.sent]).toStrictEqual([
+    { kind: 'sent' },
+    [
+      {
+        session: 'daemon.1.s1',
+        text: [
+          'The boxxy runner has been paused for 2 hours, by boxxy:owner:local. 3 items are ready to claim.',
+          'Reason: the rules change is in review.',
+          'Run `boxxy runner resume` to start claiming again.',
+        ].join('\n'),
+        idempotencyKey: 'boxxy-notice:13:0',
+      },
+    ],
+  ]);
+});
+
+test('#tellPaused says none given when the pause has no reason, and refuses with no session', async () => {
+  const ctx = setupTest();
+
+  const notice = {
+    at: brandSchemas.instant.parse(1_800_000_000_000 + 3 * 3_600_000),
+    pausedAt: brandSchemas.instant.parse(1_800_000_000_000),
+    pausedBy: 'boxxy:owner:local',
+    reason: null,
+    waiting: 1,
+    key: 'boxxy-notice:14:0',
+  } as const;
+
+  await ctx.createNotifier(null).tellPaused(notice);
+
+  const refused = await createAtcNotifier({
+    client: ctx.client,
+    readSession: () => Promise.resolve(null),
+  }).tellPaused(notice);
+
+  expect([ctx.sent.map((request) => request.text.split('\n')[1]), refused]).toStrictEqual([
+    ['Reason: none given.'],
+    { kind: 'refused', reason: 'no-notice-session' },
+  ]);
+});

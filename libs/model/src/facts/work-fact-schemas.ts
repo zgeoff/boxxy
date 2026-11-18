@@ -209,6 +209,11 @@ export const workFactSchemas = {
     number: pullRequestNumberSchema,
     pullRequestId: pullRequestIdSchema,
   }),
+  'boxxy.runner.paused': z.object({
+    runner: brandSchemas.runnerId,
+    reason: z.string().min(1).nullable(),
+  }),
+  'boxxy.runner.resumed': z.object({ runner: brandSchemas.runnerId }),
   'boxxy.attempt.job_started': z.object({ ...ofAttempt, worker: brandSchemas.workerKindName }),
   'boxxy.merge.requested': z.object({
     ...ofAttempt,

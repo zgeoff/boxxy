@@ -115,7 +115,15 @@ function buildMemoryTx(tables: MemoryTables): StoreTx {
       const row = tables.runners.find((candidate) => candidate.id === runner);
 
       if (row === undefined) {
-        tables.runners.push({ id: runner, heartbeatAt: at, paused: false });
+        tables.runners.push({
+          id: runner,
+          heartbeatAt: at,
+          paused: false,
+          pausedAt: null,
+          pausedBy: null,
+          pauseReason: null,
+          pauseNoticedAt: null,
+        });
       } else {
         Object.assign(row, { heartbeatAt: at });
       }
