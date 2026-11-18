@@ -103,24 +103,31 @@ export function countUnrelatedLines(changed: readonly { path: string; changedLin
 
 // ── C. The round and its cause (modules/closeout/src/review/build-round-cause.ts) ──────────────
 //
-// Pure, over the item's settled attempts since its latest retry lever, oldest first.
+// Pure, over the item's settled attempts, oldest first. The round reads those since its latest
+// retry lever, the cause reads all of them.
 //   round  1 + the reviews since that lever that settled `changes-requested`. So round 4 is the
 //          last: the edge `changes-requested: { max: 3 }` holds the item when it blocks.
-//   cause  `first` when no review of this pull request settled since the lever;
+//   cause  `first` when no review of this pull request settled, before or after a retry;
 //          `rework` when the latest settled attempt before this one that is not a build is a
 //          review that settled `changes-requested`;
 //          `recheck` otherwise: the item came back from a merge (`repair`, `stale`) or a verify,
 //          or the last round settled `failed` and the edge `again` runs it once more. The
 //          tool's plain review reads the whole change when no earlier review of it succeeded.
 
-export function buildRoundCause(history: readonly Settled[]): RoundCause {
-  const reviews = history.filter((settled) => settled.phase === 'review' && settled.outcome !== 'lost');
+export function buildRoundCause(history: readonly Settled[], pullRequest: PullRequestRef | null): RoundCause {
+  const reviews = history.filter(
+    (settled) => settled.phase === 'review' && settled.outcome !== 'lost' && isSamePullRequest(settled.pullRequest, pullRequest),
+  );
 
   if (reviews.length === 0) return 'first';
 
   const latestOther = history.findLast((settled) => settled.phase !== 'build');
 
   return latestOther?.phase === 'review' && latestOther.outcome === 'changes-requested' ? 'rework' : 'recheck';
+}
+
+function isSamePullRequest(first: PullRequestRef | null | undefined, second: PullRequestRef | null): boolean {
+  return first != null && second !== null && first.repo === second.repo && first.number === second.number;
 }
 
 // ── D. The merge rule (modules/train/src/decide-merge.ts) ──────────────────────────────────────

@@ -66,7 +66,7 @@ The sketches in [`sketches/next/review-and-merge/`](./sketches/next/review-and-m
 
 A review goes like this:
 
-1. The core picks the review number and its cause with `buildRoundCause` ([`03-flow.ts`](./sketches/next/review-and-merge/03-flow.ts), section C). The cause is `first` for the first review, `rework` after a `changes-requested` review, or `recheck` after a repair, a `stale` send-back, a failed verify or a failed review.
+1. The core picks the review number and its cause with `buildRoundCause` ([`03-flow.ts`](./sketches/next/review-and-merge/03-flow.ts), section C). The cause reads the item's whole history, across retries, so a retry on the same pull request keeps a confirmation pass a confirmation pass. The cause is `first` for the first review of a pull request, and for the first review after a retry onto a new pull request; `rework` after a `changes-requested` review, or `recheck` after a repair, a `stale` send-back, a failed verify or a failed review.
 2. A session on an agent host runs the command in its clone of the repo, and sends the tool's raw result with `boxxy attempt close-out`. noslop fetches the pull request's base and head into that clone itself.
 3. The server's `attempt.closeOut` procedure runs `closeOutCall` from `modules/dispatch`. It refuses a call from another session, hashes the raw result, and answers a repeat of a stored result as a repeat. Otherwise it passes the result to `accept`, before it takes the store's lock, because `accept` posts to GitHub.
 4. The procedure stores the `ReviewCloseOut` that holds the reading, through the phase kind's parser, as for any close-out. The attempt settles `passed`, `changes-requested` or `failed`.

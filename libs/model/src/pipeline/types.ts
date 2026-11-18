@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 import type { brandSchemas } from '../rows/brand-schemas.ts';
-import type { Instant, PhaseName } from '../types.ts';
+import type { Instant, PhaseName, PullRequestRef } from '../types.ts';
 
 // Where an item stands. The engine derives it on every read from the item's settled attempts,
 // its retry levers and the rules loaded now; no row stores it. `round` is the item's round: 1,
@@ -37,6 +37,10 @@ export interface Settled {
   // An attempt that failed with `no-capacity` or `usage-limit` neither moves the item nor
   // counts. Optional, so that a test's settled attempt may leave it out.
   readonly failure?: string | null;
+
+  // The pull request a review attempt read, from its input. Absent on any other attempt, and null
+  // on a review whose input holds none.
+  readonly pullRequest?: PullRequestRef | null;
 }
 
 export interface RetryLever {

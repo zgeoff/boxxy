@@ -6,6 +6,7 @@ interface MockSettledInput {
   readonly outcome: string;
   readonly endedAt: number;
   readonly failure?: string | null;
+  readonly pullRequest?: { readonly repo: string; readonly number: number } | null;
 }
 
 export function buildMockSettled(input: MockSettledInput): Settled {
@@ -14,5 +15,16 @@ export function buildMockSettled(input: MockSettledInput): Settled {
     outcome: input.outcome,
     endedAt: brandSchemas.instant.parse(input.endedAt),
     failure: input.failure ?? null,
+    ...(input.pullRequest === undefined
+      ? {}
+      : {
+          pullRequest:
+            input.pullRequest === null
+              ? null
+              : {
+                  repo: brandSchemas.repoName.parse(input.pullRequest.repo),
+                  number: input.pullRequest.number,
+                },
+        }),
   };
 }
