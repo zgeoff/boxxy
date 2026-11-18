@@ -16,6 +16,7 @@ test('it gives a merge the latest pull request of the item', () => {
     history: [],
     retries: [],
     pullRequests: [older, latest],
+    shipped: [],
     session: null,
   });
 

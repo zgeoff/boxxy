@@ -11,6 +11,7 @@ import type {
   FactId,
   ItemId,
   ItemKindName,
+  ItemShipped,
   ItemView,
   PullRequestRef,
   RelationTypeName,
@@ -25,7 +26,8 @@ export type CloseOut =
   | BuildCloseOut
   | ReviewCloseOut
   | VerifyCloseOut
-  | MergeCloseOut;
+  | MergeCloseOut
+  | LiveCloseOut;
 
 export interface TriageCloseOut {
   readonly result:
@@ -175,6 +177,9 @@ export interface OpenItem {
 
   // true sets the security mark on the filed item
   readonly security?: boolean;
+
+  // the filed item's acceptance list, numbered from `a1`; each tag is one the rules file lists
+  readonly acceptance?: readonly CriterionDraft[];
 }
 
 // An open item of a design, which may set the order of the work it splits out. `blocks` and
@@ -366,6 +371,43 @@ export interface VerifyInput {
 // The input of a merge attempt: the item's latest pull request, null when it has none.
 export interface MergeInput {
   readonly pullRequest: PullRequestLink | null;
+}
+
+// The input of a live attempt: the item's merged pull request and commit, the ship watch's row for
+// that commit, and the item's lines that the step's `criteria.tagged` matches. Each of the first
+// three is null when the item has none, which a step that waits on `shipped` never claims.
+export interface LiveInput {
+  readonly pullRequest: PullRequestLink | null;
+  readonly commit: CommitSha | null;
+  readonly shipped: ItemShipped | null;
+  readonly criteria: readonly CriterionText[];
+}
+
+// The live close-out, sent by the checking agent. `confirmed` and `broken` checked the lines;
+// `blocked` and `abandoned` did not.
+export type LiveCloseOut =
+  | { readonly outcome: 'confirmed'; readonly lines: readonly LineResult[] }
+  | { readonly outcome: 'broken'; readonly lines: readonly LineResult[]; readonly bug: LiveBug }
+
+  // the question for the owner
+  | { readonly outcome: 'blocked'; readonly reason: string }
+  | { readonly outcome: 'abandoned'; readonly reason: string };
+
+// Filed through the `file-item` effect, with a `relates-to` link to the checked item. The parser
+// refuses a kind other than `bug`.
+export interface LiveBug extends OpenItem {
+  readonly kind: ItemKindName;
+
+  // the failing lines, tags kept
+  readonly acceptance: readonly CriterionDraft[];
+}
+
+export interface LineResult {
+  readonly criterionId: CriterionId;
+  readonly passed: boolean;
+
+  // stays in the item and the close-out: never posted to the pull request
+  readonly evidence: string;
 }
 
 export interface PullRequestLink {

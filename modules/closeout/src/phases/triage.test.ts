@@ -442,7 +442,15 @@ test('it gives a triage attempt the item acceptance list as its input', () => {
   const attempt = buildMockV1AttemptRow().id;
 
   expect(
-    triage.input({ item, attempt, history: [], retries: [], pullRequests: [], session: null }),
+    triage.input({
+      item,
+      attempt,
+      history: [],
+      retries: [],
+      pullRequests: [],
+      shipped: [],
+      session: null,
+    }),
   ).toStrictEqual({
     acceptance: [{ id: 'a1', text: 'A failed upload retries once' }],
     stopped: null,
@@ -483,6 +491,7 @@ test.each<[string, (TriageCloseOut['result'] | null)[], string | null]>([
     history,
     retries: [],
     pullRequests: [],
+    shipped: [],
     session: null,
   });
 

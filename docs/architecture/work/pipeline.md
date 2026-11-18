@@ -1,12 +1,12 @@
 # The work pipeline
 
 The pipeline is the route an item takes from filing to done: triage, design, build, review, and for
-some repos verify and merge. The owner writes it as data in the rules file: the phases in order,
-where each outcome of a phase sends the item, and how many tries each step gets. boxxy never stores
-where an item is. It works that out from the item's settled attempts each time it reads the item, so
-a rules change moves every waiting item without a migration. When an outcome needs the owner, the
-item holds and the owner gets a notice. Read this doc before you change the rules file, a phase kind
-or a launch prompt.
+some repos verify, merge and check live. The owner writes it as data in the rules file: the phases
+in order, where each outcome of a phase sends the item, and how many tries each step gets. boxxy
+never stores where an item is. It works that out from the item's settled attempts each time it reads
+the item, so a rules change moves every waiting item without a migration. When an outcome needs the
+owner, the item holds and the owner gets a notice. Read this doc before you change the rules file, a
+phase kind or a launch prompt.
 
 [Attempts](./attempts.md) covers one try at one phase. [Agent sessions](./sessions.md) covers the
 session an attempt runs in, and capacity. [Notices](./notices.md) covers how a hold reaches the
@@ -42,13 +42,17 @@ An edge is one of these:
 
 - `next` moves the item to the following step, or ends the pipeline after the last one.
 - `again` runs the same phase again, and counts against the step's `maxAttempts`.
-- `{ to, max, resume }` sends the item to the step of phase `to` and adds one to the item's round,
-  the count of its trips back through the pipeline. An edge back to an earlier step, or to its own
-  step, needs `max`: the number of times it may run before the item holds with `rounds used up`, so
-  every loop ends. `resume: true` wakes that step's [kept session](./sessions.md#the-kept-session),
-  so the builder carries on with its context.
+- `{ to, max, resume, notify }` sends the item to the step of phase `to` and adds one to the item's
+  round, the count of its trips back through the pipeline. An edge back to an earlier step, or to
+  its own step, needs `max`: the number of times it may run before the item holds with
+  `rounds used up`, so every loop ends. `resume: true` wakes that step's
+  [kept session](./sessions.md#the-kept-session), so the builder carries on with its context.
 - `{ end }` ends the pipeline with a reason.
 - `{ hold }` holds the item for the owner with a reason.
+
+Any edge that is an object takes `notify: true`. At settle, an edge with `notify: true` writes a
+[notify notice](./notices.md#the-notify-notice) and holds nothing. A `{ hold }` edge with `notify`
+writes its hold notice only. `next` and `again` take no `notify`.
 
 ## Step gates and skips
 
@@ -171,7 +175,11 @@ gets a [notice](./notices.md#the-paused-runner-notice) when a long pause leaves 
 The rules file's `kinds` section gives each item kind, such as `core.issue`, a pipeline and a recipe
 per phase. A recipe sets the agent, the model, the launch prompt template and the skills. Each
 kind's recipe map is keyed by phase name, and its key `design/attended` gives the recipe for an
-attended design.
+attended design. A repo's `repos.<repo>.recipes` map, keyed the same way, replaces the kind's recipe
+for a phase in that repo only, and the loader refuses a name the file doesn't define
+(`missing-repo-recipe`). A step's recipe resolves in this order, and the first match wins: the
+repo's `<phase>/attended`, the repo's `<phase>`, the kind's `<phase>/attended`, the kind's
+`<phase>`. An `/attended` entry counts only for a design in attended mode.
 
 - **Skills are pinned.** The rules file pins one commit of one skills repository, and each recipe
   lists the skills its phase needs. The
@@ -184,15 +192,42 @@ attended design.
   grades the build where it was built.
 - **A build recipe has no check command.** The agent follows the repo's own agent instructions.
 - **A credentialed agent runs only where the server config scopes it.** The loader checks each
-  recipe against `spawn.agents`, for every repo in `spawn.repos`
+  recipe, a repo's own included, against `spawn.agents`, for every repo in `spawn.repos` and every
+  kind and step, resolving each repo's overrides first
   ([who holds a credential](./sessions.md#who-holds-a-credential)). It refuses a recipe that names a
   listed agent outside its phases or repos (`agent-outside-scope`), a recipe for a
   `requireScopedAgent` phase whose agent isn't listed for it (`phase-without-scoped-agent`), a
   `session: builder` recipe that runs a listed agent, or that wakes the session of a build that runs
   a listed agent (`scoped-agent-builder-session`), and a `resume: true` edge into a phase a listed
   agent runs, or in a pipeline whose build runs a listed agent (`scoped-agent-session-resumed`). The
-  loader checks each kind with its own pipeline and recipes. The review phase sets
-  `requireScopedAgent`, so every review runs on the review agent.
+  loader checks each kind with its own pipeline and recipes. A repo's `session: builder` recipe
+  needs a build step before its phase in every kind that runs the phase, as a kind's recipe does
+  (`builder-session-not-kept`). The review phase sets `requireScopedAgent`, so every review runs on
+  the review agent.
+
+## The live phase kind
+
+The `live` phase kind checks a shipped item's acceptance lines against the deployed system. A rules
+file puts it after a `shipped` wait, with a `criteria` gate that picks the lines to check. Its
+outcomes are `confirmed`, `broken`, `blocked` and `abandoned`.
+
+The claim gives the session the item's merged pull request, its merge commit, the
+[shipped row](./ship-watch.md#the-watch) of that commit, and the lines that the step's
+`criteria.tagged` matches. Each of the first three is null when the item has none.
+
+The close-out holds a `lines` list for `confirmed` and `broken`, one entry for each line checked:
+`criterionId`, `passed` and `evidence`. The parser refuses a line for a criterion that the input
+lacks, and a `broken` close-out with no failing line. A `broken` close-out also holds a `bug`, an
+open item whose kind must be `bug` and whose `acceptance` lists the failing lines with their tags.
+`blocked` and `abandoned` hold a `reason`.
+
+- `confirmed` and `broken` succeed. `blocked` and `abandoned` fail, with the outcome as the failure.
+- A `broken` close-out files its `bug` through the `file-item` effect, with a `relates-to` link to
+  the checked item, so the rules file must list `relates-to` in `relationTypes`. The filed item
+  keeps the acceptance lines and their tags, so its own live step, when its pipeline has one, checks
+  them again. Any open item a close-out files may carry `acceptance`, and each tag must be in
+  `criterionTags`.
+- The evidence stays in the item and the close-out. boxxy posts nothing to a pull request.
 
 ## The launch prompt
 

@@ -19,9 +19,10 @@ const edgeSchema = z.union([
     to: brandSchemas.phaseName,
     max: z.int().positive().exactOptional(),
     resume: z.boolean().exactOptional(),
+    notify: z.boolean().exactOptional(),
   }),
-  z.strictObject({ end: nameSchema }),
-  z.strictObject({ hold: brandSchemas.rulesHoldReason }),
+  z.strictObject({ end: nameSchema, notify: z.boolean().exactOptional() }),
+  z.strictObject({ hold: brandSchemas.rulesHoldReason, notify: z.boolean().exactOptional() }),
 ]);
 
 // never `again` or `{ to }`: a skipped step must not run, and the edge must leave it
@@ -66,13 +67,19 @@ const shipRuleSchema = z.union([
   }),
 ]);
 
-const repoSchema = z.strictObject({ ships: shipRuleSchema.default('none') });
+// by phase, and by `<phase>/attended` for an attended session of the phase
+const recipesSchema = z.record(nameSchema, brandSchemas.recipeName);
+
+const repoSchema = z.strictObject({
+  ships: shipRuleSchema.default('none'),
+
+  // replaces the kind's recipe for a phase in this repo
+  recipes: recipesSchema.default({}),
+});
 
 const kindSchema = z.strictObject({
   pipeline: brandSchemas.pipelineName,
-
-  // by phase, and by `<phase>/attended` for an attended session of the phase
-  recipes: z.record(nameSchema, brandSchemas.recipeName),
+  recipes: recipesSchema,
 });
 
 const filterSchema = z.record(nameSchema, z.union([nameSchema, z.array(nameSchema).min(1)]));

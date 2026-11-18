@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { buildCloseOutSchema } from './build-close-out-schema.ts';
 import { designCloseOutSchema } from './design-close-out-schema.ts';
+import { liveCloseOutSchema } from './live-close-out-schema.ts';
 import { mergeCloseOutSchema } from './merge-close-out-schema.ts';
 import { storedReviewCloseOutSchema } from './stored-review-close-out-schema.ts';
 import { triageCloseOutSchema } from './triage-close-out-schema.ts';
@@ -14,4 +15,5 @@ export const closeOutSchema: z.ZodType<CloseOut> = z.union([
   designCloseOutSchema,
   verifyCloseOutSchema,
   mergeCloseOutSchema,
+  liveCloseOutSchema,
 ]);

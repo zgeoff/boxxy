@@ -11,9 +11,9 @@
   </p>
 </div>
 
-boxxy's phase kinds: triage, design, build, review, verify and merge. Each one gives the input of an
-attempt, checks the close-out sent at the end of it, and settles the attempt from that close-out.
-The merge phase kind runs on a job worker, and its drive decides each read of the job.
+boxxy's phase kinds: triage, design, build, review, verify, merge and live. Each one gives the input
+of an attempt, checks the close-out sent at the end of it, and settles the attempt from that
+close-out. The merge phase kind runs on a job worker, and its drive decides each read of the job.
 
 The package does no I/O: the caller passes in the item, its attempts, the attempt's evidence rows
 and what a close-out may name.

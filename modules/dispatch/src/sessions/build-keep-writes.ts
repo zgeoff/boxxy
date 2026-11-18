@@ -31,14 +31,15 @@ export function buildKeepWrites(input: KeepInput): RowWrite[] {
     ),
   );
 
-  const hasBuilderGrader = Object.values(kind.recipes).some(
-    (name) => input.rules.recipes.get(name)?.recipe.session === 'builder',
-  );
+  const hasBuilderGrader = [
+    ...Object.values(kind.recipes),
+    ...Object.values(input.rules.repos.get(item.repo)?.recipes ?? {}),
+  ].some((name) => input.rules.recipes.get(name)?.recipe.session === 'builder');
 
   const isKept =
     isResumeEdge ||
     (attempt.phase === buildPhase && hasBuilderGrader) ||
-    isBuilderSession(input.rules, kind, attempt.phase, attempt.mode);
+    isBuilderSession(input.rules, item, attempt.phase, attempt.mode);
 
   if (!isKept) {
     return [];

@@ -4,11 +4,13 @@ import invariant from 'tiny-invariant';
 import { buildPhase } from '../constants.ts';
 import type { ParsedRulesFile } from '../parse/rules-file-schema.ts';
 import { buildRejection } from './build-rejection.ts';
+import { toPhase } from './collect-recipe-views.ts';
 
 export function collectRecipeRejections(file: ParsedRulesFile): LoadRejection[] {
   return [
     ...collectUnmappedSteps(file),
     ...collectUndefinedRecipes(file),
+    ...collectUndefinedRepoRecipes(file),
     ...collectSkillsRejections(file),
     ...collectBuilderSessionRejections(file),
   ];
@@ -49,6 +51,20 @@ function collectUndefinedRecipes(file: ParsedRulesFile): LoadRejection[] {
   );
 }
 
+function collectUndefinedRepoRecipes(file: ParsedRulesFile): LoadRejection[] {
+  return Object.entries(file.repos).flatMap(([repo, policy]) =>
+    Object.entries(policy.recipes)
+      .filter(([, recipe]) => !Object.hasOwn(file.recipes, recipe))
+      .map(([phase]) =>
+        buildRejection(['repos', repo, 'recipes', phase], {
+          kind: 'missing-repo-recipe',
+          repo,
+          phase,
+        }),
+      ),
+  );
+}
+
 function collectSkillsRejections(file: ParsedRulesFile): LoadRejection[] {
   if (file.skills !== undefined) {
     return [];
@@ -64,6 +80,10 @@ function collectSkillsRejections(file: ParsedRulesFile): LoadRejection[] {
 // A `session: builder` recipe wakes the session that the item's build kept, so its step needs a
 // build step earlier in the same pipeline.
 function collectBuilderSessionRejections(file: ParsedRulesFile): LoadRejection[] {
+  return [...collectKindBuilderSessions(file), ...collectRepoBuilderSessions(file)];
+}
+
+function collectKindBuilderSessions(file: ParsedRulesFile): LoadRejection[] {
   return Object.entries(file.kinds).flatMap(([itemKind, kind]) => {
     const steps = file.pipelines[kind.pipeline];
 
@@ -77,7 +97,7 @@ function collectBuilderSessionRejections(file: ParsedRulesFile): LoadRejection[]
     return Object.entries(kind.recipes)
       .filter(([key, recipe]) => {
         // a key is `<phase>` or `<phase>/attended`
-        const index = phases.indexOf(key.replace(/\/attended$/u, ''));
+        const index = phases.indexOf(toPhase(key));
 
         return (
           file.recipes[recipe]?.session === 'builder' &&
@@ -92,4 +112,30 @@ function collectBuilderSessionRejections(file: ParsedRulesFile): LoadRejection[]
         }),
       );
   });
+}
+
+// A repo's recipe runs in every kind whose pipeline has the phase.
+function collectRepoBuilderSessions(file: ParsedRulesFile): LoadRejection[] {
+  return Object.entries(file.repos).flatMap(([repo, policy]) =>
+    Object.entries(policy.recipes)
+      .filter(([key, recipe]) => {
+        const phase = toPhase(key);
+
+        return (
+          file.recipes[recipe]?.session === 'builder' &&
+          Object.values(file.kinds).some((kind) => {
+            const phases = (file.pipelines[kind.pipeline] ?? []).map((step): string => step.phase);
+            const index = phases.indexOf(phase);
+
+            return index !== -1 && !phases.slice(0, index).includes(buildPhase);
+          })
+        );
+      })
+      .map(([key, recipe]) =>
+        buildRejection(['repos', repo, 'recipes', key], {
+          kind: 'builder-session-not-kept',
+          recipe,
+        }),
+      ),
+  );
 }

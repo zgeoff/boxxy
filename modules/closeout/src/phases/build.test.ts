@@ -691,6 +691,7 @@ test('it gives a build of round 2 the design, the send-back of the review and th
     history,
     retries: [],
     pullRequests: [pullRequest],
+    shipped: [],
     session: null,
   });
 
@@ -732,6 +733,7 @@ test('it gives a build the conclusion of the design beside the design', () => {
     history,
     retries: [],
     pullRequests: [],
+    shipped: [],
     session: null,
   });
 
@@ -764,6 +766,7 @@ test.each([
     history,
     retries: [],
     pullRequests: [],
+    shipped: [],
     session: null,
   });
 
@@ -810,6 +813,7 @@ test('it sends a build the findings of a v1 review that asked for changes, as th
     ],
     retries: [],
     pullRequests: [],
+    shipped: [],
     session: null,
   });
 
@@ -865,6 +869,7 @@ test.each([
     history,
     retries: [],
     pullRequests: [],
+    shipped: [],
     session: null,
   });
 
@@ -911,6 +916,7 @@ test('it gives a build after a verified verify no send-back, though an earlier r
     history,
     retries: [],
     pullRequests: [],
+    shipped: [],
     session: null,
   });
 
@@ -965,6 +971,7 @@ test('it sends a build the findings of a review that asked for changes after an 
     history,
     retries: [],
     pullRequests: [],
+    shipped: [],
     session: null,
   });
 
@@ -1019,6 +1026,7 @@ test.each<[string, (BuildCloseOut['result'] | null)[], string | null]>([
     history,
     retries: [],
     pullRequests: [],
+    shipped: [],
     session: null,
   });
 

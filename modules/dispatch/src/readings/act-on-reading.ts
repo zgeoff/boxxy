@@ -275,7 +275,7 @@ function readClaimKept(input: ActOnReadingInput): Promise<KeptPick> {
       phase: input.attempt.phase,
       isBuilderSession:
         stored === null
-          ? isBuilderSession(input.rules, kind, input.attempt.phase, input.attempt.mode)
+          ? isBuilderSession(input.rules, detail.item, input.attempt.phase, input.attempt.mode)
           : stored === 'builder',
     });
   });

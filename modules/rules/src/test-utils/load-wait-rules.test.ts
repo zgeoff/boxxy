@@ -23,15 +23,16 @@ test('it loads a step with a wait, and the repos section with each ship rule', (
   expect(waits).toStrictEqual(['shipped']);
 
   expect(repos).toStrictEqual({
-    'example/app': { ships: { 'deploy-tag': { tag: 'deployed/prod' } } },
-    'example/lib': { ships: { release: {} } },
-    'example/lib-two': { ships: { release: { prerelease: true } } },
+    'example/app': { ships: { 'deploy-tag': { tag: 'deployed/prod' } }, recipes: {} },
+    'example/lib': { ships: { release: {} }, recipes: {} },
+    'example/lib-two': { ships: { release: { prerelease: true } }, recipes: {} },
     'example/service': {
       // oxlint-disable-next-line unicorn/no-thenable -- `then` is the rules file's key for the deploy step of a release
       ships: { release: {}, then: { repo: 'example/deploy', tag: 'deployed/prod/service' } },
+      recipes: {},
     },
-    'example/notes': { ships: 'none' },
-    'example/bare': { ships: 'none' },
+    'example/notes': { ships: 'none', recipes: {} },
+    'example/bare': { ships: 'none', recipes: {} },
   });
 });
 

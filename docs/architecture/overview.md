@@ -122,7 +122,7 @@ behind the system are in [docs/decisions](../decisions/).
 | owner's agent     | an agent the owner works with on the private network, which steers boxxy through the owner listener's MCP tools          |
 | owner's assistant | the owner's AI assistant off the private network, which reaches the same tools through the public listener               |
 | item              | one piece of work, such as a feature or a fix, with a title, the outcome the owner wants, a body and acceptance criteria |
-| phase             | one step of an item's work: triage, design, build, review, verify or merge                                               |
+| phase             | one step of an item's work: triage, design, build, review, verify, merge or live                                         |
 | pipeline          | the order of an item's phases, and the edge each result of a phase takes; it is data in the rules file                   |
 | edge              | where one result of a phase sends the item: the next phase, an earlier one, the same one again, an end, or a hold        |
 | attempt           | one try at one phase of one item                                                                                         |

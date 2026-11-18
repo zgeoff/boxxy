@@ -447,7 +447,7 @@ function buildRepos(file: ParsedRulesFile): ReadonlyMap<RepoName, RepoPolicy> {
   return new Map(
     Object.entries(file.repos).map(([repo, policy]): [RepoName, RepoPolicy] => [
       brandSchemas.repoName.parse(repo),
-      { ships: policy.ships },
+      { ships: policy.ships, recipes: policy.recipes },
     ]),
   );
 }

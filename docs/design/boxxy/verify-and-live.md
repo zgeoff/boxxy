@@ -3,7 +3,7 @@
 - **Status:** agreed
 - **Decision records:** [0019](../../decisions/0019-credential-scope-in-server-config.md)
 
-boxxy gains the generic parts that let a rules file run a single-purpose agent after a merge, started once the merged commit ships: step gates that skip a step, wait kinds such as `shipped`, a ship watch that reads GitHub, per-repo policy, criterion tags, a `live` phase kind, and agents whose credentials the server config scopes. Only the `live` phase kind, the `notify: true` edge and the per-repo recipes are still to build. boxxy's code fixes no pipeline: the rules file composes these parts, and no module or lib names a phase, a tag or an environment.
+boxxy gains the generic parts that let a rules file run a single-purpose agent after a merge, started once the merged commit ships: step gates that skip a step, wait kinds such as `shipped`, a ship watch that reads GitHub, per-repo policy, criterion tags, a `live` phase kind, and agents whose credentials the server config scopes. Each of these parts is built. boxxy's code fixes no pipeline: the rules file composes these parts, and no module or lib names a phase, a tag or an environment.
 
 The example rules file in [Contracts](#the-rules-file) composes them into the owner's pipeline, `triage → design → build → review → verify → merge → live`. In it the builder writes the journeys, a fresh verify agent alone grades them, and a live agent checks on prod only the acceptance lines tagged `prod`. Another rules file can use any of the parts, in any order, or none.
 
@@ -87,7 +87,7 @@ recipes:
   live-app-v1: { agent: app-live, prompt: prompts/live-v1.md, ... } # the agent whose broker profile holds example/app's prod credentials
 ```
 
-A step's recipe resolves in this order, and the first match wins: the repo's `<phase>/attended`, the repo's `<phase>`, the kind's `<phase>/attended`, the kind's `<phase>`. `<phase>/attended` counts only for a design in attended mode.
+Built: [recipes and skills](../../architecture/work/pipeline.md#recipes-and-skills) covers `repos.<repo>.recipes` and the order in which a step's recipe resolves.
 
 ### The server config
 
@@ -99,37 +99,11 @@ The tags are built: see [step gates and skips](../../architecture/work/pipeline.
 
 ### Step gates, waits and the ship watch
 
-Built: [step gates and skips](../../architecture/work/pipeline.md#step-gates-and-skips) covers the gates, the `waits` gate and the skip edge, and the [ship watch](../../architecture/work/ship-watch.md) covers `repos`, the `shipped` wait and the watch. `RepoPolicy` holds `ships` only; the `repos.<repo>.recipes` map in [the rules file](#the-rules-file) is not built.
+Built: [step gates and skips](../../architecture/work/pipeline.md#step-gates-and-skips) covers the gates, the `waits` gate and the skip edge, and the [ship watch](../../architecture/work/ship-watch.md) covers `repos`, the `shipped` wait and the watch. `RepoPolicy` holds `ships` and `recipes`.
 
 ### The live phase
 
-```ts
-// @boxxy/closeout: the live phase kind's input and close-out
-interface LiveInput {
-  pullRequest: PullRequestRef;
-  commit: CommitSha;
-  shipped: ItemShipped;
-  criteria: readonly Criterion[]; // only the lines the step's `criteria.tagged` matches
-}
-
-type LiveCloseOut =
-  | { outcome: 'confirmed'; lines: readonly LineResult[] }
-  | { outcome: 'broken'; lines: readonly LineResult[]; bug: LiveBug }
-  | { outcome: 'blocked'; reason: string } // the question for the owner
-  | { outcome: 'abandoned'; reason: string };
-
-// filed through the openItems effect, with a `relates-to` link to the checked item
-interface LiveBug extends OpenItem {
-  kind: 'bug'; // the parser refuses another kind
-  acceptance: readonly { text: string; tags: readonly string[] }[]; // the failing lines, tags kept; OpenItem gains this field
-}
-
-interface LineResult {
-  criterionId: CriterionId;
-  passed: boolean;
-  evidence: string; // stays in the item: never posted to the pull request
-}
-```
+Built: [the live phase kind](../../architecture/work/pipeline.md#the-live-phase-kind) covers its input, close-out and settle.
 
 ### Spawn
 
@@ -139,11 +113,11 @@ Built: the stored spawn request carries the item's `repo` and the attempt's `pha
 
 ### Who holds a credential
 
-Built: [who holds a credential](../../architecture/work/sessions.md#who-holds-a-credential) and [the pipeline's recipes](../../architecture/work/pipeline.md#recipes-and-skills) describe the loader refusals, the worker check and the refusal of `spawn.reviewAgents`. A repo's own recipe for a phase, in `repos.<repo>.recipes`, is not built: when it is, the loader resolves it per repo in place of the kind's recipe, and checks it against the same scope.
+Built: [who holds a credential](../../architecture/work/sessions.md#who-holds-a-credential) and [the pipeline's recipes](../../architecture/work/pipeline.md#recipes-and-skills) describe the loader refusals, the repo recipes, the worker check and the refusal of `spawn.reviewAgents`.
 
 ### Gates and skips
 
-Built, except the `notify: true` edge: see [step gates and skips](../../architecture/work/pipeline.md#step-gates-and-skips), [skipped attempts](../../architecture/work/attempts.md#skipped-attempts) and [the ship watch](../../architecture/work/ship-watch.md). The skip notice of the `shipped` wait is the `notify` notice kind, which a `notify: true` edge reuses ([notices](../../architecture/work/notices.md#the-notify-notice)).
+Built: see [step gates and skips](../../architecture/work/pipeline.md#step-gates-and-skips), [the edges](../../architecture/work/pipeline.md#phases-and-edges), [skipped attempts](../../architecture/work/attempts.md#skipped-attempts) and [the ship watch](../../architecture/work/ship-watch.md). The notice of a `notify: true` edge and the skip notice of the `shipped` wait are the `notify` notice kind ([notices](../../architecture/work/notices.md#the-notify-notice)).
 
 ### Verify, in the example rules
 
@@ -157,11 +131,10 @@ The example's build and verify prompts hold the first three rules. The last two 
 
 ### The live phase kind
 
+Built: [the live phase kind](../../architecture/work/pipeline.md#the-live-phase-kind) covers the bug a `broken` close-out files and where the evidence stays. The example live prompt is not built here:
+
 - The example live prompt runs `bun verify doctor --target prod`, then checks each line it got against the repo's prod target, read-only.
 - When a line needs a write that the repo's QA guards don't allow ([what a repo gives its live agent](#what-a-repo-gives-its-live-agent)), the agent closes out `blocked` with the write it needs.
-- A `broken` close-out files its bug through the existing `openItems` effect, with the failing lines and their tags, so the bug's own live step, when its pipeline has one, checks them again.
-- `notify: true` on an edge writes a notice at settle without a hold.
-- Live evidence goes into the item and the close-out, never into a pull request: the repos are public, and prod data is not.
 
 ### What a repo gives its live agent
 

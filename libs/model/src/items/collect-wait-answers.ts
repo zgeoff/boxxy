@@ -29,7 +29,7 @@ export function collectWaitAnswers(input: CollectWaitAnswersInput): WaitedAnswer
     shipped: input.shipped,
   };
 
-  const policy = input.rules.repos.get(input.item.repo) ?? { ships: 'none' as const };
+  const policy = input.rules.repos.get(input.item.repo) ?? { ships: 'none' as const, recipes: {} };
 
   return waits.map((name) => {
     const kind = input.rules.waits.get(name);

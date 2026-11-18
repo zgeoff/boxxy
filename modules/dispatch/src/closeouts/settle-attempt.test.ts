@@ -662,6 +662,37 @@ test('it makes the designed item wait on the open issue that a blocking open ite
   ]);
 });
 
+test('it files an open item that shares the title of the item it links to', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('design');
+
+  await ctx.closeOut(attempt, {
+    result: {
+      kind: 'designed',
+      design: { text: 'Theme the app once the dark theme lands.', location: null },
+      openItems: [
+        { kind: 'core.issue', title: 'Add a dark theme', body: 'Found.', blocks: ['item'] },
+      ],
+    },
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+  const [settled] = await ctx.listFacts('boxxy.attempt.settled');
+
+  const received: unknown = [
+    detail.relations.map((relation) => [relation.target, relation.type]),
+    settled?.payload,
+  ];
+
+  expect(received).toStrictEqual([
+    [[attempt.item, 'blocks']],
+    expect.objectContaining({ skippedEffects: [] }),
+  ]);
+});
+
 test('it withholds a blocks link from an open item that matches the held designed item', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.claimAt('design');
@@ -1225,5 +1256,104 @@ test('it settles as unsettleable, and keeps the returned name apart, when the ph
     'closeout-unsettleable',
     'unsettleable',
     'approved',
+  ]);
+});
+
+test('it writes a notify notice at settle for an edge with notify, and holds nothing', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('triage');
+
+  ctx.setRules(
+    ctx.mapOutcome(ctx.rules(), 'triage', 'accepted', { end: 'accepted', notify: true }),
+  );
+
+  await ctx.closeOut(attempt, { result: { kind: 'accepted' }, relations: [], friction: [] });
+  await ctx.settle(attempt);
+
+  const detail = await ctx.readItem(attempt.item);
+  const notices = await ctx.listNotices();
+
+  expect(detail.item.position).toStrictEqual({ kind: 'end', reason: 'accepted' });
+
+  expect(notices).toMatchObject([
+    {
+      kind: 'notify',
+      item: attempt.item,
+      phase: 'triage',
+      reason: 'the step closed out accepted',
+      tries: 0,
+    },
+  ]);
+});
+
+test('it writes no notice for an edge without notify', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('triage');
+
+  ctx.setRules(ctx.mapOutcome(ctx.rules(), 'triage', 'accepted', { end: 'accepted' }));
+
+  await ctx.closeOut(attempt, { result: { kind: 'accepted' }, relations: [], friction: [] });
+  await ctx.settle(attempt);
+
+  const notices = await ctx.listNotices();
+
+  expect(notices).toStrictEqual([]);
+});
+
+test('it writes only the hold notice for a hold edge with notify', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('triage');
+
+  ctx.setRules(
+    ctx.mapOutcome(ctx.rules(), 'triage', 'accepted', {
+      hold: brandSchemas.rulesHoldReason.parse('blocked'),
+      notify: true,
+    }),
+  );
+
+  await ctx.closeOut(attempt, { result: { kind: 'accepted' }, relations: [], friction: [] });
+  await ctx.settle(attempt);
+
+  const notices = await ctx.listNotices();
+
+  expect(notices).toMatchObject([{ kind: 'hold', item: attempt.item }]);
+});
+
+test('it files an open item with its acceptance lines and their tags', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('design');
+
+  await ctx.closeOut(attempt, {
+    result: {
+      kind: 'designed',
+      design: { text: 'Follow the system theme.', location: null },
+      openItems: [
+        {
+          kind: 'core.idea',
+          title: 'Escape the theme name',
+          body: 'Found.',
+          acceptance: [
+            { text: 'The theme name is escaped', tags: ['prod'] },
+            { text: 'No other change' },
+          ],
+        },
+      ],
+    },
+    friction: [],
+  });
+
+  await ctx.settle(attempt);
+
+  const filed = await ctx.listFacts('boxxy.item.filed');
+
+  expect(filed.map((fact) => fact.payload)).toMatchObject([
+    {},
+    {
+      title: 'Escape the theme name',
+      acceptance: [
+        { id: 'a1', text: 'The theme name is escaped', evidence: [], tags: ['prod'] },
+        { id: 'a2', text: 'No other change', evidence: [] },
+      ],
+    },
   ]);
 });

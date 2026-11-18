@@ -37,7 +37,10 @@ export function buildSettlePlans(input: SettlePlansInput): SettlePlans {
   // an item that this settle closes is no open item a filed item can match
   const closes = !input.held && input.effects.some((effect) => effect.kind === 'close-item');
 
-  const openItems = closes
+  // so is the item that a filed item links to: it files its own follow-up, never a match of itself
+  const excluded = closes || input.effects.some(isLinkOfFiledToItem);
+
+  const openItems = excluded
     ? input.openItems.filter((open) => open.id !== input.ctx.item.id)
     : input.openItems;
 
@@ -77,6 +80,17 @@ export function buildSettlePlans(input: SettlePlansInput): SettlePlans {
         : (plan.skipped ?? []),
     ),
   };
+}
+
+function isLinkOfFiledToItem(effect: Effect): boolean {
+  if (effect.kind !== 'add-relation' || !('link' in effect)) {
+    return false;
+  }
+
+  const from = effect.link.from.kind;
+  const to = effect.link.to.kind;
+
+  return (from === 'open-item' && to === 'item') || (from === 'item' && to === 'open-item');
 }
 
 function collectPlans(

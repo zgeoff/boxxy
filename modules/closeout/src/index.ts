@@ -1,10 +1,12 @@
 export { closeOutLimits } from './close-out-limits.ts';
+export { buildCriteria } from './utils/build-criteria.ts';
 export { dedupeOpenItems } from './dedupe-open-items.ts';
 export { measureJsonBytes } from './measure-json-bytes.ts';
 export { phaseKinds } from './phase-kinds.ts';
 export { build } from './phases/build.ts';
 export { design } from './phases/design.ts';
 export { createReviewPhase } from './phases/create-review-phase.ts';
+export { live } from './phases/live.ts';
 export { merge } from './phases/merge.ts';
 export { triage } from './phases/triage.ts';
 export { verify } from './phases/verify.ts';

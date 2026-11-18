@@ -4,13 +4,13 @@ When an item goes on hold, boxxy tells the owner with a notice: an atc message t
 the owner picked, the notice session. The settle that puts the item on hold writes the notice into
 the boxxy store, and the runner tries to send it on every tick until atc takes it. A runner that
 stays paused with work ready sends the owner a second kind of notice
-([the paused-runner notice](#the-paused-runner-notice)) and a third when a wait skips a step that
-leaves a tagged line unproven ([the notify notice](#the-notify-notice)). It never gives up, so a
-notice written while the owner's machine is off waits in the store and arrives once atc can reach
-the notice session again. Each try carries an idempotency key, so a retry after a lost answer still
-reaches the owner once, apart from the two cases in
-[what the owner can rely on](#what-the-owner-can-rely-on). Read this doc before you change how holds
-reach the owner, or when notices stop arriving.
+([the paused-runner notice](#the-paused-runner-notice)). A third kind, the notify notice, tells the
+owner that a wait skipped a step that leaves a tagged line unproven, or that an edge asked for a
+notice ([the notify notice](#the-notify-notice)). It never gives up, so a notice written while the
+owner's machine is off waits in the store and arrives once atc can reach the notice session again.
+Each try carries an idempotency key, so a retry after a lost answer still reaches the owner once,
+apart from the two cases in [what the owner can rely on](#what-the-owner-can-rely-on). Read this doc
+before you change how holds reach the owner, or when notices stop arriving.
 
 [The pipeline](./pipeline.md#when-an-item-needs-the-owner) covers which outcomes hold an item.
 [Attempts](./attempts.md#settle) covers the settle that writes the notice.
@@ -59,11 +59,16 @@ pause stored before the runner recorded its start time has no length, so it gets
 
 ## The notify notice
 
-A step skipped by a [wait](./ship-watch.md#the-shipped-wait) that has no later check to prove a
-tagged acceptance line sends a third kind of notice, `notify`. It names the item, the phase and the
-skip reason, and the message tells the owner that boxxy ended that step with no session. The claim
-writes the row in the same change as the skipped attempt, with the phase in the row, and the notice
-follows the same retries, key and session as a hold notice.
+A `notify` notice names the item, the phase and a reason, and the message tells the owner that boxxy
+settled that step for that reason. Two things write one, and the notice follows the same retries,
+key and session as a hold notice:
+
+- **A skip by a [wait](./ship-watch.md#the-shipped-wait)** that leaves a tagged acceptance line with
+  no later check. The claim writes the row in the same change as the skipped attempt, with the skip
+  reason.
+- **An edge with `notify: true`** ([edges](./pipeline.md#phases-and-edges)). The settle writes the
+  row after the attempt settles, with the reason `the step closed out <outcome>`, and the item holds
+  nothing. A `{ hold }` edge writes its hold notice only.
 
 ## Turning notices on
 
