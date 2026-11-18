@@ -5,7 +5,9 @@ import type {
   PullRequestRow,
   SkipCondition,
   SkipReason,
+  WaitedAnswer,
 } from '@boxxy/model';
+import { pickWaitSkip } from '@boxxy/model';
 import { filterTaggedCriteria } from './filter-tagged-criteria.ts';
 
 interface ReadGateSkipInput {
@@ -17,11 +19,13 @@ interface ReadGateSkipInput {
 
   // null on a server with no `github` section: no check ever reads as passed
   readonly forge: Forge | null;
+
+  // the answer of each wait of the step, which the caller ran
+  readonly waits: readonly WaitedAnswer[];
 }
 
 // The reason the step skips, or null when no gate says skip. The gates run in a fixed order,
-// `criteria`, then `skipWhen`, and the first that says skip settles the step. A later gate, such as
-// a wait, goes after these two.
+// `criteria`, then `skipWhen`, then the waits, and the first that says skip settles the step.
 export async function readGateSkip(input: ReadGateSkipInput): Promise<SkipReason | null> {
   const criteria = input.step.criteria;
 
@@ -40,7 +44,7 @@ export async function readGateSkip(input: ReadGateSkipInput): Promise<SkipReason
     }
   }
 
-  return null;
+  return pickWaitSkip(input.waits);
 }
 
 // A forge that throws reads as not passed: the step runs, and the next claim reads again.

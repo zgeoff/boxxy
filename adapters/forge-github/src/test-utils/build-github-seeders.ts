@@ -1,5 +1,13 @@
 import type { ForgeHarness } from '@boxxy/dispatch/test-utils/forge-contract';
-import { githubBranches, githubCompares, githubPullRequests } from './github-handlers.ts';
+import {
+  githubBranches,
+  githubCompares,
+  githubHistories,
+  githubPullRequests,
+  githubReleases,
+  githubRepos,
+  githubTags,
+} from './github-handlers.ts';
 
 type GithubSeeders = Omit<ForgeHarness, 'forge'>;
 
@@ -37,6 +45,46 @@ export function buildGithubSeeders(): GithubSeeders {
         name: required.branch,
         ruleChecks: [...required.checks],
       });
+    },
+    seedRepo: async (seeded) => {
+      await githubRepos.create({ repo: seeded.repo });
+    },
+    seedTag: async (seeded) => {
+      await githubRepos.create({ repo: seeded.repo });
+      await githubTags.create({ repo: seeded.repo, tag: seeded.tag, commit: seeded.commit });
+    },
+    seedHistory: async (seeded) => {
+      await githubHistories.create({
+        repo: seeded.repo,
+        ref: seeded.ref,
+        commits: [...seeded.commits],
+      });
+    },
+    seedReleases: async (seeded) => {
+      for (const release of seeded.releases) {
+        await githubReleases.create({
+          repo: seeded.repo,
+          tag: release.tag,
+          url: release.url,
+          draft: release.draft,
+          prerelease: release.prerelease,
+          publishedAt:
+            release.publishedAt === null ? null : new Date(release.publishedAt).toISOString(),
+        });
+      }
+    },
+    seedBumps: async (seeded) => {
+      for (const bump of seeded.bumps) {
+        await githubPullRequests.create({
+          repo: seeded.repo,
+          number: bump.number,
+          body: bump.body,
+          state: 'closed',
+          mergedAt: new Date(bump.mergedAt).toISOString(),
+          mergeCommit: bump.mergeCommit,
+          authorType: bump.author,
+        });
+      }
     },
     seedMergeable: async (seeded) => {
       await githubPullRequests.update(

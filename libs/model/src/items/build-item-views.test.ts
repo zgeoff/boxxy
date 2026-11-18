@@ -13,11 +13,21 @@ test('it gives an item with no rows beside it the first phase of its pipeline, r
   const item = buildMockV1ItemRow();
 
   const views: unknown = buildItemViews(
-    { items: [item], relations: [], levers: [], attempts: [], liveLeases: [], pullRequests: [] },
+    {
+      items: [item],
+      relations: [],
+      levers: [],
+      attempts: [],
+      liveLeases: [],
+      pullRequests: [],
+      shipped: [],
+    },
     brandSchemas.instant.parse(5000),
     {
       kinds: new Map([[item.kind, { pipeline: buildMockPipeline({ phases: ['build'] }) }]]),
       phases: new Map(),
+      waits: new Map(),
+      repos: new Map(),
     },
   );
 
@@ -35,9 +45,17 @@ test('it ends an item whose kind has no pipeline in the rules', () => {
   const item = buildMockV1ItemRow();
 
   const views = buildItemViews(
-    { items: [item], relations: [], levers: [], attempts: [], liveLeases: [], pullRequests: [] },
+    {
+      items: [item],
+      relations: [],
+      levers: [],
+      attempts: [],
+      liveLeases: [],
+      pullRequests: [],
+      shipped: [],
+    },
     brandSchemas.instant.parse(5000),
-    { kinds: new Map(), phases: new Map() },
+    { kinds: new Map(), phases: new Map(), waits: new Map(), repos: new Map() },
   );
 
   expect(views[0]?.position).toStrictEqual({ kind: 'end', reason: 'no-pipeline' });
@@ -48,11 +66,21 @@ test('it derives idea for an item with no criteria at a phase that needs them', 
   const build = brandSchemas.phaseName.parse('build');
 
   const views = buildItemViews(
-    { items: [item], relations: [], levers: [], attempts: [], liveLeases: [], pullRequests: [] },
+    {
+      items: [item],
+      relations: [],
+      levers: [],
+      attempts: [],
+      liveLeases: [],
+      pullRequests: [],
+      shipped: [],
+    },
     brandSchemas.instant.parse(5000),
     {
       kinds: new Map([[item.kind, { pipeline: buildMockPipeline({ phases: ['build'] }) }]]),
       phases: new Map([[build, { needsAcceptance: true }]]),
+      waits: new Map(),
+      repos: new Map(),
     },
   );
 
@@ -70,11 +98,14 @@ test('it derives running for an item with a live lease', () => {
       attempts: [],
       liveLeases: [buildMockLeaseRow({ item: item.id })],
       pullRequests: [],
+      shipped: [],
     },
     brandSchemas.instant.parse(5000),
     {
       kinds: new Map([[item.kind, { pipeline: buildMockPipeline({ phases: ['build'] }) }]]),
       phases: new Map(),
+      waits: new Map(),
+      repos: new Map(),
     },
   );
 
@@ -99,11 +130,14 @@ test('it derives done at the end of the pipeline from a merged pull request of t
       attempts: [attempt],
       liveLeases: [],
       pullRequests: [buildMockV1PullRequestRow({ attempt: attempt.id, state: 'merged' })],
+      shipped: [],
     },
     brandSchemas.instant.parse(5000),
     {
       kinds: new Map([[item.kind, { pipeline: buildMockPipeline({ phases: ['build'] }) }]]),
       phases: new Map(),
+      waits: new Map(),
+      repos: new Map(),
     },
   );
 
@@ -129,11 +163,14 @@ test('it holds an item whose phase used up its attempts in a row', () => {
       attempts: [abandoned(2000), abandoned(3000)],
       liveLeases: [],
       pullRequests: [],
+      shipped: [],
     },
     brandSchemas.instant.parse(5000),
     {
       kinds: new Map([[item.kind, { pipeline: buildMockPipeline({ phases: ['build'] }) }]]),
       phases: new Map(),
+      waits: new Map(),
+      repos: new Map(),
     },
   );
 
@@ -165,11 +202,14 @@ test('it returns a held item to its phase after a later retry lever', () => {
       attempts: [abandoned(2000), abandoned(3000)],
       liveLeases: [],
       pullRequests: [],
+      shipped: [],
     },
     brandSchemas.instant.parse(5000),
     {
       kinds: new Map([[item.kind, { pipeline: buildMockPipeline({ phases: ['build'] }) }]]),
       phases: new Map(),
+      waits: new Map(),
+      repos: new Map(),
     },
   );
 
@@ -193,11 +233,14 @@ test('it derives blocked for the target of a live relation whose source is ready
       attempts: [],
       liveLeases: [],
       pullRequests: [],
+      shipped: [],
     },
     brandSchemas.instant.parse(5000),
     {
       kinds: new Map([[source.kind, { pipeline: buildMockPipeline({ phases: ['build'] }) }]]),
       phases: new Map(),
+      waits: new Map(),
+      repos: new Map(),
     },
   );
 
@@ -219,11 +262,14 @@ test('it derives ready for the target of a relation whose source is archived', (
       attempts: [],
       liveLeases: [],
       pullRequests: [],
+      shipped: [],
     },
     brandSchemas.instant.parse(5000),
     {
       kinds: new Map([[source.kind, { pipeline: buildMockPipeline({ phases: ['build'] }) }]]),
       phases: new Map(),
+      waits: new Map(),
+      repos: new Map(),
     },
   );
 
@@ -246,11 +292,14 @@ test('it derives blocked for the target of a relation whose source is blocked', 
       attempts: [],
       liveLeases: [],
       pullRequests: [],
+      shipped: [],
     },
     brandSchemas.instant.parse(5000),
     {
       kinds: new Map([[first.kind, { pipeline: buildMockPipeline({ phases: ['build'] }) }]]),
       phases: new Map(),
+      waits: new Map(),
+      repos: new Map(),
     },
   );
 
@@ -271,9 +320,10 @@ test('it keeps only the live levers of each item', () => {
       attempts: [],
       liveLeases: [],
       pullRequests: [],
+      shipped: [],
     },
     brandSchemas.instant.parse(5000),
-    { kinds: new Map(), phases: new Map() },
+    { kinds: new Map(), phases: new Map(), waits: new Map(), repos: new Map() },
   );
 
   expect(views[0]?.levers).toStrictEqual([undefer]);

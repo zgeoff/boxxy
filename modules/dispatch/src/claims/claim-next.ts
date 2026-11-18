@@ -26,7 +26,7 @@ import type {
   StoreTx,
   WakePick,
 } from '@boxxy/model';
-import { brandSchemas, collectRetries, toJSONValue } from '@boxxy/model';
+import { brandSchemas, collectRetries, collectWaitAnswers, toJSONValue } from '@boxxy/model';
 import { buildFrame, decide } from '@boxxy/planning';
 import { renderPromptTemplate } from '@boxxy/prompt-template';
 import invariant from 'tiny-invariant';
@@ -126,6 +126,14 @@ async function writeSkipPass(
         item: candidate,
         pullRequests: detail.pullRequests,
         forge: input.forge ?? null,
+        waits: collectWaitAnswers({
+          step,
+          item: detail.item,
+          attempts: detail.attempts,
+          pullRequests: detail.pullRequests,
+          shipped: detail.shipped,
+          rules: input.rules,
+        }),
       });
 
       if (reason !== null) {
@@ -139,10 +147,18 @@ async function writeSkipPass(
   return skips;
 }
 
+// An item that waits on a wait kind is a candidate too: the gates before the waits, `criteria` and
+// `skipWhen`, may skip the step whatever the waits say.
 function pickSkipCandidate(item: ItemView): (ItemView & { readonly phase: PhaseName }) | null {
   const position = item.position;
+  const derived = item.derived;
 
-  if (position.kind !== 'phase' || !['ready', 'idea'].includes(item.derived.state)) {
+  const isCandidate =
+    derived.state === 'ready' ||
+    derived.state === 'idea' ||
+    (derived.state === 'waiting' && derived.reason.startsWith('wait:'));
+
+  if (position.kind !== 'phase' || !isCandidate) {
     return null;
   }
 
@@ -150,7 +166,7 @@ function pickSkipCandidate(item: ItemView): (ItemView & { readonly phase: PhaseN
 }
 
 function hasGate(step: PipelineStep): boolean {
-  return step.criteria !== undefined || step.skipWhen !== undefined;
+  return step.criteria !== undefined || step.skipWhen !== undefined || step.waits !== undefined;
 }
 
 interface SkipParts {
@@ -180,6 +196,7 @@ async function writeSkip(tx: StoreTx, input: ClaimInput, parts: SkipParts): Prom
     round: item.position.round,
     number: 1 + parts.detail.attempts.filter((row) => row.phase === parts.phase).length,
     reason: parts.reason,
+    notice: isUnprovenLine(parts.step, item, parts.reason),
     recipeHash: buildRecipeHash(material, input.rules),
     rulesVersion: input.rules.version,
   });
@@ -191,6 +208,18 @@ async function writeSkip(tx: StoreTx, input: ClaimInput, parts: SkipParts): Prom
   }
 
   return { kind: 'skipped', itemId: item.id, phase: parts.phase, reason: parts.reason };
+}
+
+// A wait that skips a step whose item has a line for the step's tag leaves that line with no
+// check, so the owner gets a notice.
+function isUnprovenLine(step: PipelineStep, item: ItemView, reason: SkipReason): boolean {
+  const tag = step.criteria?.tagged;
+
+  return (
+    reason.startsWith('wait-skip:') &&
+    tag !== undefined &&
+    item.acceptance.some((line) => line.tags?.includes(tag) === true)
+  );
 }
 
 async function writePick(

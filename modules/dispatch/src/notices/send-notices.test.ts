@@ -39,6 +39,34 @@ async function setupTest() {
       }),
     );
 
+  const insertNotifyNotice = () =>
+    dispatch.store.exclusive((tx) =>
+      tx.applyChange({
+        at: dispatch.clock.now(),
+        writes: [
+          {
+            op: 'insert',
+            table: 'notices',
+            row: {
+              id: 1,
+              kind: 'notify',
+              item: brandSchemas.itemId.parse('0190a6f4-0000-7000-8000-0000000000a1'),
+              phase: brandSchemas.phaseName.parse('live'),
+              reason: 'wait-skip:shipped',
+              pause: null,
+              at: dispatch.clock.now(),
+              tries: 0,
+              sentAt: null,
+              keySeq: 0,
+              keyTries: 0,
+              nextTryAt: dispatch.clock.now(),
+            },
+          },
+        ],
+        facts: [],
+      }),
+    );
+
   const send = (target: Notifier = notifier) =>
     sendNotices({ store: dispatch.store, notifier: target, now: dispatch.clock.now() });
 
@@ -48,6 +76,7 @@ async function setupTest() {
     uncertain: { kind: 'uncertain', reason: 'outcome_unknown' } as const,
     notifier,
     insertNotice,
+    insertNotifyNotice,
     send,
     listUnsent: () => dispatch.store.read((tx) => tx.listUnsentNotices(100)),
 
@@ -253,6 +282,7 @@ test('it counts a notifier that throws as an uncertain try', async () => {
   const report = await ctx.send({
     tellHold: () => Promise.reject(new Error('socket closed')),
     tellPaused: () => Promise.reject(new Error('socket closed')),
+    tellNotify: () => Promise.reject(new Error('socket closed')),
   });
 
   const [row] = await ctx.listUnsent();
@@ -273,4 +303,17 @@ test('it marks every notice sent through the null notifier', async () => {
   const unsent = await ctx.listUnsent();
 
   expect([report.sent, unsent]).toStrictEqual([1, []]);
+});
+
+test('it sends a notify notice with its phase and reason, and marks it sent', async () => {
+  const ctx = await setupTest();
+
+  await ctx.insertNotifyNotice();
+
+  const report = await ctx.send();
+
+  expect([
+    report.sent,
+    ctx.notifier.toldNotify.map((notice) => [notice.phase, notice.reason, notice.key]),
+  ]).toStrictEqual([1, [['live', 'wait-skip:shipped', 'boxxy-notice:1:0']]]);
 });

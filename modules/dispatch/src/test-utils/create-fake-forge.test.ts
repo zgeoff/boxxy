@@ -2,20 +2,29 @@ import { expect, test } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
 import { createFakeForge } from './create-fake-forge.ts';
 import { forgeContract } from './forge-contract.ts';
+import { forgeShipContract } from './forge-ship-contract.ts';
 
-test.each(forgeContract)('it keeps the forge contract: %s', async (_title, check) => {
-  const forge = createFakeForge();
+test.each([...forgeContract, ...forgeShipContract])(
+  'it keeps the forge contract: %s',
+  async (_title, check) => {
+    const forge = createFakeForge();
 
-  const outcome = await check({
-    forge,
-    seed: forge.seed,
-    seedCompare: forge.seedCompare,
-    seedRequiredChecks: forge.seedRequiredChecks,
-    seedMergeable: forge.seedMergeable,
-  });
+    const outcome = await check({
+      forge,
+      seed: forge.seed,
+      seedCompare: forge.seedCompare,
+      seedRequiredChecks: forge.seedRequiredChecks,
+      seedMergeable: forge.seedMergeable,
+      seedRepo: forge.seedRepo,
+      seedTag: forge.seedTag,
+      seedHistory: forge.seedHistory,
+      seedReleases: forge.seedReleases,
+      seedBumps: forge.seedBumps,
+    });
 
-  expect(outcome.received).toStrictEqual(outcome.expected);
-});
+    expect(outcome.received).toStrictEqual(outcome.expected);
+  },
+);
 
 test('it reads a pull request by a repo name in another case, with the seeded url', async () => {
   const forge = createFakeForge();

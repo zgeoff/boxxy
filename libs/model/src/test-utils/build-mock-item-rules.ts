@@ -12,6 +12,8 @@ export function buildMockItemRules(overrides: Partial<ItemRules> = {}): ItemRule
       [brandSchemas.itemKindName.parse('core.task'), { pipeline }],
     ]),
     phases: new Map(),
+    waits: new Map(),
+    repos: new Map(),
     ...overrides,
   };
 }

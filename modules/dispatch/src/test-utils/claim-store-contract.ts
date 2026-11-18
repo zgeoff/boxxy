@@ -12,6 +12,7 @@ import { claimStoreRaceCases } from './claim-store-race-cases.ts';
 import { claimStoreRollbackCases } from './claim-store-rollback-cases.ts';
 import { claimStoreSeatCases } from './claim-store-seat-cases.ts';
 import { claimStoreSessionCases } from './claim-store-session-cases.ts';
+import { claimStoreShippedCases } from './claim-store-shipped-cases.ts';
 import { claimStoreSkipCases } from './claim-store-skip-cases.ts';
 import type { ClaimStoreCase } from './types.ts';
 
@@ -29,6 +30,7 @@ export const claimStoreContract: readonly ClaimStoreCase[] = [
   ...claimStoreCapacityRefusalCases,
   ...claimStoreSessionCases,
   ...claimStoreSkipCases,
+  ...claimStoreShippedCases,
   ...claimStoreOutboxCases,
   ...claimStoreRaceCases,
 ];

@@ -1,9 +1,14 @@
 import { createReviewPhase, phaseKinds } from '@boxxy/closeout';
-import type { PhaseKind, ReviewGate, SpawnScope, WorkerKindName } from '@boxxy/model';
+import { createShippedWaitKind } from '@boxxy/dispatch';
+import type { PhaseKind, ReviewGate, SpawnScope, WaitKind, WorkerKindName } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 
 export interface ServerRegistrations {
   readonly phases: readonly PhaseKind[];
+
+  // the wait kinds; `shipped` needs the merge worker, so a server with no `github` section
+  // refuses a step that waits on it
+  readonly waits: readonly WaitKind[];
   readonly workers: readonly WorkerKindName[];
 
   // where each credentialed atc agent may run
@@ -26,6 +31,7 @@ export function buildServerRegistrations(
 ): ServerRegistrations {
   return {
     phases: [...phaseKinds, createReviewPhase(reviewGate)],
+    waits: [createShippedWaitKind(mergeWorkerName)],
     workers,
     spawn,
   };

@@ -3,6 +3,7 @@ import type {
   AttemptRow,
   Instant,
   ItemRow,
+  ItemShipped,
   ItemView,
   LeaseRow,
   LeverRow,
@@ -20,6 +21,7 @@ export interface ItemSetRows {
   readonly attempts: readonly AttemptRow[];
   readonly liveLeases: readonly LeaseRow[];
   readonly pullRequests: readonly PullRequestRow[];
+  readonly shipped: readonly ItemShipped[];
 }
 
 // One `boxxy.item.edited` fact of an item: when, by whom, and the names of the fields it set.

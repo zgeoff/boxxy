@@ -39,7 +39,17 @@ const pausedNoticeSchema = z.object({
   }),
 });
 
+const notifyNoticeSchema = z.object({
+  ...baseShape,
+  kind: z.literal('notify'),
+  item: brandSchemas.itemId,
+  phase: brandSchemas.phaseName,
+  reason: z.string().min(1),
+  pause: z.null(),
+});
+
 export const noticeRowSchema: z.ZodType<NoticeRow> = z.discriminatedUnion('kind', [
   holdNoticeSchema,
   pausedNoticeSchema,
+  notifyNoticeSchema,
 ]);

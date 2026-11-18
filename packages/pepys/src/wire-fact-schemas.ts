@@ -12,6 +12,7 @@ const storeVersion = { storeVersion: z.number().int().positive() };
 export const wireFactSchemas = {
   'boxxy.item.filed': workFactSchemas['boxxy.item.filed'].extend(storeVersion),
   'boxxy.item.noted': workFactSchemas['boxxy.item.noted'].extend(storeVersion),
+  'boxxy.item.shipped': workFactSchemas['boxxy.item.shipped'].extend(storeVersion),
   'boxxy.item.edited': workFactSchemas['boxxy.item.edited'].extend(storeVersion),
   'boxxy.item.closed': workFactSchemas['boxxy.item.closed'].extend(storeVersion),
   'boxxy.relation.added': workFactSchemas['boxxy.relation.added'].extend(storeVersion),

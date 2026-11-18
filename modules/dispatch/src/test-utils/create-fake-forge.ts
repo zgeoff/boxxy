@@ -5,8 +5,10 @@ import type {
   CommitSha,
   Forge,
   MergeableState,
+  MergedPullRequest,
   PullRequestReading,
   PullRequestRef,
+  Release,
   RepoName,
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
@@ -55,6 +57,40 @@ export interface SeededMergeable {
   readonly mergeable: MergeableState;
 }
 
+// A repo that a test puts on a forge: `readRepo` answers `readable` for it, and `not-found` for
+// any other.
+export interface SeededRepo {
+  readonly repo: RepoName;
+}
+
+export interface SeededTag {
+  readonly repo: RepoName;
+  readonly tag: string;
+  readonly commit: CommitSha;
+}
+
+// The commits that the history of `ref`, a tag, a branch or a commit, holds.
+export interface SeededHistory {
+  readonly repo: RepoName;
+  readonly ref: string;
+  readonly commits: readonly CommitSha[];
+}
+
+// A draft has no publish time, so a forge lists none of them
+export type SeededDraft = Omit<Release, 'publishedAt'> & { readonly publishedAt: null };
+
+// The releases of a repo, in any order, drafts included.
+export interface SeededReleases {
+  readonly repo: RepoName;
+  readonly releases: readonly (Release | SeededDraft)[];
+}
+
+// The merged pull requests of a repo, with the type of each one's author.
+export interface SeededBumps {
+  readonly repo: RepoName;
+  readonly bumps: readonly (MergedPullRequest & { readonly author: 'Bot' | 'User' })[];
+}
+
 export interface ReadHold {
   readonly entered: Promise<void>;
   readonly release: () => void;
@@ -72,6 +108,11 @@ export interface FakeForge extends Forge {
   seedChecks: (checks: SeededChecks) => void;
   seedRequiredChecks: (required: SeededRequiredChecks) => void;
   seedMergeable: (mergeable: SeededMergeable) => void;
+  seedRepo: (repo: SeededRepo) => void;
+  seedTag: (tag: SeededTag) => void;
+  seedHistory: (history: SeededHistory) => void;
+  seedReleases: (releases: SeededReleases) => void;
+  seedBumps: (bumps: SeededBumps) => void;
 
   // while down, every call rejects, as a forge that does not answer
   setDown: (isDown: boolean) => void;
@@ -92,6 +133,11 @@ export function createFakeForge(): FakeForge {
   const checksByHead = new Map<string, ReadonlyMap<string, CheckReading>>();
   const requiredByBranch = new Map<string, readonly string[]>();
   const mergeableByPullRequest = new Map<string, MergeableState>();
+  const repos = new Set<string>();
+  const tags = new Map<string, CommitSha>();
+  const histories = new Map<string, ReadonlySet<CommitSha>>();
+  const releasesByRepo = new Map<string, readonly (Release | SeededDraft)[]>();
+  const bumpsByRepo = new Map<string, SeededBumps['bumps']>();
 
   const calls: string[] = [];
   let isDown = false;
@@ -144,6 +190,21 @@ export function createFakeForge(): FakeForge {
     },
     seedMergeable: (seeded) => {
       mergeableByPullRequest.set(toKey(seeded.ref), seeded.mergeable);
+    },
+    seedRepo: (seeded) => {
+      repos.add(seeded.repo.toLowerCase());
+    },
+    seedTag: (seeded) => {
+      tags.set(toTagKey(seeded.repo, seeded.tag), seeded.commit);
+    },
+    seedHistory: (seeded) => {
+      histories.set(toTagKey(seeded.repo, seeded.ref), new Set(seeded.commits));
+    },
+    seedReleases: (seeded) => {
+      releasesByRepo.set(seeded.repo.toLowerCase(), seeded.releases);
+    },
+    seedBumps: (seeded) => {
+      bumpsByRepo.set(seeded.repo.toLowerCase(), seeded.bumps);
     },
     setDown: (down) => {
       isDown = down;
@@ -272,6 +333,65 @@ export function createFakeForge(): FakeForge {
 
       return Promise.resolve(mergeable);
     },
+    contains: (repo, ref, commit) => {
+      calls.push(`contains ${repo} ${ref} ${commit}`);
+
+      if (isDown) {
+        return Promise.reject(new Error('the fake forge is down'));
+      }
+
+      const history = histories.get(toTagKey(repo, ref));
+
+      return Promise.resolve(history?.has(commit) === true || ref === commit);
+    },
+    readRepo: (repo) => {
+      calls.push(`readRepo ${repo}`);
+
+      if (isDown) {
+        return Promise.reject(new Error('the fake forge is down'));
+      }
+
+      const answer = repos.has(repo.toLowerCase()) ? 'readable' : 'not-found';
+
+      return Promise.resolve(answer);
+    },
+    readTag: (repo, tag) => {
+      calls.push(`readTag ${repo} ${tag}`);
+
+      if (isDown) {
+        return Promise.reject(new Error('the fake forge is down'));
+      }
+
+      return Promise.resolve(tags.get(toTagKey(repo, tag)) ?? null);
+    },
+    listReleases: (repo) => {
+      calls.push(`listReleases ${repo}`);
+
+      if (isDown) {
+        return Promise.reject(new Error('the fake forge is down'));
+      }
+
+      const published = (releasesByRepo.get(repo.toLowerCase()) ?? []).flatMap((release) =>
+        release.publishedAt === null ? [] : [{ ...release, publishedAt: release.publishedAt }],
+      );
+
+      return Promise.resolve(
+        published.toSorted((first, second) => second.publishedAt - first.publishedAt).slice(0, 100),
+      );
+    },
+    findBumps: (repo, since) => {
+      calls.push(`findBumps ${repo} ${since}`);
+
+      if (isDown) {
+        return Promise.reject(new Error('the fake forge is down'));
+      }
+
+      const bumps = (bumpsByRepo.get(repo.toLowerCase()) ?? [])
+        .filter((bump) => bump.author === 'Bot' && bump.mergedAt >= since)
+        .map((bump) => toBump(bump));
+
+      return Promise.resolve(bumps.toSorted((first, second) => first.mergedAt - second.mergedAt));
+    },
     mergeAtHead: (ref, head, method) => {
       calls.push(`mergeAtHead ${toKey(ref)} ${head} ${method}`);
 
@@ -325,4 +445,17 @@ function toHeadKey(repo: RepoName, head: CommitSha): string {
 // a branch name is case-sensitive on GitHub
 function toBranchKey(repo: RepoName, branch: string): string {
   return `${repo.toLowerCase()} ${branch}`;
+}
+
+function toTagKey(repo: RepoName, name: string): string {
+  return `${repo.toLowerCase()} ${name}`;
+}
+
+function toBump(seeded: SeededBumps['bumps'][number]): MergedPullRequest {
+  return {
+    number: seeded.number,
+    body: seeded.body,
+    mergeCommit: seeded.mergeCommit,
+    mergedAt: seeded.mergedAt,
+  };
 }

@@ -24,6 +24,8 @@ import type {
   EngineOutcome,
   Instant,
   ItemKindName,
+  ItemRow,
+  ItemShipped,
   ItemView,
   LeverKind,
   Minutes,
@@ -33,8 +35,10 @@ import type {
   RecipeMaterial,
   RecipeName,
   RelationTypeName,
+  RepoName,
   RulesVersion,
   SessionMode,
+  ShipRule,
   WorkerKindName,
 } from '../types.ts';
 
@@ -205,8 +209,43 @@ export interface PipelineStep {
   readonly criteria?: CriteriaGate;
   readonly skipWhen?: readonly SkipCondition[];
 
+  // The wait kinds the claim passes over the step for, until each holds; the third gate, after
+  // `criteria` and `skipWhen`.
+  readonly waits?: readonly string[];
+
   // set whenever a gate is: the loader refuses a gate with no skip edge
   readonly skip?: SkipEdge;
+}
+
+// The wait kind's answer: `holds` and `skip` leave the item ready, and `skip` also skips the step.
+export type WaitAnswer = 'holds' | 'waiting' | 'skip';
+
+// A condition a step waits on. The server registers each wait kind, as it registers the phase kinds.
+export interface WaitKind {
+  readonly name: string;
+
+  // the loader refuses the wait unless the phase kind of an earlier step has this outcome
+  readonly after: { readonly outcome: string };
+
+  // the worker that this server must have built, or the loader refuses the wait
+  readonly worker?: WorkerKindName;
+
+  // pure
+  readonly read: (subject: WaitSubject, repo: RepoPolicy) => WaitAnswer;
+}
+
+export interface WaitSubject {
+  readonly item: ItemRow;
+
+  // of the latest merged pull request, by `mergedAt`, among those linked to the item's succeeded builds
+  readonly mergeCommit: CommitSha | null;
+  readonly shipped: readonly ItemShipped[];
+}
+
+// what the rules file says about a repo
+export interface RepoPolicy {
+  // `none` when the repo has no `repos` entry
+  readonly ships: ShipRule;
 }
 
 // The step runs on the item's lines with this tag; with none, the step skips.
@@ -259,6 +298,12 @@ export type SignalRef = SignalName | Readonly<Record<string, JsonValue>>;
 export interface ItemRules {
   readonly kinds: ReadonlyMap<ItemKindName, { readonly pipeline: Pipeline }>;
   readonly phases: ReadonlyMap<PhaseName, { readonly needsAcceptance: boolean }>;
+
+  // the wait kinds the server registers, by name
+  readonly waits: ReadonlyMap<string, WaitKind>;
+
+  // the repos that have a `repos` entry; any other repo reads as `ships: none`
+  readonly repos: ReadonlyMap<RepoName, RepoPolicy>;
 }
 
 export interface LoadedRules {
@@ -269,6 +314,8 @@ export interface LoadedRules {
   readonly gates: readonly Resolved<'gate'>[];
   readonly kinds: ReadonlyMap<ItemKindName, KindRules>;
   readonly phases: ReadonlyMap<PhaseName, PhaseKind>;
+  readonly waits: ReadonlyMap<string, WaitKind>;
+  readonly repos: ReadonlyMap<RepoName, RepoPolicy>;
   readonly limits: readonly Limit[];
 
   // in declared order, each pool's `order` starting with `lead`
@@ -342,6 +389,27 @@ export type LoadRejectionReason =
 
   // a step sets `criteria` or `skipWhen` with no `skip` edge
   | { readonly kind: 'gate-without-skip'; readonly phase: PhaseName }
+
+  // a step's `waits` names a wait kind that this server does not register
+  | { readonly kind: 'unknown-wait-kind'; readonly phase: PhaseName; readonly wait: string }
+
+  // a step waits on a kind that no earlier step's phase kind can precede, because none has the
+  // outcome the wait comes after
+  | {
+      readonly kind: 'wait-without-outcome';
+      readonly phase: PhaseName;
+      readonly wait: string;
+      readonly outcome: string;
+    }
+
+  // a step waits on a kind whose worker this server did not build, such as a wait that reads
+  // GitHub on a server with no `github` section
+  | {
+      readonly kind: 'wait-without-worker';
+      readonly phase: PhaseName;
+      readonly wait: string;
+      readonly worker: WorkerKindName;
+    }
 
   // a `skipWhen` entry names no condition that this server reads
   | {

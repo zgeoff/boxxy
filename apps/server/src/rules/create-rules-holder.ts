@@ -50,6 +50,8 @@ export async function createRulesHolder(
     return { kind: 'refused', rejections: loaded.rejections };
   }
 
+  logWarnings(log, loaded.warnings);
+
   let held: Held = {
     state: { rules: loaded.rules, lastRejected: null },
     checkout: first.checkout,
@@ -83,6 +85,8 @@ export async function createRulesHolder(
       return;
     }
 
+    logWarnings(log, next.warnings);
+
     held = { state: { rules: next.rules, lastRejected: null }, checkout: read.checkout, signature };
   };
 
@@ -95,6 +99,12 @@ export async function createRulesHolder(
       reload,
     },
   };
+}
+
+function logWarnings(log: ServerLog, warnings: readonly string[]): void {
+  for (const warning of warnings) {
+    log.warn('the rules load warns', { warning });
+  }
 }
 
 function buildSignature(checkout: RulesCheckout): string {

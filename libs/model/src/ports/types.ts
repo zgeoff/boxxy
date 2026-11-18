@@ -1,7 +1,7 @@
 import type { JsonValue } from '@boxxy/content-hash';
 import type { AnyNewFact, OutboxFact } from '../facts/types.ts';
 import type { ItemRevision, ItemWithLevers } from '../items/types.ts';
-import type { CheckReading, MergeUnit, MergeableState } from '../merge/types.ts';
+import type { MergeUnit } from '../merge/types.ts';
 import type { HoldReason } from '../pipeline/types.ts';
 import type { Limit, LimitFill, SeatRelease, SeatTake, Snapshot } from '../planning/types.ts';
 import type { CostToLand, StageTime } from '../reports/types.ts';
@@ -14,7 +14,6 @@ import type {
   AttemptRow,
   AttemptSessionRow,
   CallerIdentity,
-  CommitSha,
   DecisionRow,
   Effort,
   EvidenceRow,
@@ -23,6 +22,7 @@ import type {
   ItemId,
   ItemKindName,
   ItemRow,
+  ItemShipped,
   ItemState,
   ItemView,
   KeptSession,
@@ -44,6 +44,17 @@ import type {
   RunnerRow,
   WorkerKindName,
 } from '../types.ts';
+import type { MergeAnswer, MergeMethod } from './forge.ts';
+
+export type {
+  ChangedFile,
+  Forge,
+  MergeAnswer,
+  MergeMethod,
+  MergedPullRequest,
+  PullRequestReading,
+  Release,
+} from './forge.ts';
 
 export type {
   GateCall,
@@ -115,6 +126,9 @@ export interface StoreReader extends OutboxReader {
   // the held seats, by limit and then by attempt
   listLimitSeats: () => Promise<LimitSeatRow[]>;
 
+  // the item's shipped rows, oldest first
+  listShipped: (item: ItemId) => Promise<ItemShipped[]>;
+
   // oldest first
   listItemNotes: (item: ItemId) => Promise<NoteRow[]>;
 
@@ -161,6 +175,9 @@ export interface ItemDetailRows {
   readonly relations: readonly RelationRow[];
   readonly evidence: readonly EvidenceRow[];
   readonly pullRequests: readonly PullRequestRow[];
+
+  // the ship watch's rows for the item, oldest first
+  readonly shipped: readonly ItemShipped[];
   readonly notes: readonly NoteRow[];
 
   // the item's `boxxy.item.edited` facts from the outbox, oldest first
@@ -241,6 +258,7 @@ export interface Tables {
   runners: RunnerRow;
   notes: NoteRow;
   notices: NoticeRow;
+  item_shipped: ItemShipped;
 }
 
 export type TableName = keyof Tables;
@@ -400,6 +418,18 @@ export type WakeSource = 'command' | 'session-ran' | 'host-slept-unasked';
 export interface Notifier {
   tellHold: (notice: HoldNotice) => Promise<NoticeOutcome>;
   tellPaused: (notice: PausedNotice) => Promise<NoticeOutcome>;
+  tellNotify: (notice: NotifyNotice) => Promise<NoticeOutcome>;
+}
+
+// A step that ended or skipped with a reason the owner should read, and no hold.
+export interface NotifyNotice {
+  readonly item: ItemId;
+  readonly phase: PhaseName;
+  readonly reason: string;
+  readonly at: Instant;
+
+  // the row's current key; the adapter sends it unchanged
+  readonly key: string;
 }
 
 // The runner has been paused long enough, with work ready, that the owner should know.
@@ -508,56 +538,6 @@ export interface PepysReader {
 export type PepysAnswer<Value> =
   | { readonly kind: 'value'; readonly value: Value }
   | { readonly kind: 'unavailable'; readonly reason: string };
-
-export interface Forge {
-  readPullRequest: (ref: PullRequestRef) => Promise<PullRequestReading | 'not-found'>;
-  listOpenPullRequests: (repo: RepoName) => Promise<PullRequestRef[]>;
-
-  // the description of the pull request, empty when it has none
-  readPullRequestBody: (ref: PullRequestRef) => Promise<string>;
-
-  // the latest run of each check name at `head`, from check runs and commit statuses, with its source
-  readChecks: (repo: RepoName, head: CommitSha) => Promise<ReadonlyMap<string, CheckReading>>;
-
-  // the forge's compare of two heads: each changed file with its added and deleted lines
-  readChangedFiles: (repo: RepoName, from: CommitSha, to: CommitSha) => Promise<ChangedFile[]>;
-
-  // the checks that the branch requires, by name; empty for a branch that requires none
-  readRequiredChecks: (repo: RepoName, branch: string) => Promise<readonly string[]>;
-  readMergeable: (ref: PullRequestRef) => Promise<MergeableState>;
-
-  // merges only while the pull request's head is still `head`, and sends one call
-  mergeAtHead: (ref: PullRequestRef, head: CommitSha, method: MergeMethod) => Promise<MergeAnswer>;
-}
-
-export interface ChangedFile {
-  readonly path: string;
-  readonly changedLines: number;
-}
-
-export interface PullRequestReading {
-  readonly url: string;
-
-  // GitHub's own `id` of the pull request
-  readonly githubId: number;
-  readonly state: 'open' | 'closed' | 'merged';
-
-  // the branch that the pull request merges into
-  readonly base: string;
-  readonly mergedAt: Instant | null;
-  readonly mergeCommit: CommitSha | null;
-  readonly commits: readonly { readonly sha: CommitSha; readonly message: string }[];
-}
-
-export type MergeMethod = 'merge' | 'squash' | 'rebase';
-
-// The forge's answer to a merge at a head. `queued`: a merge queue took the pull request, which a
-// direct merge never answers.
-export type MergeAnswer =
-  | { readonly kind: 'merged'; readonly mergeCommit: CommitSha }
-  | { readonly kind: 'queued' }
-  | { readonly kind: 'head-moved' }
-  | { readonly kind: 'not-mergeable'; readonly reason: string };
 
 // The worker of a phase with no agent session and no host, such as the merge. It has no sleep,
 // wake, kept session or forget, and starts nothing: the first read moves the attempt to running.

@@ -21,6 +21,7 @@ import type {
   ItemId,
   ItemKindName,
   ItemRow,
+  ItemShipped,
   LeverRow,
   Minutes,
   PhaseName,
@@ -121,6 +122,10 @@ export interface WorkFacts {
       readonly how: 'settled' | 'closing';
     }[];
   };
+
+  // written by the ship watch, in the change that inserts the `item_shipped` row; `seenAt` is when
+  // the watch saw it, in epoch milliseconds
+  'boxxy.item.shipped': ItemShipped;
 
   // the entity is the source item
   'boxxy.relation.added': RelationPayload;

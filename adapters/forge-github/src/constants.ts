@@ -15,6 +15,9 @@ export const forgeLimits = {
   // a rule past the limit can be a required check
   maxRulePages: 3,
 
+  // 500 closed pull requests of a deploy repo, newest update first; a bump older than that is not read
+  maxBumpPages: 5,
+
   // an installation token lasts an hour; the App mints a new one this long before it expires
   refreshMarginMs: 5 * 60 * 1000,
 } as const;

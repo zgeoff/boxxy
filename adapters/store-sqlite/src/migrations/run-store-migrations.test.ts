@@ -15,6 +15,7 @@ import { refusalMigration } from './refusal-migration.ts';
 import { renameRelationsMigration } from './rename-relations-migration.ts';
 import { runStoreMigrations } from './run-store-migrations.ts';
 import { runnerPauseMigration } from './runner-pause-migration.ts';
+import { shipWatchMigration } from './ship-watch-migration.ts';
 import { skippedAttemptsMigration } from './skipped-attempts-migration.ts';
 import { v1TablesMigration } from './v1-tables-migration.ts';
 
@@ -48,6 +49,7 @@ async function setupTest() {
     migrateRunnerPause: () => runnerPauseMigration.up(db),
     migrateRefusal: () => refusalMigration.up(db),
     migrateSkippedAttempts: () => skippedAttemptsMigration.up(db),
+    migrateShipWatch: () => shipWatchMigration.up(db),
     writeRaw: (statement: string, ...values: number[]) => {
       sqlite.query(statement).run(...values);
     },
@@ -84,6 +86,7 @@ test('it creates every table of the store schema in an empty file', async () => 
     'attempts',
     'decisions',
     'evidence',
+    'item_shipped',
     'items',
     'kysely_migration',
     'kysely_migration_lock',
@@ -436,4 +439,40 @@ test('it keeps the index on the atc session of the attempts after the rebuild', 
   await ctx.migrate();
 
   expect(ctx.readSchema().filter((entry) => entry.name === 'attempts_atc_session').length).toBe(1);
+});
+
+test('it keeps a stored notice and gives the notices table a phase column that reads null', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createTables();
+  await ctx.renameRelations();
+  await ctx.migrateV1Tables();
+  await ctx.migrateNoticeKeys();
+  await ctx.migrateRunnerPause();
+
+  ctx.writeRaw(
+    "INSERT INTO notices (item, reason, at, tries, kind) VALUES ('item-a', 'declined', ?, 0, 'hold')",
+    1000,
+  );
+
+  await ctx.migrateShipWatch();
+
+  expect(ctx.readRaw('SELECT item, kind, phase FROM notices')).toStrictEqual([
+    { item: 'item-a', kind: 'hold', phase: null },
+  ]);
+});
+
+test('it refuses a second shipped row for one item and commit', async () => {
+  const ctx = await setupTest();
+
+  await ctx.migrate();
+
+  const insert =
+    "INSERT INTO item_shipped (item_id, \"commit\", rule, ref, seen_at) VALUES ('item-a', 'abc', 'release', 'v1', ?)";
+
+  ctx.writeRaw(insert, 1000);
+
+  expect(() => {
+    ctx.writeRaw(insert, 2000);
+  }).toThrow(/UNIQUE/u);
 });

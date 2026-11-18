@@ -10,6 +10,11 @@ import { readMergeable } from './pull-requests/read-mergeable.ts';
 import { readPullRequestBody } from './pull-requests/read-pull-request-body.ts';
 import { toPullPath } from './pull-requests/to-pull-path.ts';
 import { toPullRequestReading } from './pull-requests/to-pull-request-reading.ts';
+import { listReleases } from './repos/list-releases.ts';
+import { probeContains } from './repos/probe-contains.ts';
+import { makeBumpsReader } from './repos/read-bumps.ts';
+import { readRepo } from './repos/read-repo.ts';
+import { readTag } from './repos/read-tag.ts';
 import type { GithubForgeOptions } from './types.ts';
 
 // The `Forge` port on the GitHub REST API. A call that fails for any reason but a missing pull
@@ -50,6 +55,11 @@ export function createGithubForge(options: GithubForgeOptions): Forge {
     readRequiredChecks: (repo, branch) => readRequiredChecks(client, repo, branch),
     readMergeable: (ref) => readMergeable(client, ref),
     mergeAtHead: (ref, head, method) => mergeAtHead(client, ref, head, method),
+    contains: (repo, ref, commit) => probeContains(client, repo, ref, commit),
+    readRepo: (repo) => readRepo(client, repo),
+    readTag: (repo, tag) => readTag(client, repo, tag),
+    listReleases: (repo) => listReleases(client, repo),
+    findBumps: makeBumpsReader(client),
 
     // GitHub's compare lists at most 300 files, and a paged compare lists them on its first page
     // only, so one call reads every file it gives

@@ -100,6 +100,7 @@ function buildSkip(
     round: 1,
     number: 1,
     reason: 'no-criteria-tagged:prod',
+    notice: false,
     recipeHash: brandSchemas.recipeHash.parse('a'.repeat(64)),
     rulesVersion: brandSchemas.rulesVersion.parse('b'.repeat(64)),
   });

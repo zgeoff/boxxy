@@ -29,8 +29,8 @@ test('it gives each fact type a schema whose output is its payload type', () => 
   expect(mismatched).toBe('none');
 });
 
-test('it has a schema for each of the 33 fact types', () => {
-  expect(Object.keys(workFactSchemas)).toHaveLength(33);
+test('it has a schema for each of the 34 fact types', () => {
+  expect(Object.keys(workFactSchemas)).toHaveLength(34);
 });
 
 test.each([
@@ -61,6 +61,17 @@ test.each([
       phase: 'verify',
       round: 1,
       reason: 'check-passed:verify / gate',
+    },
+  ],
+  [
+    'boxxy.item.shipped',
+    {
+      itemId: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77',
+      commit: '9f3c2a1b8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a',
+      rule: 'release-then-deploy',
+      ref: 'deployed/prod/service',
+      release: 'v1.4.0',
+      seenAt: 1_762_300_000_000,
     },
   ],
   ['boxxy.item.noted', { seq: 1, text: 'Keep the old button until the next release' }],

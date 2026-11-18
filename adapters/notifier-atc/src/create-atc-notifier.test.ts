@@ -210,3 +210,30 @@ test('#tellPaused says none given when the pause has no reason, and refuses with
     { kind: 'refused', reason: 'no-notice-session' },
   ]);
 });
+
+test('#tellNotify sends one message that names the phase, the reason, the item and the key', async () => {
+  const ctx = setupTest();
+  const notifier = ctx.createNotifier(null);
+
+  const outcome = await notifier.tellNotify({
+    item: ctx.notice.item,
+    phase: brandSchemas.phaseName.parse('live'),
+    reason: 'wait-skip:shipped',
+    at: ctx.notice.at,
+    key: 'boxxy-notice:15:0',
+  });
+
+  expect([outcome, ctx.sent]).toStrictEqual([
+    { kind: 'sent' },
+    [
+      {
+        session: 'daemon.1.s1',
+        text: [
+          'boxxy ended the live step of 01900000-0000-7000-8000-000000000007 with no session: wait-skip:shipped.',
+          'Read the item with `boxxy item show 01900000-0000-7000-8000-000000000007`.',
+        ].join('\n'),
+        idempotencyKey: 'boxxy-notice:15:0',
+      },
+    ],
+  ]);
+});

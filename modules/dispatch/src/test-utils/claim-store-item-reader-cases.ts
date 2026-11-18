@@ -475,6 +475,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
           relations: [expect.objectContaining({ source: blocker.id, target: item.id })],
           evidence: [expect.objectContaining({ attempt: attempt.id, kind: 'pull_request' })],
           pullRequests: [expect.objectContaining({ attempt: attempt.id, state: 'open' })],
+          shipped: [],
           notes: [note],
           revisions: [],
         },

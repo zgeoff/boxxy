@@ -17,6 +17,7 @@ const mergeAnswerSchema = z.discriminatedUnion('kind', [
 export const skipReasonSchema: z.ZodType<SkipReason> = z.union([
   z.templateLiteral(['no-criteria-tagged:', z.string()]),
   z.templateLiteral(['check-passed:', z.string()]),
+  z.templateLiteral(['wait-skip:', z.string()]),
 ]);
 
 const countSchema = z.number().int().nonnegative();

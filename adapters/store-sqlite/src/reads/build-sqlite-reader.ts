@@ -16,6 +16,7 @@ import { isLatestOfSession } from './is-latest-of-session.ts';
 import { readCapacityRefusals } from './read-capacity-refusals.ts';
 import { readItemViews } from './read-item-views.ts';
 import { readLimitFills } from './read-limit-fills.ts';
+import { readShipped } from './read-shipped.ts';
 import { readWakes } from './read-wakes.ts';
 
 export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
@@ -114,6 +115,8 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         .orderBy('seq')
         .execute();
 
+      const shipped = await readShipped(db, id);
+
       const edits = await db
         .selectFrom('outbox')
         .selectAll()
@@ -128,6 +131,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         relations: relations.map((row) => parseStoreRow('relations', row)),
         evidence: evidence.map((row) => parseStoreRow('evidence', row)),
         pullRequests: pullRequests.map((row) => parseStoreRow('pull_requests', row)),
+        shipped,
         notes: notes.map((row) => parseStoreRow('notes', row)),
         revisions: edits.map((row) => buildItemRevision(parseOutboxRow(row))),
       };
@@ -353,6 +357,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         }),
       );
     },
+    listShipped: (item) => readShipped(db, item),
     listItemNotes: async (item) => {
       const rows = await db
         .selectFrom('notes')

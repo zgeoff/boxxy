@@ -170,8 +170,14 @@ export const tableCodecs: { readonly [T in TableName]: TableCodec<Tables[T]> } =
       'nextTryAt',
       'kind',
       'pause',
+      'phase',
     ],
     json: ['pause'],
+    flags: [],
+  },
+  item_shipped: {
+    fields: ['itemId', 'commit', 'rule', 'ref', 'release', 'seenAt'],
+    json: [],
     flags: [],
   },
 };

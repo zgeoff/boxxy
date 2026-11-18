@@ -174,6 +174,15 @@ export interface StoreDatabase {
     next_try_at: number;
     kind: string;
     pause: string | null;
+    phase: string | null;
+  };
+  item_shipped: {
+    item_id: string;
+    commit: string;
+    rule: string;
+    ref: string;
+    release: string | null;
+    seen_at: number;
   };
   notice_session: {
     id: number;

@@ -9,6 +9,7 @@ import { criterionSchema } from '../rows/criterion-schema.ts';
 import { decisionRowSchema } from '../rows/decision-row-schema.ts';
 import { itemFieldsSchema } from '../rows/item-fields-schema.ts';
 import { itemRowSchema } from '../rows/item-row-schema.ts';
+import { itemShippedFactSchema } from '../rows/item-shipped-fact-schema.ts';
 import { leverRowSchema } from '../rows/lever-row-schema.ts';
 import { refusalDetailSchema } from '../rows/refusal-detail-schema.ts';
 import type { FactType, WorkFacts } from './types.ts';
@@ -85,6 +86,7 @@ export const workFactSchemas = {
     byAttempt: brandSchemas.attemptId.nullable(),
     ended: z.array(endedAttemptSchema),
   }),
+  'boxxy.item.shipped': itemShippedFactSchema,
   'boxxy.relation.added': relationSchema,
   'boxxy.relation.removed': relationSchema,
   'boxxy.lever.recorded': leverRowSchema,

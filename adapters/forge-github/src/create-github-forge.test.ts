@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { forgeContract } from '@boxxy/dispatch/test-utils/forge-contract';
+import { forgeShipContract } from '@boxxy/dispatch/test-utils/forge-ship-contract';
 import { brandSchemas } from '@boxxy/model';
 import { HttpResponse, http } from 'msw';
 import { createGithubForge } from './create-github-forge.ts';
@@ -21,13 +22,16 @@ function setupTest() {
   };
 }
 
-test.each(forgeContract)('it keeps the forge contract: %s', async (_title, check) => {
-  const ctx = setupTest();
+test.each([...forgeContract, ...forgeShipContract])(
+  'it keeps the forge contract: %s',
+  async (_title, check) => {
+    const ctx = setupTest();
 
-  const outcome = await check(ctx.harness);
+    const outcome = await check(ctx.harness);
 
-  expect(outcome.received).toStrictEqual(outcome.expected);
-});
+    expect(outcome.received).toStrictEqual(outcome.expected);
+  },
+);
 
 test('it reads the token before each call and sends it as a bearer token', async () => {
   const ctx = setupTest();
