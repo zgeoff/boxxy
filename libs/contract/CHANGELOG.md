@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.3.0](https://github.com/zgeoff/boxxy/compare/@boxxy/contract@0.2.12...@boxxy/contract@0.3.0) (2026-11-18)
+
+
+### Features
+
+* **rules:** add step gates, skips and criterion tags ([#183](https://github.com/zgeoff/boxxy/issues/183)) ([bc4033f](https://github.com/zgeoff/boxxy/commit/bc4033f20dec573d0d3dad7a22eafa5887dc5087))
+* **runner:** record each pause and resume, and notice a long pause ([#173](https://github.com/zgeoff/boxxy/issues/173)) ([dc2d9c6](https://github.com/zgeoff/boxxy/commit/dc2d9c6eab4d67d8a9cc218e6d3d4e8645e94fb2))
+
+
+### Bug Fixes
+
+* **dispatch:** record why atc refused a no-capacity attempt ([#176](https://github.com/zgeoff/boxxy/issues/176)) ([f8f6607](https://github.com/zgeoff/boxxy/commit/f8f6607e19e05cb7a62b52875a57ef11d246849f))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/model bumped to 0.3.0
+
 ## [0.2.12](https://github.com/zgeoff/boxxy/compare/@boxxy/contract@0.2.11...@boxxy/contract@0.2.12) (2026-11-18)
 
 ### Miscellaneous Chores

@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.3.0](https://github.com/zgeoff/boxxy/compare/@boxxy/verifier-wringer@0.2.12...@boxxy/verifier-wringer@0.3.0) (2026-11-18)
+
+
+### Features
+
+* **rules:** add step gates, skips and criterion tags ([#183](https://github.com/zgeoff/boxxy/issues/183)) ([bc4033f](https://github.com/zgeoff/boxxy/commit/bc4033f20dec573d0d3dad7a22eafa5887dc5087))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/model bumped to 0.3.0
+  * devDependencies
+    * @boxxy/dispatch bumped to 0.3.0
+
 ## [0.2.12](https://github.com/zgeoff/boxxy/compare/@boxxy/verifier-wringer@0.2.11...@boxxy/verifier-wringer@0.2.12) (2026-11-18)
 
 ### Miscellaneous Chores

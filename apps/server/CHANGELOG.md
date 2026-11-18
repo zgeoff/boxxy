@@ -1,5 +1,48 @@
 # Changelog
 
+## [0.3.0](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.12...@boxxy/server@0.3.0) (2026-11-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* **spawn:** scope credentialed agents with spawn.agents ([#178](https://github.com/zgeoff/boxxy/issues/178))
+
+### Features
+
+* **live:** add the live phase kind, notify edges and repo recipes ([#186](https://github.com/zgeoff/boxxy/issues/186)) ([4d20a6e](https://github.com/zgeoff/boxxy/commit/4d20a6ee897cc4f083549253044da78eeb102208))
+* **rules:** add step gates, skips and criterion tags ([#183](https://github.com/zgeoff/boxxy/issues/183)) ([bc4033f](https://github.com/zgeoff/boxxy/commit/bc4033f20dec573d0d3dad7a22eafa5887dc5087))
+* **runner:** record each pause and resume, and notice a long pause ([#173](https://github.com/zgeoff/boxxy/issues/173)) ([dc2d9c6](https://github.com/zgeoff/boxxy/commit/dc2d9c6eab4d67d8a9cc218e6d3d4e8645e94fb2))
+* **ships:** add the ship watch and the shipped wait ([#185](https://github.com/zgeoff/boxxy/issues/185)) ([75e3a90](https://github.com/zgeoff/boxxy/commit/75e3a905760d5b3932805090f3137a8bc052637f))
+* **spawn:** scope credentialed agents with spawn.agents ([#178](https://github.com/zgeoff/boxxy/issues/178)) ([b0954ca](https://github.com/zgeoff/boxxy/commit/b0954cafc8e728abcfd07976d60dc367a3ca4fb2))
+
+
+### Bug Fixes
+
+* **dispatch:** record why atc refused a no-capacity attempt ([#176](https://github.com/zgeoff/boxxy/issues/176)) ([f8f6607](https://github.com/zgeoff/boxxy/commit/f8f6607e19e05cb7a62b52875a57ef11d246849f))
+* **server:** accept a repeated evidence write ([#171](https://github.com/zgeoff/boxxy/issues/171)) ([5603162](https://github.com/zgeoff/boxxy/commit/5603162df2376e579eee284c9372e119054901f8))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/auth-oauth bumped to 0.3.0
+    * @boxxy/caller-proof-imp bumped to 0.3.0
+    * @boxxy/closeout bumped to 0.3.0
+    * @boxxy/content-hash bumped to 0.3.0
+    * @boxxy/contract bumped to 0.3.0
+    * @boxxy/dispatch bumped to 0.3.0
+    * @boxxy/forge-github bumped to 0.3.0
+    * @boxxy/model bumped to 0.3.0
+    * @boxxy/notifier-atc bumped to 0.3.0
+    * @boxxy/pepys bumped to 0.3.0
+    * @boxxy/planning bumped to 0.3.0
+    * @boxxy/review-noslop bumped to 0.3.0
+    * @boxxy/rules bumped to 0.3.0
+    * @boxxy/store-sqlite bumped to 0.3.0
+    * @boxxy/verifier-wringer bumped to 0.3.0
+    * @boxxy/worker-atc bumped to 0.3.0
+
 ## [0.2.12](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.2.11...@boxxy/server@0.2.12) (2026-11-18)
 
 ### Miscellaneous Chores
