@@ -18,7 +18,7 @@ function setupTest() {
       listen: { hostname: '127.0.0.1', port: 4400 },
       workerListen: { hostname: '127.0.0.1', port: 4401 },
     },
-    spawn: { target: 'cloud', repos: {}, reviewAgents: [] },
+    spawn: { target: 'cloud', repos: {}, agents: {}, phases: {} },
     atc: { url: 'http://127.0.0.1:7777/mcp', trustedFolders: {} },
   };
 

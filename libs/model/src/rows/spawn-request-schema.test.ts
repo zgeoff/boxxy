@@ -1,5 +1,10 @@
 import { expect, test } from 'bun:test';
-import { gitSourceSchema, spawnRequestSchema } from './spawn-request-schema.ts';
+import { brandSchemas } from './brand-schemas.ts';
+import {
+  gitSourceSchema,
+  parseStoredSpawnRequest,
+  spawnRequestSchema,
+} from './spawn-request-schema.ts';
 
 test('it accepts a stored spawn request', () => {
   const request = {
@@ -11,6 +16,8 @@ test('it accepts a stored spawn request', () => {
     effort: 'high',
     name: 'boxxy/0190a000-0000-7000-8000-000000000001',
     idempotencyKey: '0190a000-0000-7000-8000-000000000001',
+    repo: 'example/app',
+    phase: 'build',
   };
 
   const parsed: unknown = spawnRequestSchema.safeParse(request).data;
@@ -28,6 +35,8 @@ test('it accepts a stored spawn request with a git source in place of a folder',
     effort: 'high',
     name: 'boxxy/0190a000-0000-7000-8000-000000000001',
     idempotencyKey: '0190a000-0000-7000-8000-000000000001',
+    repo: 'example/app',
+    phase: 'build',
   };
 
   const parsed: unknown = spawnRequestSchema.safeParse(request).data;
@@ -54,6 +63,8 @@ test.each([
     effort: 'high',
     name: 'boxxy/0190a000-0000-7000-8000-000000000001',
     idempotencyKey: '0190a000-0000-7000-8000-000000000001',
+    repo: 'example/app',
+    phase: 'build',
   };
 
   expect(spawnRequestSchema.safeParse(request).success).toBeFalse();
@@ -73,6 +84,8 @@ test('it accepts a stored spawn request with a git source and the name of its to
     effort: 'high',
     name: 'boxxy/0190a000-0000-7000-8000-000000000001',
     idempotencyKey: '0190a000-0000-7000-8000-000000000001',
+    repo: 'example/app',
+    phase: 'build',
   };
 
   const parsed: unknown = spawnRequestSchema.safeParse(request).data;
@@ -120,9 +133,53 @@ test('it rejects a request whose name lacks the boxxy prefix', () => {
     effort: 'high',
     name: 'other/0190a000',
     idempotencyKey: '0190a000-0000-7000-8000-000000000001',
+    repo: 'example/app',
+    phase: 'build',
   };
 
   expect(spawnRequestSchema.safeParse(request).error?.issues).toPartiallyContain({
     path: ['name'],
   });
+});
+
+test('#parseStoredSpawnRequest reads a request stored with no repo or phase with the attempt repo and phase', () => {
+  const stored = {
+    target: 'worker-host',
+    cwd: '/tmp/boxxy-test/repo',
+    prompt: 'Build the item.',
+    agent: 'claude',
+    model: 'a-model',
+    effort: 'high',
+    name: 'boxxy/0190a000-0000-7000-8000-000000000001',
+    idempotencyKey: '0190a000-0000-7000-8000-000000000001',
+  };
+
+  const request = parseStoredSpawnRequest(stored, {
+    repo: brandSchemas.repoName.parse('example/app'),
+    phase: 'review',
+  });
+
+  expect(request).toMatchObject({ repo: 'example/app', phase: 'review' });
+});
+
+test('#parseStoredSpawnRequest keeps the repo and phase that the request holds', () => {
+  const stored = {
+    target: 'worker-host',
+    cwd: '/tmp/boxxy-test/repo',
+    prompt: 'Build the item.',
+    agent: 'claude',
+    model: 'a-model',
+    effort: 'high',
+    name: 'boxxy/0190a000-0000-7000-8000-000000000001',
+    idempotencyKey: '0190a000-0000-7000-8000-000000000001',
+    repo: 'example/lib',
+    phase: 'live',
+  };
+
+  const request = parseStoredSpawnRequest(stored, {
+    repo: brandSchemas.repoName.parse('example/app'),
+    phase: 'review',
+  });
+
+  expect(request).toMatchObject({ repo: 'example/lib', phase: 'live' });
 });

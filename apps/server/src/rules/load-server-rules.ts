@@ -1,4 +1,4 @@
-import type { LoadResult } from '@boxxy/model';
+import type { LoadResult, SpawnScope } from '@boxxy/model';
 import { conceptPins, concepts } from '@boxxy/planning';
 import { createNoslopReviewGate } from '@boxxy/review-noslop';
 import { loadRules, rulesFileName } from '@boxxy/rules';
@@ -13,14 +13,11 @@ export interface RulesCheckout {
 
 // Loads a checkout as the server does, for the rules repository's check. A load reads only the
 // gate's command builder, so a gate with no App keys loads what the server's own gate loads. The
-// check passes the review agents of the server's `spawn.reviewAgents`.
-export function loadServerRules(
-  checkout: RulesCheckout,
-  reviewAgents: readonly string[] = [],
-): LoadResult {
+// check passes the spawn scope of the server's `spawn` section.
+export function loadServerRules(checkout: RulesCheckout, spawn: SpawnScope): LoadResult {
   return loadRegisteredRules(
     checkout,
-    buildServerRegistrations(createNoslopReviewGate({ appEnv: {} }), reviewAgents),
+    buildServerRegistrations(createNoslopReviewGate({ appEnv: {} }), spawn),
   );
 }
 

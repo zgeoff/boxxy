@@ -1,5 +1,5 @@
 import type { AttemptRow, Instant, ItemView, LoadedRules, RowWrite } from '@boxxy/model';
-import { buildPhase, spawnRequestSchema } from '@boxxy/model';
+import { buildPhase, parseStoredSpawnRequest } from '@boxxy/model';
 import { isBuilderSession } from './is-builder-session.ts';
 
 interface KeepInput {
@@ -53,7 +53,10 @@ export function buildKeepWrites(input: KeepInput): RowWrite[] {
       set: {
         keptSession: {
           atcSession: attempt.atcSession,
-          target: spawnRequestSchema.parse(attempt.spawnRequest).target,
+          target: parseStoredSpawnRequest(attempt.spawnRequest, {
+            repo: item.repo,
+            phase: attempt.phase,
+          }).target,
           attempt: attempt.id,
           keptAt: input.now,
           caller: attempt.caller,

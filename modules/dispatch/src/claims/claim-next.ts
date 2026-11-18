@@ -184,6 +184,7 @@ function buildClaimedEvent(parts: ClaimedParts): {
     promptPath: pickPromptPath(material.recipe, parts.detail.attempts, parts.pick.phase),
     input: phaseInput,
     settings: parts.settings,
+    phase: parts.pick.phase,
   });
 
   const kept = pickKeptSession({
@@ -230,6 +231,7 @@ interface SpawnParts {
   readonly promptPath: string;
   readonly input: JsonValue;
   readonly settings: SpawnSettings;
+  readonly phase: string;
 }
 
 function buildSpawnRequest(parts: SpawnParts): SpawnRequest {
@@ -256,6 +258,8 @@ function buildSpawnRequest(parts: SpawnParts): SpawnRequest {
     effort: parts.recipe.effort,
     name: `boxxy/${parts.attempt}`,
     idempotencyKey: parts.attempt,
+    repo: parts.item.repo,
+    phase: parts.phase,
   };
 }
 

@@ -3,6 +3,7 @@ import { contentHash, hashBytes } from '@boxxy/content-hash';
 import type { Concept, ConceptPin } from '@boxxy/model';
 import { brandSchemas, defineGate, defineSignal, signalKey } from '@boxxy/model';
 import { buildMockPhaseKind } from '@boxxy/model/test-utils/build-mock-phase-kind';
+import { buildMockSpawnScope } from '@boxxy/model/test-utils/build-mock-spawn-scope';
 import invariant from 'tiny-invariant';
 import { z } from 'zod';
 import { buildExampleLoadInput } from '../test-utils/build-example-load-input.ts';
@@ -2134,13 +2135,15 @@ test.each([
     steps: `    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
     - { phase: review, maxAttempts: 2, timeoutMinutes: 45, on: { passed: { end: reviewed } } }`,
     recipes: '{ build: review-run, review: review-run }',
-    reviewAgents: ['claude-review'],
+    spawn: buildMockSpawnScope(),
     path: 'kinds["core.issue"].recipes.build',
     reason: {
-      kind: 'review-agent-outside-review',
+      kind: 'agent-outside-scope',
       itemKind: 'core.issue',
       phase: 'build',
       recipe: 'review-run',
+      agent: 'claude-review',
+      repo: null,
     },
   },
   {
@@ -2148,9 +2151,35 @@ test.each([
     steps: `    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
     - { phase: review, maxAttempts: 2, timeoutMinutes: 45, on: { passed: { end: reviewed } } }`,
     recipes: '{ build: build-v1, review: build-v1 }',
-    reviewAgents: ['claude-review'],
+    spawn: buildMockSpawnScope(),
     path: 'kinds["core.issue"].recipes.review',
-    reason: { kind: 'review-without-review-agent', itemKind: 'core.issue', recipe: 'build-v1' },
+    reason: {
+      kind: 'phase-without-scoped-agent',
+      itemKind: 'core.issue',
+      phase: 'review',
+      recipe: 'build-v1',
+      agent: 'claude',
+    },
+  },
+  {
+    title: 'a review recipe for a repo outside the agent repos',
+    steps: `    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
+    - { phase: review, maxAttempts: 2, timeoutMinutes: 45, on: { passed: { end: reviewed } } }`,
+    recipes: '{ build: build-v1, review: review-run }',
+    spawn: {
+      ...buildMockSpawnScope(),
+      agents: { 'claude-review': { phases: ['review'], repos: ['example/app'] } },
+      repos: ['example/app', 'example/lib'],
+    },
+    path: 'kinds["core.issue"].recipes.review',
+    reason: {
+      kind: 'agent-outside-scope',
+      itemKind: 'core.issue',
+      phase: 'review',
+      recipe: 'review-run',
+      agent: 'claude-review',
+      repo: 'example/lib',
+    },
   },
   {
     title: 'an edge with resume: true to the review step',
@@ -2158,20 +2187,30 @@ test.each([
     - { phase: review, maxAttempts: 2, timeoutMinutes: 45, on: { passed: next } }
     - { phase: verify, maxAttempts: 2, timeoutMinutes: 90, on: { verified: { end: verified }, failed: { to: review, max: 2, resume: true } } }`,
     recipes: '{ build: build-v1, review: review-run, verify: build-v1 }',
-    reviewAgents: ['claude-review'],
+    spawn: buildMockSpawnScope(),
     path: 'pipelines.standard[2].on.failed',
-    reason: { kind: 'review-session-resumed', phase: 'verify', outcome: 'failed' },
+    reason: {
+      kind: 'scoped-agent-session-resumed',
+      phase: 'verify',
+      outcome: 'failed',
+      to: 'review',
+    },
   },
   {
     title: 'a review recipe with session: builder',
     steps: `    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
     - { phase: review, maxAttempts: 2, timeoutMinutes: 45, on: { passed: { end: reviewed } } }`,
     recipes: '{ build: build-v1, review: review-builder }',
-    reviewAgents: ['claude-review'],
+    spawn: buildMockSpawnScope(),
     path: 'kinds["core.issue"].recipes.review',
-    reason: { kind: 'review-builder-session', itemKind: 'core.issue', recipe: 'review-builder' },
+    reason: {
+      kind: 'scoped-agent-builder-session',
+      itemKind: 'core.issue',
+      recipe: 'review-builder',
+      agent: 'claude-review',
+    },
   },
-])('it rejects $title when the server names review agents', (row) => {
+])('it rejects $title when the server scopes agents', (row) => {
   const concepts: Concept[] = [
     {
       name: 'pool',
@@ -2186,7 +2225,7 @@ test.each([
 
   const result: unknown = loadRules({
     workers: [brandSchemas.workerKindName.parse('atc.session')],
-    reviewAgents: row.reviewAgents,
+    spawn: row.spawn,
     checkout: {
       commit: '3f2a1c0',
       files: new Map([
@@ -2231,8 +2270,8 @@ sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 24
 });
 
 test.each([
-  { title: 'names review agents', reviewAgents: ['claude-review'], build: 'build-v1' },
-  { title: 'names no review agent', reviewAgents: [], build: 'review-run' },
+  { title: 'scopes a review agent', spawn: buildMockSpawnScope(), build: 'build-v1' },
+  { title: 'scopes no agent', spawn: { agents: {}, phases: {}, repos: [] }, build: 'review-run' },
 ])('it loads a review recipe on a review agent when the server $title', (row) => {
   const concepts: Concept[] = [
     {
@@ -2248,7 +2287,7 @@ test.each([
 
   const result = loadRules({
     workers: [brandSchemas.workerKindName.parse('atc.session')],
-    reviewAgents: row.reviewAgents,
+    spawn: row.spawn,
     checkout: {
       commit: '3f2a1c0',
       files: new Map([

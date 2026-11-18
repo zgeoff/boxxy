@@ -385,6 +385,11 @@ interface SpawnRequestFields {
   readonly effort: Effort;
   readonly name: `boxxy/${string}`;
   readonly idempotencyKey: AttemptId;
+
+  // the item's repo and the phase that the attempt runs, which the worker checks against the
+  // scope of a credentialed agent
+  readonly repo: RepoName;
+  readonly phase: string;
 }
 
 // `command`: `boxxy item wake`. `session-ran`: a reading shows the session running while the

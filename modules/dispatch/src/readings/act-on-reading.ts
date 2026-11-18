@@ -8,9 +8,15 @@ import type {
   RunnerFault,
   SessionFault,
   SessionReading,
+  SpawnRequest,
   StoreTx,
 } from '@boxxy/model';
-import { brandSchemas, isFilterMatch, spawnRequestSchema, verifyInputSchema } from '@boxxy/model';
+import {
+  brandSchemas,
+  isFilterMatch,
+  parseStoredSpawnRequest,
+  verifyInputSchema,
+} from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { match } from 'ts-pattern';
 import { isSameGuard } from '../attempts/is-same-guard.ts';
@@ -133,7 +139,7 @@ function runAction(
         claim: {
           kind: 'start',
           attempt: input.attempt,
-          spawn: spawnRequestSchema.parse(input.attempt.spawnRequest),
+          spawn: await readStoredSpawn(input),
           kept: await readClaimKept(input),
         },
       });
@@ -305,6 +311,20 @@ function readRow(input: ActOnReadingInput): Promise<AttemptRow> {
     invariant(row !== null, `the runner read a stored attempt: ${input.attempt.id}`);
 
     return row;
+  });
+}
+
+// The attempt's stored spawn request. One stored with no repo reads with the item's repo.
+function readStoredSpawn(input: ActOnReadingInput): Promise<SpawnRequest> {
+  return input.store.read(async (tx) => {
+    const item = await tx.readItem(input.attempt.item, input.now, input.rules);
+
+    invariant(item !== null, `the runner read an attempt of a stored item: ${input.attempt.item}`);
+
+    return parseStoredSpawnRequest(input.attempt.spawnRequest, {
+      repo: item.repo,
+      phase: input.attempt.phase,
+    });
   });
 }
 

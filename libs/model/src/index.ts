@@ -62,7 +62,13 @@ export { reviewInputSchema } from './closeouts/review-input-schema.ts';
 export { storedReviewCloseOutSchema } from './closeouts/stored-review-close-out-schema.ts';
 export { rowSchemas } from './rows/row-schemas.ts';
 export { signalKey } from './planning/signal-key.ts';
-export { gitSourceSchema, spawnRequestSchema } from './rows/spawn-request-schema.ts';
+
+export {
+  gitSourceSchema,
+  parseStoredSpawnRequest,
+  spawnRequestSchema,
+} from './rows/spawn-request-schema.ts';
+
 export { stageTimeSchema } from './reports/stage-time-schema.ts';
 export { toJSONValue } from './utils/to-json-value.ts';
 export { triageCloseOutSchema } from './closeouts/triage-close-out-schema.ts';
@@ -346,6 +352,7 @@ export type {
   LoadResult,
   MergeRules,
   ParamKindName,
+  SpawnScope,
   ParamKinds,
   PhaseInputContext,
   PhaseKind,

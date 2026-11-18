@@ -34,6 +34,10 @@ function setupTest() {
         credentialRef: { name: 'EXAMPLE_GIT_TOKEN' },
       },
     ],
+    agents: {
+      'claude-review': { phases: ['review'] },
+      'app-live': { phases: ['live'], repos: ['example/app'] },
+    },
   });
 
   return {
@@ -49,6 +53,8 @@ function setupTest() {
       effort: 'medium' as const,
       name: `boxxy/${attempt}` as const,
       idempotencyKey: attempt,
+      repo: brandSchemas.repoName.parse('example/widget'),
+      phase: 'build',
     }),
   };
 }
@@ -178,6 +184,70 @@ test('#start spawns a git source as a trusted atc workspace with no folder', asy
         },
       },
     ],
+  ]);
+});
+
+test.each([
+  ['a phase outside its phases', { agent: 'claude-review', phase: 'build' }],
+  ['a repo outside its repos', { agent: 'app-live', phase: 'live' }],
+  ['a phase outside its phases in its repo', { agent: 'app-live', phase: 'review' }],
+])('#start refuses a listed agent with %s and spawns nothing', async (_title, change) => {
+  const ctx = setupTest();
+  const attempt = buildMockV1AttemptRow().id;
+
+  const outcome = await ctx.worker.start({ ...ctx.buildSpawnRequest(attempt, 'box'), ...change });
+
+  expect([outcome, ctx.atc.calls]).toStrictEqual([
+    { kind: 'refused', cause: 'other', reason: 'agent not scoped' },
+    [],
+  ]);
+});
+
+test('#start spawns a listed agent in a phase and a repo of its scope', async () => {
+  const ctx = setupTest();
+  const attempt = buildMockV1AttemptRow().id;
+
+  const outcome = await ctx.worker.start({
+    ...ctx.buildSpawnRequest(attempt, 'box'),
+    agent: 'app-live',
+    phase: 'live',
+    repo: brandSchemas.repoName.parse('example/app'),
+  });
+
+  expect(outcome.kind).toBe('started');
+});
+
+test('#start spawns a listed agent with no repos in any repo', async () => {
+  const ctx = setupTest();
+  const attempt = buildMockV1AttemptRow().id;
+
+  const outcome = await ctx.worker.start({
+    ...ctx.buildSpawnRequest(attempt, 'box'),
+    agent: 'claude-review',
+    phase: 'review',
+  });
+
+  expect(outcome.kind).toBe('started');
+});
+
+test('#resumeKept refuses a listed agent outside its scope and wakes nothing', async () => {
+  const ctx = setupTest();
+  const attempt = buildMockV1AttemptRow().id;
+
+  const outcome = await ctx.worker.resumeKept(
+    {
+      atcSession: brandSchemas.atcSessionId.parse('s1-fake'),
+      target: 'box',
+      attempt,
+      keptAt: ctx.clock.now(),
+      caller: null,
+    },
+    { ...ctx.buildSpawnRequest(attempt, 'box'), agent: 'claude-review' },
+  );
+
+  expect([outcome, ctx.atc.calls]).toStrictEqual([
+    { kind: 'refused', cause: 'other', reason: 'agent not scoped' },
+    [],
   ]);
 });
 

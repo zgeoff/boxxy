@@ -61,3 +61,9 @@ export interface AtcClient {
   readonly forgetSession: (input: AtcForgetInput) => Promise<AtcToolResult<'atc_session_forget'>>;
   readonly sendMessage: (input: AtcMessageInput) => Promise<AtcToolResult<'atc_message_send'>>;
 }
+
+// Where a credentialed agent may run; `repos` absent means any repo
+export interface AgentScope {
+  readonly phases: readonly string[];
+  readonly repos?: readonly string[];
+}

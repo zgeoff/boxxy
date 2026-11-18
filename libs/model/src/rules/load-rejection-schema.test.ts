@@ -12,14 +12,35 @@ test.each([
   { kind: 'empty-merge-checks' },
   { kind: 'builder-session-not-kept', recipe: 'verify-builder' },
   {
-    kind: 'review-agent-outside-review',
+    kind: 'agent-outside-scope',
     itemKind: 'core.issue',
     phase: 'build',
-    recipe: 'build-v1',
+    recipe: 'review-run',
+    agent: 'claude-review',
+    repo: null,
   },
-  { kind: 'review-without-review-agent', itemKind: 'core.issue', recipe: 'review-run' },
-  { kind: 'review-builder-session', itemKind: 'core.issue', recipe: 'review-builder' },
-  { kind: 'review-session-resumed', phase: 'verify', outcome: 'failed' },
+  {
+    kind: 'agent-outside-scope',
+    itemKind: 'core.issue',
+    phase: 'live',
+    recipe: 'live-app',
+    agent: 'app-live',
+    repo: 'example/lib',
+  },
+  {
+    kind: 'phase-without-scoped-agent',
+    itemKind: 'core.issue',
+    phase: 'review',
+    recipe: 'build-v1',
+    agent: 'claude',
+  },
+  {
+    kind: 'scoped-agent-builder-session',
+    itemKind: 'core.issue',
+    recipe: 'review-builder',
+    agent: 'claude-review',
+  },
+  { kind: 'scoped-agent-session-resumed', phase: 'verify', outcome: 'failed', to: 'review' },
 ])('it accepts a rejection for the reason $kind', (reason) => {
   const rejection = { file: 'rules.yaml', path: 'phases.review', reason };
   const parsed: unknown = loadRejectionSchema.safeParse(rejection).data;

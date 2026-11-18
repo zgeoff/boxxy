@@ -10,6 +10,16 @@ const address = z.strictObject({
   port: z.int().min(0).max(65_535),
 });
 
+const agentScope = z.strictObject({
+  phases: z.array(name).min(1),
+
+  // each one is in `spawn.repos`; with none, the agent may run in any repo
+  repos: z.array(name).exactOptional(),
+});
+
+// with `requireScopedAgent`, every recipe that can run the phase names an agent listed for it
+const phasePolicy = z.strictObject({ requireScopedAgent: z.boolean().exactOptional() });
+
 const spawnSection = z.strictObject({
   target: name,
 
@@ -17,9 +27,11 @@ const spawnSection = z.strictObject({
   // clones for a target that gives each session a fresh machine
   repos: z.record(z.string(), z.union([name, gitSourceSchema])),
 
-  // the atc agents whose broker profile holds the read-only clone token; the rules load only when
-  // review recipes alone name them
-  reviewAgents: z.array(name).default([]),
+  // the atc agents whose broker profile holds a credential, each with where it may run
+  agents: z.record(name, agentScope).default({}),
+
+  // by phase: its spawn policy
+  phases: z.record(name, phasePolicy).default({}),
 });
 
 const atcSection = z.strictObject({
@@ -77,7 +89,7 @@ const publicDoorSection = z.strictObject({
 
 // The server's configuration file, as JSON, at the path in `BOXXY_CONFIG`. It holds no secret:
 // each token comes from the environment.
-export const serverConfigSchema = z.strictObject({
+const serverConfigObject = z.strictObject({
   runner: name,
   store: z.strictObject({ file: name }),
 
@@ -106,6 +118,20 @@ export const serverConfigSchema = z.strictObject({
   // GitHub's REST root, or the broker's; with none, the hook's link answers `retry`, and no
   // pull request watch runs
   github: z.strictObject({ baseUrl: z.url() }).optional(),
+});
+
+export const serverConfigSchema = serverConfigObject.superRefine((config, ctx) => {
+  for (const [agent, scope] of Object.entries(config.spawn.agents)) {
+    for (const repo of scope.repos ?? []) {
+      if (!Object.hasOwn(config.spawn.repos, repo)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['spawn', 'agents', agent, 'repos'],
+          message: `${repo} is not in spawn.repos`,
+        });
+      }
+    }
+  }
 });
 
 export type ServerConfig = z.infer<typeof serverConfigSchema>;

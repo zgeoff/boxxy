@@ -19,6 +19,7 @@ import type {
   RelationType,
   RelationTypeName,
   RulesVersion,
+  SpawnScope,
   WorkerKindName,
 } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
@@ -37,7 +38,7 @@ import { buildRejection } from './build-rejection.ts';
 import { collectFilterRejections } from './collect-filter-rejections.ts';
 import { collectMergeRejections } from './collect-merge-rejections.ts';
 import { collectRecipeRejections } from './collect-recipe-rejections.ts';
-import { collectReviewAgentRejections } from './collect-review-agent-rejections.ts';
+import { collectScopeRejections } from './collect-scope-rejections.ts';
 import { collectStepRejections } from './collect-step-rejections.ts';
 import { toFilter } from './to-filter.ts';
 
@@ -55,9 +56,8 @@ interface LoadRulesInput {
   // the names of the workers the server built
   readonly workers: readonly WorkerKindName[];
 
-  // the atc agents whose broker profile holds the read-only clone token; with none, any recipe
-  // may name any agent
-  readonly reviewAgents?: readonly string[];
+  // where each credentialed atc agent may run; with none, any recipe may name any agent
+  readonly spawn?: SpawnScope;
 }
 
 export function loadRules(input: LoadRulesInput): LoadResult {
@@ -122,7 +122,7 @@ function buildLoadResult(
     ...collectStepRejections(file, phases, input.workers),
     ...collectMergeRejections(file),
     ...collectRecipeRejections(file),
-    ...collectReviewAgentRejections(file, input.reviewAgents ?? []),
+    ...collectScopeRejections(file, input.spawn ?? { agents: {}, phases: {}, repos: [] }),
     ...collectFilterRejections(file, registry),
     ...collectSleepRejections(file),
     ...prompts.rejections,
