@@ -189,8 +189,9 @@ its items were filed, the claim passes over those items.
 
 Some sessions need a credential that others must never hold, such as a review session's clone token.
 atc's broker adds the credentials in an agent's broker profile to its session's outbound calls, and
-each session runs as the atc agent its recipe names. The server config's `spawn.agents` lists each
-agent whose profile holds a credential:
+each session runs as the atc agent its recipe names, the recipe that
+[resolves for the item's repo](./pipeline.md#recipes-and-skills). The server config's `spawn.agents`
+lists each agent whose profile holds a credential:
 
 ```json
 {
