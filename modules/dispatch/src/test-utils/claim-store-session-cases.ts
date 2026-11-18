@@ -256,22 +256,20 @@ export const claimStoreSessionCases: readonly ClaimStoreCase[] = [
       const keptSession = brandSchemas.atcSessionId.parse('atc-session-kept');
 
       const built = buildMockV1AttemptRow({
-        state: 'succeeded',
         atcSession: keptSession,
-        outcome: brandSchemas.outcomeName.parse('built'),
-        endedAt: brandSchemas.instant.parse(2000),
         claimedAt: brandSchemas.instant.parse(1100),
       });
 
       const wake = buildMockV1AttemptRow({
         item: built.item,
         number: 2,
+        leaseGen: 2,
         state: 'failed',
         atcSession: keptSession,
         failure: 'no-capacity',
         outcome: 'lost',
-        endedAt: brandSchemas.instant.parse(3000),
-        claimedAt: brandSchemas.instant.parse(2500),
+        endedAt: brandSchemas.instant.parse(4000),
+        claimedAt: brandSchemas.instant.parse(3500),
       });
 
       const keptItem = buildMockV1ItemRow({
@@ -285,23 +283,29 @@ export const claimStoreSessionCases: readonly ClaimStoreCase[] = [
         },
       });
 
-      await store.exclusive(async (transaction) => {
+      const results = await store.exclusive(async (transaction) => [
         await transaction.applyChange(
           buildMockFileItemChange(buildMockV1ItemRow({ id: sleeping.item })),
-        );
-
-        await transaction.applyChange(buildMockFileItemChange(keptItem));
-
-        for (const attempt of [sleeping, built, wake]) {
-          await transaction.applyChange(buildMockClaimChange(attempt));
-        }
-      });
+        ),
+        await transaction.applyChange(buildMockFileItemChange(keptItem)),
+        await transaction.applyChange(buildMockClaimChange(sleeping)),
+        await transaction.applyChange(buildMockClaimChange(built)),
+        await transaction.applyChange(
+          buildMockSettleChange({ attempt: built, state: 'succeeded' }),
+        ),
+        await transaction.applyChange(buildMockClaimChange(wake)),
+      ]);
 
       const listed = await store.read((transaction) =>
         transaction.listSessionsToForget(brandSchemas.instant.parse(1500)),
       );
 
-      return { received: listed, expected: [] };
+      const applied = { kind: 'applied' };
+
+      return {
+        received: { results, listed },
+        expected: { results: [applied, applied, applied, applied, applied, applied], listed: [] },
+      };
     },
   ],
   [
