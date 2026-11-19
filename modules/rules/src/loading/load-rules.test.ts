@@ -2055,16 +2055,6 @@ test.each([
     reason: { kind: 'merge-without-rules' },
   },
   {
-    title: 'a merge block with no checks',
-    steps: `    - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: next } }
-    - { phase: merge, maxAttempts: 2, timeoutMinutes: 240, on: { merged: { end: merged } } }`,
-    recipes: '{ build: build-v1, merge: build-v1 }',
-    merge: 'merge: { method: squash, checks: [] }',
-    workers: ['atc.session', 'merge.forge'],
-    path: 'merge.checks',
-    reason: { kind: 'empty-merge-checks' },
-  },
-  {
     title: 'a session: builder recipe on a step with no build step before it',
     steps: `    - { phase: verify, maxAttempts: 2, timeoutMinutes: 90, on: { verified: next } }
     - { phase: build, maxAttempts: 2, timeoutMinutes: 180, on: { built: { end: built } } }`,
@@ -2431,30 +2421,40 @@ sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 24
   expect(result.kind).toBe('loaded');
 });
 
-test('it loads a merge block, and a session: builder recipe on a step after a build step', () => {
-  const concepts: Concept[] = [
-    {
-      name: 'pool',
-      version: 1,
-      signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
-    },
-  ];
+test.each([
+  [
+    'a non-empty checks list',
+    "checks: ['pr / checks', 'verify / gate']",
+    ['pr / checks', 'verify / gate'],
+  ],
+  ['an empty checks list', 'checks: []', []],
+  ['no checks key', '', []],
+])(
+  'it loads a merge block with %s, and a session: builder recipe on a step after a build step',
+  (_title, checksLine, checks) => {
+    const concepts: Concept[] = [
+      {
+        name: 'pool',
+        version: 1,
+        signals: [defineSignal({ name: 'oldest', params: z.object({}), value: () => null })],
+      },
+    ];
 
-  const pins = new Map<string, ConceptPin>([
-    ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
-  ]);
+    const pins = new Map<string, ConceptPin>([
+      ['pool', { ref: 'pool@1', sourceHash: contentHash('pool source') }],
+    ]);
 
-  const result = loadRules({
-    workers: [
-      brandSchemas.workerKindName.parse('atc.session'),
-      brandSchemas.workerKindName.parse('merge.forge'),
-    ],
-    checkout: {
-      commit: '3f2a1c0',
-      files: new Map([
-        [
-          'rules.yaml',
-          new TextEncoder().encode(`
+    const result = loadRules({
+      workers: [
+        brandSchemas.workerKindName.parse('atc.session'),
+        brandSchemas.workerKindName.parse('merge.forge'),
+      ],
+      checkout: {
+        commit: '3f2a1c0',
+        files: new Map([
+          [
+            'rules.yaml',
+            new TextEncoder().encode(`
 version: 1
 concepts: [pool@1]
 pipelines:
@@ -2469,7 +2469,7 @@ recipes:
   verify-builder: { agent: claude, model: example-model, effort: high, prompt: prompts/build-v1.md, source: subscription, skills: [], session: builder }
 merge:
   method: squash
-  checks: ['pr / checks', 'verify / gate']
+  ${checksLine}
 relationTypes: [blocks]
 limits:
   - { name: workers, max: 7, counts: {} }
@@ -2477,34 +2477,35 @@ pools:
   - { name: build, takes: {}, order: [oldest] }
 sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 240 }
 `),
-        ],
-        ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
-      ]),
-    },
-    concepts,
-    phases: [
-      buildMockPhaseKind({ name: 'build', outcomes: ['built'] }),
-      buildMockPhaseKind({ name: 'verify', outcomes: ['verified', 'failed'] }),
-      buildMockPhaseKind({
-        name: 'merge',
-        outcomes: ['merged'],
-        worker: 'merge.forge',
-      }),
-    ],
-    pins,
-  });
+          ],
+          ['prompts/build-v1.md', new TextEncoder().encode('Build {{title}}.\n')],
+        ]),
+      },
+      concepts,
+      phases: [
+        buildMockPhaseKind({ name: 'build', outcomes: ['built'] }),
+        buildMockPhaseKind({ name: 'verify', outcomes: ['verified', 'failed'] }),
+        buildMockPhaseKind({
+          name: 'merge',
+          outcomes: ['merged'],
+          worker: 'merge.forge',
+        }),
+      ],
+      pins,
+    });
 
-  invariant(result.kind === 'loaded', 'the rules load');
+    invariant(result.kind === 'loaded', 'the rules load');
 
-  expect({
-    merge: result.rules.merge,
-    session: result.rules.recipes.get(brandSchemas.recipeName.parse('verify-builder'))?.recipe
-      .session,
-  }).toStrictEqual({
-    merge: { method: 'squash', checks: ['pr / checks', 'verify / gate'] },
-    session: 'builder',
-  });
-});
+    expect({
+      merge: result.rules.merge,
+      session: result.rules.recipes.get(brandSchemas.recipeName.parse('verify-builder'))?.recipe
+        .session,
+    }).toStrictEqual({
+      merge: { method: 'squash', checks },
+      session: 'builder',
+    });
+  },
+);
 
 test.each([
   [

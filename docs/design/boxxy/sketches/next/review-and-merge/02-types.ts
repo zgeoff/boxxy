@@ -139,7 +139,6 @@ export interface LoadedRules {
 // `LoadRejectionReason` gains:
 //   | { kind: 'unknown-worker'; phase; worker }       the phase kind names a worker the server did not pass
 //   | { kind: 'merge-without-rules' }                 a `merge` step and no `merge` block
-//   | { kind: 'empty-merge-checks' }                  `merge.checks` is empty
 //   | { kind: 'builder-session-not-kept'; recipe }    `session: builder`, and the build step before it keeps no session
 //   | { kind: 'agent-outside-scope'; ... }            a recipe names an agent outside its `spawn.agents` phases or repos
 //   | { kind: 'phase-without-scoped-agent'; ... }     a phase with `requireScopedAgent` names an agent not listed for it

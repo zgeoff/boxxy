@@ -9,7 +9,6 @@ test.each([
   { kind: 'engine-hold-reason', phase: 'build', outcome: 'blocked', reason: 'rounds-used-up' },
   { kind: 'unknown-worker', phase: 'merge', worker: 'merge.forge' },
   { kind: 'merge-without-rules' },
-  { kind: 'empty-merge-checks' },
   { kind: 'builder-session-not-kept', recipe: 'verify-builder' },
   {
     kind: 'agent-outside-scope',
