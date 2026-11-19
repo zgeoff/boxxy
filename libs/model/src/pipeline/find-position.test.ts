@@ -578,6 +578,12 @@ test.each([
     ],
     since: 2000,
   },
+  {
+    title: 'a retry lever with no phase while the item stays at the step',
+    attempts: [buildMockSettled({ phase: 'triage', outcome: 'accepted', endedAt: 1000 })],
+    retries: [{ at: brandSchemas.instant.parse(2000), phase: null }],
+    since: 1000,
+  },
 ])('#trackPosition gives the start of the stay after $title', (row) => {
   const found = trackPosition({
     pipeline: buildMockPipeline(),

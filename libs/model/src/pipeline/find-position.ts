@@ -65,8 +65,15 @@ export function trackPosition(input: FindPositionInput): PositionSince {
           (position.kind === 'hold' && position.reason === 'rounds used up');
 
         round += startsNewRound ? 1 : 0;
-        position = { kind: 'phase', phase, round };
-        since = event.lever.at;
+
+        const next: Position = { kind: 'phase', phase, round };
+
+        // a retry that leaves the item at the same step and round is not a new arrival
+        const staysPut =
+          position.kind === 'phase' && position.phase === phase && position.round === round;
+
+        position = next;
+        since = staysPut ? since : event.lever.at;
       }
 
       continue;
