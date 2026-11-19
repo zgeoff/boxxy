@@ -3,8 +3,9 @@
   // repo-sync delivers .claude/ verbatim, and the design sketches only show the planned shapes
   "ignore": [".claude/**", "docs/design/boxxy/sketches/**"],
   // the shared oxlint config loads the plugin, and the synced skill-gate hook in .claude/ imports
-  // the package, so knip sees neither
-  "ignoreDependencies": ["@stylistic/eslint-plugin", "@zgeoff/skill-gate"],
+  // the package, so knip sees neither; the server's declaration emit names types from
+  // @orpc/contract, so the build needs it although no source file imports it
+  "ignoreDependencies": ["@stylistic/eslint-plugin", "@zgeoff/skill-gate", "@orpc/contract"],
   // the test script names its roots, so knip reads no package's tests from it
   "workspaces": {
     ".": { "entry": ["*.test.ts", "scripts/**/*.test.ts", "rig.config.ts"] },
