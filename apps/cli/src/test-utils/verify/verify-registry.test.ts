@@ -13,3 +13,9 @@ test('it runs the harness check on local only and the door metadata check on pro
     { name: 'mcp-sign-in', targets: undefined },
   ]);
 });
+
+test('it uploads the local target evidence to the file host and keeps the prod evidence local', () => {
+  expect(verifyRegistry.targets.get('local')?.evidence).toBe('upload');
+  expect(verifyRegistry.targets.get('prod')?.evidence).toBe('local');
+  expect(verifyRegistry.hooks.upload).toBeDefined();
+});

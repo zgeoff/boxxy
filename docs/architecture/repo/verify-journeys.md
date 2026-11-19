@@ -37,7 +37,10 @@ journeys again.
 the change touches it, and its verdict, plus a hidden data comment with one entry per verdict.
 wringer calls that entry a claim, which has nothing to do with boxxy's claim of work. Git ignores
 `.wringer/`, and the verify registry, `verify-registry.ts`, which defines the targets and features
-`bun verify` knows, sets no upload hook, so evidence stays on the grader's machine.
+`bun verify` knows, sets an upload hook for the `local` target. `publish` uploads that target's
+evidence files to the file host that `VERIFY_UPLOAD_URL` names, with the token in
+`VERIFY_UPLOAD_TOKEN`, and links them from the pull request. The `prod` target keeps its evidence on
+the grader's machine.
 
 ## The harness
 
@@ -115,9 +118,8 @@ code, never the adapters the fakes replace.
 The registry's other target, `prod`, attaches to the deployed public listener for a smoke check
 after a deploy: a grader runs the `owner-mcp` reads there. wringer refuses every write on it, and
 its client holds only the read scope, so the listener refuses a write that slips past wringer. A
-`prod` verdict never goes into a pull request, because the deployed items name private repos, and
-the public repo holds no host name, so the grader reads the listener's origin and the client's
-secret from 1Password.
+`prod` verdict never goes into a pull request. The public repo holds no host name, so the grader
+reads the listener's origin and the client's secret from 1Password.
 
 ## The path-to-feature map
 
