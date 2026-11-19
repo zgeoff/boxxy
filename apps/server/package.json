@@ -50,6 +50,7 @@
     "@boxxy/worker-atc": "workspace:*",
     "@modelcontextprotocol/server": "catalog:",
     "@orpc/client": "catalog:",
+    "@orpc/contract": "catalog:",
     "@orpc/mcp": "catalog:",
     "@orpc/server": "catalog:",
     "elysia": "catalog:",
