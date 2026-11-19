@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.1](https://github.com/zgeoff/boxxy/compare/@boxxy/planning@0.3.0...@boxxy/planning@0.3.1) (2026-11-19)
+
+### Miscellaneous Chores
+
+- **@boxxy/planning:** Synchronize boxxy versions
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.3.1
+    - @boxxy/model bumped to 0.3.1
+    - @boxxy/rules bumped to 0.3.1
+
 ## [0.3.0](https://github.com/zgeoff/boxxy/compare/@boxxy/planning@0.2.12...@boxxy/planning@0.3.0) (2026-11-18)
 
 ### Miscellaneous Chores
