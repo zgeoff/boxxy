@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { WringerError, createWringer, local } from '@wringer/core';
+import { WringerError, createHostUploader, createWringer, local } from '@wringer/core';
 import type { DriveContext, Wringer } from '@wringer/core';
 import { http } from '@wringer/http';
 import type { HttpClient } from '@wringer/http';
@@ -42,6 +42,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
   .target('local', {
     mode: 'launch',
     access: 'read-write',
+    evidence: 'upload',
     host: local(),
     launch: (ctx) => ({
       command: ['bun', join(import.meta.dir, 'harness', 'main.ts')],
@@ -73,8 +74,6 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
   .target('prod', {
     mode: 'attach',
     access: 'read-only',
-
-    // evidence stays local: the deployed items name private repos, and a PR description is public
     evidence: 'local',
     refusalHint:
       'prod is the deployed boxxy, and it is read-only. Leave the write undone, skip `done` for this feature, and report the write you needed.',
@@ -86,6 +85,12 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
       mcp: (ctx) => buildMCPServers(z.url().parse(ctx.endpoints['mcp']), prodMCPClient),
     },
   })
+
+  // `bun verify publish` reads the host's URL and token from these variables when it uploads
+  .hook(
+    'upload',
+    createHostUploader({ urlEnv: 'VERIFY_UPLOAD_URL', tokenEnv: 'VERIFY_UPLOAD_TOKEN' }),
+  )
 
   // Writes. A step that the owner or a session takes runs the real `boxxy` CLI as a process. A
   // step that only the harness can take (time, the worker, the forge, pepys) goes to a control

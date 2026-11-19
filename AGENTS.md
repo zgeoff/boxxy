@@ -118,7 +118,7 @@ After your last code change:
 
 1. Load the `verify` skill, and follow its "Check a change" steps for each feature that
    `bun verify report` marks `changed: true`. Each step gives the output to expect.
-2. Push the branch and open the pull request before you run `bun verify publish`. It writes the
+2. Push the branch and open the pull request before you publish. The `verify` skill gives the command. It writes the
    report into the open pull request's description, and fails when none is open.
 
 An edit to a feature's files after `done` makes its verdict stale: run its journey and `done` again,

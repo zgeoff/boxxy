@@ -45,10 +45,10 @@ When your task asks you to check a deploy, run these steps on `prod`, the deploy
 attach to it with no `up`. It refuses every command that changes state.
 
 - When a step fails, give its `data` or `error` in your reply. Skip step 5, and still run step 6.
-- Keep the `prod` report off every PR. The deployed items name private repos, so `prod` keeps its
-  evidence files in `.wringer/`.
-- Run `bun verify publish` only after you run this journey and `done` on `local` again. The `prod`
-  verdict replaces the feature's `local` verdict in this worktree.
+- Run this journey and `done` on `local` again before you publish with
+  [Check a change](../SKILL.md#check-a-change). `done` on `prod` replaces the feature's `local`
+  verdict in this worktree, and `publish` would write that `prod` verdict into the PR with none of
+  its evidence uploaded.
 
 1. Run `bun verify use --target prod`, then `bun verify use --feature owner-mcp`. Expect: `ok: true`
    from each.
