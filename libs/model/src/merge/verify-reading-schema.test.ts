@@ -35,7 +35,7 @@ test('it keeps the note of an incomplete reading', () => {
     status: 'incomplete',
     head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
     features: [],
-    note: 'The PR body holds a version 1 report. Run the publish command from the verify skill again.',
+    note: 'The PR body holds a version 1 report. Run `bun verify publish` again.',
   };
 
   const parsed: unknown = verifyReadingSchema.parse(reading);
