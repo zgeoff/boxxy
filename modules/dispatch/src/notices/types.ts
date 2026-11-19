@@ -13,6 +13,12 @@ export interface QueuePausedNoticeInput {
   readonly now: Instant;
 }
 
+export interface QueueWaitNoticesInput {
+  readonly store: ClaimStore;
+  readonly rules: ItemRules;
+  readonly now: Instant;
+}
+
 // What one tick did with the due rows. `lastError` is the reason of the last try that was not
 // sent, or null when every try was sent.
 export interface NoticeReport {

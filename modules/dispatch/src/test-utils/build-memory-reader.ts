@@ -246,6 +246,13 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
     },
     listShipped: (item) =>
       Promise.resolve(sortShipped(getTables().item_shipped.filter((row) => row.itemId === item))),
+    listWaitNoticeMarks: () =>
+      Promise.resolve(
+        getTables().wait_notices.toSorted(
+          (first, second) =>
+            first.noticedAt - second.noticedAt || compareText(first.itemId, second.itemId),
+        ),
+      ),
     listItemNotes: (item) =>
       Promise.resolve(
         getTables()

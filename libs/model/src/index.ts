@@ -35,7 +35,9 @@ export { evidenceRowSchema } from './rows/evidence-row-schema.ts';
 export { getLaunchSections } from './closeouts/get-launch-sections.ts';
 export { getRelationEnds } from './closeouts/get-relation-ends.ts';
 export { hasRelationPath } from './items/has-relation-path.ts';
-export { findPosition } from './pipeline/find-position.ts';
+export { buildWaitOverdueReason } from './items/build-wait-overdue-reason.ts';
+export { parseWaitOverdueReason } from './items/parse-wait-overdue-reason.ts';
+export { findPosition, trackPosition } from './pipeline/find-position.ts';
 export { formatKeyPath } from './utils/format-key-path.ts';
 export { frictionSchema } from './closeouts/friction-schema.ts';
 export { isFilterMatch } from './planning/is-filter-match.ts';
@@ -169,6 +171,7 @@ export type {
   SessionMode,
   ShipRule,
   ItemShipped,
+  WaitNoticeMark,
   SkipReason,
   SnapshotHash,
   SourceName,

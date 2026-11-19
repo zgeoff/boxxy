@@ -15,4 +15,5 @@ export const timeouts: DispatchTimeouts = {
   jobReadSeconds: 30,
   actRetryMinutes: 5,
   pausedNoticeHours: 2,
+  waitNoticeHours: 6,
 };

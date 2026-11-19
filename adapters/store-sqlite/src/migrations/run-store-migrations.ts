@@ -15,6 +15,7 @@ import { runnerPauseMigration } from './runner-pause-migration.ts';
 import { shipWatchMigration } from './ship-watch-migration.ts';
 import { skippedAttemptsMigration } from './skipped-attempts-migration.ts';
 import { v1TablesMigration } from './v1-tables-migration.ts';
+import { waitNoticeMigration } from './wait-notice-migration.ts';
 
 // Kysely's SQLite migration lock does nothing, so two openers of a new file would both find nothing
 // run; the write lock makes the second one wait and then find the file migrated.
@@ -41,6 +42,7 @@ const migrations = {
   '0009-refusal': refusalMigration,
   '0010-skipped-attempts': skippedAttemptsMigration,
   '0011-ship-watch': shipWatchMigration,
+  '0012-wait-notice': waitNoticeMigration,
 };
 
 async function runMigrator(db: Kysely<StoreDatabase>): Promise<void> {

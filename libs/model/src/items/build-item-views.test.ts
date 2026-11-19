@@ -36,6 +36,7 @@ test('it gives an item with no rows beside it the first phase of its pipeline, r
       ...item,
       derived: { state: 'ready' },
       position: { kind: 'phase', phase: 'build', round: 1 },
+      positionSince: item.filedAt,
       levers: [],
     },
   ]);

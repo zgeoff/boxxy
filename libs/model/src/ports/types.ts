@@ -42,6 +42,7 @@ import type {
   RepoName,
   RunnerId,
   RunnerRow,
+  WaitNoticeMark,
   WorkerKindName,
 } from '../types.ts';
 import type { MergeAnswer, MergeMethod } from './forge.ts';
@@ -128,6 +129,9 @@ export interface StoreReader extends OutboxReader {
 
   // the item's shipped rows, oldest first
   listShipped: (item: ItemId) => Promise<ItemShipped[]>;
+
+  // the mark of each stay that got its wait notice, oldest first
+  listWaitNoticeMarks: () => Promise<WaitNoticeMark[]>;
 
   // oldest first
   listItemNotes: (item: ItemId) => Promise<NoteRow[]>;
@@ -259,6 +263,7 @@ export interface Tables {
   notes: NoteRow;
   notices: NoticeRow;
   item_shipped: ItemShipped;
+  wait_notices: WaitNoticeMark;
 }
 
 export type TableName = keyof Tables;

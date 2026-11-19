@@ -184,6 +184,11 @@ export interface StoreDatabase {
     release: string | null;
     seen_at: number;
   };
+  wait_notices: {
+    item_id: string;
+    since: number;
+    noticed_at: number;
+  };
   notice_session: {
     id: number;
     gateway_id: string;

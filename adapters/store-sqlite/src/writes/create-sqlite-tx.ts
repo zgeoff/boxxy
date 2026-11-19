@@ -46,6 +46,7 @@ export function createSQLiteTx(db: Kysely<StoreDatabase>): StoreTx {
     listLimits: inTurn(reader.listLimits),
     listLimitSeats: inTurn(reader.listLimitSeats),
     listShipped: inTurn(reader.listShipped),
+    listWaitNoticeMarks: inTurn(reader.listWaitNoticeMarks),
     listItemNotes: inTurn(reader.listItemNotes),
     listUnsentNotices: inTurn(reader.listUnsentNotices),
     listNoticesDue: inTurn(reader.listNoticesDue),

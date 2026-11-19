@@ -217,6 +217,7 @@ const uniqueKeys: Readonly<Record<TableName, readonly UniqueKey[]>> = {
   notes: [{ fields: ['item', 'seq'] }],
   notices: [{ fields: ['id'] }],
   item_shipped: [{ fields: ['itemId', 'commit'] }],
+  wait_notices: [{ fields: ['itemId', 'since'] }],
 };
 
 function assertMemoryUnique(table: TableName, rows: readonly object[], row: object): void {

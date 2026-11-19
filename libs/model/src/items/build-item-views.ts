@@ -1,4 +1,4 @@
-import { findPosition } from '../pipeline/find-position.ts';
+import { trackPosition } from '../pipeline/find-position.ts';
 import { findStep } from '../pipeline/find-step.ts';
 import type { Position } from '../pipeline/types.ts';
 import type { ItemRules, PipelineStep } from '../rules/types.ts';
@@ -58,6 +58,7 @@ interface ItemGroup {
   readonly levers: LeverRow[];
   liveLease: LeaseRow | null;
   position: Position;
+  positionSince: Instant | null;
 }
 
 // in the order of `rows.items`
@@ -74,6 +75,7 @@ function collectItemGroups(rows: ItemSetRows, rules: ItemRules, now: Instant): I
         levers: [],
         liveLease: null,
         position: { kind: 'end', reason: 'no-pipeline' },
+        positionSince: null,
       },
     ]),
   );
@@ -114,12 +116,18 @@ function collectItemGroups(rows: ItemSetRows, rules: ItemRules, now: Instant): I
   }
 
   for (const group of groups.values()) {
-    group.position = findPosition({
+    const found = trackPosition({
       pipeline: rules.kinds.get(group.item.kind)?.pipeline ?? null,
       attempts: collectSettled(group.attempts),
       retries: collectRetries(group.levers),
       now,
     });
+
+    group.position = found.position;
+
+    // an item that no lever or attempt has moved reached its first step when it was filed
+    group.positionSince =
+      found.position.kind === 'phase' ? (found.since ?? group.item.filedAt) : null;
   }
 
   return [...groups.values()];
@@ -169,6 +177,7 @@ function buildItemWithLevers(
     ...group.item,
     derived,
     position: group.position,
+    positionSince: group.positionSince,
     levers: liveLevers(group.levers, now),
   };
 }

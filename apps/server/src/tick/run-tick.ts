@@ -10,6 +10,7 @@ import {
   stopStraySession,
   timeouts,
   writePausedNotice,
+  writeWaitNotices,
 } from '@boxxy/dispatch';
 import type { JobFault, NoticeReport, SpawnSettings } from '@boxxy/dispatch';
 import type {
@@ -334,6 +335,7 @@ async function runForget(deps: TickDeps): Promise<number> {
 
 async function runNotices(deps: TickDeps): Promise<NoticeReport | null> {
   await runPausedNotice(deps);
+  await runWaitNotices(deps);
 
   try {
     const report = await sendNotices(deps);
@@ -362,5 +364,15 @@ async function runPausedNotice(deps: TickDeps): Promise<void> {
     });
   } catch (error) {
     deps.log.warn('the paused-runner notice was not queued', { error: formatErrorChain(error) });
+  }
+}
+
+// Queues the owner's notice for each item that has waited too long at a step. The items keep
+// waiting; the send that follows takes each notice like a hold notice.
+async function runWaitNotices(deps: TickDeps): Promise<void> {
+  try {
+    await writeWaitNotices({ store: deps.store, rules: deps.rules, now: deps.now });
+  } catch (error) {
+    deps.log.warn('the wait notices were not queued', { error: formatErrorChain(error) });
   }
 }
