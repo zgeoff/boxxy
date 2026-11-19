@@ -51,7 +51,7 @@
       "@zgeoff/format-codemod": "0.3.6",
       "@zgeoff/kysely-bun-sqlite": "0.3.3",
       "@zgeoff/mcp-auth": "0.2.2",
-      "@zgeoff/oxfmt-config": "0.1.0",
+      "@zgeoff/oxfmt-config": "0.1.2",
       "@zgeoff/oxlint-config": "0.10.10",
       "@zgeoff/rig": "0.2.5",
       "@zgeoff/skill-gate": "0.2.30",
