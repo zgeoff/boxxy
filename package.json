@@ -44,7 +44,7 @@
       "@wringer/gunshi": "0.3.5",
       "@wringer/http": "0.1.4",
       "@wringer/mcp": "0.1.2",
-      "@zgeoff/bun-test-extended": "0.2.3",
+      "@zgeoff/bun-test-extended": "0.2.4",
       "@zgeoff/chex": "0.3.6",
       "@zgeoff/commitlint-config": "0.1.0",
       "@zgeoff/diet": "0.2.2",
