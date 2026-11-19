@@ -2,17 +2,15 @@
 
 ## [0.3.1](https://github.com/zgeoff/boxxy/compare/@boxxy/review-noslop@0.3.0...@boxxy/review-noslop@0.3.1) (2026-11-19)
 
-
 ### Miscellaneous Chores
 
-* **@boxxy/review-noslop:** Synchronize boxxy versions
-
+- **@boxxy/review-noslop:** Synchronize boxxy versions
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.3.1
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.3.1
 
 ## [0.3.0](https://github.com/zgeoff/boxxy/compare/@boxxy/review-noslop@0.2.12...@boxxy/review-noslop@0.3.0) (2026-11-18)
 
