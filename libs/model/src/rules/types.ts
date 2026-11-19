@@ -216,6 +216,10 @@ export interface PipelineStep {
   // `criteria` and `skipWhen`.
   readonly waits?: readonly string[];
 
+  // Hours an item may wait at the step before the owner gets one notice; the dispatch module's
+  // default applies when it is absent. Set only on a step with `waits`.
+  readonly waitNoticeHours?: number;
+
   // set whenever a gate is: the loader refuses a gate with no skip edge
   readonly skip?: SkipEdge;
 }
@@ -401,6 +405,9 @@ export type LoadRejectionReason =
 
   // a step sets `criteria` or `skipWhen` with no `skip` edge
   | { readonly kind: 'gate-without-skip'; readonly phase: PhaseName }
+
+  // a step sets `waitNoticeHours` with no `waits`
+  | { readonly kind: 'notice-without-wait'; readonly phase: PhaseName }
 
   // a step's `waits` names a wait kind that this server does not register
   | { readonly kind: 'unknown-wait-kind'; readonly phase: PhaseName; readonly wait: string }

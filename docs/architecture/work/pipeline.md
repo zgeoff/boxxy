@@ -77,6 +77,11 @@ file's `criterionTags`. `item file`, `item edit` and a triage or design close-ou
 acceptance refuse a tag the list lacks, and a tag stays on its line in the item's state, its facts
 and `item show`.
 
+A step with `waits` may also set `waitNoticeHours: <hours>`, the time that an item may wait at the
+step before the owner gets one notice ([the overdue wait](./notices.md#the-notify-notice)). It
+applies to every wait kind of the step, and a step that leaves it out takes the `waitNoticeHours`
+timeout of the dispatch module. It never skips or holds the item.
+
 A skip comes after a retry lever filed at its own instant, and a retry lever stamped after the
 claim's time moves nothing, so a skip always moves the item on. A step with a gate has a `skip`
 edge: `next`, `{ end }` or `{ hold }`, never `again` or `{ to }`. A skipped attempt follows that
@@ -87,8 +92,9 @@ configured a `checkPassed` condition never skips, and a forge error reads as not
 
 The loader refuses a gate or a wait with no `skip` edge, a condition or a wait kind it doesn't know,
 a wait whose `after` outcome no earlier step's phase kind has, a `criteria.tagged` tag that
-`criterionTags` doesn't list, and a `skip` hold that uses an engine hold reason. The rules file's
-`repos` section sets how each repo ships, which the [ship watch](./ship-watch.md) reads.
+`criterionTags` doesn't list, a `waitNoticeHours` on a step with no `waits`, a `waitNoticeHours`
+that is not a positive finite number, and a `skip` hold that uses an engine hold reason. The rules
+file's `repos` section sets how each repo ships, which the [ship watch](./ship-watch.md) reads.
 
 The loader refuses a step that leaves out an outcome of its phase kind, or adds one the kind lacks,
 so every outcome has an edge. It also refuses a step with no time limit, and a phase kind this

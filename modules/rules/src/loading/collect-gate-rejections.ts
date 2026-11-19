@@ -4,6 +4,7 @@ import type { ParsedRulesFile, ParsedStep } from '../parse/rules-file-schema.ts'
 import { buildRejection } from './build-rejection.ts';
 
 // A step's gates are `criteria`, `skipWhen` and `waits`; each needs the `skip` edge to settle the step.
+// `waitNoticeHours` belongs to `waits` and means nothing without it.
 export function collectGateRejections(file: ParsedRulesFile): LoadRejection[] {
   return Object.entries(file.pipelines).flatMap(([pipeline, steps]) =>
     steps.flatMap((step, index) =>
@@ -26,6 +27,14 @@ function collectStepGateRejections(
   return [
     ...(hasGate && skip === undefined
       ? [buildRejection(path, { kind: 'gate-without-skip', phase: step.phase })]
+      : []),
+    ...(step.waitNoticeHours !== undefined && step.waits === undefined
+      ? [
+          buildRejection([...path, 'waitNoticeHours'], {
+            kind: 'notice-without-wait',
+            phase: step.phase,
+          }),
+        ]
       : []),
     ...(step.criteria !== undefined && !criterionTags.includes(step.criteria.tagged)
       ? [

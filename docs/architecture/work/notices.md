@@ -5,12 +5,13 @@ the owner picked, the notice session. The settle that puts the item on hold writ
 the boxxy store, and the runner tries to send it on every tick until atc takes it. A runner that
 stays paused with work ready sends the owner a second kind of notice
 ([the paused-runner notice](#the-paused-runner-notice)). A third kind, the notify notice, tells the
-owner that a wait skipped a step that leaves a tagged line unproven, or that an edge asked for a
-notice ([the notify notice](#the-notify-notice)). It never gives up, so a notice written while the
-owner's machine is off waits in the store and arrives once atc can reach the notice session again.
-Each try carries an idempotency key, so a retry after a lost answer still reaches the owner once,
-apart from the two cases in [what the owner can rely on](#what-the-owner-can-rely-on). Read this doc
-before you change how holds reach the owner, or when notices stop arriving.
+owner that a wait skipped a step that leaves a tagged line unproven, that an edge asked for a
+notice, or that an item has waited too long at a step ([the notify notice](#the-notify-notice)). It
+never gives up, so a notice written while the owner's machine is off waits in the store and arrives
+once atc can reach the notice session again. Each try carries an idempotency key, so a retry after a
+lost answer still reaches the owner once, apart from the two cases in
+[what the owner can rely on](#what-the-owner-can-rely-on). Read this doc before you change how holds
+reach the owner, or when notices stop arriving.
 
 [The pipeline](./pipeline.md#when-an-item-needs-the-owner) covers which outcomes hold an item.
 [Attempts](./attempts.md#settle) covers the settle that writes the notice.
@@ -60,7 +61,7 @@ pause stored before the runner recorded its start time has no length, so it gets
 ## The notify notice
 
 A `notify` notice names the item, the phase and a reason, and the message tells the owner that boxxy
-settled that step for that reason. Two things write one, and the notice follows the same retries,
+settled that step for that reason. Three things write one, and the notice follows the same retries,
 key and session as a hold notice:
 
 - **A skip by a [wait](./ship-watch.md#the-shipped-wait)** that leaves a tagged acceptance line with
@@ -69,6 +70,19 @@ key and session as a hold notice:
 - **An edge with `notify: true`** ([edges](./pipeline.md#phases-and-edges)). The settle writes the
   row after the attempt settles, with the reason `the step closed out <outcome>`, and the item holds
   nothing. A `{ hold }` edge writes its hold notice only.
+- **An overdue wait.** An item whose state is `waiting` on a wait kind of its step, for longer than
+  the step's `waitNoticeHours`, or the `waitNoticeHours` timeout of the dispatch module when the
+  step sets none. The message says the item has waited more than that many hours at the step for
+  that wait kind, and still waits. The reason is `wait-overdue:<kind>:<hours>`, and the item stays
+  where it is.
+
+An overdue wait writes at most one notice for each stay of an item at a step. The stay starts when
+the item's position became the step: the last settled attempt or retry that set it, or the filing of
+an item that none has moved. The tick writes the notice row and a `wait_notices` row for the stay in
+one store change, and the store refuses a second `wait_notices` row for the same item and stay, so a
+later tick writes no second notice. An item that leaves the step and returns, such as after
+`boxxy item retry <item> --phase build` and a new merge, starts a new stay and may get a new notice.
+An item with no known stay start gets none.
 
 ## Turning notices on
 

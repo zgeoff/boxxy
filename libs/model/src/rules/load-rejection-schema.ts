@@ -37,6 +37,7 @@ const loadRejectionReasonSchema: z.ZodType<LoadRejectionReason> = z.discriminate
   z.object({ kind: z.literal('step-without-timeout'), phase }),
   z.object({ kind: z.literal('gate-without-skip'), phase }),
   z.object({ kind: z.literal('unknown-skip-condition'), phase, condition: z.string() }),
+  z.object({ kind: z.literal('notice-without-wait'), phase }),
   z.object({ kind: z.literal('unknown-wait-kind'), phase, wait: z.string() }),
   z.object({
     kind: z.literal('wait-without-outcome'),
