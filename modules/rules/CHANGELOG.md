@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.3.1](https://github.com/zgeoff/boxxy/compare/@boxxy/rules@0.3.0...@boxxy/rules@0.3.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* **rules:** accept an empty or omitted merge.checks ([#192](https://github.com/zgeoff/boxxy/issues/192)) ([5ebb370](https://github.com/zgeoff/boxxy/commit/5ebb370e9dfe359fb659735ee34f522300c5a29c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/content-hash bumped to 0.3.1
+    * @boxxy/model bumped to 0.3.1
+    * @boxxy/prompt-template bumped to 0.3.1
+
 ## [0.3.0](https://github.com/zgeoff/boxxy/compare/@boxxy/rules@0.2.12...@boxxy/rules@0.3.0) (2026-11-18)
 
 ### ⚠ BREAKING CHANGES
