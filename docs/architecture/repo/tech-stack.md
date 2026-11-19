@@ -129,8 +129,8 @@ never overwrites it.
 
 boxxy uses no project references. Each package's `tsconfig.json` extends one root
 `tsconfig.base.json`, which extends `@tsconfig/strictest`, emits nothing and resolves imports the
-way a bundler does. A package's `typecheck` runs `tsrs --noEmit`, and its `build` writes only the
-declarations of `src`, without the tests, into `dist`.
+way a bundler does. A package's `typecheck` runs `tsrs --fast --noEmit`, and its `build` writes only
+the declarations of `src`, without the tests, into `dist`.
 
 Every package's `package.json` is written for publishing. Its `exports` point `types` at `dist` and
 `default` at the TypeScript source. A workspace checkout has no `dist` until a build runs, so the
