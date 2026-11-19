@@ -2,32 +2,32 @@
 
 ## [0.3.2](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.3.1...@boxxy/server@0.3.2) (2026-11-19)
 
-
 ### Features
 
-* **dispatch:** notify the owner when an item waits too long ([#211](https://github.com/zgeoff/boxxy/issues/211)) ([0a0311a](https://github.com/zgeoff/boxxy/commit/0a0311acb35e51f3302285611b5468effa500851))
-
+- **dispatch:** notify the owner when an item waits too long
+  ([#211](https://github.com/zgeoff/boxxy/issues/211))
+  ([0a0311a](https://github.com/zgeoff/boxxy/commit/0a0311acb35e51f3302285611b5468effa500851))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/auth-oauth bumped to 0.3.2
-    * @boxxy/caller-proof-imp bumped to 0.3.2
-    * @boxxy/closeout bumped to 0.3.2
-    * @boxxy/content-hash bumped to 0.3.2
-    * @boxxy/contract bumped to 0.3.2
-    * @boxxy/dispatch bumped to 0.3.2
-    * @boxxy/forge-github bumped to 0.3.2
-    * @boxxy/model bumped to 0.3.2
-    * @boxxy/notifier-atc bumped to 0.3.2
-    * @boxxy/pepys bumped to 0.3.2
-    * @boxxy/planning bumped to 0.3.2
-    * @boxxy/review-noslop bumped to 0.3.2
-    * @boxxy/rules bumped to 0.3.2
-    * @boxxy/store-sqlite bumped to 0.3.2
-    * @boxxy/verifier-wringer bumped to 0.3.2
-    * @boxxy/worker-atc bumped to 0.3.2
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/auth-oauth bumped to 0.3.2
+    - @boxxy/caller-proof-imp bumped to 0.3.2
+    - @boxxy/closeout bumped to 0.3.2
+    - @boxxy/content-hash bumped to 0.3.2
+    - @boxxy/contract bumped to 0.3.2
+    - @boxxy/dispatch bumped to 0.3.2
+    - @boxxy/forge-github bumped to 0.3.2
+    - @boxxy/model bumped to 0.3.2
+    - @boxxy/notifier-atc bumped to 0.3.2
+    - @boxxy/pepys bumped to 0.3.2
+    - @boxxy/planning bumped to 0.3.2
+    - @boxxy/review-noslop bumped to 0.3.2
+    - @boxxy/rules bumped to 0.3.2
+    - @boxxy/store-sqlite bumped to 0.3.2
+    - @boxxy/verifier-wringer bumped to 0.3.2
+    - @boxxy/worker-atc bumped to 0.3.2
 
 ## [0.3.1](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.3.0...@boxxy/server@0.3.1) (2026-11-19)
 

@@ -2,17 +2,15 @@
 
 ## [0.3.2](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.3.1...@boxxy/pepys@0.3.2) (2026-11-19)
 
-
 ### Miscellaneous Chores
 
-* **@boxxy/pepys:** Synchronize boxxy versions
-
+- **@boxxy/pepys:** Synchronize boxxy versions
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.3.2
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.3.2
 
 ## [0.3.1](https://github.com/zgeoff/boxxy/compare/@boxxy/pepys@0.3.0...@boxxy/pepys@0.3.1) (2026-11-19)
 
