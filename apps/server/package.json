@@ -29,7 +29,7 @@
   "scripts": {
     "build": "rm -rf dist && tsrs -p tsconfig.build.json",
     "start": "bun src/main.ts",
-    "typecheck": "tsrs --noEmit"
+    "typecheck": "tsrs --fast --noEmit"
   },
   "dependencies": {
     "@boxxy/auth-oauth": "workspace:*",
@@ -50,6 +50,7 @@
     "@boxxy/worker-atc": "workspace:*",
     "@modelcontextprotocol/server": "catalog:",
     "@orpc/client": "catalog:",
+    "@orpc/contract": "catalog:",
     "@orpc/mcp": "catalog:",
     "@orpc/server": "catalog:",
     "elysia": "catalog:",

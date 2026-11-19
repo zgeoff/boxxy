@@ -12,7 +12,7 @@ weighted most, picked by commit date where the repos disagree. The
 catalog pins each version.
 
 - Runtime and language: Bun 1.4.4, and TypeScript 7 with tsrs.
-- Lint and format: oxlint with tsrslint for type-aware lint, and oxfmt, with the shared configs.
+- Lint and format: oxlint with `tsrs-lint` for type-aware lint, and oxfmt, with the shared configs.
 - API: oRPC v2 beta on Elysia 2.0 rc, because v2 has the MCP integration
   ([decision 0017](./0017-v1-scope.md)).
 - Store: Kysely on `bun:sqlite`.
@@ -31,7 +31,6 @@ catalog pins each version.
 | oRPC 1.16                                        | has no MCP integration, and the server serves its contract as MCP too                                                           |
 | gunshi for the CLI                               | a table of commands needs only flags and words, which `parseArgs` reads                                                         |
 | Turso with pepys's own Kysely dialect            | boxxy needs one local SQLite file with a write transaction, which `bun:sqlite` gives                                            |
-| oxlint-tsgolint for type-aware lint              | the older setup; the other repos moved to tsrslint                                                                              |
 | tsdown for declarations                          | the newer repos emit declarations with tsrs                                                                                     |
 | a result library such as Effect or neverthrow    | no repo uses one; expected outcomes are union values branched with ts-pattern                                                   |
 

@@ -145,7 +145,7 @@ what the feature does.
   `bench/`, the CLI's tests against the real server among them.
 - `bun run check:docs` runs the docs checks. `bun run bench` runs the benchmarks through
   `rig bench`. CI does not run the benchmarks.
-- `bun run lint:full` adds the type-aware pass and the type check. It runs in CI only, so never run
+- `bun run lint:full` adds the type-aware pass and the type check. oxlint runs both through `tsrs-lint`, which `tsrs` ships, in fast mode (`TSRS_FAST=1`). It runs in CI only, so never run
   it locally.
 - lefthook runs the light checks before a commit and a push: lint on the files your branch changes,
   the format check, the type check, the tests beside the changed files, and `turbo boundaries`. To

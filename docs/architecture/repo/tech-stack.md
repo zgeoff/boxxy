@@ -39,7 +39,7 @@ writes `"catalog:"` for an external dependency and `"workspace:*"` for another `
 | Compiler              | `tsrs`                                                                            | a Rust port of the TypeScript 7 compiler; it typechecks and emits declarations                                                      |
 | TypeScript            | `typescript` 7                                                                    | the optional peer that Elysia and msw resolve                                                                                       |
 | Strict config         | `@tsconfig/strictest`                                                             | the strictest shared base                                                                                                           |
-| Lint                  | `oxlint`, `@zgeoff/oxlint-config`, `@maschwenk/tsrslint`                          | the shared rules, the import pins among them; tsrslint runs the type-aware rules on `tsrs`                                          |
+| Lint                  | `oxlint`, `@zgeoff/oxlint-config`, `tsrs`                                         | the shared rules, the import pins among them; `tsrs-lint`, which `tsrs` ships, runs the type-aware rules in fast mode               |
 | Format                | `oxfmt`, `@zgeoff/oxfmt-config`, `@zgeoff/format-codemod`                         | the shared format; the codemod sets the blank lines between statements                                                              |
 | Package boundaries    | `turbo`                                                                           | `turbo boundaries` fails a dependency between the wrong package kinds                                                               |
 | Typed API             | `@orpc/*`, `@modelcontextprotocol/server`                                         | one contract serves the API and the MCP tools, and types the CLI's calls                                                            |
@@ -129,8 +129,8 @@ never overwrites it.
 
 boxxy uses no project references. Each package's `tsconfig.json` extends one root
 `tsconfig.base.json`, which extends `@tsconfig/strictest`, emits nothing and resolves imports the
-way a bundler does. A package's `typecheck` runs `tsrs --noEmit`, and its `build` writes only the
-declarations of `src`, without the tests, into `dist`.
+way a bundler does. A package's `typecheck` runs `tsrs --fast --noEmit`, and its `build` writes only
+the declarations of `src`, without the tests, into `dist`.
 
 Every package's `package.json` is written for publishing. Its `exports` point `types` at `dist` and
 `default` at the TypeScript source. A workspace checkout has no `dist` until a build runs, so the

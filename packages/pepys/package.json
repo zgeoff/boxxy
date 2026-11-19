@@ -37,7 +37,7 @@
   "scripts": {
     "build": "rm -rf dist && tsrs -p tsconfig.build.json",
     "glue": "pepys build src/boxxy-work-plugin.ts",
-    "typecheck": "tsrs --noEmit"
+    "typecheck": "tsrs --fast --noEmit"
   },
   "dependencies": {
     "@boxxy/model": "workspace:*"

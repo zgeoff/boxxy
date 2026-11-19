@@ -1,4 +1,4 @@
-import type { ItemId } from '@boxxy/model';
+import type { CommitSha, ItemId } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockLeverChange } from './build-mock-lever-change.ts';
 import type { FakeForge } from './create-fake-forge.ts';
@@ -7,7 +7,7 @@ import type { TestDispatch } from './create-test-dispatch.ts';
 const repo = brandSchemas.repoName.parse('example/app');
 
 // the merge commit of the pull request that `seedMergedItem` merges
-export const seededMergeCommit = brandSchemas.commitSha.parse('c0'.repeat(20));
+export const seededMergeCommit: CommitSha = brandSchemas.commitSha.parse('c0'.repeat(20));
 
 export interface SeedMergedItemOptions {
   // the pull request number the build links; 7 when left out
