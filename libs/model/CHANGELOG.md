@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.2](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.3.1...@boxxy/model@0.3.2) (2026-11-19)
+
+### Features
+
+- **dispatch:** notify the owner when an item waits too long
+  ([#211](https://github.com/zgeoff/boxxy/issues/211))
+  ([0a0311a](https://github.com/zgeoff/boxxy/commit/0a0311acb35e51f3302285611b5468effa500851))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.3.2
+
 ## [0.3.1](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.3.0...@boxxy/model@0.3.1) (2026-11-19)
 
 ### Bug Fixes
