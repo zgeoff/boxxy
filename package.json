@@ -54,7 +54,7 @@
       "@zgeoff/oxfmt-config": "0.1.0",
       "@zgeoff/oxlint-config": "0.10.9",
       "@zgeoff/rig": "0.2.5",
-      "@zgeoff/skill-gate": "0.2.29",
+      "@zgeoff/skill-gate": "0.2.30",
       "@zgeoff/std": "0.4.3",
       "elysia": "2.0.0-rc.4",
       "exact-mirror": "1.2.7",
