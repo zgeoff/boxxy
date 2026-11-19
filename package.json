@@ -49,7 +49,7 @@
       "@zgeoff/commitlint-config": "0.1.0",
       "@zgeoff/diet": "0.2.3",
       "@zgeoff/format-codemod": "0.3.6",
-      "@zgeoff/kysely-bun-sqlite": "0.3.2",
+      "@zgeoff/kysely-bun-sqlite": "0.3.3",
       "@zgeoff/mcp-auth": "0.2.2",
       "@zgeoff/oxfmt-config": "0.1.0",
       "@zgeoff/oxlint-config": "0.10.10",
