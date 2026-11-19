@@ -237,3 +237,23 @@ test('#tellNotify sends one message that names the phase, the reason, the item a
     ],
   ]);
 });
+
+test('#tellNotify tells the owner that an item waited over its hours at a step and still waits', async () => {
+  const ctx = setupTest();
+  const notifier = ctx.createNotifier(null);
+
+  await notifier.tellNotify({
+    item: ctx.notice.item,
+    phase: brandSchemas.phaseName.parse('live'),
+    reason: 'wait-overdue:shipped:6',
+    at: ctx.notice.at,
+    key: 'boxxy-notice:16:0',
+  });
+
+  expect(ctx.sent.map((request) => request.text)).toStrictEqual([
+    [
+      '01900000-0000-7000-8000-000000000007 has waited more than 6 hours at the live step for shipped, and still waits.',
+      'Read the item with `boxxy item show 01900000-0000-7000-8000-000000000007`.',
+    ].join('\n'),
+  ]);
+});

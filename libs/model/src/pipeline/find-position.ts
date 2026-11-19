@@ -24,14 +24,28 @@ interface FindPositionInput {
 const skippedOutcome = 'skipped';
 
 export function findPosition(input: FindPositionInput): Position {
+  return trackPosition(input).position;
+}
+
+export interface PositionSince {
+  readonly position: Position;
+
+  // The instant of the last lever or settled attempt that set the position, which is when the item
+  // reached it. Null when none did: the item still stands where the pipeline starts it, or has no
+  // pipeline.
+  readonly since: Instant | null;
+}
+
+export function trackPosition(input: FindPositionInput): PositionSince {
   const pipeline = input.pipeline;
   const first = pipeline?.steps[0];
 
   if (pipeline === null || first === undefined) {
-    return { kind: 'end', reason: 'no-pipeline' };
+    return { position: { kind: 'end', reason: 'no-pipeline' }, since: null };
   }
 
   let position: Position = { kind: 'phase', phase: first.phase, round: 1 };
+  let since: Instant | null = null;
   let counted: Settled[] = [];
   let round = 1;
 
@@ -51,7 +65,15 @@ export function findPosition(input: FindPositionInput): Position {
           (position.kind === 'hold' && position.reason === 'rounds used up');
 
         round += startsNewRound ? 1 : 0;
-        position = { kind: 'phase', phase, round };
+
+        const next: Position = { kind: 'phase', phase, round };
+
+        // a retry that leaves the item at the same step and round is not a new arrival
+        const staysPut =
+          position.kind === 'phase' && position.phase === phase && position.round === round;
+
+        position = next;
+        since = staysPut ? since : event.lever.at;
       }
 
       continue;
@@ -68,6 +90,7 @@ export function findPosition(input: FindPositionInput): Position {
     }
 
     position = advance({ pipeline, settled, counted, round });
+    since = settled.endedAt;
     round = position.kind === 'end' ? round : position.round;
 
     // a skip counts toward no `maxAttempts` and no edge `max`
@@ -76,7 +99,7 @@ export function findPosition(input: FindPositionInput): Position {
     }
   }
 
-  return position;
+  return { position, since };
 }
 
 function pickResumePhase(position: Position): PhaseName | null {

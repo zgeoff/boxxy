@@ -101,6 +101,7 @@ test('it creates every table of the store schema in an empty file', async () => 
     'pull_requests',
     'relations',
     'runners',
+    'wait_notices',
   ]);
 });
 
@@ -474,5 +475,23 @@ test('it refuses a second shipped row for one item and commit', async () => {
 
   expect(() => {
     ctx.writeRaw(insert, 2000);
+  }).toThrow(/UNIQUE/u);
+});
+
+test('it adds the wait notice table with one row for each item and stay', async () => {
+  const ctx = await setupTest();
+
+  await ctx.migrate();
+
+  const insert = "INSERT INTO wait_notices (item_id, since, noticed_at) VALUES ('item-a', 1000, ?)";
+
+  ctx.writeRaw(insert, 2000);
+
+  ctx.writeRaw(
+    "INSERT INTO wait_notices (item_id, since, noticed_at) VALUES ('item-a', 3000, 4000)",
+  );
+
+  expect(() => {
+    ctx.writeRaw(insert, 5000);
   }).toThrow(/UNIQUE/u);
 });

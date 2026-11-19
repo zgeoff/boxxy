@@ -1,4 +1,5 @@
 import type { HoldNotice, NoticeOutcome, Notifier, NotifyNotice, PausedNotice } from '@boxxy/model';
+import { parseWaitOverdueReason } from '@boxxy/model';
 import type { AtcNotifierOptions } from './types.ts';
 
 export function createAtcNotifier(options: AtcNotifierOptions): Notifier {
@@ -92,6 +93,15 @@ function formatPausedMessage(notice: PausedNotice): string {
 }
 
 function formatNotifyMessage(notice: NotifyNotice): string {
+  const overdue = parseWaitOverdueReason(notice.reason);
+
+  if (overdue !== null) {
+    return [
+      `${notice.item} has waited more than ${overdue.hours} hours at the ${notice.phase} step for ${overdue.kind}, and still waits.`,
+      `Read the item with \`boxxy item show ${notice.item}\`.`,
+    ].join('\n');
+  }
+
   return [
     `boxxy settled the ${notice.phase} step of ${notice.item}: ${notice.reason}.`,
     `Read the item with \`boxxy item show ${notice.item}\`.`,

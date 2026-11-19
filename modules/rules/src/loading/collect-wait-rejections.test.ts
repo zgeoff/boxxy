@@ -82,3 +82,45 @@ test('it accepts a wait on a server that registers no worker for it', () => {
 
   expect(loaded.kind).toBe('loaded');
 });
+
+test('it accepts a waitNoticeHours on a step with waits', () => {
+  const loaded = loadWaitRules({
+    step: '    - { phase: verify, maxAttempts: 1, timeoutMinutes: 30, waits: [shipped], waitNoticeHours: 1.5, skip: next, on: { verified: next } }',
+  });
+
+  expect(loaded.kind).toBe('loaded');
+});
+
+test('it rejects a waitNoticeHours on a step with no waits', () => {
+  const loaded: unknown = loadWaitRules({
+    step: '    - { phase: verify, maxAttempts: 1, timeoutMinutes: 30, waitNoticeHours: 2, on: { verified: next } }',
+  });
+
+  expect(loaded).toStrictEqual({
+    kind: 'rejected',
+    rejections: [
+      {
+        file: 'rules.yaml',
+        path: 'pipelines.standard[1].waitNoticeHours',
+        reason: { kind: 'notice-without-wait', phase: 'verify' },
+      },
+    ],
+  });
+});
+
+test.each(['0', '-3', '"six"'])('it rejects a waitNoticeHours of %s', (value) => {
+  const loaded: unknown = loadWaitRules({
+    step: `    - { phase: verify, maxAttempts: 1, timeoutMinutes: 30, waits: [shipped], waitNoticeHours: ${value}, skip: next, on: { verified: next } }`,
+  });
+
+  expect(loaded).toStrictEqual({
+    kind: 'rejected',
+    rejections: [
+      {
+        file: 'rules.yaml',
+        path: expect.any(String),
+        reason: { kind: 'invalid', message: expect.any(String) },
+      },
+    ],
+  });
+});

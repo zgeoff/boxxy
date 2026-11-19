@@ -74,6 +74,7 @@ function buildEmptyTables(): MemoryTables {
     notes: [],
     notices: [],
     item_shipped: [],
+    wait_notices: [],
     outbox: [],
     limits: [],
     limit_seats: [],

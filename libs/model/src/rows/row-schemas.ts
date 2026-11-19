@@ -13,6 +13,7 @@ import { noticeRowSchema } from './notice-row-schema.ts';
 import { pullRequestRowSchema } from './pull-request-row-schema.ts';
 import { relationRowSchema } from './relation-row-schema.ts';
 import { runnerRowSchema } from './runner-row-schema.ts';
+import { waitNoticeMarkRowSchema } from './wait-notice-mark-row-schema.ts';
 
 // The schema of each table that a row write may name, for a store that reads rows back.
 export const rowSchemas: { readonly [T in TableName]: z.ZodType<Tables[T]> } = {
@@ -29,4 +30,5 @@ export const rowSchemas: { readonly [T in TableName]: z.ZodType<Tables[T]> } = {
   notes: noteRowSchema,
   notices: noticeRowSchema,
   item_shipped: itemShippedRowSchema,
+  wait_notices: waitNoticeMarkRowSchema,
 };

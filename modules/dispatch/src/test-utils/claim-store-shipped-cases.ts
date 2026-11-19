@@ -1,5 +1,5 @@
 import { brandSchemas } from '@boxxy/model';
-import type { ItemShipped } from '@boxxy/model';
+import type { ItemShipped, StoreChange } from '@boxxy/model';
 import { buildMockItemRules } from '@boxxy/model/test-utils/build-mock-item-rules';
 import { buildMockV1ItemRow } from '@boxxy/model/test-utils/build-mock-v1-item-row';
 import { buildMockFileItemChange } from './build-mock-file-item-change.ts';
@@ -137,6 +137,60 @@ export const claimStoreShippedCases: readonly ClaimStoreCase[] = [
       };
     },
   ],
+  [
+    '#applyChange writes a wait notice and the mark of its stay in one change',
+    async (store) => {
+      const item = buildMockV1ItemRow();
+
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(buildMockFileItemChange(item));
+        await transaction.applyChange(buildWaitNoticeChange(item.id, 1000));
+      });
+
+      const unsent = await store.read((transaction) => transaction.listUnsentNotices(10));
+      const marks = await store.read((transaction) => transaction.listWaitNoticeMarks());
+
+      return {
+        received: [unsent.map((row) => row.reason), marks],
+        expected: [
+          ['wait-overdue:shipped:6'],
+          [
+            {
+              itemId: item.id,
+              since: brandSchemas.instant.parse(1000),
+              noticedAt: brandSchemas.instant.parse(5000),
+            },
+          ],
+        ],
+      };
+    },
+  ],
+  [
+    '#applyChange refuses a second mark for one stay and writes no second notice',
+    async (store) => {
+      const item = buildMockV1ItemRow();
+
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(buildMockFileItemChange(item));
+        await transaction.applyChange(buildWaitNoticeChange(item.id, 1000));
+      });
+
+      const second = await store
+        .exclusive((transaction) => transaction.applyChange(buildWaitNoticeChange(item.id, 1000)))
+        .then(
+          () => 'resolved',
+          () => 'rejected',
+        );
+
+      const unsent = await store.read((transaction) => transaction.listUnsentNotices(10));
+      const marks = await store.read((transaction) => transaction.listWaitNoticeMarks());
+
+      return {
+        received: [second, unsent.length, marks.length],
+        expected: ['rejected', 1, 1],
+      };
+    },
+  ],
 ];
 
 function buildShipped(item: ItemShipped['itemId'], seenAt: number, rest = {}): ItemShipped {
@@ -147,5 +201,39 @@ function buildShipped(item: ItemShipped['itemId'], seenAt: number, rest = {}): I
     ref: 'v1.0.0',
     seenAt: brandSchemas.instant.parse(seenAt),
     ...rest,
+  };
+}
+
+function buildWaitNoticeChange(item: ItemShipped['itemId'], since: number): StoreChange {
+  const at = brandSchemas.instant.parse(5000);
+
+  return {
+    at,
+    writes: [
+      {
+        op: 'insert',
+        table: 'notices',
+        row: {
+          id: 1,
+          kind: 'notify',
+          item,
+          phase: brandSchemas.phaseName.parse('live'),
+          reason: 'wait-overdue:shipped:6',
+          pause: null,
+          at,
+          tries: 0,
+          sentAt: null,
+          keySeq: 0,
+          keyTries: 0,
+          nextTryAt: at,
+        },
+      },
+      {
+        op: 'insert',
+        table: 'wait_notices',
+        row: { itemId: item, since: brandSchemas.instant.parse(since), noticedAt: at },
+      },
+    ],
+    facts: [],
   };
 }

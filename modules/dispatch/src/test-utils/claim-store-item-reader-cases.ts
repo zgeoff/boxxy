@@ -119,6 +119,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
               ...open,
               derived: { state: 'ready' },
               position: { kind: 'phase', phase: 'build', round: 1 },
+              positionSince: open.filedAt,
             },
           ],
           relations: [],
@@ -423,8 +424,8 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       return {
         received: listed,
         expected: expect.toIncludeSameMembers([
-          { ...open, derived: { state: 'ready' }, position },
-          { ...task, derived: { state: 'ready' }, position },
+          { ...open, derived: { state: 'ready' }, position, positionSince: open.filedAt },
+          { ...task, derived: { state: 'ready' }, position, positionSince: task.filedAt },
         ]),
       };
     },
@@ -469,6 +470,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
             ...item,
             derived: { state: 'waiting', reason: 'pull request open' },
             position: { kind: 'end', reason: 'pipeline-done' },
+            positionSince: null,
             levers: [],
           },
           attempts: [expect.objectContaining({ id: attempt.id, state: 'succeeded' })],

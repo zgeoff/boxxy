@@ -49,6 +49,7 @@ const stepSchema = z.strictObject({
   criteria: z.strictObject({ tagged: nameSchema }).exactOptional(),
   skipWhen: z.array(skipConditionSchema).exactOptional(),
   waits: z.array(nameSchema).min(1).exactOptional(),
+  waitNoticeHours: z.number().positive().exactOptional(),
   skip: skipEdgeSchema.exactOptional(),
 });
 

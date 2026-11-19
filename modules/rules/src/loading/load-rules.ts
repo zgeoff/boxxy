@@ -431,6 +431,7 @@ function buildStep(step: ParsedStep): PipelineStep {
     ...(step.criteria === undefined ? {} : { criteria: step.criteria }),
     ...(step.skipWhen === undefined ? {} : { skipWhen: step.skipWhen.map(toSkipCondition) }),
     ...(step.waits === undefined ? {} : { waits: step.waits }),
+    ...(step.waitNoticeHours === undefined ? {} : { waitNoticeHours: step.waitNoticeHours }),
     ...(step.skip === undefined ? {} : { skip: step.skip }),
   };
 }

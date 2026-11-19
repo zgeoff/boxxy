@@ -36,4 +36,8 @@ export interface DispatchTimeouts {
 
   // a runner paused this long with an item ready to claim sends the owner one notice
   readonly pausedNoticeHours: number;
+
+  // an item that waits this long at a step with `waits` sends the owner one notice, unless the step
+  // sets its own time
+  readonly waitNoticeHours: number;
 }

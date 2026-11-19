@@ -34,7 +34,10 @@ reads one item and its repo's ship rule, and answers:
 - `skip` when the repo ships `none`;
 - `waiting` otherwise.
 
-An item waits for its ship with no time limit.
+An item that waits longer than the step's `waitNoticeHours`, or the dispatch module's
+`waitNoticeHours` timeout when the step sets none, gets one notice to the owner, and keeps waiting
+([the overdue wait](./notices.md#the-notify-notice)). The wait never holds or skips the item for its
+length.
 
 A shipped row satisfies the wait only for the commit it names. After
 `boxxy item retry <item> --phase build` and a second merge, the watch reads the new commit. A rules

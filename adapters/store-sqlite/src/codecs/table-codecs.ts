@@ -180,4 +180,9 @@ export const tableCodecs: { readonly [T in TableName]: TableCodec<Tables[T]> } =
     json: [],
     flags: [],
   },
+  wait_notices: {
+    fields: ['itemId', 'since', 'noticedAt'],
+    json: [],
+    flags: [],
+  },
 };

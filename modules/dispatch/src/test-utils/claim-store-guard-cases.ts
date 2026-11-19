@@ -221,6 +221,7 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
               ...item,
               derived: { state: 'ready' },
               position: { kind: 'phase', phase: 'build', round: 1 },
+              positionSince: item.filedAt,
             },
             facts: 1,
           },

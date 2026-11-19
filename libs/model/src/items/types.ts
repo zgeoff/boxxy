@@ -35,4 +35,7 @@ export interface ItemRevision {
 export interface ItemWithLevers extends ItemView {
   // the live levers only
   readonly levers: readonly LeverRow[];
+
+  // when the item's position became the step it stands at; null at an end or a hold
+  readonly positionSince: Instant | null;
 }

@@ -570,6 +570,16 @@ export type ShipRule =
       readonly then?: { readonly repo: RepoName; readonly tag: string };
     };
 
+// The record that the owner got the notice for one stay of an item at a step that waits. One row
+// for each item and stay, so a second notice for the stay is refused.
+export interface WaitNoticeMark {
+  readonly itemId: ItemId;
+
+  // when the item's position became the step: the start of the stay
+  readonly since: Instant;
+  readonly noticedAt: Instant;
+}
+
 // The ship watch's record that an item's merge commit shipped. One row for each item and commit.
 export interface ItemShipped {
   readonly itemId: ItemId;

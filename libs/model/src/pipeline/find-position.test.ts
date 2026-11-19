@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { brandSchemas } from '../rows/brand-schemas.ts';
 import { buildMockPipeline } from '../test-utils/build-mock-pipeline.ts';
 import { buildMockSettled } from '../test-utils/build-mock-settled.ts';
-import { findPosition } from './find-position.ts';
+import { findPosition, trackPosition } from './find-position.ts';
 
 test('it sends the item back to build with round 2 after a review that requests changes', () => {
   const position: unknown = findPosition({
@@ -560,4 +560,38 @@ test('it sends the item back to the skipped step when a retry lever is stamped b
   });
 
   expect(position).toStrictEqual({ kind: 'phase', phase: 'build', round: 2 });
+});
+
+test.each([
+  { title: 'no attempt or lever', attempts: [], retries: [], since: null },
+  {
+    title: 'a settled attempt',
+    attempts: [buildMockSettled({ phase: 'triage', outcome: 'accepted', endedAt: 1000 })],
+    retries: [],
+    since: 1000,
+  },
+  {
+    title: 'a retry lever after the attempts',
+    attempts: [buildMockSettled({ phase: 'triage', outcome: 'accepted', endedAt: 1000 })],
+    retries: [
+      { at: brandSchemas.instant.parse(2000), phase: brandSchemas.phaseName.parse('triage') },
+    ],
+    since: 2000,
+  },
+  {
+    title: 'a retry lever with no phase while the item stays at the step',
+    attempts: [buildMockSettled({ phase: 'triage', outcome: 'accepted', endedAt: 1000 })],
+    retries: [{ at: brandSchemas.instant.parse(2000), phase: null }],
+    since: 1000,
+  },
+])('#trackPosition gives the start of the stay after $title', (row) => {
+  const found = trackPosition({
+    pipeline: buildMockPipeline(),
+    attempts: row.attempts,
+    retries: row.retries,
+  });
+
+  const expected = row.since === null ? null : brandSchemas.instant.parse(row.since);
+
+  expect(found.since).toBe(expected);
 });
