@@ -99,7 +99,7 @@ test('it reads incomplete with no features when the body holds a version 1 repor
     status: 'incomplete',
     head: ctx.head,
     features: [],
-    note: 'The PR body holds a version 1 report. Run `bun verify publish` again.',
+    note: 'The PR body holds a version 1 report. Run the publish command from the verify skill again.',
   });
 });
 

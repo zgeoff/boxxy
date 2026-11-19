@@ -50,7 +50,7 @@ function buildVerifyReading(
   if (!parsed.ok) {
     const note =
       parsed.reason === 'version-1'
-        ? `${parsed.message} Run \`bun verify publish\` again.`
+        ? `${parsed.message} Run the publish command from the verify skill again.`
         : parsed.message;
 
     return { status: 'incomplete', head, features: [], note };
