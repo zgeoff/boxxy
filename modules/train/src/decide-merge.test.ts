@@ -559,3 +559,58 @@ test('it names each required check once when the rules and the base branch both 
     pending: ['pr / checks', 'build'],
   });
 });
+
+test.each([
+  ['pending', new Map([['verify / gate', 'pending']] as const)],
+  ['missing', new Map()],
+])(
+  'it waits on a check that only the base branch requires while it is %s, with an empty merge.checks',
+  (_state, checks) => {
+    const ctx = setupTest();
+
+    expect(
+      ctx.decide({
+        rules: { method: 'squash', checks: [] },
+        observed: buildMockMergeObservation({ baseRequired: ['verify / gate'], checks }),
+      }),
+    ).toStrictEqual({
+      kind: 'wait',
+      reason: 'checks pending',
+      pending: ['verify / gate'],
+    });
+  },
+);
+
+test('it asks to merge a reviewed head once the base branch required checks are green, with an empty merge.checks', () => {
+  const ctx = setupTest();
+
+  const observed = buildMockMergeObservation({
+    baseRequired: ['verify / gate'],
+    checks: new Map([['verify / gate', 'success']] as const),
+  });
+
+  expect(ctx.decide({ rules: { method: 'squash', checks: [] }, observed })).toMatchObject({
+    kind: 'act',
+    action: { kind: 'merge', required: ['verify / gate'] },
+  });
+});
+
+test('it asks to merge a reviewed head with no required check at all, with an empty merge.checks', () => {
+  const ctx = setupTest();
+  const observed = buildMockMergeObservation({ baseRequired: [], checks: new Map() });
+
+  expect(ctx.decide({ rules: { method: 'squash', checks: [] }, observed })).toMatchObject({
+    kind: 'act',
+    action: { kind: 'merge', required: [] },
+  });
+});
+
+test('it finishes stale with no review at the head, with no required check at all', () => {
+  const ctx = setupTest();
+  const observed = buildMockMergeObservation({ review: null, baseRequired: [] });
+
+  expect(ctx.decide({ rules: { method: 'squash', checks: [] }, observed })).toMatchObject({
+    kind: 'finish',
+    closeOut: { outcome: 'stale', required: [] },
+  });
+});

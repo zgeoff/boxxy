@@ -8,7 +8,7 @@ Every slice passes `bun run typecheck`, `bun run lint` and `bun run test`, and p
 
 ### 1. The model and the ports
 
-- **Outcome:** `@boxxy/model` holds `ReviewGate`, `Verifier`, `JobWorker`, `WorkerRegistry`, the merge types and the new close-outs. The catalog holds 30 fact types, with `boxxy.attempt.job_started`, `boxxy.merge.requested` and `boxxy.merge.answered`. The rules loader refuses a file for each of the reasons unknown-worker, merge-without-rules, empty-merge-checks and builder-session-not-kept.
+- **Outcome:** `@boxxy/model` holds `ReviewGate`, `Verifier`, `JobWorker`, `WorkerRegistry`, the merge types and the new close-outs. The catalog holds 30 fact types, with `boxxy.attempt.job_started`, `boxxy.merge.requested` and `boxxy.merge.answered`. The rules loader refuses a file for each of the reasons unknown-worker, merge-without-rules and builder-session-not-kept.
 - **Follows:** [review and merge](./review-and-merge.md); `review-and-merge/02-types.ts`.
 - **Needs:** nothing.
 - **Check:** one loader test per new refusal reason, and the catalog test counts 30 fact types.

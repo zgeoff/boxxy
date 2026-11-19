@@ -116,10 +116,10 @@ const recipeSchema = z.strictObject({
   session: z.enum(['builder', 'fresh']).exactOptional(),
 });
 
-// `checks` may be empty here so that the loader refuses an empty list by its own reason
+// `checks` may be empty or left out: the merge step also waits on the base branch's required checks
 const mergeRulesSchema = z.strictObject({
   method: z.enum(['merge', 'squash', 'rebase']),
-  checks: z.array(nameSchema),
+  checks: z.array(nameSchema).default([]),
 });
 
 const skillsPinSchema = z.strictObject({

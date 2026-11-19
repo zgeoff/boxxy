@@ -3,13 +3,11 @@ import { mergePhase } from '../constants.ts';
 import type { ParsedRulesFile } from '../parse/rules-file-schema.ts';
 import { buildRejection } from './build-rejection.ts';
 
-// The merge step reads the union of `merge.checks` and the base branch's required checks, so a
-// non-empty list keeps the union non-empty on a branch that requires no check.
+// An empty `merge.checks` is valid: the merge step waits on the union of the list and the base
+// branch's required checks, so each repo's own ruleset says what a merge needs.
 export function collectMergeRejections(file: ParsedRulesFile): LoadRejection[] {
   if (file.merge !== undefined) {
-    return file.merge.checks.length === 0
-      ? [buildRejection(['merge', 'checks'], { kind: 'empty-merge-checks' })]
-      : [];
+    return [];
   }
 
   return Object.entries(file.pipelines).flatMap(([pipeline, steps]) =>

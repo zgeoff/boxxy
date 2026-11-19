@@ -459,7 +459,6 @@ export type LoadRejectionReason =
 
   // a pipeline has a `merge` step, and the file has no `merge` block
   | { readonly kind: 'merge-without-rules' }
-  | { readonly kind: 'empty-merge-checks' }
 
   // a `session: builder` recipe is mapped to a step with no build step before it, so no session
   // is kept for it to wake
