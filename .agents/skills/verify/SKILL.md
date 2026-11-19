@@ -31,7 +31,7 @@ The mistakes that cost the most time:
 ## Key rules
 
 - [Check a change](#check-a-change): for each changed feature, run its journey, check the end state,
-  then `done`; then push and publish with the upload token read inline.
+  then `done`; then push and publish with the upload token read in a subshell.
 - [Read the envelope](#read-the-envelope): branch on the exit code and `error.code`, never on the
   message, which can change in any release.
 - [Targets](#targets): check a change on a launch target, a target whose app `bun verify up` starts
@@ -103,7 +103,7 @@ Read a feature's file before you run its journey.
     evidence files. `VERIFY_UPLOAD_TOKEN_REF` is the 1Password `op://` reference to the upload
     token. Never run `op read` on its own: it prints the token.
 11. Publish the report, even when you skipped a feature. Read the token in a subshell, so it never
-    sits in your shell, and a failed `op read` stops the command before `publish` runs:
+    sits in your shell. A failed `op read` then stops the command before `publish` runs:
 
     ```bash
     (VERIFY_UPLOAD_TOKEN="$(op read "$VERIFY_UPLOAD_TOKEN_REF")" && export VERIFY_UPLOAD_TOKEN && bun verify publish)
