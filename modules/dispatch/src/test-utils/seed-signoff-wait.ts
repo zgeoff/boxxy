@@ -22,7 +22,7 @@ export interface SeededSignoffWait {
 }
 
 // The head of the pull request that the item waits on
-export const signoffWaitHead = brandSchemas.commitSha.parse(
+export const signoffWaitHead: CommitSha = brandSchemas.commitSha.parse(
   'e83c5163316f89bfbde7d9ab23ca2e25604af290',
 );
 
