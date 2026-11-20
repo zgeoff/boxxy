@@ -34,6 +34,6 @@ export function pickSignoffVerdict(
 function isSpent(lever: LeverRow, attempts: readonly AttemptRow[]): boolean {
   return attempts.some(
     (attempt) =>
-      attempt.phase === 'merge' && attempt.endedAt !== null && attempt.endedAt > lever.at,
+      attempt.phase === 'merge' && attempt.endedAt !== null && attempt.endedAt >= lever.at,
   );
 }

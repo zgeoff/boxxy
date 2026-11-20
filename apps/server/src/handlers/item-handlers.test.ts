@@ -589,6 +589,21 @@ test('#signoff refuses an item that is held', async () => {
   expect([answer.status, answer.code]).toStrictEqual([400, 'ITEM_HELD']);
 });
 
+test('#signoff refuses an item that was closed at the hold', async () => {
+  const ctx = await setupTest();
+  const seeded = await seedSignoffWait(ctx.dispatch, ctx.forge);
+
+  await ctx.callOwner('item.close', { item: seeded.item, reason: 'wontfix' });
+
+  const answer = await ctx.readAnswer('item.signoff', {
+    item: seeded.item,
+    head: seeded.head,
+    verdict: 'approve',
+  });
+
+  expect([answer.status, answer.code]).toStrictEqual([409, 'NOT_AWAITING_SIGNOFF']);
+});
+
 test('it lists each item that waits for a sign-off, with its head, rules and paths', async () => {
   const ctx = await setupTest();
   const seeded = await seedSignoffWait(ctx.dispatch, ctx.forge);

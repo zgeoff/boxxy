@@ -32,6 +32,10 @@ export const signoffItemHandler = api.item.signoff.handler((options) => {
       throw itemHeld();
     }
 
+    if (found.derived.state === 'archived') {
+      throw notAwaiting();
+    }
+
     const attempts = await tx.listItemAttempts(found.id);
 
     const wait = findWait(deps, found, attempts);
