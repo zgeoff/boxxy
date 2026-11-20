@@ -2,10 +2,9 @@ import type { Pipeline } from '../rules/types.ts';
 import type { Instant, PhaseName } from '../types.ts';
 import { advance } from './advance.ts';
 import { findStep } from './find-step.ts';
+import { isSignoffHold } from './is-signoff-hold.ts';
 import { mergeByTime } from './merge-by-time.ts';
 import type { Position, RetryLever, Settled } from './types.ts';
-
-type HoldPosition = Extract<Position, { readonly kind: 'hold' }>;
 
 interface FindPositionInput {
   // the pipeline of the item's kind in the rules loaded now; null when the kind has none
@@ -112,13 +111,6 @@ export function trackPosition(input: FindPositionInput): PositionSince {
   }
 
   return { position, since };
-}
-
-// The sign-off hold is the hold that the merge step's `needs-signoff` edge names.
-function isSignoffHold(pipeline: Pipeline, position: HoldPosition): boolean {
-  const edge = findStep(pipeline, position.then)?.on['needs-signoff'];
-
-  return typeof edge === 'object' && 'hold' in edge && edge.hold === position.reason;
 }
 
 function pickResumePhase(position: Position): PhaseName | null {
