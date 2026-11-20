@@ -43,7 +43,7 @@ test('it gives the registry a phase kind that settles the close-out it is given'
 });
 
 test('it refuses at compile time a settle that answers with an outcome the kind does not list', () => {
-  const phase: PhaseKind = definePhase({
+  const phase = definePhase({
     name: brandSchemas.phaseName.parse('check'),
     version: 1,
     worker: brandSchemas.workerKindName.parse('atc.session'),

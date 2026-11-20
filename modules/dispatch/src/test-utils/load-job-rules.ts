@@ -44,6 +44,10 @@ function buildMergePhase(drive: (ctx: DriveContext) => JobStep) {
     version: 1,
     worker: brandSchemas.workerKindName.parse('merge.forge'),
     outcomes: ['merged', 'repair', 'stale', 'closed', 'stalled', 'refused', 'blocked'],
+    conditionalOutcomes: [
+      { outcome: 'needs-signoff', requiredWhen: () => false },
+      { outcome: 'changes-requested', requiredWhen: () => false },
+    ],
     needsAcceptance: false,
     input: () => toJSONValue({}),
     drive,

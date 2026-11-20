@@ -2501,7 +2501,7 @@ sleep: { afterIdleMinutes: 30, afterQuietMinutes: 60, afterUnattendedMinutes: 24
       session: result.rules.recipes.get(brandSchemas.recipeName.parse('verify-builder'))?.recipe
         .session,
     }).toStrictEqual({
-      merge: { method: 'squash', checks },
+      merge: { method: 'squash', checks, signoff: [] },
       session: 'builder',
     });
   },

@@ -5,6 +5,7 @@ import type { PhaseKind } from '../rules/types.ts';
 interface MockPhaseKindInput {
   readonly name: string;
   readonly outcomes: readonly string[];
+  readonly conditionalOutcomes?: PhaseKind['conditionalOutcomes'];
 
   // `atc.session` when left out
   readonly worker?: string;
@@ -18,6 +19,9 @@ export function buildMockPhaseKind(input: MockPhaseKindInput): PhaseKind {
     version: 1,
     worker: brandSchemas.workerKindName.parse(input.worker ?? 'atc.session'),
     outcomes: input.outcomes,
+    ...(input.conditionalOutcomes === undefined
+      ? {}
+      : { conditionalOutcomes: input.conditionalOutcomes }),
     needsAcceptance: false,
     input: () => ({}),
     closeOut: { parse: (raw) => ({ kind: 'valid', closeOut: raw }), jsonSchema: {} },

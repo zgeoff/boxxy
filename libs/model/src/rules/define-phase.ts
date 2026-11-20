@@ -7,6 +7,7 @@ export function definePhase<
   Body,
   Input extends JsonValue,
   const Outcomes extends readonly string[],
->(phase: PhaseKind<Body, Input, Outcomes>): PhaseKind {
+  Conditional extends string = never,
+>(phase: PhaseKind<Body, Input, Outcomes, Conditional>): PhaseKind {
   return phase;
 }
