@@ -7,8 +7,10 @@ import { ControlConflictError } from './control-conflict-error.ts';
 import { controlRoutes } from './control-routes.ts';
 import { drainOutbox } from './drain-outbox.ts';
 import { endTurn } from './end-turn.ts';
+import { holdAtSignoff } from './hold-at-signoff.ts';
 import { mergePullRequest } from './merge-pull-request.ts';
 import { openPullRequest } from './open-pull-request.ts';
+import { pushCommit } from './push-commit.ts';
 import { sendTelemetry } from './send-telemetry.ts';
 import { setCurrentItem } from './set-current-item.ts';
 import { startSession } from './start-session.ts';
@@ -105,6 +107,8 @@ export function makeControlHandler(
 
       return null;
     }),
+    bindRoute(controlRoutes.holdAtSignoff, () => holdAtSignoff(harness)),
+    bindRoute(controlRoutes.pushCommit, () => pushCommit(harness)),
     bindRoute(controlRoutes.drainOutbox, () => drainOutbox(harness)),
   ];
 

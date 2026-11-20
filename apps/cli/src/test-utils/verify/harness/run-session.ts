@@ -14,6 +14,9 @@ interface SessionInput {
 
   // the pull request that a `built` close-out links; null when the session opens none
   readonly pullRequest?: number | null;
+
+  // the head that a `passed` review covers
+  readonly head?: string | null;
 }
 
 // One attempt of the current item, from the claim to the settle: a tick claims it, the session's
@@ -32,6 +35,7 @@ export async function runSession(ctx: VerifyContext, input: SessionInput) {
   const body = await readCloseOutBody(ctx, {
     closeOut: input.closeOut,
     pullRequest: input.pullRequest ?? null,
+    head: input.head ?? null,
   });
 
   await runBoxxy(ctx, {

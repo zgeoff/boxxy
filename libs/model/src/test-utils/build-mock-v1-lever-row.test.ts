@@ -12,6 +12,7 @@ test('it builds a defer lever with no phase', () => {
     expiresAt: null,
     reason: expect.any(String),
     phase: null,
+    head: null,
     actor: 'boxxy:owner:local',
     at: expect.any(Number),
   });

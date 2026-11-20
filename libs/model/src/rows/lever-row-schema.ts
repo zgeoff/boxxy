@@ -12,6 +12,7 @@ export const leverRowSchema = z.object({
   expiresAt: brandSchemas.instant.nullable(),
   reason: z.string().nullable(),
   phase: brandSchemas.phaseName.nullable(),
+  head: brandSchemas.commitSha.nullable(),
   actor: actorRefSchema,
   at: brandSchemas.instant,
 }) satisfies z.ZodType<LeverRow>;

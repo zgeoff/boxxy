@@ -61,6 +61,7 @@ needs it:
 - **The owner's agent** files and steers work, so the owner's `/mcp` lists every procedure that
   changes an item, every read, the runner's pause and resume, and the notice procedures. Only the
   owner can file, release or list held items, because a held item is the owner's draft.
+- **The owner's sign-off** has two procedures, both owner-only ([below](#the-owners-sign-off)).
 - **A session** gets five tools on its own endpoint, `/mcp/session`, so its tool list holds nothing
   that changes another item. `attempt.current` gives the session its attempt ID, phase, close-out
   schema, outcome names, skills and the item's notes. `attempt.evidence` records evidence such as a
@@ -80,6 +81,28 @@ One root middleware runs the access check for every call, on `/rpc` and both MCP
 any handler runs, and handlers never repeat it. It also logs each internal error with the procedure
 and the `item` and `attempt` IDs of its input, and nothing else from the input, so a close-out body
 or a token never reaches the log.
+
+## The owner's sign-off
+
+`signoff.list` (MCP `signoff_list`, CLI `boxxy signoff list`) takes the owner's read access. It
+lists each item that waits for a [sign-off at merge](../work/pipeline.md#owner-sign-off-at-merge),
+oldest first by when it reached the hold: the item and its title, the pull request, the `head` to
+answer, the rules and paths that matched, whether the list was `truncated`, and `since`.
+
+`item.signoff` (MCP `item_signoff`, CLI `boxxy item signoff`) takes the owner's write access, an
+`item`, the `head` that the list gave, a `verdict` of `approve` or `send-back`, and `findings`. It
+checks and writes in one store change, and refuses with a typed error:
+
+| Error                  | When                                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------ |
+| `NOT_FOUND`            | the item does not exist                                                              |
+| `ITEM_HELD`            | an `item.held` lever is in force on the item                                         |
+| `NOT_AWAITING_SIGNOFF` | the item does not wait for a sign-off, or an attempt of it runs                      |
+| `STALE_HEAD`           | the head differs from the head of the waiting merge attempt; the error data gives it |
+| `FINDINGS_REQUIRED`    | a send-back has no findings                                                          |
+
+Findings over 8000 characters are refused as a bad input, as any other bad argument is. The answer
+is the number of the lever that the call wrote.
 
 ## The paths
 

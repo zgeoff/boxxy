@@ -1,9 +1,10 @@
 import { expect, test } from 'bun:test';
 import type { AttemptRow, CommitSha } from '@boxxy/model';
-import { brandSchemas } from '@boxxy/model';
+import { brandSchemas, mergeCloseOutSchema } from '@boxxy/model';
 import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
 import invariant from 'tiny-invariant';
 import { watchPullRequests } from '../pull-requests/watch-pull-requests.ts';
+import { buildMockLeverChange } from '../test-utils/build-mock-lever-change.ts';
 import { claimNextPick } from '../test-utils/claim-next-pick.ts';
 import { createFakeForge } from '../test-utils/create-fake-forge.ts';
 import { createFakeVerifier } from '../test-utils/create-fake-verifier.ts';
@@ -19,6 +20,7 @@ async function setupTest() {
   const forge = createFakeForge();
   const verifier = createFakeVerifier();
   const rules = loadJobRules();
+  const signoffRules = loadJobRules(undefined, { signoff: true });
 
   dispatch.setRules(rules);
 
@@ -31,7 +33,8 @@ async function setupTest() {
 
   invariant(step !== undefined, 'the job rules have a merge step');
 
-  const job = createMergeJob({ forge, verifier, store: dispatch.store });
+  const makeJob = (jobForge: typeof forge) =>
+    createMergeJob({ forge: jobForge, verifier, store: dispatch.store });
 
   const claimMerge = () =>
     claimNextPick({
@@ -44,14 +47,14 @@ async function setupTest() {
       newId: dispatch.newId,
     });
 
-  const read = async (attempt: AttemptRow) => {
+  const readWith = async (jobForge: typeof forge, jobRules: typeof rules, attempt: AttemptRow) => {
     const row = await dispatch.readAttempt(attempt.id);
 
     return runJobReading({
       store: dispatch.store,
       runner: dispatch.runner,
-      job,
-      rules,
+      job: makeJob(jobForge),
+      rules: jobRules,
       attempt: row,
       step,
       now: dispatch.clock.now(),
@@ -64,11 +67,14 @@ async function setupTest() {
     forge,
     verifier,
     claimMerge,
-    read,
+    read: (attempt: AttemptRow) => readWith(forge, rules, attempt),
+    readSignoff: (attempt: AttemptRow) => readWith(forge, signoffRules, attempt),
+    readSignoffWith: (jobForge: typeof forge, attempt: AttemptRow) =>
+      readWith(jobForge, signoffRules, attempt),
     readAfterWait: (attempt: AttemptRow) => {
       dispatch.clock.advance(timeouts.jobReadSeconds * 1000);
 
-      return read(attempt);
+      return readWith(forge, rules, attempt);
     },
     watch: () =>
       watchPullRequests({
@@ -418,4 +424,411 @@ test('it reads a merge again, unsettled, when the forge does not answer', async 
   ctx.forge.setDown(true);
 
   expect(ctx.read(merge)).rejects.toThrow(/the fake forge is down/u);
+});
+
+test('it reads no changed paths when the rules file sets no sign-off rule', async () => {
+  const ctx = await setupTest();
+
+  const repo = brandSchemas.repoName.parse('example/app');
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+
+  await ctx.seedBuildWithPullRequest(ctx.forge, 7);
+
+  ctx.forge.seed({
+    ref: { repo, number: 7 },
+    githubId: 9_000_007,
+    reading: {
+      state: 'open',
+      mergedAt: null,
+      mergeCommit: null,
+      commits: [{ sha: head, message: 'Dim the lamp' }],
+    },
+  });
+
+  ctx.forge.seedRequiredChecks({ repo, branch: 'main', checks: [] });
+  ctx.forge.seedChecks({ repo, head, checks: { 'pr / checks': 'success' } });
+
+  const merge = await ctx.claimMergeAfterReview(head);
+
+  await ctx.read(merge);
+
+  expect(ctx.forge.calls.filter((call) => call.startsWith('readChangedPaths'))).toStrictEqual([]);
+});
+
+test('it holds a pull request that edits a matched path for the owner, and names the rule and path', async () => {
+  const ctx = await setupTest();
+
+  const repo = brandSchemas.repoName.parse('example/app');
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+  const ref = { repo, number: 7 };
+
+  await ctx.seedBuildWithPullRequest(ctx.forge, 7);
+
+  ctx.forge.seed({
+    ref,
+    githubId: 9_000_007,
+    reading: {
+      state: 'open',
+      mergedAt: null,
+      mergeCommit: null,
+      commits: [{ sha: head, message: 'Tighten the testing skill' }],
+    },
+  });
+
+  ctx.forge.seedChangedFiles({
+    ref,
+    files: [{ path: 'src/lamp.ts' }, { path: 'skills/testing/SKILL.md' }],
+  });
+
+  ctx.forge.seedRequiredChecks({ repo, branch: 'main', checks: [] });
+  ctx.forge.seedChecks({ repo, head, checks: { 'pr / checks': 'success' } });
+
+  const merge = await ctx.claimMergeAfterReview(head);
+
+  await ctx.readSignoff(merge);
+
+  const row = await ctx.readAttempt(merge.id);
+
+  const seen: unknown = {
+    attempt: [row.state, row.outcome],
+    signoff: mergeCloseOutSchema.parse(row.closeOut).signoff,
+    mergeCalls: ctx.forge.calls.filter((call) => call.startsWith('mergeAtHead')),
+  };
+
+  expect(seen).toStrictEqual({
+    attempt: ['failed', 'needs-signoff'],
+    signoff: { rules: ['skills'], paths: ['skills/testing/SKILL.md'], truncated: false },
+    mergeCalls: [],
+  });
+});
+
+test('it merges a pull request whose changed paths match no sign-off rule', async () => {
+  const ctx = await setupTest();
+
+  const repo = brandSchemas.repoName.parse('example/app');
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+  const ref = { repo, number: 7 };
+
+  await ctx.seedBuildWithPullRequest(ctx.forge, 7);
+
+  ctx.forge.seed({
+    ref,
+    githubId: 9_000_007,
+    reading: {
+      state: 'open',
+      mergedAt: null,
+      mergeCommit: null,
+      commits: [{ sha: head, message: 'Dim the lamp' }],
+    },
+  });
+
+  ctx.forge.seedChangedFiles({ ref, files: [{ path: 'src/lamp.ts' }] });
+  ctx.forge.seedRequiredChecks({ repo, branch: 'main', checks: [] });
+  ctx.forge.seedChecks({ repo, head, checks: { 'pr / checks': 'success' } });
+
+  const merge = await ctx.claimMergeAfterReview(head);
+
+  await ctx.readSignoff(merge);
+
+  expect(ctx.forge.calls.filter((call) => call.startsWith('mergeAtHead'))).toStrictEqual([
+    `mergeAtHead example/app#7 ${head} squash`,
+  ]);
+});
+
+test('it holds a list of changed paths that the forge cut short', async () => {
+  const ctx = await setupTest();
+
+  const repo = brandSchemas.repoName.parse('example/app');
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+  const ref = { repo, number: 7 };
+
+  await ctx.seedBuildWithPullRequest(ctx.forge, 7);
+
+  ctx.forge.seed({
+    ref,
+    githubId: 9_000_007,
+    reading: {
+      state: 'open',
+      mergedAt: null,
+      mergeCommit: null,
+      commits: [{ sha: head, message: 'Dim the lamp' }],
+    },
+  });
+
+  ctx.forge.seedChangedFiles({ ref, files: [{ path: 'src/lamp.ts' }], changedFiles: 4000 });
+  ctx.forge.seedRequiredChecks({ repo, branch: 'main', checks: [] });
+  ctx.forge.seedChecks({ repo, head, checks: { 'pr / checks': 'success' } });
+
+  const merge = await ctx.claimMergeAfterReview(head);
+
+  await ctx.readSignoff(merge);
+
+  const row = await ctx.readAttempt(merge.id);
+
+  const seen: unknown = [row.outcome, mergeCloseOutSchema.parse(row.closeOut).signoff];
+
+  expect(seen).toStrictEqual(['needs-signoff', { rules: [], paths: [], truncated: true }]);
+});
+
+test('it merges a matched pull request that the owner approved at its head', async () => {
+  const ctx = await setupTest();
+
+  const repo = brandSchemas.repoName.parse('example/app');
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+  const ref = { repo, number: 7 };
+
+  await ctx.seedBuildWithPullRequest(ctx.forge, 7);
+
+  ctx.forge.seed({
+    ref,
+    githubId: 9_000_007,
+    reading: {
+      state: 'open',
+      mergedAt: null,
+      mergeCommit: null,
+      commits: [{ sha: head, message: 'Tighten the testing skill' }],
+    },
+  });
+
+  ctx.forge.seedChangedFiles({ ref, files: [{ path: 'skills/testing/SKILL.md' }] });
+  ctx.forge.seedRequiredChecks({ repo, branch: 'main', checks: [] });
+  ctx.forge.seedChecks({ repo, head, checks: { 'pr / checks': 'success' } });
+
+  const merge = await ctx.claimMergeAfterReview(head);
+
+  await ctx.store.exclusive((tx) =>
+    tx.applyChange(
+      buildMockLeverChange({
+        seq: 1,
+        kind: 'signoff.approve',
+        item: merge.item,
+        until: null,
+        expiresAt: null,
+        reason: null,
+        phase: null,
+        head,
+        actor: 'boxxy:owner:local',
+        at: ctx.clock.now(),
+      }),
+    ),
+  );
+
+  await ctx.readSignoff(merge);
+
+  expect(ctx.forge.calls.filter((call) => call.startsWith('mergeAtHead'))).toStrictEqual([
+    `mergeAtHead example/app#7 ${head} squash`,
+  ]);
+});
+
+test('it holds a matched pull request again when the owner approved another head', async () => {
+  const ctx = await setupTest();
+
+  const repo = brandSchemas.repoName.parse('example/app');
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+  const readHead = brandSchemas.commitSha.parse('0a1b2c3d4e5f60718293a4b5c6d7e8f901234567');
+  const ref = { repo, number: 7 };
+
+  await ctx.seedBuildWithPullRequest(ctx.forge, 7);
+
+  ctx.forge.seed({
+    ref,
+    githubId: 9_000_007,
+    reading: {
+      state: 'open',
+      mergedAt: null,
+      mergeCommit: null,
+      commits: [{ sha: head, message: 'Tighten the testing skill' }],
+    },
+  });
+
+  ctx.forge.seedChangedFiles({ ref, files: [{ path: 'skills/testing/SKILL.md' }] });
+  ctx.forge.seedRequiredChecks({ repo, branch: 'main', checks: [] });
+  ctx.forge.seedChecks({ repo, head, checks: { 'pr / checks': 'success' } });
+
+  const merge = await ctx.claimMergeAfterReview(head);
+
+  await ctx.store.exclusive((tx) =>
+    tx.applyChange(
+      buildMockLeverChange({
+        seq: 1,
+        kind: 'signoff.approve',
+        item: merge.item,
+        until: null,
+        expiresAt: null,
+        reason: null,
+        phase: null,
+        head: readHead,
+        actor: 'boxxy:owner:local',
+        at: ctx.clock.now(),
+      }),
+    ),
+  );
+
+  await ctx.readSignoff(merge);
+
+  const row = await ctx.readAttempt(merge.id);
+
+  expect(row.outcome).toBe(brandSchemas.outcomeName.parse('needs-signoff'));
+});
+
+test('it sends a matched pull request back with the findings of the owner who sent it back at its head', async () => {
+  const ctx = await setupTest();
+
+  const repo = brandSchemas.repoName.parse('example/app');
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+  const ref = { repo, number: 7 };
+
+  await ctx.seedBuildWithPullRequest(ctx.forge, 7);
+
+  ctx.forge.seed({
+    ref,
+    githubId: 9_000_007,
+    reading: {
+      state: 'open',
+      mergedAt: null,
+      mergeCommit: null,
+      commits: [{ sha: head, message: 'Tighten the testing skill' }],
+    },
+  });
+
+  ctx.forge.seedChangedFiles({ ref, files: [{ path: 'skills/testing/SKILL.md' }] });
+  ctx.forge.seedRequiredChecks({ repo, branch: 'main', checks: [] });
+  ctx.forge.seedChecks({ repo, head, checks: { 'pr / checks': 'success' } });
+
+  const merge = await ctx.claimMergeAfterReview(head);
+
+  await ctx.store.exclusive((tx) =>
+    tx.applyChange(
+      buildMockLeverChange({
+        seq: 1,
+        kind: 'signoff.send-back',
+        item: merge.item,
+        until: null,
+        expiresAt: null,
+        reason: 'The new rule contradicts the old one',
+        phase: null,
+        head,
+        actor: 'boxxy:owner:local',
+        at: ctx.clock.now(),
+      }),
+    ),
+  );
+
+  await ctx.readSignoff(merge);
+
+  const row = await ctx.readAttempt(merge.id);
+
+  const seen: unknown = [row.outcome, mergeCloseOutSchema.parse(row.closeOut).sentBack];
+
+  expect(seen).toStrictEqual([
+    'changes-requested',
+    { head, findings: 'The new rule contradicts the old one' },
+  ]);
+});
+
+test('it reads again, unsettled, and never merges when the forge cannot list the changed paths', async () => {
+  const ctx = await setupTest();
+
+  const repo = brandSchemas.repoName.parse('example/app');
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+  const ref = { repo, number: 7 };
+
+  await ctx.seedBuildWithPullRequest(ctx.forge, 7);
+
+  ctx.forge.seed({
+    ref,
+    githubId: 9_000_007,
+    reading: {
+      state: 'open',
+      mergedAt: null,
+      mergeCommit: null,
+      commits: [{ sha: head, message: 'Dim the lamp' }],
+    },
+  });
+
+  ctx.forge.seedRequiredChecks({ repo, branch: 'main', checks: [] });
+  ctx.forge.seedChecks({ repo, head, checks: { 'pr / checks': 'success' } });
+
+  const merge = await ctx.claimMergeAfterReview(head);
+
+  const failing = {
+    ...ctx.forge,
+    readChangedPaths: () => Promise.reject(new Error('GitHub answered 502')),
+  };
+
+  const read = ctx.readSignoffWith(failing, merge);
+
+  const row = await ctx.readAttempt(merge.id);
+
+  expect(read).rejects.toThrow(/GitHub answered 502/u);
+
+  expect([
+    row.state,
+    ctx.forge.calls.filter((call) => call.startsWith('mergeAtHead')),
+  ]).toStrictEqual(['starting', []]);
+});
+
+test('it reads the head and the paths again after a push during the read of the paths', async () => {
+  const ctx = await setupTest();
+
+  const repo = brandSchemas.repoName.parse('example/app');
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+  const pushed = brandSchemas.commitSha.parse('0a1b2c3d4e5f60718293a4b5c6d7e8f901234567');
+  const ref = { repo, number: 7 };
+
+  await ctx.seedBuildWithPullRequest(ctx.forge, 7);
+
+  ctx.forge.seed({
+    ref,
+    githubId: 9_000_007,
+    reading: {
+      state: 'open',
+      mergedAt: null,
+      mergeCommit: null,
+      commits: [{ sha: head, message: 'Tighten the testing skill' }],
+    },
+  });
+
+  ctx.forge.seedChangedFiles({ ref, files: [{ path: 'skills/testing/SKILL.md' }] });
+  ctx.forge.seedRequiredChecks({ repo, branch: 'main', checks: [] });
+  ctx.forge.seedChecks({ repo, head, checks: { 'pr / checks': 'success' } });
+  ctx.forge.seedChecks({ repo, head: pushed, checks: { 'pr / checks': 'success' } });
+
+  const merge = await ctx.claimMergeAfterReview(head);
+
+  const pushing = {
+    ...ctx.forge,
+    readChangedPaths: async (pullRequest: typeof ref) => {
+      const listed = await ctx.forge.readChangedPaths(pullRequest);
+
+      ctx.forge.seed({
+        ref,
+        githubId: 9_000_007,
+        reading: {
+          state: 'open',
+          mergedAt: null,
+          mergeCommit: null,
+          commits: [
+            { sha: head, message: 'Tighten the testing skill' },
+            { sha: pushed, message: 'Tighten it further' },
+          ],
+        },
+      });
+
+      return listed;
+    },
+  };
+
+  await ctx.readSignoffWith(pushing, merge);
+
+  const row = await ctx.readAttempt(merge.id);
+
+  const seen: unknown = {
+    outcome: row.outcome,
+    head: mergeCloseOutSchema.parse(row.closeOut).head,
+    pathReads: ctx.forge.calls.filter((call) => call.startsWith('readChangedPaths')).length,
+  };
+
+  // the review covered the old head, so the merge rule sends the item back to it
+  expect(seen).toStrictEqual({ outcome: 'stale', head: pushed, pathReads: 2 });
 });

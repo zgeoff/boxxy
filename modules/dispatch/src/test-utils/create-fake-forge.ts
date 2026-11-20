@@ -43,6 +43,15 @@ export interface SeededCompare {
   readonly files: readonly ChangedFile[];
 }
 
+// The files of a pull request as a test puts them on a forge. A rename lists its old path as
+// `previousPath`. `changedFiles` is the pull request's own count, which is the number of `files`
+// when left out; a larger count reads as a list the forge cut short.
+export interface SeededChangedFiles {
+  readonly ref: PullRequestRef;
+  readonly files: readonly { readonly path: string; readonly previousPath?: string }[];
+  readonly changedFiles?: number;
+}
+
 // The checks that a branch requires, as a test puts them on a forge. A branch with none seeded
 // does not exist.
 export interface SeededRequiredChecks {
@@ -104,6 +113,9 @@ export interface FakeForge extends Forge {
   // the files that the compare of `from` and `to` in the repo gives
   seedCompare: (compare: SeededCompare) => void;
 
+  // the files of a pull request; one with none seeded changes no file
+  seedChangedFiles: (changed: SeededChangedFiles) => void;
+
   // the checks at a head; a head with none seeded has no runs
   seedChecks: (checks: SeededChecks) => void;
   seedRequiredChecks: (required: SeededRequiredChecks) => void;
@@ -130,6 +142,7 @@ const defaultBase = 'main';
 export function createFakeForge(): FakeForge {
   const pullRequests = new Map<string, SeededPullRequest>();
   const compares = new Map<string, readonly ChangedFile[]>();
+  const changedFilesByPullRequest = new Map<string, SeededChangedFiles>();
   const checksByHead = new Map<string, ReadonlyMap<string, CheckReading>>();
   const requiredByBranch = new Map<string, readonly string[]>();
   const mergeableByPullRequest = new Map<string, MergeableState>();
@@ -170,6 +183,9 @@ export function createFakeForge(): FakeForge {
     },
     seedCompare: (compare) => {
       compares.set(toCompareKey(compare.repo, compare.from, compare.to), compare.files);
+    },
+    seedChangedFiles: (seeded) => {
+      changedFilesByPullRequest.set(toKey(seeded.ref), seeded);
     },
     seedChecks: (seeded) => {
       const statuses = Object.entries(seeded.statuses ?? {}).map(
@@ -272,6 +288,31 @@ export function createFakeForge(): FakeForge {
       return files === undefined
         ? Promise.reject(new Error(`the fake forge holds no compare of ${from}...${to}`))
         : Promise.resolve([...files]);
+    },
+    readChangedPaths: (ref) => {
+      calls.push(`readChangedPaths ${toKey(ref)}`);
+
+      if (isDown) {
+        return Promise.reject(new Error('the fake forge is down'));
+      }
+
+      if (!pullRequests.has(toKey(ref))) {
+        return Promise.reject(new Error(`the fake forge holds no pull request ${toKey(ref)}`));
+      }
+
+      const seeded = changedFilesByPullRequest.get(toKey(ref));
+      const files = seeded?.files ?? [];
+      const changedFiles = seeded?.changedFiles ?? files.length;
+
+      const paths = files.flatMap((file) =>
+        file.previousPath === undefined ? [file.path] : [file.path, file.previousPath],
+      );
+
+      return Promise.resolve({
+        paths: [...new Set(paths)],
+        changedFiles,
+        truncated: files.length < changedFiles,
+      });
     },
     readPullRequestBody: (ref) => {
       calls.push(`readPullRequestBody ${toKey(ref)}`);

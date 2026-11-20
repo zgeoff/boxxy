@@ -65,6 +65,12 @@ export const githubSchemas = {
       user: author.nullable(),
     }),
   ),
+  pullRequestFileCount: z.object({ changed_files: z.number().int().nonnegative() }),
+
+  // `previous_filename` is set on a renamed file only
+  pullRequestFilePage: z.array(
+    z.object({ filename: z.string().min(1), previous_filename: z.string().min(1).optional() }),
+  ),
   pullRequestBody: z.object({ body: z.string().nullable() }),
   pullRequestTitle: z.object({ title: z.string() }),
   checkRunPage: z.object({ total_count: runCount, check_runs: z.array(checkRun) }),

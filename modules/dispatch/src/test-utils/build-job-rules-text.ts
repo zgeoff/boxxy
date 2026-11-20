@@ -53,10 +53,38 @@ const replacements: readonly (readonly [string, string])[] = [
   ],
 ];
 
+// What a merge step needs to ask the owner for a sign-off: one rule for the repo of the example
+// items, the two outcomes it adds, and an edge for each.
+const signoffReplacements: readonly (readonly [string, string])[] = [
+  [
+    '        blocked: { hold: merge-blocked }\n',
+    [
+      '        blocked: { hold: merge-blocked }\n',
+      '        needs-signoff: { hold: owner sign-off }\n',
+      '        changes-requested: { to: build, max: 3, resume: true }\n',
+    ].join(''),
+  ],
+  [
+    "  checks: ['pr / checks']\n",
+    [
+      "  checks: ['pr / checks']\n",
+      '  signoff:\n',
+      "    - { name: skills, paths: ['**/SKILL.md', 'skills/*/references/**'], repos: [example/app] }\n",
+    ].join(''),
+  ],
+];
+
+interface JobRulesTextOptions {
+  // adds the sign-off rule and the merge step's two sign-off edges
+  readonly signoff?: boolean;
+}
+
 // The example rules file with a `merge` step after review, its recipe and merge rules, a `jobs`
 // limit for the merges, and a `workers` limit that counts the session phases only.
-export function buildJobRulesText(text: string): string {
-  return replacements.reduce((rules, [from, to]) => {
+export function buildJobRulesText(text: string, options: JobRulesTextOptions = {}): string {
+  const all = options.signoff === true ? [...replacements, ...signoffReplacements] : replacements;
+
+  return all.reduce((rules, [from, to]) => {
     invariant(rules.includes(from), `the example rules hold ${from}`);
 
     return rules.replaceAll(from, to);

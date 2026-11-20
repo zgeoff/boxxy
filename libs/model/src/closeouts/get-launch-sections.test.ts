@@ -97,3 +97,25 @@ test.each([
     stopped: null,
   });
 });
+
+test('it gives the send-back of a build input after the owner sent a merge back', () => {
+  const input = {
+    acceptance: [],
+    design: null,
+    sentBack: {
+      from: 'owner',
+      head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+      findings: 'The new rule contradicts the old one.',
+    },
+    pullRequest: null,
+  };
+
+  const sections: unknown = getLaunchSections(input);
+
+  expect(sections).toStrictEqual({
+    design: null,
+    conclusion: null,
+    sentBack: input.sentBack,
+    stopped: null,
+  });
+});

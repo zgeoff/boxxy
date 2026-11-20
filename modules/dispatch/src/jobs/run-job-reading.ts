@@ -114,7 +114,7 @@ type JobReadResult =
 // answers holds the item once the step's attempts are used up.
 async function readJob(input: JobReadingInput): Promise<JobReadResult> {
   try {
-    return await input.job.read(input.attempt);
+    return await input.job.read(input.attempt, { rules: input.rules, now: input.now });
   } catch (error) {
     const step = input.step;
 

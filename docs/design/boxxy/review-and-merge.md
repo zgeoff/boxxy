@@ -116,7 +116,8 @@ The merge phase runs on the job worker `merge.forge`. The server builds that wor
 - the pull request's state, head, base branch and mergeable state;
 - the latest run of each check at the head, and the required checks of the base branch;
 - the verify reading at the head, which the close-out records;
-- the item's latest settled review.
+- the item's latest settled review;
+- the changed paths and the owner's verdict, when the rules hold a sign-off rule that covers the repo ([owner sign-off at merge](../../architecture/work/pipeline.md#owner-sign-off-at-merge)).
 
 `decideMerge`, in section D of [`03-flow.ts`](./sketches/next/review-and-merge/03-flow.ts), then finishes the attempt, waits, or asks GitHub to merge. It checks these rows from the top, and the first match wins:
 
@@ -125,12 +126,14 @@ The merge phase runs on the job worker `merge.forge`. The server builds that wor
 | no pull request on the item, none on the forge at the link, or one with no commit | `blocked`, with the reason | hold |
 | merged, by boxxy or anyone | `merged` | the item ends |
 | closed with no merge | `closed` | hold |
+| a send-back verdict of the owner at this head | `changes-requested` | back to build, with its own `max` |
 | the latest review did not pass at this head | `stale` | back to review, `max: 3` |
 | a conflict with the base | `repair` | back to build, `max: 3` |
 | a required check failed at this head | `repair` | back to build, `max: 3` |
 | a check pending, skipped or missing, within the time limit | wait | read again |
 | a check pending, skipped or missing, past the time limit | `stalled` | hold |
 | GitHub refused a merge of this clean, green head | `refused` | hold |
+| a sign-off rule matched or the changed paths were cut short, and no approval at this head | `needs-signoff` | the sign-off hold |
 | a merge request sent at this head, past the time limit | `stalled` | hold |
 | a merge request sent at this head less than 5 minutes ago | wait | read again |
 | the review passed at this head and every required check green | merge request | read again |

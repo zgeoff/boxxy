@@ -88,6 +88,29 @@ test.each([
   ]);
 });
 
+test('it prints the owner findings of a send-back whole, with the head the owner read', () => {
+  const item = buildMockV1ItemView({ title: 'T', outcome: 'O', body: '', acceptance: [] });
+  const findings = 'The new rule contradicts the old one.\n\n- say which wins\n- {{ not a tag }}';
+
+  const values = buildPromptValues({
+    item,
+    attempt: 'att-1',
+    notes: [],
+    input: {
+      design: null,
+      sentBack: {
+        from: 'owner',
+        head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+        findings,
+      },
+    },
+  });
+
+  expect(values.findings).toBe(
+    `The owner read e83c5163316f89bfbde7d9ab23ca2e25604af290 and sent it back with these findings:\n\n${findings}`,
+  );
+});
+
 test('it joins the ticket in order, with each section that has content under its heading', () => {
   const item = buildMockV1ItemView({
     title: 'Add a retry',

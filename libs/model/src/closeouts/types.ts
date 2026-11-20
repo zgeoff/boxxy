@@ -350,7 +350,8 @@ export interface BuildInput {
 }
 
 // A verify send-back's `head` is the head that the verify's input named, null when no passed
-// review read one.
+// review read one. The owner's send-back carries the findings the owner wrote, whole, and the head
+// the owner read.
 export type SentBack =
   | {
       readonly from: 'review';
@@ -362,6 +363,11 @@ export type SentBack =
       readonly from: 'verify';
       readonly head: CommitSha | null;
       readonly features: readonly string[];
+    }
+  | {
+      readonly from: 'owner';
+      readonly head: CommitSha;
+      readonly findings: string;
     };
 
 // The input of a review attempt. `command` is the review gate's command line for the round. With

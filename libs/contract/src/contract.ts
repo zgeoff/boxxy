@@ -22,6 +22,7 @@ import { authContract } from './auth-contract.ts';
 import { capacityRefusalsSchema } from './capacity-refusals-schema.ts';
 import { itemReadContract } from './item-read-contract.ts';
 import { criterionDraftInput, criterionInput } from './items/criterion-input.ts';
+import { itemSignoffContract, signoffContract } from './items/signoff-contract.ts';
 import { noticesContract } from './notices-contract.ts';
 import { outboxStatusSchema } from './outbox-status-schema.ts';
 
@@ -385,6 +386,8 @@ export const contract = {
       .input(itemRetryInput)
       .output(leverOutput),
 
+    ...itemSignoffContract,
+
     // The owner knows the item, so this door takes the item only. Writes
     // `boxxy.attempt.wake_requested`.
     wake: tool(
@@ -427,6 +430,8 @@ export const contract = {
       .input(itemListInput)
       .output(itemListOutput),
   },
+
+  signoff: signoffContract,
 
   relation: {
     // Writes `boxxy.relation.added`. A `refused` answer is normal flow, so it is in the output.

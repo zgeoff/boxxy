@@ -31,6 +31,7 @@ import {
 import { pickHoldState } from './pick-hold-state.ts';
 import { postControl } from './post-control.ts';
 import { runBoxxy } from './run-boxxy.ts';
+import { signoffJourney } from './signoff-journey.ts';
 
 const noticeReasonsSchema = z.strictObject({ notices: z.array(z.string()) });
 
@@ -138,6 +139,9 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
 
       // `opened`: a `built` or `blocked` close-out links the pull request of `open-pull-request`
       pullRequest: z.enum(['opened']).optional(),
+
+      // the head commit that a `passed` review covers
+      head: z.string().min(1).optional(),
     }),
     data: z.strictObject({
       id: z.string(),
@@ -156,6 +160,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
         closeOut: input.closeOut,
         minutes: input.minutes,
         pullRequest: opened?.number ?? null,
+        head: input.head ?? null,
       });
     },
   })
@@ -184,14 +189,22 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
     run: (input, ctx) => landItem(ctx, input),
   })
 
+  .action(signoffJourney.holdAtSignoff)
+  .action(signoffJourney.pushCommit)
+  .action(signoffJourney.signoffItem)
   .action({
     name: 'tick',
-    summary: 'Run one runner tick at the harness clock, with no wait and no session',
+    summary:
+      'Run one runner tick at the harness clock, with no session; with --minutes, move the clock first',
     effect: 'write',
     targets: ['local'],
-    input: z.strictObject({}),
+    input: z.strictObject({ minutes: z.number().int().positive().optional() }),
     data: z.null(),
-    run: async (_input, ctx) => {
+    run: async (input, ctx) => {
+      if (input.minutes !== undefined) {
+        await postControl(ctx, controlRoutes.advanceClock, { minutes: input.minutes });
+      }
+
       await postControl(ctx, controlRoutes.tick, null);
 
       return null;
@@ -366,6 +379,9 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
       return { notices: mine.map((notice) => notice.reason) };
     },
   })
+  .command(signoffJourney.signoff)
+  .command(signoffJourney.prompt)
+  .command(signoffJourney.merges)
   .command({
     path: ['boxxy', 'session-item'],
     summary:
@@ -479,6 +495,11 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
       name: 'hold-recovery',
       summary: 'A retry lifts a hold and runs the chosen phase',
       paths: featurePaths['hold-recovery'],
+    },
+    {
+      name: 'owner-signoff',
+      summary: 'The owner signs off a pull request that edits a matched path, before it merges',
+      paths: featurePaths['owner-signoff'],
     },
     {
       name: 'owner-mcp',

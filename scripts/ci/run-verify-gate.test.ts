@@ -33,6 +33,7 @@ async function setupTest() {
     'runner-pause',
     'hold-notice',
     'hold-recovery',
+    'owner-signoff',
     'owner-mcp',
   ];
 

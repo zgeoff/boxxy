@@ -89,7 +89,9 @@ export const workFactSchemas = {
   'boxxy.item.shipped': itemShippedFactSchema,
   'boxxy.relation.added': relationSchema,
   'boxxy.relation.removed': relationSchema,
-  'boxxy.lever.recorded': leverRowSchema,
+  'boxxy.lever.recorded': leverRowSchema.extend({
+    head: brandSchemas.commitSha.nullable().exactOptional(),
+  }),
   'boxxy.attempt.claimed': z.object({
     ...ofAttempt,
     phase: brandSchemas.phaseName,

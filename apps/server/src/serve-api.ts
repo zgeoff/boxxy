@@ -21,6 +21,7 @@ import { relationHandlers } from './handlers/relation-handlers.ts';
 import { reportHandlers } from './handlers/report-handlers.ts';
 import { rulesHandlers } from './handlers/rules-handlers.ts';
 import { runnerHandlers } from './handlers/runner-handlers.ts';
+import { signoffHandlers } from './handlers/signoff-handlers.ts';
 import { readLimitedRequest } from './read-limited-request.ts';
 import type { Listener, RequestContext, ServerDeps } from './types.ts';
 
@@ -36,6 +37,7 @@ const router = api.router({
   relation: relationHandlers,
   attempt: attemptHandlers,
   plan: planHandlers,
+  signoff: signoffHandlers,
   runner: runnerHandlers,
   notices: noticesHandlers,
   outbox: outboxHandlers,
@@ -51,6 +53,9 @@ const rpc = new RPCHandler(router, {
     PEPYS_UNAVAILABLE: 503,
     PEPYS_NOT_CONFIGURED: 501,
     UNKNOWN_PHASE: 422,
+    NOT_AWAITING_SIGNOFF: 409,
+    STALE_HEAD: 409,
+    FINDINGS_REQUIRED: 422,
     REPO_NOT_CONFIGURED: 422,
     AUTH_NOT_CONFIGURED: 501,
   },

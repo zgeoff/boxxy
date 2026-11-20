@@ -16,6 +16,7 @@ const recordID = z
   .default(() => faker.number.int({ min: 1, max: 999_999_999 }));
 
 const commit = z.object({ sha: z.string(), message: z.string() });
+const pullRequestFile = z.object({ filename: z.string(), previousFilename: z.string().nullable() });
 
 // A pull request's head is its last commit. `mergeable` is GitHub's own field: `null` while
 // GitHub works out whether the head merges into the base.
@@ -32,6 +33,10 @@ export const githubPullRequests = new Collection({
     mergeCommit: z.string().nullable().default(null),
     mergeable: z.boolean().nullable().default(true),
     commits: z.array(commit).default([]),
+    files: z.array(pullRequestFile).default([]),
+
+    // the pull request's own count of changed files; null reads as the number of `files`
+    changedFiles: z.number().int().nullable().default(null),
 
     // the type of the author's GitHub user, which is `Bot` for an App
     authorType: z.string().default('User'),
@@ -132,7 +137,8 @@ const mergeRequest = z.object({
 type PullRequestAnswer = z.input<typeof githubSchemas.pullRequest> &
   z.input<typeof githubSchemas.pullRequestTitle> &
   z.input<typeof githubSchemas.pullRequestBody> &
-  z.input<typeof githubSchemas.mergeability>;
+  z.input<typeof githubSchemas.mergeability> &
+  z.input<typeof githubSchemas.pullRequestFileCount>;
 
 // Each route has its own depth or method, so the order of the array decides no match.
 export const githubHandlers = [
@@ -153,6 +159,7 @@ export const githubHandlers = [
       title: found.title,
       body: found.body,
       mergeable: found.state === 'open' ? found.mergeable : null,
+      changed_files: found.changedFiles ?? found.files.length,
     };
 
     return HttpResponse.json(answer);
@@ -168,6 +175,24 @@ export const githubHandlers = [
       info.request,
       found.commits,
     ).map((row) => ({ sha: row.sha, commit: { message: row.message } }));
+
+    return HttpResponse.json(answer);
+  }),
+  http.get(`${repos}/pulls/:number/files`, (info) => {
+    const found = findPullRequest(info.params);
+
+    if (found === undefined) {
+      return HttpResponse.json(notFound, { status: 404 });
+    }
+
+    const answer: z.input<typeof githubSchemas.pullRequestFilePage> = slicePage(
+      info.request,
+      found.files,
+    ).map((row) =>
+      row.previousFilename === null
+        ? { filename: row.filename }
+        : { filename: row.filename, previous_filename: row.previousFilename },
+    );
 
     return HttpResponse.json(answer);
   }),

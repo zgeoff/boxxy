@@ -6,6 +6,7 @@ import { createGithubClient } from './create-github-client.ts';
 import { GithubForgeError } from './github-forge-error.ts';
 import { githubSchemas } from './github-schemas.ts';
 import { mergeAtHead } from './pull-requests/merge-at-head.ts';
+import { readChangedPaths } from './pull-requests/read-changed-paths.ts';
 import { readMergeable } from './pull-requests/read-mergeable.ts';
 import { readPullRequestBody } from './pull-requests/read-pull-request-body.ts';
 import { toPullPath } from './pull-requests/to-pull-path.ts';
@@ -53,6 +54,7 @@ export function createGithubForge(options: GithubForgeOptions): Forge {
     readPullRequestBody: (ref) => readPullRequestBody(client, ref),
     readChecks: (repo, head) => readChecks(client, repo, head),
     readRequiredChecks: (repo, branch) => readRequiredChecks(client, repo, branch),
+    readChangedPaths: (ref) => readChangedPaths(client, ref),
     readMergeable: (ref) => readMergeable(client, ref),
     mergeAtHead: (ref, head, method) => mergeAtHead(client, ref, head, method),
     contains: (repo, ref, commit) => probeContains(client, repo, ref, commit),

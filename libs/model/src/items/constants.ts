@@ -1,6 +1,10 @@
 // The lever kinds of the held gate: a held lever holds the item until a later release lever.
 export const heldLeverKind = 'item.held';
 export const releaseLeverKind = 'item.release';
+
+// The lever kinds of the owner's sign-off at merge. Each one sets the lever's `head`.
+export const signoffApproveLeverKind = 'signoff.approve';
+export const signoffSendBackLeverKind = 'signoff.send-back';
 export const buildPhase = 'build';
 
 // the wait kind that holds a step until the ship watch records the item's merge commit shipped

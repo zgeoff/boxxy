@@ -14,6 +14,10 @@ export interface Forge {
   // the forge's compare of two heads: each changed file with its added and deleted lines
   readChangedFiles: (repo: RepoName, from: CommitSha, to: CommitSha) => Promise<ChangedFile[]>;
 
+  // The paths that the pull request changes from its base to its head. A forge that cannot list
+  // them throws.
+  readChangedPaths: (ref: PullRequestRef) => Promise<ChangedPathsReading>;
+
   // the checks that the branch requires, by name; empty for a branch that requires none
   readRequiredChecks: (repo: RepoName, branch: string) => Promise<readonly string[]>;
   readMergeable: (ref: PullRequestRef) => Promise<MergeableState>;
@@ -58,6 +62,17 @@ export interface MergedPullRequest {
 export interface ChangedFile {
   readonly path: string;
   readonly changedLines: number;
+}
+
+export interface ChangedPathsReading {
+  // each changed path and each rename's old path, with no path twice
+  readonly paths: readonly string[];
+
+  // the pull request's own count of changed files
+  readonly changedFiles: number;
+
+  // the forge listed fewer files than the count, so `paths` lacks some
+  readonly truncated: boolean;
 }
 
 export interface PullRequestReading {

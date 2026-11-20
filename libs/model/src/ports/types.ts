@@ -5,7 +5,7 @@ import type { MergeUnit } from '../merge/types.ts';
 import type { HoldReason } from '../pipeline/types.ts';
 import type { Limit, LimitFill, SeatRelease, SeatTake, Snapshot } from '../planning/types.ts';
 import type { CostToLand, StageTime } from '../reports/types.ts';
-import type { ItemRules } from '../rules/types.ts';
+import type { ItemRules, LoadedRules } from '../rules/types.ts';
 import type {
   ActorRef,
   AgentSessionId,
@@ -49,6 +49,7 @@ import type { MergeAnswer, MergeMethod } from './forge.ts';
 
 export type {
   ChangedFile,
+  ChangedPathsReading,
   Forge,
   MergeAnswer,
   MergeMethod,
@@ -548,10 +549,16 @@ export type PepysAnswer<Value> =
 // wake, kept session or forget, and starts nothing: the first read moves the attempt to running.
 export interface JobWorker {
   // throws when the outside system gives no answer
-  read: (attempt: AttemptRow) => Promise<JobReading>;
+  read: (attempt: AttemptRow, ctx: JobReadContext) => Promise<JobReading>;
 
   // the one effect that the phase kind's `drive` chose
   act: (attempt: AttemptRow, action: JobAction) => Promise<JobActAnswer>;
+}
+
+// What a read of a job may need beyond its attempt: the rules loaded now, and the instant of the read.
+export interface JobReadContext {
+  readonly rules: LoadedRules;
+  readonly now: Instant;
 }
 
 // `observed`: what the phase kind's `drive` reads, such as a merge observation

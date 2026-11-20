@@ -35,6 +35,7 @@ export interface StoreDatabase {
     phase: string | null;
     actor: string;
     at: number;
+    head: string | null;
   };
   attempts: {
     id: string;

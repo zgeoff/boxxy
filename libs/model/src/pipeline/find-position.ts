@@ -2,6 +2,7 @@ import type { Pipeline } from '../rules/types.ts';
 import type { Instant, PhaseName } from '../types.ts';
 import { advance } from './advance.ts';
 import { findStep } from './find-step.ts';
+import { isSignoffHold } from './is-signoff-hold.ts';
 import { mergeByTime } from './merge-by-time.ts';
 import type { Position, RetryLever, Settled } from './types.ts';
 
@@ -12,7 +13,7 @@ interface FindPositionInput {
   // the item's settled attempts, oldest first
   readonly attempts: readonly Settled[];
 
-  // the item's `item.retry` levers, oldest first
+  // the item's `item.retry` and sign-off levers, oldest first
   readonly retries: readonly RetryLever[];
 
   // The instant of the read. A lever stamped after it has not happened yet, so it moves nothing:
@@ -52,6 +53,16 @@ export function trackPosition(input: FindPositionInput): PositionSince {
   for (const event of mergeByTime(input.attempts, input.retries)) {
     if (event.kind === 'retry') {
       if (input.now !== undefined && event.lever.at > input.now) {
+        continue;
+      }
+
+      if (event.lever.signoff === true) {
+        if (position.kind === 'hold' && isSignoffHold(pipeline, position)) {
+          // the sign-off keeps the round and every edge's count
+          position = { kind: 'phase', phase: position.then, round: position.round };
+          since = event.lever.at;
+        }
+
         continue;
       }
 

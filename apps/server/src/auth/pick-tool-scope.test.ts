@@ -18,6 +18,8 @@ test.each([
   ['item_note', 'write'],
   ['item_retry', 'write'],
   ['item_wake', 'write'],
+  ['item_signoff', 'write'],
+  ['signoff_list', 'read'],
   ['item_close', 'write'],
   ['plan_defer', 'write'],
   ['relation_add', 'write'],

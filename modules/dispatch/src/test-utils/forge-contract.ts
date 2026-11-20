@@ -2,6 +2,7 @@ import type { CommitSha, Forge, PullRequestRef } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import type {
   SeededBumps,
+  SeededChangedFiles,
   SeededCompare,
   SeededHistory,
   SeededMergeable,
@@ -18,6 +19,7 @@ export interface ForgeHarness {
   readonly forge: Forge;
   seed: (pullRequest: SeededPullRequest) => void | Promise<void>;
   seedCompare: (compare: SeededCompare) => void | Promise<void>;
+  seedChangedFiles: (changed: SeededChangedFiles) => void | Promise<void>;
   seedRequiredChecks: (required: SeededRequiredChecks) => void | Promise<void>;
   seedMergeable: (mergeable: SeededMergeable) => void | Promise<void>;
   seedRepo: (repo: SeededRepo) => void | Promise<void>;
@@ -193,6 +195,81 @@ export const forgeContract: readonly ForgeContractCase[] = [
         expected: files,
       };
     },
+  ],
+  [
+    '#readChangedPaths reads each changed path, and the old path of a rename, once',
+    async (harness) => {
+      await harness.seed(buildOpen(21));
+
+      await harness.seedChangedFiles({
+        ref: buildRef(21),
+        files: [
+          { path: 'skills/lamp/SKILL.md' },
+          { path: 'docs/new-name.md', previousPath: 'docs/old-name.md' },
+          { path: 'docs/old-name.md' },
+        ],
+      });
+
+      return {
+        received: await harness.forge.readChangedPaths(buildRef(21)),
+        expected: {
+          paths: ['skills/lamp/SKILL.md', 'docs/new-name.md', 'docs/old-name.md'],
+          changedFiles: 3,
+          truncated: false,
+        },
+      };
+    },
+  ],
+  [
+    '#readChangedPaths reads no path for a pull request that changes no file',
+    async (harness) => {
+      await harness.seed(buildOpen(22));
+
+      return {
+        received: await harness.forge.readChangedPaths(buildRef(22)),
+        expected: { paths: [], changedFiles: 0, truncated: false },
+      };
+    },
+  ],
+  [
+    '#readChangedPaths reads every file over one page',
+    async (harness) => {
+      const files = Array.from({ length: 105 }, (_unused, index) => ({ path: `docs/${index}.md` }));
+
+      await harness.seed(buildOpen(23));
+      await harness.seedChangedFiles({ ref: buildRef(23), files });
+
+      const reading = await harness.forge.readChangedPaths(buildRef(23));
+
+      return {
+        received: [reading.paths.length, reading.changedFiles, reading.truncated],
+        expected: [105, 105, false],
+      };
+    },
+  ],
+  [
+    '#readChangedPaths reads a list shorter than the pull request count as truncated',
+    async (harness) => {
+      await harness.seed(buildOpen(24));
+
+      await harness.seedChangedFiles({
+        ref: buildRef(24),
+        files: [{ path: 'docs/a.md' }],
+        changedFiles: 4000,
+      });
+
+      return {
+        received: await harness.forge.readChangedPaths(buildRef(24)),
+        expected: { paths: ['docs/a.md'], changedFiles: 4000, truncated: true },
+      };
+    },
+  ],
+  [
+    '#readChangedPaths rejects for a pull request that does not exist',
+    async (harness) => ({
+      received: await toSettled(harness.forge.readChangedPaths(buildRef(99))),
+      expected: 'rejected',
+    }),
   ],
   [
     '#readRequiredChecks reads the checks that the branch requires',

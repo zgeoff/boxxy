@@ -97,8 +97,11 @@ that is not a positive finite number, and a `skip` hold that uses an engine hold
 file's `repos` section sets how each repo ships, which the [ship watch](./ship-watch.md) reads.
 
 The loader refuses a step that leaves out an outcome of its phase kind, or adds one the kind lacks,
-so every outcome has an edge. It also refuses a step with no time limit, and a phase kind this
-server can't run: a merge step needs a server with a `github` section in its config.
+so every outcome has an edge. A phase kind may also list a conditional outcome, one that its step
+maps only when the rules file asks for it;
+[the merge kind's sign-off outcomes](#owner-sign-off-at-merge) are the case. It also refuses a step
+with no time limit, and a phase kind this server can't run: a merge step needs a server with a
+`github` section in its config.
 
 ## How boxxy decides where an item stands
 
@@ -120,6 +123,9 @@ the item's position: a phase, an end or a hold.
   `outcome not in rules`. It never falls through to `next`, so no item skips a phase unchecked. The
   loader refuses a rules-file hold with one of these reasons, so a report can tell an engine hold
   from a rules hold.
+- **A sign-off lever moves an item from the sign-off hold to the merge step,** and at any other
+  position moves nothing ([owner sign-off at merge](#owner-sign-off-at-merge)). It keeps the item's
+  round and the count of each `{ to }` edge.
 - **`boxxy item retry <item>` lifts a hold** and restarts both counts: the attempts in a row, and
   the runs of each `{ to }` edge. `--phase <phase>` also moves the item to that phase, and is the
   only way back to build after a passed review.
@@ -242,19 +248,19 @@ open item whose kind must be `bug` and whose `acceptance` lists the failing line
 A session reads its whole task from its launch prompt. The claim renders it from the recipe's
 [Liquid](https://liquidjs.com/) template, filling these placeholders:
 
-| Placeholder           | Value                                                                                                         |
-| --------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `title`, `repo`       | the item's title and repo                                                                                     |
-| `outcome`, `body`     | the outcome the owner wants, and the body, as written                                                         |
-| `acceptance`          | one `- <id>: <text>` line per criterion; only the lines with the step's `criteria.tagged` tag when it has one |
-| `design`              | the latest design's text, then `Location: <location>` when it has one; a build only                           |
-| `conclusion`          | the latest design's conclusion, such as the result of an investigation; a build only                          |
-| `findings`            | what sent the build back, from a [review](#the-review) or a verify; a build only                              |
-| `stopped`             | the question or reason where the latest attempt of this phase stopped; empty after any other close-out        |
-| `notes`               | one `- <YYYY-MM-DD>: <text>` line per note, oldest first                                                      |
-| `security`            | `true` when the item has the security mark, else empty                                                        |
-| `ticket`              | the whole item, `# <title>` then each non-empty section under its own heading; leaves out `security`          |
-| `attempt_id`, `input` | the attempt's ID, and its input as JSON                                                                       |
+| Placeholder           | Value                                                                                                                   |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `title`, `repo`       | the item's title and repo                                                                                               |
+| `outcome`, `body`     | the outcome the owner wants, and the body, as written                                                                   |
+| `acceptance`          | one `- <id>: <text>` line per criterion; only the lines with the step's `criteria.tagged` tag when it has one           |
+| `design`              | the latest design's text, then `Location: <location>` when it has one; a build only                                     |
+| `conclusion`          | the latest design's conclusion, such as the result of an investigation; a build only                                    |
+| `findings`            | what sent the build back, from a [review](#the-review), a verify or the [owner](#owner-sign-off-at-merge); a build only |
+| `stopped`             | the question or reason where the latest attempt of this phase stopped; empty after any other close-out                  |
+| `notes`               | one `- <YYYY-MM-DD>: <text>` line per note, oldest first                                                                |
+| `security`            | `true` when the item has the security mark, else empty                                                                  |
+| `ticket`              | the whole item, `# <title>` then each non-empty section under its own heading; leaves out `security`                    |
+| `attempt_id`, `input` | the attempt's ID, and its input as JSON                                                                                 |
 
 Every placeholder but `ticket` gives its content only, with no heading. A template author needs four
 rules:
@@ -285,6 +291,98 @@ The next build's `findings` gives the commit the review read, the open findings 
 and the gate's text on how to answer them, never the findings' text
 ([decision 0009](../../decisions/0009-close-outs-hold-what-only-the-agent-knows.md)). After a failed
 verify, `findings` gives the commit the verify ran at and the features that failed.
+
+## Owner sign-off at merge
+
+The merge step runs as a job that reads its pull request on each tick, and the pure merge rule in
+`@boxxy/train` decides each read. The rules file can name changes that need the owner's sign-off,
+such as an edit to a skill. When such a pull request is otherwise ready to merge, the merge step
+finishes `needs-signoff` and the item holds until the owner approves the head commit or sends the
+item back to the build with findings.
+
+```mermaid
+flowchart LR
+  review -->|passed| merge[merge job]
+  merge -->|"no rule matches, or approved at this head"| merged
+  merge -->|needs-signoff| hold[sign-off hold]
+  hold -->|"item.signoff: approve or send-back"| merge
+  merge -->|"changes-requested, after a send-back"| build
+  merge -->|"stale: a push after the review"| review
+```
+
+The rules file names the changes under `merge.signoff`, and maps the two outcomes on the merge step:
+
+```yaml
+merge:
+  method: squash
+  checks: ['pr / checks']
+  signoff: # with none, no merge waits for the owner
+    - name: skills # shown to the owner as the reason the item waits
+      paths: # globs over the paths the pull request changes, from the repo root
+        - '**/SKILL.md'
+        - '**/skills/*/references/**'
+      repos: [acme/skills] # optional; with none, the rule matches in every repo
+
+pipelines:
+  build:
+    - phase: merge
+      on:
+        needs-signoff: { hold: owner sign-off } # the sign-off hold
+        changes-requested: { to: build, max: 3, resume: true }
+```
+
+- **A rule matches** when any changed path matches any of its globs and its `repos` is absent or
+  lists the pull request's repo. A glob matches dot folders and matches case-sensitively. A renamed
+  file counts at its old and new path, and a deleted file at its path.
+- **The loader ties the edges to the rules.** With `merge.signoff` set, it refuses a merge step that
+  leaves out `needs-signoff` or `changes-requested`, a `needs-signoff` edge that is not a `{ hold }`
+  edge, and a `changes-requested` edge that is not a `{ to }` edge. With none set, it refuses both
+  edges. The hold that `needs-signoff` names is the sign-off hold.
+- **The job reads the changed paths** only when some sign-off rule covers the pull request's repo,
+  and passes `not-read` otherwise. After it reads the paths, it reads the head again, and when the
+  head moved it starts the read over at the new head. When the forge can't list the paths, the read
+  throws and the next tick reads again, so the job never merges a change whose paths it didn't read.
+  When the forge lists fewer files than the pull request changes, the list is `truncated`, and the
+  rule treats it as a match.
+- **The job reads the owner's verdict** from the item's latest sign-off lever that no merge attempt
+  has finished on since. An approval counts until the head moves, and a send-back counts for one
+  merge attempt, so one send-back sends the item back once. A verdict counts only at the head the
+  job read.
+
+The merge rule checks these in order, and the first that decides ends the attempt:
+
+1. The pull request merged or closed: `merged` or `closed`.
+2. A send-back verdict at the current head: `changes-requested`.
+3. The review doesn't cover the current head: `stale`, back to review. The owner so never reads a
+   head that no review covers.
+4. A conflict or a red check: `repair`.
+5. A pending check or an unknown mergeable state: the job waits.
+6. The forge refused the merge: `refused`.
+7. A sign-off rule matched, or the list is `truncated`, and no approval at the current head:
+   `needs-signoff`.
+8. The job merges at the current head.
+
+An item waits for a sign-off when it stands at the sign-off hold and its latest merge attempt
+finished `needs-signoff`. The close-out of every merge attempt that matched a rule, or read a cut
+list, holds `signoff`: the rules that matched, up to 50 matched paths and whether the list was cut.
+A `changes-requested` close-out holds `sentBack`: the head the owner read and the findings.
+
+The owner lists the waiting items with `signoff.list`, oldest first by when each reached the hold,
+and answers one with `item.signoff` at the head the list gave
+([API and auth](../interfaces/api-and-auth.md#the-owners-sign-off)). One call writes one lever, a
+`signoff.approve` or `signoff.send-back` lever with the head and, for a send-back, the findings in
+its `reason`, and the lever moves the item from the sign-off hold to the merge step. The merge step
+then decides again. A send-back that runs a `{ to }` edge out of tries holds the item with
+`rounds used up`, as at any `{ to }` edge.
+
+`boxxy item retry` at the sign-off hold works as at any hold: it starts a new round and sends the
+item to the merge step, which asks the owner again. When new rules drop `merge.signoff`, an item at
+the sign-off hold replays into the `outcome not in rules` hold, and `item retry` moves it on to a
+merge with no sign-off.
+
+When a `changes-requested` merge attempt is the latest attempt that sent the build back, the next
+build's `findings` prints the owner's text whole, with the head the owner read. A review's findings
+reach a build as counts only, because the owner's text lives nowhere else.
 
 ## What an item records
 

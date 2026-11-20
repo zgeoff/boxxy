@@ -14,6 +14,7 @@ import {
   brandSchemas,
   buildCloseOutSchema,
   definePhase,
+  mergeCloseOutSchema,
   storedReviewCloseOutSchema,
   toJSONValue,
   verifyCloseOutSchema,
@@ -80,13 +81,24 @@ function buildBuildInput(ctx: PhaseInputContext): BuildInput {
   };
 }
 
-// The latest grading of the work decides the send-back: a review that asked for changes sends
-// its findings, and a failed verify sends its features. A build after a passed review or a
-// verified verify, sent back by the owner, gets none.
+// The latest attempt that sent the build back decides the send-back: a review that asked for
+// changes sends its findings, a failed verify its features, and a merge that the owner sent back
+// the owner's text. A build after a passed review or a verified verify gets none.
 function findSentBack(history: readonly AttemptRow[]): SentBack | null {
   const graded = history.findLast(
     (row) => (row.phase === 'review' || row.phase === 'verify') && row.state === 'succeeded',
   );
+
+  const ownerSentBack = history.findLast(
+    (row) => row.phase === 'merge' && row.outcome === 'changes-requested',
+  );
+
+  if (
+    ownerSentBack !== undefined &&
+    history.indexOf(ownerSentBack) > (graded === undefined ? -1 : history.indexOf(graded))
+  ) {
+    return findOwnerSentBack(ownerSentBack);
+  }
 
   if (graded?.phase === 'verify') {
     return findVerifySentBack(graded);
@@ -97,6 +109,15 @@ function findSentBack(history: readonly AttemptRow[]): SentBack | null {
   return reading?.status === 'blocked' && reading.why === 'open-findings'
     ? { from: 'review', head: reading.head, open: reading.open, answerHint: reading.answerHint }
     : null;
+}
+
+function findOwnerSentBack(merge: AttemptRow): SentBack | null {
+  const closeOut = mergeCloseOutSchema.safeParse(merge.closeOut);
+  const sentBack = closeOut.success ? closeOut.data.sentBack : null;
+
+  return sentBack === null
+    ? null
+    : { from: 'owner', head: sentBack.head, findings: sentBack.findings };
 }
 
 function findVerifySentBack(verify: AttemptRow): SentBack | null {

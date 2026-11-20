@@ -27,6 +27,8 @@ export const featurePaths = {
   'hold-notice': [...everyJourney, 'modules/planning/**'],
   'hold-recovery': [...everyJourney, 'modules/planning/**'],
 
+  'owner-signoff': [...everyJourney, 'modules/planning/**'],
+
   // the public door, its OAuth server and the service-token file, which the harness serves
   'owner-mcp': [...everyJourney, 'adapters/auth-oauth/**'],
 } as const satisfies Record<string, readonly string[]>;

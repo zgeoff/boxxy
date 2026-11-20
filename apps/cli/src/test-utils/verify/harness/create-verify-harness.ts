@@ -31,16 +31,19 @@ export async function createVerifyHarness(runDirectory: string): Promise<VerifyH
   // the session start installs skills into the workspace's committed skills folder
   await mkdir(join(runDirectory, 'workspace/.agents/skills'), { recursive: true });
 
-  server.dispatch.setRules({
+  const baseRules = {
     ...server.dispatch.rules(),
     skills: { source: skills.source, ref: brandSchemas.commitSha.parse(skills.ref) },
-  });
+  };
+
+  server.dispatch.setRules(baseRules);
 
   return {
     server,
     pepys,
     skillsURL: skills.baseURL,
     runDirectory,
+    baseRules,
     current: null,
     peers: [],
     notices,

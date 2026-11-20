@@ -1,4 +1,4 @@
-import { toJSONValue } from '@boxxy/model';
+import { brandSchemas, toJSONValue } from '@boxxy/model';
 import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
 import { z } from 'zod';
 import { runBoxxy } from '../run-boxxy.ts';
@@ -10,6 +10,9 @@ interface CloseOutInput {
 
   // the pull request that a `built` or `blocked` close-out links; null when the session links none
   readonly pullRequest: number | null;
+
+  // the head that a `passed` review covers; a head of no commit when left out
+  readonly head?: string | null;
 }
 
 // The close-out body of a preset. A `built` or `blocked` body first links the pull request that
@@ -42,7 +45,13 @@ export function readCloseOutBody(ctx: VerifyContext, input: CloseOutInput): Prom
 
   if (input.closeOut === 'passed') {
     // the server's review gate in the harness is a stand-in, which reads the body as its reading
-    return Promise.resolve(toJSONValue(buildMockGateReading({ status: 'passed' })));
+    const head = brandSchemas.commitSha.safeParse(input.head);
+
+    return Promise.resolve(
+      toJSONValue(
+        buildMockGateReading({ status: 'passed', ...(head.success && { head: head.data }) }),
+      ),
+    );
   }
 
   if (input.closeOut === 'blocked') {

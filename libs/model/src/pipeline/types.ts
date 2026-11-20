@@ -43,9 +43,14 @@ export interface Settled {
   readonly pullRequest?: PullRequestRef | null;
 }
 
+// A lever that moves the item's position: an `item.retry`, or a sign-off lever.
 export interface RetryLever {
   readonly at: Instant;
 
   // `boxxy item retry <item> --phase build`; null: the hold's `then`, or the position as it stands
   readonly phase: PhaseName | null;
+
+  // A sign-off lever moves the item only from the sign-off hold, to the hold's `then`, and keeps
+  // its round and counts. Absent: an `item.retry`.
+  readonly signoff?: boolean;
 }
