@@ -100,6 +100,8 @@ the domain needs for one job is pinned to the one package whose job needs it:
 
 - the YAML parser to the rules module, which every rules file passes through;
 - xstate to dispatch, which runs only the attempt machine;
+- picomatch to the train module, which matches a pull request's changed paths against the rules'
+  sign-off globs;
 - Liquid to the prompt-template lib, because the rules module checks templates at load and dispatch
   renders them at claim, so both import the lib.
 
