@@ -117,6 +117,22 @@ export const controlRoutes = {
     request: z.strictObject({ requests: z.array(modelRequestSchema) }),
     response: z.null(),
   },
+
+  // takes a new item to the sign-off hold, and makes it the current item
+  holdAtSignoff: {
+    method: 'POST',
+    path: '/control/signoff/hold',
+    request: z.null(),
+    response: z.strictObject({ item: z.string(), head: z.string(), pullRequest: z.number().int() }),
+  },
+
+  // adds a commit to the opened pull request
+  pushCommit: {
+    method: 'POST',
+    path: '/control/pull-requests/push',
+    request: z.null(),
+    response: z.strictObject({ head: z.string() }),
+  },
   drainOutbox: {
     method: 'POST',
     path: '/control/outbox/drain',

@@ -59,6 +59,7 @@ Read a feature's file before you run its journey.
 | runner-pause  | A paused runner claims nothing                                                        | [references/feature-runner-pause.md](references/feature-runner-pause.md)   |
 | hold-notice   | A held item sends one notice to the notice session                                    | [references/feature-hold-notice.md](references/feature-hold-notice.md)     |
 | hold-recovery | A retry lifts a hold and runs the chosen phase                                        | [references/feature-hold-recovery.md](references/feature-hold-recovery.md) |
+| owner-signoff | The owner signs off a pull request that edits a matched path, before it merges        | [references/feature-owner-signoff.md](references/feature-owner-signoff.md) |
 | owner-mcp     | An agent signs in to the public door as a service client, and calls the owner's tools | [references/feature-owner-mcp.md](references/feature-owner-mcp.md)         |
 
 <!-- /wringer:features -->

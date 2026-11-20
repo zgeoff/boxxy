@@ -1,13 +1,13 @@
-import type { ItemId } from '@boxxy/model';
+import type { ItemId, LoadedRules } from '@boxxy/model';
 import type { VerifyHarness } from './types.ts';
 
-// Makes the item the current one. The item before it and its peers close, so a tick of the next
-// journey claims nothing for them and the journeys run in any order on one run. With
-// `keepPrevious`, the item before it stays open as a peer, for a journey that orders two items.
+// Makes the item the current one under the rules given, or the harness's rules. The item before
+// it and its peers close, unless `keepPrevious` leaves the item before it open as a peer.
 export async function setCurrentItem(
   harness: VerifyHarness,
   item: ItemId,
   keepPrevious: boolean,
+  rules: LoadedRules = harness.baseRules,
 ): Promise<void> {
   const previous = harness.current;
 
@@ -25,6 +25,8 @@ export async function setCurrentItem(
 
     harness.peers = [];
   }
+
+  harness.server.dispatch.setRules(rules);
 
   harness.current = item;
   harness.currentSince = harness.server.dispatch.clock.now();

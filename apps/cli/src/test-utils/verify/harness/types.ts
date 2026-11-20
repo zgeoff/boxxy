@@ -1,4 +1,4 @@
-import type { ItemId } from '@boxxy/model';
+import type { ItemId, LoadedRules } from '@boxxy/model';
 import type { TestServer } from '@boxxy/server/test-utils/create-test-server';
 import type { PepysUnderTest } from '@boxxy/server/test-utils/start-pepys-under-test';
 import { z } from 'zod';
@@ -20,6 +20,9 @@ export interface VerifyHarness extends AsyncDisposable {
   // the value for BOXXY_SKILLS_URL
   readonly skillsURL: string;
   readonly runDirectory: string;
+
+  // the rules of a new run, which each journey's first item runs under
+  readonly baseRules: LoadedRules;
 
   // the item the last `file-item` or `land-item` filed; null before
   current: ItemId | null;
