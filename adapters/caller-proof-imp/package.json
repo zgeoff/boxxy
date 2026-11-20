@@ -20,8 +20,7 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./src/index.ts"
-    },
-    "./test-utils/*": "./src/test-utils/*.ts"
+    }
   },
   "publishConfig": {
     "access": "public"
@@ -36,6 +35,7 @@
   },
   "devDependencies": {
     "@boxxy/dispatch": "workspace:*",
+    "@impz/testing": "catalog:",
     "tiny-invariant": "catalog:"
   },
   "engines": {
