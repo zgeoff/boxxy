@@ -10,7 +10,7 @@ export interface SignoffMatch {
 }
 
 // A rule matches when its `repos` is null or lists the pull request's repo, and any changed path
-// matches any of its globs. A glob matches dot folders and is case-sensitive.
+// matches any of its globs. A glob matches dot folders, is case-sensitive, and reads a backslash as part of a name on every host.
 export function matchSignoffRules(
   rules: MergeRules['signoff'],
   pullRequest: PullRequestRef,
@@ -22,7 +22,7 @@ export function matchSignoffRules(
 
   const matched = rules.flatMap((rule) => {
     const covers = rule.repos === null || rule.repos.includes(pullRequest.repo);
-    const isMatch = picomatch([...rule.paths], { dot: true });
+    const isMatch = picomatch([...rule.paths], { dot: true, windows: false });
     const paths = covers ? changed.paths.filter((path) => isMatch(path)) : [];
 
     return paths.length === 0 ? [] : [{ name: rule.name, paths }];

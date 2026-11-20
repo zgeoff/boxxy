@@ -96,3 +96,19 @@ test('it names each matching rule and joins their paths in the order given', () 
     paths: ['docs/a.md', 'x/SKILL.md'],
   });
 });
+
+test('it reads a backslash as part of a name, as on every host', () => {
+  const ctx = setupTest();
+  const rule = { name: 'docs', paths: ['skills/*'], repos: null };
+
+  const changed = {
+    kind: 'read',
+    head: ctx.head,
+    paths: [String.raw`skills/a\b.md`],
+  } as const;
+
+  expect(matchSignoffRules([rule], ctx.pullRequest, changed)).toStrictEqual({
+    rules: ['docs'],
+    paths: [String.raw`skills/a\b.md`],
+  });
+});
