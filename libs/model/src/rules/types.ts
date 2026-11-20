@@ -99,17 +99,32 @@ export type Registry = { readonly [K in ParamKindName]: ReadonlyMap<string, Regi
   readonly [K in keyof PlainKinds]: ReadonlyMap<string, PlainKinds[K]>;
 } & { readonly pins: readonly ConceptPin[] };
 
+export interface ConditionalOutcome<Outcome extends string = string> {
+  readonly outcome: Outcome;
+  readonly requiredWhen: (rules: Rules) => boolean;
+}
+
+// What a conditional outcome's condition reads of the rules file.
+export interface Rules {
+  readonly merge?: MergeRules | null | undefined;
+}
+
 // The code of one phase. Its `outcomes` are the one list of the phase's outcome names: the
 // loader checks the rules against it, and `settle` answers with one of them.
 export interface PhaseKind<
   Body = unknown,
   Input extends JsonValue = JsonValue,
   Outcomes extends readonly string[] = readonly string[],
+  Conditional extends string = string,
 > {
   readonly name: PhaseName;
   readonly version: number;
   readonly worker: WorkerKindName;
   readonly outcomes: Outcomes;
+
+  // Outcomes that a step maps only under a condition on the rules: the loader requires one on
+  // each step of the phase when `requiredWhen` is true, and refuses it when it is false.
+  readonly conditionalOutcomes?: readonly ConditionalOutcome<Conditional>[];
   readonly needsAcceptance: boolean;
 
   // the session mode of an attempt of this phase; agent when the kind sets none
@@ -119,7 +134,7 @@ export interface PhaseKind<
 
   // Called only with the attempt's valid close-out. A method's parameter is bivariant, so a
   // phase kind of any body still fits `PhaseKind`; a plain function property would refuse it.
-  readonly settle: BivariantSettle<Body, Outcomes[number]>['settle'];
+  readonly settle: BivariantSettle<Body, Outcomes[number] | NoInfer<Conditional>>['settle'];
 
   // a phase kind on a job worker: pure, called on each read of a running job
   readonly drive?: (ctx: DriveContext) => JobStep;
@@ -356,6 +371,20 @@ export interface MergeRules {
   // Check names that must conclude `success` at the head. boxxy reads the union of this list and
   // the base branch's required status checks, so the loader refuses an empty list.
   readonly checks: readonly string[];
+
+  // the changes that wait for the owner's sign-off; empty when the rules file sets none
+  readonly signoff: readonly SignoffRule[];
+}
+
+export interface SignoffRule {
+  // shown to the owner as the reason the item waits
+  readonly name: string;
+
+  // globs over the paths the pull request changes, from the repo root; never empty
+  readonly paths: readonly string[];
+
+  // null matches every repo
+  readonly repos: readonly RepoName[] | null;
 }
 
 export interface LoadRejection {
@@ -466,6 +495,18 @@ export type LoadRejectionReason =
 
   // a pipeline has a `merge` step, and the file has no `merge` block
   | { readonly kind: 'merge-without-rules' }
+
+  // two `merge.signoff` rules share a name
+  | { readonly kind: 'duplicate-signoff-rule'; readonly name: string }
+
+  // a sign-off outcome is mapped to an edge of the wrong shape: `needs-signoff` must be a
+  // `{ hold }` edge and `changes-requested` a `{ to }` edge
+  | {
+      readonly kind: 'signoff-edge-kind';
+      readonly phase: PhaseName;
+      readonly outcome: string;
+      readonly expected: 'hold' | 'to';
+    }
 
   // a `session: builder` recipe is mapped to a step with no build step before it, so no session
   // is kept for it to wake

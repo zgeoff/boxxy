@@ -18,7 +18,7 @@ export function collectStepRejections(
         ...(phase === undefined
           ? [buildRejection([...path, 'phase'], { kind: 'unknown-phase', phase: step.phase })]
           : [
-              ...collectOutcomeRejections(step, phase, path),
+              ...collectOutcomeRejections(step, phase, path, file),
               ...(workers.includes(phase.worker)
                 ? []
                 : [
@@ -50,12 +50,22 @@ function collectOutcomeRejections(
   step: ParsedStep,
   phase: PhaseKind,
   path: readonly PropertyKey[],
+  file: ParsedRulesFile,
 ): LoadRejection[] {
-  const listed: readonly string[] = phase.outcomes;
+  const conditional = (phase.conditionalOutcomes ?? []).map((entry) => ({
+    outcome: entry.outcome,
+    required: entry.requiredWhen(file),
+  }));
+
+  const required = conditional.filter((entry) => entry.required).map((entry) => entry.outcome);
+
+  // a conditional outcome that isn't required is in neither list, so a step that maps it gets
+  // `unknown-outcome`
+  const listed: readonly string[] = [...phase.outcomes, ...required];
 
   return [
     ...engineOutcomes
-      .filter((outcome) => listed.includes(outcome))
+      .filter((outcome) => phase.outcomes.includes(outcome))
       .map((outcome) =>
         buildRejection([...path, 'phase'], {
           kind: 'engine-outcome-listed',

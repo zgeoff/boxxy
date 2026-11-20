@@ -1,4 +1,4 @@
-import type { AttemptRow, MergeCloseOut, MergeInput, MergeRequest } from '@boxxy/model';
+import type { AttemptRow, MergeCloseOut, MergeInput, MergeRequest, Rules } from '@boxxy/model';
 import {
   brandSchemas,
   definePhase,
@@ -19,6 +19,10 @@ export const merge = definePhase({
   version: 1,
   worker: brandSchemas.workerKindName.parse('merge.forge'),
   outcomes: ['merged', 'repair', 'stale', 'closed', 'stalled', 'refused', 'blocked'],
+  conditionalOutcomes: [
+    { outcome: 'needs-signoff', requiredWhen: hasSignoffRules },
+    { outcome: 'changes-requested', requiredWhen: hasSignoffRules },
+  ],
   needsAcceptance: true,
   input: (ctx) => {
     const input: MergeInput = { pullRequest: findPullRequestLink(ctx.pullRequests) };
@@ -65,6 +69,10 @@ export const merge = definePhase({
     };
   },
 });
+
+function hasSignoffRules(rules: Rules): boolean {
+  return (rules.merge?.signoff.length ?? 0) > 0;
+}
 
 // the last request that the runner marked on the attempt row, with the forge's answer once one came
 function findMergeRequest(attempt: AttemptRow): MergeRequest | null {

@@ -31,6 +31,7 @@
           "domain": ["modules/**", "libs/**"],
           "rules": ["modules/rules/**"],
           "dispatch": ["modules/dispatch/**"],
+          "train": ["modules/train/**"],
           "prompt-template": ["libs/prompt-template/**"],
           "store-sqlite": ["adapters/store-sqlite/**"],
           "auth-oauth": ["adapters/auth-oauth/**"],
@@ -149,6 +150,12 @@
             "modules": ["liquidjs"],
             "allow": ["prompt-template"],
             "reason": "only libs/prompt-template parses and renders a launch prompt; use its findPromptTemplateFault and renderPromptTemplate"
+          },
+          {
+            "name": "glob",
+            "modules": ["picomatch"],
+            "allow": ["train"],
+            "reason": "only modules/train matches changed paths against the sign-off globs; use its matchSignoffRules"
           },
           {
             "name": "xstate",

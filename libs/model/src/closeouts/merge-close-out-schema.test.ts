@@ -20,7 +20,7 @@ test('it accepts a merge that boxxy merged, with the verify reading it used', ()
 
   const parsed: unknown = mergeCloseOutSchema.safeParse(closeOut).data;
 
-  expect(parsed).toStrictEqual(closeOut);
+  expect(parsed).toStrictEqual({ ...closeOut, signoff: null, sentBack: null });
 });
 
 test('it accepts a blocked merge with no head, no verify reading and the reason', () => {
@@ -38,7 +38,7 @@ test('it accepts a blocked merge with no head, no verify reading and the reason'
 
   const parsed: unknown = mergeCloseOutSchema.safeParse(closeOut).data;
 
-  expect(parsed).toStrictEqual(closeOut);
+  expect(parsed).toStrictEqual({ ...closeOut, signoff: null, sentBack: null });
 });
 
 test('it rejects a merge outcome that the merge step never gives', () => {
@@ -57,4 +57,26 @@ test('it rejects a merge outcome that the merge step never gives', () => {
   expect(mergeCloseOutSchema.safeParse(closeOut).error?.issues).toPartiallyContain({
     path: ['outcome'],
   });
+});
+
+test('it keeps the sign-off and the send-back of a changes-requested merge', () => {
+  const head = 'e83c5163316f89bfbde7d9ab23ca2e25604af290';
+
+  const closeOut = {
+    outcome: 'changes-requested',
+    head,
+    required: [],
+    failed: [],
+    cause: null,
+    mergeCommit: null,
+    reason: null,
+    byBoxxy: false,
+    verify: null,
+    signoff: { rules: ['skills'], paths: ['testing/SKILL.md'], truncated: false },
+    sentBack: { head, findings: 'The new rule contradicts the old one.' },
+  };
+
+  const parsed: unknown = mergeCloseOutSchema.safeParse(closeOut).data;
+
+  expect(parsed).toStrictEqual(closeOut);
 });

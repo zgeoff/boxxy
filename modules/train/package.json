@@ -30,10 +30,13 @@
     "typecheck": "tsrs --fast --noEmit"
   },
   "dependencies": {
-    "@boxxy/model": "workspace:*"
+    "@boxxy/model": "workspace:*",
+    "picomatch": "catalog:",
+    "tiny-invariant": "catalog:"
   },
   "devDependencies": {
-    "@faker-js/faker": "catalog:"
+    "@faker-js/faker": "catalog:",
+    "@types/picomatch": "catalog:"
   },
   "engines": {
     "bun": ">=1.3",

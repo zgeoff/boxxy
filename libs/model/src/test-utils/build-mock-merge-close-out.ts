@@ -16,6 +16,8 @@ export function buildMockMergeCloseOut(overrides: Partial<MergeCloseOut> = {}): 
     reason: null,
     byBoxxy: true,
     verify: { status: 'not-covered', head },
+    signoff: null,
+    sentBack: null,
     ...overrides,
   };
 }

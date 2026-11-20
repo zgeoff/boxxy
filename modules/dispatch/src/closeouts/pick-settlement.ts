@@ -60,7 +60,9 @@ export function pickSettlement(input: SettlementInput): PickedSettlement {
       now: input.now,
     });
 
-    return phase.outcomes.includes(settlement.outcome)
+    const conditional = (phase.conditionalOutcomes ?? []).map((entry) => entry.outcome);
+
+    return phase.outcomes.includes(settlement.outcome) || conditional.includes(settlement.outcome)
       ? {
           ...settlement,
           outcome: brandSchemas.outcomeName.parse(settlement.outcome),

@@ -56,6 +56,8 @@ export function createMergeJob(deps: MergeJobDeps): JobWorker {
         head,
         mergeCommit: reading.mergeCommit,
         review: findLatestReview(attempts),
+        changedPaths: { kind: 'not-read' },
+        signoff: null,
         ...(await readOpenState(deps, ref, reading, head)),
       };
 

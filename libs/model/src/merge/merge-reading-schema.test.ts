@@ -40,6 +40,8 @@ test('it reads an observation of an open pull request with its checks as a map',
     mergeCommit: null,
     review: null,
     verify: { status: 'not-covered', head },
+    changedPaths: { kind: 'not-read' },
+    signoff: null,
   });
 });
 
