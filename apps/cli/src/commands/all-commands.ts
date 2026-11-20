@@ -8,12 +8,14 @@ import { planCommands } from './plan-commands.ts';
 import { relationCommands } from './relation-commands.ts';
 import { reportCommands } from './report-commands.ts';
 import { runnerCommands } from './runner-commands.ts';
+import { signoffCommands } from './signoff-commands.ts';
 
 // One command for each procedure of the contract.
 export const allCommands: readonly Command[] = [
   ...itemCommands,
   ...relationCommands,
   ...planCommands,
+  ...signoffCommands,
   ...runnerCommands,
   ...noticesCommands,
   ...authCommands,

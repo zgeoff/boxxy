@@ -56,10 +56,10 @@ function setupTest() {
   };
 }
 
-test('it holds exactly 37 procedures', () => {
+test('it holds exactly 39 procedures', () => {
   const ctx = setupTest();
 
-  expect(ctx.procedures).toHaveLength(37);
+  expect(ctx.procedures).toHaveLength(39);
 });
 
 test('it gives every procedure exactly one access row, and every access row a procedure', () => {
@@ -92,13 +92,13 @@ test('it lists a procedure as a tool only on the endpoint of its caller', () => 
   expect(invalid).toStrictEqual([]);
 });
 
-test('it lists 22 owner tools, 5 session tools and 10 procedures with no tool', () => {
+test('it lists 24 owner tools, 5 session tools and 10 procedures with no tool', () => {
   const ctx = setupTest();
   const rows = [...ctx.rows.values()];
 
   expect(
     ['owner', 'session', 'none'].map((tool) => rows.filter((row) => row.tool === tool).length),
-  ).toStrictEqual([22, 5, 10]);
+  ).toStrictEqual([24, 5, 10]);
 });
 
 test('it gives the procedures that file held, release or list held items to the owner alone', () => {

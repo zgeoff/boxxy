@@ -2,9 +2,11 @@ import { makeAnswerRun } from '../cli/make-answer-run.ts';
 import { UsageError } from '../cli/usage-error.ts';
 import type { Command, CommandArgs } from '../types.ts';
 import { parseCriterionFlag, parseCriterionTags } from './parse-criterion-flag.ts';
+import { readFindings } from './read-findings.ts';
 import { readItemBody } from './read-item-body.ts';
 
 const designModes = ['agent', 'attended'] as const;
+const signoffVerdicts = ['approve', 'send-back'] as const;
 
 const itemStates = [
   'held',
@@ -112,6 +114,25 @@ export const itemCommands: readonly Command[] = [
       call.client.item.retry({
         item: call.args.positional(0, 'item'),
         phase: call.args.string('phase'),
+      }),
+    ),
+  },
+  {
+    path: ['item', 'signoff'],
+    procedure: 'item.signoff',
+    summary: 'Approves the head of an item that waits for a sign-off, or sends the item back.',
+    options: {
+      head: { type: 'string' },
+      verdict: { type: 'string' },
+      findings: { type: 'string' },
+      'findings-file': { type: 'string' },
+    },
+    run: makeAnswerRun(async (call) =>
+      call.client.item.signoff({
+        item: call.args.positional(0, 'item'),
+        head: call.args.requireString('head'),
+        verdict: call.args.requireOneOf('verdict', signoffVerdicts),
+        findings: await readFindings(call),
       }),
     ),
   },

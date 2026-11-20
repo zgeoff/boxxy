@@ -1,4 +1,6 @@
 import { expect, test } from 'bun:test';
+import { buildMockLeverChange } from '@boxxy/dispatch/test-utils/build-mock-lever-change';
+import { seedSignoffWait } from '@boxxy/dispatch/test-utils/seed-signoff-wait';
 import { brandSchemas } from '@boxxy/model';
 import type { ItemId } from '@boxxy/model';
 import invariant from 'tiny-invariant';
@@ -426,4 +428,202 @@ test('#get returns the tags of an acceptance line', async () => {
   const shown = await ctx.callOwner('item.get', { item });
 
   expect(JSON.stringify(shown.body)).toContain('"tags":["prod"]');
+});
+
+test('#signoff approves the head that waits, and sends the item from the hold to the merge step', async () => {
+  const ctx = await setupTest();
+  const seeded = await seedSignoffWait(ctx.dispatch, ctx.forge);
+  const held = await ctx.readItem(seeded.item);
+
+  ctx.dispatch.clock.advance(1000);
+
+  const answer = await ctx.callOwner('item.signoff', {
+    item: seeded.item,
+    head: seeded.head,
+    verdict: 'approve',
+  });
+
+  const view = await ctx.readItem(seeded.item);
+  const facts = await ctx.dispatch.listFacts('boxxy.lever.recorded');
+
+  const seen: unknown = { answer, position: view?.position };
+
+  // the item keeps the round it held in
+  const round = held?.position.kind === 'hold' ? held.position.round : null;
+
+  expect(seen).toStrictEqual({
+    answer: { status: 200, body: { json: { lever: expect.any(Number) } } },
+    position: { kind: 'phase', phase: 'merge', round },
+  });
+
+  expect(facts.map((fact) => fact.payload)).toContainEqual(
+    expect.objectContaining({ kind: 'signoff.approve', head: seeded.head, reason: null }),
+  );
+});
+
+test('#signoff stores the findings of a send-back whole', async () => {
+  const ctx = await setupTest();
+  const seeded = await seedSignoffWait(ctx.dispatch, ctx.forge);
+
+  const findings = 'The new rule contradicts the old one.\n'.repeat(200);
+
+  ctx.dispatch.clock.advance(1000);
+
+  await ctx.callOwner('item.signoff', {
+    item: seeded.item,
+    head: seeded.head,
+    verdict: 'send-back',
+    findings,
+  });
+
+  const facts = await ctx.dispatch.listFacts('boxxy.lever.recorded');
+
+  expect(facts.map((fact) => fact.payload)).toContainEqual(
+    expect.objectContaining({ kind: 'signoff.send-back', head: seeded.head, reason: findings }),
+  );
+});
+
+test('#signoff refuses another head with the head that waits', async () => {
+  const ctx = await setupTest();
+  const seeded = await seedSignoffWait(ctx.dispatch, ctx.forge);
+
+  const answer = await ctx.callOwner('item.signoff', {
+    item: seeded.item,
+    head: '0a1b2c3d4e5f60718293a4b5c6d7e8f901234567',
+    verdict: 'approve',
+  });
+
+  expect(answer).toStrictEqual({
+    status: 409,
+    body: {
+      json: {
+        defined: true,
+        code: 'STALE_HEAD',
+        message: 'the pull request head is not the one that waits for a sign-off',
+        data: { head: seeded.head },
+      },
+    },
+  });
+});
+
+test('#signoff refuses a send-back with no findings', async () => {
+  const ctx = await setupTest();
+  const seeded = await seedSignoffWait(ctx.dispatch, ctx.forge);
+
+  const answer = await ctx.readAnswer('item.signoff', {
+    item: seeded.item,
+    head: seeded.head,
+    verdict: 'send-back',
+    findings: '  ',
+  });
+
+  expect([answer.status, answer.code]).toStrictEqual([422, 'FINDINGS_REQUIRED']);
+});
+
+test('#signoff refuses findings over 8000 characters as a bad input', async () => {
+  const ctx = await setupTest();
+  const seeded = await seedSignoffWait(ctx.dispatch, ctx.forge);
+
+  const answer = await ctx.readAnswer('item.signoff', {
+    item: seeded.item,
+    head: seeded.head,
+    verdict: 'send-back',
+    findings: 'x'.repeat(8001),
+  });
+
+  expect([answer.status, answer.code]).toStrictEqual([400, 'BAD_REQUEST']);
+});
+
+test('#signoff refuses an item that does not wait for a sign-off', async () => {
+  const ctx = await setupTest();
+  const item = await ctx.dispatch.seedItem({});
+
+  const answer = await ctx.readAnswer('item.signoff', {
+    item,
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+    verdict: 'approve',
+  });
+
+  expect([answer.status, answer.code]).toStrictEqual([409, 'NOT_AWAITING_SIGNOFF']);
+});
+
+test('#signoff refuses an item that does not exist', async () => {
+  const ctx = await setupTest();
+
+  const answer = await ctx.readAnswer('item.signoff', {
+    item: '01900000-0000-7000-8000-000000000000',
+    head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+    verdict: 'approve',
+  });
+
+  expect([answer.status, answer.code]).toStrictEqual([404, 'NOT_FOUND']);
+});
+
+test('#signoff refuses an item that is held', async () => {
+  const ctx = await setupTest();
+  const seeded = await seedSignoffWait(ctx.dispatch, ctx.forge);
+
+  await ctx.dispatch.store.exclusive((tx) =>
+    tx.applyChange(
+      buildMockLeverChange({
+        seq: 90,
+        kind: 'item.held',
+        item: seeded.item,
+        until: null,
+        expiresAt: null,
+        reason: 'a draft',
+        phase: null,
+        head: null,
+        actor: 'boxxy:owner:local',
+        at: ctx.dispatch.clock.now(),
+      }),
+    ),
+  );
+
+  const answer = await ctx.readAnswer('item.signoff', {
+    item: seeded.item,
+    head: seeded.head,
+    verdict: 'approve',
+  });
+
+  expect([answer.status, answer.code]).toStrictEqual([400, 'ITEM_HELD']);
+});
+
+test('it lists each item that waits for a sign-off, with its head, rules and paths', async () => {
+  const ctx = await setupTest();
+  const seeded = await seedSignoffWait(ctx.dispatch, ctx.forge);
+  const answer = await ctx.callOwner('signoff.list', {});
+
+  expect(answer).toStrictEqual({
+    status: 200,
+    body: {
+      json: {
+        items: [
+          {
+            item: seeded.item,
+            title: expect.any(String),
+            pullRequest: { repo: 'example/app', number: 7 },
+            head: seeded.head,
+            rules: ['skills'],
+            paths: ['skills/testing/SKILL.md'],
+            truncated: false,
+            since: expect.any(Number),
+          },
+        ],
+      },
+    },
+  });
+});
+
+test('it lists no item for a sign-off once the owner answered', async () => {
+  const ctx = await setupTest();
+  const seeded = await seedSignoffWait(ctx.dispatch, ctx.forge);
+
+  ctx.dispatch.clock.advance(1000);
+
+  await ctx.callOwner('item.signoff', { item: seeded.item, head: seeded.head, verdict: 'approve' });
+
+  const answer = await ctx.callOwner('signoff.list', {});
+
+  expect(answer).toStrictEqual({ status: 200, body: { json: { items: [] } } });
 });

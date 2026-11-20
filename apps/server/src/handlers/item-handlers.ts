@@ -22,6 +22,7 @@ import { buildAcceptance, buildCriterion, refuseUnknownTags } from './build-acce
 import { buildOwnerFact } from './build-owner-fact.ts';
 import { collectItemPage } from './collect-item-page.ts';
 import { readItemIds } from './read-item-ids.ts';
+import { signoffItemHandler } from './signoff-item-handler.ts';
 import { writeLevers } from './write-levers.ts';
 
 const owner = 'boxxy:owner:local';
@@ -272,6 +273,7 @@ export const itemHandlers = {
 
     return { lever: answer.levers[0] ?? 0 };
   }),
+  signoff: signoffItemHandler,
   wake: api.item.wake.handler(async (options) => {
     const deps = options.context.deps;
 

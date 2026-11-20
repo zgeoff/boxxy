@@ -6,11 +6,11 @@ import {
   listSessionTools,
 } from './list-owner-procedures.ts';
 
-test('#listOwnerProcedures lists the 30 owner procedures', () => {
+test('#listOwnerProcedures lists the 32 owner procedures', () => {
   const rows = listOwnerProcedures();
 
   expect([rows.length, rows]).toStrictEqual([
-    30,
+    32,
     expect.arrayContaining([
       ['item.close'],
       ['item.release'],
@@ -22,11 +22,11 @@ test('#listOwnerProcedures lists the 30 owner procedures', () => {
   ]);
 });
 
-test('#listOwnerTools lists the 22 owner tools in snake case', () => {
+test('#listOwnerTools lists the 24 owner tools in snake case', () => {
   const rows = listOwnerTools();
 
   expect([rows.length, rows]).toStrictEqual([
-    22,
+    24,
     expect.arrayContaining([
       ['item_file'],
       ['item_release'],

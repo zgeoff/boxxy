@@ -9,5 +9,6 @@ test('it lists the owner tools that take the read scope, by MCP tool name', () =
     'runner_status',
     'report_cost',
     'report_stage_times',
+    'signoff_list',
   ]);
 });

@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { loadJobRules } from '@boxxy/dispatch/test-utils/load-job-rules';
+import { seedSignoffWait } from '@boxxy/dispatch/test-utils/seed-signoff-wait';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
 import { renderReportComment } from '@wringer/core';
@@ -132,6 +133,8 @@ async function setupTest() {
 
   await mergeServer.deps.store.exclusive((tx) => tx.syncLimits(rules.limits, now));
 
+  const signoffCLI = await createTestCLI();
+
   const mergeDerivedSchema = z.object({ state: z.string() });
   const mergeShowSchema = z.object({ item: z.object({ derived: mergeDerivedSchema }) });
 
@@ -156,6 +159,10 @@ async function setupTest() {
       listedSchema: heldListedSchema,
       refusedShownSchema,
       capacityStatusSchema,
+    },
+    signoff: {
+      ...signoffCLI,
+      createWaitingItem: () => seedSignoffWait(signoffCLI.server.dispatch, signoffCLI.server.forge),
     },
     mergeAtHead: {
       ...mergeCLI,
@@ -782,4 +789,140 @@ test('#item show and #status show why atc refused a spawn for capacity', async (
       sinceLastSpawn: 1,
     },
   ]);
+});
+
+test('#signoff list lists the item that waits with its head, and #item signoff approve merges it at that head', async () => {
+  const setup = await setupTest();
+
+  const ctx = setup.signoff;
+
+  const seeded = await ctx.createWaitingItem();
+  const listed = await ctx.run(['signoff', 'list']);
+
+  ctx.server.dispatch.clock.advance(1000);
+
+  const approved = await ctx.run([
+    'item',
+    'signoff',
+    seeded.item,
+    '--head',
+    seeded.head,
+    '--verdict',
+    'approve',
+  ]);
+
+  await ctx.server.tick();
+
+  ctx.server.dispatch.clock.advance(30_000);
+
+  await ctx.server.tick();
+
+  const seen: unknown = {
+    listed: readJSONOutput(listed, z.json()),
+    approved: [approved.exitCode, readJSONOutput(approved, z.json())],
+    merges: ctx.server.forge.calls.filter((call) => call.startsWith('mergeAtHead')),
+  };
+
+  expect(seen).toStrictEqual({
+    listed: {
+      items: [
+        {
+          item: seeded.item,
+          title: expect.any(String),
+          pullRequest: { repo: 'example/app', number: 7 },
+          head: seeded.head,
+          rules: ['skills'],
+          paths: ['skills/testing/SKILL.md'],
+          truncated: false,
+          since: expect.any(Number),
+        },
+      ],
+    },
+    approved: [0, { lever: expect.any(Number) }],
+    merges: [`mergeAtHead example/app#7 ${seeded.head} squash`],
+  });
+});
+
+test('#item signoff exits 1 with STALE_HEAD for a head other than the one that waits', async () => {
+  const setup = await setupTest();
+
+  const ctx = setup.signoff;
+
+  const seeded = await ctx.createWaitingItem();
+
+  const result = await ctx.run([
+    'item',
+    'signoff',
+    seeded.item,
+    '--head',
+    '0a1b2c3d4e5f60718293a4b5c6d7e8f901234567',
+    '--verdict',
+    'approve',
+  ]);
+
+  expect({ exitCode: result.exitCode, stderr: result.stderr }).toStrictEqual({
+    exitCode: 1,
+    stderr:
+      'error: STALE_HEAD: the pull request head is not the one that waits for a sign-off {"head":"e83c5163316f89bfbde7d9ab23ca2e25604af290"}\n',
+  });
+});
+
+test('#item signoff sends back with findings read from stdin', async () => {
+  const setup = await setupTest();
+
+  const ctx = setup.signoff;
+
+  const seeded = await ctx.createWaitingItem();
+
+  ctx.server.dispatch.clock.advance(1000);
+
+  const result = await ctx.run(
+    [
+      'item',
+      'signoff',
+      seeded.item,
+      '--head',
+      seeded.head,
+      '--verdict',
+      'send-back',
+      '--findings-file',
+      '-',
+    ],
+    { stdin: 'The new rule contradicts the old one.' },
+  );
+
+  const facts = await ctx.server.dispatch.listFacts('boxxy.lever.recorded');
+
+  expect(result.exitCode).toBe(0);
+
+  expect(facts.map((fact) => fact.payload)).toContainEqual(
+    expect.objectContaining({
+      kind: 'signoff.send-back',
+      reason: 'The new rule contradicts the old one.',
+    }),
+  );
+});
+
+test('it exits 2 when item signoff gets both --findings and --findings-file', async () => {
+  const setup = await setupTest();
+
+  const result = await setup.run([
+    'item',
+    'signoff',
+    'i-1',
+    '--head',
+    'abc',
+    '--verdict',
+    'send-back',
+    '--findings',
+    'x',
+    '--findings-file',
+    'y',
+  ]);
+
+  expect(result).toStrictEqual({
+    exitCode: 2,
+    stdout: '',
+    stderr: 'error: give --findings or --findings-file, not both\n',
+  });
 });
