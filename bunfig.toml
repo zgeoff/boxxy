@@ -15,6 +15,7 @@ minimumReleaseAge = 604800
 # @noslop/cli 0.4.30 (published 2026-11-17) ages past the gate ~2026-11-24 — remove then (audit-fix)
 minimumReleaseAgeExcludes = [
   "@impz/client",
+  "@impz/testing",
   "@noslop/cli",
   "@pepys/api",
   "@pepys/cli",

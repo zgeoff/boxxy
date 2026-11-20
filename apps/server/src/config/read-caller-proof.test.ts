@@ -2,8 +2,8 @@ import { expect, onTestFinished, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { createTestIssuer } from '@boxxy/caller-proof-imp/test-utils/create-test-issuer';
 import { brandSchemas } from '@boxxy/model';
+import { createTestIdentityIssuer } from '@impz/testing/identity';
 import invariant from 'tiny-invariant';
 import { buildRPCRequest } from '../test-utils/build-rpc-request.ts';
 import { createTestServer } from '../test-utils/create-test-server.ts';
@@ -17,7 +17,7 @@ async function setupTest() {
   onTestFinished(() => rm(folder, { recursive: true, force: true }));
 
   // the fake worker reports this issuer, with the session ID as the machine ID
-  const issuer = await createTestIssuer('fake-worker');
+  const issuer = await createTestIdentityIssuer({ issuer: 'fake-worker' });
 
   await Bun.write(path.join(folder, 'issuer.json'), JSON.stringify(issuer.document));
 
@@ -41,11 +41,11 @@ async function setupTest() {
       const nowSeconds = Math.floor(server.dispatch.clock.now() / 1000);
 
       const token = await issuer.signToken({
-        sub: machine,
-        aud: audience,
+        id: machine,
+        audience,
         iat: nowSeconds,
         exp: nowSeconds + 55,
-        impName: 'machine-name',
+        name: 'machine-name',
       });
 
       const request = buildRPCRequest({
