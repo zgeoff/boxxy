@@ -5,6 +5,9 @@ export const forgeLimits = {
   // 2,000 open pull requests of one repo; a deployment with more reads the first 2,000
   maxListPages: 20,
 
+  // GitHub lists at most 3,000 files of a pull request
+  maxFilePages: 30,
+
   // GitHub lists at most 250 commits of a pull request
   maxCommitPages: 3,
 

@@ -318,6 +318,7 @@ export type {
   CallerProof,
   CapacityBackoff,
   ChangedFile,
+  ChangedPathsReading,
   ClaimStore,
   Clock,
   FactSink,

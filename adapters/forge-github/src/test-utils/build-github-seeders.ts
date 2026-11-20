@@ -39,6 +39,21 @@ export function buildGithubSeeders(): GithubSeeders {
         files: compare.files.map((file) => ({ filename: file.path, changes: file.changedLines })),
       });
     },
+    seedChangedFiles: async (changed) => {
+      await githubPullRequests.update(
+        (query) => query.where({ repo: changed.ref.repo, number: changed.ref.number }),
+        {
+          data: (row) => {
+            row.files = changed.files.map((file) => ({
+              filename: file.path,
+              previousFilename: file.previousPath ?? null,
+            }));
+
+            row.changedFiles = changed.changedFiles ?? null;
+          },
+        },
+      );
+    },
     seedRequiredChecks: async (required) => {
       await githubBranches.create({
         repo: required.repo,

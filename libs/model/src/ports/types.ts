@@ -49,6 +49,7 @@ import type { MergeAnswer, MergeMethod } from './forge.ts';
 
 export type {
   ChangedFile,
+  ChangedPathsReading,
   Forge,
   MergeAnswer,
   MergeMethod,

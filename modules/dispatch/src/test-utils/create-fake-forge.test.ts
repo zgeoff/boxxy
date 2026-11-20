@@ -13,6 +13,7 @@ test.each([...forgeContract, ...forgeShipContract])(
       forge,
       seed: forge.seed,
       seedCompare: forge.seedCompare,
+      seedChangedFiles: forge.seedChangedFiles,
       seedRequiredChecks: forge.seedRequiredChecks,
       seedMergeable: forge.seedMergeable,
       seedRepo: forge.seedRepo,
