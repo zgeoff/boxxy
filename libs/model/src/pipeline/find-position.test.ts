@@ -595,3 +595,107 @@ test.each([
 
   expect(found.since).toBe(expected);
 });
+
+function setupTest() {
+  const pipeline = buildMockPipeline({
+    phases: ['build', 'review', 'merge'],
+    steps: {
+      review: {
+        on: {
+          passed: 'next',
+          'changes-requested': { to: brandSchemas.phaseName.parse('build'), max: 3 },
+        },
+      },
+      merge: {
+        on: {
+          merged: { end: 'merged' },
+          'needs-signoff': { hold: brandSchemas.rulesHoldReason.parse('awaiting sign-off') },
+          'changes-requested': { to: brandSchemas.phaseName.parse('build'), max: 1 },
+        },
+      },
+    },
+  });
+
+  const attempts = [
+    buildMockSettled({ phase: 'build', outcome: 'built', endedAt: 1000 }),
+    buildMockSettled({ phase: 'review', outcome: 'changes-requested', endedAt: 2000 }),
+    buildMockSettled({ phase: 'build', outcome: 'built', endedAt: 3000 }),
+    buildMockSettled({ phase: 'review', outcome: 'passed', endedAt: 4000 }),
+    buildMockSettled({ phase: 'merge', outcome: 'needs-signoff', endedAt: 5000 }),
+  ];
+
+  return { pipeline, attempts };
+}
+
+test('it moves an item at the sign-off hold to the merge step with its round kept', () => {
+  const ctx = setupTest();
+
+  const position: unknown = findPosition({
+    pipeline: ctx.pipeline,
+    attempts: ctx.attempts,
+    retries: [{ at: brandSchemas.instant.parse(6000), phase: null, signoff: true }],
+  });
+
+  expect(position).toStrictEqual({ kind: 'phase', phase: 'merge', round: 2 });
+});
+
+test('it moves nothing for a sign-off lever at a hold that is not the sign-off hold', () => {
+  const ctx = setupTest();
+
+  const position: unknown = findPosition({
+    pipeline: ctx.pipeline,
+    attempts: [buildMockSettled({ phase: 'build', outcome: 'blocked', endedAt: 1000 })],
+    retries: [{ at: brandSchemas.instant.parse(2000), phase: null, signoff: true }],
+  });
+
+  // oxlint-disable-next-line unicorn/no-thenable -- `then` names the phase a hold resumes; the object is never awaited
+  expect(position).toMatchObject({ kind: 'hold', then: 'build' });
+});
+
+test('it moves nothing for a sign-off lever at a step that is not a hold', () => {
+  const ctx = setupTest();
+
+  const position: unknown = findPosition({
+    pipeline: ctx.pipeline,
+    attempts: [],
+    retries: [{ at: brandSchemas.instant.parse(2000), phase: null, signoff: true }],
+  });
+
+  expect(position).toStrictEqual({ kind: 'phase', phase: 'build', round: 1 });
+});
+
+test('it keeps the count of an edge across a sign-off lever', () => {
+  const ctx = setupTest();
+
+  const position: unknown = findPosition({
+    pipeline: ctx.pipeline,
+    attempts: [
+      ...ctx.attempts,
+      buildMockSettled({ phase: 'merge', outcome: 'changes-requested', endedAt: 7000 }),
+      buildMockSettled({ phase: 'build', outcome: 'built', endedAt: 8000 }),
+      buildMockSettled({ phase: 'review', outcome: 'passed', endedAt: 9000 }),
+      buildMockSettled({ phase: 'merge', outcome: 'needs-signoff', endedAt: 10_000 }),
+      buildMockSettled({ phase: 'merge', outcome: 'changes-requested', endedAt: 12_000 }),
+    ],
+    retries: [
+      { at: brandSchemas.instant.parse(6000), phase: null, signoff: true },
+      { at: brandSchemas.instant.parse(11_000), phase: null, signoff: true },
+    ],
+  });
+
+  // the second send-back from the merge step is past its max of 1
+  // oxlint-disable-next-line unicorn/no-thenable -- `then` names the phase a hold resumes; the object is never awaited
+  expect(position).toMatchObject({ kind: 'hold', reason: 'rounds used up', then: 'build' });
+});
+
+test('it starts a new round for an item.retry at the sign-off hold, as at any hold', () => {
+  const ctx = setupTest();
+
+  const position: unknown = findPosition({
+    pipeline: ctx.pipeline,
+    attempts: ctx.attempts,
+    retries: [{ at: brandSchemas.instant.parse(6000), phase: null }],
+  });
+
+  expect(position).toStrictEqual({ kind: 'phase', phase: 'merge', round: 2 });
+});

@@ -12,6 +12,7 @@ export function buildMockV1LeverRow(overrides: Partial<LeverRow> = {}): LeverRow
     expiresAt: null,
     reason: faker.lorem.sentence(),
     phase: null,
+    head: null,
     actor: 'boxxy:owner:local',
     at: brandSchemas.instant.parse(faker.number.int({ max: 1_800_000_000_000 })),
     ...overrides,

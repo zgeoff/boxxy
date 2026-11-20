@@ -5,6 +5,8 @@ import { findStep } from './find-step.ts';
 import { mergeByTime } from './merge-by-time.ts';
 import type { Position, RetryLever, Settled } from './types.ts';
 
+type HoldPosition = Extract<Position, { readonly kind: 'hold' }>;
+
 interface FindPositionInput {
   // the pipeline of the item's kind in the rules loaded now; null when the kind has none
   readonly pipeline: Pipeline | null;
@@ -12,7 +14,7 @@ interface FindPositionInput {
   // the item's settled attempts, oldest first
   readonly attempts: readonly Settled[];
 
-  // the item's `item.retry` levers, oldest first
+  // the item's `item.retry` and sign-off levers, oldest first
   readonly retries: readonly RetryLever[];
 
   // The instant of the read. A lever stamped after it has not happened yet, so it moves nothing:
@@ -52,6 +54,16 @@ export function trackPosition(input: FindPositionInput): PositionSince {
   for (const event of mergeByTime(input.attempts, input.retries)) {
     if (event.kind === 'retry') {
       if (input.now !== undefined && event.lever.at > input.now) {
+        continue;
+      }
+
+      if (event.lever.signoff === true) {
+        if (position.kind === 'hold' && isSignoffHold(pipeline, position)) {
+          // the sign-off keeps the round and every edge's count
+          position = { kind: 'phase', phase: position.then, round: position.round };
+          since = event.lever.at;
+        }
+
         continue;
       }
 
@@ -100,6 +112,13 @@ export function trackPosition(input: FindPositionInput): PositionSince {
   }
 
   return { position, since };
+}
+
+// The sign-off hold is the hold that the merge step's `needs-signoff` edge names.
+function isSignoffHold(pipeline: Pipeline, position: HoldPosition): boolean {
+  const edge = findStep(pipeline, position.then)?.on['needs-signoff'];
+
+  return typeof edge === 'object' && 'hold' in edge && edge.hold === position.reason;
 }
 
 function pickResumePhase(position: Position): PhaseName | null {

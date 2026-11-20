@@ -26,6 +26,7 @@ export function writeLevers(
     }
 
     const rows = found.items.map((item): LeverRow => ({
+      head: null,
       ...draft,
       seq: 0,
       item,

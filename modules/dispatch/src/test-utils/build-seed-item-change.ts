@@ -52,6 +52,7 @@ export function buildSeedItemChange(
     expiresAt: null,
     reason: null,
     phase: input.phase,
+    head: null,
     actor: 'boxxy:owner:local',
     at: now,
   } as const;

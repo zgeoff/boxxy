@@ -130,7 +130,9 @@ export interface WorkFacts {
   // the entity is the source item
   'boxxy.relation.added': RelationPayload;
   'boxxy.relation.removed': RelationPayload;
-  'boxxy.lever.recorded': LeverRow;
+
+  // `head` is optional, because a lever fact written before the sign-off levers has none
+  'boxxy.lever.recorded': Omit<LeverRow, 'head'> & { readonly head?: CommitSha | null };
   'boxxy.attempt.claimed': OfAttempt & {
     readonly phase: PhaseName;
     readonly number: number;

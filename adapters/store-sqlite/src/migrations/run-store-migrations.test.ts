@@ -10,6 +10,7 @@ import type { StoreDatabase } from '../types.ts';
 import { createTablesMigration } from './create-tables-migration.ts';
 import { itemBodyMigration } from './item-body-migration.ts';
 import { jobAttemptsMigration } from './job-attempts-migration.ts';
+import { leverHeadMigration } from './lever-head-migration.ts';
 import { noticeKeysMigration } from './notice-keys-migration.ts';
 import { refusalMigration } from './refusal-migration.ts';
 import { renameRelationsMigration } from './rename-relations-migration.ts';
@@ -50,6 +51,7 @@ async function setupTest() {
     migrateRefusal: () => refusalMigration.up(db),
     migrateSkippedAttempts: () => skippedAttemptsMigration.up(db),
     migrateShipWatch: () => shipWatchMigration.up(db),
+    migrateLeverHead: () => leverHeadMigration.up(db),
     writeRaw: (statement: string, ...values: number[]) => {
       sqlite.query(statement).run(...values);
     },
@@ -494,4 +496,29 @@ test('it adds the wait notice table with one row for each item and stay', async 
   expect(() => {
     ctx.writeRaw(insert, 5000);
   }).toThrow(/UNIQUE/u);
+});
+
+test('it keeps a stored lever and gives the levers table a head column that reads null', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createTables();
+  await ctx.renameRelations();
+  await ctx.migrateV1Tables();
+
+  ctx.writeRaw(
+    "INSERT INTO levers (kind, item, actor, at) VALUES ('item.retry', 'item-a', 'boxxy:owner:local', ?)",
+    1000,
+  );
+
+  await ctx.migrateLeverHead();
+
+  ctx.writeRaw(
+    "INSERT INTO levers (kind, item, head, actor, at) VALUES ('signoff.approve', 'item-a', 'abc123', 'boxxy:owner:local', ?)",
+    2000,
+  );
+
+  expect(ctx.readRaw('SELECT kind, head FROM levers ORDER BY seq')).toStrictEqual([
+    { kind: 'item.retry', head: null },
+    { kind: 'signoff.approve', head: 'abc123' },
+  ]);
 });

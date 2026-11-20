@@ -45,6 +45,7 @@ async function setupTest() {
             expiresAt: null,
             reason: null,
             phase: brandSchemas.phaseName.parse('verify'),
+            head: null,
             actor: 'boxxy:owner:local',
             at: dispatch.clock.now(),
           }),

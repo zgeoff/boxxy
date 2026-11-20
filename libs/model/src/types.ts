@@ -230,6 +230,9 @@ export interface LeverRow {
 
   // only `item.retry --phase` sets it
   readonly phase: PhaseName | null;
+
+  // the head of the pull request that the owner read; only the sign-off levers set it
+  readonly head: CommitSha | null;
   readonly actor: ActorRef;
   readonly at: Instant;
 }

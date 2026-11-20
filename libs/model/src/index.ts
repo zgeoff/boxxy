@@ -7,7 +7,14 @@ export { attemptSessionRowSchema } from './rows/attempt-session-row-schema.ts';
 export { buildCloseOutSchema } from './closeouts/build-close-out-schema.ts';
 export { buildItemRevision } from './items/build-item-revision.ts';
 export { buildItemViews } from './items/build-item-views.ts';
-export { heldLeverKind, releaseLeverKind } from './items/constants.ts';
+
+export {
+  heldLeverKind,
+  releaseLeverKind,
+  signoffApproveLeverKind,
+  signoffSendBackLeverKind,
+} from './items/constants.ts';
+
 export { collectRetries } from './items/collect-retries.ts';
 export { collectSettled } from './items/collect-settled.ts';
 export { closeOutAnswerSchema } from './closeouts/close-out-answer-schema.ts';

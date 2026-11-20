@@ -474,6 +474,7 @@ function buildOwnerLever(
     expiresAt: null,
     reason,
     phase: null,
+    head: null,
     actor: owner,
     at,
   };

@@ -209,6 +209,7 @@ export interface BoxxyLeverRecordedPayload {
   expiresAt: number | null;
   reason: string | null;
   phase: string | null;
+  head?: string | null;
   actor: unknown;
   at: number;
   storeVersion: number;
@@ -1719,19 +1720,26 @@ function decodeBoxxyLeverRecordedPayload(value: unknown): BoxxyLeverRecordedPayl
     return undefined;
   }
 
-  const field7 = 'actor' in value ? value.actor : undefined;
+  const raw7 = 'head' in value ? value.head : undefined;
+  const field7 = raw7 === undefined ? undefined : raw7 === null ? null : typeof raw7 === 'string' ? raw7 : undefined;
 
-  const raw8 = 'at' in value ? value.at : undefined;
-  const field8 = typeof raw8 === 'number' ? raw8 : undefined;
-
-  if (field8 === undefined) {
+  if (raw7 !== undefined && field7 === undefined) {
     return undefined;
   }
 
-  const raw9 = 'storeVersion' in value ? value.storeVersion : undefined;
+  const field8 = 'actor' in value ? value.actor : undefined;
+
+  const raw9 = 'at' in value ? value.at : undefined;
   const field9 = typeof raw9 === 'number' ? raw9 : undefined;
 
   if (field9 === undefined) {
+    return undefined;
+  }
+
+  const raw10 = 'storeVersion' in value ? value.storeVersion : undefined;
+  const field10 = typeof raw10 === 'number' ? raw10 : undefined;
+
+  if (field10 === undefined) {
     return undefined;
   }
 
@@ -1743,9 +1751,10 @@ function decodeBoxxyLeverRecordedPayload(value: unknown): BoxxyLeverRecordedPayl
     expiresAt: field4,
     reason: field5,
     phase: field6,
-    actor: field7,
-    at: field8,
-    storeVersion: field9,
+    ...(field7 === undefined ? {} : { head: field7 }),
+    actor: field8,
+    at: field9,
+    storeVersion: field10,
   };
 }
 

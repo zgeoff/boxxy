@@ -423,6 +423,30 @@ test('it reads a filed fact stored before the body existed as one with an empty 
   expect(parsed).toStrictEqual({ ...stored, body: '' });
 });
 
+test('it reads a lever fact with a head and one stored without', () => {
+  const stored = {
+    seq: 7,
+    kind: 'signoff.approve',
+    item: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77',
+    until: null,
+    expiresAt: null,
+    reason: null,
+    phase: null,
+    actor: 'boxxy:owner:local',
+    at: 1_762_300_000_000,
+  };
+
+  const head = '3f9c1d2e4a5b6c7d8e9f00112233445566778899';
+  const schema = workFactSchemas['boxxy.lever.recorded'];
+
+  const parsed: unknown = [
+    schema.safeParse(stored).data,
+    schema.safeParse({ ...stored, head }).data,
+  ];
+
+  expect(parsed).toStrictEqual([stored, { ...stored, head }]);
+});
+
 test('it reads a reconciled fact stored before the fallback flag existed as one with no fallback', () => {
   const stored = {
     attempt: '0192f0c5-1a2b-7c3d-8e4f-5a6b7c8d9e0f',

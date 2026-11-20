@@ -36,7 +36,7 @@ export const tableCodecs: { readonly [T in TableName]: TableCodec<Tables[T]> } =
     flags: [],
   },
   levers: {
-    fields: ['seq', 'kind', 'item', 'until', 'expiresAt', 'reason', 'phase', 'actor', 'at'],
+    fields: ['seq', 'kind', 'item', 'until', 'expiresAt', 'reason', 'phase', 'actor', 'at', 'head'],
     json: [],
     flags: [],
   },
