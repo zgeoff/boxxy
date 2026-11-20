@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import type { JobStep, MergeCloseOut, MergeObservation, SignoffVerdict } from '@boxxy/model';
 import { brandSchemas, toJSONValue } from '@boxxy/model';
 import { buildMockMergeCloseOut } from '@boxxy/model/test-utils/build-mock-merge-close-out';
 import { buildMockMergeObservation } from '@boxxy/model/test-utils/build-mock-merge-observation';
@@ -6,12 +7,50 @@ import { decideMerge } from './decide-merge.ts';
 import type { DecideMergeInput } from './types.ts';
 
 function setupTest() {
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+
   return {
+    head,
+    otherHead: brandSchemas.commitSha.parse('0123456789abcdef0123456789abcdef01234567'),
+    approve: { head, verdict: 'approve', findings: null, lever: 812 } satisfies SignoffVerdict,
+    sendBack: {
+      head,
+      verdict: 'send-back',
+      findings: 'Reword it.',
+      lever: 813,
+    } satisfies SignoffVerdict,
+    matched: { rules: ['skills'], paths: ['testing/SKILL.md'], truncated: false },
+
+    // an open, ready pull request at `head` that changes a path the `skills` rule covers
+    observe: (overrides: Partial<MergeObservation> = {}) =>
+      buildMockMergeObservation({
+        head,
+        changedPaths: { kind: 'read', head, paths: ['testing/SKILL.md', 'README.md'] },
+        ...overrides,
+      }),
+    finished: (observed: MergeObservation, fields: Partial<MergeCloseOut>): JobStep => ({
+      kind: 'finish',
+      closeOut: toJSONValue(
+        buildMockMergeCloseOut({
+          head: observed.head,
+          required: ['pr / checks'],
+          mergeCommit: null,
+          byBoxxy: false,
+          verify: observed.verify,
+          ...fields,
+        }),
+      ),
+    }),
+
     // the rules require `pr / checks` and merge with a squash; nothing has been asked yet
     decide: (input: Partial<DecideMergeInput>) =>
       decideMerge({
         observed: buildMockMergeObservation(),
-        rules: { method: 'squash', checks: ['pr / checks'] },
+        rules: {
+          method: 'squash',
+          checks: ['pr / checks'],
+          signoff: [{ name: 'skills', paths: ['**/SKILL.md'], repos: null }],
+        },
         deadlinePassed: false,
         acted: null,
         now: brandSchemas.instant.parse(1_900_000_000_000),
@@ -570,7 +609,7 @@ test.each([
 
     expect(
       ctx.decide({
-        rules: { method: 'squash', checks: [] },
+        rules: { method: 'squash', checks: [], signoff: [] },
         observed: buildMockMergeObservation({ baseRequired: ['verify / gate'], checks }),
       }),
     ).toStrictEqual({
@@ -589,7 +628,9 @@ test('it asks to merge a reviewed head once the base branch required checks are 
     checks: new Map([['verify / gate', 'success']] as const),
   });
 
-  expect(ctx.decide({ rules: { method: 'squash', checks: [] }, observed })).toMatchObject({
+  expect(
+    ctx.decide({ rules: { method: 'squash', checks: [], signoff: [] }, observed }),
+  ).toMatchObject({
     kind: 'act',
     action: { kind: 'merge', required: ['verify / gate'] },
   });
@@ -599,7 +640,9 @@ test('it asks to merge a reviewed head with no required check at all, with an em
   const ctx = setupTest();
   const observed = buildMockMergeObservation({ baseRequired: [], checks: new Map() });
 
-  expect(ctx.decide({ rules: { method: 'squash', checks: [] }, observed })).toMatchObject({
+  expect(
+    ctx.decide({ rules: { method: 'squash', checks: [], signoff: [] }, observed }),
+  ).toMatchObject({
     kind: 'act',
     action: { kind: 'merge', required: [] },
   });
@@ -609,8 +652,203 @@ test('it finishes stale with no review at the head, with no required check at al
   const ctx = setupTest();
   const observed = buildMockMergeObservation({ review: null, baseRequired: [] });
 
-  expect(ctx.decide({ rules: { method: 'squash', checks: [] }, observed })).toMatchObject({
+  expect(
+    ctx.decide({ rules: { method: 'squash', checks: [], signoff: [] }, observed }),
+  ).toMatchObject({
     kind: 'finish',
     closeOut: { outcome: 'stale', required: [] },
+  });
+});
+
+test('it finishes needs-signoff for a ready pull request whose changed paths match', () => {
+  const ctx = setupTest();
+  const observed = ctx.observe();
+
+  expect(ctx.decide({ observed })).toStrictEqual(
+    ctx.finished(observed, { outcome: 'needs-signoff', signoff: ctx.matched }),
+  );
+});
+
+test('it asks to merge a matching pull request with an approval at the head', () => {
+  const ctx = setupTest();
+  const observed = ctx.observe({ signoff: ctx.approve });
+
+  expect(ctx.decide({ observed })).toMatchObject({
+    kind: 'act',
+    action: { kind: 'merge' },
+  });
+});
+
+test('it asks to merge a pull request whose paths match no rule', () => {
+  const ctx = setupTest();
+
+  const observed = ctx.observe({
+    changedPaths: { kind: 'read', head: ctx.head, paths: ['README.md'] },
+  });
+
+  expect(ctx.decide({ observed })).toMatchObject({ kind: 'act', action: { kind: 'merge' } });
+});
+
+test('it asks to merge as before when the paths were not read and there is no verdict', () => {
+  const ctx = setupTest();
+  const observed = ctx.observe({ changedPaths: { kind: 'not-read' } });
+
+  expect(ctx.decide({ observed })).toMatchObject({ kind: 'act' });
+});
+
+test('it finishes needs-signoff for truncated paths that match no rule', () => {
+  const ctx = setupTest();
+
+  const observed = ctx.observe({
+    changedPaths: { kind: 'truncated', head: ctx.head, paths: ['README.md'] },
+  });
+
+  expect(ctx.decide({ observed })).toStrictEqual(
+    ctx.finished(observed, {
+      outcome: 'needs-signoff',
+      signoff: { rules: [], paths: [], truncated: true },
+    }),
+  );
+});
+
+test('it merges a truncated list with an approval at the head', () => {
+  const ctx = setupTest();
+
+  const observed = ctx.observe({
+    changedPaths: { kind: 'truncated', head: ctx.head, paths: ['README.md'] },
+    signoff: ctx.approve,
+  });
+
+  expect(ctx.decide({ observed })).toMatchObject({ kind: 'act' });
+});
+
+test('it ignores an approval at another head', () => {
+  const ctx = setupTest();
+  const observed = ctx.observe({ signoff: { ...ctx.approve, head: ctx.otherHead } });
+
+  expect(ctx.decide({ observed })).toMatchObject({
+    kind: 'finish',
+    closeOut: { outcome: 'needs-signoff' },
+  });
+});
+
+test('it finishes changes-requested for a send-back at the ctx.head, even with a red check', () => {
+  const ctx = setupTest();
+
+  const observed = ctx.observe({
+    signoff: ctx.sendBack,
+    checks: new Map([['pr / checks', 'failure']]),
+  });
+
+  expect(ctx.decide({ observed })).toStrictEqual(
+    ctx.finished(observed, {
+      outcome: 'changes-requested',
+      signoff: ctx.matched,
+      sentBack: { head: ctx.head, findings: 'Reword it.' },
+    }),
+  );
+});
+
+test('it finishes changes-requested ahead of stale, conflict and pending checks', () => {
+  const ctx = setupTest();
+
+  const observed = ctx.observe({
+    signoff: ctx.sendBack,
+    review: null,
+    mergeable: 'conflict',
+    checks: new Map(),
+  });
+
+  expect(ctx.decide({ observed })).toMatchObject({
+    kind: 'finish',
+    closeOut: { outcome: 'changes-requested' },
+  });
+});
+
+test.each(['merged', 'closed'] as const)(
+  'it finishes %s ahead of a send-back at the head',
+  (state) => {
+    const ctx = setupTest();
+    const observed = ctx.observe({ state, signoff: ctx.sendBack });
+
+    expect(ctx.decide({ observed })).toMatchObject({
+      kind: 'finish',
+      closeOut: { outcome: state },
+    });
+  },
+);
+
+test('it ignores a send-back at another head', () => {
+  const ctx = setupTest();
+  const observed = ctx.observe({ signoff: { ...ctx.sendBack, head: ctx.otherHead } });
+
+  expect(ctx.decide({ observed })).toMatchObject({
+    kind: 'finish',
+    closeOut: { outcome: 'needs-signoff' },
+  });
+});
+
+test('it finishes stale before needs-signoff when a push left the review behind', () => {
+  const ctx = setupTest();
+  const observed = ctx.observe({ review: null });
+
+  expect(ctx.decide({ observed })).toMatchObject({
+    kind: 'finish',
+    closeOut: { outcome: 'stale', signoff: ctx.matched },
+  });
+});
+
+test('it finishes repair for a conflict before needs-signoff', () => {
+  const ctx = setupTest();
+  const observed = ctx.observe({ mergeable: 'conflict' });
+
+  expect(ctx.decide({ observed })).toMatchObject({
+    kind: 'finish',
+    closeOut: { outcome: 'repair', cause: 'conflict' },
+  });
+});
+
+test('it finishes repair for a red check before needs-signoff', () => {
+  const ctx = setupTest();
+  const observed = ctx.observe({ checks: new Map([['pr / checks', 'failure']]) });
+
+  expect(ctx.decide({ observed })).toMatchObject({
+    kind: 'finish',
+    closeOut: { outcome: 'repair', cause: 'checks-red' },
+  });
+});
+
+test('it waits on a pending check before needs-signoff', () => {
+  const ctx = setupTest();
+  const observed = ctx.observe({ checks: new Map([['pr / checks', 'pending']]) });
+
+  expect(ctx.decide({ observed })).toMatchObject({
+    kind: 'wait',
+    reason: 'checks pending',
+  });
+});
+
+test('it finishes refused ahead of needs-signoff when the forge refused this head', () => {
+  const ctx = setupTest();
+
+  const step = ctx.decide({
+    observed: ctx.observe(),
+    acted: {
+      at: brandSchemas.instant.parse(1000),
+      head: ctx.head,
+      answer: { kind: 'not-mergeable', reason: 'a ruleset blocks the merge' },
+    },
+  });
+
+  expect(step).toMatchObject({ kind: 'finish', closeOut: { outcome: 'refused' } });
+});
+
+test('it caps the matched paths of the close-out at 50', () => {
+  const ctx = setupTest();
+  const paths = Array.from({ length: 60 }, (_unused, index) => `s${index}/SKILL.md`);
+  const observed = ctx.observe({ changedPaths: { kind: 'read', head: ctx.head, paths } });
+
+  expect(ctx.decide({ observed })).toMatchObject({
+    closeOut: { signoff: { paths: paths.slice(0, 50) } },
   });
 });

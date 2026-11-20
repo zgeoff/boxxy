@@ -68,6 +68,8 @@ test.each([
       reason: null,
       byBoxxy: false,
       verify: { status: 'not-covered', head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290' },
+      signoff: null,
+      sentBack: null,
     },
   ],
 ])('it keeps every field of a stored %s close-out', (_phase, closeOut) => {

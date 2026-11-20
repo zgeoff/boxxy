@@ -26,6 +26,8 @@ export function buildMockMergeObservation(
       attempt: brandSchemas.attemptId.parse(faker.string.uuid({ version: 7 })),
     },
     verify: { status: 'verified', head, features: [{ name: 'file-item', status: 'verified' }] },
+    changedPaths: { kind: 'not-read' },
+    signoff: null,
     ...overrides,
   };
 }

@@ -227,6 +227,8 @@ export type {
 } from './closeouts/types.ts';
 
 export type {
+  ChangedPaths,
+  SignoffVerdict,
   CheckReading,
   CheckState,
   GateRecord,
@@ -383,6 +385,9 @@ export type {
   LoadRejectionReason,
   LoadResult,
   MergeRules,
+  ConditionalOutcome,
+  Rules,
+  SignoffRule,
   ParamKindName,
   SpawnScope,
   ParamKinds,

@@ -8,9 +8,12 @@ import type {
   UnreadableMerge,
 } from '@boxxy/model';
 import { toJSONValue } from '@boxxy/model';
+import invariant from 'tiny-invariant';
+import { matchSignoffRules } from './match-signoff-rules.ts';
 import type { DecideMergeInput } from './types.ts';
 
 const minuteMs = 60_000;
+const maxSignoffPaths = 50;
 
 // The merge rule: one step for each read of a merge attempt. It checks the rows of the merge
 // table from the top, and the first match wins. A merge needs a passed review at the head and
@@ -25,8 +28,25 @@ export function decideMerge(input: DecideMergeInput): JobStep {
 
   const required = [...new Set([...input.rules.checks, ...observed.baseRequired])];
 
+  const matched = matchSignoffRules(
+    input.rules.signoff,
+    observed.pullRequest,
+    observed.changedPaths,
+  );
+
+  const isTruncated = observed.changedPaths.kind === 'truncated';
+
+  const signoff: MergeCloseOut['signoff'] =
+    matched.rules.length > 0 || isTruncated
+      ? {
+          rules: matched.rules,
+          paths: matched.paths.slice(0, maxSignoffPaths),
+          truncated: isTruncated,
+        }
+      : null;
+
   const finish = (outcome: MergeOutcome, fields: Partial<MergeCloseOut> = {}): JobStep =>
-    buildFinish(observed, required, outcome, fields);
+    buildFinish(observed, required, outcome, { signoff, ...fields });
 
   if (observed.state === 'merged') {
     return finish('merged', {
@@ -37,6 +57,17 @@ export function decideMerge(input: DecideMergeInput): JobStep {
 
   if (observed.state === 'closed') {
     return finish('closed');
+  }
+
+  // a verdict counts only at the head the job read
+  const verdict = observed.signoff?.head === observed.head ? observed.signoff : null;
+
+  if (verdict?.verdict === 'send-back') {
+    invariant(verdict.findings !== null, 'a send-back verdict carries its findings');
+
+    return finish('changes-requested', {
+      sentBack: { head: verdict.head, findings: verdict.findings },
+    });
   }
 
   // a push after the review sends the item back to it
@@ -74,6 +105,10 @@ export function decideMerge(input: DecideMergeInput): JobStep {
     return finish('refused', { reason: sent.answer.reason });
   }
 
+  if ((matched.rules.length > 0 || isTruncated) && verdict?.verdict !== 'approve') {
+    return finish('needs-signoff');
+  }
+
   if (sent !== null && input.deadlinePassed) {
     return finish('stalled');
   }
@@ -105,6 +140,8 @@ function buildBlocked(observed: UnreadableMerge): JobStep {
     reason: formatReadProblem(observed),
     byBoxxy: false,
     verify: null,
+    signoff: null,
+    sentBack: null,
   };
 
   return { kind: 'finish', closeOut: toJSONValue(closeOut) };
@@ -138,6 +175,8 @@ function buildFinish(
     reason: null,
     byBoxxy: false,
     verify: observed.verify,
+    signoff: null,
+    sentBack: null,
     ...fields,
   };
 

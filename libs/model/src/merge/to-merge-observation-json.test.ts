@@ -18,6 +18,8 @@ test('it writes the checks as an object by name', () => {
     ]),
     baseRequired: ['build'],
     mergeCommit: null,
+    changedPaths: { kind: 'not-read' },
+    signoff: null,
     review: null,
     verify: { status: 'not-covered', head },
   });
@@ -32,11 +34,27 @@ test('it writes the checks as an object by name', () => {
     mergeCommit: null,
     review: null,
     verify: { status: 'not-covered', head },
+    changedPaths: { kind: 'not-read' },
+    signoff: null,
   });
 });
 
 test('it writes a form that the observation schema reads back as the same observation', () => {
   const observation = buildMockMergeObservation();
+  const parsed: unknown = mergeObservationSchema.parse(toMergeObservationJSON(observation));
+
+  expect(parsed).toStrictEqual(observation);
+});
+
+test('it round-trips the changed paths and the owner verdict of an observation', () => {
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+
+  const observation = buildMockMergeObservation({
+    head,
+    changedPaths: { kind: 'truncated', head, paths: ['testing/SKILL.md'] },
+    signoff: { head, verdict: 'send-back', findings: 'Reword the rule.', lever: 813 },
+  });
+
   const parsed: unknown = mergeObservationSchema.parse(toMergeObservationJSON(observation));
 
   expect(parsed).toStrictEqual(observation);

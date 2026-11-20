@@ -161,6 +161,20 @@ export interface MergeCloseOut {
 
   // the reading the job used, so pepys keeps the feature list; null for a `blocked` merge
   readonly verify: VerifyReading | null;
+
+  // set on every outcome once a rule matched or the changed paths were cut short, so `item get`
+  // shows why; null otherwise
+  readonly signoff: {
+    // the rules that matched; empty when only `truncated`
+    readonly rules: readonly string[];
+
+    // the changed paths that matched, at most 50
+    readonly paths: readonly string[];
+    readonly truncated: boolean;
+  } | null;
+
+  // `changes-requested` only
+  readonly sentBack: { readonly head: CommitSha; readonly findings: string } | null;
 }
 
 // A relation that a close-out asks for: from the attempt's item to `target`, or from `source` to

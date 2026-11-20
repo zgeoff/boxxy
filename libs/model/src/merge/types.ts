@@ -68,6 +68,29 @@ export interface MergeObservation {
 
   // the verify reading at `head`
   readonly verify: VerifyReading;
+
+  // the paths the pull request changes, for the sign-off rules
+  readonly changedPaths: ChangedPaths;
+
+  // the owner's latest verdict on the item, which the merge rule counts only at `head`
+  readonly signoff: SignoffVerdict | null;
+}
+
+// `not-read`: no rule covers the repo, or the pull request isn't open. `truncated`: the forge
+// listed fewer files than the pull request changes.
+export type ChangedPaths =
+  | { readonly kind: 'read'; readonly head: CommitSha; readonly paths: readonly string[] }
+  | { readonly kind: 'truncated'; readonly head: CommitSha; readonly paths: readonly string[] }
+  | { readonly kind: 'not-read' };
+
+export interface SignoffVerdict {
+  // the head the owner read
+  readonly head: CommitSha;
+  readonly verdict: 'approve' | 'send-back';
+
+  // set exactly when `send-back`
+  readonly findings: string | null;
+  readonly lever: number;
 }
 
 // What the merge job reads when no later read can give an observation: the item has no pull
@@ -96,7 +119,9 @@ export type MergeOutcome =
   | 'closed'
   | 'stalled'
   | 'refused'
-  | 'blocked';
+  | 'blocked'
+  | 'needs-signoff'
+  | 'changes-requested';
 
 // The last merge request boxxy sent, from the attempt row. `answer` is null when the call got no
 // answer.
