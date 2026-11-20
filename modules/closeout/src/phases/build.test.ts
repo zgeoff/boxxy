@@ -4,6 +4,7 @@ import type { BuildCloseOut } from '@boxxy/model';
 import { buildMockEvidenceRow } from '@boxxy/model/test-utils/build-mock-evidence-row';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
 import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
+import { buildMockMergeCloseOut } from '@boxxy/model/test-utils/build-mock-merge-close-out';
 import { buildMockSettledAttemptRow } from '@boxxy/model/test-utils/build-mock-settled-attempt-row';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import { buildMockV1ItemView } from '@boxxy/model/test-utils/build-mock-v1-item-view';
@@ -1038,4 +1039,93 @@ test.each<[string, (BuildCloseOut['result'] | null)[], string | null]>([
     stopped,
     pullRequest: null,
   });
+});
+
+test.each([
+  ['no later grading', 0],
+  ['a review that asked for changes before it', -1],
+])('it sends a build the owner text of a merge sent back, with %s', (_title, order) => {
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+  const findings = 'The new rule contradicts the old one.\n\nSay which one wins.';
+
+  const review = buildMockSettledAttemptRow({
+    phase: 'review',
+    outcome: 'changes-requested',
+    endedAt: 1000,
+    closeOut: {
+      round: 1,
+      cause: 'first',
+      reading: buildMockGateReading({ status: 'blocked', why: 'open-findings' }),
+      unrelatedLines: null,
+    },
+  });
+
+  const merge = buildMockSettledAttemptRow({
+    phase: 'merge',
+    outcome: 'changes-requested',
+    state: 'failed',
+    endedAt: 2000,
+    closeOut: buildMockMergeCloseOut({
+      outcome: 'changes-requested',
+      head,
+      mergeCommit: null,
+      byBoxxy: false,
+      sentBack: { head, findings },
+    }),
+  });
+
+  const input = build.input({
+    item: buildMockV1ItemView({ acceptance: [] }),
+    attempt: buildMockV1AttemptRow().id,
+    history: order === 0 ? [merge] : [review, merge],
+    retries: [],
+    pullRequests: [],
+    shipped: [],
+    session: null,
+  });
+
+  expect(input).toMatchObject({ sentBack: { from: 'owner', head, findings } });
+});
+
+test('it gives a build no owner send-back once a passed review follows the merge that sent it back', () => {
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+
+  const history = [
+    buildMockSettledAttemptRow({
+      phase: 'merge',
+      outcome: 'changes-requested',
+      state: 'failed',
+      endedAt: 1000,
+      closeOut: buildMockMergeCloseOut({
+        outcome: 'changes-requested',
+        head,
+        mergeCommit: null,
+        byBoxxy: false,
+        sentBack: { head, findings: 'Fix the rule.' },
+      }),
+    }),
+    buildMockSettledAttemptRow({
+      phase: 'review',
+      outcome: 'passed',
+      endedAt: 2000,
+      closeOut: {
+        round: 2,
+        cause: 'rework',
+        reading: buildMockGateReading({ status: 'passed', head }),
+        unrelatedLines: null,
+      },
+    }),
+  ];
+
+  const input = build.input({
+    item: buildMockV1ItemView({ acceptance: [] }),
+    attempt: buildMockV1AttemptRow().id,
+    history,
+    retries: [],
+    pullRequests: [],
+    shipped: [],
+    session: null,
+  });
+
+  expect(input).toMatchObject({ sentBack: null });
 });

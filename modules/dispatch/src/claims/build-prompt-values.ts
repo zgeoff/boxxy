@@ -88,6 +88,11 @@ function buildFindings(sentBack: SentBack | null): string {
         verify.features.map((feature) => `- ${feature}`).join('\n'),
       ].join('\n\n'),
     )
+    .with({ from: 'owner' }, (owner) =>
+      [`The owner read ${owner.head} and sent it back with these findings:`, owner.findings].join(
+        '\n\n',
+      ),
+    )
     .exhaustive();
 }
 

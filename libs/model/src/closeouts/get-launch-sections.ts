@@ -19,9 +19,16 @@ const verifySentBackSchema = z.object({
   features: z.array(z.string().min(1)).min(1),
 });
 
+const ownerSentBackSchema = z.object({
+  from: z.literal('owner'),
+  head: brandSchemas.commitSha,
+  findings: z.string().min(1),
+});
+
 const sentBackSchema = z.discriminatedUnion('from', [
   reviewSentBackSchema,
   verifySentBackSchema,
+  ownerSentBackSchema,
 ]) satisfies z.ZodType<SentBack>;
 
 const launchInputSchema = z.object({
