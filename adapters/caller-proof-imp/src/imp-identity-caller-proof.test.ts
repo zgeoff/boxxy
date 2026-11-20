@@ -6,12 +6,12 @@ import { createMemoryClaimStore } from '@boxxy/dispatch/test-utils/create-memory
 import { brandSchemas } from '@boxxy/model';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import { buildMockV1ItemRow } from '@boxxy/model/test-utils/build-mock-v1-item-row';
+import { createTestIdentityIssuer } from '@impz/testing/identity';
 import invariant from 'tiny-invariant';
 import { impIdentityCallerProof } from './imp-identity-caller-proof.ts';
-import { createTestIssuer } from './test-utils/create-test-issuer.ts';
 
 async function setupTest() {
-  const issuer = await createTestIssuer('host-a.example.test');
+  const issuer = await createTestIdentityIssuer({ issuer: 'host-a.example.test' });
 
   const nowMs = brandSchemas.instant.parse(1_800_000_010_000);
 
@@ -33,11 +33,11 @@ test('it proves the caller of a valid token as its issuer and its machine ID', a
   });
 
   const token = await ctx.issuer.signToken({
-    sub: 'machine-17',
-    aud: 'boxxy.example.test',
+    id: 'machine-17',
+    audience: 'boxxy.example.test',
     iat: 1_800_000_000,
     exp: 1_800_000_055,
-    impName: 'agent-build-3',
+    name: 'agent-build-3',
   });
 
   const caller = await proof.prove(ctx.buildRequest({ 'Imp-Identity': token }));
@@ -55,11 +55,11 @@ test('it proves no caller for a token made for another audience', async () => {
   });
 
   const token = await ctx.issuer.signToken({
-    sub: 'machine-17',
-    aud: 'other.example.test',
+    id: 'machine-17',
+    audience: 'other.example.test',
     iat: 1_800_000_000,
     exp: 1_800_000_055,
-    impName: 'agent-build-3',
+    name: 'agent-build-3',
   });
 
   const caller = await proof.prove(ctx.buildRequest({ 'imp-identity': token }));
@@ -83,11 +83,11 @@ test.each([
     });
 
     const token = await ctx.issuer.signToken({
-      sub: 'machine-17',
-      aud: 'boxxy.example.test',
+      id: 'machine-17',
+      audience: 'boxxy.example.test',
       iat: 1_800_000_000,
       exp: 1_800_000_055,
-      impName: 'agent-build-3',
+      name: 'agent-build-3',
     });
 
     const caller = await proof.prove(ctx.buildRequest({ 'imp-identity': token }));
@@ -98,7 +98,7 @@ test.each([
 
 test('it proves no caller for a token from an issuer the configuration does not name', async () => {
   const ctx = await setupTest();
-  const stranger = await createTestIssuer('host-b.example.test');
+  const stranger = await createTestIdentityIssuer({ issuer: 'host-b.example.test' });
 
   const proof = impIdentityCallerProof({
     issuers: [ctx.issuer.document],
@@ -107,11 +107,11 @@ test('it proves no caller for a token from an issuer the configuration does not 
   });
 
   const token = await stranger.signToken({
-    sub: 'machine-17',
-    aud: 'boxxy.example.test',
+    id: 'machine-17',
+    audience: 'boxxy.example.test',
     iat: 1_800_000_000,
     exp: 1_800_000_055,
-    impName: 'agent-build-3',
+    name: 'agent-build-3',
   });
 
   const caller = await proof.prove(ctx.buildRequest({ 'imp-identity': token }));
@@ -121,7 +121,7 @@ test('it proves no caller for a token from an issuer the configuration does not 
 
 test('it proves no caller for a token that names a configured issuer but was signed by another key', async () => {
   const ctx = await setupTest();
-  const forger = await createTestIssuer('host-a.example.test');
+  const forger = await createTestIdentityIssuer({ issuer: 'host-a.example.test' });
 
   const proof = impIdentityCallerProof({
     issuers: [ctx.issuer.document],
@@ -130,11 +130,11 @@ test('it proves no caller for a token that names a configured issuer but was sig
   });
 
   const token = await forger.signToken({
-    sub: 'machine-17',
-    aud: 'boxxy.example.test',
+    id: 'machine-17',
+    audience: 'boxxy.example.test',
     iat: 1_800_000_000,
     exp: 1_800_000_055,
-    impName: 'agent-build-3',
+    name: 'agent-build-3',
   });
 
   const caller = await proof.prove(ctx.buildRequest({ 'imp-identity': token }));
@@ -166,11 +166,11 @@ test('it proves no caller for a token whose claims were changed after signing', 
   });
 
   const token = await ctx.issuer.signToken({
-    sub: 'machine-17',
-    aud: 'boxxy.example.test',
+    id: 'machine-17',
+    audience: 'boxxy.example.test',
     iat: 1_800_000_000,
     exp: 1_800_000_055,
-    impName: 'agent-build-3',
+    name: 'agent-build-3',
   });
 
   const [header, , signature] = token.split('.');
@@ -203,11 +203,11 @@ test('it proves no caller when the request carries a second identity header', as
   });
 
   const token = await ctx.issuer.signToken({
-    sub: 'machine-17',
-    aud: 'boxxy.example.test',
+    id: 'machine-17',
+    audience: 'boxxy.example.test',
     iat: 1_800_000_000,
     exp: 1_800_000_055,
-    impName: 'agent-build-3',
+    name: 'agent-build-3',
   });
 
   const headers = new Headers();
@@ -232,11 +232,11 @@ test('it proves no caller when the configuration names no trust document', async
   });
 
   const token = await ctx.issuer.signToken({
-    sub: 'machine-17',
-    aud: 'boxxy.example.test',
+    id: 'machine-17',
+    audience: 'boxxy.example.test',
     iat: 1_800_000_000,
     exp: 1_800_000_055,
-    impName: 'agent-build-3',
+    name: 'agent-build-3',
   });
 
   const caller = await proof.prove(ctx.buildRequest({ 'imp-identity': token }));
@@ -254,11 +254,11 @@ test('it proves no caller when the configuration names an empty audience', async
   });
 
   const token = await ctx.issuer.signToken({
-    sub: 'machine-17',
-    aud: '',
+    id: 'machine-17',
+    audience: '',
     iat: 1_800_000_000,
     exp: 1_800_000_055,
-    impName: 'agent-build-3',
+    name: 'agent-build-3',
   });
 
   const caller = await proof.prove(ctx.buildRequest({ 'imp-identity': token }));
@@ -280,7 +280,7 @@ test('it throws at start for a trust document that is not one', async () => {
 
 test('it throws at start for two trust documents of one issuer', async () => {
   const ctx = await setupTest();
-  const twin = await createTestIssuer('host-a.example.test');
+  const twin = await createTestIdentityIssuer({ issuer: 'host-a.example.test' });
 
   expect(() =>
     impIdentityCallerProof({
@@ -327,11 +327,11 @@ test.each([
     });
 
     const token = await ctx.issuer.signToken({
-      sub: row.machine,
-      aud: 'boxxy.example.test',
+      id: row.machine,
+      audience: 'boxxy.example.test',
       iat: 1_800_000_000,
       exp: 1_800_000_055,
-      impName: 'agent-build-3',
+      name: 'agent-build-3',
     });
 
     const caller = await proof.prove(ctx.buildRequest({ 'imp-identity': token }));
