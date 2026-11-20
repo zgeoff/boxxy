@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.3.3](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.3.2...@boxxy/store-sqlite@0.3.3) (2026-11-20)
+
+### Features
+
+- wire owner sign-off into the merge job ([#226](https://github.com/zgeoff/boxxy/issues/226))
+  ([22516cd](https://github.com/zgeoff/boxxy/commit/22516cd4f3b38f66ad26f01dc447087f6ce800e2))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.3.3
+    - @boxxy/model bumped to 0.3.3
+  - devDependencies
+    - @boxxy/dispatch bumped to 0.3.3
+  - peerDependencies
+    - @boxxy/dispatch bumped to 0.3.3
+
 ## [0.3.2](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.3.1...@boxxy/store-sqlite@0.3.2) (2026-11-19)
 
 ### Features

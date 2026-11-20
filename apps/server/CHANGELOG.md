@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.3.3](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.3.2...@boxxy/server@0.3.3) (2026-11-20)
+
+### Features
+
+- wire owner sign-off into the merge job ([#226](https://github.com/zgeoff/boxxy/issues/226))
+  ([22516cd](https://github.com/zgeoff/boxxy/commit/22516cd4f3b38f66ad26f01dc447087f6ce800e2))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/auth-oauth bumped to 0.3.3
+    - @boxxy/caller-proof-imp bumped to 0.3.3
+    - @boxxy/closeout bumped to 0.3.3
+    - @boxxy/content-hash bumped to 0.3.3
+    - @boxxy/contract bumped to 0.3.3
+    - @boxxy/dispatch bumped to 0.3.3
+    - @boxxy/forge-github bumped to 0.3.3
+    - @boxxy/model bumped to 0.3.3
+    - @boxxy/notifier-atc bumped to 0.3.3
+    - @boxxy/pepys bumped to 0.3.3
+    - @boxxy/planning bumped to 0.3.3
+    - @boxxy/review-noslop bumped to 0.3.3
+    - @boxxy/rules bumped to 0.3.3
+    - @boxxy/store-sqlite bumped to 0.3.3
+    - @boxxy/verifier-wringer bumped to 0.3.3
+    - @boxxy/worker-atc bumped to 0.3.3
+
 ## [0.3.2](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.3.1...@boxxy/server@0.3.2) (2026-11-19)
 
 ### Features
