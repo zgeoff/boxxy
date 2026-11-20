@@ -2,18 +2,19 @@
 
 ## [0.3.3](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.3.2...@boxxy/model@0.3.3) (2026-11-20)
 
-
 ### Features
 
-* **train:** add sign-off rules and merge outcomes ([#224](https://github.com/zgeoff/boxxy/issues/224)) ([449848c](https://github.com/zgeoff/boxxy/commit/449848ca68be4b41bee34cfad237268f6fce846d))
-* wire owner sign-off into the merge job ([#226](https://github.com/zgeoff/boxxy/issues/226)) ([22516cd](https://github.com/zgeoff/boxxy/commit/22516cd4f3b38f66ad26f01dc447087f6ce800e2))
-
+- **train:** add sign-off rules and merge outcomes
+  ([#224](https://github.com/zgeoff/boxxy/issues/224))
+  ([449848c](https://github.com/zgeoff/boxxy/commit/449848ca68be4b41bee34cfad237268f6fce846d))
+- wire owner sign-off into the merge job ([#226](https://github.com/zgeoff/boxxy/issues/226))
+  ([22516cd](https://github.com/zgeoff/boxxy/commit/22516cd4f3b38f66ad26f01dc447087f6ce800e2))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/content-hash bumped to 0.3.3
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.3.3
 
 ## [0.3.2](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.3.1...@boxxy/model@0.3.2) (2026-11-19)
 

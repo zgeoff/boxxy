@@ -2,19 +2,19 @@
 
 ## [0.3.3](https://github.com/zgeoff/boxxy/compare/@boxxy/rules@0.3.2...@boxxy/rules@0.3.3) (2026-11-20)
 
-
 ### Features
 
-* **train:** add sign-off rules and merge outcomes ([#224](https://github.com/zgeoff/boxxy/issues/224)) ([449848c](https://github.com/zgeoff/boxxy/commit/449848ca68be4b41bee34cfad237268f6fce846d))
-
+- **train:** add sign-off rules and merge outcomes
+  ([#224](https://github.com/zgeoff/boxxy/issues/224))
+  ([449848c](https://github.com/zgeoff/boxxy/commit/449848ca68be4b41bee34cfad237268f6fce846d))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/content-hash bumped to 0.3.3
-    * @boxxy/model bumped to 0.3.3
-    * @boxxy/prompt-template bumped to 0.3.3
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.3.3
+    - @boxxy/model bumped to 0.3.3
+    - @boxxy/prompt-template bumped to 0.3.3
 
 ## [0.3.2](https://github.com/zgeoff/boxxy/compare/@boxxy/rules@0.3.1...@boxxy/rules@0.3.2) (2026-11-19)
 
