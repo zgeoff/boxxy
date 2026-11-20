@@ -336,6 +336,7 @@ export type {
   ItemFilter,
   JobActAnswer,
   JobAction,
+  JobReadContext,
   JobReading,
   JobWorker,
   MergeAnswer,

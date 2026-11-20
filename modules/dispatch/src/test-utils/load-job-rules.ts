@@ -10,12 +10,15 @@ import { createFakeReviewGate } from './create-fake-review-gate.ts';
 
 // The example rules with a `merge` step after review on `merge.forge`, and the review phase kind
 // on a fake review gate. `workers` counts the session phases and `jobs` the merges. With a drive,
-// the merge phase kind runs it in place of the merge rule.
-export function loadJobRules(drive?: (ctx: DriveContext) => JobStep): LoadedRules {
+// the merge phase kind runs it in place of the merge rule. `signoff` adds a sign-off rule.
+export function loadJobRules(
+  drive?: (ctx: DriveContext) => JobStep,
+  options: { readonly signoff?: boolean } = {},
+): LoadedRules {
   const example = buildExampleLoadInput();
 
   const text = new TextDecoder().decode(example.checkout.files.get(rulesFileName));
-  const jobText = new TextEncoder().encode(buildJobRulesText(text));
+  const jobText = new TextEncoder().encode(buildJobRulesText(text, options));
 
   const loaded = loadRules({
     ...example,
