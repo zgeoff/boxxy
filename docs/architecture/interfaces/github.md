@@ -114,6 +114,10 @@ job exists, so the loader refuses a rules file with a merge step.
   request's commits, and the check runs and statuses at a head. A repo with more open pull requests
   than the cap holds can leave a build unlinked by the watch. The read of a branch's rules throws
   past its cap instead, because a rule it didn't read could be a required check.
+- **The changed paths come from the pull request's file list,** which pages up to 3,000 files, in
+  place of the 300 of the compare. Each renamed file gives its old path too. The read also carries
+  the pull request's own count of changed files, and a list shorter than the count is `truncated`. A
+  call that fails throws, so the merge job reads again on its next tick.
 - **Each check name reports its newest run,** and whether that run is a check run or a commit
   status. A check run wins over a commit status of the same name, and a run that ended with neither
   a pass nor a failure, such as `cancelled` or `skipped`, reads as `other`.

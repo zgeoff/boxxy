@@ -64,6 +64,9 @@ The owner's item commands have a few rules the usage lines don't show:
   `[c-3] #prod new text`, tag the criterion. A tag the rules file's `criterionTags` doesn't list is
   refused, and a value with no `#tag` word keeps the tags the criterion has.
   `item file --acceptance` takes the same `#tag` words.
+- **The sign-off:** `item signoff <item> --head <head> --verdict approve|send-back` takes the
+  findings of a send-back from `--findings <text>` or `--findings-file <path>`, where `-` reads
+  stdin. Giving both exits 2. `signoff list` prints the items that wait, with the head to pass.
 - **`item show`** prints the item with its body and one revision per edit, each with its time and
   the fields it set.
 - **`plan defer --until`** takes an ISO 8601 time with an offset, which the server checks.

@@ -36,8 +36,6 @@ These docs hold the designs whose work is not fully built. The built system is i
   job worker, and the merge step that lands a pull request when its checks are green.
 - [Next work list](./next-work-list.md): the slices that build the review, verify and merge design,
   the verify journeys and owner notices.
-- [Owner sign-off at merge](./owner-signoff.md): the rules that make a pull request wait for the
-  owner's sign-off once it is otherwise ready to merge, and the owner's approve and send-back.
 - [Interface sketches](./sketches/README.md): the shape of each interface, as TypeScript files.
 
 ## Reading order

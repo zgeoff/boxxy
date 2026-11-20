@@ -97,6 +97,11 @@ stream `facts.boxxy.runner`. These rules hold for the work facts:
   GitHub data ([the join keys](#the-join-keys)).
 - **boxxy records the merges it sees**, because item state reads them and boxxy must dispatch while
   pepys is down. pepys takes the merge time from its GitHub tables instead.
+- **A sign-off lever fact carries the head.** `boxxy.lever.recorded` holds `head` as an optional
+  field, set by the `signoff.approve` and `signoff.send-back` levers, and holds the findings of a
+  send-back in `reason`. A fact written before the field has no `head`, and the pepys boundary
+  ignores a field it does not read. boxxy writes `head` only to a pepys whose boundary reads it, so
+  the pepys release that reads it ships first.
 - **Some outcomes write no fact of their own.** A settle for `stalled`, `skill-missing` or a
   capacity refusal shows only on the `settled` fact. A capacity refusal carries atc's code, cause
   and message in the fact's `refusal` field; a fact written before the field reads as no refusal.

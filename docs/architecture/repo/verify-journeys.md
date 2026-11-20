@@ -1,7 +1,7 @@
 # Verify journeys
 
 A change to boxxy merges only after an agent has used each feature it touches against a running
-boxxy, the way the owner or an agent session would. Each of boxxy's eight features has a journey: a
+boxxy, the way the owner or an agent session would. Each of boxxy's nine features has a journey: a
 short script of `bun verify` lines that ends in a read with the value it expects. A grading agent
 runs the journey of each changed feature against a local boxxy, records a verdict, and publishes a
 report into the pull request's body. A CI check, `verify / gate`, fails a pull request that changes
@@ -30,7 +30,7 @@ When a journey passes, the grader runs `bun verify done`, and wringer records a 
 `.wringer/` on the grader's machine: the feature, and the fingerprint of the code the journey ran
 on. The fingerprint is a git patch id of the branch's change against its merge base, limited to that
 feature's paths, so editing a feature's paths makes its verdict stale. Most of boxxy's code is in
-all eight features' paths ([the map](#the-path-to-feature-map)), so most changes need all eight
+all nine features' paths ([the map](#the-path-to-feature-map)), so most changes need all nine
 journeys again.
 
 `bun verify publish` writes the report into the pull request body: a table of each feature, whether
@@ -111,6 +111,13 @@ code, never the adapters the fakes replace.
 - `hold-notice`: a settle that holds the item stores a [notice](../work/notices.md), and the tick
   sends it to the session `notices register` stored.
 - `hold-recovery`: `item retry --phase` lifts a hold, and the next attempt runs in that phase.
+- `owner-signoff`: an item whose pull request edits a path that a
+  [sign-off rule](../work/pipeline.md#owner-sign-off-at-merge) matches holds at the sign-off hold,
+  and `signoff list` shows it with its head and matched paths. The owner sends it back, the next
+  build's launch prompt holds the owner's text, and the next head holds again. The owner approves
+  that head, and the merge goes through. The journey holds the item with a seed that runs the review
+  and the merge attempt, and the harness puts the rules with the sign-off rule in place for this
+  item only.
 - `owner-mcp`: a service client signs in with `client_credentials`, the public listener lists the
   owner's tools with the read tools marked, and an MCP call files and reads an item. The item is
   held, so no other journey's tick claims it.
@@ -127,7 +134,7 @@ reads the listener's origin and the client's secret from 1Password.
 an item through the CLI and the server, so every journey runs code in most packages, and a map of
 single files would repeat that long list per feature and miss each new file.
 
-- **All eight features:** `apps/cli`, `apps/server`, `libs`, `adapters/store-sqlite`, and the
+- **All nine features:** `apps/cli`, `apps/server`, `libs`, `adapters/store-sqlite`, and the
   `rules`, `dispatch`, `closeout` and `train` modules.
 - **Every feature but `file-item` and `owner-mcp`:** `modules/planning`.
 - **One feature each:** `adapters/auth-oauth` for `owner-mcp`, and `packages/pepys` for
@@ -152,7 +159,7 @@ matches it. The ignore list has four groups, each with its reason in a comment i
    composition. Their own tests cover them.
 
 A change to the CLI's or the server's `src/test-utils/`, the harness included, needs fresh verdicts
-for all eight features, because it changes what a journey proves. No ignore glob matches a source
+for all nine features, because it changes what a journey proves. No ignore glob matches a source
 file a journey runs; the list matches prose by folder and name, never `**/*.md`, because the rules'
 prompts are markdown the server sends to each session.
 
