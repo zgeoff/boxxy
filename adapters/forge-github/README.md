@@ -47,8 +47,9 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
   while the head is still `head`. It answers `head-moved` to a 409 and `not-mergeable` to a 405.
 - `src/test-utils/github-handlers.ts` holds the MSW handlers that answer the GitHub REST API in
   tests, from `@msw/data` collections that a test seeds, and `build-github-seeders.ts` seeds them
-  for the forge contract. The repo's test preload runs `src/test-utils/reset-mock-network.ts`, which
-  starts the one mock network of each test process.
+  for the forge contract. The repo's test preload runs `src/test-utils/mock-network.ts`, which
+  starts the one mock network of each test process and resets the collections after each test. A
+  request that no handler matches fails the test.
 
 ## Documentation
 
