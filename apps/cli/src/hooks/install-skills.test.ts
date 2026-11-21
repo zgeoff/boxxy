@@ -12,7 +12,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { runGit } from '../run-git.ts';
-import { createGitRepo } from '../test-utils/create-git-repo.ts';
+import { commitGitFolder } from '../test-utils/commit-git-folder.ts';
 import type { SkillsRepo } from '../test-utils/create-skills-repo.ts';
 import { createSkillsRepo } from '../test-utils/create-skills-repo.ts';
 import { installSkills } from './install-skills.ts';
@@ -48,7 +48,7 @@ async function setupTest() {
 test('it leaves a skill the repository commits as committed, extra files included', async () => {
   const ctx = await setupTest();
 
-  await createGitRepo({
+  await commitGitFolder({
     folder: ctx.workspace,
     files: {
       '.agents/skills/docs-writing/SKILL.md': 'committed\n',
@@ -69,7 +69,7 @@ test('it leaves a skill the repository commits as committed, extra files include
 test('it installs beside a committed skill in a repository that links .claude/skills to .agents/skills', async () => {
   const ctx = await setupTest();
 
-  await createGitRepo({
+  await commitGitFolder({
     folder: ctx.workspace,
     files: {
       '.agents/skills/docs-writing/SKILL.md': 'committed\n',
@@ -102,7 +102,7 @@ test('it installs beside a committed skill in a repository that links .claude/sk
 test('it returns a skill the repository commits without a SKILL.md as missing', async () => {
   const ctx = await setupTest();
 
-  await createGitRepo({
+  await commitGitFolder({
     folder: ctx.workspace,
     files: { '.agents/skills/docs-writing/notes.md': 'notes\n' },
   });
@@ -116,7 +116,7 @@ test('it returns a skill the repository commits without a SKILL.md as missing', 
 test('it returns a skill as missing and leaves its committed files when git cannot read the repository', async () => {
   const ctx = await setupTest();
 
-  await createGitRepo({
+  await commitGitFolder({
     folder: ctx.workspace,
     files: { '.agents/skills/docs-writing/scripts/check-links.sh': 'echo links\n' },
   });
@@ -137,7 +137,7 @@ test('it returns a skill as missing and leaves its committed files when git cann
 test('it lists each skill it copies in info/exclude, so git status shows no new folder', async () => {
   const ctx = await setupTest();
 
-  await createGitRepo({
+  await commitGitFolder({
     folder: ctx.workspace,
     files: { 'README.md': 'readme\n', '.agents/skills/docs-writing/SKILL.md': 'committed\n' },
   });
@@ -162,7 +162,7 @@ test('it lists each skill it copies in info/exclude, so git status shows no new 
 test('it copies a skill into a folder the repository ignores and adds no exclude line', async () => {
   const ctx = await setupTest();
 
-  await createGitRepo({ folder: ctx.workspace, files: { '.gitignore': '/runs/\n' } });
+  await commitGitFolder({ folder: ctx.workspace, files: { '.gitignore': '/runs/\n' } });
 
   const repo = await ctx.makeRepo({ alpha: { 'SKILL.md': 'alpha\n' } });
 
@@ -186,7 +186,7 @@ test('it creates .agents/skills in a repository with no .agents folder and insta
 
   await rm(join(ctx.workspace, '.agents'), { recursive: true });
 
-  await createGitRepo({
+  await commitGitFolder({
     folder: ctx.workspace,
     files: { 'skills/docs-writing/SKILL.md': 'source\n' },
     links: { '.claude/skills': '../skills' },
@@ -217,7 +217,7 @@ test('it returns every name and creates nothing when the workspace is missing', 
   const ctx = await setupTest();
 
   await rm(join(ctx.workspace, '.agents'), { recursive: true });
-  await createGitRepo({ folder: ctx.workspace, files: { 'README.md': 'readme\n' } });
+  await commitGitFolder({ folder: ctx.workspace, files: { 'README.md': 'readme\n' } });
 
   const repo = await ctx.makeRepo({
     alpha: { 'SKILL.md': 'alpha\n' },
@@ -240,7 +240,7 @@ test('it returns every name and creates nothing when the workspace is missing', 
 test('it keeps the exclude line of a copy in one worktree when another worktree commits the skill', async () => {
   const ctx = await setupTest();
 
-  await createGitRepo({
+  await commitGitFolder({
     folder: ctx.workspace,
     files: { '.agents/skills/kept/SKILL.md': 'kept\n' },
   });
@@ -290,7 +290,7 @@ test.each(['info/exclude', 'info/exclude.boxxy-lock'])(
   async (file) => {
     const ctx = await setupTest();
 
-    await createGitRepo({ folder: ctx.workspace, files: { 'README.md': 'readme\n' } });
+    await commitGitFolder({ folder: ctx.workspace, files: { 'README.md': 'readme\n' } });
 
     const outside = join(ctx.folder, 'outside.txt');
     const path = join(ctx.workspace, '.git', file);
@@ -310,7 +310,7 @@ test.each(['info/exclude', 'info/exclude.boxxy-lock'])(
 test('it returns a skill it cannot exclude as missing and copies nothing', async () => {
   const ctx = await setupTest();
 
-  await createGitRepo({ folder: ctx.workspace, files: { 'README.md': 'readme\n' } });
+  await commitGitFolder({ folder: ctx.workspace, files: { 'README.md': 'readme\n' } });
   await rm(join(ctx.workspace, '.git/info'), { recursive: true, force: true });
   await writeFile(join(ctx.workspace, '.git/info'), 'a file\n');
 
@@ -325,7 +325,7 @@ test('it returns a skill it cannot exclude as missing and copies nothing', async
 test('it lists a copied skill by its escaped path from the top when the workspace is a subfolder', async () => {
   const ctx = await setupTest();
 
-  await createGitRepo({ folder: ctx.workspace, files: { 'a b[1]/README.md': 'readme\n' } });
+  await commitGitFolder({ folder: ctx.workspace, files: { 'a b[1]/README.md': 'readme\n' } });
   await mkdir(join(ctx.workspace, 'a b[1]/.agents/skills'), { recursive: true });
 
   const repo = await ctx.makeRepo({ alpha: { 'SKILL.md': 'alpha\n' } });

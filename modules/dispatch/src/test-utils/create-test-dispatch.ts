@@ -38,9 +38,9 @@ import type { SeedItemInput } from './build-seed-item-change.ts';
 import { buildSeedItemChange } from './build-seed-item-change.ts';
 import { claimNextPick } from './claim-next-pick.ts';
 import { createFakeBackoff } from './create-fake-backoff.ts';
-import type { FakeClock } from './create-fake-clock.ts';
-import { createFakeClock } from './create-fake-clock.ts';
 import type { FakeForge } from './create-fake-forge.ts';
+import type { FakeInstantClock } from './create-fake-instant-clock.ts';
+import { createFakeInstantClock } from './create-fake-instant-clock.ts';
 import type { FakeReviewGate } from './create-fake-review-gate.ts';
 import { createFakeReviewGate } from './create-fake-review-gate.ts';
 import type { FakeWorker } from './create-fake-worker.ts';
@@ -71,7 +71,7 @@ export interface Rework {
 
 export interface TestDispatch {
   readonly store: ClosableClaimStore;
-  readonly clock: FakeClock;
+  readonly clock: FakeInstantClock;
   readonly worker: FakeWorker;
 
   // the gate that the review phase kind of the rules is built on
@@ -137,7 +137,7 @@ export interface TestDispatchOptions {
 // worker, and a clock that moves only when the test moves it.
 export async function createTestDispatch(options: TestDispatchOptions = {}): Promise<TestDispatch> {
   const store = options.restartOf?.store ?? options.store ?? createMemoryClaimStore();
-  const clock = options.restartOf?.clock ?? createFakeClock();
+  const clock = options.restartOf?.clock ?? createFakeInstantClock();
   const worker = createFakeWorker({ clock });
   const backoff = createFakeBackoff();
   const newId = options.restartOf?.newId ?? buildMockNewId();

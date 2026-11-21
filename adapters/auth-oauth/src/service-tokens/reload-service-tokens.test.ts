@@ -1,14 +1,14 @@
 import { expect, test } from 'bun:test';
 import { join } from 'node:path';
 import { openTestAuth } from '@zgeoff/mcp-auth/testing';
-import { registerTestCleanup } from '../test-utils/register-test-cleanup.ts';
-import { setupTempDir } from '../test-utils/setup-temp-dir.ts';
+import { registerTestCleanup } from '@zgeoff/testing';
+import { createTempDir } from '@zgeoff/testing/fs';
 import { reloadServiceTokens } from './reload-service-tokens.ts';
 
 // An auth core that starts with one service client, `quay-reader`, and its static token, which
 // `verify` checks with no token exchange, and the path of a service-token file that the test writes.
 async function setupTest() {
-  const folder = setupTempDir('boxxy-service-tokens-');
+  const folder = createTempDir('boxxy-service-tokens');
   const filePath = join(folder.path, 'service-tokens.json');
 
   const opened = await openTestAuth({

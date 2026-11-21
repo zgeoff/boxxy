@@ -1,11 +1,11 @@
 import { expect, onTestFinished, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { writeTreeFiles } from '@zgeoff/testing/fs';
 import { nodeFileSystem } from '../ci/node-file-system.ts';
 import { runCommand } from '../ci/run-command.ts';
 import type { StubNPMAnswer } from '../test-utils/create-stub-npm.ts';
 import { createStubNPM } from '../test-utils/create-stub-npm.ts';
-import { writeTreeFiles } from '../test-utils/write-tree-files.ts';
 import { publishPackages } from './publish-packages.ts';
 
 async function setupTest() {

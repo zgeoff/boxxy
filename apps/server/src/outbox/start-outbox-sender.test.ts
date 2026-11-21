@@ -2,7 +2,7 @@ import { expect, onTestFinished, test } from 'bun:test';
 import { outboxLimits } from '@boxxy/dispatch';
 import { createFakeFactSink } from '@boxxy/dispatch/test-utils/create-fake-fact-sink';
 import { createTestDispatch } from '@boxxy/dispatch/test-utils/create-test-dispatch';
-import { waitFor } from '../test-utils/wait-for.ts';
+import { waitFor } from '@zgeoff/testing';
 import { startOutboxSender } from './start-outbox-sender.ts';
 
 async function setupTest() {
@@ -30,13 +30,13 @@ async function setupTest() {
     return sender;
   };
 
-  const probeAllSent = async () => {
+  const expectAllSent = async () => {
     const counts = await dispatch.store.read((tx) => tx.readOutboxCounts());
 
-    return counts.unsent === 0;
+    expect(counts.unsent).toBe(0);
   };
 
-  return { dispatch, sink, start, probeAllSent };
+  return { dispatch, sink, start, expectAllSent };
 }
 
 test('it sends the unsent facts of the store', async () => {
@@ -45,7 +45,9 @@ test('it sends the unsent facts of the store', async () => {
 
   ctx.start(10);
 
-  await waitFor(() => ctx.sink.sends.length > 0);
+  await waitFor(() => {
+    expect(ctx.sink.sends.length).toBeGreaterThan(0);
+  });
 
   expect([...ctx.sink.facts.values()].map((fact) => fact.entity)).toStrictEqual([
     `boxxy:item:${item}`,
@@ -59,7 +61,7 @@ test('it reports the status of a pepys sink with nothing unsent after the send',
 
   const sender = ctx.start(10);
 
-  await waitFor(ctx.probeAllSent);
+  await waitFor(ctx.expectAllSent);
 
   const status = await sender.status();
 
@@ -77,13 +79,15 @@ test('it sends at once on a nudge in place of waiting out the idle time', async 
 
   const sender = ctx.start(60_000);
 
-  await waitFor(ctx.probeAllSent);
+  await waitFor(ctx.expectAllSent);
 
   await ctx.dispatch.seedItem({});
 
   sender.nudge();
 
-  await waitFor(() => ctx.sink.facts.size === 2);
+  await waitFor(() => {
+    expect(ctx.sink.facts.size).toBe(2);
+  });
 
   expect(ctx.sink.facts.size).toBe(2);
 });

@@ -16,6 +16,8 @@
   "files": [
     "src",
     "!src/**/*.test.ts",
+    "!src/test-utils/commit-git-folder.ts",
+    "!src/test-utils/create-skills-repo.ts",
     "!src/test-utils/create-test-cli.ts",
     "!src/test-utils/verify/**",
     "hook-plugin",
@@ -54,6 +56,7 @@
     "@wringer/gunshi": "catalog:",
     "@wringer/http": "catalog:",
     "@wringer/mcp": "catalog:",
+    "@zgeoff/testing": "catalog:",
     "tiny-invariant": "catalog:"
   },
   "engines": {

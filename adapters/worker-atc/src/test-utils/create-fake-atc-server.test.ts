@@ -1,10 +1,10 @@
 import { expect, onTestFinished, test } from 'bun:test';
-import { createFakeClock } from '@boxxy/dispatch/test-utils/create-fake-clock';
+import { createFakeInstantClock } from '@boxxy/dispatch/test-utils/create-fake-instant-clock';
 import { createFakeAtcServer } from './create-fake-atc-server.ts';
 import { createFakeAtc } from './create-fake-atc.ts';
 
 function setupTest() {
-  const atc = createFakeAtc({ clock: createFakeClock(), targets: { box: 'suspending' } });
+  const atc = createFakeAtc({ clock: createFakeInstantClock(), targets: { box: 'suspending' } });
 
   const server = createFakeAtcServer({
     atc,

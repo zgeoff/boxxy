@@ -1,17 +1,17 @@
 import { expect, mock, test } from 'bun:test';
 import { join } from 'node:path';
 import { authorizeTestClient } from '@zgeoff/mcp-auth/testing';
+import { registerTestCleanup } from '@zgeoff/testing';
+import { createTempDir } from '@zgeoff/testing/fs';
 import { z } from 'zod';
 import type { ServiceTokenReload } from '../service-tokens/reload-service-tokens.ts';
-import { registerTestCleanup } from '../test-utils/register-test-cleanup.ts';
-import { setupTempDir } from '../test-utils/setup-temp-dir.ts';
 import { createPublicDoor } from './create-public-door.ts';
 import type { McpServe } from './types.ts';
 
 // A door at https://boxxy.example whose service-token file names one client, `quay-reader`, with
 // the read scope and the digest of the secret `svcs_quayreaderquayreaderquayreaderquay01`.
 async function setupTest() {
-  const folder = setupTempDir('boxxy-public-door-');
+  const folder = createTempDir('boxxy-public-door');
   const origin = 'https://boxxy.example';
   const lines: string[] = [];
   const waiters: ((reload: ServiceTokenReload) => void)[] = [];

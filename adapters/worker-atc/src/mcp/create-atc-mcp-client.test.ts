@@ -1,5 +1,5 @@
 import { expect, onTestFinished, test } from 'bun:test';
-import { createFakeClock } from '@boxxy/dispatch/test-utils/create-fake-clock';
+import { createFakeInstantClock } from '@boxxy/dispatch/test-utils/create-fake-instant-clock';
 import { createFakeAtcServer } from '../test-utils/create-fake-atc-server.ts';
 import type { FakeAtcRequest } from '../test-utils/create-fake-atc-server.ts';
 import { createFakeAtc } from '../test-utils/create-fake-atc.ts';
@@ -7,7 +7,7 @@ import { AtcCallError } from './atc-call-error.ts';
 import { createAtcMcpClient } from './create-atc-mcp-client.ts';
 
 function setupTest() {
-  const atc = createFakeAtc({ clock: createFakeClock(), targets: { box: 'suspending' } });
+  const atc = createFakeAtc({ clock: createFakeInstantClock(), targets: { box: 'suspending' } });
 
   const server = createFakeAtcServer({
     atc,

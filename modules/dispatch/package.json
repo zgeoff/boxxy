@@ -41,10 +41,12 @@
     "xstate": "catalog:"
   },
   "devDependencies": {
-    "@boxxy/rules": "workspace:*"
+    "@boxxy/rules": "workspace:*",
+    "@zgeoff/testing": "catalog:"
   },
   "peerDependencies": {
-    "@boxxy/rules": "workspace:*"
+    "@boxxy/rules": "workspace:*",
+    "@zgeoff/testing": "catalog:"
   },
   "peerDependenciesMeta": {
     "@boxxy/rules": {

@@ -1,9 +1,9 @@
 import { expect, onTestFinished, test } from 'bun:test';
 import { chmod, mkdir, mkdtemp, readFile, rm, utimes } from 'node:fs/promises';
 import { join } from 'node:path';
+import { writeTreeFiles } from '@zgeoff/testing/fs';
 import { $ } from 'bun';
 import { runCommand } from '../ci/run-command.ts';
-import { writeTreeFiles } from '../test-utils/write-tree-files.ts';
 import { createPluginTarball } from './create-plugin-tarball.ts';
 
 async function setupTest() {

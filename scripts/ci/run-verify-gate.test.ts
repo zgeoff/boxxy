@@ -1,11 +1,11 @@
 import { expect, onTestFinished, test } from 'bun:test';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { writeTreeFiles } from '@zgeoff/testing/fs';
+import { readGitEnv, runGit } from '@zgeoff/testing/git';
 import { $ } from 'bun';
 import { buildReportBody } from '../test-utils/build-report-body.ts';
-import { writeTreeFiles } from '../test-utils/write-tree-files.ts';
 import { findField } from './find-field.ts';
-import { runCheckedCommand } from './run-checked-command.ts';
 import { runCommand } from './run-command.ts';
 import { runVerifyGate } from './run-verify-gate.ts';
 
@@ -37,21 +37,7 @@ async function setupTest() {
     'owner-mcp',
   ];
 
-  const env = {
-    PATH: process.env['PATH'],
-    HOME: directory,
-    GIT_CONFIG_NOSYSTEM: '1',
-    GIT_AUTHOR_NAME: 'test',
-    GIT_AUTHOR_EMAIL: 'test@example.com',
-    GIT_COMMITTER_NAME: 'test',
-    GIT_COMMITTER_EMAIL: 'test@example.com',
-  };
-
-  const runGit = (args: readonly string[]) =>
-    runCheckedCommand(runCommand, ['git', '-c', 'commit.gpgsign=false', ...args], {
-      cwd: repo,
-      env,
-    });
+  const env = readGitEnv(directory);
 
   // The fixture's `verify` script runs boxxy's verify CLI, so the gate reads boxxy's real map of
   // paths to features against the fixture's history. `origin/main` names the base commit.
@@ -65,15 +51,15 @@ async function setupTest() {
     'apps/cli/src/main.ts': "console.log('boxxy');\n",
   });
 
-  await runGit(['init', '--quiet']);
-  await runGit(['add', '.']);
-  await runGit(['commit', '--quiet', '--message', 'base']);
-  await runGit(['update-ref', 'refs/remotes/origin/main', 'HEAD']);
+  await runGit(repo, env, ['init', '--quiet']);
+  await runGit(repo, env, ['add', '.']);
+  await runGit(repo, env, ['commit', '--quiet', '--message', 'base']);
+  await runGit(repo, env, ['update-ref', 'refs/remotes/origin/main', 'HEAD']);
 
   const commitChange = async (files: Readonly<Record<string, string>>) => {
     await writeTreeFiles(repo, files);
-    await runGit(['add', '.']);
-    await runGit(['commit', '--quiet', '--message', 'change']);
+    await runGit(repo, env, ['add', '.']);
+    await runGit(repo, env, ['commit', '--quiet', '--message', 'change']);
   };
 
   // A report whose claims all sit at the zero fingerprint fails the gate as stale, and the failure

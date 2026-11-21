@@ -1,5 +1,5 @@
 import { expect, onTestFinished, test } from 'bun:test';
-import { waitFor } from '../test-utils/wait-for.ts';
+import { waitFor } from '@zgeoff/testing';
 import { startTickLoop } from './start-tick-loop.ts';
 
 function setupTest() {
@@ -28,7 +28,9 @@ test('it runs the next tick after the interval', async () => {
 
   onTestFinished(() => loop.stop());
 
-  await waitFor(() => ticks >= 3);
+  await waitFor(() => {
+    expect(ticks).toBeGreaterThanOrEqual(3);
+  });
 
   expect(ticks).toBeGreaterThanOrEqual(3);
 });
@@ -50,7 +52,9 @@ test('it logs a tick that throws with its failure message and runs the next one'
 
   onTestFinished(() => loop.stop());
 
-  await waitFor(() => ticks >= 2);
+  await waitFor(() => {
+    expect(ticks).toBeGreaterThanOrEqual(2);
+  });
 
   expect(ctx.logged[0]).toBe('the test tick failed');
 });

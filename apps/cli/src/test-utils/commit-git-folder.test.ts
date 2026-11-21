@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runGit } from '../run-git.ts';
-import { createGitRepo } from './create-git-repo.ts';
+import { commitGitFolder } from './commit-git-folder.ts';
 
 async function setupTest() {
   const folder = await mkdtemp(join(tmpdir(), 'boxxy-test-git-repo-'));
@@ -16,7 +16,7 @@ async function setupTest() {
 test('it commits each file and returns the commit', async () => {
   const ctx = await setupTest();
 
-  const commit = await createGitRepo({
+  const commit = await commitGitFolder({
     folder: ctx.repo,
     files: { 'README.md': 'readme\n', 'docs/a.md': 'a\n' },
   });
@@ -31,7 +31,7 @@ test('it commits each file and returns the commit', async () => {
 test('it commits each link as a symbolic link', async () => {
   const ctx = await setupTest();
 
-  const commit = await createGitRepo({
+  const commit = await commitGitFolder({
     folder: ctx.repo,
     files: { 'b/README.md': 'readme\n' },
     links: { 'a/b': '../b' },

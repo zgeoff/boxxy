@@ -1,12 +1,12 @@
 import { expect, test } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
-import { createFakeClock } from './create-fake-clock.ts';
+import { createFakeInstantClock } from './create-fake-instant-clock.ts';
 import { createFakeWorker } from './create-fake-worker.ts';
 import { workerContract } from './worker-contract.ts';
 
 function setupTest() {
-  const clock = createFakeClock();
+  const clock = createFakeInstantClock();
   const worker = createFakeWorker({ clock });
 
   return {
