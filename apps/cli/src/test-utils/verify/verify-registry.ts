@@ -88,10 +88,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
   })
 
   // `bun verify publish` reads the host's URL and token from these variables when it uploads
-  .hook(
-    'upload',
-    createHostUploader({ urlEnv: 'VERIFY_UPLOAD_URL', tokenEnv: 'VERIFY_UPLOAD_TOKEN' }),
-  )
+  .hook('upload', createHostUploader({ urlEnv: 'CLOUD_FILES_URL', tokenEnv: 'CLOUD_FILES_TOKEN' }))
 
   // Writes. A step that the owner or a session takes runs the real `boxxy` CLI as a process. A
   // step that only the harness can take (time, the worker, the forge, pepys) goes to a control

@@ -5,7 +5,7 @@ description:
   against a local boxxy, and records the verdict. Load it before you check a change in the running
   app, run the journey of a feature, or put the verdicts in a PR.'
 metadata:
-  wringer-template: 'sha256:3a8295eb8ec4'
+  wringer-template: 'sha256:c276ebe8d896'
   wringer-command: bun verify
 ---
 
@@ -23,10 +23,6 @@ The mistakes that cost the most time:
   each driver works. A driver is a package, such as `@wringer/http`, that adds a group of commands,
   such as `bun verify http request`. Until `doctor` passes after `bun verify up` or
   `bun verify attach`, any command that touches the app fails with exit code 3.
-- **Editing the app's code while `up` runs it.** The next command that touches the app fails with
-  `doctor-required`. Run `bun verify up --restart` and `bun verify doctor`, then the journey again.
-- **Running `done` before you check the end state.** `done` checks only that one command of the
-  journey succeeded.
 
 ## Key rules
 
@@ -88,32 +84,35 @@ Read a feature's file before you run its journey.
    - In any other case, such as a `read-only` failure or a bug your change did not cause, skip
      `done` for this feature. List it in your reply with the end state you expected and the `data`
      you got.
-6. Finish each edit to a file that matches the feature's `paths` before you run `done`. An edit
-   after `done` makes the feature's verdict `stale`. A commit alone leaves the verdict as it was.
-   Run `bun verify done` to record a verdict for the feature that `use --feature` set. Expect:
-   `ok: true`. It fails with `check-failed` until a journey command succeeds after `doctor`.
+6. Record the verdict:
+   - Finish each edit to a file that matches the feature's `paths` first. An edit after `done` makes
+     the verdict `stale`. A commit alone leaves the verdict as it was.
+   - Once the end state matches in step 5, run `bun verify done`. Expect: `ok: true`. `done` records
+     a verdict for the feature that `use --feature` set.
+   - `done` checks only that a journey command succeeded after `doctor`, and never reads the end
+     state. Until a journey command succeeds, `done` fails with `check-failed`.
 7. Repeat steps 4 to 6 for each feature with `changed: true`, and for each feature your task names,
-   in the order of the table in [References](#references). When a feature's file says to run part of
-   its journey last, run that part after every other journey.
+   in the order of the table in [References](#references). When the [Targets](#targets) section says
+   to run a feature's journey last, run it after every other journey.
 8. Run `bun verify report --human` to read the report. Expect: `verified` on each changed feature
    you did not skip in step 5. Repeat steps 4 to 6 for each `stale` feature.
-9. Push the branch. When no PR is open for it, open one: without an open PR, `publish` fails and
+9. Push the branch, and open a PR for it when none is open. Without an open PR, `publish` fails and
    writes nothing.
-10. Check that `VERIFY_UPLOAD_URL` and `VERIFY_UPLOAD_TOKEN_REF` are set. When either is empty, stop
-    and report it as a blocker. `VERIFY_UPLOAD_URL` is the file host that takes the local target's
-    evidence files. `VERIFY_UPLOAD_TOKEN_REF` is the 1Password `op://` reference to the upload
-    token. Never run `op read` on its own: it prints the token.
+10. Check that `CLOUD_FILES_URL` and `CLOUD_FILES_TOKEN_REF` are set. When either is empty, stop and
+    report it as a blocker. `CLOUD_FILES_URL` is the file host that takes the local target's
+    evidence files. `CLOUD_FILES_TOKEN_REF` is the 1Password `op://` reference to the upload token.
+    Never run `op read` on its own: it prints the token.
 11. Publish the report, even when you skipped a feature. Read the token in a subshell, so it never
     sits in your shell. Because `&&` joins them, a failed `op read` stops the command before
     `publish` runs:
 
     ```bash
-    (VERIFY_UPLOAD_TOKEN="$(op read "$VERIFY_UPLOAD_TOKEN_REF")" && export VERIFY_UPLOAD_TOKEN && bun verify publish)
+    (CLOUD_FILES_TOKEN="$(op read "$CLOUD_FILES_TOKEN_REF")" && export CLOUD_FILES_TOKEN && bun verify publish)
     ```
 
     To write to a PR other than the branch's own, add `--pr <number>`. When `op read` fails, stop
     and report it as a blocker. Expect: `ok: true`, and `data.action` of `created`, `replaced` or
-    `unchanged`.
+    `unchanged`. It writes the report into the PR's description, the only report the gate reads.
 
 12. End the run: `bun verify down` after `up`, or `bun verify detach` after `attach`.
 
