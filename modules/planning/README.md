@@ -30,15 +30,14 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 ## Features
 
 - `buildFrame`, which returns the candidates, their holds, lifts, signal values and filter-field
-  values, and each plug-in fault
-  ([planning: buildFrame and decide](../../docs/design/boxxy/slice-1.md#planning-buildframe-and-decide)).
+  values, and each plug-in fault ([planning](../../docs/architecture/work/planning.md)).
 - `decide`, which puts each wake first, then picks pool by pool while each limit that counts a pick
   has a free seat, gives the reason for each item and wake it passes over, and never names a concept
   ([planning: limits and the decision](../../docs/design/boxxy/planning.md#limits-and-the-decision)).
 - `concepts`, the `pool`, `defer` and `expedite` concepts
-  ([the slice 1 concepts](../../docs/design/boxxy/slice-1.md#the-slice-1-concepts)).
+  ([signals and propagation](../../docs/architecture/work/planning.md#signals-and-propagation)).
 - `conceptPins`, each concept's pin, which the build generates from the concept's source
-  ([rules for slice 1](../../docs/design/boxxy/slice-1.md#rules-for-slice-1)).
+  ([rules](../../docs/architecture/overview.md#rules)).
 
 ## Documentation
 

@@ -13,8 +13,7 @@ and command. The design docs one folder up describe what each interface does, an
 
 ## Slices
 
-The team builds boxxy in slices. A slice is one working version of boxxy, and
-[slice 1](../slice-1.md) is the first.
+The team builds boxxy in slices. A slice is one working version of boxxy, and the [architecture docs](../../../architecture/overview.md) describe the built ones.
 
 - A comment above each interface names the slice in which it gets built, and the doc section that
   describes its behaviour.

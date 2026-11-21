@@ -4,7 +4,7 @@
 // Package: @boxxy/planning (modules/planning) holds `buildFrame`, `decide`, the concepts and the
 // build step that generates the concept pins module. Every type here, and `signalKey`, live in
 // @boxxy/model, because the store, the rules loader and planning share them. Owning docs:
-// planning.md, slice-1.md "Planning: buildFrame and decide", dispatch.md "Gates fail toward
+// planning.md, architecture/work/planning.md, dispatch.md "Gates fail toward
 // holding", decision 0004.
 //
 // Slice 1 types: Snapshot, Frame, Decision, Pick, Pool, PlanContext, Signal, Gate, Waiver. Every
@@ -60,7 +60,7 @@ export declare function signalKey(name: SignalName, params: JsonValue): SignalKe
 
 // ── The snapshot, the frame and the decision (slice 1, verbatim) ───────────────────────────────
 
-/** What claimNext reads inside the transaction. Slice 1. Owner: slice-1.md "Planning". */
+/** What claimNext reads inside the transaction. Slice 1. Owner: architecture/work/planning.md. */
 export type Snapshot = {
   storeVersion: number;
   items: ItemView[]; // every item not yet done and not archived, with its derived state at `now`
@@ -95,7 +95,7 @@ export type Hold = { readonly gate: GateName; readonly reason: string; readonly 
 export type Lift = { readonly waiver: WaiverName; readonly gate: GateName; readonly reason: string };
 export type Fault = FaultRecord;
 
-/** Picks one item per free slot. Pure; never names a concept. Slice 1. Owner: slice-1.md "Planning". */
+/** Picks one item per free slot. Pure; never names a concept. Slice 1. Owner: architecture/work/planning.md. */
 export declare function decide(input: { frame: Frame; pools: Pool[]; freeSlots: Record<PoolName, number> }): Decision;
 
 export type Decision = {
@@ -182,7 +182,7 @@ export interface View<I = unknown, O = unknown> {
 /**
  * Carries a signal's value across links of one type. Rules data, not a plug-in: `buildFrame` runs
  * each line, combining values with the signal's `combine`, and stops at an item it has visited.
- * A line that throws carries nothing. Slice 1. Owner: slice-1.md "The slice 1 concepts".
+ * A line that throws carries nothing. Slice 1. Owner: architecture/work/planning.md.
  */
 export type PropagationLine = { readonly value: SignalName; readonly over: LinkTypeName; readonly toward: "source" | "target" };
 

@@ -3,7 +3,7 @@
 //
 // Package: @boxxy/contract (libs/contract) holds the oRPC contract the server serves and the CLI
 // calls. It imports its row types from @boxxy/model, a lib too. The commands' logic is in
-// @boxxy/dispatch. Owning docs: slice-1.md "Commands and API",
+// @boxxy/dispatch. Owning docs: architecture/interfaces/api-and-auth.md "The procedures",
 // core-model.md "Entry points", rules.md "Levers as facts".
 //
 // The map below is the contract's shape: one entry per procedure, with its input and output. The
@@ -73,8 +73,8 @@ export type FromSession = { readonly session: AtcSessionId };
 export type LeverTargets = readonly ItemId[] | { readonly goal: ItemId } | { readonly project: ItemId };
 
 /**
- * Every procedure on the one command API. The first block is slice 1, as slice-1.md's table lists
- * it; the second is later. Owner: slice-1.md "Commands and API", core-model.md "Entry points".
+ * Every procedure on the one command API. The first block is slice 1, as the API doc lists
+ * it; the second is later. Owner: architecture/interfaces/api-and-auth.md "The procedures", core-model.md "Entry points".
  */
 export type Procedures = {
   // slice 1
