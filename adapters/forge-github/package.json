@@ -40,16 +40,15 @@
     "@faker-js/faker": "catalog:",
     "@msw/data": "catalog:",
     "@mswjs/interceptors": "catalog:",
-    "msw": "catalog:",
-    "tiny-invariant": "catalog:"
+    "@zgeoff/testing": "catalog:",
+    "msw": "catalog:"
   },
   "peerDependencies": {
     "@boxxy/dispatch": "workspace:*",
     "@faker-js/faker": "catalog:",
     "@msw/data": "catalog:",
     "@mswjs/interceptors": "catalog:",
-    "msw": "catalog:",
-    "tiny-invariant": "catalog:"
+    "msw": "catalog:"
   },
   "peerDependenciesMeta": {
     "@boxxy/dispatch": {
@@ -65,9 +64,6 @@
       "optional": true
     },
     "msw": {
-      "optional": true
-    },
-    "tiny-invariant": {
       "optional": true
     }
   },

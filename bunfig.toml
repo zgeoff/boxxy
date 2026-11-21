@@ -33,6 +33,7 @@ minimumReleaseAgeExcludes = [
   "@wringer/mcp",
   "@zgeoff/agent-hooks",
   "@zgeoff/bun-test-extended",
+  "@zgeoff/testing/preload",
   "@zgeoff/chex",
   "@zgeoff/commitlint-config",
   "@zgeoff/diet",
@@ -44,13 +45,16 @@ minimumReleaseAgeExcludes = [
   "@zgeoff/rig",
   "@zgeoff/skill-gate",
   "@zgeoff/std",
+  "@zgeoff/testing",
 ]
 
 [test]
-# registers the jest-extended matchers, seeds faker so a rerun of the same files gives the same
-# test data, and answers GitHub requests from the MSW handlers
+# registers the jest-extended matchers, restores the env that a test changed, seeds faker so a
+# rerun of the same files gives the same test data, and answers GitHub requests from the MSW
+# handlers
 preload = [
   "@zgeoff/bun-test-extended",
+  "@zgeoff/testing/preload",
   "./libs/model/src/test-utils/pin-faker-seed.ts",
-  "./adapters/forge-github/src/test-utils/reset-mock-network.ts",
+  "./adapters/forge-github/src/test-utils/mock-network.ts",
 ]
