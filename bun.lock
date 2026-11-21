@@ -453,7 +453,7 @@
     "@zgeoff/mcp-auth": "0.3.0",
     "@zgeoff/oxfmt-config": "0.1.2",
     "@zgeoff/oxlint-config": "0.11.3",
-    "@zgeoff/rig": "0.3.0",
+    "@zgeoff/rig": "0.3.2",
     "@zgeoff/skill-gate": "0.2.36",
     "@zgeoff/std": "0.4.5",
     "@zgeoff/testing": "0.4.2",
@@ -1123,7 +1123,7 @@
 
     "@zgeoff/oxlint-config": ["@zgeoff/oxlint-config@0.11.3", "", { "dependencies": { "@stylistic/eslint-plugin": "5.10.0" }, "peerDependencies": { "oxlint": ">=1.78.0" } }, "sha512-Kqmdqc9CI7tpQ9Zb7X3cRtpRsueSC+rUlJQsPHSy6QDn2f2HWhbF5CepBh68RMdZOGsNAHe2l34V/7Q7Ou0tUA=="],
 
-    "@zgeoff/rig": ["@zgeoff/rig@0.3.0", "", { "dependencies": { "@zgeoff/diet": "0.3.0", "@zgeoff/std": "0.4.5", "gunshi": "1.0.0-rc.1", "ts-pattern": "5.9.2", "zod": "4.6.7" }, "bin": { "rig": "src/cli.ts" } }, "sha512-01Ai5Poi3tBckYrrhxVKYFKisIRG2yVmIBIJPoBDWbM1eSFDVBOh5YqA6/9ffMQvZh7NuSz5uY/ydMdWBx9mVg=="],
+    "@zgeoff/rig": ["@zgeoff/rig@0.3.2", "", { "dependencies": { "@zgeoff/diet": "0.3.2", "@zgeoff/std": "0.4.5", "gunshi": "1.0.0-rc.1", "ts-pattern": "5.9.2", "zod": "4.6.7" }, "bin": { "rig": "src/cli.ts" } }, "sha512-uIrFSTALNo1okBayfOy0HyrC2B4DyNf8aw1/gxV23Ux8VC5q7vg74+ZATsLzyeGRPCLxGwZD2j3fCnxJagvaQg=="],
 
     "@zgeoff/skill-gate": ["@zgeoff/skill-gate@0.2.36", "", { "dependencies": { "@zgeoff/agent-hooks": "0.3.2" } }, "sha512-1W/NPHIFSQQyrbHIjGQ4tSeZhX3ArpbrvJvpOEExi4HaKVLlYZZ4LQ/HbyDmZ0IZLLqh0fe4tf0/NF9kFc5x8w=="],
 
@@ -1644,8 +1644,6 @@
     "@wringer/core/xstate": ["xstate@5.33.3", "", {}, "sha512-AnDRjS/GyKHmbA1PyhVCYBqYsA7EGe3KGgeD0ht3NFsXzoz7leX/HQDFX9QlHFJ/ltLHPsgChJYwPzRvB/0b4g=="],
 
     "@wringer/gunshi/gunshi": ["gunshi@0.37.3", "", {}, "sha512-uwm23bguqDcleEetknuQnF5okLcgmQPM3iv4aWVHTPDbiSs9shh02F079NCY0mWkrIRjHqNhgmzW6k0FCXhy1g=="],
-
-    "@zgeoff/rig/@zgeoff/diet": ["@zgeoff/diet@0.3.0", "", { "bin": { "diet": "diet.sh" } }, "sha512-CgvLXgWCMMjrWN1foqfoZV7aE3wTAE/Z8NW5Ttf64tfafw6EoE6dhVkBDGtwb3VyxcSpx/WtTOTih9lfWosDtQ=="],
 
     "better-call/rou3": ["rou3@0.9.2", "", {}, "sha512-3SOzvaAg8rkHrXtRjpCvCvbyO5to9oOO27Z/XqHEYXfMRVSw/qMIVdmaOk9W2lcRLtR6dlqTjo9hDeJk70QBYQ=="],
 
