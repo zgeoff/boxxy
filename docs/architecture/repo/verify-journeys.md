@@ -38,9 +38,8 @@ the change touches it, and its verdict, plus a hidden data comment with one entr
 wringer calls that entry a claim, which has nothing to do with boxxy's claim of work. Git ignores
 `.wringer/`, and the verify registry, `verify-registry.ts`, which defines the targets and features
 `bun verify` knows, sets an upload hook for the `local` target. `publish` uploads that target's
-evidence files to the file host that `VERIFY_UPLOAD_URL` names, with the token in
-`VERIFY_UPLOAD_TOKEN`, and links them from the pull request. The `prod` target keeps its evidence on
-the grader's machine.
+evidence files to the file host that `CLOUD_FILES_URL` names, with the token in `CLOUD_FILES_TOKEN`,
+and links them from the pull request. The `prod` target keeps its evidence on the grader's machine.
 
 ## The harness
 
