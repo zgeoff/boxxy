@@ -3,7 +3,7 @@
 boxxy runs attempts on more than one kind of model capacity: subscription accounts with usage
 windows, and pay-per-token providers that bill money. This doc covers how boxxy reads each source,
 picks one per attempt, slows down before a source runs out, and compares sources on one unit. The
-whole design is proposed. It ships in slice 2 (see [slice 1](./slice-1.md) for what comes first).
+whole design is proposed. It ships after the built system the [overview](../../architecture/overview.md) describes.
 
 The decision behind this doc is
 [0008: capacity sources and a router](../../decisions/0008-capacity-sources-and-a-router.md). The

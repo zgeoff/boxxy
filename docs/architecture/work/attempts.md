@@ -174,6 +174,13 @@ agent reads that attempt's ID with `attempt.current`. The close-out size limit s
 [outbox's](../interfaces/facts-and-pepys.md#the-outbox) limit on one fact, so an accepted close-out
 always reaches pepys; it also bounds a design's text, which has no limit of its own.
 
+The close-out parser returns every problem at once, except that a close-out which fails the schema
+gets only its schema problems. Each problem's path points at the index the agent sent. The parser
+drops a friction entry whose target is missing or null, counts it, and ignores any `frictionDropped`
+count the agent sends. Before settle files an open item, it matches the item against the repo's open
+items of the same kind by title, trimmed, lowercased and with its whitespace collapsed. Two entries
+in one close-out with the same title file only the first.
+
 ## Stopping a session and giving up
 
 Once an attempt is `closing`, the runner stops its session and the attempt settles when the session
@@ -224,8 +231,10 @@ the close-out, so its settle rule runs inside a catch. When it throws, or return
 kind doesn't list, the attempt fails with `closeout-unsettleable` and the outcome `unsettleable`,
 which no edge matches. The item holds, and `boxxy item retry <item> --phase <phase>` moves it on.
 
-An attempt fails with `closeout-missing` when it settles with no close-out and none of the failures
-below. The same failure also marks a close-out with the outcome `blocked` or `abandoned` from a
+A failure the runner sets wins over any close-out the attempt holds, and such a settle applies no
+effects, so it files none of the close-out's open items. An attempt fails with `closeout-missing`
+when it settles with no close-out and none of the failures below. The same failure also marks a
+close-out with the outcome `blocked` or `abandoned` from a
 [design or build close-out](../../design/boxxy/close-outs.md#the-v1-phase-kinds). The runner sets
 every other failure:
 

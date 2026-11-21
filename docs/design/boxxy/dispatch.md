@@ -100,7 +100,7 @@ fact lands. Two runs agreed within a few milliseconds.
 
 ## The built claim (measured)
 
-`bun run bench` runs the claim benchmark, `adapters/store-sqlite/bench/claim-next.bench.ts`, through `rig bench`. The benchmark seeds 5,000 open items on the SQLite store through the test dispatch harness, each at its pipeline's first phase. It raises every limit to the item count, so each claim finds a free seat, and rig times 20 `claimNext` calls after 5 to warm up. The budget is the store rule's lock limit, a p99 under 50 ms at 5,000 open items ([slice 1](./slice-1.md#store-rules)). rig judges the median against it.
+`bun run bench` runs the claim benchmark, `adapters/store-sqlite/bench/claim-next.bench.ts`, through `rig bench`. The benchmark seeds 5,000 open items on the SQLite store through the test dispatch harness, each at its pipeline's first phase. It raises every limit to the item count, so each claim finds a free seat, and rig times 20 `claimNext` calls after 5 to warm up. The budget is the store rule's lock limit, a p99 under 50 ms at 5,000 open items ([slice 1](../../architecture/work/store.md#one-change-at-a-time)). rig judges the median against it.
 
 - **The built claim misses the budget (measured).** Three runs on Bun 1.4.3, on a WSL2 dev machine, gave medians of 103, 109 and 173 ms, so `rig bench` fails. CI does not run the benchmark until the claim gets cheaper, which is [not decided](./v1-open.md#not-decided).
 

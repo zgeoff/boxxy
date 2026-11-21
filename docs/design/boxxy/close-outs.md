@@ -28,7 +28,7 @@ to the fact that shows it. boxxy never reads this evidence to decide that an ite
 
 ### openItems
 
-Each open item is work the agent found and did not do. It holds `kind`, `title`, `body` and an optional `security`. `kind` is any item kind the rules know, and the parser refuses another as `unknown-kind`. `security: true` gives the filed item the [security mark](../../architecture/work/pipeline.md#what-an-item-records). boxxy files each open item through dedupe. When an open item matches an open item of the same repo and kind whose title is equal after normalising, boxxy files nothing and links the existing item to the attempt: the attempt's settle fact lists it. An item filed from an open item records the attempt that reported it as `found-in` ([slice 1](./slice-1.md#the-build-close-out)).
+Each open item is work the agent found and did not do. It holds `kind`, `title`, `body` and an optional `security`. `kind` is any item kind the rules know, and the parser refuses another as `unknown-kind`. `security: true` gives the filed item the [security mark](../../architecture/work/pipeline.md#what-an-item-records). boxxy files each open item through dedupe. When an open item matches an open item of the same repo and kind whose title is equal after normalising, boxxy files nothing and links the existing item to the attempt: the attempt's settle fact lists it. An item filed from an open item records the attempt that reported it as `found-in` ([slice 1](../../architecture/work/attempts.md#close-outs-and-their-limits)).
 
 ### relations
 

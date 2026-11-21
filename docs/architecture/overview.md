@@ -35,7 +35,8 @@ flowchart LR
    to the session the owner picked for notices.
 
 [The pipeline](./work/pipeline.md) covers phases, edges, holds, limits, pools, recipes and the
-launch prompt. [Attempts](./work/attempts.md) covers one attempt from claim to settle.
+launch prompt. [Planning](./work/planning.md) covers how the claim picks an item.
+[Attempts](./work/attempts.md) covers one attempt from claim to settle.
 [Agent sessions](./work/sessions.md) covers keeping, cleaning up and starting sessions.
 [Notices](./work/notices.md) covers how a hold reaches the owner. The
 [ship watch](./work/ship-watch.md) covers the steps that wait for a merge to ship.
@@ -86,7 +87,8 @@ Every change writes its facts to the outbox in the same transaction, so every st
 its facts waiting to go. The outbox sender, a second loop in the server, sends them to pepys in
 order. pepys keeps the whole history, and boxxy's plug-in inside pepys builds the tables the two
 reports read. boxxy never needs pepys to decide anything
-([facts and pepys](./interfaces/facts-and-pepys.md)).
+([facts and pepys](./interfaces/facts-and-pepys.md)). [The store](./work/store.md) covers how a
+write lands and what refuses one.
 
 ## Rules
 
@@ -96,7 +98,13 @@ folder with no git loads with no check, so build that folder only from the revie
 The rules version is a hash of that commit, the rules file, the recipes' prompt templates and the
 code of the planning concepts the rules file pins, such as its pool and lever kinds, and each claim
 records it. The owner's levers must act at once while a rules change waits for review, so the store
-keeps levers as rows ([decision 0003](../decisions/0003-rules-in-git-levers-as-facts.md)).
+keeps levers as rows ([decision 0003](../decisions/0003-rules-in-git-levers-as-facts.md)). The
+loader refuses a YAML value that holds itself through an alias, and any `__proto__` key, before the
+schema check. `scripts/write-concept-pins.ts` writes the concept pins into the committed
+`src/generated/concept-pins.ts`, and a test fails when that file is stale. Each hash uses canonical
+JSON by RFC 8785, which throws on `NaN` or `undefined`, and a tree hash sorts its files by the UTF-8
+bytes of their relative paths.
+
 [The pipeline](./work/pipeline.md) covers the parts of the rules file the server runs, and the
 [rules](../design/boxxy/rules.md) and [planning](../design/boxxy/planning.md) designs cover the
 parts not yet built.

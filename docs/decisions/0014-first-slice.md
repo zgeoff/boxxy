@@ -6,7 +6,7 @@ Updated: 2026-11-05
 ## Decision
 
 Slice 1 builds the smallest boxxy that dispatches real build work and answers one cost question.
-The [slice 1 design](../design/boxxy/slice-1.md) specifies it.
+The [architecture docs](../architecture/overview.md) describe what it built.
 
 - **In:** one item kind, the build phase and one pool; the boxxy store with claims (see
   [0001](./0001-claims-live-in-the-boxxy-store.md)) and three plug-ins: a pool, defer with expedite

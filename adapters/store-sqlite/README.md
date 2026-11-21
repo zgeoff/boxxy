@@ -31,9 +31,9 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 - Items, levers, attempts, leases, limit seats, notes, notices and the outbox in one file, with each
   change applied whole or not at all
-  ([one write path](../../docs/design/boxxy/slice-1.md#one-write-path)).
+  ([one change at a time](../../docs/architecture/work/store.md#one-change-at-a-time)).
 - `exclusive` calls that run one at a time in a `BEGIN IMMEDIATE` transaction, and `read` calls that
-  see the last commit ([store rules](../../docs/design/boxxy/slice-1.md#store-rules)).
+  see the last commit ([SQLite settings](../../docs/architecture/work/store.md#sqlite-settings)).
 - Each item's position and state derived on each read, from the rows and the loaded rules
   ([the pipeline](../../docs/architecture/work/pipeline.md)).
 

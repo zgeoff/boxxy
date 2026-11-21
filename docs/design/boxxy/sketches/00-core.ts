@@ -2,7 +2,7 @@
 // and the slice 1 fact catalog.
 //
 // Package: @boxxy/model (libs/model). `ContentHash` and `hashTree` are in @boxxy/content-hash
-// (libs/content-hash), and model re-exports `ContentHash`. Owning docs: core-model.md, slice-1.md
+// (libs/content-hash), and model re-exports `ContentHash`. Owning docs: core-model.md, architecture/overview.md
 // "The store schema" and "Facts and the outbox".
 //
 // Every type a store row, a fact or a port carries starts here. Rows use camelCase for the slice 1
@@ -95,7 +95,7 @@ export type LeverKind = `${string}.${string}`;
 export type Instant = Brand<number, "Instant">;
 export type Minutes = number;
 
-// ── Content addressing (slice 1, slice-1.md "Rules for slice 1") ───────────────────────────────
+// ── Content addressing (slice 1, architecture/overview.md "Rules") ───────────────────────────────
 
 /** SHA-256 hex of canonical JSON. Declared in @boxxy/content-hash, with its own brand; model re-exports it. */
 export type ContentHash = Brand<string, "ContentHash">;
@@ -181,7 +181,7 @@ export type ItemRow = {
 export type ItemState = "idea" | "ready" | "running" | "blocked" | "waiting" | "done" | "archived";
 export type WaitingReason = "PR open" | "no PR linked" | "attempts used up";
 
-/** The first row of slice-1.md's derived state table whose condition holds. */
+/** The first row of work/pipeline.md's derived state table whose condition holds. */
 export type DerivedState =
   | { readonly state: Exclude<ItemState, "waiting"> }
   | { readonly state: "waiting"; readonly reason: WaitingReason };
@@ -200,7 +200,7 @@ export type ItemRows = {
   readonly maxAttempts: number; // the kind's `maxAttempts` for the item's current phase
 };
 
-/** Derived item state: pure, in @boxxy/model. Slice 1. Owner: slice-1.md "Derived item state". */
+/** Derived item state: pure, in @boxxy/model. Slice 1. Owner: architecture/work/pipeline.md "Derived item state". */
 export declare function deriveItemState(item: ItemRow, rows: ItemRows): DerivedState;
 
 /**
@@ -284,7 +284,7 @@ export type AttemptRow = {
  * One agent session an attempt carried. An attempt can carry more than one, for example after atc
  * respawns its session. The primary key is `(attempt, agentSession)`, and a unique index on
  * `agentSession` gives each agent session to one attempt. The cost query joins telemetry
- * `session.id` to `agentSession` here. Slice 1. Owner: slice-1.md "The session-id join".
+ * `session.id` to `agentSession` here. Slice 1. Owner: architecture/interfaces/facts-and-pepys.md "The join keys".
  */
 export type AttemptSessionRow = {
   readonly attempt: AttemptId;
@@ -303,7 +303,7 @@ export type LeaseRow = {
   readonly releasedAt: Instant | null;
 };
 
-/** One pool slot; `holder` is the slot lease. Rows are never deleted (slice-1.md "Store rules"). */
+/** One pool slot; `holder` is the slot lease. Rows are never deleted (architecture/work/store.md "One change at a time"). */
 export type PoolSlotRow = {
   readonly pool: PoolName;
   readonly slot: number;
@@ -419,7 +419,7 @@ export type ResolvedRecipe = RecipeMaterial & { readonly hash: RecipeHash };
 /**
  * A build close-out after parsing. The agent may send a friction entry with no target: the parser
  * drops it and counts it in `frictionDropped` (decision 0009). A target kind outside the list fails
- * the parse. Slice 1. Owner: slice-1.md "The build close-out".
+ * the parse. Slice 1. Owner: architecture/work/attempts.md "Close-outs and their limits".
  */
 export type BuildCloseOut = {
   readonly result: { readonly kind: "built" } | { readonly kind: "blocked"; readonly reason: string } | { readonly kind: "abandoned"; readonly reason: string };
@@ -440,7 +440,7 @@ export type Friction = {
   readonly change: string;
 };
 
-// ── The fact envelope (slice 1, slice-1.md "Facts and the outbox") ─────────────────────────────
+// ── The fact envelope (slice 1, architecture/interfaces/facts-and-pepys.md "The outbox") ─────────────────────────────
 // @boxxy/model declares its own copy of pepys's envelope and depends on no pepys package, so boxxy
 // builds and publishes apart from pepys. The FactSink contract suite runs against a mock of pepys's
 // append route; the S1-11 live check is the first run against pepys itself.

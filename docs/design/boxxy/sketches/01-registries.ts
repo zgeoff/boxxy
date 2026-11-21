@@ -4,7 +4,7 @@
 // Package: @boxxy/model (libs/model) holds every type here, `Schema`, and the `define…` helpers,
 // because the rules loader, planning and the app all use them. @boxxy/rules (modules/rules) holds
 // `loadRules`, which builds the registry and the rules version. Owning docs: rules.md,
-// core-model.md "Phases", planning.md "Concepts", slice-1.md "Rules for slice 1".
+// core-model.md "Phases", planning.md "Concepts", architecture/overview.md "Rules".
 //
 // Two kinds of thing fill the registry. Pure plug-ins (signals, gates, metrics, phase kinds, ...)
 // come from concepts, compiled in and pinned by the rules version. Adapters (worker kinds, capacity
@@ -154,7 +154,7 @@ export type ConceptName = string;
 
 /**
  * One module that adds one idea and registers its plug-ins. Slice 1. Owner: planning.md "Concepts",
- * rules.md. `filterFields` is new against slice-1.md: that doc says the `pool` concept defines the
+ * rules.md. `filterFields` is new against slice 1, which said the `pool` concept defines the
  * filter fields `phase`, `kind` and `repo`, and its interface had no field to hold them.
  */
 export interface Concept {
@@ -187,7 +187,7 @@ export interface ConceptLater extends Concept {
   batchSizeRules?: Registered<"batch-size-rule">[];
 }
 
-/** A pool filter field: the value a pool's `takes` matches against. Slice 1. Owner: slice-1.md "The slice 1 concepts". */
+/** A pool filter field: the value a pool's `takes` matches against. Slice 1. Owner: architecture/work/planning.md. */
 export interface FilterField {
   name: string; // "phase", "kind", "repo"; later "area", "project"
   value(item: FrameItem): string | readonly string[] | null; // null never matches a filter on this field
@@ -381,7 +381,7 @@ export const exampleFindingsConcept: ConceptLater = {
   linkTypes: [{ name: linkTypeName("found-in"), blocking: false, acyclic: true, from: [itemKindName("core.finding")], to: "any" }],
 };
 
-// ── The rules file and the loaded rules (slice 1, slice-1.md "Rules for slice 1") ──────────────
+// ── The rules file and the loaded rules (slice 1, architecture/overview.md "Rules") ──────────────
 
 /**
  * A concept pin in `rules.yaml`: `- pool@1`. Slice 1 concepts take no parameters; in slice 1,
@@ -443,7 +443,7 @@ export type RulesFileLater = RulesFile & {
  * Reload: the server checks the checkout's commit each tick. A new commit loads into a new
  * LoadedRules; on `loaded` the next claim uses it, and on `rejected` the previous version stays live
  * and `runner.status` shows the rejection. A checkout with uncommitted changes is rejected whole.
- * Slot rows follow each loaded version (slice-1.md "Store rules"). Owner: slice-1.md "Rules for slice 1".
+ * Slot rows follow each loaded version (architecture/work/store.md "One change at a time"). Owner: architecture/overview.md "Rules".
  */
 export type LoadedRules = {
   readonly version: RulesVersion;

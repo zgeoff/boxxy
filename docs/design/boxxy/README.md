@@ -27,7 +27,6 @@ These docs hold the designs whose work is not fully built. The built system is i
 - [Capacity](./capacity.md): capacity sources, the router and the pacing gate.
 - [Merge train](./merge-train.md): review and merge, stacks as units, batching and the conflict
   rules.
-- [Slice 1](./slice-1.md): what the first build includes and leaves out.
 - [Open for the builder](./v1-open.md): what the built system leaves unchecked, assumed or not
   designed.
 - [Rules from the rules repository](./rules-repository.md): how the deployed server gets new rules

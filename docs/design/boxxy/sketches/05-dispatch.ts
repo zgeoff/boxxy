@@ -4,7 +4,7 @@
 // Package: @boxxy/dispatch (modules/dispatch) holds `claimNext`, `startClaim`, `settleAttempt`,
 // the reconcile table and the settle rules; the runner loop that calls them is in @boxxy/server.
 // The types live in @boxxy/model, because the rules' phase kinds and the server use them too.
-// Owning docs: dispatch.md, slice-1.md "claimNext" and "The runner loop", core-model.md "Changes
+// Owning docs: dispatch.md, architecture/work/store.md "Claims" and "The runner loop", core-model.md "Changes
 // while an attempt runs", planning.md "The judgement pool".
 
 import type {
@@ -66,7 +66,7 @@ export declare function claimNext(input: {
 /**
  * What a module can't read itself, so the app passes it in: each repo's local path, the plugin
  * folder's path and hash, and each recipe's prompt template text. claimNext renders the prompt and
- * computes the recipe hash from these. Slice 1. Owner: slice-1.md "claimNext".
+ * computes the recipe hash from these. Slice 1. Owner: architecture/work/store.md "Claims".
  */
 export type SpawnContext = {
   readonly repos: ReadonlyMap<RepoName, string>; // built: a folder, or a git source that atc clones (docs/architecture/work/sessions.md, "The atc worker")
@@ -87,7 +87,7 @@ export declare function startClaim(input: { store: ClaimStore; worker: WorkerKin
  * or `ended` reading that carries an agent session id the attempt does not hold yet binds it, in the
  * same StoreChange: an `attempt_sessions` row, `boxxy.attempt.session_bound`, and the attempt's
  * `atcSession` set to the atc session that carried it (02-ports.ts `bindSession`). Owner:
- * slice-1.md "Agent sessions".
+ * architecture/work/sessions.md.
  */
 export type ReconcileAction =
   | { readonly kind: "move-to-running"; readonly fact: "boxxy.attempt.started" | "boxxy.attempt.reconciled" }
@@ -99,7 +99,7 @@ export type ReconcileAction =
 /** The reading-by-state table. Every change runs under the attempt's lease generation. Slice 1. */
 export type ReconcileTable = { readonly [R in SessionReading["kind"]]: { readonly [S in LiveAttemptState]: ReconcileAction } };
 
-/** slice-1.md's table, as data. A test walks every cell. */
+/** the attempts doc's settle table, as data. A test walks every cell. */
 export const reconcileTable: ReconcileTable = {
   running: {
     starting: { kind: "move-to-running", fact: "boxxy.attempt.started" },
@@ -126,7 +126,7 @@ export type ReaperRule = { readonly after: Minutes };
 /**
  * Settles one attempt in one `exclusive` call: reads the attempt, its item and the repo's open
  * issues, runs the phase kind's settle rule, dedupes `openItems`, and applies `buildSettleChange`.
- * Returns the store's answer; the runner logs a refusal and moves on. Slice 1. Owner: slice-1.md "Settle".
+ * Returns the store's answer; the runner logs a refusal and moves on. Slice 1. Owner: architecture/work/attempts.md "Settle".
  */
 export declare function settleAttempt(input: {
   store: ClaimStore;
@@ -149,7 +149,7 @@ export type Settlement = {
 
 /**
  * Turns a phase's latest close-out into the attempt's end state. Pure. Slice 1 (the build rule);
- * one per phase kind later. Owner: slice-1.md "The runner loop" (settle steps), close-outs.md.
+ * one per phase kind later. Owner: architecture/work/attempts.md (settle steps), close-outs.md.
  */
 export interface SettleRule<Out = unknown> {
   // `forced`: a reason the runner settles with, which wins over the close-out's state. `openItems`
