@@ -17,14 +17,24 @@ export interface GitFolderInput {
 // setting. It returns the commit. The kit's `createGitRepo` makes a folder of its own, and a test
 // that needs the repository at a path it chose uses this instead.
 export async function commitGitFolder(input: GitFolderInput): Promise<string> {
-  const env = readGitEnv(createTempDir('git-home').path);
+  // the verify harness calls this outside a test, where the kit's automatic cleanup is unavailable
+  const home = createTempDir('git-home', { cleanup: 'manual' });
 
-  await mkdir(input.folder, { recursive: true });
-  await runGit(input.folder, env, ['init', '--quiet']);
+  try {
+    const env = readGitEnv(home.path);
 
-  const links = Object.entries(input.links ?? {}).map(
-    ([link, target]) => [link, { symlink: target }] as const,
-  );
+    await mkdir(input.folder, { recursive: true });
+    await runGit(input.folder, env, ['init', '--quiet']);
 
-  return createGitCommit(input.folder, env, { ...input.files, ...Object.fromEntries(links) });
+    const links = Object.entries(input.links ?? {}).map(
+      ([link, target]) => [link, { symlink: target }] as const,
+    );
+
+    return await createGitCommit(input.folder, env, {
+      ...input.files,
+      ...Object.fromEntries(links),
+    });
+  } finally {
+    home.remove();
+  }
 }
