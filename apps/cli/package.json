@@ -16,6 +16,8 @@
   "files": [
     "src",
     "!src/**/*.test.ts",
+    "!src/test-utils/commit-git-folder.ts",
+    "!src/test-utils/create-skills-repo.ts",
     "!src/test-utils/create-test-cli.ts",
     "!src/test-utils/verify/**",
     "hook-plugin",

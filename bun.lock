@@ -84,6 +84,7 @@
         "@faker-js/faker": "catalog:",
         "@msw/data": "catalog:",
         "@mswjs/interceptors": "catalog:",
+        "@zgeoff/testing": "catalog:",
         "msw": "catalog:",
       },
       "optionalPeers": [
@@ -91,6 +92,7 @@
         "@faker-js/faker",
         "@msw/data",
         "@mswjs/interceptors",
+        "@zgeoff/testing",
         "msw",
       ],
     },
