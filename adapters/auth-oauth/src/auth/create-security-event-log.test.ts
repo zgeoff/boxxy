@@ -1,11 +1,11 @@
 import { expect, test } from 'bun:test';
-import { buildStubClock } from '../test-utils/build-stub-clock.ts';
+import { createFakeClock } from '@zgeoff/testing/clock';
 import { createSecurityEventLog } from './create-security-event-log.ts';
 
 // A log on a clock that moves only when the test advances it, with every
 // line it prints collected.
 function setupTest() {
-  const clock = buildStubClock(Date.UTC(2026, 9, 14, 12, 0, 0));
+  const clock = createFakeClock({ startMs: Date.UTC(2026, 9, 14, 12, 0, 0) });
   const lines: string[] = [];
 
   const log = createSecurityEventLog({

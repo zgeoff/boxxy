@@ -1,5 +1,5 @@
 import { expect, onTestFinished, test } from 'bun:test';
-import { createFakeClock } from '@boxxy/dispatch/test-utils/create-fake-clock';
+import { createFakeInstantClock } from '@boxxy/dispatch/test-utils/create-fake-instant-clock';
 import { workerContract } from '@boxxy/dispatch/test-utils/worker-contract';
 import type { AttemptId } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
@@ -10,7 +10,7 @@ import { createFakeAtcServer } from './test-utils/create-fake-atc-server.ts';
 import { createFakeAtc } from './test-utils/create-fake-atc.ts';
 
 function setupTest() {
-  const clock = createFakeClock();
+  const clock = createFakeInstantClock();
   const atc = createFakeAtc({ clock, targets: { box: 'suspending', laptop: 'local' } });
   const server = createFakeAtcServer({ atc, token: 'atcs_test-token-0123', host: 'atc.test' });
 

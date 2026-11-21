@@ -1,6 +1,4 @@
-export interface AuthClock {
-  readonly now: () => number;
+import type { Clock } from '@zgeoff/std';
 
-  // runs the callback once after the delay; the returned function cancels it
-  readonly schedule: (callback: () => void, delayMs: number) => () => void;
-}
+// What the door reads and schedules: the time, and a callback to run once after a delay.
+export type AuthClock = Pick<Clock, 'now' | 'schedule'>;

@@ -45,6 +45,9 @@
         "typebox": "catalog:",
         "zod": "catalog:",
       },
+      "devDependencies": {
+        "@zgeoff/testing": "catalog:",
+      },
     },
     "adapters/caller-proof-imp": {
       "name": "@boxxy/caller-proof-imp",
@@ -322,9 +325,11 @@
       },
       "devDependencies": {
         "@boxxy/rules": "workspace:*",
+        "@zgeoff/testing": "catalog:",
       },
       "peerDependencies": {
         "@boxxy/rules": "workspace:*",
+        "@zgeoff/testing": "catalog:",
       },
       "optionalPeers": [
         "@boxxy/rules",

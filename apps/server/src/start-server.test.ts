@@ -4,7 +4,7 @@ import { cp, mkdir, mkdtemp, rm, stat, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { buildJobRulesText } from '@boxxy/dispatch/test-utils/build-job-rules-text';
-import { createFakeClock } from '@boxxy/dispatch/test-utils/create-fake-clock';
+import { createFakeInstantClock } from '@boxxy/dispatch/test-utils/create-fake-instant-clock';
 import { createTestDispatch } from '@boxxy/dispatch/test-utils/create-test-dispatch';
 import { brandSchemas } from '@boxxy/model';
 import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
@@ -452,7 +452,7 @@ test('it logs the service clients of the public door once SIGHUP reloads its fil
 test('it spawns a filed item on atc over MCP with the host name and the bearer and no warning', async () => {
   const ctx = await setupTest();
 
-  const atc = createFakeAtc({ clock: createFakeClock(), targets: { cloud: 'suspending' } });
+  const atc = createFakeAtc({ clock: createFakeInstantClock(), targets: { cloud: 'suspending' } });
   const atcServer = createFakeAtcServer({ atc, token: 'atcs_test-token-0123', host: 'atc.test' });
 
   onTestFinished(() => atcServer.stop());
@@ -502,7 +502,7 @@ test('it spawns a filed item on atc over MCP with the host name and the bearer a
 test('it spawns a repo with a git source as an atc workspace that atc trusts, with no cwd', async () => {
   const ctx = await setupTest();
 
-  const atc = createFakeAtc({ clock: createFakeClock(), targets: { cloud: 'suspending' } });
+  const atc = createFakeAtc({ clock: createFakeInstantClock(), targets: { cloud: 'suspending' } });
   const atcServer = createFakeAtcServer({ atc, token: 'atcs_test-token-0123', host: 'atc.test' });
 
   onTestFinished(() => atcServer.stop());
@@ -550,7 +550,7 @@ test('it spawns a repo with a git source as an atc workspace that atc trusts, wi
 test('it sends a hold notice to the notice session that the store holds, with the notice token', async () => {
   const ctx = await setupTest();
 
-  const atc = createFakeAtc({ clock: createFakeClock(), targets: { cloud: 'suspending' } });
+  const atc = createFakeAtc({ clock: createFakeInstantClock(), targets: { cloud: 'suspending' } });
 
   // the gateway takes the notice token alone, with the message scope alone
   const atcServer = createFakeAtcServer({

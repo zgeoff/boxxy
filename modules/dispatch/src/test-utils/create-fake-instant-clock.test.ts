@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
-import { createFakeClock } from './create-fake-clock.ts';
+import { createFakeInstantClock } from './create-fake-instant-clock.ts';
 
 test('it reads the start time until the test advances it', () => {
-  const clock = createFakeClock(5000);
+  const clock = createFakeInstantClock(5000);
 
   clock.advance(250);
 

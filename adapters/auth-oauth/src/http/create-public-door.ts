@@ -6,6 +6,7 @@ import { grantScopes } from '@boxxy/contract';
 import { DEFAULT_PATHS, openMCPAuth } from '@zgeoff/mcp-auth';
 import type { MCPAuth, Requester, ServiceTokenFile } from '@zgeoff/mcp-auth';
 import { createMCPHTTPApp } from '@zgeoff/mcp-auth/elysia';
+import { systemClock } from '@zgeoff/std';
 import { createAuthAdmin } from '../auth/create-auth-admin.ts';
 import type { AuthAdmin } from '../auth/create-auth-admin.ts';
 import { createSecurityEventLog } from '../auth/create-security-event-log.ts';
@@ -68,17 +69,6 @@ export interface PublicDoor {
   readonly auth: MCPAuth<GrantScope>;
   readonly stop: () => Promise<void>;
 }
-
-const systemClock: AuthClock = {
-  now: () => Date.now(),
-  schedule: (callback, delayMs) => {
-    const timer = setTimeout(callback, delayMs);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  },
-};
 
 // The door serves no path of its own beside the OAuth server's, and no route lives under this.
 const NO_APP_PREFIX = '/.boxxy-none';

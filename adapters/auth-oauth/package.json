@@ -42,6 +42,9 @@
     "typebox": "catalog:",
     "zod": "catalog:"
   },
+  "devDependencies": {
+    "@zgeoff/testing": "catalog:"
+  },
   "engines": {
     "bun": ">=1.3",
     "node": ">=24"
