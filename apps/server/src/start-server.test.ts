@@ -10,10 +10,10 @@ import { brandSchemas } from '@boxxy/model';
 import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
 import { createFakeAtc } from '@boxxy/worker-atc/test-utils/create-fake-atc';
 import { createFakeAtcServer } from '@boxxy/worker-atc/test-utils/create-fake-atc-server';
+import { waitFor } from '@zgeoff/testing';
 import invariant from 'tiny-invariant';
 import { startServer } from './start-server.ts';
 import { readHttpStatus } from './test-utils/read-http-status.ts';
-import { waitFor } from './test-utils/wait-for.ts';
 
 async function setupTest() {
   const folder = await mkdtemp(path.join(tmpdir(), 'boxxy-test-server-'));
@@ -444,7 +444,9 @@ test('it logs the service clients of the public door once SIGHUP reloads its fil
 
   process.kill(process.pid, 'SIGHUP');
 
-  await waitFor(() => ctx.logged.length > 0);
+  await waitFor(() => {
+    expect(ctx.logged.length).toBeGreaterThan(0);
+  });
 
   expect(ctx.logged).toStrictEqual(['the public door reloaded its service clients']);
 });
@@ -479,7 +481,12 @@ test('it spawns a filed item on atc over MCP with the host name and the bearer a
 
   invariant(answer.kind === 'started', 'the server starts on the stand-in atc');
 
-  await waitFor(() => atc.calls.some((call) => call.tool === 'atc_session_spawn'), 4000);
+  await waitFor(
+    () => {
+      expect(atc.calls.some((call) => call.tool === 'atc_session_spawn')).toBe(true);
+    },
+    { timeoutMs: 4000 },
+  );
 
   expect([
     atc.calls.find((call) => call.tool === 'atc_session_spawn')?.args,
@@ -532,7 +539,12 @@ test('it spawns a repo with a git source as an atc workspace that atc trusts, wi
 
   invariant(answer.kind === 'started', 'the server starts on the stand-in atc');
 
-  await waitFor(() => atc.calls.some((call) => call.tool === 'atc_session_spawn'), 4000);
+  await waitFor(
+    () => {
+      expect(atc.calls.some((call) => call.tool === 'atc_session_spawn')).toBe(true);
+    },
+    { timeoutMs: 4000 },
+  );
 
   expect(atc.calls.find((call) => call.tool === 'atc_session_spawn')?.args).toStrictEqual({
     target: 'cloud',
@@ -608,7 +620,12 @@ test('it sends a hold notice to the notice session that the store holds, with th
 
   invariant(answer.kind === 'started', 'the server starts on the stand-in atc');
 
-  await waitFor(() => atc.calls.some((call) => call.tool === 'atc_message_send'), 4000);
+  await waitFor(
+    () => {
+      expect(atc.calls.some((call) => call.tool === 'atc_message_send')).toBe(true);
+    },
+    { timeoutMs: 4000 },
+  );
 
   expect(atc.calls.find((call) => call.tool === 'atc_message_send')?.args).toStrictEqual({
     session: 'desk.3.s7',

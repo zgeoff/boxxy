@@ -1,14 +1,14 @@
 import { expect, test } from 'bun:test';
 import { join } from 'node:path';
 import { openTestAuth } from '@zgeoff/mcp-auth/testing';
-import { registerTestCleanup } from '../test-utils/register-test-cleanup.ts';
-import { setupTempDir } from '../test-utils/setup-temp-dir.ts';
+import { registerTestCleanup } from '@zgeoff/testing';
+import { createTempDir } from '@zgeoff/testing/fs';
 import type { ServiceTokenReload } from './reload-service-tokens.ts';
 import { startServiceTokenReloads } from './start-service-token-reloads.ts';
 
 // Reloads of a service-token file with no clients, whose report throws on its first call.
 async function setupTest() {
-  const folder = setupTempDir('boxxy-service-token-reloads-');
+  const folder = createTempDir('boxxy-service-token-reloads');
   const filePath = join(folder.path, 'service-tokens.json');
 
   await Bun.write(filePath, JSON.stringify({ resource: 'https://app.example/mcp', clients: {} }));

@@ -205,6 +205,7 @@
         "@wringer/gunshi": "catalog:",
         "@wringer/http": "catalog:",
         "@wringer/mcp": "catalog:",
+        "@zgeoff/testing": "catalog:",
         "tiny-invariant": "catalog:",
       },
     },
@@ -243,6 +244,7 @@
       },
       "devDependencies": {
         "@impz/testing": "catalog:",
+        "@zgeoff/testing": "catalog:",
       },
     },
     "libs/content-hash": {

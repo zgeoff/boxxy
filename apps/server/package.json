@@ -62,7 +62,8 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@impz/testing": "catalog:"
+    "@impz/testing": "catalog:",
+    "@zgeoff/testing": "catalog:"
   },
   "engines": {
     "bun": ">=1.3",

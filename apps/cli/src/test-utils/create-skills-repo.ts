@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { runGit } from '../run-git.ts';
-import { createGitRepo } from './create-git-repo.ts';
+import { commitGitFolder } from './commit-git-folder.ts';
 
 export interface SkillsRepoInput {
   // an empty folder of the test; the repository is made inside it
@@ -30,7 +30,7 @@ export async function createSkillsRepo(input: SkillsRepoInput): Promise<SkillsRe
     Object.entries(skillFiles).map(([file, text]) => [`skills/${name}/${file}`, text] as const),
   );
 
-  const ref = await createGitRepo({
+  const ref = await commitGitFolder({
     folder: repo,
     files: { ...Object.fromEntries(files), 'README.md': 'skills\n' },
   });

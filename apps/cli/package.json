@@ -54,6 +54,7 @@
     "@wringer/gunshi": "catalog:",
     "@wringer/http": "catalog:",
     "@wringer/mcp": "catalog:",
+    "@zgeoff/testing": "catalog:",
     "tiny-invariant": "catalog:"
   },
   "engines": {

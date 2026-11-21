@@ -1,14 +1,14 @@
 import { expect, test } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { join } from 'node:path';
+import { registerTestCleanup } from '@zgeoff/testing';
+import { createTempDir } from '@zgeoff/testing/fs';
 import { createPublicDoor } from '../http/create-public-door.ts';
-import { registerTestCleanup } from '../test-utils/register-test-cleanup.ts';
 import { seedPrePackageAuth } from '../test-utils/seed-pre-package-auth.ts';
 import type { PrePackageAuth } from '../test-utils/seed-pre-package-auth.ts';
-import { setupTempDir } from '../test-utils/setup-temp-dir.ts';
 
 function setupTest() {
-  const folder = setupTempDir('boxxy-grant-migration-');
+  const folder = createTempDir('boxxy-grant-migration');
   const dbPath = join(folder.path, 'auth.db');
   const origin = 'https://boxxy.example';
 
