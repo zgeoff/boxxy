@@ -3,7 +3,7 @@
 // Package: @boxxy/closeout (modules/closeout) holds the parsers, `missingCriteria` and
 // `dedupeOpenItems`. Every type here, the build close-out's shape in 00-core.ts, and its zod schema
 // live in @boxxy/model, because dispatch, the contract and the rules' phase kinds use them. Owning docs:
-// close-outs.md, slice-1.md "The build close-out", decision 0009.
+// close-outs.md, architecture/work/attempts.md "Close-outs and their limits", decision 0009.
 //
 // A close-out holds only what the agent alone knows. Commits, PRs, CI, findings, tokens and time
 // come from facts. There is no free-text `learnings` or `intent` field. An attempt whose close-out
@@ -54,7 +54,7 @@ export declare function missingCriteria(item: ItemView, evidence: readonly Evide
  * Dedupe for `openItems`. An entry matches an open item of the same repo and kind whose title is
  * equal after `normaliseTitle`; slice 1 filed `core.issue` only. A match files nothing, and settle lists the matched item in the attempt's
  * `boxxy.attempt.settled` fact. Settle reads `open` through the store and passes it in. Slice 1.
- * Owner: slice-1.md "The build close-out".
+ * Owner: architecture/work/attempts.md "Close-outs and their limits".
  */
 export declare function dedupeOpenItems(entries: readonly OpenItem[], open: readonly ItemView[]): { readonly file: readonly OpenItem[]; readonly matched: readonly ItemId[] };
 

@@ -12,7 +12,7 @@ boxxy's dispatch module, which claims the next task for an agent and settles eac
 This version exports only its package name, as `packageName`, from its main entry. Its
 `./test-utils/*` entry holds `createMemoryClaimStore`, the memory fake of the `ClaimStore` port, and
 `claimStoreContract`, the cases that every `ClaimStore` passes
-([ports and adapters](../../docs/design/boxxy/slice-1.md#ports-and-adapters)). The
+([the layout](../../docs/architecture/repo/layout.md)). The
 [boxxy README](https://github.com/zgeoff/boxxy#workspace) lists the workspace's packages.
 
 ## Install

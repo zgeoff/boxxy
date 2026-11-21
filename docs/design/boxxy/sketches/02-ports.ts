@@ -3,7 +3,7 @@
 //
 // Package: the port types live in @boxxy/model (libs/model), because dispatch and the adapters both
 // use them. @boxxy/dispatch holds `bindSession`, each port's memory fake and its contract suite.
-// Owning docs: slice-1.md "Ports and adapters", architecture.md "Style", core-model.md "Workers"
+// Owning docs: architecture/repo/layout.md, architecture.md "Style", core-model.md "Workers"
 // and "Asks and grants".
 //
 // Slice 1 ports: ClaimStore (StoreReader, StoreTx, StoreChange, ApplyResult), WorkerKind
@@ -94,7 +94,7 @@ export type SessionFault = { readonly kind: "fault"; readonly fault: "agent-sess
 /**
  * The row and fact that bind an agent session to an attempt, in @boxxy/dispatch. It reads inside the
  * same `exclusive` call as the write, so the insert is idempotent: a pair the table holds gives
- * `held` and writes nothing. Slice 1. Owner: slice-1.md "Agent sessions".
+ * `held` and writes nothing. Slice 1. Owner: architecture/work/sessions.md.
  */
 export async function bindSession(tx: StoreReader, attempt: AttemptRow, row: AttemptSessionRow, newId: NewId): Promise<{ kind: "bind"; write: RowWrite; fact: AnyNewFact } | { kind: "held" } | SessionFault> {
   const holder = await tx.findAttemptByAgentSession(row.agentSession);
@@ -115,7 +115,7 @@ export async function bindSession(tx: StoreReader, attempt: AttemptRow, row: Att
 
 // ── ClaimStore (slice 1, verbatim) ─────────────────────────────────────────────────────────────
 
-/** The boxxy store: the only writer of claims. Slice 1. Owner: dispatch.md, slice-1.md "One write path". */
+/** The boxxy store: the only writer of claims. Slice 1. Owner: dispatch.md, architecture/work/store.md "One change at a time". */
 export interface ClaimStore {
   // BEGIN IMMEDIATE, run work, COMMIT; ROLLBACK when work throws.
   exclusive<T>(work: (tx: StoreTx) => Promise<T>): Promise<T>;
@@ -123,12 +123,12 @@ export interface ClaimStore {
   read<T>(work: (tx: StoreReader) => Promise<T>): Promise<T>;
 }
 
-// The rules every ClaimStore keeps, which its contract suite checks: slice-1.md "Store rules".
+// The rules every ClaimStore keeps, which its contract suite checks: architecture/work/store.md "One change at a time".
 
 /**
  * Reads inside one store transaction. A reader that derives item state takes `now` and each kind's
  * `maxAttempts`, and applies `liveLevers` and `deriveItemState` from @boxxy/model, so the SQLite
- * store and the fake agree. Slice 1. Owner: slice-1.md "Ports and adapters".
+ * store and the fake agree. Slice 1. Owner: architecture/repo/layout.md.
  */
 export interface StoreReader {
   readSnapshot(now: Instant, maxAttemptsByKind: MaxAttemptsByKind): Promise<Snapshot>;
@@ -159,7 +159,7 @@ export type ItemDetailRows = {
   readonly pullRequests: readonly PullRequestRow[];
 };
 
-/** Writes inside `exclusive`. Slice 1. Owner: slice-1.md "One write path". */
+/** Writes inside `exclusive`. Slice 1. Owner: architecture/work/store.md "One change at a time". */
 export interface StoreTx extends StoreReader {
   applyChange(change: StoreChange): Promise<ApplyResult>;
   // Bookkeeping writes: outside StoreChange, no fact, no store version change.
@@ -294,7 +294,7 @@ export type WorkerReading = { readonly kind: "running" | "ended" | "absent" };
  * The exact request `worker-atc` sends to atc's `session.spawn`. Stored with the claim and hashed,
  * so a retry resends the same payload. It carries no telemetry stamp: spend joins to the attempt by
  * the agent's own session id (see `SessionReading` and `CostReader`), and telemetry is switched on
- * per session through atc's own config. Slice 1. Owner: slice-1.md "claimNext" step 6.
+ * per session through atc's own config. Slice 1. Owner: architecture/work/store.md "Claims" step 6.
  */
 export type SpawnRequest = {
   readonly cwd: string; // the repo's configured local path; the prompt tells the agent to make its own worktree. Built: `cwd` or a git `source` (docs/architecture/work/sessions.md, "The atc worker")
@@ -358,11 +358,11 @@ export const exampleImpTarget: TargetProvider = {
 };
 
 // How the hooks and `attempt.*` calls find their attempt before the runner records the atc session
-// id: slice-1.md "Links to commits and PRs".
+// id: architecture/interfaces/github.md "Linking a pull request".
 
 // ── FactSink (slice 1, verbatim) ───────────────────────────────────────────────────────────────
 
-/** Appends outbox facts to pepys. Slice 1. Owner: slice-1.md "Facts and the outbox". */
+/** Appends outbox facts to pepys. Slice 1. Owner: architecture/interfaces/facts-and-pepys.md "The outbox". */
 export interface FactSink {
   // `rejected`: pepys refused the batch, with its error. The sender stops and the rows stay unsent.
   append(facts: OutboxFact[]): Promise<"accepted" | { kind: "unknown"; reason: string } | { kind: "rejected"; error: string }>;
@@ -370,7 +370,7 @@ export interface FactSink {
 
 // ── Fact reader (slice 1: the cost reader; later: replay and queries) ──────────────────────────
 
-/** One row of `boxxy.costToLand`: per landed item and model. Slice 1. Owner: slice-1.md "The pepys consumer and the query". */
+/** One row of `boxxy.costToLand`: per landed item and model. Slice 1. Owner: architecture/interfaces/facts-and-pepys.md "What an item cost to land". */
 export type CostToLandRow = {
   readonly item: ItemId;
   readonly title: string;
@@ -417,7 +417,7 @@ export interface FactReader {
 
 // ── Forge (slice 1, verbatim; the train extends it in 09-merge-train.ts) ───────────────────────
 
-/** Reads PRs and their commits. Slice 1. Owner: slice-1.md "The GitHub adapter". */
+/** Reads PRs and their commits. Slice 1. Owner: architecture/interfaces/github.md "The GitHub adapter". */
 export interface Forge {
   readPullRequest(ref: PullRequestRef): Promise<PullRequestReading | "not-found">;
   listOpenPullRequests(repo: RepoName): Promise<PullRequestRef[]>;
@@ -491,7 +491,7 @@ export const exampleTerminalChannel: AskChannel = {
 /**
  * The clock. Only the apps hold it: the runner loop reads `now()` once per tick and passes it to
  * every module call as `now: Instant`, so a test or a replay sets time. Slice 1. Owner: layout.md
- * "Import pins", slice-1.md "Ports and adapters".
+ * "Import pins", architecture/repo/layout.md.
  */
 export interface Clock {
   now(): Instant;

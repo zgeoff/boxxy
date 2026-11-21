@@ -36,4 +36,4 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-The [first build spec](../../docs/design/boxxy/slice-1.md#packages) lists the hashes boxxy records.
+[Rules](../../docs/architecture/overview.md#rules) says which hashes boxxy records.

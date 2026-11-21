@@ -23,9 +23,7 @@ and capacity source of each one. An attempt can collect more than one agent sess
 atc respawns its session. The runner records each agent session id of an attempt in the store's
 `attempt_sessions` table when atc reports it, and a spend query joins each record's `session.id` to
 those ids at read time. A record whose `session.id` matches no attempt belongs to no attempt.
-[Slice 1](./slice-1.md#the-session-id-join) specifies the join, and its
-[prerequisites](./slice-1.md#a1-agent-session-ids-and-telemetry-config-in-atc) list what boxxy needs
-from atc.
+[The join keys](../../architecture/interfaces/facts-and-pepys.md#the-join-keys) describe the join.
 
 Codex is an open question: whether Codex telemetry carries a session id that boxxy can join on, and
 whether atc records it. An investigation in atc answers it.
@@ -162,8 +160,7 @@ ask.
 
 ## Queries
 
-Each query runs over pepys facts. These are proposed; the first slice builds only cost to land per
-item, by model (see [slice 1](./slice-1.md)).
+Each query runs over pepys facts. These are proposed; boxxy builds only [cost to land](../../architecture/interfaces/facts-and-pepys.md#what-an-item-cost-to-land) and the stage times.
 
 - **Spend:** by phase, recipe, model, capacity source, item kind, pool and outcome, and attended
   against unattended. Abandoned attempts count.
