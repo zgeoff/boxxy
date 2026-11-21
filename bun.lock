@@ -447,7 +447,7 @@
     "@zgeoff/oxlint-config": "0.10.10",
     "@zgeoff/rig": "0.2.6",
     "@zgeoff/skill-gate": "0.2.30",
-    "@zgeoff/std": "0.4.4",
+    "@zgeoff/std": "0.4.5",
     "elysia": "2.0.0-rc.4",
     "exact-mirror": "1.2.7",
     "knip": "6.44.2",
@@ -1118,7 +1118,7 @@
 
     "@zgeoff/skill-gate": ["@zgeoff/skill-gate@0.2.30", "", { "dependencies": { "@zgeoff/agent-hooks": "0.2.14" } }, "sha512-oRdMLVKWo5MolEEvClpYOtDdF+hY8dYB1W9uMu6Tkx0PRRku8/7kXIXiNECmzc95Ej1ITT9gmekuEEst/oXNmw=="],
 
-    "@zgeoff/std": ["@zgeoff/std@0.4.4", "", {}, "sha512-AlT4lgjyC0ZhLUxxG0Sg9pxQG/+MIziC7BA9k29QDNt/ubGvB1+RCpTr/LaYkjFxiZnKG42psa4f2cp5BHGyzQ=="],
+    "@zgeoff/std": ["@zgeoff/std@0.4.5", "", {}, "sha512-Z2rD5v0OVXRZTa3Jh2I8zmx9znzvnAa/bC5Ai0NidPh+pfJGfDLmQIVZhshbGXPu/S/9SFdP/chDw+N5Pk/lzg=="],
 
     "acorn": ["acorn@8.19.0", "", { "bin": { "acorn": "bin/acorn" } }, "sha512-oJlA3XiRm7Cyk6qFD2Jn8ak9B7jSy0qy00ADO3+8dpT0LSjFihQYv4C02LFCSYJV3Q37xYwwRy5m+IpIiUzqWw=="],
 
@@ -1628,9 +1628,17 @@
 
     "@pepys/source-telemetry/@zgeoff/std": ["@zgeoff/std@0.4.3", "", {}, "sha512-wCaqH8+vrkR+6R/grWUUDraryyFY1NW0Gjbhg85bXX38k9Q+N3aHFu+Yc+EjzZ/Sp9n5aJnCvZqbO5F2mUjWAg=="],
 
+    "@wringer/core/@zgeoff/std": ["@zgeoff/std@0.4.4", "", {}, "sha512-AlT4lgjyC0ZhLUxxG0Sg9pxQG/+MIziC7BA9k29QDNt/ubGvB1+RCpTr/LaYkjFxiZnKG42psa4f2cp5BHGyzQ=="],
+
     "@wringer/core/xstate": ["xstate@5.33.3", "", {}, "sha512-AnDRjS/GyKHmbA1PyhVCYBqYsA7EGe3KGgeD0ht3NFsXzoz7leX/HQDFX9QlHFJ/ltLHPsgChJYwPzRvB/0b4g=="],
 
     "@wringer/gunshi/gunshi": ["gunshi@0.37.3", "", {}, "sha512-uwm23bguqDcleEetknuQnF5okLcgmQPM3iv4aWVHTPDbiSs9shh02F079NCY0mWkrIRjHqNhgmzW6k0FCXhy1g=="],
+
+    "@zgeoff/chex/@zgeoff/std": ["@zgeoff/std@0.4.4", "", {}, "sha512-AlT4lgjyC0ZhLUxxG0Sg9pxQG/+MIziC7BA9k29QDNt/ubGvB1+RCpTr/LaYkjFxiZnKG42psa4f2cp5BHGyzQ=="],
+
+    "@zgeoff/mcp-auth/@zgeoff/std": ["@zgeoff/std@0.4.4", "", {}, "sha512-AlT4lgjyC0ZhLUxxG0Sg9pxQG/+MIziC7BA9k29QDNt/ubGvB1+RCpTr/LaYkjFxiZnKG42psa4f2cp5BHGyzQ=="],
+
+    "@zgeoff/rig/@zgeoff/std": ["@zgeoff/std@0.4.4", "", {}, "sha512-AlT4lgjyC0ZhLUxxG0Sg9pxQG/+MIziC7BA9k29QDNt/ubGvB1+RCpTr/LaYkjFxiZnKG42psa4f2cp5BHGyzQ=="],
 
     "better-call/rou3": ["rou3@0.9.2", "", {}, "sha512-3SOzvaAg8rkHrXtRjpCvCvbyO5to9oOO27Z/XqHEYXfMRVSw/qMIVdmaOk9W2lcRLtR6dlqTjo9hDeJk70QBYQ=="],
 
