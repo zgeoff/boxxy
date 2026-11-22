@@ -149,12 +149,8 @@ that command alone. A command with neither runs on the registry's first target, 
 | `local` | launch | `bun verify use --target local`, then `bun verify up`           | read-write |
 | `prod`  | attach | the steps in [On prod](references/feature-owner-mcp.md#on-prod) | read-only  |
 
-Each `up` starts the harness: the boxxy server and CLI on an empty SQLite store, with no network,
-fakes for the clock, the worker, GitHub and the hold-notice sender, and a local pepys in the same
-process.
-
-Check a change on `local`. Use `prod` only for the smoke check after a deploy, and never publish a
-`prod` verdict to a pull request.
+Each `up` starts boxxy offline on an empty store, with an in-process pepys and fakes for the clock,
+the worker, GitHub and notices. Use `prod` only to smoke-check a deploy.
 
 <!-- /repo -->
 
