@@ -64,8 +64,6 @@ type CheckedEvidenceAnswer =
 
 ```ts
 // libs/model
-type EvidenceKind = 'pull_request' | 'commit' | 'test' | 'ci-run' | 'live-check' | 'check' | 'verdict';
-
 interface EvidenceRow {
   // …existing fields
   head: CommitSha | null; // the head the server read; set for `check` and `verdict`, null for every other kind
@@ -124,7 +122,6 @@ The server records evidence by these rules:
 - A repeat call with the same kind, ref and head returns the first fact ID and writes nothing. A call at a new head writes a new row.
 - A refused or `retry` call writes nothing: no evidence row and no fact.
 - A `check` call makes one pull request read and one checks read. A `verdict` call adds the verifier's read of the pull request's body. Agents record a few citations per build, well inside GitHub's rate limit.
-- The `boxxy.evidence.recorded` fact carries `head` for `check` and `verdict`, and omits it for every other kind.
 
 At close-out, the server checks the cited evidence against the head:
 
@@ -134,7 +131,7 @@ At close-out, the server checks the cited evidence against the head:
 
 Ship the change in two PRs, in this order:
 
-- The model and pepys change ships in its own PR first: the two kinds, `head` on the evidence fact, and the regenerated pepys boundary. The server change ships after that pepys release deploys, so pepys never refuses a fact the server sends.
+- The model and pepys change is built: [the evidence fact](../../architecture/interfaces/facts-and-pepys.md#what-every-fact-carries) carries the two kinds and `head`, and the pepys boundary reads them. The server change ships after that pepys release deploys, so pepys never refuses a fact the server sends.
 
 ## Decisions
 
