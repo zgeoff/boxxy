@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { closeOutAttempt, settleAttempt } from '@boxxy/dispatch';
 import { buildMockLeverChange } from '@boxxy/dispatch/test-utils/build-mock-lever-change';
 import { seedSignoffWait } from '@boxxy/dispatch/test-utils/seed-signoff-wait';
 import { brandSchemas } from '@boxxy/model';
@@ -641,4 +642,152 @@ test('it lists no item for a sign-off once the owner answered', async () => {
   const answer = await ctx.callOwner('signoff.list', {});
 
   expect(answer).toStrictEqual({ status: 200, body: { json: { items: [] } } });
+});
+
+test('#file gives each item the short reference one above the one filed before it, whichever way it was filed', async () => {
+  const ctx = await setupTest();
+
+  const seeded = await ctx.dispatch.seedItem({
+    phase: brandSchemas.phaseName.parse('design'),
+  });
+
+  const claim = await ctx.dispatch.claim();
+
+  invariant(claim?.attempt.item === seeded, 'the claim picks the seeded design item');
+
+  const attempt = await ctx.dispatch.readAttempt(claim.attempt.id);
+
+  const closed = await closeOutAttempt({
+    store: ctx.deps.store,
+    call: ctx.dispatch.buildCallRef(attempt),
+    body: {
+      result: {
+        kind: 'designed',
+        design: { text: 'Follow the system theme.', location: null },
+        openItems: [
+          {
+            kind: 'core.issue',
+            title: 'Cache the theme',
+            body: 'Found while designing.',
+          },
+        ],
+      },
+      friction: [],
+    },
+    rules: ctx.dispatch.rules(),
+    now: ctx.dispatch.clock.now(),
+    newId: ctx.dispatch.newId,
+  });
+
+  invariant(closed.kind === 'recorded', 'the close-out records');
+
+  await settleAttempt({
+    store: ctx.deps.store,
+    attempt: attempt.id,
+    forced: null,
+    sessionStopped: true,
+    rules: ctx.dispatch.rules(),
+    actor: 'boxxy:runner:runner-1',
+    now: ctx.dispatch.clock.now(),
+    newId: ctx.dispatch.newId,
+  });
+
+  const filed = await ctx.readAnswer('item.file', {
+    repo: 'example/app',
+    title: 'Check a widget',
+    outcome: 'The widget passes.',
+  });
+
+  const items = await ctx.deps.store.read((tx) =>
+    tx.listItems({}, ctx.dispatch.clock.now(), ctx.dispatch.rules()),
+  );
+
+  expect(items.map((item) => [item.title, item.ref])).toStrictEqual([
+    ['Add a dark theme', 'i-1'],
+    ['Cache the theme', 'i-2'],
+    ['Check a widget', 'i-3'],
+  ]);
+
+  expect(filed.item).toBe(items[2]?.id ?? null);
+});
+
+test('#get reads an item by its short reference as it reads it by its ID', async () => {
+  const ctx = await setupTest();
+  const item = await ctx.dispatch.seedItem({});
+  const byID = await ctx.callOwner('item.get', { item });
+  const byRef = await ctx.callOwner('item.get', { item: 'i-1' });
+
+  expect(byRef).toStrictEqual(byID);
+});
+
+test.each([
+  ['item.get', { item: 'i-404' }],
+  ['item.edit', { item: 'i-404', title: 'A title' }],
+  ['item.close', { item: 'i-404', reason: 'no longer needed' }],
+  ['item.retry', { item: 'i-404' }],
+  ['item.wake', { item: 'i-404' }],
+  ['item.release', { item: 'i-404' }],
+  ['item.note', { item: 'i-404', text: 'A note' }],
+  [
+    'item.signoff',
+    {
+      item: 'i-404',
+      head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+      verdict: 'approve',
+    },
+  ],
+  ['plan.defer', { item: 'i-404', reason: 'later' }],
+  ['plan.expedite', { items: ['i-404'], reason: 'now' }],
+  ['relation.add', { source: 'i-404', type: 'blocks', target: 'i-404' }],
+  ['report.cost', { item: 'i-404' }],
+  ['item.file', { repo: 'example/app', title: 'T', outcome: 'O', blockedBy: ['i-404'] }],
+])(
+  'it answers not found on %s for a short reference that no item has',
+  async (procedure, input) => {
+    const ctx = await setupTest();
+
+    await ctx.dispatch.seedItem({});
+
+    const answer = await ctx.callOwner(procedure, input);
+
+    expect(answer).toMatchObject({
+      status: 404,
+      body: { json: { code: 'NOT_FOUND', data: { item: 'i-404' } } },
+    });
+  },
+);
+
+test.each([
+  ['item.note', { text: 'A note' }],
+  ['item.edit', { title: 'A new title' }],
+  ['item.retry', {}],
+  ['plan.defer', { reason: 'later' }],
+])('it takes a short reference in place of the ID on %s', async (procedure, input) => {
+  const ctx = await setupTest();
+
+  await ctx.dispatch.seedItem({});
+
+  const answer = await ctx.callOwner(procedure, { item: 'i-1', ...input });
+
+  expect(answer.status).toBe(200);
+});
+
+test('#file with blockedBy takes a short reference', async () => {
+  const ctx = await setupTest();
+  const blocker = await ctx.dispatch.seedItem({});
+
+  const filed = await ctx.readAnswer('item.file', {
+    repo: 'example/app',
+    title: 'Check a widget',
+    outcome: 'The widget passes.',
+    blockedBy: ['i-1'],
+  });
+
+  const stored = await ctx.readItem(brandSchemas.itemId.parse(filed.item));
+  const facts = await ctx.dispatch.listFacts('boxxy.relation.added');
+
+  expect([stored?.derived.state, facts.map((fact) => fact.payload)]).toStrictEqual([
+    'blocked',
+    [expect.objectContaining({ source: blocker, target: filed.item })],
+  ]);
 });

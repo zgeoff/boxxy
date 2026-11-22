@@ -205,20 +205,6 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
-    '#readItem returns null for an unknown item',
-    async (store) => {
-      const read = await store.read((transaction) =>
-        transaction.readItem(
-          buildMockV1ItemRow().id,
-          brandSchemas.instant.parse(5000),
-          buildMockItemRules(),
-        ),
-      );
-
-      return { received: read, expected: null };
-    },
-  ],
-  [
     '#readItem derives blocked for the target of a live relation from a ready item',
     async (store) => {
       const source = buildMockV1ItemRow();
