@@ -434,7 +434,7 @@
     "@pepys/ingest": "0.4.4",
     "@pepys/kit": "0.4.4",
     "@pepys/source-github": "0.4.4",
-    "@pepys/source-telemetry": "0.4.4",
+    "@pepys/source-telemetry": "0.4.5",
     "@pepys/testing": "0.4.4",
     "@stylistic/eslint-plugin": "5.10.0",
     "@tsconfig/strictest": "2.0.8",
@@ -941,7 +941,7 @@
 
     "@pepys/source-github": ["@pepys/source-github@0.4.4", "", { "dependencies": { "@pepys/api": "0.4.4", "@pepys/ingest": "0.4.4", "@pepys/kit": "0.4.4", "@zgeoff/std": "0.4.3", "kysely": "0.29.8", "ts-pattern": "5.9.2", "zod": "4.6.7" } }, "sha512-VxSg6rTLN+ZOqEvA1nhdJdjx0q1BJOcHs6hNHNmyliEXTSCZynMKr8ZAjbQkJAADUZSAQDqsZOFBszMgxSYRZg=="],
 
-    "@pepys/source-telemetry": ["@pepys/source-telemetry@0.4.4", "", { "dependencies": { "@pepys/kit": "0.4.4", "@zgeoff/std": "0.4.3", "tiny-invariant": "1.3.3", "zod": "4.6.7" } }, "sha512-m2HR4BFj2MuDx0krwjbbQ50fAYPWmwPEvVcdm2eQUfnJsxL7dE7TBIJ9DbQEoyOsj070vv2lGA5FNs1nBrW/rA=="],
+    "@pepys/source-telemetry": ["@pepys/source-telemetry@0.4.5", "", { "dependencies": { "@pepys/kit": "0.4.5", "@zgeoff/std": "0.4.5", "tiny-invariant": "1.3.3", "zod": "4.6.7" }, "bin": { "pepys-telemetry-forwarder": "src/forwarder-bin.ts" } }, "sha512-mumKWhLszpEaSnB305Yi8MHQUpSgv9XHj0Er4xHncoHEbxZYPeduBr/xs42Q7Oi2AagWr2rGFBMjgmFIla/Yhw=="],
 
     "@pepys/testing": ["@pepys/testing@0.4.4", "", { "dependencies": { "@pepys/ingest": "0.4.4", "@pepys/kit": "0.4.4", "@pepys/kysely-turso": "0.4.4", "@tursodatabase/database": "0.8.3", "kysely": "0.29.8", "tiny-invariant": "1.3.3", "ts-pattern": "5.9.2", "zod": "4.6.7" } }, "sha512-Fi03igV/jUxTgdYkWk94Cb4JCZsluRGrtEkwZ9CDsIMdg3NCSppfYuDrYEa/PHw8FLIRvxRvkrGET4tIi7+Q2g=="],
 
@@ -1647,7 +1647,7 @@
 
     "@pepys/source-github/@zgeoff/std": ["@zgeoff/std@0.4.3", "", {}, "sha512-wCaqH8+vrkR+6R/grWUUDraryyFY1NW0Gjbhg85bXX38k9Q+N3aHFu+Yc+EjzZ/Sp9n5aJnCvZqbO5F2mUjWAg=="],
 
-    "@pepys/source-telemetry/@zgeoff/std": ["@zgeoff/std@0.4.3", "", {}, "sha512-wCaqH8+vrkR+6R/grWUUDraryyFY1NW0Gjbhg85bXX38k9Q+N3aHFu+Yc+EjzZ/Sp9n5aJnCvZqbO5F2mUjWAg=="],
+    "@pepys/source-telemetry/@pepys/kit": ["@pepys/kit@0.4.5", "", { "dependencies": { "@zgeoff/std": "0.4.5", "kysely": "0.29.8", "ts-pattern": "5.9.2", "type-fest": "5.10.0", "zod": "4.6.7" } }, "sha512-pvqrtfhf+06u4QkYKgcBHgtdNbrskr0Mrnc3oGhrLbeEEqZxvodg78SWhrecsHJeTTybnq3ZMuGoL/fua9CNUw=="],
 
     "@pepys/testing/@pepys/kysely-turso": ["@pepys/kysely-turso@0.4.4", "", { "dependencies": { "@tursodatabase/database": "0.8.3", "kysely": "0.29.8", "tiny-invariant": "1.3.3" } }, "sha512-aMbWNqW0aqFbXUc85ObG2pdW0734fnTBbbwXfJgTeeDCdE5zk83ezTsNYRkySKQImDopRhKL8xqwqQ7SNMKrlw=="],
 
