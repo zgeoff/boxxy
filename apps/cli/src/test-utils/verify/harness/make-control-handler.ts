@@ -10,6 +10,7 @@ import { endTurn } from './end-turn.ts';
 import { holdAtSignoff } from './hold-at-signoff.ts';
 import { mergePullRequest } from './merge-pull-request.ts';
 import { openPullRequest } from './open-pull-request.ts';
+import { passPullRequestChecks } from './pass-pull-request-checks.ts';
 import { pushCommit } from './push-commit.ts';
 import { sendTelemetry } from './send-telemetry.ts';
 import { setCurrentItem } from './set-current-item.ts';
@@ -101,6 +102,7 @@ export function makeControlHandler(
 
       return Promise.resolve({ number: harness.openedPullRequest });
     }),
+    bindRoute(controlRoutes.seedChecks, () => passPullRequestChecks(harness)),
     bindRoute(controlRoutes.mergePullRequest, (body) => mergePullRequest(harness, body)),
     bindRoute(controlRoutes.sendTelemetry, async (body) => {
       await sendTelemetry(harness, body.requests);

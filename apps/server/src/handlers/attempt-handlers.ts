@@ -3,17 +3,12 @@ import {
   closeOutCall,
   linkPullRequest,
   pickCallAttempt,
+  recordEvidence,
 } from '@boxxy/dispatch';
-import type { CallRef } from '@boxxy/dispatch';
-import type {
-  AttemptRow,
-  EvidenceKind,
-  ItemView,
-  LoadedRules,
-  RepoName,
-  StoreChange,
-} from '@boxxy/model';
+import type { CallRef, EvidenceDraft } from '@boxxy/dispatch';
+import type { AttemptRow, ItemView, LoadedRules, RepoName } from '@boxxy/model';
 import { brandSchemas, findRecipeName } from '@boxxy/model';
+import { verifyGateCheck } from '../constants.ts';
 import type { ProvenCall, ServerDeps } from '../types.ts';
 import { api } from './api.ts';
 import { collectItemPage } from './collect-item-page.ts';
@@ -159,6 +154,7 @@ export const attemptHandlers = {
       now: deps.clock.now(),
       newId: deps.newId,
       review: deps.review,
+      forge: deps.forge,
     });
   }),
   evidence: api.attempt.evidence.handler((options) => {
@@ -170,10 +166,18 @@ export const attemptHandlers = {
       return noAttempt;
     }
 
-    return writeEvidence(context.deps, call, {
-      kind: input.kind,
-      ref: input.ref,
-      observed: input.observed ?? null,
+    const deps = context.deps;
+
+    return recordEvidence({
+      store: deps.store,
+      forge: deps.forge,
+      verifier: deps.verifier,
+      gateCheck: verifyGateCheck,
+      rules: deps.rulesState().rules,
+      call,
+      draft: toEvidenceDraft(input),
+      now: deps.clock.now(),
+      newId: deps.newId,
     });
   }),
   bindSession: api.attempt.bindSession.handler(async (options) => {
@@ -314,65 +318,16 @@ function buildCallRef(proven: ProvenCall | null, attempt: string): CallRef | nul
   };
 }
 
-interface EvidenceDraft {
-  readonly kind: Exclude<EvidenceKind, 'pull_request' | 'commit'>;
+interface EvidenceInput {
+  readonly kind: 'test' | 'ci-run' | 'live-check' | 'check' | 'verdict';
   readonly ref: string;
-  readonly observed: string | null;
+  readonly observed?: string | undefined;
 }
 
-// Writes under the attempt's lease, so the evidence of a settled attempt is refused.
-function writeEvidence(deps: ServerDeps, call: CallRef, draft: EvidenceDraft) {
-  return deps.store.exclusive(async (tx) => {
-    const latest = await tx.findAttemptBySession(call.session);
-
-    const picked = pickCallAttempt(latest, call);
-
-    if (picked.kind === 'refused') {
-      return picked;
-    }
-
-    const attempt = picked.attempt;
-
-    // A session re-sends evidence when it loses the answer, and the store refuses a second row
-    // with the same attempt, kind and ref.
-    const recorded = await tx.listEvidence(attempt.id);
-
-    const repeat = recorded.find((row) => row.kind === draft.kind && row.ref === draft.ref);
-
-    if (repeat !== undefined) {
-      return { kind: 'recorded', factId: repeat.factId } as const;
-    }
-
-    const factId = brandSchemas.factId.parse(deps.newId());
-    const at = deps.clock.now();
-
-    const result = await tx.applyChange({
-      at,
-      under: buildUnder(attempt),
-      writes: [
-        {
-          op: 'insert',
-          table: 'evidence',
-          row: { factId, attempt: attempt.id, ...draft, source: 'agent', at },
-        },
-      ],
-      facts: [
-        {
-          id: factId,
-          type: 'boxxy.evidence.recorded',
-          entity: `boxxy:item:${attempt.item}`,
-          actor: `boxxy:attempt:${attempt.id}`,
-          payload: { attempt: attempt.id, ...draft },
-        },
-      ],
-    });
-
-    return result.kind === 'applied'
-      ? ({ kind: 'recorded', factId } as const)
-      : ({ kind: 'refused', reason: 'not-current' } as const);
-  });
-}
-
-function buildUnder(attempt: AttemptRow): NonNullable<StoreChange['under']> {
-  return { item: attempt.item, phase: attempt.phase, gen: attempt.leaseGen };
+// A check or a verdict names what to read, so it carries no observed text; the contract refuses one
+// that sends it.
+function toEvidenceDraft(input: EvidenceInput): EvidenceDraft {
+  return input.kind === 'check' || input.kind === 'verdict'
+    ? { kind: input.kind, ref: input.ref }
+    : { kind: input.kind, ref: input.ref, observed: input.observed ?? null };
 }

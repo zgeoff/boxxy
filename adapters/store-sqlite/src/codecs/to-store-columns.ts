@@ -15,7 +15,9 @@ export function toStoreColumns(table: TableName, fields: object): [string, Store
   const json = new Set<string>(codec.json);
   const refs = new Set<string>(codec.refs);
 
-  return Object.entries(fields).map(([field, value]: [string, unknown]) => {
+  const qualified = table === 'evidence' ? qualifyEvidenceRef(fields) : fields;
+
+  return Object.entries(qualified).map(([field, value]: [string, unknown]) => {
     invariant(known.has(field), `${table} has no field ${field}`);
 
     if (refs.has(field)) {
@@ -24,6 +26,28 @@ export function toStoreColumns(table: TableName, fields: object): [string, Store
 
     return [toColumnName(field), toStoreValue(value, json.has(field))];
   });
+}
+
+// A checked row is stored with `ref` as `<name>@<head>`, because the table's UNIQUE(attempt, kind,
+// ref) cannot change without a table rebuild, and the same check at a new head is a new row. Only
+// `parseStoreRow` strips the head again: raw SQL on the table sees the qualified ref.
+const headSeparator = '@';
+
+function qualifyEvidenceRef(fields: object): object {
+  const entries: [string, unknown][] = Object.entries(fields);
+  const head = entries.find(([field]) => field === 'head')?.[1];
+
+  if (typeof head !== 'string') {
+    return fields;
+  }
+
+  return Object.fromEntries(
+    entries.map(([field, value]) =>
+      field === 'ref' && typeof value === 'string'
+        ? [field, `${value}${headSeparator}${head}`]
+        : [field, value],
+    ),
+  );
 }
 
 function toRefNumber(value: unknown): number {

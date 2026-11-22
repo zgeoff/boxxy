@@ -79,3 +79,5 @@ export { createShippedWaitKind } from './ships/create-shipped-wait-kind.ts';
 export { shipWatchLimits } from './ships/constants.ts';
 export type { WatchShipsInput } from './ships/types.ts';
 export { watchShips } from './ships/watch-ships.ts';
+export { recordEvidence } from './evidence/record-evidence.ts';
+export type { EvidenceDraft, RecordEvidenceInput, RecordEvidenceResult } from './evidence/types.ts';

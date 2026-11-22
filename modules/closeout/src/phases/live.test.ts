@@ -57,6 +57,7 @@ function setupTest() {
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id]),
       kinds: new Set([brandSchemas.itemKindName.parse('bug')]),

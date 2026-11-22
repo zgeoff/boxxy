@@ -11,12 +11,17 @@ import type {
 import { reviewInputSchema, storedReviewCloseOutSchema, toJSONValue } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { closeOutAttempt, pickCloseOutStart } from './close-out-attempt.ts';
+import { readCloseOutHead } from './read-close-out-head.ts';
 import type { CloseOutInput } from './types.ts';
 
 export interface CloseOutCallInput extends CloseOutInput {
   // the review gate and the forge it reads changes from; null when the server has no review gate,
   // so it rejects every review close-out
   readonly review: { readonly gate: ReviewGate; readonly forge: Forge } | null;
+
+  // the forge a build close-out reads the pull request's head from; null: the server has no
+  // `github` config, and the close-out reads no head
+  readonly forge: Forge | null;
 }
 
 // The review phase kind's parser reads the body the server builds, which a session could forge
@@ -39,7 +44,11 @@ export async function closeOutCall(input: CloseOutCallInput): Promise<CloseOutAn
   }
 
   if (start.attempt.phase !== 'review') {
-    return closeOutAttempt(input);
+    const read = await readCloseOutHead({ ...input, forge: input.forge }, start.attempt);
+
+    return read.kind === 'retry'
+      ? read
+      : closeOutAttempt({ ...input, head: read.head, headCause: read.cause });
   }
 
   if (input.review === null) {

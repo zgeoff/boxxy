@@ -129,6 +129,7 @@ test('it reads the base branch of the pull request that GitHub answers', () => {
     base: 'release/2.0',
     mergedAt: null,
     mergeCommit: null,
+    head: brandSchemas.commitSha.parse('0000000000000000000000000000000000000002'),
     commits: [],
   });
 });

@@ -8,6 +8,7 @@ import { Kysely } from 'kysely';
 import { z } from 'zod';
 import type { StoreDatabase } from '../types.ts';
 import { createTablesMigration } from './create-tables-migration.ts';
+import { evidenceHeadMigration } from './evidence-head-migration.ts';
 import { itemBodyMigration } from './item-body-migration.ts';
 import { itemRefMigration } from './item-ref-migration.ts';
 import { jobAttemptsMigration } from './job-attempts-migration.ts';
@@ -54,6 +55,7 @@ async function setupTest() {
     migrateShipWatch: () => shipWatchMigration.up(db),
     migrateLeverHead: () => leverHeadMigration.up(db),
     migrateItemRef: () => itemRefMigration.up(db),
+    migrateEvidenceHead: () => evidenceHeadMigration.up(db),
     writeRaw: (statement: string, ...values: (number | string)[]) => {
       sqlite.query(statement).run(...values);
     },
@@ -551,5 +553,43 @@ test('it numbers the stored items from 1 in filing order, and refuses a repeated
 
   expect(() => {
     ctx.writeRaw("UPDATE items SET ref = 1 WHERE id = 'item-c'");
+  }).toThrow(/UNIQUE/u);
+});
+
+test('it keeps a stored evidence row and gives the evidence table a head column that reads null', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createTables();
+
+  ctx.writeRaw(
+    "INSERT INTO evidence (fact_id, attempt, kind, ref, observed, source, at) VALUES ('fact-a', 'attempt-a', 'test', 'bun test', 'pass', 'agent', ?)",
+    1000,
+  );
+
+  await ctx.migrateEvidenceHead();
+
+  ctx.writeRaw(
+    "INSERT INTO evidence (fact_id, attempt, kind, ref, observed, source, at, head) VALUES ('fact-b', 'attempt-a', 'check', 'pr / checks@abc123', NULL, 'agent', ?, 'abc123')",
+    2000,
+  );
+
+  expect(ctx.readRaw('SELECT fact_id, head FROM evidence ORDER BY at')).toStrictEqual([
+    { fact_id: 'fact-a', head: null },
+    { fact_id: 'fact-b', head: 'abc123' },
+  ]);
+});
+
+test('it refuses a second evidence row with the same attempt, kind and ref', async () => {
+  const ctx = await setupTest();
+
+  await ctx.migrate();
+
+  const insert =
+    "INSERT INTO evidence (fact_id, attempt, kind, ref, observed, source, at, head) VALUES (?, 'attempt-a', 'check', ?, NULL, 'agent', 1000, ?)";
+
+  ctx.writeRaw(insert, 'fact-a', 'pr / checks@abc123', 'abc123');
+
+  expect(() => {
+    ctx.writeRaw(insert, 'fact-b', 'pr / checks@abc123', 'abc123');
   }).toThrow(/UNIQUE/u);
 });

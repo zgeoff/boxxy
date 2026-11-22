@@ -25,6 +25,7 @@ test('it accepts an accepted close-out that sets the kind, the design mode and t
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id, other]),
       kinds: new Set([brandSchemas.itemKindName.parse('core.issue')]),
@@ -52,6 +53,7 @@ test('it returns both problems of a close-out with an unknown kind and an unknow
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id, other]),
       kinds: new Set([brandSchemas.itemKindName.parse('core.issue')]),
@@ -78,6 +80,7 @@ test('it refuses to accept an item that has no acceptance list and gets none', (
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id]),
       kinds: new Set(),
@@ -104,6 +107,7 @@ test('it refuses to accept an item with an empty acceptance list in place of its
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id]),
       kinds: new Set(),
@@ -130,6 +134,7 @@ test('it refuses a duplicate of an item the store does not have, and of the item
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id]),
       kinds: new Set(),
@@ -165,6 +170,7 @@ test('it rejects a relation from an unknown item, and one from the item itself',
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id]),
       kinds: new Set(),
@@ -201,6 +207,7 @@ test('it accepts a relation from another item and one to it, and refuses only a 
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id, other]),
       kinds: new Set(),
@@ -231,6 +238,7 @@ test('it rejects a split whose part is of a kind the rules lack', () => {
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id]),
       kinds: new Set([brandSchemas.itemKindName.parse('core.issue')]),
@@ -264,6 +272,7 @@ test('it refuses each repeat of a relation, the duplicate-of relation of a dupli
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id, other]),
       kinds: new Set(),
@@ -517,6 +526,7 @@ test('it refuses an acceptance line with a tag the rules file does not list, onc
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id]),
       kinds: new Set(),

@@ -136,6 +136,7 @@ export interface StoreDatabase {
     observed: string | null;
     source: string;
     at: number;
+    head: string | null;
   };
   pull_requests: {
     repo: string;

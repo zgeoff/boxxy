@@ -356,6 +356,7 @@ async function seedBuiltAttempt(
             observed: 'pass',
             source: 'agent',
             at: now,
+            head: null,
           },
         },
       ],

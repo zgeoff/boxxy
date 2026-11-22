@@ -1,14 +1,31 @@
-import type { AttemptRow, CloseOutContext, Instant, LoadedRules, StoreTx } from '@boxxy/model';
+import type {
+  AttemptRow,
+  CloseOutContext,
+  CommitSha,
+  Instant,
+  LoadedRules,
+  NoHeadCause,
+  StoreTx,
+} from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { filterTaggedCriteria } from '../claims/filter-tagged-criteria.ts';
+
+// the time of the read, and the head of the item's pull request when the call read it
+interface CloseOutReadAt {
+  readonly now: Instant;
+  readonly head: CommitSha | null;
+  readonly noHeadCause?: NoHeadCause | null;
+}
 
 // What a phase kind's close-out parser reads about the attempt's item and the world around it.
 export async function readCloseOutContext(
   tx: StoreTx,
   attempt: AttemptRow,
   rules: LoadedRules,
-  now: Instant,
+  at: CloseOutReadAt,
 ): Promise<CloseOutContext> {
+  const now = at.now;
+
   const item = await tx.readItem(attempt.item, now, rules);
 
   invariant(item !== null, `an attempt's item is stored: ${attempt.item}`);
@@ -24,6 +41,8 @@ export async function readCloseOutContext(
     item: filterTaggedCriteria(item, step),
     attempt: attempt.id,
     evidence: await tx.listEvidence(attempt.id),
+    head: at.head,
+    ...(at.noHeadCause ? { noHeadCause: at.noHeadCause } : {}),
     world: buildWorld(
       rules,
       items.map((each) => each.id),

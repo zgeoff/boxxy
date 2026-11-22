@@ -63,7 +63,17 @@ test('it says that the input is the input field of attempt current', () => {
 test('it names the evidence kinds that the evidence command takes', () => {
   const guide = formatSessionGuide({ phase: 'build', outcomes: ['built'] });
 
-  expect(guide).toContain('`boxxy attempt evidence --kind <test|ci-run|live-check> --ref');
+  expect(guide).toContain(
+    '`boxxy attempt evidence --kind <test|ci-run|live-check|check|verdict> --ref',
+  );
+});
+
+test('it says how to record a check and a verdict, and that a push makes them stale', () => {
+  const guide = formatSessionGuide({ phase: 'build', outcomes: ['built'] });
+
+  expect(guide).toContain(
+    'For a CI check, use `check`, with the check name in `--ref`, such as `pr / checks`. For a `bun verify` feature, use `verdict`, with the feature name in `--ref`. Send no `--observed` with either: boxxy reads the result from GitHub at the head of the pull request, records it only when it passed, and says why when it did not. After you push, the head changes, so record each one again and cite the new ID.',
+  );
 });
 
 test('it says what --ref takes, and that the close-out cites the evidence ID', () => {

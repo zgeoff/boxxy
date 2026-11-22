@@ -97,7 +97,11 @@ async function writeCloseOut(
     return { kind: 'refused', reason: 'not-current' };
   }
 
-  const ctx = await readCloseOutContext(tx, attempt, input.rules, input.now);
+  const ctx = await readCloseOutContext(tx, attempt, input.rules, {
+    now: input.now,
+    head: input.head ?? null,
+    noHeadCause: input.headCause ?? null,
+  });
 
   const parsed = phase.closeOut.parse(input.body, ctx);
 

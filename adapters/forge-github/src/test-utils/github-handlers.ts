@@ -31,6 +31,9 @@ export const githubPullRequests = new Collection({
     base: z.string().default('main'),
     mergedAt: z.string().nullable().default(null),
     mergeCommit: z.string().nullable().default(null),
+
+    // null reads as the sha of the last commit, or a fixed sha with no commit
+    head: z.string().nullable().default(null),
     mergeable: z.boolean().nullable().default(true),
     commits: z.array(commit).default([]),
     files: z.array(pullRequestFile).default([]),
@@ -156,6 +159,7 @@ export const githubHandlers = [
       base: { ref: found.base },
       merged_at: found.mergedAt,
       merge_commit_sha: found.mergeCommit,
+      head: { sha: found.head ?? found.commits.at(-1)?.sha ?? 'c'.repeat(40) },
       title: found.title,
       body: found.body,
       mergeable: found.state === 'open' ? found.mergeable : null,

@@ -102,6 +102,12 @@ export const controlRoutes = {
     request: z.null(),
     response: z.strictObject({ number: z.number().int() }),
   },
+  seedChecks: {
+    method: 'POST',
+    path: '/control/pull-requests/checks',
+    request: z.null(),
+    response: z.strictObject({ head: z.string() }),
+  },
   mergePullRequest: {
     method: 'POST',
     path: '/control/pull-requests/merge',

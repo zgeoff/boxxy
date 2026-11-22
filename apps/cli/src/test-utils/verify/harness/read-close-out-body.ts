@@ -1,7 +1,8 @@
 import { brandSchemas, toJSONValue } from '@boxxy/model';
 import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
+import { WringerError } from '@wringer/core';
 import { z } from 'zod';
-import { runBoxxy } from '../run-boxxy.ts';
+import { runBoxxy, runBoxxyRefusal } from '../run-boxxy.ts';
 import type { VerifyContext } from '../verify-context.ts';
 import type { CloseOutPreset } from './types.ts';
 
@@ -54,6 +55,10 @@ export function readCloseOutBody(ctx: VerifyContext, input: CloseOutInput): Prom
     );
   }
 
+  if (input.closeOut === 'built-checked') {
+    return readBuiltCheckedBody(ctx, input.pullRequest);
+  }
+
   if (input.closeOut === 'blocked') {
     return readBlockedBody(ctx, input.pullRequest);
   }
@@ -61,12 +66,45 @@ export function readCloseOutBody(ctx: VerifyContext, input: CloseOutInput): Prom
   return readBuiltBody(ctx, input.pullRequest);
 }
 
-async function readBlockedBody(ctx: VerifyContext, pullRequest: number | null): Promise<unknown> {
+const criterionSchema = z.object({ id: z.string() });
+const showSchema = z.object({ item: z.object({ acceptance: z.array(criterionSchema) }) });
+
+// A `built` body that first shows the server read a check and a verdict at the pull request's head:
+// a check that has no run is refused, then a check and a verdict that passed are recorded, and the
+// close-out cites both for the first criterion. `seed-checks` puts the passing runs on the forge.
+async function readBuiltCheckedBody(
+  ctx: VerifyContext,
+  pullRequest: number | null,
+): Promise<unknown> {
   await linkPullRequest(ctx, pullRequest);
 
+  const shown = await runBoxxy(ctx, { argv: ['item', 'show', '@current'], schema: showSchema });
+
+  const refusal = await runBoxxyRefusal(ctx, {
+    argv: ['attempt', 'evidence', '--kind', 'check', '--ref', 'nightly / lint'],
+  });
+
+  if (!refusal.includes('no check run named "nightly / lint"')) {
+    throw new WringerError('check-failed', {
+      message: `the refusal of a check with no run should say so, and said: ${refusal}`,
+    });
+  }
+
+  const check = await runBoxxy(ctx, {
+    argv: ['attempt', 'evidence', '--kind', 'check', '--ref', 'pr / checks'],
+    schema: z.string(),
+  });
+
+  const verdict = await runBoxxy(ctx, {
+    argv: ['attempt', 'evidence', '--kind', 'verdict', '--ref', 'file-item'],
+    schema: z.string(),
+  });
+
+  const criterion = shown.item.acceptance[0]?.id;
+
   return {
-    result: { kind: 'blocked', reason: 'Which source of the theme wins?' },
-    criteria: [],
+    result: { kind: 'built' },
+    criteria: [check, verdict].map((evidence) => ({ criterion, evidence })),
     openItems: [],
     friction: [],
   };
@@ -94,8 +132,16 @@ async function linkPullRequest(ctx: VerifyContext, pullRequest: number | null): 
   });
 }
 
-const criterionSchema = z.object({ id: z.string() });
-const showSchema = z.object({ item: z.object({ acceptance: z.array(criterionSchema) }) });
+async function readBlockedBody(ctx: VerifyContext, pullRequest: number | null): Promise<unknown> {
+  await linkPullRequest(ctx, pullRequest);
+
+  return {
+    result: { kind: 'blocked', reason: 'Which source of the theme wins?' },
+    criteria: [],
+    openItems: [],
+    friction: [],
+  };
+}
 
 async function readBuiltBody(ctx: VerifyContext, pullRequest: number | null): Promise<unknown> {
   await linkPullRequest(ctx, pullRequest);

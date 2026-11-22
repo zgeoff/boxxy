@@ -385,9 +385,45 @@ test('#attempt evidence exits 2 for a kind that does not exist', async () => {
 
   expect({ exitCode: result.exitCode, stderr: result.stderr }).toStrictEqual({
     exitCode: 2,
-    stderr: 'error: --kind takes one of: test, ci-run, live-check\n',
+    stderr: 'error: --kind takes one of: test, ci-run, live-check, check, verdict\n',
   });
 });
+
+test('#attempt evidence exits 1 and says to open a pull request when the item has none', async () => {
+  const ctx = await setupTest();
+  const result = await ctx.run(['attempt', 'evidence', '--kind', 'check', '--ref', 'pr / checks']);
+
+  expect({ exitCode: result.exitCode, stderr: result.stderr }).toStrictEqual({
+    exitCode: 1,
+    stderr: 'this item has no pull request yet: open one, then record the evidence again\n',
+  });
+});
+
+test.each(['check', 'verdict'])(
+  '#attempt evidence exits 2 and sends nothing for a %s with observed text',
+  async (kind) => {
+    const ctx = await setupTest();
+
+    const result = await ctx.run([
+      'attempt',
+      'evidence',
+      '--kind',
+      kind,
+      '--ref',
+      'pr / checks',
+      '--observed',
+      'it passed',
+    ]);
+
+    const facts = await ctx.server.dispatch.listFacts('boxxy.evidence.recorded');
+
+    expect({ exitCode: result.exitCode, stderr: result.stderr, facts }).toStrictEqual({
+      exitCode: 2,
+      stderr: `error: a ${kind} takes no --observed: the server reads the result itself\n`,
+      facts: [],
+    });
+  },
+);
 
 test('#attempt list-items prints the items of the repo of the session that hold the text', async () => {
   const ctx = await setupTest();

@@ -43,6 +43,7 @@ test('it parses an evidence row', () => {
     observed: null,
     source: 'hook',
     at: 4000,
+    head: null,
   };
 
   const parsed: unknown = rowSchemas.evidence.parse(row);

@@ -17,6 +17,7 @@ import type {
   ReviewGate,
   RunnerId,
   SessionReading,
+  Verifier,
 } from '@boxxy/model';
 
 // The rules the server runs, and the last checkout the loader refused, which the previous rules
@@ -67,6 +68,9 @@ export interface ServerDeps {
 
   // null: the configuration has no github section, so the pull request link answers `retry`
   readonly forge: Forge | null;
+
+  // reads the verify gate's report for a `verdict`; null with the forge
+  readonly verifier: Verifier | null;
 
   // the review gate a review close-out goes through, and the forge it reads the changed files
   // from; null: the noslop App's keys or the github section are missing, so the server rejects

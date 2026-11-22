@@ -2,10 +2,11 @@
 
 An attempt is one try at one phase of one item. The runner claims it, starts its agent session
 through atc, reads that session on every tick, and finally settles the attempt as succeeded or
-failed. An attempt ends on a close-out, on a time bound, or when its session is lost, and never just
-because the agent's turn ended: agents end turns to wait for CI or a scheduled wakeup. The attempt
-keeps its seats and the lease on its phase until its session has stopped, so two sessions never work
-the same phase of an item. The one exception is an attempt whose stop atc keeps refusing: after a
+failed. An attempt ends on a close-out, on a time bound, when its session is lost, or on one of the
+other failures that [settle](#settle) lists, and never just because the agent's turn ended: agents
+end turns to wait for CI or a scheduled wakeup. The attempt keeps the lease on its phase until its
+session has stopped, so two sessions never work the same phase of an item. It keeps its seats too,
+except while it sleeps. The one exception is an attempt whose stop atc keeps refusing: after a
 give-up time it settles anyway ([giving up](#stopping-a-session-and-giving-up)). Read this doc
 before you change how the runner reads sessions, puts them to sleep, wakes them or settles them.
 
@@ -44,8 +45,9 @@ the rows and facts each one writes.
 - **`wake-refused`** means atc had no room for the wake. The attempt sleeps again and keeps its wake
   request ([capacity](./sessions.md#capacity-and-the-usage-limit)).
 - **`closing`** means boxxy has decided the attempt is over but its session may still run. The
-  attempt settles once the session has stopped: by its close-out when it has one, otherwise with the
-  failure named by the event that moved it to `closing` (`usage-limited` gives `usage-limit`).
+  attempt settles once the session has stopped. When a runner event moved it to `closing`, it
+  settles with the failure that event names (`usage-limited` gives `usage-limit`), even when it
+  holds a close-out. Otherwise it settles by its close-out.
 
 An attempt takes its seats at the claim, gives them back when it sleeps, takes them again at the
 wake before the session resumes, and gives them back at the settle; `closing` keeps them. From claim
@@ -114,8 +116,9 @@ first one passed:
 
 boxxy never puts an agent-mode session to sleep, because a sleep cancels the agent's scheduled
 wakeup and no owner is there to wake it. That holds even when the session asks for input, since
-Claude Code sends its idle notice after every turn end and atc reads that as a request for input. A
-silent agent-mode session therefore ends only at `afterSilentMinutes`.
+Claude Code sends its idle notice after every turn end and atc reads that as a request for input.
+boxxy therefore never puts a silent agent-mode session to sleep: it stops it at the first bound it
+hits, which is the usage limit, `timeoutMinutes` or `afterSilentMinutes`.
 
 An attended session counts as waiting for the owner when it asks for input, when its turn has ended,
 when it has done nothing since a wake, or once it has been quiet for `afterQuietMinutes`. The
@@ -163,6 +166,7 @@ matching case decides the answer:
 | the call is for an attempt that isn't the session's current one, or has ended | refused, `not-current`        | unchanged          |
 | the same body again                                                           | recorded, as a repeat         | unchanged          |
 | a different body after a valid close-out                                      | refused, `already-closed-out` | unchanged          |
+| a `built` build close-out whose head read fails                               | `retry`                       | unchanged          |
 | an invalid close-out                                                          | rejected, with every problem  | stays open         |
 | a valid close-out whose stored form is over the close-out size limit          | rejected, `too-large`         | stays open         |
 | any other close-out of a live attempt                                         | recorded                      | moves to `closing` |
@@ -174,12 +178,83 @@ agent reads that attempt's ID with `attempt.current`. The close-out size limit s
 [outbox's](../interfaces/facts-and-pepys.md#the-outbox) limit on one fact, so an accepted close-out
 always reaches pepys; it also bounds a design's text, which has no limit of its own.
 
+A `built` build close-out that cites a `check` or a `verdict` also gets the head of the item's pull
+request. The server checks the body against the close-out schema first, and reads the head from
+GitHub only for a body that passes the schema, is `built` and cites checked evidence, outside the
+store lock. The read comes before the build rules run, so a body that the build rules then reject,
+such as one that cites an unknown criterion, still costs one read. An agent's own `frictionDropped`
+count and a friction entry with no target do not fail the schema. `blocked` and `abandoned`
+close-outs, a body that cites no checked evidence, and a resend of a recorded close-out never wait
+on GitHub. A failed read answers `retry` and settles nothing, and the CLI exits as for an evidence
+`retry`. A close-out that cites no `check` or `verdict` reads no head, so the context the parser
+gets holds a head only when the close-out cites checked evidence.
+
+The build phase kind gives each cited `check` or `verdict` whose recorded head differs from the head
+one `stale-evidence` problem: the criterion, the evidence ID, the head it was recorded at, and the
+current head. The current head is null when the close-out has no open pull request to read it from,
+and the problem then carries the cause: the server has no forge (no `github` section in the config),
+the item has no linked pull request, GitHub no longer finds the pull request, or the pull request is
+closed or merged. Each cited `check` or `verdict` of that close-out gets the problem, and the CLI's
+line names the cause. The agent records the check or verdict again at the new head and cites the new
+ID. The parser never re-checks the citations of an earlier round's close-out, and no other evidence
+kind gets the problem.
+
 The close-out parser returns every problem at once, except that a close-out which fails the schema
 gets only its schema problems. Each problem's path points at the index the agent sent. The parser
 drops a friction entry whose target is missing or null, counts it, and ignores any `frictionDropped`
 count the agent sends. Before settle files an open item, it matches the item against the repo's open
 items of the same kind by title, trimmed, lowercased and with its whitespace collapsed. Two entries
 in one close-out with the same title file only the first.
+
+## Evidence
+
+An agent records evidence with `attempt.evidence`, and cites the evidence ID per criterion in its
+build close-out. The input has a `kind`, a `ref` and, for the free-text kinds, `observed`. The
+free-text kinds are `test`, `ci-run` and `live-check`: the server stores what the agent says and
+checks nothing. `check` and `verdict` are checked kinds. A `check` names a CI check, such as
+`pr / checks`, and a `verdict` names a `bun verify` feature, such as `file-item`. The input refuses
+`observed` with either, because the server reads the result itself.
+
+For a checked kind the server finds the pull request, reads its state and head from GitHub, and
+records the evidence only when the result passed at that head. The pull request is the item's latest
+linked one, so after a send-back the server reads the pull request an earlier round opened. The
+server builds the [verifier](../interfaces/github.md#the-checked-evidence-reads) beside the forge,
+and builds neither when the config has no `github` section.
+
+| Reading at the head                                                           | Answer                             |
+| ----------------------------------------------------------------------------- | ---------------------------------- |
+| the server has no forge                                                       | `refused`, `no-forge`              |
+| the item has no linked pull request                                           | `refused`, `no-pull-request`       |
+| the pull request is closed or merged, or GitHub does not find it              | `refused`, `pull-request-closed`   |
+| a GitHub call failed                                                          | `retry`, with nothing written      |
+| a `check` whose check run is `success`                                        | recorded                           |
+| a `check` whose check run is pending                                          | `refused`, `check-pending`         |
+| a `check` whose check run is `failure` or `other`, such as cancelled          | `refused`, `check-failed`          |
+| a `check` with no check run of that name, even when a commit status has it    | `refused`, `check-missing`         |
+| a `verdict` when the gate's check run is pending or absent                    | `refused`, `verify-pending`        |
+| a `verdict` when the gate's check run is `other`, such as cancelled           | `refused`, `verify-failed`         |
+| a `verdict` when the gate failed or its report does not parse                 | `refused`, `verify-failed`, a note |
+| a `verdict` when the gate passed and its report lists the feature as verified | recorded                           |
+| a `verdict` when the gate passed and its report lacks the feature             | `refused`, `verdict-missing`       |
+
+A refusal carries the check or the feature and the head the server read, and a `verify-failed`
+refusal carries the verifier's note when it has one. Only a check run counts, because an agent acts
+with a login that can post a commit status of any name. The verifier reads the feature list from the
+pull request's body, so a repo must run its verify gate again when someone edits the body.
+
+The server records a checked row and its fact with the `head` it read. A repeat call with the same
+kind, ref and head returns the first fact ID and writes nothing, and a call at a new head writes a
+new row. The store keeps a checked row's ref qualified by its head, because its unique key is the
+attempt, the kind and the ref, and it gives the ref back bare. A refused call or a `retry` writes no
+row and no fact. A call reads GitHub outside the store lock, and checks the session again inside the
+lock before it writes. A `check` makes one pull request read and one checks read. A `verdict` makes
+the same two reads, and the verifier then reads the checks a second time, with the pull request's
+body, through its own port, so a check run that changes between the two reads can differ between the
+gate state that decides the refusal and the state the verifier reported.
+
+Merge never reads checked evidence again: the required checks and the verify gate run at the merged
+head, so they cover a push after the close-out. To guard an acceptance line's check through merge,
+make that check required.
 
 ## Stopping a session and giving up
 
@@ -193,12 +268,12 @@ once as failed with `item-closed`, and boxxy doesn't wake it. Every other live a
 session when it appears.
 
 atc refuses a stop while something else keeps the session's host awake. So that an attempt never
-waits in `closing` forever, it settles anyway after a fixed give-up time, by its close-out or with
-the failure that moved it to `closing`, and gives back its seats and lease. boxxy marks it as a
-stray, a settled attempt whose session may still run, lists it in `runner.status`, and keeps sending
-the stop each tick for a fixed number of hours before [cleanup](./sessions.md#cleanup) takes over. A
-closing attempt whose spawn never produced a session becomes a stray the same way, and the runner
-keeps looking for its session by spawn name.
+waits in `closing` forever, it settles anyway after a fixed give-up time, as any closing attempt
+settles, and gives back its seats and lease. boxxy marks it as a stray, a settled attempt whose
+session may still run, lists it in `runner.status`, and keeps sending the stop each tick for a fixed
+number of hours before [cleanup](./sessions.md#cleanup) takes over. A closing attempt whose spawn
+never produced a session becomes a stray the same way, and the runner keeps looking for its session
+by spawn name.
 
 ## Skipped attempts
 

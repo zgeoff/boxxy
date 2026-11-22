@@ -20,6 +20,8 @@ import { mcp } from '@orpc/mcp';
 import { z } from 'zod';
 import { authContract } from './auth-contract.ts';
 import { capacityRefusalsSchema } from './capacity-refusals-schema.ts';
+import { attemptEvidenceOutput } from './evidence/attempt-evidence-output.ts';
+import { buildAttemptEvidenceInput } from './evidence/build-attempt-evidence-input.ts';
 import { itemReadContract } from './item-read-contract.ts';
 import { criterionDraftInput, criterionInput } from './items/criterion-input.ts';
 import { itemSignoffContract, signoffContract } from './items/signoff-contract.ts';
@@ -45,7 +47,6 @@ const count = z.number().int();
 const text50 = z.string().min(1).max(50);
 const text100 = z.string().min(1).max(100);
 const text200 = z.string().min(1).max(200);
-const text1000 = z.string().min(1).max(1000);
 const itemOutput = z.object({ item: id });
 
 const itemFiledOutput = z.object({
@@ -224,19 +225,7 @@ const attemptCloseOutInput = z.object({
   closeOut: z.unknown().describe('The close-out body. Get its schema from attempt_current.'),
 });
 
-const attemptEvidenceInput = z.object({
-  session: sessionRef,
-  kind: z.enum(['test', 'ci-run', 'live-check']),
-  ref: text1000.describe(
-    'What was checked: a test file and name, a CI run URL, or the command of a live check.',
-  ),
-  observed: z.string().min(1).max(2000).optional().describe('What was seen, such as "42 passed".'),
-});
-
-const attemptEvidenceOutput = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('recorded'), factId: id }),
-  attemptRefusal,
-]);
+const attemptEvidenceInput = buildAttemptEvidenceInput(sessionRef);
 
 const bindSessionInput = z.object({
   session: sessionRef.required(),
@@ -479,7 +468,7 @@ export const contract = {
     // Writes `boxxy.evidence.recorded`. The fact ID is what a build close-out cites per criterion.
     evidence: tool(
       'attempt_evidence',
-      'Records one piece of evidence for the attempt of this session: a test, a CI run or a live check. Returns the evidence ID to cite in the close-out.',
+      'Records one piece of evidence for the attempt of this session: a test, a CI run, a live check, a CI check by name or a verify feature by name. The server reads a check or a verdict from GitHub at the pull request head, and records it only when it passed. Returns the evidence ID to cite in the close-out.',
     )
       .input(attemptEvidenceInput)
       .output(attemptEvidenceOutput),

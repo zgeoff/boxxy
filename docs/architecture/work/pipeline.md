@@ -127,8 +127,8 @@ the item's position: a phase, an end or a hold.
   position moves nothing ([owner sign-off at merge](#owner-sign-off-at-merge)). It keeps the item's
   round and the count of each `{ to }` edge.
 - **`boxxy item retry <item>` lifts a hold** and restarts both counts: the attempts in a row, and
-  the runs of each `{ to }` edge. `--phase <phase>` also moves the item to that phase, and is the
-  only way back to build after a passed review.
+  the runs of each `{ to }` edge. `--phase <phase>` also moves the item to that phase. After a
+  passed review, only `--phase build` or a sign-off send-back returns the item to build.
 
 A rules change never touches a live attempt: the attempt settles by the phase kind loaded when it
 settles. An item between attempts stands wherever the new rules put it. It can move to another
@@ -280,6 +280,16 @@ kept session, the claim wakes it with this prompt, so the agent gets just the ne
 Otherwise a fresh session starts with it, so the rework template must carry the whole task, for
 example with `{{ ticket }}`.
 
+## The build close-out
+
+A `built` close-out cites evidence for every line of the item's acceptance list, and the cited IDs
+join the list when the attempt settles. The server checks nothing about a `test`, `ci-run` or
+`live-check` citation. A `check` or `verdict` citation is checked evidence: the server read the
+result from GitHub at the pull request's head when the agent recorded it, and refuses the close-out
+with `stale-evidence` when the head has moved since, or when no open pull request gives a head, such
+as a closed or merged one ([evidence](./attempts.md#evidence)). The merge step never reads checked
+evidence again.
+
 ## The review
 
 The [review gate design](../../design/boxxy/review-and-merge.md#the-review-gate) owns the review. A
@@ -376,10 +386,10 @@ its `reason`, and the lever moves the item from the sign-off hold to the merge s
 then decides again. A send-back that runs a `{ to }` edge out of tries holds the item with
 `rounds used up`, as at any `{ to }` edge.
 
-`boxxy item retry` at the sign-off hold works as at any hold: it starts a new round and sends the
-item to the merge step, which asks the owner again. When new rules drop `merge.signoff`, an item at
-the sign-off hold replays into the `outcome not in rules` hold, and `item retry` moves it on to a
-merge with no sign-off.
+`boxxy item retry` at the sign-off hold works as at any hold: it restarts the counts, keeps the
+round, and sends the item to the merge step, which asks the owner again. When new rules drop
+`merge.signoff`, an item at the sign-off hold replays into the `outcome not in rules` hold, and
+`item retry` moves it on to a merge with no sign-off.
 
 When a `changes-requested` merge attempt is the latest attempt that sent the build back, the next
 build's `findings` prints the owner's text whole, with the head the owner read. A review's findings

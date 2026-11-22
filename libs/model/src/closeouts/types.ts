@@ -259,6 +259,18 @@ export type CloseOutProblem =
   | { readonly kind: 'foreign-evidence'; readonly evidence: FactId }
   | { readonly kind: 'built-without-evidence'; readonly criteria: readonly CriterionId[] }
   | { readonly kind: 'no-acceptance' }
+
+  // a cited `check` or `verdict` recorded at another head than the pull request's; the agent
+  // records it again at `head`. `head` is null when there is no open pull request, and `cause`
+  // then says why; `cause` is null when `head` is set.
+  | {
+      readonly kind: 'stale-evidence';
+      readonly criterion: CriterionId;
+      readonly evidence: FactId;
+      readonly recordedAt: CommitSha;
+      readonly head: CommitSha | null;
+      readonly cause: NoHeadCause | null;
+    }
   | { readonly kind: 'unknown-item'; readonly item: string }
   | { readonly kind: 'unknown-kind'; readonly itemKind: string }
   | { readonly kind: 'unknown-criterion-tag'; readonly tag: string }
@@ -274,6 +286,9 @@ export type CloseOutProblem =
 
   // over `closeOutBytes` as stored; `bytes` tells the agent how much to cut
   | { readonly kind: 'too-large'; readonly bytes: number; readonly max: number };
+
+// why a close-out has no open pull request to read a head from
+export type NoHeadCause = 'no-forge' | 'no-pull-request' | 'closed' | 'not-found';
 
 export type CloseOutParse<Body> =
   | { readonly kind: 'valid'; readonly closeOut: Body }
@@ -292,6 +307,13 @@ export interface CloseOutContext {
 
   // the attempt's own evidence rows
   readonly evidence: readonly EvidenceRow[];
+
+  // The open pull request's head. Only a `built` build close-out that cites a `check` or a
+  // `verdict` gets it, because no other close-out reads it; for every other close-out it is null.
+  readonly head: CommitSha | null;
+
+  // Why `head` is null for a close-out that cites checked evidence; absent reads as `closed`.
+  readonly noHeadCause?: NoHeadCause;
   readonly world: CloseOutWorld;
 
   // the attempt's phase input, as its claim stored it
@@ -449,4 +471,7 @@ export type CloseOutAnswer =
   | {
       readonly kind: 'refused';
       readonly reason: 'no-attempt' | 'already-closed-out' | 'not-current';
-    };
+    }
+
+  // the head read failed; nothing settled, and the agent sends the close-out again
+  | { readonly kind: 'retry' };

@@ -8,6 +8,7 @@ import {
 import { UsageError } from '../cli/usage-error.ts';
 import { evidenceKinds, exitCodes } from '../constants.ts';
 import type { CLIResult, Command } from '../types.ts';
+import { describeCheckedRefusal } from './describe-checked-refusal.ts';
 import { describeCloseOutProblem } from './describe-close-out-problem.ts';
 
 // every state but `held`: a session never sees a held item
@@ -33,7 +34,8 @@ export const attemptCommands: readonly Command[] = [
   {
     path: ['attempt', 'evidence'],
     procedure: 'attempt.evidence',
-    summary: 'Records one piece of evidence and prints its ID, to cite in the close-out.',
+    summary:
+      'Records one piece of evidence and prints its ID, to cite in the close-out. A check names a CI check and a verdict names a verify feature: the server reads each from GitHub, and records it only when it passed.',
     options: {
       kind: { type: 'string' },
       ref: { type: 'string' },
@@ -42,6 +44,11 @@ export const attemptCommands: readonly Command[] = [
     run: async (call) => {
       const kind = call.args.requireOneOf('kind', evidenceKinds);
       const ref = call.args.requireString('ref');
+      const observed = call.args.string('observed');
+
+      if (observed !== undefined && (kind === 'check' || kind === 'verdict')) {
+        throw new UsageError(`a ${kind} takes no --observed: the server reads the result itself`);
+      }
 
       const attempt = await readCurrentAttempt(call.client);
 
@@ -53,7 +60,7 @@ export const attemptCommands: readonly Command[] = [
         session: { attempt },
         kind,
         ref,
-        observed: call.args.string('observed'),
+        observed,
       });
 
       return describeEvidenceAnswer(answer);
@@ -129,16 +136,20 @@ async function readCurrentAttempt(client: BoxxyClient): Promise<string | null> {
   return current.kind === 'attempt' ? current.attempt.id : null;
 }
 
+const retryMessage = 'boxxy could not read GitHub now and wrote nothing; try again in 5 seconds';
+
 type EvidenceAnswer = Awaited<ReturnType<BoxxyClient['attempt']['evidence']>>;
 
 function describeEvidenceAnswer(answer: EvidenceAnswer): CLIResult {
-  if (answer.kind === 'recorded') {
-    return buildTextResult(answer.factId);
-  }
-
-  const message = answer.reason === 'no-attempt' ? waitMessage : 'this attempt is over';
-
-  return buildErrorResult(message);
+  return match(answer)
+    .with({ kind: 'recorded' }, (recorded) => buildTextResult(recorded.factId))
+    .with({ kind: 'retry' }, () => buildErrorResult(retryMessage, exitCodes.retryLater))
+    .with({ kind: 'refused', reason: 'no-attempt' }, () => buildErrorResult(waitMessage))
+    .with({ kind: 'refused', reason: 'not-current' }, () =>
+      buildErrorResult('this attempt is over'),
+    )
+    .with({ kind: 'refused' }, (refused) => buildErrorResult(describeCheckedRefusal(refused)))
+    .exhaustive();
 }
 
 function parseJSON(text: string): unknown {
@@ -161,6 +172,7 @@ function describeCloseOutAnswer(answer: CloseOutAnswer): CLIResult {
         rejected.problems.map((problem) => describeCloseOutProblem(problem)).join('\n'),
       ),
     )
+    .with({ kind: 'retry' }, () => buildErrorResult(retryMessage, exitCodes.retryLater))
     .with({ kind: 'refused', reason: 'no-attempt' }, () => buildErrorResult(waitMessage))
     .with({ kind: 'refused', reason: 'already-closed-out' }, () =>
       buildErrorResult(

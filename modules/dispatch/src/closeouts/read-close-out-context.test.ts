@@ -50,7 +50,7 @@ test('it gives a gated step the acceptance lines that carry its tag alone', asyn
   const attempt = await ctx.readAttempt(claim.attempt.id);
 
   const context = await ctx.store.exclusive((tx) =>
-    readCloseOutContext(tx, attempt, ctx.rules(), ctx.clock.now()),
+    readCloseOutContext(tx, attempt, ctx.rules(), { now: ctx.clock.now(), head: null }),
   );
 
   const lines: unknown = context.item.acceptance.map((line) => line.id);

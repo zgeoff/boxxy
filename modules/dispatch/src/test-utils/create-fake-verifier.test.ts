@@ -36,3 +36,17 @@ test('it lists each read with its pull request and head', async () => {
 
   expect(verifier.reads).toStrictEqual([{ pullRequest, head }]);
 });
+
+test('it lists each feature the test sets as verified', () => {
+  const verifier = createFakeVerifier();
+  const pullRequest = { repo: brandSchemas.repoName.parse('acme/lamps'), number: 7 };
+  const head = brandSchemas.commitSha.parse('e83c5163316f89bfbde7d9ab23ca2e25604af290');
+
+  verifier.setFeatures(['file-item']);
+
+  expect(verifier.readAt(pullRequest, head)).resolves.toStrictEqual({
+    status: 'verified',
+    head,
+    features: [{ name: 'file-item', status: 'verified' }],
+  });
+});

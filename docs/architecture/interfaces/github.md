@@ -48,7 +48,8 @@ Only a first `linked` answer writes anything:
 | `refused`, `not-current`            | the call is for an attempt that isn't the session's latest, at either check                             |
 | `refused`, `no-attempt`             | the session has no attempt, or its latest attempt doesn't hold the proven caller, at either check       |
 
-After a `retry`, the watch links the pull request on a later pass, except when:
+After a `retry`, the watch links the pull request on a later pass. Besides the limits in
+[the pull request watch](#the-pull-request-watch), it misses the pull request when:
 
 - the config has no `github` section, so the watch never runs;
 - the pull request merges or closes before that pass, and the watch finds only open ones;
@@ -100,7 +101,8 @@ Without the keys, the adapter sends no credential, for a server behind a proxy t
 way out. The server takes no personal token in place of the App, because a fine-grained token has no
 `Checks` permission and GitHub refuses its read of a private repo's check runs. Without a `github`
 section, the server builds no adapter: hook links answer `retry`, the watch never runs, and no merge
-job exists, so the loader refuses a rules file with a merge step.
+job exists, so the loader refuses a rules file with a merge step. The server builds the verifier
+beside the adapter, so a `check` or `verdict` call answers `no-forge` too.
 
 - **A throw means GitHub didn't answer,** and the caller tries again later. Three results come back
   as values instead: a pull request GitHub doesn't find is `not-found`; a merge whose head moved is
@@ -109,7 +111,8 @@ job exists, so the loader refuses a rules file with a merge step.
   GitHub's message.
 - **The adapter reads GitHub's own ID of each pull request** beside its number, because pepys joins
   an attempt to its pull request by that ID ([the join keys](./facts-and-pepys.md#the-join-keys)).
-  It also reads the base branch, whose required checks the merge job reads.
+  It also reads the base branch, whose required checks the merge job reads, and the head's SHA from
+  GitHub's `head.sha`. The commit list is paged, so its last entry can be older than the head.
 - **Paged lists stop at a page cap** and keep what they read: a repo's open pull requests, a pull
   request's commits, and the check runs and statuses at a head. A repo with more open pull requests
   than the cap holds can leave a build unlinked by the watch. The read of a branch's rules throws
@@ -121,6 +124,16 @@ job exists, so the loader refuses a rules file with a merge step.
 - **Each check name reports its newest run,** and whether that run is a check run or a commit
   status. A check run wins over a commit status of the same name, and a run that ended with neither
   a pass nor a failure, such as `cancelled` or `skipped`, reads as `other`.
+
+### The checked evidence reads
+
+A `check` or `verdict` call reads the pull request's state and head, then the checks at that head,
+through the same adapter as the hook and the merge job
+([the mapping to an answer](../work/attempts.md#evidence)). A `verdict` also asks the verifier,
+which reads the pull request's description for the verify report, and the verify gate's check run at
+the head. A build's `built` close-out that cites checked evidence reads the pull request again for
+its head ([the close-out](../work/attempts.md#close-outs-and-their-limits)). A GitHub call that
+throws answers `retry`, and the call writes nothing.
 
 ### The ship reads of the adapter
 

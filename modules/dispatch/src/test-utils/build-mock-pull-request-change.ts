@@ -40,6 +40,7 @@ export function buildMockPullRequestChange(input: PullRequestInput): StoreChange
           observed: null,
           source: 'hook',
           at: linkedAt,
+          head: null,
         },
       },
     ],

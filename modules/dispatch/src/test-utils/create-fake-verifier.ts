@@ -3,6 +3,9 @@ import type { CommitSha, PullRequestRef, Verifier, VerifyReading } from '@boxxy/
 export interface FakeVerifier extends Verifier {
   // the reading at every head from now on; `verified` with no features until a test sets one
   readonly setStatus: (status: VerifyReading['status']) => void;
+
+  // the features that a `verified` reading lists, each as verified, from now on
+  readonly setFeatures: (names: readonly string[]) => void;
   readonly reads: readonly { readonly pullRequest: PullRequestRef; readonly head: CommitSha }[];
 }
 
@@ -10,18 +13,24 @@ export interface FakeVerifier extends Verifier {
 export function createFakeVerifier(): FakeVerifier {
   const reads: { pullRequest: PullRequestRef; head: CommitSha }[] = [];
   let status: VerifyReading['status'] = 'verified';
+  let features: readonly string[] = [];
 
   return {
     readAt: (pullRequest, head) => {
       reads.push({ pullRequest, head });
 
       const reading: VerifyReading =
-        status === 'not-covered' ? { status, head } : { status, head, features: [] };
+        status === 'not-covered'
+          ? { status, head }
+          : { status, head, features: features.map((name) => ({ name, status: 'verified' })) };
 
       return Promise.resolve(reading);
     },
     setStatus: (next) => {
       status = next;
+    },
+    setFeatures: (names) => {
+      features = names;
     },
     reads,
   };

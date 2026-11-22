@@ -226,6 +226,7 @@ export type {
   LiveInput,
   MergeCloseOut,
   MergeInput,
+  NoHeadCause,
   OpenItem,
   OpenItemLink,
   PullRequestLink,
@@ -380,6 +381,7 @@ export type {
   WorkerShape,
 } from './ports/types.ts';
 
+export type { CheckedEvidenceRefusal } from './evidence/types.ts';
 export type { CostToLand, StageTime } from './reports/types.ts';
 export type { OutboxStatus } from './reports/outbox-status.ts';
 export type { ItemRevision, ItemSetRows, ItemWithLevers } from './items/types.ts';

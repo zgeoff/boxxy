@@ -35,6 +35,7 @@ export const githubSchemas = {
     base: z.object({ ref: z.string().min(1) }),
     merged_at: timestamp.nullable(),
     merge_commit_sha: z.string().nullable(),
+    head: z.object({ sha: z.string() }),
   }),
   commitPage: z.array(commit),
   pullRequestPage: z.array(z.object({ number: z.number().int().positive() })),

@@ -58,14 +58,15 @@ function parseCloseOut<Raw, Body>(
     : { kind: 'valid', closeOut: body };
 }
 
-interface FrictionSplit {
+export interface FrictionSplit {
   readonly candidate: unknown;
   readonly keptRawIndexes: readonly number[];
   readonly dropped: number;
 }
 
 // An agent's count of dropped entries is not trusted: the key is removed, and the parser counts.
-function splitFriction(raw: unknown): FrictionSplit {
+// Exported so a caller that only needs to know whether a body parses sees the body as the parser does.
+export function splitFriction(raw: unknown): FrictionSplit {
   if (!isRecord(raw)) {
     return { candidate: raw, keptRawIndexes: [], dropped: 0 };
   }

@@ -21,6 +21,7 @@ test('it accepts a designed close-out with the design text and the place of the 
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id]),
       kinds: new Set(),
@@ -45,6 +46,7 @@ test('it returns both problems of a blocked close-out with no reason and a bad f
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id]),
       kinds: new Set(),
@@ -205,6 +207,7 @@ test('it returns the problems of open item links that name an unknown key, a rep
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id]),
       kinds: new Set([brandSchemas.itemKindName.parse('core.issue')]),
@@ -247,6 +250,7 @@ test('it returns the relation problems of a blocked close-out', () => {
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id]),
       kinds: new Set(),
@@ -282,6 +286,7 @@ test('it refuses relations with an abandoned design', () => {
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id]),
       kinds: new Set(),
@@ -422,6 +427,7 @@ test('it refuses a design close-out whose acceptance list holds a tag the rules 
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id]),
       kinds: new Set(),

@@ -60,6 +60,7 @@ export const forgeContract: readonly ForgeContractCase[] = [
           base: 'main',
           mergedAt: null,
           mergeCommit: null,
+          head: buildSha(2),
           commits: [
             {
               sha: buildSha(1),
