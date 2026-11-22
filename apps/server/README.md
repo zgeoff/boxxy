@@ -28,7 +28,8 @@ bun add @boxxy/server
 
 ## Usage
 
-Set the configuration path and the tokens, then start the server from the package folder:
+Set the configuration path and the tokens, then start the server from the package's folder,
+`apps/server` in the repo or `node_modules/@boxxy/server` after `bun add`:
 
 ```bash
 BOXXY_CONFIG=/etc/boxxy/boxxy.json \

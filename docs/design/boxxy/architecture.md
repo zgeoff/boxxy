@@ -76,8 +76,8 @@ session id.
 atc's own agent config switches telemetry on per agent, and the spawn request carries no telemetry
 settings. boxxy joins each request record to its attempt by the agent session id: the record's
 `session.id` matches an id that atc reports and boxxy records with the attempt. An attempt can
-collect more than one agent session, such as when atc respawns its session. boxxy spawns each
-session, so the attempt row gives the item, phase, recipe and capacity source. Prompt and
+collect more than one agent session, such as when atc respawns its session. Each of those
+sessions belongs to an attempt boxxy started, so the attempt row gives the item, phase, recipe and capacity source. Prompt and
 response text stay redacted, which is the OTel default. The capture details are in
 [measurement](./measurement.md).
 
@@ -98,7 +98,7 @@ response text stay redacted, which is the OTel default. The capture details are 
 4. **State is derived, never typed.** Nobody sets a status. An item's state comes from its links,
    attempts, asks and outside facts.
 5. **Every decision is reproducible.** `decide(state at T, rules version V)` is a pure function, and
-   everything it reads is a fact. Time is an argument: only the apps read the clock, and each module
+   everything it reads is a fact or a line of rules version V. Time is an argument: only the apps read the clock, and each module
    gets the time it needs from its caller.
 6. **One write path per fact.** Each fact has one function that writes it, and every flow that sees
    the fact calls that function. A fact written from only some flows leaves gaps that no query can
@@ -122,7 +122,8 @@ A fixed rule can be wrong. These guards stop a wrong rule from blocking work:
 
 ## Style
 
-- **Hexagonal.** The core (items, `buildFrame()`, `decide()`, settle rules) is pure. Driving
+- **Hexagonal.** The core's logic (`buildFrame()`, `decide()` and the settle rules) is
+  pure. Driving
   adapters are the entry points (CLI, MCP, nixie, hooks) on one command port. Driven adapters sit
   behind ports: the store, the fact sources, the worker kinds and the ask channels. The clock is not a
   port: only the apps read it, and modules get time as an argument ([layout](../../architecture/repo/layout.md#import-pins)).

@@ -8,7 +8,7 @@ Packages publish as `@boxxy/<package>`. Some of this is built; read the
 [architecture overview](../../architecture/overview.md) for what exists now.
 
 Read this index when you build part of a design. When you build a part, describe it in the
-architecture doc that owns it and replace the built section here with a link. Delete a design doc,
+architecture doc that owns it and replace the built section of the design doc with a link to it. Delete a design doc,
 and its line below, in the PR that builds its last part. Follow the steps in
 [AGENTS.md](../../../AGENTS.md).
 

@@ -49,7 +49,8 @@ Each field below sits under `data`.
 To check a deploy, run these steps on `prod`, the deployed server. You attach to it with no `up`. It
 refuses every command that changes its state; `done` writes only to your local run.
 
-- When a step fails, give its `data` or `error` in your reply. Skip step 5, and still run step 6.
+- When a step fails, `doctor` included, give its `data` or `error` in your reply. Skip step 5, and
+  still run step 6. You can't fix the deployed server from your worktree.
 - Run this journey and `done` on `local` again before you publish with
   [Check a change](../SKILL.md#check-a-change). `done` on `prod` replaces the feature's `local`
   verdict in this worktree, and `publish` would write that `prod` verdict into the PR with none of

@@ -99,7 +99,7 @@ pipelines:
 ```
 
 - `claimNext` enforces the gate: nobody can claim `design` until a sign-off fact exists for the exact
-  draft hash. A changed draft needs a new sign-off.
+  draft hash, or the owner's override skips the gate where its rule allows that. A changed draft needs a new sign-off.
 - A rejection sends the item back to `contract`, with the reason as input.
 - A rule on the gate sets who may sign off, and whether the owner's override can skip it.
 - Time spent waiting at a gate counts as a cost of the pipeline (proposed).
@@ -123,7 +123,7 @@ An attempt records:
 - **Its commits and PRs.** boxxy links them from evidence, never by guess
   ([close-outs](./close-outs.md#linking-attempts-to-commits-and-prs)).
 
-The attempt's record never changes. Late outcomes, such as a revert, a follow-up fix, an escaped
+Once the attempt settles, its record never changes. Late outcomes, such as a revert, a follow-up fix, an escaped
 defect or a review reply, attach as new facts. A crash or an unknown spawn result puts the attempt in
 `reconciling`, which [dispatch](./dispatch.md#unknown-outcomes) settles.
 
@@ -169,7 +169,8 @@ session through a mod, the CLI, agents filing work, and later nixie.
   acts as the owner. A call through the public door acts as the owner too, with an OAuth token that the owner approved. A call with the worker token acts as a session, and boxxy takes the
   session from its proven caller. The actor never comes from a value the caller supplies, such as an environment
   variable.
-- **The owner's path is the only check on an owner command.** Any caller on that path can expedite,
+- **The owner's path is the only check on an owner command.** That path is the owner listener, or
+  the public door with a token the owner approved. Any caller on it can expedite,
   file or rank, and boxxy never asks for a confirmation bound to the person
   ([API and auth](../../architecture/interfaces/api-and-auth.md#the-paths)).
 - An agent inside an attempt files work as that attempt, and the new item links `found-in` to it.

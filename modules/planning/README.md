@@ -12,8 +12,8 @@
 </div>
 
 boxxy's planning module. `buildFrame` runs the plug-ins of the loaded rules over a snapshot of the
-open items, and `decide` picks the wakes and the item phases that start, while each limit has a free
-seat.
+open items, and `decide` picks the wakes, then the item phases that start while each limit that
+counts a pick has a free seat.
 
 The package does no I/O: the caller passes in the snapshot, the loaded rules and the time.
 
