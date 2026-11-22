@@ -1,7 +1,7 @@
 import type { ItemId, PepysAnswer, PepysReader } from '@boxxy/model';
-import { brandSchemas } from '@boxxy/model';
 import type { ServerDeps } from '../types.ts';
 import { api } from './api.ts';
+import { resolveItemID } from './resolve-item-id.ts';
 
 // The two reads of pepys. A server with no pepys section answers PEPYS_NOT_CONFIGURED; a pepys
 // that does not answer is PEPYS_UNAVAILABLE. `behind` counts the item's facts that the outbox has
@@ -15,7 +15,7 @@ export const reportHandlers = {
     );
 
     return report.kind === 'value'
-      ? { ...report.value, item, behind: report.behind }
+      ? { ...report.value, item: report.item, behind: report.behind }
       : throwReportError(report, options.errors, item);
   }),
   stageTimes: api.report.stageTimes.handler(async (options) => {
@@ -26,7 +26,7 @@ export const reportHandlers = {
     );
 
     return report.kind === 'value'
-      ? { ...report.value, item, behind: report.behind }
+      ? { ...report.value, item: report.item, behind: report.behind }
       : throwReportError(report, options.errors, item);
   }),
 };
@@ -34,6 +34,7 @@ export const reportHandlers = {
 type Report<Value> =
   | {
       readonly kind: 'value';
+      readonly item: ItemId;
       readonly value: Value;
       readonly behind: { readonly facts: number; readonly oldestAt: number | null };
     }
@@ -46,21 +47,22 @@ async function readReport<Value>(
   rawItem: string,
   read: (pepys: PepysReader, item: ItemId) => Promise<PepysAnswer<Value>>,
 ): Promise<Report<Value>> {
-  const parsed = brandSchemas.itemId.safeParse(rawItem);
-
-  if (!parsed.success) {
-    return { kind: 'not-found' };
-  }
-
-  const item = parsed.data;
   const now = deps.clock.now();
   const rules = deps.rulesState().rules;
 
-  const [view, behind] = await deps.store.read((tx) =>
-    Promise.all([tx.readItem(item, now, rules), tx.readItemBehind(item)]),
-  );
+  const found = await deps.store.read(async (tx) => {
+    const id = await resolveItemID(tx, rawItem);
 
-  if (view === null) {
+    if (id === null) {
+      return null;
+    }
+
+    const [view, behind] = await Promise.all([tx.readItem(id, now, rules), tx.readItemBehind(id)]);
+
+    return view === null ? null : { id, behind };
+  });
+
+  if (found === null) {
     return { kind: 'not-found' };
   }
 
@@ -68,10 +70,10 @@ async function readReport<Value>(
     return { kind: 'not-configured' };
   }
 
-  const answer = await read(deps.pepys, item);
+  const answer = await read(deps.pepys, found.id);
 
   return answer.kind === 'value'
-    ? { kind: 'value', value: answer.value, behind }
+    ? { kind: 'value', item: found.id, value: answer.value, behind: found.behind }
     : { kind: 'unavailable', reason: answer.reason };
 }
 

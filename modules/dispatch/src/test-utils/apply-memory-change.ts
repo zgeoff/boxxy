@@ -1,5 +1,11 @@
 import { isDeepStrictEqual } from 'node:util';
-import { buildAppliedChange, parseNewFact, pickSeatTake, toJSONValue } from '@boxxy/model';
+import {
+  brandSchemas,
+  buildAppliedChange,
+  parseNewFact,
+  pickSeatTake,
+  toJSONValue,
+} from '@boxxy/model';
 import type {
   ApplyResult,
   Instant,
@@ -124,6 +130,16 @@ function applyMemoryWrite(tables: MemoryTables, write: RowWrite, at: Instant): A
 
       return null;
     })
+    .with({ op: 'insert', table: 'items' }, (insert) => {
+      const last = Math.max(0, ...tables.items.map((item) => Number(item.ref.slice(2))));
+
+      insertMemoryRow(tables, insert.table, {
+        ...insert.row,
+        ref: brandSchemas.itemRef.parse(`i-${last + 1}`),
+      });
+
+      return null;
+    })
     .with({ op: 'insert' }, (insert) => {
       insertMemoryRow(tables, insert.table, insert.row);
 
@@ -201,7 +217,7 @@ interface UniqueKey {
 
 // A kept session binds one agent session to a later attempt, so the agent session alone is no key.
 const uniqueKeys: Readonly<Record<TableName, readonly UniqueKey[]>> = {
-  items: [{ fields: ['id'] }],
+  items: [{ fields: ['id'] }, { fields: ['ref'] }],
   relations: [
     { fields: ['source', 'target', 'type', 'addedAt'] },
     { fields: ['source', 'target', 'type'], live: 'removedAt' },

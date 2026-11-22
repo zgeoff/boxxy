@@ -1,8 +1,8 @@
 import type {
   Criterion,
   DesignMode,
+  InsertRow,
   Instant,
-  ItemRow,
   NewId,
   PhaseName,
   StoreChange,
@@ -25,7 +25,7 @@ export function buildSeedItemChange(
   newId: NewId,
   now: Instant,
   input: SeedItemInput,
-): { readonly row: ItemRow; readonly change: StoreChange } {
+): { readonly row: InsertRow<'items'>; readonly change: StoreChange } {
   const row = buildSeedItemRow(newId, now, input);
   const { keptSession: _keptSession, ...filed } = row;
 
@@ -79,7 +79,7 @@ export function buildSeedItemChange(
   };
 }
 
-function buildSeedItemRow(newId: NewId, now: Instant, input: SeedItemInput): ItemRow {
+function buildSeedItemRow(newId: NewId, now: Instant, input: SeedItemInput): InsertRow<'items'> {
   return {
     id: brandSchemas.itemId.parse(newId()),
     kind: brandSchemas.itemKindName.parse('core.issue'),

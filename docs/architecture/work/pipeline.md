@@ -251,6 +251,7 @@ A session reads its whole task from its launch prompt. The claim renders it from
 | Placeholder           | Value                                                                                                                   |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | `title`, `repo`       | the item's title and repo                                                                                               |
+| `item_ref`            | the item's short reference, such as `i-12`                                                                              |
 | `outcome`, `body`     | the outcome the owner wants, and the body, as written                                                                   |
 | `acceptance`          | one `- <id>: <text>` line per criterion; only the lines with the step's `criteria.tagged` tag when it has one           |
 | `design`              | the latest design's text, then `Location: <location>` when it has one; a build only                                     |

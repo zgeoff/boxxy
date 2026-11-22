@@ -2,6 +2,7 @@ import { endItemAttempts, measureNewFactBytes, outboxLimits, requestWake } from 
 import type {
   AnyNewFact,
   DesignMode,
+  InsertRow,
   ItemFields,
   ItemId,
   ItemKindName,
@@ -22,6 +23,7 @@ import { buildAcceptance, buildCriterion, refuseUnknownTags } from './build-acce
 import { buildOwnerFact } from './build-owner-fact.ts';
 import { collectItemPage } from './collect-item-page.ts';
 import { readItemIds } from './read-item-ids.ts';
+import { resolveItemID } from './resolve-item-id.ts';
 import { signoffItemHandler } from './signoff-item-handler.ts';
 import { writeLevers } from './write-levers.ts';
 
@@ -67,7 +69,7 @@ export const itemHandlers = {
         throw notFound({ data: { item: blockers.item } });
       }
 
-      const row: ItemRow = {
+      const row: InsertRow<'items'> = {
         id: brandSchemas.itemId.parse(deps.newId()),
         kind,
         repo: repo.data,
@@ -118,7 +120,13 @@ export const itemHandlers = {
         ],
       });
 
-      return { item: row.id };
+      const ref = await tx.readItemRef(row.id);
+
+      if (ref === null) {
+        throw new Error('the filed item has no short reference');
+      }
+
+      return { item: row.id, ref };
     });
   }),
   edit: api.item.edit.handler((options) => {
@@ -357,13 +365,14 @@ export const itemHandlers = {
     const input = options.input;
     const notFound = options.errors.NOT_FOUND;
     const deps = options.context.deps;
-    const item = brandSchemas.itemId.safeParse(input.item);
 
-    const detail = item.success
-      ? await deps.store.read((tx) =>
-          tx.readItemDetail(item.data, deps.clock.now(), deps.rulesState().rules),
-        )
-      : null;
+    const detail = await deps.store.read(async (tx) => {
+      const item = await resolveItemID(tx, input.item);
+
+      return item === null
+        ? null
+        : tx.readItemDetail(item, deps.clock.now(), deps.rulesState().rules);
+    });
 
     if (detail === null) {
       throw notFound({ data: { item: input.item } });
@@ -510,11 +519,10 @@ async function readItemOrThrow(
   raw: string,
   notFound: NotFound,
 ): Promise<ItemView> {
-  const id = brandSchemas.itemId.safeParse(raw);
+  const id = await resolveItemID(tx, raw);
 
-  const item = id.success
-    ? await tx.readItem(id.data, deps.clock.now(), deps.rulesState().rules)
-    : null;
+  const item =
+    id === null ? null : await tx.readItem(id, deps.clock.now(), deps.rulesState().rules);
 
   if (item === null) {
     throw notFound({ data: { item: raw } });

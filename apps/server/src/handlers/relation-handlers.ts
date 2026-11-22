@@ -72,13 +72,13 @@ export const relationHandlers = {
         throw notFound({ data: { item: found.item } });
       }
 
+      const [source, target] = found.items;
       const now = deps.clock.now();
 
       const snapshot = await tx.readSnapshot(now, deps.rulesState().rules);
 
       const live = snapshot.relations.find(
-        (row) =>
-          row.source === input.source && row.target === input.target && row.type === input.type,
+        (row) => row.source === source && row.target === target && row.type === input.type,
       );
 
       if (live === undefined) {

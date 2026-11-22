@@ -17,6 +17,7 @@ import { brandSchemas, findRecipeName } from '@boxxy/model';
 import type { ProvenCall, ServerDeps } from '../types.ts';
 import { api } from './api.ts';
 import { collectItemPage } from './collect-item-page.ts';
+import { resolveItemID } from './resolve-item-id.ts';
 import { toWireJSON } from './to-wire-json.ts';
 
 const noAttempt = { kind: 'refused', reason: 'no-attempt' } as const;
@@ -97,12 +98,12 @@ export const attemptHandlers = {
 
     const now = deps.clock.now();
     const rules = deps.rulesState().rules;
-    const item = brandSchemas.itemId.safeParse(input.item);
 
     const read = await deps.store.read(async (tx) => {
       const own = await tx.readItem(attempt.item, now, rules);
+      const item = await resolveItemID(tx, input.item);
 
-      const detail = item.success ? await tx.readItemDetail(item.data, now, rules) : null;
+      const detail = item === null ? null : await tx.readItemDetail(item, now, rules);
 
       // the other end of each relation, so a relation to an item the session cannot see stays out
       const ends = await Promise.all(

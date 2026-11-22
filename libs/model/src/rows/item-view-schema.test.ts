@@ -10,6 +10,7 @@ test.each([{ state: 'running' }, { state: 'waiting', reason: 'pull request open'
   (derived) => {
     const view = {
       id: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77',
+      ref: 'i-12',
       kind: 'core.issue',
       repo: 'acme/widgets',
       title: 'Add a retry button',
@@ -37,6 +38,7 @@ test.each([{ state: 'running' }, { state: 'waiting', reason: 'pull request open'
 test('it rejects a waiting item view with no reason', () => {
   const view = {
     id: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77',
+    ref: 'i-12',
     kind: 'core.issue',
     repo: 'acme/widgets',
     title: 'Add a retry button',
@@ -66,6 +68,7 @@ test.each([
 ])('it drops the kept session of an item view with %s', (_name, schema) => {
   const view = {
     id: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77',
+    ref: 'i-12',
     kind: 'core.issue',
     repo: 'acme/widgets',
     title: 'Add a retry button',

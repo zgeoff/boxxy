@@ -6,6 +6,9 @@ interface TableCodec<Row> {
   readonly json: readonly (keyof Row & string)[];
 
   readonly flags: readonly (keyof Row & string)[];
+
+  // fields stored as the number of a short reference, such as 12 for `i-12`
+  readonly refs?: readonly (keyof Row & string)[];
 }
 
 export const tableCodecs: { readonly [T in TableName]: TableCodec<Tables[T]> } = {
@@ -26,9 +29,11 @@ export const tableCodecs: { readonly [T in TableName]: TableCodec<Tables[T]> } =
       'closeReason',
       'keptSession',
       'body',
+      'ref',
     ],
     json: ['acceptance', 'fields', 'labels', 'keptSession'],
     flags: [],
+    refs: ['ref'],
   },
   relations: {
     fields: ['source', 'target', 'type', 'addedBy', 'addedAt', 'removedAt'],

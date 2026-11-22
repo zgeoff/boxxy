@@ -582,6 +582,9 @@ test('it sends a hold notice to the notice session that the store holds, with th
 
   onTestFinished(() => store.close());
 
+  const dispatch = await createTestDispatch({ store });
+  const item = await dispatch.seedItem({});
+
   const at = brandSchemas.instant.parse(0);
 
   await store.exclusive((tx) =>
@@ -594,7 +597,7 @@ test('it sends a hold notice to the notice session that the store holds, with th
           row: {
             id: 1,
             kind: 'hold',
-            item: brandSchemas.itemId.parse('0190a6f4-0000-7000-8000-0000000000a1'),
+            item,
             reason: brandSchemas.rulesHoldReason.parse('blocked'),
             pause: null,
             at,
@@ -629,7 +632,7 @@ test('it sends a hold notice to the notice session that the store holds, with th
 
   expect(atc.calls.find((call) => call.tool === 'atc_message_send')?.args).toStrictEqual({
     session: 'desk.3.s7',
-    text: expect.stringContaining('0190a6f4-0000-7000-8000-0000000000a1'),
+    text: expect.stringContaining('i-1'),
     idempotencyKey: 'boxxy-notice:1:0',
   });
 });

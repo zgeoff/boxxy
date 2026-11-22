@@ -9,10 +9,15 @@ export function parseStoreRow<T extends TableName>(table: T, record: object): Ta
   const columns = new Map<string, unknown>(Object.entries(record));
   const json = new Set<string>(codec.json);
   const flags = new Set<string>(codec.flags);
+  const refs = new Set<string>(codec.refs);
 
   const fields = Object.fromEntries(
     codec.fields.map((field) => {
       const value = columns.get(toColumnName(field));
+
+      if (refs.has(field)) {
+        return [field, typeof value === 'number' ? `i-${value}` : value];
+      }
 
       return [field, parseStoreValue(value, json.has(field), flags.has(field))];
     }),

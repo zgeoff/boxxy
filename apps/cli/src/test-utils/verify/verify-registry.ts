@@ -263,12 +263,14 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
   // fails with `check-failed` when a value differs from the one the journey names.
   .command({
     path: ['boxxy', 'item'],
-    summary: "Check the current item's title, and the state and outcome of its --phase attempt",
+    summary:
+      "Check the current item's title, and the state and outcome of its --phase attempt; with --by-ref, check that its short reference shows the same item",
     effect: 'read',
     args: z.strictObject({
       title: z.string(),
       phase: z.string().optional(),
       outcome: z.string().optional(),
+      byRef: z.boolean().optional(),
     }),
     data: itemShowSchema,
     run: async (args, ctx) => {
@@ -278,6 +280,15 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
       });
 
       expectEqual('the title', shown.item.title, args.title);
+
+      if (args.byRef === true) {
+        const byRef = await runBoxxy(ctx, {
+          argv: ['item', 'show', shown.item.ref],
+          schema: itemShowSchema,
+        });
+
+        expectEqual('the item shown by its short reference', byRef.item.id, shown.item.id);
+      }
 
       if (args.phase !== undefined) {
         const attempt = shown.attempts.find((row) => row.phase === args.phase);

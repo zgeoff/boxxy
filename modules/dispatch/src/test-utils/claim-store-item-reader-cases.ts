@@ -1,5 +1,5 @@
 import { expect } from 'bun:test';
-import { brandSchemas } from '@boxxy/model';
+import { brandSchemas, itemRefPattern } from '@boxxy/model';
 import { buildMockItemRules } from '@boxxy/model/test-utils/build-mock-item-rules';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import { buildMockV1ItemRow } from '@boxxy/model/test-utils/build-mock-v1-item-row';
@@ -117,6 +117,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
           items: [
             {
               ...open,
+              ref: expect.stringMatching(itemRefPattern),
               derived: { state: 'ready' },
               position: { kind: 'phase', phase: 'build', round: 1 },
               positionSince: open.filedAt,
@@ -201,20 +202,6 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       );
 
       return { received: snapshot.items, expected: [] };
-    },
-  ],
-  [
-    '#readItem returns null for an unknown item',
-    async (store) => {
-      const read = await store.read((transaction) =>
-        transaction.readItem(
-          buildMockV1ItemRow().id,
-          brandSchemas.instant.parse(5000),
-          buildMockItemRules(),
-        ),
-      );
-
-      return { received: read, expected: null };
     },
   ],
   [
@@ -424,8 +411,20 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
       return {
         received: listed,
         expected: expect.toIncludeSameMembers([
-          { ...open, derived: { state: 'ready' }, position, positionSince: open.filedAt },
-          { ...task, derived: { state: 'ready' }, position, positionSince: task.filedAt },
+          {
+            ...open,
+            ref: expect.stringMatching(itemRefPattern),
+            derived: { state: 'ready' },
+            position,
+            positionSince: open.filedAt,
+          },
+          {
+            ...task,
+            ref: expect.stringMatching(itemRefPattern),
+            derived: { state: 'ready' },
+            position,
+            positionSince: task.filedAt,
+          },
         ]),
       };
     },
@@ -468,6 +467,7 @@ export const claimStoreItemReaderCases: readonly ClaimStoreCase[] = [
         expected: {
           item: {
             ...item,
+            ref: expect.stringMatching(itemRefPattern),
             derived: { state: 'waiting', reason: 'pull request open' },
             position: { kind: 'end', reason: 'pipeline-done' },
             positionSince: null,

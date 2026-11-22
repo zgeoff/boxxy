@@ -67,6 +67,7 @@ const positionSchema = z.object({ kind: z.string(), reason: z.string().optional(
 
 const shownItemSchema = z.object({
   id: z.string(),
+  ref: z.string().regex(/^i-[1-9][0-9]*$/u),
   title: z.string(),
   derived: derivedSchema,
   position: positionSchema,

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import type { ItemId } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { z } from 'zod';
 import { buildRPCRequest } from '../test-utils/build-rpc-request.ts';
@@ -9,7 +10,7 @@ async function setupTest() {
 
   return {
     ...server,
-    insertNotice: () =>
+    insertNotice: (item: ItemId) =>
       server.deps.store.exclusive((tx) =>
         tx.applyChange({
           at: server.dispatch.clock.now(),
@@ -20,7 +21,7 @@ async function setupTest() {
               row: {
                 id: 1,
                 kind: 'hold',
-                item: brandSchemas.itemId.parse('0190a6f4-0000-7000-8000-0000000000a1'),
+                item,
                 reason: brandSchemas.rulesHoldReason.parse('blocked'),
                 pause: null,
                 at: server.dispatch.clock.now(),
@@ -105,8 +106,9 @@ test('#status shows no oldest time and no error when every notice is sent', asyn
 
 test('#status shows the oldest unsent time and the reason of the last try that was not sent', async () => {
   const ctx = await setupTest();
+  const item = await ctx.dispatch.seedItem({});
 
-  await ctx.insertNotice();
+  await ctx.insertNotice(item);
 
   const at = ctx.dispatch.clock.now();
 

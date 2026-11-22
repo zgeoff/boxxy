@@ -1,4 +1,5 @@
-import { brandSchemas } from '@boxxy/model';
+import { expect } from 'bun:test';
+import { brandSchemas, itemRefPattern } from '@boxxy/model';
 import { buildMockFactId } from '@boxxy/model/test-utils/build-mock-fact-id';
 import { buildMockItemRules } from '@boxxy/model/test-utils/build-mock-item-rules';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
@@ -219,6 +220,7 @@ export const claimStoreGuardCases: readonly ClaimStoreCase[] = [
           state: {
             item: {
               ...item,
+              ref: expect.stringMatching(itemRefPattern),
               derived: { state: 'ready' },
               position: { kind: 'phase', phase: 'build', round: 1 },
               positionSince: item.filedAt,

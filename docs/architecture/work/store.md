@@ -37,6 +37,20 @@ Some writes skip `applyChange`, record no fact and leave the store's version num
 outbox sender marking a fact sent or setting it aside as rejected, the runner's heartbeat, the time
 of the last pull request check, and the notice writes.
 
+## Short references
+
+Each item row has a `ref` column, an integer that the store gives the item when it files it: the
+insert of an `items` row writes `coalesce(max(ref), 0) + 1` in the same statement, under the write
+lock, so two items filed in the same moment never share a number. A caller's row for an insert has
+no `ref`, and both ways of filing an item, the `item.file` handler and the triage `file-item`
+effect, get the number from that insert. A closed item keeps its number, so no number is given
+twice. A unique index covers the column. Migration `0014-item-ref` added the column in place and
+numbered the stored items from 1 in the order of `filed_at`, then `id`.
+
+A read returns the number as `i-<n>` in the row's `ref`, and a row with no number fails the read. No
+fact carries `ref`: it is the store's own numbering, and the item ID names the item in every fact.
+[Naming an item](../interfaces/api-and-auth.md#naming-an-item) covers how a caller uses it.
+
 ## Claims
 
 A claim that `applyChange` refuses leaves no decision row. `claimNext` writes the planning decision

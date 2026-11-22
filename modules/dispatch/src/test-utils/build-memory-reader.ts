@@ -46,6 +46,10 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
         wakes: collectWakes(tables.attempts),
       });
     },
+    readItemIdByRef: (ref) =>
+      Promise.resolve(getTables().items.find((item) => item.ref === ref)?.id ?? null),
+    readItemRef: (id) =>
+      Promise.resolve(getTables().items.find((item) => item.id === id)?.ref ?? null),
     readItem: (id, now, rules) => {
       const item = buildViews(now, rules).find((view) => view.id === id);
       const view = item === undefined ? null : toItemView(item);

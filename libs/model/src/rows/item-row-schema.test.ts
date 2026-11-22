@@ -4,6 +4,7 @@ import { itemRowSchema } from './item-row-schema.ts';
 test('it accepts an item with labels, a design mode and a kept session', () => {
   const row = {
     id: '0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77',
+    ref: 'i-12',
     kind: 'core.issue',
     repo: 'acme/widgets',
     title: 'Add a retry button',

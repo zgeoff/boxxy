@@ -14,6 +14,8 @@ import { parseStoreRow } from '../codecs/parse-store-row.ts';
 import type { StoreDatabase } from '../types.ts';
 import { isLatestOfSession } from './is-latest-of-session.ts';
 import { readCapacityRefusals } from './read-capacity-refusals.ts';
+import { readItemBehind } from './read-item-behind.ts';
+import { readItemIdByRef, readItemRef } from './read-item-id-by-ref.ts';
 import { readItemViews } from './read-item-views.ts';
 import { readLimitFills } from './read-limit-fills.ts';
 import { readShipped } from './read-shipped.ts';
@@ -56,6 +58,8 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         wakes: await readWakes(db),
       };
     },
+    readItemIdByRef: (ref) => readItemIdByRef(db, ref),
+    readItemRef: (id) => readItemRef(db, id),
     readItem: async (id, now, rules) => {
       const views = await readItemViews(db, (builder) => builder('id', '=', id), now, rules);
 
@@ -515,22 +519,7 @@ export function buildSQLiteReader(db: Kysely<StoreDatabase>): StoreReader {
         oldestUnsentAt: unsent.oldest === null ? null : brandSchemas.instant.parse(unsent.oldest),
       };
     },
-    readItemBehind: async (item) => {
-      const row = await db
-        .selectFrom('outbox')
-        .select((builder) => [
-          builder.fn.countAll<number>().as('facts'),
-          builder.fn.min('at').as('oldest'),
-        ])
-        .where('sent_at', 'is', null)
-        .where('entity', '=', `boxxy:item:${item}`)
-        .executeTakeFirstOrThrow();
-
-      return {
-        facts: row.facts,
-        oldestAt: row.oldest === null ? null : brandSchemas.instant.parse(row.oldest),
-      };
-    },
+    readItemBehind: (item) => readItemBehind(db, item),
   };
 }
 

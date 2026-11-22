@@ -15,7 +15,8 @@ scopes, and the harness serves the public door beside the app.
   `ok: true`, and gives `data.isError: true` with the reason in `data.content`. Treat that as a
   failed journey command.
 - `item_file` gives the new item's ID as a string in `data.structuredContent.item`. Put that string
-  in place of `<item>` in the `item_get` line.
+  in place of `<item>` in the first `item_get` line. That call gives the item's short reference,
+  such as `i-1`, in `data.structuredContent.item.ref`. Put it in place of `<ref>` in the second.
 
 ## Journey
 
@@ -24,6 +25,7 @@ bun verify use --feature owner-mcp
 bun verify mcp tools
 bun verify mcp call item_file --args '{"repo":"example/app","title":"Show the queue depth","outcome":"The status page shows how many items wait.","held":{"reason":"The owner-mcp journey filed it."}}'
 bun verify mcp call item_get --args '{"item":"<item>"}'
+bun verify mcp call item_get --args '{"item":"<ref>"}'
 bun verify mcp call item_list --args '{"state":"held","text":"queue depth"}'
 ```
 
@@ -36,7 +38,10 @@ Each field below sits under `data`.
   `inReadTools: true`, and every other tool has `false`.
 - `mcp call item_file` gives `isError: false`, and the new item's ID in `structuredContent.item`.
 - `mcp call item_get` gives `isError: false`, and an item object in `structuredContent.item` with
-  that `id`, the `title` `Show the queue depth`, and `derived.state` `held`.
+  that `id`, a `ref` of the form `i-<n>`, the `title` `Show the queue depth`, and `derived.state`
+  `held`.
+- `mcp call item_get` with the short reference gives `isError: false`, and the same item, with the
+  same `id`.
 - `mcp call item_list` gives `isError: false`, and `structuredContent.items` holds that item.
 
 ## On prod

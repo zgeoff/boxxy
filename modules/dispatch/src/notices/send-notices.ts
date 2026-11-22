@@ -43,22 +43,36 @@ async function tell(input: SendNoticesInput, row: NoticeRow): Promise<NoticeOutc
   }
 }
 
-function sendRow(input: SendNoticesInput, row: NoticeRow): Promise<NoticeOutcome> {
+async function sendRow(input: SendNoticesInput, row: NoticeRow): Promise<NoticeOutcome> {
+  if (row.kind === 'runner-paused') {
+    return input.notifier.tellPaused({
+      ...row.pause,
+      at: row.at,
+      key: buildNoticeKey(row),
+    });
+  }
+
+  const itemRef = await input.store.read((tx) => tx.readItemRef(row.item));
+
+  // a notice for an item the store lacks has nothing to name, so it waits like a refused try
+  if (itemRef === null) {
+    return { kind: 'refused', reason: 'item-not-found' };
+  }
+
   return match(row)
     .with({ kind: 'hold' }, (hold) =>
       input.notifier.tellHold({
         item: hold.item,
+        itemRef,
         reason: hold.reason,
         at: hold.at,
         key: buildNoticeKey(hold),
       }),
     )
-    .with({ kind: 'runner-paused' }, (paused) =>
-      input.notifier.tellPaused({ ...paused.pause, at: paused.at, key: buildNoticeKey(paused) }),
-    )
     .with({ kind: 'notify' }, (notify) =>
       input.notifier.tellNotify({
         item: notify.item,
+        itemRef,
         phase: notify.phase,
         reason: notify.reason,
         at: notify.at,

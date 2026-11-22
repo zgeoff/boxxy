@@ -6,6 +6,7 @@ test('it builds a ready item at the build phase of round 1', () => {
 
   expect(built).toStrictEqual({
     id: expect.stringMatching(/^[0-9a-f-]{36}$/u),
+    ref: expect.stringMatching(/^i-[1-9][0-9]*$/u),
     kind: 'core.issue',
     repo: expect.stringMatching(/^[\w.-]+\/[\w.-]+$/u),
     title: expect.any(String),

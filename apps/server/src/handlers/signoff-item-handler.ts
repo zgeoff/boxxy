@@ -1,14 +1,10 @@
 import type { AttemptRow, ItemView, LeverRow, StoreReader } from '@boxxy/model';
-import {
-  brandSchemas,
-  findSignoffWait,
-  signoffApproveLeverKind,
-  signoffSendBackLeverKind,
-} from '@boxxy/model';
+import { findSignoffWait, signoffApproveLeverKind, signoffSendBackLeverKind } from '@boxxy/model';
 import type { ServerDeps } from '../types.ts';
 import { api } from './api.ts';
 import { buildOwnerFact } from './build-owner-fact.ts';
 import { readLastLeverSeq } from './read-last-lever-seq.ts';
+import { resolveItemID } from './resolve-item-id.ts';
 
 // The owner's answer to an item that waits for a sign-off. It checks and writes in one store
 // change, so no second answer and no push can come between them.
@@ -80,12 +76,10 @@ export const signoffItemHandler = api.item.signoff.handler((options) => {
   });
 });
 
-function readItem(tx: StoreReader, deps: ServerDeps, raw: string): Promise<ItemView | null> {
-  const id = brandSchemas.itemId.safeParse(raw);
+async function readItem(tx: StoreReader, deps: ServerDeps, raw: string): Promise<ItemView | null> {
+  const id = await resolveItemID(tx, raw);
 
-  return id.success
-    ? tx.readItem(id.data, deps.clock.now(), deps.rulesState().rules)
-    : Promise.resolve(null);
+  return id === null ? null : tx.readItem(id, deps.clock.now(), deps.rulesState().rules);
 }
 
 function findWait(deps: ServerDeps, item: ItemView, attempts: readonly AttemptRow[]) {

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import type { ItemId } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { createAtcNotifier } from '@boxxy/notifier-atc';
 import type { AtcSendRequest } from '@boxxy/notifier-atc';
@@ -43,7 +44,7 @@ async function setupTest() {
     stopped,
     register: (gatewayID: string) => call('notices.register', { gatewayID }),
     show: () => call('notices.show', {}),
-    insertNotice: () =>
+    insertNotice: (item: ItemId) =>
       server.deps.store.exclusive((tx) =>
         tx.applyChange({
           at: server.dispatch.clock.now(),
@@ -54,7 +55,7 @@ async function setupTest() {
               row: {
                 id: 1,
                 kind: 'hold',
-                item: brandSchemas.itemId.parse('0190a6f4-0000-7000-8000-0000000000a1'),
+                item,
                 reason: brandSchemas.rulesHoldReason.parse('blocked'),
                 pause: null,
                 at: server.dispatch.clock.now(),
@@ -142,8 +143,9 @@ test.each(['owner-desk', 'desk.3', 'desk..s7', 'desk.3.s 7', ''])(
 
 test('it leaves a notice unsent with no-notice-session in the status while no session is registered', async () => {
   const ctx = await setupTest();
+  const item = await ctx.dispatch.seedItem({});
 
-  await ctx.insertNotice();
+  await ctx.insertNotice(item);
   await ctx.tick();
 
   const status = await ctx.readNoticeStatus();
@@ -153,8 +155,9 @@ test('it leaves a notice unsent with no-notice-session in the status while no se
 
 test('#register lets a waiting notice reach a first session on its next try, with no restart', async () => {
   const ctx = await setupTest();
+  const item = await ctx.dispatch.seedItem({});
 
-  await ctx.insertNotice();
+  await ctx.insertNotice(item);
   await ctx.tick();
   await ctx.register('desk.3.s7');
 
@@ -167,7 +170,7 @@ test('#register lets a waiting notice reach a first session on its next try, wit
   expect(ctx.requests).toStrictEqual([
     {
       session: 'desk.3.s7',
-      text: expect.stringContaining('0190a6f4-0000-7000-8000-0000000000a1'),
+      text: expect.stringContaining('i-1'),
       idempotencyKey: 'boxxy-notice:1:1',
     },
   ]);
@@ -181,7 +184,10 @@ test('#register sends a notice that waits on a stopped session to the new sessio
   ctx.stopped.add('desk.3.s7');
 
   await ctx.register('desk.3.s7');
-  await ctx.insertNotice();
+
+  const item = await ctx.dispatch.seedItem({});
+
+  await ctx.insertNotice(item);
   await ctx.tick();
   await ctx.register('desk.4.s2');
 

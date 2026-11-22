@@ -21,6 +21,7 @@ import type {
   Instant,
   ItemId,
   ItemKindName,
+  ItemRef,
   ItemRow,
   ItemShipped,
   ItemState,
@@ -77,6 +78,13 @@ export interface ClaimStore {
 // The item reads derive each item's position and state at `now`, from its rows and the rules given.
 export interface StoreReader extends OutboxReader {
   readSnapshot: (now: Instant, rules: ItemRules) => Promise<Snapshot>;
+
+  // The ID of the item that has the short reference, or null when none has it.
+  readItemIdByRef: (ref: ItemRef) => Promise<ItemId | null>;
+
+  // The short reference of the item, or null when the item is not stored.
+  readItemRef: (id: ItemId) => Promise<ItemRef | null>;
+
   readItem: (id: ItemId, now: Instant, rules: ItemRules) => Promise<ItemView | null>;
   readItemDetail: (id: ItemId, now: Instant, rules: ItemRules) => Promise<ItemDetailRows | null>;
   listItems: (filter: ItemFilter, now: Instant, rules: ItemRules) => Promise<ItemWithLevers[]>;
@@ -269,9 +277,12 @@ export interface Tables {
 
 export type TableName = keyof Tables;
 
+// The row of an insert. An item has no short reference yet: the store numbers it in the insert.
+export type InsertRow<T extends TableName> = T extends 'items' ? Omit<ItemRow, 'ref'> : Tables[T];
+
 export type RowWrite =
   | {
-      [T in TableName]: { readonly op: 'insert'; readonly table: T; readonly row: Tables[T] };
+      [T in TableName]: { readonly op: 'insert'; readonly table: T; readonly row: InsertRow<T> };
     }[TableName]
   | {
       [T in TableName]: {
@@ -430,6 +441,7 @@ export interface Notifier {
 // A step that ended or skipped with a reason the owner should read, and no hold.
 export interface NotifyNotice {
   readonly item: ItemId;
+  readonly itemRef: ItemRef;
   readonly phase: PhaseName;
   readonly reason: string;
   readonly at: Instant;
@@ -455,6 +467,7 @@ export interface PausedNotice {
 
 export interface HoldNotice {
   readonly item: ItemId;
+  readonly itemRef: ItemRef;
   readonly reason: HoldReason;
   readonly at: Instant;
 

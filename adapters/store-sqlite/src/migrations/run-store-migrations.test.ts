@@ -9,6 +9,7 @@ import { z } from 'zod';
 import type { StoreDatabase } from '../types.ts';
 import { createTablesMigration } from './create-tables-migration.ts';
 import { itemBodyMigration } from './item-body-migration.ts';
+import { itemRefMigration } from './item-ref-migration.ts';
 import { jobAttemptsMigration } from './job-attempts-migration.ts';
 import { leverHeadMigration } from './lever-head-migration.ts';
 import { noticeKeysMigration } from './notice-keys-migration.ts';
@@ -52,7 +53,8 @@ async function setupTest() {
     migrateSkippedAttempts: () => skippedAttemptsMigration.up(db),
     migrateShipWatch: () => shipWatchMigration.up(db),
     migrateLeverHead: () => leverHeadMigration.up(db),
-    writeRaw: (statement: string, ...values: number[]) => {
+    migrateItemRef: () => itemRefMigration.up(db),
+    writeRaw: (statement: string, ...values: (number | string)[]) => {
       sqlite.query(statement).run(...values);
     },
     readRaw: (statement: string) => sqlite.query(statement).all(),
@@ -521,4 +523,33 @@ test('it keeps a stored lever and gives the levers table a head column that read
     { kind: 'item.retry', head: null },
     { kind: 'signoff.approve', head: 'abc123' },
   ]);
+});
+
+test('it numbers the stored items from 1 in filing order, and refuses a repeated number', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createTables();
+  await ctx.renameRelations();
+  await ctx.migrateV1Tables();
+  await ctx.migrateNoticeKeys();
+  await ctx.migrateItemBody();
+
+  const insert =
+    "INSERT INTO items (id, kind, repo, title, outcome, acceptance, fields, labels, filed_by, filed_at) VALUES (?, 'core.issue', 'acme/widgets', 'A title', 'An outcome', '[]', '{}', '[]', 'boxxy:owner:local', ?)";
+
+  ctx.writeRaw(insert, 'item-c', 3000);
+  ctx.writeRaw(insert, 'item-b', 1000);
+  ctx.writeRaw(insert, 'item-a', 1000);
+
+  await ctx.migrateItemRef();
+
+  expect(ctx.readRaw('SELECT id, ref FROM items ORDER BY ref')).toStrictEqual([
+    { id: 'item-a', ref: 1 },
+    { id: 'item-b', ref: 2 },
+    { id: 'item-c', ref: 3 },
+  ]);
+
+  expect(() => {
+    ctx.writeRaw("UPDATE items SET ref = 1 WHERE id = 'item-c'");
+  }).toThrow(/UNIQUE/u);
 });

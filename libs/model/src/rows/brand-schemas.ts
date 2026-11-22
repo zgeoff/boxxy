@@ -5,11 +5,15 @@ const uuidV7Schema = z
   .string()
   .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u);
 
+// the short reference of an item: `i-` and its number, counted up from 1 in filing order
+export const itemRefPattern = /^i-[1-9][0-9]*$/u;
+const itemRefSchema = z.string().regex(itemRefPattern);
 const nameSchema = z.string().min(1);
 
 export const brandSchemas = {
   instant: z.number().int().nonnegative().brand<'Instant'>(),
   itemId: uuidV7Schema.brand<'ItemId'>(),
+  itemRef: itemRefSchema.brand<'ItemRef'>(),
   attemptId: uuidV7Schema.brand<'AttemptId'>(),
   decisionId: uuidV7Schema.brand<'DecisionId'>(),
   factId: uuidV7Schema.brand<'FactId'>(),

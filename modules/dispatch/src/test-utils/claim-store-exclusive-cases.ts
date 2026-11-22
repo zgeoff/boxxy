@@ -204,7 +204,7 @@ export const claimStoreExclusiveCases: readonly ClaimStoreCase[] = [
     '#applyChange writes the rows and the outbox facts of a change',
     async (store) => {
       const item = buildMockV1ItemRow({ filedAt: brandSchemas.instant.parse(1000) });
-      const { keptSession: _keptSession, ...filed } = item;
+      const { keptSession: _keptSession, ref: _ref, ...filed } = item;
       const change = buildMockFileItemChange(item);
 
       await store.exclusive((transaction) => transaction.applyChange(change));

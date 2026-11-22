@@ -341,6 +341,30 @@ test('#getItem returns an item of the repo of the session with its body, notes, 
   });
 });
 
+test('#getItem takes the short reference of an item in place of its ID', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.seedStartedAttempt(brandSchemas.phaseName.parse('triage'));
+
+  const toggle = await ctx.fileItem({
+    repo: 'example/app',
+    title: 'Add a theme toggle',
+    outcome: 'The header has a theme toggle.',
+  });
+
+  ctx.callerProof.setCaller(attempt.caller);
+
+  const byID = await ctx.callSession('attempt.getItem', { item: toggle });
+
+  const viewSchema = z.object({ ref: z.string() });
+  const jsonSchema = z.object({ item: viewSchema });
+  const refSchema = z.object({ body: z.object({ json: jsonSchema }) });
+  const shortRef = refSchema.parse(byID).body.json.item.ref;
+
+  const byRef = await ctx.callSession('attempt.getItem', { item: shortRef });
+
+  expect(byRef).toStrictEqual(byID);
+});
+
 test.each([
   ['a held item of the same repo', 'example/app', { reason: 'still a draft' }],
   ['an item of another repo', 'example/site', undefined],
