@@ -1,6 +1,6 @@
 # Open for the builder
 
-Every point that the built system leaves open is here: what has no design, what is not decided, what nobody checked, what the design assumes, and what must land in another repo first. When a change settles a point, remove its row in the same commit, and update the [architecture doc](../../architecture/overview.md) that the point touches.
+Every point that the built system leaves open is here: what has no design, what is not decided, what nobody checked, what the design assumes, and what must land in another repo first. When a change settles a point, remove its row or bullet in the same commit, and update the [architecture doc](../../architecture/overview.md) that the point touches.
 
 ## Not designed
 

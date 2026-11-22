@@ -1,6 +1,6 @@
 # Measurement
 
-boxxy measures what it costs to ship one change, split by phase, and tests changes to how it works
+In the full design, boxxy measures what it costs to ship one change, split by phase, and tests changes to how it works
 with live experiments. Spend comes in through OpenTelemetry and lands in pepys as facts, beside
 every other input, and a pure `verdict()` turns the facts into a call that the owner approves or
 rejects. Metrics and cohort keys are plug-ins; assignment, the noise floor and the stop rules stay
@@ -20,7 +20,7 @@ nothing to the spawn request for telemetry.
 
 boxxy joins spend to an attempt by the agent's own session id. Claude Code puts a `session.id`
 attribute on every telemetry record, and atc records each session's agent session id as
-`agentSessionID`. boxxy spawns each session itself, so the attempt row holds the item, phase, recipe
+`agentSessionID`. Each of those sessions belongs to an attempt boxxy started, so the attempt row holds the item, phase, recipe
 and capacity source of each one. An attempt can collect more than one agent session, such as when
 atc respawns its session. The runner records each agent session id of an attempt in the store's
 `attempt_sessions` table when atc reports it, and a spend query joins each record's `session.id` to
@@ -149,8 +149,8 @@ The verdict keeps these rules:
   abandoned item.
 - **Time metrics use Kaplan-Meier.** Time to merge and survival treat unfinished and unmatured items
   as censored, never dropped or averaged early.
-- **Cost is read at an analysis date.** Censoring fits time metrics only, because an unfinished
-  item's cost is only a lower bound. Set the analysis date after the stop date, late enough that few
+- **Cost is read at an analysis date.** Censoring fits time metrics only. An unfinished item's cost
+  is only a lower bound, so set the analysis date after the stop date, late enough that few
   exposed items are still unfinished.
 - **Shadow verdicts** report pick agreement plus paired proxies on the same snapshots, such as the
   age of the picked item and idle slot-minutes. A shadow verdict claims no outcome metric, because
@@ -190,7 +190,8 @@ Each query runs over pepys facts, joined to attempts through the session ids the
 
 ## First experiment
 
-The first experiment is the model-swap eval in slice 2 (see
+The first experiment is the model-swap eval in slice 2 of
+[the first slice](../../decisions/0014-first-slice.md) (see
 [capacity](./capacity.md#the-model-swap-eval)). It runs on a first cut of the verdict: cost
 to land as the only metric, one pooled row with no strata, a fixed analysis date and the A/A floor.
 It has no shadow rules and no report beyond the verdict row. Guards and strata follow.

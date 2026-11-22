@@ -123,7 +123,8 @@ these rules).
   Caps of 8 and 16 give the same result as 4, because the queue never passed 6 units.
 
 - **Modelled: failure rate against cap.** The final heads can't show how often a combined head
-  fails, so the model sweeps a per-unit failure rate F over 500 seeded runs. A failed batch bisects
+  fails, so the model sweeps a per-unit failure rate F over 500 seeded runs, which is why its 0%
+  row differs slightly from the table above. A failed batch bisects
   and ejects the failing unit. Waits in the busiest repo at p90 CI, in minutes, p50 / p90:
 
   | F   | Serial    | Cap 3     | Cap 6     |

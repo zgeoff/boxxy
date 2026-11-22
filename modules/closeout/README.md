@@ -36,7 +36,7 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
   pass. `merge` drives each read with `decideMerge` from `@boxxy/train`, and a `merged` settle asks
   for the `record-merge` effect.
 - `createReviewPhase`, which builds the review phase kind on the review gate's `buildCommand`. The
-  server adds it to `phaseKinds`.
+  server adds it to the six from `phaseKinds`.
 - `countUnrelatedLines`, the changed lines of a later review in files that had no open finding.
 - `closeOutLimits`, the byte limit of a close-out, and `measureJsonBytes`, which measures a value as
   stored.
