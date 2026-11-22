@@ -25,11 +25,11 @@ repo root, such as `libs/model`.
 npm sets up trusted publishing only for a package that exists on the registry. So publish each
 package by hand first, then turn CI releases on.
 
-**CAUTION:** Finish every step below within 2 days of step 1, when you add the first trusted
-publisher. npm expires a trusted publisher that no publish uses in its first 2 days.
+**CAUTION:** Finish steps 6 and 7 within 2 days of step 6, when you add the first trusted publisher.
+npm expires a trusted publisher that no publish uses in its first 2 days.
 
-1. Do [Publish a new package](#publish-a-new-package) for every package, with each package's trusted
-   publisher. Expect each package's npm access page to list a trusted publisher.
+1. Do steps 1 to 4 of [Publish a new package](#publish-a-new-package) for every package. Expect
+   `npm view @boxxy/<folder> version` to print the placeholder version for each package.
 2. Take the client ID and the private key of the release GitHub App, which the release jobs of the
    other zgeoff repos use. GitHub runs CI on a pull request that this App opens, and on none that
    the default workflow token opens. Set the client ID as the `RELEASE_APP_ID` repo variable, and
@@ -47,7 +47,9 @@ publisher. npm expires a trusted publisher that no publish uses in its first 2 d
 
 5. Merge a `feat` or `fix` commit to `main`. Expect the release job to open a release pull request
    that sets every package to one version, `<version>`.
-6. Merge that pull request, as [Merge a release pull request](#merge-a-release-pull-request)
+6. Do step 5 of [Publish a new package](#publish-a-new-package) for every package. Expect each
+   package's npm access page to list a trusted publisher.
+7. Merge the release pull request, as [Merge a release pull request](#merge-a-release-pull-request)
    describes. Expect `npm view @boxxy/<folder>@<version> version` to print `<version>` for each
    package, which CI published through each trusted publisher.
 

@@ -152,6 +152,9 @@ that command alone. A command with neither runs on the registry's first target, 
 Each `up` starts the harness: the boxxy server and CLI on an empty SQLite store, with no network,
 and fakes for the clock, the worker, GitHub and the hold-notice sender.
 
+Check a change on `local`. Use `prod` only for the smoke check after a deploy, and never publish a
+`prod` verdict to a pull request.
+
 <!-- /repo -->
 
 ## Commands

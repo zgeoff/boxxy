@@ -32,7 +32,8 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 - `buildFrame`, which returns the candidates, their holds, lifts, signal values and filter-field
   values, and each plug-in fault ([planning](../../docs/architecture/work/planning.md)).
 - `decide`, which puts each wake first, then picks pool by pool while each limit that counts a pick
-  has a free seat, gives the reason for each item and wake it passes over, and never names a concept
+  has a free seat, gives the reason for each item and wake it passes over, and never names a
+  concept: it reads the pools and their order from the frame
   ([planning: limits and the decision](../../docs/design/boxxy/planning.md#limits-and-the-decision)).
 - `concepts`, the `pool`, `defer` and `expedite` concepts
   ([signals and propagation](../../docs/architecture/work/planning.md#signals-and-propagation)).

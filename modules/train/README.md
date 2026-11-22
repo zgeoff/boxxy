@@ -12,8 +12,8 @@
 </div>
 
 boxxy's merge rule, `decideMerge`, which decides what the boxxy server does next with a pull request
-that is ready to merge. The server reads the pull request and calls `decideMerge` with what it read.
-`decideMerge` returns one of three answers, and the server acts on it:
+at the merge step of its item's pipeline. The server reads the pull request and calls `decideMerge`
+with what it read. `decideMerge` returns one of three answers, and the server acts on it:
 
 - finish the merge attempt with an outcome, such as `merged` when the pull request has merged, or
   `repair` when a required check failed;

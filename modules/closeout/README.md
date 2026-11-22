@@ -30,8 +30,8 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Features
 
-- `triage`, `design`, `build`, `verify` and `merge`, and `phaseKinds`, which lists them for the
-  rules loader. Each parser returns the stored close-out, or every problem with it in one pass.
+- `triage`, `design`, `build`, `verify`, `merge` and `live`, and `phaseKinds`, which lists them for
+  the rules loader. Each parser returns the stored close-out, or every problem with it in one pass.
   `merge` drives each read with `decideMerge` from `@boxxy/train`, and a `merged` settle asks for
   the `record-merge` effect.
 - `createReviewPhase`, which builds the review phase kind on the review gate's `buildCommand`. The
