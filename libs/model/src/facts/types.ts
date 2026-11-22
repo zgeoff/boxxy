@@ -238,6 +238,9 @@ export interface WorkFacts {
     readonly kind: EvidenceKind;
     readonly ref: string;
     readonly observed: string | null;
+
+    // the head the server read; present for `check` and `verdict`, absent for every other kind
+    readonly head?: CommitSha;
   };
   'boxxy.pull_request.linked': OfAttempt & {
     readonly repo: RepoName;

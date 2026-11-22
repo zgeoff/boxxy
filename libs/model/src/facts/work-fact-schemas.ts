@@ -193,9 +193,10 @@ export const workFactSchemas = {
   'boxxy.proposal.recorded': frictionSchema.extend(ofAttempt),
   'boxxy.evidence.recorded': z.object({
     ...ofAttempt,
-    kind: z.enum(['pull_request', 'commit', 'test', 'ci-run', 'live-check']),
+    kind: z.enum(['pull_request', 'commit', 'test', 'ci-run', 'live-check', 'check', 'verdict']),
     ref: z.string().min(1),
     observed: z.string().nullable(),
+    head: brandSchemas.commitSha.exactOptional(),
   }),
   'boxxy.pull_request.linked': z.object({
     ...ofAttempt,

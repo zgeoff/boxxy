@@ -4,7 +4,7 @@
 
 A build agent records acceptance evidence as free text today. The server checks only that the cited evidence exists and belongs to the attempt. It never reads the CI run or the test cited in the text. Two evidence kinds change that: `check`, a CI check by name, and `verdict`, a `bun verify` feature by name. For either one the server reads the result from GitHub at the pull request's head, records it only when it passed, and refuses a `built` close-out whose checked evidence no longer matches the head.
 
-The design extends [the verifier](./review-and-merge.md#the-verifier), the evidence that [attempts](../../architecture/work/attempts.md) record, and the build close-out in [the pipeline](../../architecture/work/pipeline.md).
+Build the server part from this design: it is the one part not yet built. The design extends [the verifier](./review-and-merge.md#the-verifier), the evidence that [attempts](../../architecture/work/attempts.md) record, and the build close-out in [the pipeline](../../architecture/work/pipeline.md).
 
 ## Shape
 
@@ -64,8 +64,6 @@ type CheckedEvidenceAnswer =
 
 ```ts
 // libs/model
-type EvidenceKind = 'pull_request' | 'commit' | 'test' | 'ci-run' | 'live-check' | 'check' | 'verdict';
-
 interface EvidenceRow {
   // …existing fields
   head: CommitSha | null; // the head the server read; set for `check` and `verdict`, null for every other kind
@@ -124,7 +122,6 @@ The server records evidence by these rules:
 - A repeat call with the same kind, ref and head returns the first fact ID and writes nothing. A call at a new head writes a new row.
 - A refused or `retry` call writes nothing: no evidence row and no fact.
 - A `check` call makes one pull request read and one checks read. A `verdict` call adds the verifier's read of the pull request's body. Agents record a few citations per build, well inside GitHub's rate limit.
-- The `boxxy.evidence.recorded` fact carries `head` for `check` and `verdict`, and omits it for every other kind.
 
 At close-out, the server checks the cited evidence against the head:
 
@@ -132,14 +129,12 @@ At close-out, the server checks the cited evidence against the head:
 - When the head read fails, the close-out returns `retry` and settles nothing. A `blocked` or `abandoned` close-out never waits on the forge.
 - Each `check` or `verdict` citation in this close-out's `criteria` whose `head` differs from the current head gets one `stale-evidence` problem. So does each such citation when the pull request is closed or merged. Citations from an earlier round's close-out are never re-checked, and other evidence kinds never get the problem.
 
-Ship the change in two PRs, in this order:
-
-- The model and pepys change ships in its own PR first: the two kinds, `head` on the evidence fact, and the regenerated pepys boundary. The server change ships after that pepys release deploys, so pepys never refuses a fact the server sends.
+[The evidence fact](../../architecture/interfaces/facts-and-pepys.md#what-every-fact-carries) carries the two kinds and `head` in the model and at the pepys boundary. Build every sketch above, the `libs/model` ones included, and the rest of this design in one PR after that pepys release deploys, so pepys never refuses a fact the server sends.
 
 ## Decisions
 
 - **The agent names the check, and the server reads it.** An agent can't record a pass that the server hasn't seen.
-- **The server checks at build close-out.** The builder waits for CI before it closes out, and the server sends a stale or red result back to the session that can fix it.
+- **The server checks at build close-out.** The build agent waits for CI before it closes out. The server refuses a red result when the agent records it and fails the close-out on a stale one. Both failures reach the session that can fix them.
 - **The free-text kinds stay.** A repo with no CI check or verify setup for a line still records `test`, `ci-run` or `live-check`, and the server leaves them unchecked.
 - **noslop gets no evidence kind.** noslop runs in the review phase, after the build closes out, so a build can't cite it. The review phase already checks noslop's result against the head.
 - **Merge never re-reads checked evidence.** The required checks and the verify gate run at the merged head, so they cover a push after the close-out. To guard an acceptance line's check through merge, make that check required.

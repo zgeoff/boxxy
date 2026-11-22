@@ -47,9 +47,10 @@ in the outbox.
 
 ## Sending to pepys
 
-The sender runs apart from the runner's tick, because a send can wait on pepys for a long time and a
-tick must not. It sends the longest run of unsent facts that fits one append to the pepys log, and
-keeps one batch in flight, so pepys receives facts in store order.
+The sender runs apart from the runner's tick, because a send can wait on pepys for a long time and
+the tick can't wait. It sends the longest run of unsent facts that fits one append to the pepys log,
+and keeps one batch in flight, so pepys receives facts in store order. A parked fact is the
+exception: `boxxy outbox retry` sends it after the facts stored since.
 
 | pepys answers                                                | The sender                                                                    |
 | ------------------------------------------------------------ | ----------------------------------------------------------------------------- |
@@ -59,10 +60,11 @@ keeps one batch in flight, so pepys receives facts in store order.
 | 400, 413 or 422 on one fact                                  | parks that fact with the reason and moves on                                  |
 | anything else, such as a wrong secret or a 500 inside ingest | parks nothing, goes `blocked`, and retries the same batch on a fixed interval |
 
-A 4xx on a batch means one bad fact, which a split can find. Any other refusal means pepys itself is
-wrong, which no split fixes. When pepys refuses several single facts in a row with nothing stored
-between them, the sender stops parking and goes `blocked` too, because that pattern means the server
-and the deployed `@boxxy/pepys` run different versions, and more parking would hide it.
+A 400, 413 or 422 on a batch means one bad fact, and splitting the batch finds it. Any other
+refusal, a 401 included, means pepys itself is wrong, and no split fixes that. When the sender parks
+25 single facts in a row with nothing stored between them, it stops parking and goes `blocked` too,
+because that run points to a server and a deployed `@boxxy/pepys` on different versions, which more
+parking would hide.
 
 `boxxy outbox retry` clears every park and wakes the sender. `runner.status` shows the sender's
 state, the unsent and parked counts, the age of the oldest unsent fact and the last error; the
@@ -102,6 +104,14 @@ stream `facts.boxxy.runner`. These rules hold for the work facts:
   send-back in `reason`. A fact written before the field has no `head`, and the pepys boundary
   ignores a field it does not read. boxxy writes `head` only to a pepys whose boundary reads it, so
   the pepys release that reads it ships first.
+- **An evidence fact has one of seven kinds.** `boxxy.evidence.recorded` has the kinds
+  `pull_request`, `commit`, `test`, `ci-run`, `live-check`, `check` and `verdict`. A `check` or
+  `verdict` fact must carry `head`, a commit SHA, and a fact of any other kind must not. The model's
+  `refineEvidenceHead` enforces that rule, and the wire schema applies it after it adds the store
+  version. An older fact, written before `check`, `verdict` and `head` existed, still parses: it has
+  one of the other five kinds and no `head`. The server writes no `check` or `verdict` fact, because
+  the `attempt.evidence` input rejects both kinds. pepys accepts them first, as the rule for new
+  fields above says.
 - **Some outcomes write no fact of their own.** A settle for `stalled`, `skill-missing` or a
   capacity refusal shows only on the `settled` fact. A capacity refusal carries atc's code, cause
   and message in the fact's `refusal` field; a fact written before the field reads as no refusal.
