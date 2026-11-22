@@ -2,10 +2,9 @@
 
 ## [0.3.6](https://github.com/zgeoff/boxxy/compare/@boxxy/content-hash@0.3.5...@boxxy/content-hash@0.3.6) (2026-11-22)
 
-
 ### Miscellaneous Chores
 
-* **@boxxy/content-hash:** Synchronize boxxy versions
+- **@boxxy/content-hash:** Synchronize boxxy versions
 
 ## [0.3.5](https://github.com/zgeoff/boxxy/compare/@boxxy/content-hash@0.3.4...@boxxy/content-hash@0.3.5) (2026-11-22)
 

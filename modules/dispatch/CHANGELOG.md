@@ -2,25 +2,24 @@
 
 ## [0.3.6](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.3.5...@boxxy/dispatch@0.3.6) (2026-11-22)
 
-
 ### Features
 
-* record check and verdict evidence from github ([#288](https://github.com/zgeoff/boxxy/issues/288)) ([cc6eec2](https://github.com/zgeoff/boxxy/commit/cc6eec2de0b20f58439fa7b3b978561dc9c4949b))
-
+- record check and verdict evidence from github ([#288](https://github.com/zgeoff/boxxy/issues/288))
+  ([cc6eec2](https://github.com/zgeoff/boxxy/commit/cc6eec2de0b20f58439fa7b3b978561dc9c4949b))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/closeout bumped to 0.3.6
-    * @boxxy/content-hash bumped to 0.3.6
-    * @boxxy/model bumped to 0.3.6
-    * @boxxy/planning bumped to 0.3.6
-    * @boxxy/prompt-template bumped to 0.3.6
-  * devDependencies
-    * @boxxy/rules bumped to 0.3.6
-  * peerDependencies
-    * @boxxy/rules bumped to 0.3.6
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/closeout bumped to 0.3.6
+    - @boxxy/content-hash bumped to 0.3.6
+    - @boxxy/model bumped to 0.3.6
+    - @boxxy/planning bumped to 0.3.6
+    - @boxxy/prompt-template bumped to 0.3.6
+  - devDependencies
+    - @boxxy/rules bumped to 0.3.6
+  - peerDependencies
+    - @boxxy/rules bumped to 0.3.6
 
 ## [0.3.5](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.3.4...@boxxy/dispatch@0.3.5) (2026-11-22)
 
