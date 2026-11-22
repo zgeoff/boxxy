@@ -82,7 +82,7 @@ function formatHoldMessage(notice: HoldNotice): string {
 }
 
 function formatItem(notice: HoldNotice | NotifyNotice): string {
-  return notice.itemRef ?? notice.item;
+  return notice.itemRef;
 }
 
 function formatPausedMessage(notice: PausedNotice): string {

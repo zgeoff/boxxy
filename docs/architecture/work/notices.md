@@ -62,8 +62,9 @@ pause stored before the runner recorded its start time has no length, so it gets
 
 A hold or notify message names the item by its
 [short reference](../interfaces/api-and-auth.md#naming-an-item), such as `i-12`, in its text and in
-the `boxxy item` commands it suggests. The sender reads the reference from the store when it sends,
-and the message names the item ID when the store has no such item.
+the `boxxy item` commands it suggests. The sender reads the reference from the store when it sends.
+A hold or notify notice whose item the store lacks is refused with `item-not-found` before the
+notifier is called, and it waits like any other refused notice.
 
 ## The notify notice
 

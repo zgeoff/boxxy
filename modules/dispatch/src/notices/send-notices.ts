@@ -1,11 +1,4 @@
-import type {
-  Instant,
-  ItemId,
-  ItemRef,
-  NoticeOutcome,
-  NoticeRow,
-  NoticeTryUpdate,
-} from '@boxxy/model';
+import type { Instant, NoticeOutcome, NoticeRow, NoticeTryUpdate } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { match } from 'ts-pattern';
 import { noticeLimits } from './constants.ts';
@@ -51,7 +44,20 @@ async function tell(input: SendNoticesInput, row: NoticeRow): Promise<NoticeOutc
 }
 
 async function sendRow(input: SendNoticesInput, row: NoticeRow): Promise<NoticeOutcome> {
-  const itemRef = row.kind === 'runner-paused' ? null : await readNoticeItemRef(input, row.item);
+  if (row.kind === 'runner-paused') {
+    return input.notifier.tellPaused({
+      ...row.pause,
+      at: row.at,
+      key: buildNoticeKey(row),
+    });
+  }
+
+  const itemRef = await input.store.read((tx) => tx.readItemRef(row.item));
+
+  // a notice for an item the store lacks has nothing to name, so it waits like a refused try
+  if (itemRef === null) {
+    return { kind: 'refused', reason: 'item-not-found' };
+  }
 
   return match(row)
     .with({ kind: 'hold' }, (hold) =>
@@ -62,9 +68,6 @@ async function sendRow(input: SendNoticesInput, row: NoticeRow): Promise<NoticeO
         at: hold.at,
         key: buildNoticeKey(hold),
       }),
-    )
-    .with({ kind: 'runner-paused' }, (paused) =>
-      input.notifier.tellPaused({ ...paused.pause, at: paused.at, key: buildNoticeKey(paused) }),
     )
     .with({ kind: 'notify' }, (notify) =>
       input.notifier.tellNotify({
@@ -77,10 +80,6 @@ async function sendRow(input: SendNoticesInput, row: NoticeRow): Promise<NoticeO
       }),
     )
     .exhaustive();
-}
-
-function readNoticeItemRef(input: SendNoticesInput, item: ItemId): Promise<ItemRef | null> {
-  return input.store.read((tx) => tx.readItemRef(item));
 }
 
 function buildNoticeKey(row: NoticeRow): string {

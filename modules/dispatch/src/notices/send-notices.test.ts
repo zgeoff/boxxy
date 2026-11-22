@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { NoticeRow, Notifier } from '@boxxy/model';
+import type { ItemId, NoticeRow, Notifier } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { createFakeNotifier } from '@boxxy/model/test-utils/create-fake-notifier';
 import { createTestDispatch } from '../test-utils/create-test-dispatch.ts';
@@ -11,7 +11,10 @@ async function setupTest() {
 
   const notifier = createFakeNotifier();
 
-  const insertNotice = (overrides: Partial<Extract<NoticeRow, { kind: 'hold' }>> = {}) =>
+  const insertNotice = (
+    item: ItemId,
+    overrides: Partial<Extract<NoticeRow, { kind: 'hold' }>> = {},
+  ) =>
     dispatch.store.exclusive((tx) =>
       tx.applyChange({
         at: dispatch.clock.now(),
@@ -22,7 +25,7 @@ async function setupTest() {
             row: {
               id: 1,
               kind: 'hold',
-              item: brandSchemas.itemId.parse('0190a6f4-0000-7000-8000-0000000000a1'),
+              item,
               reason: brandSchemas.rulesHoldReason.parse('blocked'),
               pause: null,
               at: dispatch.clock.now(),
@@ -39,7 +42,7 @@ async function setupTest() {
       }),
     );
 
-  const insertNotifyNotice = () =>
+  const insertNotifyNotice = (item: ItemId) =>
     dispatch.store.exclusive((tx) =>
       tx.applyChange({
         at: dispatch.clock.now(),
@@ -50,7 +53,7 @@ async function setupTest() {
             row: {
               id: 1,
               kind: 'notify',
-              item: brandSchemas.itemId.parse('0190a6f4-0000-7000-8000-0000000000a1'),
+              item,
               phase: brandSchemas.phaseName.parse('live'),
               reason: 'wait-skip:shipped',
               pause: null,
@@ -99,8 +102,9 @@ async function setupTest() {
 
 test('it sends an unsent notice under its key and marks it sent', async () => {
   const ctx = await setupTest();
+  const item = await ctx.seedItem({});
 
-  await ctx.insertNotice();
+  await ctx.insertNotice(item);
 
   const report = await ctx.send();
   const unsent = await ctx.listUnsent();
@@ -114,8 +118,9 @@ test('it sends an unsent notice under its key and marks it sent', async () => {
 
 test('it keeps a refused notice unsent, reports the reason, and changes no fact', async () => {
   const ctx = await setupTest();
+  const item = await ctx.seedItem({});
 
-  await ctx.insertNotice();
+  await ctx.insertNotice(item);
 
   const factsBefore = await ctx.listFactTypes();
 
@@ -137,8 +142,9 @@ test('it keeps a refused notice unsent, reports the reason, and changes no fact'
 
 test('it waits 5 seconds after the first try and does not try a row before its time', async () => {
   const ctx = await setupTest();
+  const item = await ctx.seedItem({});
 
-  await ctx.insertNotice();
+  await ctx.insertNotice(item);
 
   ctx.notifier.failAlways(ctx.refused);
 
@@ -163,8 +169,9 @@ test.each([
   [60, 900_000],
 ])('it sets the next try of try %i to %i ms after it', async (tries, waitMs) => {
   const ctx = await setupTest();
+  const item = await ctx.seedItem({});
 
-  await ctx.insertNotice({ tries: tries - 1 });
+  await ctx.insertNotice(item, { tries: tries - 1 });
 
   ctx.notifier.failNext(ctx.refused);
 
@@ -179,8 +186,9 @@ test.each([
 
 test('it still tries a row that has 50 tries', async () => {
   const ctx = await setupTest();
+  const item = await ctx.seedItem({});
 
-  await ctx.insertNotice({ tries: 50 });
+  await ctx.insertNotice(item, { tries: 50 });
 
   const report = await ctx.send();
 
@@ -189,8 +197,9 @@ test('it still tries a row that has 50 tries', async () => {
 
 test('it sends a notice again on a later tick after a refusal, under a new key', async () => {
   const ctx = await setupTest();
+  const item = await ctx.seedItem({});
 
-  await ctx.insertNotice();
+  await ctx.insertNotice(item);
 
   ctx.notifier.failNext(ctx.refused);
 
@@ -208,8 +217,9 @@ test('it sends a notice again on a later tick after a refusal, under a new key',
 
 test('it keeps the key after an uncertain try', async () => {
   const ctx = await setupTest();
+  const item = await ctx.seedItem({});
 
-  await ctx.insertNotice();
+  await ctx.insertNotice(item);
 
   ctx.notifier.failNext(ctx.uncertain);
 
@@ -221,8 +231,9 @@ test('it keeps the key after an uncertain try', async () => {
 
 test('it takes a new key after the third uncertain try', async () => {
   const ctx = await setupTest();
+  const item = await ctx.seedItem({});
 
-  await ctx.insertNotice();
+  await ctx.insertNotice(item);
 
   ctx.notifier.failAlways(ctx.uncertain);
 
@@ -241,8 +252,9 @@ test('it takes a new key after the third uncertain try', async () => {
 
 test('it keeps the key after a refused try that follows an uncertain one', async () => {
   const ctx = await setupTest();
+  const item = await ctx.seedItem({});
 
-  await ctx.insertNotice();
+  await ctx.insertNotice(item);
 
   ctx.notifier.failNext(ctx.uncertain);
 
@@ -262,8 +274,9 @@ test('it keeps the key after a refused try that follows an uncertain one', async
 
 test('it keeps the key of a row across a restart, because the key comes from the row', async () => {
   const ctx = await setupTest();
+  const item = await ctx.seedItem({});
 
-  await ctx.insertNotice({ keySeq: 4, keyTries: 2 });
+  await ctx.insertNotice(item, { keySeq: 4, keyTries: 2 });
 
   ctx.notifier.failNext(ctx.uncertain);
 
@@ -276,8 +289,9 @@ test('it keeps the key of a row across a restart, because the key comes from the
 
 test('it counts a notifier that throws as an uncertain try', async () => {
   const ctx = await setupTest();
+  const item = await ctx.seedItem({});
 
-  await ctx.insertNotice();
+  await ctx.insertNotice(item);
 
   const report = await ctx.send({
     tellHold: () => Promise.reject(new Error('socket closed')),
@@ -296,8 +310,9 @@ test('it counts a notifier that throws as an uncertain try', async () => {
 
 test('it marks every notice sent through the null notifier', async () => {
   const ctx = await setupTest();
+  const item = await ctx.seedItem({});
 
-  await ctx.insertNotice();
+  await ctx.insertNotice(item);
 
   const report = await ctx.send(createNullNotifier());
   const unsent = await ctx.listUnsent();
@@ -307,8 +322,9 @@ test('it marks every notice sent through the null notifier', async () => {
 
 test('it sends a notify notice with its phase and reason, and marks it sent', async () => {
   const ctx = await setupTest();
+  const item = await ctx.seedItem({});
 
-  await ctx.insertNotifyNotice();
+  await ctx.insertNotifyNotice(item);
 
   const report = await ctx.send();
 
@@ -317,3 +333,28 @@ test('it sends a notify notice with its phase and reason, and marks it sent', as
     ctx.notifier.toldNotify.map((notice) => [notice.phase, notice.reason, notice.key]),
   ]).toStrictEqual([1, [['live', 'wait-skip:shipped', 'boxxy-notice:1:0']]]);
 });
+
+test.each([
+  ['hold', (ctx: Awaited<ReturnType<typeof setupTest>>, item: ItemId) => ctx.insertNotice(item)],
+  [
+    'notify',
+    (ctx: Awaited<ReturnType<typeof setupTest>>, item: ItemId) => ctx.insertNotifyNotice(item),
+  ],
+])(
+  'it keeps a %s notice for an unstored item unsent and does not tell the notifier',
+  async (_kind, insert) => {
+    const ctx = await setupTest();
+
+    await insert(ctx, brandSchemas.itemId.parse('0190a6f4-0000-7000-8000-0000000000a1'));
+
+    const report = await ctx.send();
+    const [row] = await ctx.listUnsent();
+
+    expect([report, ctx.notifier.calls(), row?.tries, row?.sentAt]).toStrictEqual([
+      { sent: 0, failed: 1, lastError: 'item-not-found' },
+      0,
+      1,
+      null,
+    ]);
+  },
+);

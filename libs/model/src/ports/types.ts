@@ -441,9 +441,7 @@ export interface Notifier {
 // A step that ended or skipped with a reason the owner should read, and no hold.
 export interface NotifyNotice {
   readonly item: ItemId;
-
-  // null when the store holds no such item; the message then names the ID
-  readonly itemRef: ItemRef | null;
+  readonly itemRef: ItemRef;
   readonly phase: PhaseName;
   readonly reason: string;
   readonly at: Instant;
@@ -469,9 +467,7 @@ export interface PausedNotice {
 
 export interface HoldNotice {
   readonly item: ItemId;
-
-  // null when the store holds no such item; the message then names the ID
-  readonly itemRef: ItemRef | null;
+  readonly itemRef: ItemRef;
   readonly reason: HoldReason;
   readonly at: Instant;
 
