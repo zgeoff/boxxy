@@ -3,6 +3,8 @@ export { buildCriteria } from './utils/build-criteria.ts';
 export { dedupeOpenItems } from './dedupe-open-items.ts';
 export { measureJsonBytes } from './measure-json-bytes.ts';
 export { phaseKinds } from './phase-kinds.ts';
+export { splitFriction } from './build-schema-parser.ts';
+export type { FrictionSplit } from './build-schema-parser.ts';
 export { build } from './phases/build.ts';
 export { design } from './phases/design.ts';
 export { createReviewPhase } from './phases/create-review-phase.ts';

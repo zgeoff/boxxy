@@ -177,16 +177,17 @@ always reaches pepys; it also bounds a design's text, which has no limit of its 
 
 A `built` build close-out that cites a `check` or a `verdict` also gets the head of the item's pull
 request. The server parses the body first, and reads the head from GitHub only for a body that is
-valid, `built` and cites checked evidence, outside the store lock. `blocked` and `abandoned`
-close-outs, a body that cites no checked evidence, and a resend of a recorded close-out never wait
-on GitHub. A failed read answers `retry` and settles nothing, and the CLI exits as for an evidence
-`retry`. The build phase kind then gives each cited `check` or `verdict` whose recorded head differs
-from the head one `stale-evidence` problem: the criterion, the evidence ID, the head it was recorded
-at, and the current head. The problem names the current head as null when the pull request is closed
-or merged, or the item has none, and each cited `check` or `verdict` of that close-out then gets the
-problem. The agent records the check or verdict again at the new head and cites the new ID. The
-parser never re-checks the citations of an earlier round's close-out, and no other evidence kind
-gets the problem.
+valid, `built` and cites checked evidence, outside the store lock. Validity is the parser's: an
+agent's own `frictionDropped` count and a friction entry with no target do not make a body invalid.
+`blocked` and `abandoned` close-outs, a body that cites no checked evidence, and a resend of a
+recorded close-out never wait on GitHub. A failed read answers `retry` and settles nothing, and the
+CLI exits as for an evidence `retry`. The build phase kind then gives each cited `check` or
+`verdict` whose recorded head differs from the head one `stale-evidence` problem: the criterion, the
+evidence ID, the head it was recorded at, and the current head. The problem names the current head
+as null when the pull request is closed or merged, or the item has none, and each cited `check` or
+`verdict` of that close-out then gets the problem. The agent records the check or verdict again at
+the new head and cites the new ID. The parser never re-checks the citations of an earlier round's
+close-out, and no other evidence kind gets the problem.
 
 The close-out parser returns every problem at once, except that a close-out which fails the schema
 gets only its schema problems. Each problem's path points at the index the agent sent. The parser

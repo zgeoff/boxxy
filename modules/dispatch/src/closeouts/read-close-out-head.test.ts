@@ -256,3 +256,21 @@ test('it answers a resend of a recorded close-out without reading the forge', as
 
   expect(ctx.forge.calls.slice(callsBefore)).toStrictEqual([]);
 });
+
+test('it records a built close-out that sends its own frictionDropped and an untargeted friction entry', async () => {
+  const ctx = await setupTest();
+  const evidence = await ctx.record({ kind: 'check', ref: 'pr / checks' });
+
+  const answer = await ctx.closeOut(ctx.attempt, {
+    ...ctx.buildBody(evidence, { kind: 'built' }),
+    frictionDropped: 3,
+    friction: [{ change: 'Allow 5 in parsers' }],
+  });
+
+  expect(answer).toStrictEqual({
+    kind: 'recorded',
+    attempt: ctx.attempt.id,
+    factId: expect.any(String),
+    repeat: false,
+  });
+});
