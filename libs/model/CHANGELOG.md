@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.5](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.3.4...@boxxy/model@0.3.5) (2026-11-22)
+
+
+### Features
+
+* add check and verdict evidence kinds to the model ([#285](https://github.com/zgeoff/boxxy/issues/285)) ([19021f1](https://github.com/zgeoff/boxxy/commit/19021f112f891b9e8f54636b5309b829a6f28b76))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/content-hash bumped to 0.3.5
+
 ## [0.3.4](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.3.3...@boxxy/model@0.3.4) (2026-11-22)
 
 ### Features
