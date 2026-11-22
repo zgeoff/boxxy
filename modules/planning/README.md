@@ -33,7 +33,7 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
   values, and each plug-in fault ([planning](../../docs/architecture/work/planning.md)).
 - `decide`, which puts each wake first, then picks pool by pool while each limit that counts a pick
   has a free seat. It returns the reason for each item and wake it passes over. It reads the pools
-  and their order from the frame, so it never names a concept
+  and their order from the frame as data, so its code never names a concept
   ([planning: limits and the decision](../../docs/design/boxxy/planning.md#limits-and-the-decision)).
 - `concepts`, the `pool`, `defer` and `expedite` concepts
   ([signals and propagation](../../docs/architecture/work/planning.md#signals-and-propagation)).

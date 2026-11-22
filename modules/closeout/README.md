@@ -11,10 +11,11 @@
   </p>
 </div>
 
-The package holds boxxy's phase kinds: triage, design, build, review, verify, merge and live. The
-server builds the review phase kind from the review gate and adds it to the rest. Each one gives the
-input of an attempt, checks the close-out sent at the end of it, and settles the attempt from that
-close-out. The merge phase kind runs on a job worker, and its drive decides each read of the job.
+The package holds boxxy's phase kinds: triage, design, build, verify, merge and live, and the
+builder of the review phase kind. The server builds the review phase kind from its review gate. Each
+one gives the input of an attempt, checks the close-out sent at the end of it, and settles the
+attempt from that close-out. The merge phase kind runs on a job worker, and its drive decides each
+read of the job.
 
 The package does no I/O: the caller passes in the item, its attempts, the attempt's evidence rows
 and what a close-out may name.

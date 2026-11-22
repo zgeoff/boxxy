@@ -226,7 +226,7 @@ From slice 2, `rules.yaml` opens with this comment. Its sentence on how fast a m
 ## Out of scope
 
 - Replay CI on the rules repository ([replay CI](./rules.md#replay-ci)). The rules check loads the file; it does not replay facts.
-- A `runner.status` field that shows the time of the last fetch. The server cannot see git-sync's result, so the alert is the signal for a stale checkout.
+- A `runner.status` field that shows the time of the last fetch. The server cannot see git-sync's result, so the alert is the signal for a stale checkout. Whether a later change needs the field is an open question below.
 
 ## Open questions
 
