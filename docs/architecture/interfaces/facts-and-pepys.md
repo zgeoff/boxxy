@@ -107,8 +107,8 @@ stream `facts.boxxy.runner`. These rules hold for the work facts:
   `head`, the commit SHA the server read, for `check` and `verdict`, and has no `head` for any other
   kind. The model's `refineEvidenceHead` enforces that rule, and the wire schema applies it after it
   adds the store version. A fact written before the kinds and the field has an old kind and no
-  `head`, and still parses. The `attempt.evidence` input does not yet accept `check` or `verdict`,
-  so the server writes neither kind.
+  `head`, and still parses. The `attempt.evidence` input accepts neither `check` nor `verdict`, so
+  the server writes neither kind.
 - **Some outcomes write no fact of their own.** A settle for `stalled`, `skill-missing` or a
   capacity refusal shows only on the `settled` fact. A capacity refusal carries atc's code, cause
   and message in the fact's `refusal` field; a fact written before the field reads as no refusal.
