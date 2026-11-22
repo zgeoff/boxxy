@@ -120,7 +120,13 @@ export const itemHandlers = {
         ],
       });
 
-      return { item: row.id };
+      const ref = await tx.readItemRef(row.id);
+
+      if (ref === null) {
+        throw new Error('the filed item has no short reference');
+      }
+
+      return { item: row.id, ref };
     });
   }),
   edit: api.item.edit.handler((options) => {

@@ -47,6 +47,12 @@ const text100 = z.string().min(1).max(100);
 const text200 = z.string().min(1).max(200);
 const text1000 = z.string().min(1).max(1000);
 const itemOutput = z.object({ item: id });
+
+const itemFiledOutput = z.object({
+  item: id,
+  ref: id.describe('The short reference of the new item, such as i-12.'),
+});
+
 const leverOutput = z.object({ lever: count });
 const itemInput = z.object({ item: itemId });
 const emptyInput = z.object({});
@@ -339,7 +345,7 @@ export const contract = {
     // same change writes the `item.held` lever and its `boxxy.lever.recorded`.
     file: tool(
       'item_file',
-      'Files a new item of work. boxxy runs it through triage, design, build and review. Returns the item ID.',
+      'Files a new item of work. boxxy runs it through triage, design, build and review. Returns the item ID and its short reference.',
     )
       .errors({
         NOT_FOUND: { message: 'a blockedBy item does not exist', data: notFoundData },
@@ -350,7 +356,7 @@ export const contract = {
         ...factTooLarge,
       })
       .input(itemFileInput)
-      .output(itemOutput),
+      .output(itemFiledOutput),
 
     // Writes `boxxy.item.edited`. The edit does not change a field that is absent.
     edit: tool(

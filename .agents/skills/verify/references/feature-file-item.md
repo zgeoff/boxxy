@@ -16,6 +16,8 @@ bun verify boxxy item --title "Follow the system theme" --by-ref
 
 ## End state
 
-- `bun verify action file-item` exits 0. It exits 1 when the boxxy server refuses the item.
+- `bun verify action file-item` exits 0: `boxxy item file` answered with a short reference of the
+  form `i-<n>` beside the item ID. It exits 1 when the boxxy server refuses the item or answers no
+  reference.
 - `bun verify boxxy item` exits 0: boxxy shows the title that `action file-item` filed, with a short
   reference of the form `i-<n>`, and `boxxy item show` on that reference shows the same item.

@@ -29,9 +29,30 @@ async function setupTest() {
     return { status: response.status, body: await response.json() };
   };
 
+  // an item in the state a call under test needs
+  const seed = {
+    plain: () => server.dispatch.seedItem({}),
+    held: async () => {
+      const filed = await callOwner('item.file', {
+        repo: 'example/app',
+        title: 'Draft a dark theme',
+        outcome: 'The app has a dark theme.',
+        held: { reason: 'still a draft' },
+      });
+
+      return brandSchemas.itemId.parse(answerSchema.parse(filed.body).json.item);
+    },
+    atSignoff: async () => {
+      const waiting = await seedSignoffWait(server.dispatch, server.forge);
+
+      return waiting.item;
+    },
+  };
+
   return {
     ...server,
     callOwner,
+    seed,
 
     // the item that a call answered, the error code, the body of a shown item and the keys of the
     // first listed row
@@ -757,19 +778,98 @@ test.each([
   },
 );
 
-test.each([
-  ['item.note', { text: 'A note' }],
-  ['item.edit', { title: 'A new title' }],
-  ['item.retry', {}],
-  ['plan.defer', { reason: 'later' }],
-])('it takes a short reference in place of the ID on %s', async (procedure, input) => {
+test.each<[string, 'plain' | 'held' | 'atSignoff', (item: string) => unknown]>([
+  ['item.get', 'plain', (item: string) => ({ item })],
+  ['item.edit', 'plain', (item: string) => ({ item, title: 'A new title' })],
+  ['item.close', 'plain', (item: string) => ({ item, reason: 'no longer needed' })],
+  ['item.retry', 'plain', (item: string) => ({ item })],
+  ['item.wake', 'plain', (item: string) => ({ item })],
+  ['item.release', 'held', (item: string) => ({ item })],
+  ['item.note', 'plain', (item: string) => ({ item, text: 'A note' })],
+  [
+    'item.signoff',
+    'atSignoff',
+    (item: string) => ({
+      item,
+      head: 'e83c5163316f89bfbde7d9ab23ca2e25604af290',
+      verdict: 'approve',
+    }),
+  ],
+  ['plan.defer', 'plain', (item: string) => ({ item, reason: 'later' })],
+  ['plan.undefer', 'plain', (item: string) => ({ item })],
+  ['plan.expedite', 'plain', (item: string) => ({ items: [item], reason: 'now' })],
+  ['plan.unexpedite', 'plain', (item: string) => ({ item })],
+  ['report.cost', 'plain', (item: string) => ({ item })],
+  ['report.stageTimes', 'plain', (item: string) => ({ item })],
+])('it takes a short reference in place of the ID on %s', async (procedure, seed, build) => {
+  const refCtx = await setupTest();
+  const idCtx = await setupTest();
+  const refItem = await refCtx.seed[seed]();
+  const idItem = await idCtx.seed[seed]();
+  const refAnswer = await refCtx.callOwner(procedure, build('i-1'));
+  const idAnswer = await idCtx.callOwner(procedure, build(idItem));
+  const refStored = await refCtx.readItem(refItem);
+  const idStored = await idCtx.readItem(idItem);
+  const refLevers = await refCtx.dispatch.listFacts('boxxy.lever.recorded');
+  const idLevers = await idCtx.dispatch.listFacts('boxxy.lever.recorded');
+  const refEdits = await refCtx.dispatch.listFacts('boxxy.item.edited');
+  const idEdits = await idCtx.dispatch.listFacts('boxxy.item.edited');
+  const refCloses = await refCtx.dispatch.listFacts('boxxy.item.closed');
+  const idCloses = await idCtx.dispatch.listFacts('boxxy.item.closed');
+
+  const byRef = {
+    answer: refAnswer,
+    stored: refStored,
+    facts: [refLevers, refEdits, refCloses].map((list) => list.map((fact) => fact.payload)),
+  };
+
+  const byID = {
+    answer: idAnswer,
+    stored: idStored,
+    facts: [idLevers, idEdits, idCloses].map((list) => list.map((fact) => fact.payload)),
+  };
+
+  expect(refAnswer.status).toBe(200);
+  expect(byRef).toStrictEqual(byID);
+});
+
+test('it takes short references on relation.add and relation.remove in place of the IDs', async () => {
   const ctx = await setupTest();
+  const source = await ctx.dispatch.seedItem({});
+  const target = await ctx.dispatch.seedItem({});
 
-  await ctx.dispatch.seedItem({});
+  const link = { source: 'i-1', target: 'i-2', type: 'blocks' };
 
-  const answer = await ctx.callOwner(procedure, { item: 'i-1', ...input });
+  const added = await ctx.callOwner('relation.add', link);
+  const facts = await ctx.dispatch.listFacts('boxxy.relation.added');
+  const removed = await ctx.callOwner('relation.remove', link);
+  const removedAgain = await ctx.callOwner('relation.remove', link);
 
-  expect(answer.status).toBe(200);
+  expect([added.body, removed.body, removedAgain.body]).toStrictEqual([
+    { json: { kind: 'added' } },
+    { json: { removed: true } },
+    { json: { removed: false } },
+  ]);
+
+  expect(facts.map((fact) => fact.payload)).toStrictEqual([
+    expect.objectContaining({ source, target, type: 'blocks' }),
+  ]);
+});
+
+test('#file answers the short reference of the item it filed', async () => {
+  const ctx = await setupTest();
+  const first = await ctx.callOwner('item.file', { repo: 'example/app', title: 'A', outcome: 'B' });
+
+  const second = await ctx.callOwner('item.file', {
+    repo: 'example/app',
+    title: 'C',
+    outcome: 'D',
+  });
+
+  expect([first.body, second.body]).toStrictEqual([
+    { json: { item: expect.any(String), ref: 'i-1' } },
+    { json: { item: expect.any(String), ref: 'i-2' } },
+  ]);
 });
 
 test('#file with blockedBy takes a short reference', async () => {

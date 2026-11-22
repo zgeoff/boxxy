@@ -15,7 +15,7 @@ export const reportHandlers = {
     );
 
     return report.kind === 'value'
-      ? { ...report.value, item, behind: report.behind }
+      ? { ...report.value, item: report.item, behind: report.behind }
       : throwReportError(report, options.errors, item);
   }),
   stageTimes: api.report.stageTimes.handler(async (options) => {
@@ -26,7 +26,7 @@ export const reportHandlers = {
     );
 
     return report.kind === 'value'
-      ? { ...report.value, item, behind: report.behind }
+      ? { ...report.value, item: report.item, behind: report.behind }
       : throwReportError(report, options.errors, item);
   }),
 };
@@ -34,6 +34,7 @@ export const reportHandlers = {
 type Report<Value> =
   | {
       readonly kind: 'value';
+      readonly item: ItemId;
       readonly value: Value;
       readonly behind: { readonly facts: number; readonly oldestAt: number | null };
     }
@@ -72,7 +73,7 @@ async function readReport<Value>(
   const answer = await read(deps.pepys, found.id);
 
   return answer.kind === 'value'
-    ? { kind: 'value', value: answer.value, behind: found.behind }
+    ? { kind: 'value', item: found.id, value: answer.value, behind: found.behind }
     : { kind: 'unavailable', reason: answer.reason };
 }
 

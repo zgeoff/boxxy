@@ -87,7 +87,7 @@ body or a token never reaches the log.
 Every item has two names: its ID, a UUIDv7 that never changes, and its short reference, `i-<n>`,
 such as `i-12`. [The store](../work/store.md#short-references) numbers each item when it files it.
 Every item view that the CLI, the MCP tools and `item.list` return carries the reference in `ref`
-beside `id`.
+beside `id`, and `item.file` answers with the `ref` of the item it filed beside its `item` ID.
 
 Every procedure that takes an item accepts either name: `item.get`, the commands on one item, the
 planning levers, `relation.add`, the `blockedBy` list of `item.file`, `item.signoff`, the reports

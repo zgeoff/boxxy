@@ -30,7 +30,7 @@ export async function fileItem(
       '--acceptance',
       `${input.title} works.`,
     ],
-    schema: z.object({ item: z.string() }),
+    schema: z.object({ item: z.string(), ref: z.string().regex(/^i-[1-9][0-9]*$/u) }),
   });
 
   await postControl(ctx, controlRoutes.setCurrent, {
