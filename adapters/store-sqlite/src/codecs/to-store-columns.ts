@@ -34,7 +34,7 @@ export function toStoreColumns(table: TableName, fields: object): [string, Store
 const headSeparator = '@';
 
 function qualifyEvidenceRef(fields: object): object {
-  const entries = Object.entries(fields);
+  const entries: [string, unknown][] = Object.entries(fields);
   const head = entries.find(([field]) => field === 'head')?.[1];
 
   if (typeof head !== 'string') {
