@@ -130,9 +130,9 @@ The rule has these other entries:
   another only through an entry in its `exports`, such as `.` or `./test-utils/*`.
 
 oRPC has no entry, so a reviewer checks its rule: only the contract lib defines procedures, the
-server serves them and calls the pepys query API, and the CLI calls the server. Two test helpers
-outside the apps also import the oRPC or MCP libraries: the atc stand-in in the atc worker serves
-atc's tools over MCP, and the test pepys deployment calls the pepys query API.
+server serves them and calls the pepys query API through `packages/pepys`, and the CLI calls the
+server. Two test helpers outside the apps also import the oRPC or MCP libraries: the atc stand-in in
+the atc worker serves atc's tools over MCP, and the test pepys deployment calls the pepys query API.
 
 ## Inside a package
 

@@ -50,9 +50,10 @@ the rows and facts each one writes.
   even when it holds a close-out. Otherwise it settles by its close-out.
 
 An attempt takes its seats at the claim, gives them back when it sleeps, takes them again at the
-wake before the session resumes, and gives them back at the settle; `closing` keeps them. From claim
-to settle it also holds the lease on its item and phase, a store row that lets only one attempt at a
-time run that phase.
+wake, before the session resumes or, for a session the owner revived, over its limits when no seat
+comes free in time, and gives them back at the settle; `closing` keeps them. From claim to settle it
+also holds the lease on its item and phase, a store row that lets only one attempt at a time run
+that phase.
 
 ## Two writers, one attempt
 
@@ -313,8 +314,8 @@ A failure the runner sets wins over any close-out the attempt holds, and such a 
 effects, so it files none of the close-out's open items. An attempt fails with `closeout-missing`
 when it settles with no close-out and none of the failures below. An attempt whose
 [design or build close-out](../../design/boxxy/close-outs.md#the-v1-phase-kinds) has the outcome
-`blocked` or `abandoned` fails with `closeout-missing` too. Apart from `closeout-unsettleable`,
-which settle sets as the paragraph above says, the runner sets every other failure:
+`blocked` or `abandoned` fails with `closeout-missing` too. Settle sets `closeout-missing`, and
+`closeout-unsettleable` as the paragraph above says. The runner sets every other failure:
 
 | Failure         | Cause                                                                                                                                                     | Counts against `maxAttempts` |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |

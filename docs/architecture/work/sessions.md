@@ -72,9 +72,9 @@ destroys the session's imp. Cleanup is the last session step of each tick. It fo
 session that is due, and the session of each settled attempt that isn't kept, on the first tick
 after the attempt settles, whatever its outcome. A stray's session is the one exception, as the next
 paragraph says. Only the kept session lets a later attempt carry on in the same session, so no other
-settled session waits. Cleanup never forgets the session of a live attempt, a sleeping one included,
-because the attempt still runs in it. A forget that atc doesn't confirm changes nothing, and cleanup
-tries again next tick.
+settled session waits, apart from the stray's. Cleanup never forgets the session of a live attempt,
+a sleeping one included, because the attempt still runs in it. A forget that atc doesn't confirm
+changes nothing, and cleanup tries again next tick.
 
 atc refuses to forget a live session, so a stray's session needs a confirmed stop first. A stray is
 an attempt that settled while its session may still run
@@ -174,9 +174,9 @@ carries the cause `capacity` or `other`.
 - **`capacity`** is `host_unavailable` with the problem `ram_budget_exceeded`. atc's imp provider
   puts impd's error code there in lower case, and impd answers `RAM_BUDGET_EXCEEDED` when no budget
   is left for another imp.
-- **`other`** is any other atc error code, a malformed result, or a JSON-RPC error that refuses the
-  request before it runs (parse error, invalid request, method not found or invalid params), which
-  the client codes as `protocol_error`.
+- **`other`** is any other atc error code, apart from `no_such_session` on a spawn, a malformed
+  result, or a JSON-RPC error that refuses the request before it runs (parse error, invalid request,
+  method not found or invalid params), which the client codes as `protocol_error`.
 - **`unknown`** is a timeout, a dropped connection, an HTTP 5xx, any other JSON-RPC error,
   `outcome_unknown` or `idempotency_key_unknown`, because atc may have run the call.
 
