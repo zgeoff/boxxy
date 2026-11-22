@@ -72,9 +72,11 @@ caller of the state code runs each wait and passes the answers in, so the state 
 kind. A step with `criteria` runs on the matching lines alone: the phase input and the launch
 prompt's `acceptance` hold only the lines with the tag, and the close-out check of its attempt
 checks only those lines. An item with an empty acceptance list has no tagged line, so a `criteria`
-gate skips its step. The tags an acceptance line may carry are the rules file's `criterionTags`.
-`item file`, `item edit` and a triage or design close-out that sets acceptance refuse a tag the list
-lacks, and a tag stays on its line in the item's state, its facts and `item show`.
+gate on triage or design skips its step; the claim never reaches a later step of such an item, as
+[derived item state](#derived-item-state) says. The tags an acceptance line may carry are the rules
+file's `criterionTags`. `item file`, `item edit` and a triage or design close-out that sets
+acceptance refuse a tag the list lacks, and a tag stays on its line in the item's state, its facts
+and `item show`.
 
 A step with `waits` may also set `waitNoticeHours: <hours>`, the time that an item may wait at the
 step before the owner gets one notice ([the overdue wait](./notices.md#the-notify-notice)). It
@@ -115,8 +117,8 @@ the item's position: a phase, an end or a hold.
   outcome of its phase, such as one with no valid close-out. `lost` acts as `again`, except that the
   engine skips a `no-capacity` or `usage-limit` failure, because that work never ran. `unsettleable`
   marks a close-out the phase code could not settle. It is the engine's outcome, not one of the
-  phase kind's, so it has no edge and the item holds. `skipped` marks a step a
-  [gate](#step-gates-and-skips) skipped, and takes the step's `skip` edge.
+  phase kind's, so it has no edge and the item holds with `outcome not in rules`. `skipped` marks a
+  step a [gate](#step-gates-and-skips) skipped, and takes the step's `skip` edge.
 - **The engine adds three holds:** `attempts used up`, `rounds used up` and `outcome not in rules`.
   When a newer phase kind drops an outcome, an item whose stored outcome lost its edge holds with
   `outcome not in rules`. It never falls through to `next`, so no item skips a phase unchecked. The
@@ -282,7 +284,7 @@ example with `{{ ticket }}`.
 
 ## The build close-out
 
-A `built` close-out cites evidence for every line of the item's acceptance list, and the cited IDs
+A `built` close-out cites evidence for every acceptance line in its phase input, and the cited IDs
 join the list when the attempt settles. The server checks nothing about a `test`, `ci-run` or
 `live-check` citation. A `check` or `verdict` citation is checked evidence: the server read the
 result from GitHub at the pull request's head when the agent recorded it, and refuses the close-out

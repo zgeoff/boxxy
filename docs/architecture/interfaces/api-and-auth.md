@@ -28,8 +28,9 @@ flowchart LR
   worker_l --> router
 ```
 
-The contract lives in `@boxxy/contract`, and the server builds one oRPC router from it, so every
-listener serves the same procedures. Set each listener's address in the server config.
+The contract lives in `@boxxy/contract`, and the server builds one oRPC router from it for every
+listener. The caller's path decides which procedures a listener lets it reach
+([the paths](#the-paths)). Set each listener's address in the server config.
 
 - **The owner listener** serves `/rpc` for the CLI, `/mcp` for the owner's agent, and `/healthz`. It
   runs a request with no token as the owner, so the owner's private network is its only gate.
@@ -47,12 +48,12 @@ POST with no CORS preflight, and DNS rebinding lets a page pass for the listener
 
 ## The procedures
 
-Each procedure is `<group>.<verb>`, and its MCP tool is `<group>_<verb>`. Each procedure sets its
-own tool name, so renaming a router key never renames a tool. An answer the caller acts on in its
-normal flow is one member of the procedure's output union, and each member has its own `kind`; a
-call that names something that doesn't exist throws a typed error. The server accepts the previous
-CLI version, because the CLI ships in the agent image, which can lag a server deploy. Never remove
-or rename anything the previous CLI sends or reads.
+Each procedure is `<group>.<verb>`, and a procedure with an MCP tool names it `<group>_<verb>`. Each
+procedure sets its own tool name, so renaming a router key never renames a tool. An answer the
+caller acts on in its normal flow is one member of the procedure's output union, and each member has
+its own `kind`; a call that names something that doesn't exist throws a typed error. The server
+accepts the previous CLI version, because the CLI ships in the agent image, which can lag a server
+deploy. Never remove or rename anything the previous CLI sends or reads.
 
 The contract's access table gives each procedure its caller (`owner`, `session` or `hook`), the
 actor its [fact](./facts-and-pepys.md) records, the MCP endpoint that lists it, its CLI usage line,
@@ -96,9 +97,9 @@ such as `i-12`. [The store](../work/store.md#short-references) numbers each item
 Every item view that the CLI, the MCP tools and `item.list` return carries the reference in `ref`
 beside `id`, and `item.file` answers with the `ref` of the item it filed beside its `item` ID.
 
-Every procedure that takes an item accepts either name: `item.get`, the commands on one item, the
-planning levers, `relation.add`, the `blockedBy` list of `item.file`, `item.signoff`, the reports
-and `attempt.getItem`. One resolver in the server turns the value into an ID. A value in the form
+These procedures accept either name for an item: `item.get`, the commands on one item, the planning
+levers, `relation.add`, the `blockedBy` list of `item.file`, `item.signoff`, the reports and
+`attempt.getItem`. One resolver in the server turns the value into an ID. A value in the form
 `i-<n>` is looked up by its number, and any other value must be an ID. A reference that no item has
 gets the same `NOT_FOUND`, with the value as sent, as an ID that no item has.
 
@@ -174,11 +175,11 @@ plain HTTP. On any other address the owner puts a TLS-terminating proxy, such as
 front, and the server refuses to start unless `publicURL` is `https`. `publicURL` is the OAuth
 issuer, and `<publicURL>/mcp` is the one resource every token is bound to.
 
-- **The owner adds each client by hand,** with `boxxy auth clients add`. A client signs in with PKCE
-  S256 and no client secret, and the listener has no dynamic client registration.
-- **Every authorization needs the owner.** It takes a fresh passkey sign-in, then a consent page
-  listing the scopes asked for, with only `read` ticked to start. The owner enrolls a passkey with
-  `boxxy auth enroll`, which prints a one-time link with an expiry.
+- **The owner adds each interactive client by hand,** with `boxxy auth clients add`. Such a client
+  signs in with PKCE S256 and no client secret, and the listener has no dynamic client registration.
+- **Every authorization of an interactive client needs the owner.** It takes a fresh passkey
+  sign-in, then a consent page listing the scopes asked for, with only `read` ticked to start. The
+  owner enrolls a passkey with `boxxy auth enroll`, which prints a one-time link with an expiry.
 - **An agent with no person present signs in as a service client.** It sends `service:<name>` and
   its secret to `/oauth2/token` with the `client_credentials` grant, and gets an access token with
   no refresh token. The `serviceTokensFile` holds each service client with its scopes and the sha256

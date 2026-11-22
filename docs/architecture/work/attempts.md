@@ -45,9 +45,9 @@ the rows and facts each one writes.
 - **`wake-refused`** means atc had no room for the wake. The attempt sleeps again and keeps its wake
   request ([capacity](./sessions.md#capacity-and-the-usage-limit)).
 - **`closing`** means boxxy has decided the attempt is over but its session may still run. The
-  attempt settles once the session has stopped. When a runner event moved it to `closing`, it
-  settles with the failure that event names (`usage-limited` gives `usage-limit`), even when it
-  holds a close-out. Otherwise it settles by its close-out.
+  attempt settles once the session has stopped. When a runner event or `item.close` moved it to
+  `closing`, it settles with the failure that event names (`usage-limited` gives `usage-limit`),
+  even when it holds a close-out. Otherwise it settles by its close-out.
 
 An attempt takes its seats at the claim, gives them back when it sleeps, takes them again at the
 wake before the session resumes, and gives them back at the settle; `closing` keeps them. From claim
@@ -267,7 +267,8 @@ the stop, so the agent can tell the owner its close-out went in. Closing the ite
 `item.close` ends the item's live attempts in the same store change. A sleeping attempt settles at
 once as failed with `item-closed`, and boxxy doesn't wake it. Every other live attempt moves to
 `closing`, including one whose spawn is still in flight: boxxy sends no second spawn, and stops the
-session when it appears.
+session when it appears. Until then the attempt has no session to read as absent, and it settles as
+the next paragraph says.
 
 atc refuses a stop while something else keeps the session's host awake. So that an attempt never
 waits in `closing` forever, it settles anyway after a fixed give-up time, as any closing attempt
@@ -312,7 +313,8 @@ A failure the runner sets wins over any close-out the attempt holds, and such a 
 effects, so it files none of the close-out's open items. An attempt fails with `closeout-missing`
 when it settles with no close-out and none of the failures below. An attempt whose
 [design or build close-out](../../design/boxxy/close-outs.md#the-v1-phase-kinds) has the outcome
-`blocked` or `abandoned` fails with `closeout-missing` too. The runner sets every other failure:
+`blocked` or `abandoned` fails with `closeout-missing` too. Apart from `closeout-unsettleable`,
+which settle sets as the paragraph above says, the runner sets every other failure:
 
 | Failure         | Cause                                                                                                                                                     | Counts against `maxAttempts` |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |

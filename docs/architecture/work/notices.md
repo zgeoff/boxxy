@@ -7,7 +7,8 @@ it. A runner that stays paused with work ready sends the owner a second kind of 
 ([the paused-runner notice](#the-paused-runner-notice)). A third kind, the notify notice, tells the
 owner that a wait skipped a step that leaves a tagged line unproven, that an edge asked for a
 notice, or that an item has waited too long at a step ([the notify notice](#the-notify-notice)). The
-runner never gives up on a notice of any kind, so a notice written while the owner's machine is off
+runner never gives up on a notice of any kind while notices are on
+([Turning notices on](#turning-notices-on)), so a notice written while the owner's machine is off
 waits in the store and arrives once atc can reach the notice session again. Each try carries an
 idempotency key, so a retry after a lost answer still reaches the owner once, apart from the two
 cases in [what the owner can rely on](#what-the-owner-can-rely-on). Read this doc before you change

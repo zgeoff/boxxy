@@ -56,8 +56,8 @@ for which folder holds what, and which package may import which.
 Every package publishes to npm. To cut a release, follow the
 [releasing runbook](./docs/runbooks/releasing.md).
 
-CI runs these checks on every pull request, along with the audit, the dead-code check, the
-type-aware lint and the docs checks. Run them locally:
+CI runs these checks on every pull request, along with the audit, the dead-code check, the docs
+checks and `lint:full`, a slower lint that also reads the types. Run them locally:
 
 ```bash
 bun install

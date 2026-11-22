@@ -11,9 +11,10 @@ Two IDs name a session. The atc session is atc's record of one running agent, wh
 stops and forgets. The agent session is Claude Code's own session ID inside it, which boxxy learns
 when it binds the session to an attempt.
 
-[Attempts](./attempts.md) covers the attempt states, the session readings and settle.
-[The pipeline](./pipeline.md) covers edges, recipes, limits and design modes. The
-[overview](../overview.md#terms) defines the shared terms.
+[Attempts](./attempts.md) covers the attempt states, what each session reading does to an attempt,
+and settle. This doc covers how the worker takes a reading. [The pipeline](./pipeline.md) covers
+edges, recipes, limits and design modes. The [overview](../overview.md#terms) defines the shared
+terms.
 
 ## The kept session
 
