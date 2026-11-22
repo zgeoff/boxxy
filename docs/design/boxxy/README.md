@@ -35,6 +35,8 @@ These docs hold the designs whose work is not fully built. The built system is i
   job worker, and the merge step that lands a pull request when its checks are green.
 - [Next work list](./next-work-list.md): the slices that build the review, verify and merge design,
   the verify journeys and owner notices.
+- [Checked evidence](./checked-evidence.md): the `check` and `verdict` evidence kinds, which the
+  server reads from GitHub at the pull request's head before it records them.
 - [Interface sketches](./sketches/README.md): the shape of each interface, as TypeScript files.
 
 ## Reading order
