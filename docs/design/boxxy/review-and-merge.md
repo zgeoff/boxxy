@@ -6,7 +6,8 @@ The item holds for the owner in these cases:
 
 - a loop has used all its send-backs;
 - a step has used all its attempts, such as a merge whose forge stays down;
-- a sign-off rule matched and the owner has not approved the head;
+- a sign-off rule matched, or the changed paths were cut short, and the owner has not approved the
+  head;
 - a review failed twice in a row, or a verify ended `abandoned` twice in a row;
 - the verify agent asks a question;
 - the pull request closed with no merge;

@@ -3,7 +3,7 @@
 Planning decides which ready item starts next, and which sleeping attempt wakes. Every planning idea, such as rank,
 defer or expedite, is a concept: a module that registers plug-ins
 ([decision 0004](../../decisions/0004-planning-concepts-are-plug-ins.md)). `buildFrame()` runs the
-plug-ins over the facts and builds one frame. `decide()` reads the frame and the pools and returns
+plug-ins over the facts and builds one frame. `decide()` reads the frame, with the pools as data in it, and returns
 picks, and never names a concept. To add a sort key, such as cheapest measured work first, write one
 file and add one plug-in reference to the rules. Read this doc before you add a concept or change how boxxy
 orders work, and describe what you build in the architecture doc that owns it, as AGENTS.md says.
@@ -85,7 +85,7 @@ pools:
 
 ### Limits and the decision
 
-A pick takes one seat in each limit whose `counts` filter matches the pick's field values, and `decide` gives a pick only when each of those limits has a free seat. The store's snapshot gives each limit's `max` and the seats held now, and `decide` counts down the seats of its own picks, so one decision never starts more than a limit allows. A limit can hold more seats than its `max` after a wake over the cap ([lifecycle](../../architecture/work/attempts.md)), and it then gives no pick until the count is under `max` again.
+A pick takes one seat in each limit whose `counts` filter matches the pick's field values, and `decide` gives a pick only when each of those limits has a free seat. The store's snapshot gives each limit's `max` and the seats held now, and `decide` counts down the seats of its own picks, so one decision never starts more than a limit allows. A limit can hold more seats than its `max` after a session the owner revived wakes over the cap, a wake that planning doesn't decide ([lifecycle](../../architecture/work/attempts.md)), and it then gives no pick until the count is under `max` again.
 
 `decide` returns its picks in this order:
 
@@ -106,13 +106,13 @@ cost cap ([capacity](./capacity.md)).
 
 ## Ordering levers
 
-These concepts give the owner and agents a lever on order. Each lever is a fact with its actor and
+These levers give the owner and agents a say in the order. Each lever is a fact with its actor and
 time ([rules](./rules.md#levers-as-facts)).
 
 - **Expedite** beats every sort key.
   - It takes items, an ordered list, or a goal or project (all its open items, in the order given).
   - It reaches through blockers: an expedited blocked item pulls its blockers forward first.
-  - It takes the next free seat for a pool whose filter matches, or with `--any-pool` the next free
+  - It takes the next free seat for the first pool whose filter matches, or with `--any-pool` the next free
     seat for a build in any pool. It never stops running work.
   - It lifts defer, quiet hours and budget holds on the pulled work and its blockers. A gate declared
     unliftable, such as `attended`, still holds, and so do the `blocked` and `held` states, which no
@@ -151,7 +151,7 @@ Whether goal and project stay two kinds or merge into one is open.
 
 ## Explain
 
-`explain` answers questions such as "why was the nixie slot idle on Tuesday at 14:00". It rebuilds
+`explain` answers questions such as "why was the nixie pool idle on Tuesday at 14:00". It rebuilds
 the frame at that time from facts up to the recorded observation boundary
 ([dispatch](./dispatch.md#the-observation-boundary)), reruns `decide()` with the recorded rules
 version, and returns each candidate with the reason it was not picked. Reasons cost nothing until
@@ -171,7 +171,7 @@ is a view over replay, so it can never disagree with dispatch about order.
    Each cohort holds the last 30 days of done items with their cycle time (claim to merge, all
    attempts) and slot time (the sum of attempt durations).
 2. **Simulate `decide()` forward.** A Monte Carlo of 500 runs. Each run copies the current frame and
-   steps simulated time. Free slots ask the real `decide()`, with the same rules version and
+   steps simulated time. Free seats ask the real `decide()`, with the same rules version and
    plug-ins, for picks. Each pick draws a slot time from its cohort, then finishes and unblocks its
    dependants. New items arrive at each cohort's measured rate. A run ends when every item serving G
    is done. The answer is the p50 and p90 of the end dates.

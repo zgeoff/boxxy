@@ -58,7 +58,7 @@ Links are typed, and the link types are a registry like the item kinds.
 | `relies-on` | the source rests on a decision |
 | `serves` | the source contributes to a project or goal ([planning](./planning.md)) |
 
-Only the blocking link types, such as `blocks`, can keep an item from being `ready`. With
+Of the link types, only the blocking ones, such as `blocks`, can keep an item from being `ready`. With
 `relies-on`, you can query why something is built the way it is, and what rested on a decision that
 has since been superseded.
 
@@ -169,7 +169,7 @@ session through a mod, the CLI, agents filing work, and later nixie.
   acts as the owner. A call through the public door acts as the owner too, with an OAuth token that the owner approved. A call with the worker token acts as a session, and boxxy takes the
   session from its proven caller. The actor never comes from a value the caller supplies, such as an environment
   variable.
-- **The owner's path is the only check on an owner command.** That path is the owner listener, or
+- **The owner's path is the only check on who sends an owner command.** A gate rule can still refuse the command itself. That path is the owner listener, or
   the public door with a token the owner approved. Any caller on it can expedite,
   file or rank, and boxxy never asks for a confirmation bound to the person
   ([API and auth](../../architecture/interfaces/api-and-auth.md#the-paths)).

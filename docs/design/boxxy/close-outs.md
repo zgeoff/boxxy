@@ -1,7 +1,7 @@
 # Close-outs
 
-A close-out is the typed outcome of an attempt. An agent writes the close-out of its own attempt,
-and writes only what only it knows ([decision 0009](../../decisions/0009-close-outs-hold-what-only-the-agent-knows.md)).
+A close-out is the typed outcome of an attempt. Most close-outs come from the attempt's agent,
+which writes only what only it knows ([decision 0009](../../decisions/0009-close-outs-hold-what-only-the-agent-knows.md)).
 boxxy derives everything else, such as commits, PRs, CI results, findings, tokens and time, from
 facts. The runner writes the merge close-out, and the server builds the review close-out from the
 review tool's result. Each phase kind brings its own close-out type. boxxy rejects a close-out that doesn't parse,

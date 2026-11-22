@@ -9,7 +9,7 @@ and describe what you build in the architecture doc that owns it, as AGENTS.md s
 
 The decision behind this doc is
 [0008: capacity sources and a router](../../decisions/0008-capacity-sources-and-a-router.md). The
-`modules/capacity` package holds the code, and each source has an adapter named `capacity-<system>`
+`modules/capacity` package will hold the code, and each source will have an adapter named `capacity-<system>`
 (see [the layout](../../architecture/repo/layout.md)).
 
 ## Capacity sources
