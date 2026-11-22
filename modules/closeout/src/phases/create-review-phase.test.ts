@@ -171,6 +171,7 @@ test('it reads the close-out that the server built from the gate reading', () =>
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id]),
       kinds: new Set(),
@@ -193,6 +194,7 @@ test('it rejects a raw review result in place of the built close-out', () => {
       item,
       attempt: buildMockV1AttemptRow().id,
       evidence: [],
+      head: null,
       world: {
         items: new Set([item.id]),
         kinds: new Set(),
@@ -228,6 +230,7 @@ test('it rejects a verdict of the session in the form of a v1 review close-out',
       item,
       attempt: buildMockV1AttemptRow().id,
       evidence: [],
+      head: null,
       world: {
         items: new Set([item.id]),
         kinds: new Set(),

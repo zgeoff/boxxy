@@ -1,5 +1,6 @@
 import { expect } from 'bun:test';
 import { brandSchemas } from '@boxxy/model';
+import { buildMockEvidenceRow } from '@boxxy/model/test-utils/build-mock-evidence-row';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import { buildMockV1ItemRow } from '@boxxy/model/test-utils/build-mock-v1-item-row';
 import { buildMockClaimChange } from './build-mock-claim-change.ts';
@@ -364,7 +365,55 @@ export const claimStoreAttemptReaderCases: readonly ClaimStoreCase[] = [
             observed: null,
             source: 'hook',
             at: 4000,
+            head: null,
           },
+        ],
+      };
+    },
+  ],
+  [
+    '#listEvidence returns one row for each head of a check, each with its bare ref',
+    async (store) => {
+      const item = buildMockV1ItemRow();
+      const attempt = buildMockV1AttemptRow({ item: item.id, state: 'starting' });
+
+      await store.exclusive(async (transaction) => {
+        await transaction.applyChange(buildMockFileItemChange(item));
+        await transaction.applyChange(buildMockClaimChange(attempt));
+
+        for (const [index, head] of ['1', '2'].entries()) {
+          const at = brandSchemas.instant.parse(5000 + index);
+          const factId = brandSchemas.factId.parse(`0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b7${index}`);
+          const checkedHead = brandSchemas.commitSha.parse(head.repeat(40));
+
+          await transaction.applyChange({
+            at,
+            writes: [
+              {
+                op: 'insert',
+                table: 'evidence',
+                row: buildMockEvidenceRow({
+                  factId,
+                  attempt: attempt.id,
+                  kind: 'check',
+                  ref: 'pr / checks',
+                  head: checkedHead,
+                  at,
+                }),
+              },
+            ],
+            facts: [],
+          });
+        }
+      });
+
+      const evidence = await store.read((transaction) => transaction.listEvidence(attempt.id));
+
+      return {
+        received: evidence.map((row) => [row.kind, row.ref, row.head]),
+        expected: [
+          ['check', 'pr / checks', '1'.repeat(40)],
+          ['check', 'pr / checks', '2'.repeat(40)],
         ],
       };
     },

@@ -20,6 +20,7 @@ import type {
   ItemId,
   Notifier,
   SessionReading,
+  Verifier,
   WorkerKindName,
   WorkerRegistry,
   WorkerShape,
@@ -31,19 +32,18 @@ import { createPepysReader } from '@boxxy/pepys/reader';
 import { createPepysFactSink } from '@boxxy/pepys/sink';
 import { createNoslopReviewGate } from '@boxxy/review-noslop';
 import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
-import { createWringerVerifier } from '@boxxy/verifier-wringer';
 import { createAtcMcpClient, createAtcWorker } from '@boxxy/worker-atc';
 import { createORPCClient } from '@orpc/client';
 import { RPCLink } from '@orpc/client/fetch';
 import invariant from 'tiny-invariant';
 import { match } from 'ts-pattern';
 import { buildTokenDigest } from './auth/pick-request-scope.ts';
+import { buildVerifier } from './config/build-verifier.ts';
 import { pickServerSecrets } from './config/pick-server-secrets.ts';
 import { readCallerProof } from './config/read-caller-proof.ts';
 import { readServerConfig } from './config/read-server-config.ts';
 import type { ServerConfig } from './config/server-config-schema.ts';
 import { toSpawnScope } from './config/to-spawn-scope.ts';
-import { verifyGateCheck } from './constants.ts';
 import { createCapacityBackoff } from './create-capacity-backoff.ts';
 import { formatErrorChain } from './format-error-chain.ts';
 import { makeNoticeSessionRead } from './make-notice-session-read.ts';
@@ -139,6 +139,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
       ? null
       : buildForge(config.github.baseUrl, secrets.secrets.githubApp);
 
+  const verifier = buildVerifier(forge);
   const clock = { now: () => brandSchemas.instant.parse(Date.now()) };
 
   const proof = await readCallerProof(config.trustedIssuers, clock);
@@ -162,7 +163,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
         }),
       },
     ],
-    ...buildMergeWorker(forge, store),
+    ...buildMergeWorker(forge, verifier, store),
   ]);
 
   const rules = await createRulesHolder(
@@ -222,6 +223,7 @@ export async function startServer(input: StartServerInput): Promise<StartAnswer>
     workerTokenDigest: buildTokenDigest(secrets.secrets.workerToken),
     pepys: pepys?.reader ?? null,
     forge,
+    verifier,
     review: secrets.secrets.review === null || forge === null ? null : { gate: reviewGate, forge },
     outbox: pepys?.sender ?? createOffOutbox(store, clock),
     repos: new Set(
@@ -368,12 +370,14 @@ function collectCredentialSources(repos: ServerConfig['spawn']['repos']): GitSou
 
 // The merge reads the pull request, its checks and the verify gate through the forge, so a server
 // with no `github` section builds no merge worker, and the loader refuses a merge step.
-function buildMergeWorker(forge: Forge | null, store: ClaimStore): [WorkerKindName, WorkerShape][] {
-  if (forge === null) {
+function buildMergeWorker(
+  forge: Forge | null,
+  verifier: Verifier | null,
+  store: ClaimStore,
+): [WorkerKindName, WorkerShape][] {
+  if (forge === null || verifier === null) {
     return [];
   }
-
-  const verifier = createWringerVerifier({ forge, gateCheck: verifyGateCheck });
 
   return [[mergeWorkerName, { shape: 'job', worker: createMergeJob({ forge, verifier, store }) }]];
 }

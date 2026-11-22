@@ -11,6 +11,13 @@ const closeOutProblemSchema: z.ZodType<CloseOutProblem> = z.discriminatedUnion('
     criteria: z.array(brandSchemas.criterionId),
   }),
   z.object({ kind: z.literal('no-acceptance') }),
+  z.object({
+    kind: z.literal('stale-evidence'),
+    criterion: brandSchemas.criterionId,
+    evidence: brandSchemas.factId,
+    recordedAt: brandSchemas.commitSha,
+    head: brandSchemas.commitSha.nullable(),
+  }),
   z.object({ kind: z.literal('unknown-item'), item: z.string() }),
   z.object({ kind: z.literal('unknown-kind'), itemKind: z.string() }),
   z.object({ kind: z.literal('unknown-criterion-tag'), tag: z.string() }),
@@ -40,4 +47,5 @@ export const closeOutAnswerSchema: z.ZodType<CloseOutAnswer> = z.discriminatedUn
     kind: z.literal('refused'),
     reason: z.enum(['no-attempt', 'already-closed-out', 'not-current']),
   }),
+  z.object({ kind: z.literal('retry') }),
 ]);

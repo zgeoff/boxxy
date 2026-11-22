@@ -68,10 +68,14 @@ such as `core.issue`, and `security: true` when its work concerns a security wea
 
 Run `boxxy attempt current` for the attempt ID and the JSON Schema of the close-out body. To cite a
 test or a check, record it with
-`boxxy attempt evidence --kind <test|ci-run|live-check> --ref <what you checked>` and use the ID it
-prints. Before you end, send the close-out body as JSON on stdin to `boxxy attempt close-out`. When
-it prints problems, fix each one and send it again. The first valid close-out is final, and a
-session that ends without one fails.
+`boxxy attempt evidence --kind <test|ci-run|live-check|check|verdict> --ref <what you checked>` and
+use the ID it prints. For a CI check, use `check` with the check name in `--ref`, such as
+`pr / checks`. For a `bun verify` feature, use `verdict` with the feature name in `--ref`. Send no
+`--observed` with either: boxxy reads the result from GitHub at the head of your pull request, and
+records it only when it passed. After you push, record each one again at the new head. Before you
+end, send the close-out body as JSON on stdin to `boxxy attempt close-out`. When it prints problems,
+fix each one and send it again. The first valid close-out is final, and a session that ends without
+one fails.
 
 When you wait for something, such as CI or a background task, you may end your turn, but wake at
 least every 30 minutes to check on it. boxxy fails a session that shows no activity for longer than

@@ -11,4 +11,5 @@ export { merge } from './phases/merge.ts';
 export { triage } from './phases/triage.ts';
 export { verify } from './phases/verify.ts';
 export { countUnrelatedLines } from './review/count-unrelated-lines.ts';
+export { findPullRequestLink } from './utils/find-pull-request-link.ts';
 export type { CloseOutLimits } from './types.ts';

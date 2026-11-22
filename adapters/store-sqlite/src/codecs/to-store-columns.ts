@@ -15,7 +15,9 @@ export function toStoreColumns(table: TableName, fields: object): [string, Store
   const json = new Set<string>(codec.json);
   const refs = new Set<string>(codec.refs);
 
-  return Object.entries(fields).map(([field, value]: [string, unknown]) => {
+  const qualified = table === 'evidence' ? qualifyEvidenceRef(fields) : fields;
+
+  return Object.entries(qualified).map(([field, value]: [string, unknown]) => {
     invariant(known.has(field), `${table} has no field ${field}`);
 
     if (refs.has(field)) {
@@ -24,6 +26,28 @@ export function toStoreColumns(table: TableName, fields: object): [string, Store
 
     return [toColumnName(field), toStoreValue(value, json.has(field))];
   });
+}
+
+// The table's unique key is the attempt, the kind and the ref, so a checked row holds its head in
+// the stored ref too: the same check at a new head is a new row. The row's `ref` stays the bare
+// name, which `parseStoreRow` restores from the head column.
+const headSeparator = '@';
+
+function qualifyEvidenceRef(fields: object): object {
+  const entries = Object.entries(fields);
+  const head = entries.find(([field]) => field === 'head')?.[1];
+
+  if (typeof head !== 'string') {
+    return fields;
+  }
+
+  return Object.fromEntries(
+    entries.map(([field, value]) =>
+      field === 'ref' && typeof value === 'string'
+        ? [field, `${value}${headSeparator}${head}`]
+        : [field, value],
+    ),
+  );
 }
 
 function toRefNumber(value: unknown): number {

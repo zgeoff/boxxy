@@ -18,8 +18,11 @@ import { brandSchemas } from '@boxxy/model';
 export interface SeededPullRequest {
   readonly ref: PullRequestRef;
   readonly githubId: number;
-  readonly reading: Omit<PullRequestReading, 'githubId' | 'url' | 'base'> & {
+  readonly reading: Omit<PullRequestReading, 'githubId' | 'url' | 'base' | 'head'> & {
     readonly base?: string;
+
+    // a pull request with none seeded has the SHA of its last commit, or a fixed one with none
+    readonly head?: CommitSha;
   };
 
   // the description; none reads as empty
@@ -137,6 +140,7 @@ export interface FakeForge extends Forge {
 // a fixed time, because a module reads no clock
 const mergedAtMs = brandSchemas.instant.parse(1_900_000_000_000);
 const defaultBase = 'main';
+const defaultHead = brandSchemas.commitSha.parse('c'.repeat(40));
 
 // A forge that keeps the pull requests a test seeds and answers as the `Forge` contract says.
 export function createFakeForge(): FakeForge {
@@ -171,6 +175,7 @@ export function createFakeForge(): FakeForge {
     return Promise.resolve({
       ...found.reading,
       base: found.reading.base ?? defaultBase,
+      head: found.reading.head ?? found.reading.commits.at(-1)?.sha ?? defaultHead,
       githubId: found.githubId,
       url: `https://github.com/${found.ref.repo}/pull/${found.ref.number}`,
     });

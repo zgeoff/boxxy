@@ -204,6 +204,98 @@ test('#evidence answers the first evidence ID and writes nothing when a session 
   expect(recorded).toHaveLength(1);
 });
 
+test('#evidence records a check that passed at the head of the linked pull request', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.seedStartedAttempt(brandSchemas.phaseName.parse('build'));
+
+  const repo = brandSchemas.repoName.parse('example/app');
+  const head = brandSchemas.commitSha.parse('c'.repeat(40));
+
+  ctx.callerProof.setCaller(attempt.caller);
+
+  ctx.forge.seed({
+    ref: { repo, number: 7 },
+    githubId: 9_000_007,
+    reading: { state: 'open', mergedAt: null, mergeCommit: null, commits: [], head },
+  });
+
+  ctx.forge.seedChecks({ repo, head, checks: { 'pr / checks': 'success' } });
+
+  await ctx.recordPullRequest(attempt.id, 'https://github.com/example/app/pull/7');
+
+  const answer = await ctx.callSession('attempt.evidence', {
+    session: { attempt: attempt.id },
+    kind: 'check',
+    ref: 'pr / checks',
+  });
+
+  const recorded = await ctx.deps.store.read((tx) => tx.listEvidence(attempt.id));
+
+  expect(answer).toStrictEqual({
+    status: 200,
+    body: { json: { kind: 'recorded', factId: expect.any(String) } },
+  });
+
+  expect(recorded.map((row) => [row.kind, row.ref, row.head])).toContainEqual([
+    'check',
+    'pr / checks',
+    head,
+  ]);
+});
+
+test('#evidence answers why a check that is still running is refused', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.seedStartedAttempt(brandSchemas.phaseName.parse('build'));
+
+  const repo = brandSchemas.repoName.parse('example/app');
+  const head = brandSchemas.commitSha.parse('c'.repeat(40));
+
+  ctx.callerProof.setCaller(attempt.caller);
+
+  ctx.forge.seed({
+    ref: { repo, number: 7 },
+    githubId: 9_000_007,
+    reading: { state: 'open', mergedAt: null, mergeCommit: null, commits: [], head },
+  });
+
+  ctx.forge.seedChecks({ repo, head, checks: { 'pr / checks': 'pending' } });
+
+  await ctx.recordPullRequest(attempt.id, 'https://github.com/example/app/pull/7');
+
+  const answer = await ctx.callSession('attempt.evidence', {
+    session: { attempt: attempt.id },
+    kind: 'check',
+    ref: 'pr / checks',
+  });
+
+  expect(answer).toStrictEqual({
+    status: 200,
+    body: {
+      json: { kind: 'refused', reason: 'check-pending', check: 'pr / checks', head },
+    },
+  });
+});
+
+test.each(['check', 'verdict'] as const)(
+  '#evidence rejects a %s that sends observed text',
+  async (kind) => {
+    const ctx = await setupTest();
+    const attempt = await ctx.seedStartedAttempt(brandSchemas.phaseName.parse('build'));
+
+    ctx.callerProof.setCaller(attempt.caller);
+
+    const answer = await ctx.callSession('attempt.evidence', {
+      session: { attempt: attempt.id },
+      kind,
+      ref: 'pr / checks',
+      observed: 'it passed',
+    });
+
+    expect(answer.status).toBe(400);
+    expect(ctx.forge.calls).toStrictEqual([]);
+  },
+);
+
 test('#listItems lists the items of the repo of the session, newest first, without held items', async () => {
   const ctx = await setupTest();
   const attempt = await ctx.seedStartedAttempt(brandSchemas.phaseName.parse('triage'));

@@ -6,6 +6,7 @@ import type {
   AttemptRow,
   CallerIdentity,
   ClaimStore,
+  CommitSha,
   Effect,
   ForcedFailure,
   Instant,
@@ -116,4 +117,8 @@ export interface CloseOutInput {
   readonly rules: LoadedRules;
   readonly now: Instant;
   readonly newId: NewId;
+
+  // the open pull request's head, read before the lock; null when none was read, or when the pull
+  // request is closed or merged
+  readonly head?: CommitSha | null;
 }

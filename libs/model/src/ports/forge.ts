@@ -86,6 +86,9 @@ export interface PullRequestReading {
   readonly base: string;
   readonly mergedAt: Instant | null;
   readonly mergeCommit: CommitSha | null;
+
+  // GitHub's `head.sha`; the commit list is paged, so its last entry can be older
+  readonly head: CommitSha;
   readonly commits: readonly { readonly sha: CommitSha; readonly message: string }[];
 }
 

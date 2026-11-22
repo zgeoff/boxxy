@@ -82,6 +82,7 @@ test('it refuses a merge close-out with a field that the merge close-out has no 
       item,
       attempt: buildMockV1AttemptRow().id,
       evidence: [],
+      head: null,
       world: {
         items: new Set([item.id]),
         kinds: new Set(),

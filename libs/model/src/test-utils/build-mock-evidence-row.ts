@@ -12,6 +12,7 @@ export function buildMockEvidenceRow(overrides: Partial<EvidenceRow> = {}): Evid
     observed: null,
     source: 'agent',
     at: brandSchemas.instant.parse(faker.number.int({ max: 1_800_000_000_000 })),
+    head: null,
     ...overrides,
   };
 }

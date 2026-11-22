@@ -35,6 +35,7 @@ test('it builds a change that links pull request 7 with its evidence row and fac
           observed: null,
           source: 'hook',
           at: 4000,
+          head: null,
         },
       },
     ],

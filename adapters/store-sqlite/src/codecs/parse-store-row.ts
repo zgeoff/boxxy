@@ -23,7 +23,9 @@ export function parseStoreRow<T extends TableName>(table: T, record: object): Ta
     }),
   );
 
-  return rowSchemas[table].parse(fields);
+  const row = table === 'evidence' ? stripEvidenceHead(fields) : fields;
+
+  return rowSchemas[table].parse(row);
 }
 
 function parseStoreValue(value: unknown, isJSON: boolean, isFlag: boolean): unknown {
@@ -38,4 +40,16 @@ function parseStoreValue(value: unknown, isJSON: boolean, isFlag: boolean): unkn
   }
 
   return value;
+}
+
+// the inverse of the ref a checked row is stored under
+function stripEvidenceHead(fields: Record<string, unknown>): Record<string, unknown> {
+  const head = fields['head'];
+  const ref = fields['ref'];
+
+  if (typeof head !== 'string' || typeof ref !== 'string') {
+    return fields;
+  }
+
+  return { ...fields, ref: ref.slice(0, Math.max(0, ref.length - head.length - 1)) };
 }

@@ -23,6 +23,7 @@ export function toPullRequestReading(
       mergedAt === null || pullRequest.merge_commit_sha === null
         ? null
         : brandSchemas.commitSha.parse(pullRequest.merge_commit_sha),
+    head: brandSchemas.commitSha.parse(pullRequest.head.sha),
     commits: commits.map((commit) => ({
       sha: brandSchemas.commitSha.parse(commit.sha),
       message: commit.commit.message,

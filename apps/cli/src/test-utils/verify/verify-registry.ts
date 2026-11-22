@@ -6,6 +6,7 @@ import type { HttpClient } from '@wringer/http';
 import { mcp } from '@wringer/mcp';
 import { z } from 'zod';
 import { buildMCPServers } from './build-mcp-servers.ts';
+import { checkedEvidenceJourney } from './checked-evidence-journey.ts';
 import { localMCPClient, mcpDoorMetadataPath, prodMCPClient, prodOriginEnv } from './constants.ts';
 import { createLocalMCPClient } from './create-local-mcp-client.ts';
 import { checkMCPDoor } from './doctor/check-mcp-door.ts';
@@ -134,7 +135,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
       // the session's work time on the harness clock
       minutes: z.number().int().positive(),
 
-      // `opened`: a `built` or `blocked` close-out links the pull request of `open-pull-request`
+      // `opened`: a `built`, `built-checked` or `blocked` close-out links the pull request of `open-pull-request`
       pullRequest: z.enum(['opened']).optional(),
 
       // the head commit that a `passed` review covers
@@ -186,6 +187,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
     run: (input, ctx) => landItem(ctx, input),
   })
 
+  .action(checkedEvidenceJourney.seedChecks)
   .action(signoffJourney.holdAtSignoff)
   .action(signoffJourney.pushCommit)
   .action(signoffJourney.signoffItem)
@@ -387,6 +389,7 @@ export const verifyRegistry: Wringer = createWringer({ name: 'boxxy-verify' })
       return { notices: mine.map((notice) => notice.reason) };
     },
   })
+  .command(checkedEvidenceJourney.evidence)
   .command(signoffJourney.signoff)
   .command(signoffJourney.prompt)
   .command(signoffJourney.merges)

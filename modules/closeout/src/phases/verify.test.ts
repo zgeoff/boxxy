@@ -76,6 +76,7 @@ test('it copies the grader from the attempt input into the close-out', () => {
     item,
     attempt: buildMockV1AttemptRow().id,
     evidence: [],
+    head: null,
     world: {
       items: new Set([item.id]),
       kinds: new Set(),
@@ -105,6 +106,7 @@ test('it rejects a close-out that names its own grader', () => {
       item,
       attempt: buildMockV1AttemptRow().id,
       evidence: [],
+      head: null,
       world: {
         items: new Set([item.id]),
         kinds: new Set(),

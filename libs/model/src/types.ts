@@ -447,6 +447,9 @@ export interface EvidenceRow {
   readonly observed: string | null;
   readonly source: EvidenceSource;
   readonly at: Instant;
+
+  // the head the server read; set for `check` and `verdict`, null for every other kind
+  readonly head: CommitSha | null;
 }
 
 export interface PullRequestRow {

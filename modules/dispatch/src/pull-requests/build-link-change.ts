@@ -87,6 +87,7 @@ export function buildLinkChange(input: LinkChangeInput): StoreChange {
           observed: null,
           source: input.source,
           at: now,
+          head: null,
         },
       },
     ],

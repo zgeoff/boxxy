@@ -257,6 +257,7 @@ async function recordReading(record: RecordInput): Promise<void> {
           observed: null,
           source: 'trailer',
           at: input.now,
+          head: null,
         },
       });
 

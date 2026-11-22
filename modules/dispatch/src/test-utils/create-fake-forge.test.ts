@@ -46,6 +46,7 @@ test('it reads a pull request by a repo name in another case, with the seeded ur
     base: 'main',
     mergedAt: null,
     mergeCommit: null,
+    head: brandSchemas.commitSha.parse('cccccccccccccccccccccccccccccccccccccccc'),
     commits: [],
     githubId: 9_000_004,
     url: 'https://github.com/Acme/Lamps/pull/4',

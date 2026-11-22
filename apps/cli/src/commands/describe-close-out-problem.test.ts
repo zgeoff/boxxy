@@ -20,6 +20,26 @@ test.each<{ problem: CloseOutProblem; line: string }>([
     problem: { kind: 'built-without-evidence', criteria: [brandSchemas.criterionId.parse('a1')] },
     line: 'built criteria with no evidence: a1',
   },
+  {
+    problem: {
+      kind: 'stale-evidence',
+      criterion: brandSchemas.criterionId.parse('a1'),
+      evidence: brandSchemas.factId.parse('0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77'),
+      recordedAt: brandSchemas.commitSha.parse('1'.repeat(40)),
+      head: brandSchemas.commitSha.parse('2'.repeat(40)),
+    },
+    line: `evidence 0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77 for criterion a1 was recorded at ${'1'.repeat(40)}, and the pull request head is now ${'2'.repeat(40)}: record the check or verdict again, and cite the new evidence`,
+  },
+  {
+    problem: {
+      kind: 'stale-evidence',
+      criterion: brandSchemas.criterionId.parse('a1'),
+      evidence: brandSchemas.factId.parse('0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77'),
+      recordedAt: brandSchemas.commitSha.parse('1'.repeat(40)),
+      head: null,
+    },
+    line: `evidence 0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77 for criterion a1 was recorded at ${'1'.repeat(40)}, but the pull request is closed or merged`,
+  },
   { problem: { kind: 'no-acceptance' }, line: 'the close-out lists no acceptance criterion' },
   { problem: { kind: 'unknown-item', item: 'i-9' }, line: 'unknown item i-9' },
   { problem: { kind: 'unknown-kind', itemKind: 'epic' }, line: 'unknown item kind epic' },

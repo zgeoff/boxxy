@@ -49,6 +49,7 @@ export const closeOutPresetSchema = z.enum([
   'needs-owner',
   'designed',
   'built',
+  'built-checked',
   'blocked',
   'passed',
 ]);
@@ -78,6 +79,13 @@ export const itemShowSchema = z.object({
   attempts: z.array(attemptSchema),
 });
 
+const evidenceRowSchema = z.object({
+  kind: z.string(),
+  ref: z.string(),
+  head: z.string().nullable(),
+});
+
+export const evidenceShowSchema = z.object({ evidence: z.array(evidenceRowSchema) });
 const listedItemSchema = z.object({ id: z.string() });
 const titledItemSchema = z.object({ id: z.string(), title: z.string() });
 

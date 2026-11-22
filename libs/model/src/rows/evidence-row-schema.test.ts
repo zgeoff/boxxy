@@ -10,6 +10,7 @@ test('it accepts an evidence row of a test', () => {
     observed: '42 passed',
     source: 'agent',
     at: 1000,
+    head: null,
   };
 
   const parsed: unknown = evidenceRowSchema.safeParse(row).data;
@@ -21,4 +22,21 @@ test('it rejects an evidence row of an unknown source', () => {
   expect(evidenceRowSchema.safeParse({ source: 'guess' }).error?.issues).toPartiallyContain({
     path: ['source'],
   });
+});
+
+test('it accepts an evidence row of a check with the head the server read', () => {
+  const row = {
+    factId: '0192f0c5-3c4d-7e5f-a061-7b8c9d0e1f2a',
+    attempt: '0192f0c5-1a2b-7c3d-8e4f-5a6b7c8d9e0f',
+    kind: 'check',
+    ref: 'pr / checks',
+    observed: null,
+    source: 'agent',
+    at: 1000,
+    head: '9c1e0f5a2b3c4d5e6f708192a3b4c5d6e7f80910',
+  };
+
+  const parsed: unknown = evidenceRowSchema.safeParse(row).data;
+
+  expect(parsed).toStrictEqual(row);
 });

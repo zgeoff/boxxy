@@ -47,6 +47,7 @@ test('it refuses the agent session to a settled attempt whose rework took it ove
             observed: 'pass',
             source: 'agent',
             at: now,
+            head: null,
           },
         },
       ],

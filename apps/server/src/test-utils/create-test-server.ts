@@ -173,6 +173,7 @@ export async function createTestServer(options: TestServerOptions = {}): Promise
     workerTokenDigest: buildTokenDigest(workerToken),
     pepys: options.hasPepys === false ? null : (options.pepys ?? pepys),
     forge,
+    verifier: createWringerVerifier({ forge, gateCheck: verifyGateCheck }),
     review: { gate: dispatch.reviewGate, forge },
     outbox: createOffOutbox(dispatch.store, dispatch.clock),
     repos: new Set(dispatch.spawn.repos.keys()),

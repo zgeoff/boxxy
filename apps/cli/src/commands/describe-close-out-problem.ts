@@ -17,6 +17,11 @@ export function describeCloseOutProblem(problem: CloseOutProblem): string {
       { kind: 'built-without-evidence' },
       (found) => `built criteria with no evidence: ${found.criteria.join(', ')}`,
     )
+    .with({ kind: 'stale-evidence' }, (found) =>
+      found.head === null
+        ? `evidence ${found.evidence} for criterion ${found.criterion} was recorded at ${found.recordedAt}, but the pull request is closed or merged`
+        : `evidence ${found.evidence} for criterion ${found.criterion} was recorded at ${found.recordedAt}, and the pull request head is now ${found.head}: record the check or verdict again, and cite the new evidence`,
+    )
     .with({ kind: 'no-acceptance' }, () => 'the close-out lists no acceptance criterion')
     .with({ kind: 'unknown-item' }, (found) => `unknown item ${found.item}`)
     .with({ kind: 'unknown-kind' }, (found) => `unknown item kind ${found.itemKind}`)

@@ -28,6 +28,7 @@ export function buildGithubSeeders(): GithubSeeders {
         ...(reading.base !== undefined && { base: reading.base }),
         mergedAt: reading.mergedAt === null ? null : new Date(reading.mergedAt).toISOString(),
         mergeCommit: reading.mergeCommit,
+        head: reading.head ?? null,
         commits: reading.commits.map((row) => ({ sha: row.sha, message: row.message })),
       });
     },

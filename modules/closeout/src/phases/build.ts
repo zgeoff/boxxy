@@ -27,6 +27,7 @@ import { missingCriteria } from '../missing-criteria.ts';
 import { buildCriterionTexts } from '../utils/build-criterion-texts.ts';
 import { collectOpenItemProblems } from '../utils/collect-open-item-problems.ts';
 import { collectRelationProblems } from '../utils/collect-relation-problems.ts';
+import { collectStaleEvidenceProblems } from '../utils/collect-stale-evidence-problems.ts';
 import { findLatestCloseOut } from '../utils/find-latest-close-out.ts';
 import { findLatestConclusion } from '../utils/find-latest-conclusion.ts';
 import { findLatestDesign } from '../utils/find-latest-design.ts';
@@ -154,6 +155,7 @@ function collectBuildProblems(closeOut: BuildCloseOut, ctx: CloseOutContext): Cl
     ...[...unknownCriteria].map((criterion) => ({ kind: 'unknown-criterion' as const, criterion })),
     ...[...foreignEvidence].map((evidence) => ({ kind: 'foreign-evidence' as const, evidence })),
     ...(missing.length > 0 ? [{ kind: 'built-without-evidence' as const, criteria: missing }] : []),
+    ...collectStaleEvidenceProblems(closeOut, ctx),
     ...collectOpenItemProblems(closeOut.openItems, ctx),
     ...collectRelationProblems(closeOut.relations ?? [], [], ctx),
   ];

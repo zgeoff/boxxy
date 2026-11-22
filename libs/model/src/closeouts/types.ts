@@ -259,6 +259,16 @@ export type CloseOutProblem =
   | { readonly kind: 'foreign-evidence'; readonly evidence: FactId }
   | { readonly kind: 'built-without-evidence'; readonly criteria: readonly CriterionId[] }
   | { readonly kind: 'no-acceptance' }
+
+  // a cited `check` or `verdict` recorded at another head than the pull request's; the agent
+  // records it again at `head`. `head` is null when the item's pull request is closed or merged.
+  | {
+      readonly kind: 'stale-evidence';
+      readonly criterion: CriterionId;
+      readonly evidence: FactId;
+      readonly recordedAt: CommitSha;
+      readonly head: CommitSha | null;
+    }
   | { readonly kind: 'unknown-item'; readonly item: string }
   | { readonly kind: 'unknown-kind'; readonly itemKind: string }
   | { readonly kind: 'unknown-criterion-tag'; readonly tag: string }
@@ -292,6 +302,10 @@ export interface CloseOutContext {
 
   // the attempt's own evidence rows
   readonly evidence: readonly EvidenceRow[];
+
+  // The open pull request's head, for a `built` build close-out; null when that pull request is
+  // closed or merged, and for every other phase and outcome.
+  readonly head: CommitSha | null;
   readonly world: CloseOutWorld;
 
   // the attempt's phase input, as its claim stored it
@@ -449,4 +463,7 @@ export type CloseOutAnswer =
   | {
       readonly kind: 'refused';
       readonly reason: 'no-attempt' | 'already-closed-out' | 'not-current';
-    };
+    }
+
+  // the head read failed; nothing settled, and the agent sends the close-out again
+  | { readonly kind: 'retry' };

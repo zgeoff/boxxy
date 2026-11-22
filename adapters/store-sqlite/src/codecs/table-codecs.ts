@@ -125,7 +125,7 @@ export const tableCodecs: { readonly [T in TableName]: TableCodec<Tables[T]> } =
     flags: [],
   },
   evidence: {
-    fields: ['factId', 'attempt', 'kind', 'ref', 'observed', 'source', 'at'],
+    fields: ['factId', 'attempt', 'kind', 'ref', 'observed', 'source', 'at', 'head'],
     json: [],
     flags: [],
   },

@@ -204,7 +204,7 @@ async function finishJob(
 
     invariant(row !== null, `a live attempt stays stored: ${input.attempt.id}`);
 
-    const ctx = await readCloseOutContext(tx, row, input.rules, input.now);
+    const ctx = await readCloseOutContext(tx, row, input.rules, { now: input.now, head: null });
 
     const parsed = phase.closeOut.parse(body, ctx);
 

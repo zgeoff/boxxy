@@ -17,6 +17,26 @@ test.each([
     ],
   },
   { kind: 'refused', reason: 'already-closed-out' },
+  { kind: 'retry' },
+  {
+    kind: 'rejected',
+    problems: [
+      {
+        kind: 'stale-evidence',
+        criterion: 'a1',
+        evidence: '0192f0c5-3c4d-7e5f-a061-7b8c9d0e1f2a',
+        recordedAt: '1'.repeat(40),
+        head: '2'.repeat(40),
+      },
+      {
+        kind: 'stale-evidence',
+        criterion: 'a2',
+        evidence: '0192f0c5-3c4d-7e5f-a061-7b8c9d0e1f2b',
+        recordedAt: '1'.repeat(40),
+        head: null,
+      },
+    ],
+  },
 ])('it accepts an answer of kind $kind', (answer) => {
   const parsed: unknown = closeOutAnswerSchema.safeParse(answer).data;
 

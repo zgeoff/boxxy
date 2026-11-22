@@ -227,7 +227,7 @@ const uniqueKeys: Readonly<Record<TableName, readonly UniqueKey[]>> = {
   attempt_sessions: [{ fields: ['attempt', 'agentSession'] }],
   leases: [{ fields: ['item', 'phase', 'gen'] }, { fields: ['item', 'phase'], live: 'releasedAt' }],
   decisions: [{ fields: ['id'] }],
-  evidence: [{ fields: ['factId'] }, { fields: ['attempt', 'kind', 'ref'] }],
+  evidence: [{ fields: ['factId'] }, { fields: ['attempt', 'kind', 'ref', 'head'] }],
   pull_requests: [{ fields: ['repo', 'number'] }],
   runners: [{ fields: ['id'] }],
   notes: [{ fields: ['item', 'seq'] }],

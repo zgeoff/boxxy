@@ -12,6 +12,7 @@ test('it builds a default evidence row', () => {
     observed: null,
     source: 'agent',
     at: expect.any(Number),
+    head: null,
   });
 });
 

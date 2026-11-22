@@ -23,6 +23,7 @@ async function setupTest() {
       now: dispatch.clock.now(),
       newId: dispatch.newId,
       review: { gate: dispatch.reviewGate, forge },
+      forge,
     });
 
   const claimReview = async (): Promise<AttemptRow> => {
@@ -232,6 +233,7 @@ test('it rejects a review close-out on a server with no review gate, and records
     now: ctx.clock.now(),
     newId: ctx.newId,
     review: null,
+    forge: null,
   });
 
   const after = await ctx.readAttempt(review.id);
