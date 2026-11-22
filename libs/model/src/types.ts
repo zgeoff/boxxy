@@ -103,7 +103,14 @@ export interface CallerIdentity {
   readonly subject: string;
 }
 
-export type EvidenceKind = 'pull_request' | 'commit' | 'test' | 'ci-run' | 'live-check';
+export type EvidenceKind =
+  | 'pull_request'
+  | 'commit'
+  | 'test'
+  | 'ci-run'
+  | 'live-check'
+  | 'check'
+  | 'verdict';
 
 export interface Criterion {
   readonly id: CriterionId;

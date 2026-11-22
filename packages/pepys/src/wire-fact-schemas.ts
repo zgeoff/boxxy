@@ -1,4 +1,4 @@
-import { workFactSchemas } from '@boxxy/model';
+import { refineEvidenceHead, workFactSchemas } from '@boxxy/model';
 import type { FactType } from '@boxxy/model';
 import { z } from 'zod';
 
@@ -37,7 +37,9 @@ export const wireFactSchemas = {
   'boxxy.attempt.turn_ended': workFactSchemas['boxxy.attempt.turn_ended'].extend(storeVersion),
   'boxxy.attempt.settled': workFactSchemas['boxxy.attempt.settled'].extend(storeVersion),
   'boxxy.proposal.recorded': workFactSchemas['boxxy.proposal.recorded'].extend(storeVersion),
-  'boxxy.evidence.recorded': workFactSchemas['boxxy.evidence.recorded'].extend(storeVersion),
+  'boxxy.evidence.recorded': refineEvidenceHead(
+    workFactSchemas['boxxy.evidence.recorded'].extend(storeVersion),
+  ),
   'boxxy.pull_request.linked': workFactSchemas['boxxy.pull_request.linked'].extend(storeVersion),
   'boxxy.commit.linked': workFactSchemas['boxxy.commit.linked'].extend(storeVersion),
   'boxxy.pull_request.merged': workFactSchemas['boxxy.pull_request.merged'].extend(storeVersion),

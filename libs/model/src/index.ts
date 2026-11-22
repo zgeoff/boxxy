@@ -103,6 +103,7 @@ export { mergeObservationSchema } from './merge/merge-observation-schema.ts';
 export { mergeReadingSchema } from './merge/merge-reading-schema.ts';
 export { toMergeObservationJSON } from './merge/to-merge-observation-json.ts';
 export { workFactSchemas } from './facts/work-fact-schemas.ts';
+export { refineEvidenceHead } from './facts/refine-evidence-head.ts';
 export { costBases, phaseSteps, stageSteps } from './reports/constants.ts';
 export { engineHoldReasons, engineOutcomes } from './pipeline/constants.ts';
 

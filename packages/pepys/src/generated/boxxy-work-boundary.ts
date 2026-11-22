@@ -422,9 +422,10 @@ export interface BoxxyProposalRecordedPayloadTarget {
 
 export interface BoxxyEvidenceRecordedPayload {
   attempt: string;
-  kind: 'pull_request' | 'commit' | 'test' | 'ci-run' | 'live-check';
+  kind: 'pull_request' | 'commit' | 'test' | 'ci-run' | 'live-check' | 'check' | 'verdict';
   ref: string;
   observed: string | null;
+  head?: string;
   storeVersion: number;
 }
 
@@ -3154,7 +3155,7 @@ function decodeBoxxyEvidenceRecordedPayload(value: unknown): BoxxyEvidenceRecord
   }
 
   const raw1 = 'kind' in value ? value.kind : undefined;
-  const field1 = raw1 === 'pull_request' || raw1 === 'commit' || raw1 === 'test' || raw1 === 'ci-run' || raw1 === 'live-check' ? raw1 : undefined;
+  const field1 = raw1 === 'pull_request' || raw1 === 'commit' || raw1 === 'test' || raw1 === 'ci-run' || raw1 === 'live-check' || raw1 === 'check' || raw1 === 'verdict' ? raw1 : undefined;
 
   if (field1 === undefined) {
     return undefined;
@@ -3174,10 +3175,17 @@ function decodeBoxxyEvidenceRecordedPayload(value: unknown): BoxxyEvidenceRecord
     return undefined;
   }
 
-  const raw4 = 'storeVersion' in value ? value.storeVersion : undefined;
-  const field4 = typeof raw4 === 'number' ? raw4 : undefined;
+  const raw4 = 'head' in value ? value.head : undefined;
+  const field4 = raw4 === undefined ? undefined : typeof raw4 === 'string' ? raw4 : undefined;
 
-  if (field4 === undefined) {
+  if (raw4 !== undefined && field4 === undefined) {
+    return undefined;
+  }
+
+  const raw5 = 'storeVersion' in value ? value.storeVersion : undefined;
+  const field5 = typeof raw5 === 'number' ? raw5 : undefined;
+
+  if (field5 === undefined) {
     return undefined;
   }
 
@@ -3186,7 +3194,8 @@ function decodeBoxxyEvidenceRecordedPayload(value: unknown): BoxxyEvidenceRecord
     kind: field1,
     ref: field2,
     observed: field3,
-    storeVersion: field4,
+    ...(field4 === undefined ? {} : { head: field4 }),
+    storeVersion: field5,
   };
 }
 
