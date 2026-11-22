@@ -129,9 +129,7 @@ At close-out, the server checks the cited evidence against the head:
 - When the head read fails, the close-out returns `retry` and settles nothing. A `blocked` or `abandoned` close-out never waits on the forge.
 - Each `check` or `verdict` citation in this close-out's `criteria` whose `head` differs from the current head gets one `stale-evidence` problem. So does each such citation when the pull request is closed or merged. Citations from an earlier round's close-out are never re-checked, and other evidence kinds never get the problem.
 
-Ship the change in two PRs, in this order:
-
-- The model and pepys change is built: see [the evidence fact](../../architecture/interfaces/facts-and-pepys.md#what-every-fact-carries). The server change ships after that pepys release deploys, so pepys never refuses a fact the server sends.
+The model and pepys part is built: see [the evidence fact](../../architecture/interfaces/facts-and-pepys.md#what-every-fact-carries). Ship the server part in one PR after that pepys release deploys, so pepys never refuses a fact the server sends.
 
 ## Decisions
 
