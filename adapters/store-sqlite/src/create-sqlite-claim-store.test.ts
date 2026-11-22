@@ -52,7 +52,9 @@ async function setupTest() {
     readStoredEvidenceRefs: () => {
       const sqlite = new Database(path, { readonly: true });
 
-      onTestFinished(() => sqlite.close());
+      onTestFinished(() => {
+        sqlite.close();
+      });
 
       return sqlite
         .query("SELECT ref FROM evidence WHERE kind = 'check'")
