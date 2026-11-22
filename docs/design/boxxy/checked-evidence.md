@@ -4,7 +4,7 @@
 
 A build agent records acceptance evidence as free text today. The server checks only that the cited evidence exists and belongs to the attempt. It never reads the CI run or the test cited in the text. Two evidence kinds change that: `check`, a CI check by name, and `verdict`, a `bun verify` feature by name. For either one the server reads the result from GitHub at the pull request's head, records it only when it passed, and refuses a `built` close-out whose checked evidence no longer matches the head.
 
-The design extends [the verifier](./review-and-merge.md#the-verifier), the evidence that [attempts](../../architecture/work/attempts.md) record, and the build close-out in [the pipeline](../../architecture/work/pipeline.md).
+Read it to build the server part, the one part not yet built. The design extends [the verifier](./review-and-merge.md#the-verifier), the evidence that [attempts](../../architecture/work/attempts.md) record, and the build close-out in [the pipeline](../../architecture/work/pipeline.md).
 
 ## Shape
 
@@ -129,12 +129,12 @@ At close-out, the server checks the cited evidence against the head:
 - When the head read fails, the close-out returns `retry` and settles nothing. A `blocked` or `abandoned` close-out never waits on the forge.
 - Each `check` or `verdict` citation in this close-out's `criteria` whose `head` differs from the current head gets one `stale-evidence` problem. So does each such citation when the pull request is closed or merged. Citations from an earlier round's close-out are never re-checked, and other evidence kinds never get the problem.
 
-The model and pepys part is built: see [the evidence fact](../../architecture/interfaces/facts-and-pepys.md#what-every-fact-carries). Ship the server part in one PR after that pepys release deploys, so pepys never refuses a fact the server sends.
+The model and the pepys boundary carry the two kinds and `head` on the evidence fact: see [the evidence fact](../../architecture/interfaces/facts-and-pepys.md#what-every-fact-carries). Every sketch above is still to build, the `libs/model` ones included. Ship them and the rest of this design in one PR after that pepys release deploys, so pepys never refuses a fact the server sends.
 
 ## Decisions
 
 - **The agent names the check, and the server reads it.** An agent can't record a pass that the server hasn't seen.
-- **The server checks at build close-out.** The builder waits for CI before it closes out, and the server sends a stale or red result back to the session that can fix it.
+- **The server checks at build close-out.** The build agent waits for CI before it closes out. The server refuses a red result when the agent records it, and fails the close-out on a stale one, so both reach the session that can fix them.
 - **The free-text kinds stay.** A repo with no CI check or verify setup for a line still records `test`, `ci-run` or `live-check`, and the server leaves them unchecked.
 - **noslop gets no evidence kind.** noslop runs in the review phase, after the build closes out, so a build can't cite it. The review phase already checks noslop's result against the head.
 - **Merge never re-reads checked evidence.** The required checks and the verify gate run at the merged head, so they cover a push after the close-out. To guard an acceptance line's check through merge, make that check required.

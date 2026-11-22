@@ -105,11 +105,13 @@ stream `facts.boxxy.runner`. These rules hold for the work facts:
   ignores a field it does not read. boxxy writes `head` only to a pepys whose boundary reads it, so
   the pepys release that reads it ships first.
 - **An evidence fact has one of seven kinds.** `boxxy.evidence.recorded` has the kinds
-  `pull_request`, `commit`, `test`, `ci-run`, `live-check`, `check` and `verdict`. Only `check` and
-  `verdict` carry `head`, the commit SHA the server read. The model's `refineEvidenceHead` enforces
-  that rule, and the wire schema applies it after it adds the store version. A fact written before
-  the kinds and the field has an old kind and no `head`, and still parses. The `attempt.evidence`
-  input rejects `check` and `verdict`, and the server writes neither kind.
+  `pull_request`, `commit`, `test`, `ci-run`, `live-check`, `check` and `verdict`. A `check` or
+  `verdict` fact must carry `head`, a commit SHA, and a fact of any other kind must not. The model's
+  `refineEvidenceHead` enforces that rule, and the wire schema applies it after it adds the store
+  version. A fact written before `check`, `verdict` and `head` existed has one of the other five
+  kinds and no `head`, and still parses. The server writes no `check` or `verdict` fact, because the
+  `attempt.evidence` input rejects both kinds. pepys accepts them first, as the rule for new fields
+  above says.
 - **Some outcomes write no fact of their own.** A settle for `stalled`, `skill-missing` or a
   capacity refusal shows only on the `settled` fact. A capacity refusal carries atc's code, cause
   and message in the fact's `refusal` field; a fact written before the field reads as no refusal.
