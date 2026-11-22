@@ -57,8 +57,8 @@ The `evidence` table's unique key is the attempt, the kind and the ref. A `check
 also holds the head the server read, and the same check at a new head is a new row. A rebuild of the
 table is not allowed, and an extra index cannot loosen the table's own constraint. So the store
 writes a checked row's `ref` as `<name>@<head>`, and `parseStoreRow` strips the head on every read.
-A reader of the SQLite file that bypasses the store, such as a SQL console, sees the qualified ref.
-Every other evidence kind stores its bare ref.
+A tool that opens the SQLite file directly, such as a SQL console on a backup, sees the qualified
+ref. Every other evidence kind stores its bare ref.
 
 ## Claims
 

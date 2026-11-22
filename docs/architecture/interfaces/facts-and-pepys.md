@@ -74,7 +74,7 @@ history goes out once the owner adds one.
 ## What every fact carries
 
 The stream `facts.boxxy.work` carries every fact type except the runner's two, which go to the
-stream `facts.boxxy.runner`. These rules hold for the work facts:
+stream `facts.boxxy.runner`. These rules hold for both streams:
 
 - **Every work fact is about an item.** Its pepys entity is `boxxy:item:<id>`; an attempt fact
   carries the attempt in its payload, and a relation fact names its source item. pepys groups facts

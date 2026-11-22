@@ -48,7 +48,8 @@ Only a first `linked` answer writes anything:
 | `refused`, `not-current`            | the call is for an attempt that isn't the session's latest, at either check                             |
 | `refused`, `no-attempt`             | the session has no attempt, or its latest attempt doesn't hold the proven caller, at either check       |
 
-After a `retry`, the watch links the pull request on a later pass, except when:
+After a `retry`, the watch links the pull request on a later pass. Besides the limits in
+[the pull request watch](#the-pull-request-watch), it misses the pull request when:
 
 - the config has no `github` section, so the watch never runs;
 - the pull request merges or closes before that pass, and the watch finds only open ones;

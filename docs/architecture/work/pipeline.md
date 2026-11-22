@@ -127,8 +127,8 @@ the item's position: a phase, an end or a hold.
   position moves nothing ([owner sign-off at merge](#owner-sign-off-at-merge)). It keeps the item's
   round and the count of each `{ to }` edge.
 - **`boxxy item retry <item>` lifts a hold** and restarts both counts: the attempts in a row, and
-  the runs of each `{ to }` edge. `--phase <phase>` also moves the item to that phase, and is the
-  only way back to build after a passed review.
+  the runs of each `{ to }` edge. `--phase <phase>` also moves the item to that phase. After a
+  passed review, only `--phase build` or a sign-off send-back returns the item to build.
 
 A rules change never touches a live attempt: the attempt settles by the phase kind loaded when it
 settles. An item between attempts stands wherever the new rules put it. It can move to another
@@ -386,10 +386,10 @@ its `reason`, and the lever moves the item from the sign-off hold to the merge s
 then decides again. A send-back that runs a `{ to }` edge out of tries holds the item with
 `rounds used up`, as at any `{ to }` edge.
 
-`boxxy item retry` at the sign-off hold works as at any hold: it starts a new round and sends the
-item to the merge step, which asks the owner again. When new rules drop `merge.signoff`, an item at
-the sign-off hold replays into the `outcome not in rules` hold, and `item retry` moves it on to a
-merge with no sign-off.
+`boxxy item retry` at the sign-off hold works as at any hold: it restarts the counts, keeps the
+round, and sends the item to the merge step, which asks the owner again. When new rules drop
+`merge.signoff`, an item at the sign-off hold replays into the `outcome not in rules` hold, and
+`item retry` moves it on to a merge with no sign-off.
 
 When a `changes-requested` merge attempt is the latest attempt that sent the build back, the next
 build's `findings` prints the owner's text whole, with the head the owner read. A review's findings

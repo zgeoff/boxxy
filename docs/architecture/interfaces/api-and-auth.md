@@ -3,10 +3,11 @@
 Everyone who talks to boxxy calls the same set of procedures: the owner at a terminal, the owner's
 agent, the owner's assistant from anywhere, and an agent working inside a session. The server serves
 one contract on up to three listeners, and decides what a caller may do from the listener that took
-the request and the token it carries. A session can call only the few procedures its own work needs.
-The imp broker proves which machine sent each of its calls, and the server checks that machine
-against the attempt it started there, so a session can never act for another one. Read this doc
-before you add a procedure, change who may call one, or change a listener.
+the request and the token it carries. A session in an imp can call only the few procedures its own
+work needs. The imp broker proves which machine sent each of its calls, and the server checks that
+machine against the attempt it started there, so such a session can never act for another one. A
+session on atc's own machine is the exception, as [the paths](#the-paths) says. Read this doc before
+you add a procedure, change who may call one, or change a listener.
 
 [The CLI and the hooks](./cli-and-hooks.md) covers the `boxxy` command that calls these procedures.
 [Attempts](../work/attempts.md) covers the attempt row that records a session's caller.

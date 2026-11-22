@@ -1,13 +1,14 @@
 # Verify journeys
 
-A change to boxxy merges only after an agent has used each feature it touches against a running
-boxxy, the way the owner or an agent session would. Each of boxxy's nine features has a journey: a
-short script of `bun verify` lines that ends in a read with the value it expects. A grading agent
-runs the journey of each changed feature against a local boxxy, records a verdict, and publishes a
-report into the pull request's body. A CI check, `verify / gate`, fails a pull request that changes
-a feature's files with no fresh verdict for it, and boxxy's merge step never merges a head the gate
-hasn't passed. Read this doc before you change the harness, the map from paths to features, or the
-gate.
+Before a change to boxxy merges, an agent uses each feature it touches against a running boxxy, the
+way the owner or an agent session would. A Renovate pull request is the exception, as
+[the CI check](#the-ci-check) says. Each of boxxy's nine features has a journey: a short script of
+`bun verify` lines that ends in a read with the value it expects. A grading agent runs the journey
+of each changed feature against a local boxxy, records a verdict, and publishes a report into the
+pull request's body. A CI check, `verify / gate`, fails a pull request that changes a feature's
+files with no fresh verdict for it, and boxxy's merge step waits for the gate when the base branch's
+ruleset or `merge.checks` requires it. Read this doc before you change the harness, the map from
+paths to features, or the gate.
 
 The `verify` skill in `.agents/skills/verify/` holds each journey and its end state; this doc owns
 what each journey proves. `bun verify` is built on [wringer](https://github.com/zgeoff/wringer)

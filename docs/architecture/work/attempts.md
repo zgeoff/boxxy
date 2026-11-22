@@ -2,10 +2,11 @@
 
 An attempt is one try at one phase of one item. The runner claims it, starts its agent session
 through atc, reads that session on every tick, and finally settles the attempt as succeeded or
-failed. An attempt ends on a close-out, on a time bound, or when its session is lost, and never just
-because the agent's turn ended: agents end turns to wait for CI or a scheduled wakeup. The attempt
-keeps its seats and the lease on its phase until its session has stopped, so two sessions never work
-the same phase of an item. The one exception is an attempt whose stop atc keeps refusing: after a
+failed. An attempt ends on a close-out, on a time bound, when its session is lost, or on one of the
+other failures that [settle](#settle) lists, and never just because the agent's turn ended: agents
+end turns to wait for CI or a scheduled wakeup. The attempt keeps the lease on its phase until its
+session has stopped, so two sessions never work the same phase of an item. It keeps its seats too,
+except while it sleeps. The one exception is an attempt whose stop atc keeps refusing: after a
 give-up time it settles anyway ([giving up](#stopping-a-session-and-giving-up)). Read this doc
 before you change how the runner reads sessions, puts them to sleep, wakes them or settles them.
 
@@ -44,8 +45,9 @@ the rows and facts each one writes.
 - **`wake-refused`** means atc had no room for the wake. The attempt sleeps again and keeps its wake
   request ([capacity](./sessions.md#capacity-and-the-usage-limit)).
 - **`closing`** means boxxy has decided the attempt is over but its session may still run. The
-  attempt settles once the session has stopped: by its close-out when it has one, otherwise with the
-  failure named by the event that moved it to `closing` (`usage-limited` gives `usage-limit`).
+  attempt settles once the session has stopped. When a runner event moved it to `closing`, it
+  settles with the failure that event names (`usage-limited` gives `usage-limit`), even when it
+  holds a close-out. Otherwise it settles by its close-out.
 
 An attempt takes its seats at the claim, gives them back when it sleeps, takes them again at the
 wake before the session resumes, and gives them back at the settle; `closing` keeps them. From claim
@@ -114,8 +116,9 @@ first one passed:
 
 boxxy never puts an agent-mode session to sleep, because a sleep cancels the agent's scheduled
 wakeup and no owner is there to wake it. That holds even when the session asks for input, since
-Claude Code sends its idle notice after every turn end and atc reads that as a request for input. A
-silent agent-mode session therefore ends only at `afterSilentMinutes`.
+Claude Code sends its idle notice after every turn end and atc reads that as a request for input.
+boxxy therefore never puts a silent agent-mode session to sleep: it stops it at the first bound it
+hits, which is the usage limit, `timeoutMinutes` or `afterSilentMinutes`.
 
 An attended session counts as waiting for the owner when it asks for input, when its turn has ended,
 when it has done nothing since a wake, or once it has been quiet for `afterQuietMinutes`. The
@@ -265,12 +268,12 @@ once as failed with `item-closed`, and boxxy doesn't wake it. Every other live a
 session when it appears.
 
 atc refuses a stop while something else keeps the session's host awake. So that an attempt never
-waits in `closing` forever, it settles anyway after a fixed give-up time, by its close-out or with
-the failure that moved it to `closing`, and gives back its seats and lease. boxxy marks it as a
-stray, a settled attempt whose session may still run, lists it in `runner.status`, and keeps sending
-the stop each tick for a fixed number of hours before [cleanup](./sessions.md#cleanup) takes over. A
-closing attempt whose spawn never produced a session becomes a stray the same way, and the runner
-keeps looking for its session by spawn name.
+waits in `closing` forever, it settles anyway after a fixed give-up time, as any closing attempt
+settles, and gives back its seats and lease. boxxy marks it as a stray, a settled attempt whose
+session may still run, lists it in `runner.status`, and keeps sending the stop each tick for a fixed
+number of hours before [cleanup](./sessions.md#cleanup) takes over. A closing attempt whose spawn
+never produced a session becomes a stray the same way, and the runner keeps looking for its session
+by spawn name.
 
 ## Skipped attempts
 
