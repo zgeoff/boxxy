@@ -33,7 +33,7 @@ Each file has three parts, in this order:
 Implement nothing in these files except the call site, the example plug-ins and the `define…`
 helpers. Keep each port, store and engine a type.
 
-A file groups its interfaces by topic. Its header holds the name of the package for each part.
+A file groups its interfaces by topic. Its header names the package that holds or will hold each topic's code.
 Every type that two or more packages share lives in `@boxxy/model`, whichever file declares it.
 
 A plug-in kind that takes parameters is generic over them, such as `Gate<P>`. Its `params` field is

@@ -7,7 +7,7 @@ The item holds for the owner in these cases:
 - a loop has used all its send-backs;
 - a step has used all its attempts, such as a merge whose forge stays down;
 - a sign-off rule matched and the owner has not approved the head;
-- a review or a verify failed twice in a row;
+- a review failed twice in a row, or a verify ended `abandoned` twice in a row;
 - the verify agent asks a question;
 - the pull request closed with no merge;
 - a required check stayed pending past the merge's time limit;
@@ -56,7 +56,7 @@ The sketches in [`sketches/next/review-and-merge/`](./sketches/next/review-and-m
 - **The merge runs on a job worker.** The runner reads a merge attempt on each tick, as it reads every live attempt. A webhook never starts a merge.
 - **An agent never decides a merge.** `decideMerge` in `modules/train` is pure, and the runner calls it on each read of a merge attempt.
 - **boxxy reads required checks from its rules and the branch.** It takes the union of `merge.checks` in the rules file and the base branch's required status checks. The loader accepts an empty `merge.checks`, and a rules file may leave the key out. No check name is shared by every repo, so the rules list only the checks they add to what the branch requires. On a branch that requires no check, with an empty `merge.checks`, a merge waits for no check.
-- **Each repo's own `main` ruleset sets what a merge needs.** boxxy adds no gate of its own apart from the owner's sign-off: a merge needs a review that passed at the head, every required check green there, and an approval at that head when a sign-off rule matched. boxxy's own repo requires `pr / checks` and `verify / gate` in its ruleset, so its merges wait for both. A repo with no verify setup merges on its other required checks.
+- **Each repo's own `main` ruleset sets most of what a merge needs.** boxxy adds the checks in `merge.checks`, its own review record and the owner's sign-off: a merge needs a review that passed at the head, every required check green there, and an approval at that head when a sign-off rule matched. boxxy's own repo requires `pr / checks` and `verify / gate` in its ruleset, so its merges wait for both. A repo with no verify setup merges on its other required checks.
 - **The squash merge makes the pull request's title the commit subject.** The merge call sends the title as `commit_title` and leaves the message to GitHub's default.
 - **boxxy decides "reviewed at this head" from its own review close-out.** boxxy never reads noslop's GitHub check, because that check passes at a head that no review has read.
 - **The owner picks who grades, with a recipe field.** The verify phase always runs as its own agent attempt. A verify recipe with `session: builder` wakes the build's kept session, so the builder grades its own work. `session: fresh` starts a new session.
@@ -209,10 +209,10 @@ Section 5 of [`01-usage.ts`](./sketches/next/review-and-merge/01-usage.ts) shows
 | Each loop holds after its last send-back, with a notice. | An `advance` test over the rules lines in section 1 of `01-usage.ts`, one row per backward edge. |
 | A refused merge of a clean, green head holds the item, and a request with no answer is sent again. | `decideMerge` test rows with `acted` set: `not-mergeable` gives `refused`, no answer after 5 minutes gives a new request, and past the time limit gives `stalled`. |
 | Each review after the first records the changed lines outside the files that had findings. | `countUnrelatedLines` test rows, a close-out procedure test with a fake forge compare, and a pepys query test that reads `unrelatedLines`. |
-| Only a review session gets the read-only clone token. | A recipe test: the review recipe names the token's path, and the build and design recipes name none. |
+| Only a review session gets the read-only clone token. | A rules loader test: the review recipe names the review agent, and the loader refuses a build or design recipe on that agent. |
 | A review never passes a head that it did not read. | Review adapter tests: the later-review command runs a plain review after a `--fixes-only` run that judged no fix, and none when `noslop findings` fails; `accept` reads such a run as `not-covered` and posts nothing, with noslop's error as the reason when `findings` failed; and a result for an old head reads `not-covered`. |
 | A server restart during a review never holds the item or starts a second review. | A CLI test that stops the server after `accept` posts and before the close-out is stored: the session's second close-out settles the same attempt. A second test repeats a stored close-out, and `accept` does not run. |
-| A passed review needs noslop's check to pass. | A review adapter test: `check` answers `failure` with no open finding, and the reading is blocked `unreadable`. |
+| A passed review needs noslop's check to pass. | A review adapter test: `check` answers `failure` with no open finding, and the reading is blocked `unreadable`, which settles `failed`. |
 | A review that GitHub refuses the App fails with the reason, and a rate limit sends again. | Review adapter tests: a 404 on the post and a 403 on `check` read `not-covered` with the status in `reason`, and a 429 throws. |
 | A repo whose noslop config names no App still gets a first review, and a later review there fails with a reason that asks for `github.app`. | Review adapter tests: on a review that is not `--fixes-only`, `findings` exited 1 with no list, `check` finds nothing open, and the reading is `passed`; on a `--fixes-only` run that judged no fix, a failed `findings` gives a `not-covered` reading whose reason holds noslop's error. |
 | A review close-out from any other session is refused. | The close-out procedure's caller test, as for every attempt. |

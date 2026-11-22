@@ -210,7 +210,8 @@ A rules file that skips the verify step once `verify / gate` passes
 verify phase, so its prompts split the work:
 
 - The build phase writes or changes the journey, the feature file and the path map of each feature
-  it adds or changes, and runs `bun verify lint`. It records no verdict and publishes no report.
+  it adds or changes, and runs `bun verify lint`, the command `bun run verify:lint` runs. It records
+  no verdict and publishes no report.
 - The build and rework prompts say that `verify / gate` stays red until the verify phase runs, so
   the builder leaves it red.
 - Only the verify phase records verdicts and runs `bun verify publish`.

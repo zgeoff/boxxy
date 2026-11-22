@@ -4,9 +4,9 @@ The pipeline is the route an item takes from filing to done: triage, design, bui
 some repos verify, merge and check live. The owner writes it as data in the rules file: the phases
 in order, where each outcome of a phase sends the item, and how many tries each step gets. boxxy
 never stores where an item is. It works that out from the item's settled attempts each time it reads
-the item, so a rules change moves every waiting item without a migration. When an outcome needs the
-owner, the item holds and the owner gets a notice. Read this doc before you change the rules file, a
-phase kind or a launch prompt.
+the item, so a rules change moves every waiting item without a migration. When a settled outcome
+needs the owner, the item holds and the owner gets a notice. Read this doc before you change the
+rules file, a phase kind or a launch prompt.
 
 [Attempts](./attempts.md) covers one try at one phase. [Agent sessions](./sessions.md) covers the
 session an attempt runs in, and capacity. [Notices](./notices.md) covers how a hold reaches the
@@ -50,9 +50,9 @@ An edge is one of these:
 - `{ end }` ends the pipeline with a reason.
 - `{ hold }` holds the item for the owner with a reason.
 
-Any edge that is an object takes `notify: true`. At settle, an edge with `notify: true` writes a
-[notify notice](./notices.md#the-notify-notice) and holds nothing. A `{ hold }` edge with `notify`
-writes its hold notice only. `next` and `again` take no `notify`.
+Any edge that is an object takes `notify: true`. At settle, a `{ to }` or `{ end }` edge with
+`notify: true` writes a [notify notice](./notices.md#the-notify-notice) and holds nothing. A
+`{ hold }` edge with `notify` writes its hold notice only. `next` and `again` take no `notify`.
 
 ## Step gates and skips
 
