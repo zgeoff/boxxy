@@ -79,8 +79,25 @@ needs it:
 
 One root middleware runs the access check for every call, on `/rpc` and both MCP endpoints, before
 any handler runs, and handlers never repeat it. It also logs each internal error with the procedure
-and the `item` and `attempt` IDs of its input, and nothing else from the input, so a close-out body
-or a token never reaches the log.
+and the `item` and `attempt` values of its input, and nothing else from the input, so a close-out
+body or a token never reaches the log.
+
+## Naming an item
+
+Every item has two names: its ID, a UUIDv7 that never changes, and its short reference, `i-<n>`,
+such as `i-12`. [The store](../work/store.md#short-references) numbers each item when it files it.
+Every item view that the CLI, the MCP tools and `item.list` return carries the reference in `ref`
+beside `id`.
+
+Every procedure that takes an item accepts either name: `item.get`, the commands on one item, the
+planning levers, `relation.add`, the `blockedBy` list of `item.file`, `item.signoff`, the reports
+and `attempt.getItem`. One resolver in the server turns the value into an ID. A value in the form
+`i-<n>` is looked up by its number, and any other value must be an ID. A reference that no item has
+gets the same `NOT_FOUND`, with the value as sent, as an ID that no item has.
+
+The ID stays the name inside boxxy. The [facts](./facts-and-pepys.md), the relations and the attempt
+rows name an item by its ID, and `item.list` pages with `after`, a cursor over the ID. The close-out
+answers of an agent, the relation targets and `duplicate.of`, take an ID only.
 
 ## The owner's sign-off
 

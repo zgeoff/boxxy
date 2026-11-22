@@ -58,6 +58,13 @@ notice, and a resume after it is queued does not recall it.
 The timeout is a constant beside the other timeouts in the dispatch module, not a config option. A
 pause stored before the runner recorded its start time has no length, so it gets no notice.
 
+## How a message names the item
+
+A hold or notify message names the item by its
+[short reference](../interfaces/api-and-auth.md#naming-an-item), such as `i-12`, in its text and in
+the `boxxy item` commands it suggests. The sender reads the reference from the store when it sends,
+and the message names the item ID when the store has no such item.
+
 ## The notify notice
 
 A `notify` notice names the item, the phase and a reason, and the message tells the owner that boxxy

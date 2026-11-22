@@ -96,7 +96,8 @@ Each journey ends in a read command that fails with `check-failed` when a value 
 the journey line expects, so a pass needs no judgment from the grader. A pass proves boxxy's own
 code, never the adapters the fakes replace.
 
-- `file-item`: the owner files an item through the CLI and the server, and boxxy shows it.
+- `file-item`: the owner files an item through the CLI and the server, and boxxy shows it, by its ID
+  and by its short reference.
 - `claim-settle`: the claim, the start on the fake worker, the
   [session-start hook](../interfaces/cli-and-hooks.md#the-session-start-hook) binding the session,
   the close-out parse and the settle work together, and a session reads another item of its repo
