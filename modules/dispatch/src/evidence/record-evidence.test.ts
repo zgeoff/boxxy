@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { AttemptRow, CommitSha } from '@boxxy/model';
+import type { AttemptRow, CommitSha, Forge } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { linkPullRequest } from '../pull-requests/link-pull-request.ts';
@@ -68,10 +68,14 @@ async function setupTest() {
     putChecks: (head: CommitSha, checks: Record<string, 'success' | 'failure' | 'pending'>) => {
       forge.seedChecks({ repo, head, checks });
     },
-    record: (attempt: AttemptRow, draft: EvidenceDraft, options: { hasForge?: boolean } = {}) =>
+    record: (
+      attempt: AttemptRow,
+      draft: EvidenceDraft,
+      options: { hasForge?: boolean; forge?: Forge } = {},
+    ) =>
       recordEvidence({
         store: dispatch.store,
-        forge: options.hasForge === false ? null : forge,
+        forge: options.hasForge === false ? null : (options.forge ?? forge),
         verifier: options.hasForge === false ? null : verifier,
         gateCheck,
         rules: dispatch.rules(),
@@ -290,6 +294,24 @@ test('it refuses a check of a closed pull request', async () => {
   const answer = await ctx.record(attempt, { kind: 'check', ref: 'pr / checks' });
 
   expect(answer).toStrictEqual({ kind: 'refused', reason: 'pull-request-closed' });
+});
+
+test('it refuses a check of a pull request that GitHub no longer finds', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.startBuild();
+
+  await ctx.linkOpenPullRequest(attempt, ctx.firstHead);
+
+  const answer = await ctx.record(
+    attempt,
+    { kind: 'check', ref: 'pr / checks' },
+    { forge: createFakeForge() },
+  );
+
+  const rows = await ctx.readEvidence(attempt);
+
+  expect(answer).toStrictEqual({ kind: 'refused', reason: 'pull-request-closed' });
+  expect(rows.map((row) => row.kind)).toStrictEqual(['pull_request']);
 });
 
 test('it answers retry and writes nothing when the forge does not answer', async () => {

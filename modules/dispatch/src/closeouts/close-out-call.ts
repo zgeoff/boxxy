@@ -46,7 +46,9 @@ export async function closeOutCall(input: CloseOutCallInput): Promise<CloseOutAn
   if (start.attempt.phase !== 'review') {
     const read = await readCloseOutHead({ ...input, forge: input.forge }, start.attempt);
 
-    return read.kind === 'retry' ? read : closeOutAttempt({ ...input, head: read.head });
+    return read.kind === 'retry'
+      ? read
+      : closeOutAttempt({ ...input, head: read.head, headCause: read.cause });
   }
 
   if (input.review === null) {

@@ -226,6 +226,7 @@ export type {
   LiveInput,
   MergeCloseOut,
   MergeInput,
+  NoHeadCause,
   OpenItem,
   OpenItemLink,
   PullRequestLink,

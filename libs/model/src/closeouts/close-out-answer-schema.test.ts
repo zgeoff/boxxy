@@ -27,6 +27,7 @@ test.each([
         evidence: '0192f0c5-3c4d-7e5f-a061-7b8c9d0e1f2a',
         recordedAt: '1'.repeat(40),
         head: '2'.repeat(40),
+        cause: null,
       },
       {
         kind: 'stale-evidence',
@@ -34,6 +35,7 @@ test.each([
         evidence: '0192f0c5-3c4d-7e5f-a061-7b8c9d0e1f2b',
         recordedAt: '1'.repeat(40),
         head: null,
+        cause: 'not-found',
       },
     ],
   },

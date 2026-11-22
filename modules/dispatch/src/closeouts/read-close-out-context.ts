@@ -4,6 +4,7 @@ import type {
   CommitSha,
   Instant,
   LoadedRules,
+  NoHeadCause,
   StoreTx,
 } from '@boxxy/model';
 import invariant from 'tiny-invariant';
@@ -13,6 +14,7 @@ import { filterTaggedCriteria } from '../claims/filter-tagged-criteria.ts';
 interface CloseOutReadAt {
   readonly now: Instant;
   readonly head: CommitSha | null;
+  readonly noHeadCause?: NoHeadCause | null;
 }
 
 // What a phase kind's close-out parser reads about the attempt's item and the world around it.
@@ -40,6 +42,7 @@ export async function readCloseOutContext(
     attempt: attempt.id,
     evidence: await tx.listEvidence(attempt.id),
     head: at.head,
+    ...(at.noHeadCause ? { noHeadCause: at.noHeadCause } : {}),
     world: buildWorld(
       rules,
       items.map((each) => each.id),

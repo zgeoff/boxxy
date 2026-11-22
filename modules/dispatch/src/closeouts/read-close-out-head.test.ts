@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
-import type { AttemptRow, CommitSha, FactId } from '@boxxy/model';
+import type { AttemptRow, CommitSha, FactId, Forge } from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
+import { buildMockEvidenceRow } from '@boxxy/model/test-utils/build-mock-evidence-row';
 import invariant from 'tiny-invariant';
 import { recordEvidence } from '../evidence/record-evidence.ts';
 import type { EvidenceDraft } from '../evidence/types.ts';
@@ -82,7 +83,7 @@ async function setupTest() {
     attempt,
     putPullRequest,
     record,
-    closeOut: (row: AttemptRow, body: unknown) =>
+    closeOut: (row: AttemptRow, body: unknown, options: { forge?: Forge | null } = {}) =>
       closeOutCall({
         store: dispatch.store,
         call: dispatch.buildCallRef(row),
@@ -91,7 +92,7 @@ async function setupTest() {
         now: dispatch.clock.now(),
         newId: dispatch.newId,
         review: null,
-        forge,
+        forge: options.forge === undefined ? forge : options.forge,
       }),
     buildBody: (evidence: FactId, result: unknown) => ({
       result,
@@ -132,6 +133,7 @@ test('it rejects a built close-out whose check was recorded at an older head', a
         evidence,
         recordedAt: ctx.firstHead,
         head: ctx.secondHead,
+        cause: null,
       },
     ],
   });
@@ -156,11 +158,105 @@ test.each(['closed', 'merged'] as const)(
           evidence,
           recordedAt: ctx.firstHead,
           head: null,
+          cause: 'closed',
         },
       ],
     });
   },
 );
+
+test.each([
+  { title: 'the server has no forge', cause: 'no-forge', forge: null },
+  {
+    title: 'GitHub no longer finds the pull request',
+    cause: 'not-found',
+    forge: createFakeForge(),
+  },
+] as const)('it rejects a built close-out with a null head when $title', async (row) => {
+  const ctx = await setupTest();
+  const evidence = await ctx.record({ kind: 'check', ref: 'pr / checks' });
+
+  const answer = await ctx.closeOut(ctx.attempt, ctx.buildBody(evidence, { kind: 'built' }), {
+    forge: row.forge,
+  });
+
+  expect(answer).toStrictEqual({
+    kind: 'rejected',
+    problems: [
+      {
+        kind: 'stale-evidence',
+        criterion: ctx.criterion,
+        evidence,
+        recordedAt: ctx.firstHead,
+        head: null,
+        cause: row.cause,
+      },
+    ],
+  });
+});
+
+test('it rejects a built close-out with a null head when the item has no linked pull request', async () => {
+  const ctx = await setupTest();
+  const other = await createTestDispatch();
+
+  await other.seedItem({ phase: brandSchemas.phaseName.parse('build') });
+
+  const claim = await other.claim();
+
+  invariant(claim?.attempt.phase === 'build', 'the claim picks the build');
+
+  const otherAttempt = await other.readAttempt(claim.attempt.id);
+
+  await other.store.exclusive(async (tx) => {
+    await tx.applyChange({
+      at: other.clock.now(),
+      writes: [
+        {
+          op: 'insert',
+          table: 'evidence',
+          row: buildMockEvidenceRow({
+            attempt: otherAttempt.id,
+            kind: 'check',
+            ref: 'pr / checks',
+            head: ctx.firstHead,
+          }),
+        },
+      ],
+      facts: [],
+    });
+  });
+
+  const rows = await other.store.read((tx) => tx.listEvidence(otherAttempt.id));
+
+  const [cited] = rows;
+
+  invariant(cited !== undefined, 'the check row is stored');
+
+  const answer = await closeOutCall({
+    store: other.store,
+    call: other.buildCallRef(otherAttempt),
+    body: ctx.buildBody(cited.factId, { kind: 'built' }),
+    rules: other.rules(),
+    now: other.clock.now(),
+    newId: other.newId,
+    review: null,
+    forge: createFakeForge(),
+  });
+
+  expect(answer).toStrictEqual({
+    kind: 'rejected',
+    problems: [
+      {
+        kind: 'stale-evidence',
+        criterion: ctx.criterion,
+        evidence: cited.factId,
+        recordedAt: ctx.firstHead,
+        head: null,
+        cause: 'no-pull-request',
+      },
+    ],
+  });
+});
 
 test('it answers retry and settles nothing when the head read fails', async () => {
   const ctx = await setupTest();

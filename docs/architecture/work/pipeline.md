@@ -286,8 +286,9 @@ A `built` close-out cites evidence for every line of the item's acceptance list,
 join the list when the attempt settles. The server checks nothing about a `test`, `ci-run` or
 `live-check` citation. A `check` or `verdict` citation is checked evidence: the server read the
 result from GitHub at the pull request's head when the agent recorded it, and refuses the close-out
-with `stale-evidence` when the head has moved since, or the pull request is closed or merged
-([evidence](./attempts.md#evidence)). The merge step never reads checked evidence again.
+with `stale-evidence` when the head has moved since, or when no open pull request gives a head, such
+as a closed or merged one ([evidence](./attempts.md#evidence)). The merge step never reads checked
+evidence again.
 
 ## The review
 

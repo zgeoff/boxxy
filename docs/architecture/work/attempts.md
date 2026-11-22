@@ -183,13 +183,18 @@ such as one that cites an unknown criterion, still costs one read. An agent's ow
 count and a friction entry with no target do not fail the schema. `blocked` and `abandoned`
 close-outs, a body that cites no checked evidence, and a resend of a recorded close-out never wait
 on GitHub. A failed read answers `retry` and settles nothing, and the CLI exits as for an evidence
-`retry`. The build phase kind then gives each cited `check` or `verdict` whose recorded head differs
-from the head one `stale-evidence` problem: the criterion, the evidence ID, the head it was recorded
-at, and the current head. The problem names the current head as null when the pull request is closed
-or merged, or the item has none, and each cited `check` or `verdict` of that close-out then gets the
-problem. The agent records the check or verdict again at the new head and cites the new ID. The
-parser never re-checks the citations of an earlier round's close-out, and no other evidence kind
-gets the problem.
+`retry`. A close-out that cites no `check` or `verdict` reads no head, so the context the parser
+gets holds a head only when the close-out cites checked evidence.
+
+The build phase kind gives each cited `check` or `verdict` whose recorded head differs from the head
+one `stale-evidence` problem: the criterion, the evidence ID, the head it was recorded at, and the
+current head. The current head is null when the close-out has no open pull request to read it from,
+and the problem then carries the cause: the server has no forge (no `github` section in the config),
+the item has no linked pull request, GitHub no longer finds the pull request, or the pull request is
+closed or merged. Each cited `check` or `verdict` of that close-out gets the problem, and the CLI's
+line names the cause. The agent records the check or verdict again at the new head and cites the new
+ID. The parser never re-checks the citations of an earlier round's close-out, and no other evidence
+kind gets the problem.
 
 The close-out parser returns every problem at once, except that a close-out which fails the schema
 gets only its schema problems. Each problem's path points at the index the agent sent. The parser
@@ -217,8 +222,8 @@ and builds neither when the config has no `github` section.
 | ----------------------------------------------------------------------------- | ---------------------------------- |
 | the server has no forge                                                       | `refused`, `no-forge`              |
 | the item has no linked pull request                                           | `refused`, `no-pull-request`       |
-| the pull request is closed or merged                                          | `refused`, `pull-request-closed`   |
-| a GitHub call failed, or GitHub does not find the pull request                | `retry`, with nothing written      |
+| the pull request is closed or merged, or GitHub does not find it              | `refused`, `pull-request-closed`   |
+| a GitHub call failed                                                          | `retry`, with nothing written      |
 | a `check` whose check run is `success`                                        | recorded                           |
 | a `check` whose check run is pending                                          | `refused`, `check-pending`         |
 | a `check` whose check run is `failure` or `other`, such as cancelled          | `refused`, `check-failed`          |
@@ -239,8 +244,10 @@ kind, ref and head returns the first fact ID and writes nothing, and a call at a
 new row. The store keeps a checked row's ref qualified by its head, because its unique key is the
 attempt, the kind and the ref, and it gives the ref back bare. A refused call or a `retry` writes no
 row and no fact. A call reads GitHub outside the store lock, and checks the session again inside the
-lock before it writes. A `check` makes one pull request read and one checks read, and a `verdict`
-adds the verifier's read of the pull request's body.
+lock before it writes. A `check` makes one pull request read and one checks read. A `verdict` makes
+the same two reads, and the verifier then reads the checks a second time, with the pull request's
+body, through its own port, so a check run that changes between the two reads can differ between the
+gate state that decides the refusal and the state the verifier reported.
 
 Merge never reads checked evidence again: the required checks and the verify gate run at the merged
 head, so they cover a push after the close-out. To guard an acceptance line's check through merge,

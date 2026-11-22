@@ -100,6 +100,7 @@ async function writeCloseOut(
   const ctx = await readCloseOutContext(tx, attempt, input.rules, {
     now: input.now,
     head: input.head ?? null,
+    noHeadCause: input.headCause ?? null,
   });
 
   const parsed = phase.closeOut.parse(input.body, ctx);

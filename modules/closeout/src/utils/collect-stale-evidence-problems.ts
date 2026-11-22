@@ -1,7 +1,7 @@
 import type { BuildCloseOut, CloseOutContext, CloseOutProblem } from '@boxxy/model';
 
 // One problem for each cited `check` or `verdict` recorded at another head than the pull request's
-// now, or when that pull request is closed or merged. A `blocked` or `abandoned` close-out has no
+// now, or when no open pull request gave a head. A `blocked` or `abandoned` close-out has no
 // head read, so it gets none.
 export function collectStaleEvidenceProblems(
   closeOut: BuildCloseOut,
@@ -27,6 +27,7 @@ export function collectStaleEvidenceProblems(
         evidence: entry.evidence,
         recordedAt: row.head,
         head: ctx.head,
+        cause: ctx.head === null ? (ctx.noHeadCause ?? 'closed') : null,
       },
     ];
   });

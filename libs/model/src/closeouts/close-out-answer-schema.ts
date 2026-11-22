@@ -17,6 +17,7 @@ const closeOutProblemSchema: z.ZodType<CloseOutProblem> = z.discriminatedUnion('
     evidence: brandSchemas.factId,
     recordedAt: brandSchemas.commitSha,
     head: brandSchemas.commitSha.nullable(),
+    cause: z.enum(['no-forge', 'no-pull-request', 'closed', 'not-found']).nullable(),
   }),
   z.object({ kind: z.literal('unknown-item'), item: z.string() }),
   z.object({ kind: z.literal('unknown-kind'), itemKind: z.string() }),

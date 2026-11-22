@@ -19,11 +19,16 @@ function setupTest() {
       friction: [],
       frictionDropped: 0,
     }),
-    context: (row: EvidenceRow, head: CommitSha | null): CloseOutContext => ({
+    context: (
+      row: EvidenceRow,
+      head: CommitSha | null,
+      noHeadCause?: CloseOutContext['noHeadCause'],
+    ): CloseOutContext => ({
       item: buildMockV1ItemView(),
       attempt: row.attempt,
       evidence: [row],
       head,
+      ...(noHeadCause === undefined ? {} : { noHeadCause }),
       world: {
         items: new Set(),
         kinds: new Set(),
@@ -50,6 +55,7 @@ test.each(['check', 'verdict'] as const)(
         evidence: row.factId,
         recordedAt: ctx.olderHead,
         head: ctx.currentHead,
+        cause: null,
       },
     ]);
   },
@@ -66,9 +72,31 @@ test('it flags a cited check with a null head when the pull request is closed or
       evidence: row.factId,
       recordedAt: ctx.olderHead,
       head: null,
+      cause: 'closed',
     },
   ]);
 });
+
+test.each(['no-forge', 'no-pull-request', 'not-found'] as const)(
+  'it flags a cited check with the cause %s when no head was read',
+  (cause) => {
+    const ctx = setupTest();
+    const row = buildMockEvidenceRow({ kind: 'check', head: ctx.olderHead });
+
+    expect(
+      collectStaleEvidenceProblems(ctx.closeOut(row), ctx.context(row, null, cause)),
+    ).toStrictEqual([
+      {
+        kind: 'stale-evidence',
+        criterion: ctx.criterion,
+        evidence: row.factId,
+        recordedAt: ctx.olderHead,
+        head: null,
+        cause,
+      },
+    ]);
+  },
+);
 
 test('it flags nothing for a check recorded at the current head', () => {
   const ctx = setupTest();

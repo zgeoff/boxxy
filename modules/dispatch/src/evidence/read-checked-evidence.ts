@@ -15,7 +15,8 @@ export type CheckedReading =
   | { readonly kind: 'refused'; readonly refusal: CheckedEvidenceRefusal };
 
 // Reads the item's latest pull request from the forge, and the check or the verify result at its
-// head. A forge call that throws is a `retry`, and nothing has been written yet.
+// head. A forge call that throws is a `retry`, and nothing has been written yet. A `verdict` reads
+// the checks twice, because the verifier's `readAt` reads them again and takes no checks reading.
 export async function readCheckedEvidence(
   input: RecordEvidenceInput,
   attempt: AttemptRow,
@@ -43,11 +44,7 @@ export async function readCheckedEvidence(
   try {
     const reading = await forge.readPullRequest(ref);
 
-    if (reading === 'not-found') {
-      return { kind: 'retry' };
-    }
-
-    if (reading.state !== 'open') {
+    if (reading === 'not-found' || reading.state !== 'open') {
       return { kind: 'refused', refusal: { reason: 'pull-request-closed' } };
     }
 

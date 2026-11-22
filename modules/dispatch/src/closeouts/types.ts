@@ -14,6 +14,7 @@ import type {
   ItemView,
   LoadedRules,
   NewId,
+  NoHeadCause,
   PullRequestRow,
   RefusalDetail,
   RelationRow,
@@ -118,7 +119,8 @@ export interface CloseOutInput {
   readonly now: Instant;
   readonly newId: NewId;
 
-  // the open pull request's head, read before the lock; null when none was read, or when the pull
-  // request is closed or merged
+  // the open pull request's head, read before the lock; null when none was read, or when the
+  // close-out cites checked evidence and there is no open pull request, and `headCause` says why
   readonly head?: CommitSha | null;
+  readonly headCause?: NoHeadCause | null;
 }
