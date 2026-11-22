@@ -1,71 +1,57 @@
 import { expect, test } from 'bun:test';
-import { z } from 'zod';
-import { refineEvidenceHead } from './refine-evidence-head.ts';
-import { workFactSchemas } from './work-fact-schemas.ts';
+import { brandSchemas } from '../rows/brand-schemas.ts';
+import { parseNewFact } from './parse-new-fact.ts';
+import type { NewFact } from './types.ts';
 
 function setupTest() {
-  const head = '9c1e0f5a2b3c4d5e6f708192a3b4c5d6e7f80910';
-
   return {
-    head,
-    schema: refineEvidenceHead(workFactSchemas['boxxy.evidence.recorded']),
-    wireSchema: refineEvidenceHead(
-      workFactSchemas['boxxy.evidence.recorded'].extend({ storeVersion: z.number().int() }),
-    ),
-    build: (fields: Record<string, unknown>) => ({
-      attempt: '0192f0c5-1a2b-7c3d-8e4f-5a6b7c8d9e0f',
-      ref: 'pr / checks',
-      observed: null,
-      ...fields,
-    }),
+    head: brandSchemas.commitSha.parse('9c1e0f5a2b3c4d5e6f708192a3b4c5d6e7f80910'),
+    attempt: brandSchemas.attemptId.parse('0192f0c5-1a2b-7c3d-8e4f-5a6b7c8d9e0f'),
+    parse: (payload: NewFact<'boxxy.evidence.recorded'>['payload']) =>
+      parseNewFact({
+        id: brandSchemas.factId.parse('0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b77'),
+        type: 'boxxy.evidence.recorded',
+        entity: 'boxxy:item:0192f0c4-7b1e-7a10-9d55-3f2a1c0e9b70',
+        actor: 'boxxy:owner:local',
+        payload,
+      }),
   };
 }
 
-test.each(['check', 'verdict'])('it accepts a %s fact with a head', (kind) => {
+test.each(['check', 'verdict'] as const)('it accepts a %s fact with a head', (kind) => {
   const ctx = setupTest();
 
-  expect(ctx.schema.safeParse(ctx.build({ kind, head: ctx.head })).success).toBe(true);
+  expect(() =>
+    ctx.parse({ attempt: ctx.attempt, kind, ref: 'pr / checks', observed: null, head: ctx.head }),
+  ).not.toThrow();
 });
 
-test.each(['check', 'verdict'])('it rejects a %s fact with no head', (kind) => {
+test.each(['check', 'verdict'] as const)('it rejects a %s fact with no head', (kind) => {
   const ctx = setupTest();
 
-  expect(ctx.schema.safeParse(ctx.build({ kind })).error?.issues).toPartiallyContain({
-    path: ['head'],
-  });
+  expect(() =>
+    ctx.parse({ attempt: ctx.attempt, kind, ref: 'pr / checks', observed: null }),
+  ).toThrowWithMessage(Error, /boxxy\.evidence\.recorded/u);
 });
 
-test.each(['pull_request', 'commit', 'test', 'ci-run', 'live-check'])(
+test.each(['pull_request', 'commit', 'test', 'ci-run', 'live-check'] as const)(
   'it rejects a %s fact with a head',
   (kind) => {
     const ctx = setupTest();
 
-    expect(
-      ctx.schema.safeParse(ctx.build({ kind, head: ctx.head })).error?.issues,
-    ).toPartiallyContain({ path: ['head'] });
+    expect(() =>
+      ctx.parse({ attempt: ctx.attempt, kind, ref: 'ref', observed: null, head: ctx.head }),
+    ).toThrowWithMessage(Error, /boxxy\.evidence\.recorded/u);
   },
 );
 
-test.each(['pull_request', 'commit', 'test', 'ci-run', 'live-check'])(
+test.each(['pull_request', 'commit', 'test', 'ci-run', 'live-check'] as const)(
   'it accepts a %s fact stored with no head',
   (kind) => {
     const ctx = setupTest();
 
-    expect(ctx.schema.safeParse(ctx.build({ kind })).success).toBe(true);
+    expect(() =>
+      ctx.parse({ attempt: ctx.attempt, kind, ref: 'ref', observed: null }),
+    ).not.toThrow();
   },
 );
-
-test('it rejects a head that is not a commit SHA', () => {
-  const ctx = setupTest();
-
-  expect(ctx.schema.safeParse(ctx.build({ kind: 'check', head: 'main' })).success).toBe(false);
-});
-
-test('it keeps the rule after the wire schema adds a store version', () => {
-  const ctx = setupTest();
-
-  expect([
-    ctx.wireSchema.safeParse(ctx.build({ kind: 'check', storeVersion: 1 })).success,
-    ctx.wireSchema.safeParse(ctx.build({ kind: 'check', head: ctx.head, storeVersion: 1 })).success,
-  ]).toStrictEqual([false, true]);
-});

@@ -131,7 +131,7 @@ At close-out, the server checks the cited evidence against the head:
 
 Ship the change in two PRs, in this order:
 
-- The model and pepys change is built: [the evidence fact](../../architecture/interfaces/facts-and-pepys.md#what-every-fact-carries) carries the two kinds and `head`, and the pepys boundary reads them. The server change ships after that pepys release deploys, so pepys never refuses a fact the server sends.
+- The model and pepys change is built: see [the evidence fact](../../architecture/interfaces/facts-and-pepys.md#what-every-fact-carries). The server change ships after that pepys release deploys, so pepys never refuses a fact the server sends.
 
 ## Decisions
 
