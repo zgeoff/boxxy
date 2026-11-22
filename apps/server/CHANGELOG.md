@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.3.6](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.3.5...@boxxy/server@0.3.6) (2026-11-22)
+
+
+### Features
+
+* record check and verdict evidence from github ([#288](https://github.com/zgeoff/boxxy/issues/288)) ([cc6eec2](https://github.com/zgeoff/boxxy/commit/cc6eec2de0b20f58439fa7b3b978561dc9c4949b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/auth-oauth bumped to 0.3.6
+    * @boxxy/caller-proof-imp bumped to 0.3.6
+    * @boxxy/closeout bumped to 0.3.6
+    * @boxxy/content-hash bumped to 0.3.6
+    * @boxxy/contract bumped to 0.3.6
+    * @boxxy/dispatch bumped to 0.3.6
+    * @boxxy/forge-github bumped to 0.3.6
+    * @boxxy/model bumped to 0.3.6
+    * @boxxy/notifier-atc bumped to 0.3.6
+    * @boxxy/pepys bumped to 0.3.6
+    * @boxxy/planning bumped to 0.3.6
+    * @boxxy/review-noslop bumped to 0.3.6
+    * @boxxy/rules bumped to 0.3.6
+    * @boxxy/store-sqlite bumped to 0.3.6
+    * @boxxy/verifier-wringer bumped to 0.3.6
+    * @boxxy/worker-atc bumped to 0.3.6
+
 ## [0.3.5](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.3.4...@boxxy/server@0.3.5) (2026-11-22)
 
 ### Miscellaneous Chores

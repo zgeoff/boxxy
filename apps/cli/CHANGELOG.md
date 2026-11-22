@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.3.6](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.3.5...@boxxy/cli@0.3.6) (2026-11-22)
+
+
+### Features
+
+* record check and verdict evidence from github ([#288](https://github.com/zgeoff/boxxy/issues/288)) ([cc6eec2](https://github.com/zgeoff/boxxy/commit/cc6eec2de0b20f58439fa7b3b978561dc9c4949b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/contract bumped to 0.3.6
+    * @boxxy/model bumped to 0.3.6
+  * devDependencies
+    * @boxxy/auth-oauth bumped to 0.3.6
+    * @boxxy/dispatch bumped to 0.3.6
+    * @boxxy/rules bumped to 0.3.6
+    * @boxxy/server bumped to 0.3.6
+    * @boxxy/store-sqlite bumped to 0.3.6
+
 ## [0.3.5](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.3.4...@boxxy/cli@0.3.5) (2026-11-22)
 
 ### Miscellaneous Chores
