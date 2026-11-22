@@ -4,8 +4,8 @@ import { buildCloseOutSchema } from '@boxxy/model';
 
 const bodySchema = buildCloseOutSchema.omit({ frictionDropped: true });
 
-// True for a valid `built` build close-out that cites a `check` or a `verdict`. Validity is the
-// parser's: the body is split of friction the same way first. Any other body never waits on the forge.
+// True for a `built` build close-out that passes the close-out schema and cites a `check` or a
+// `verdict`. The build rules have not run, so the parser may still reject the body.
 // Pure.
 export function shouldReadHead(
   phase: string,
