@@ -7,7 +7,8 @@ reads the open items and the owner's levers, and returns one pick for each free 
 
 ## The words the core uses
 
-The rules file names the planning concepts the core runs. Each concept adds some of these parts:
+The rules file, which the [work pipeline](./pipeline.md) doc describes, names the planning concepts
+the core runs. Each concept adds some of these parts:
 
 | Part         | What it does                                                                        |
 | ------------ | ----------------------------------------------------------------------------------- |
@@ -27,12 +28,14 @@ at every item that has a value, follows the relation that its propagation rule n
 an item it has visited. When an item receives several values, the signal's `combine` function merges
 them. So when the owner expedites a blocked item, its blockers move forward too.
 
-The owner sets two levers, and each one feeds a signal:
+The owner sets two levers:
 
-- `defer` holds an item until the lever's `until` time. When an item has several live `defer`
-  levers, the latest one counts.
-- `expedite` gives an item its position among all `expedite` levers, in the order the store recorded
-  them. An item with two `expedite` levers takes the earlier position, so its `combine` is `min`.
+- `defer` feeds the `defer` gate, which holds the item until the lever's `until` time, or until the
+  owner undefers it when the lever has no `until`. When an item has several live `defer` levers, the
+  one the store recorded last counts.
+- `expedite` feeds the `expedite` signal, which gives an item its position among all `expedite`
+  levers, in the order the store recorded them. An item with two `expedite` levers takes the earlier
+  position, so its `combine` is `min`.
 
 The `expedite-lifts-defer` waiver lifts a defer hold on any item with an `expedite` value, including
 a value that propagation brought it.
@@ -40,7 +43,7 @@ a value that propagation brought it.
 ## Faults
 
 When a concept throws on one item, the core records a fault on that item and goes on with the
-others:
+others, so a bug in one concept never stops every claim:
 
 - A gate that throws holds the item, with the fault as the hold's reason, and a waiver never lifts
   that hold.

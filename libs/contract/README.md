@@ -28,9 +28,8 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Features
 
-- `contract`, the 26 procedures in the groups `item`, `relation`, `attempt`, `plan`, `runner`,
-  `outbox`, `rules` and `report`. A procedure that is an MCP tool carries its tool name and
-  description.
+- `contract`, every procedure of the API, grouped by subject, such as `item`, `plan` and `report`. A
+  procedure that is an MCP tool carries its tool name and description.
 - `access`, one row for each procedure: who calls it, the actor its fact records, the MCP endpoint
   that lists it, and the CLI command that calls it.
 

@@ -30,24 +30,34 @@ compare models, prompts and rules on the same kind of task.
 boxxy is one [Bun](https://bun.sh) workspace. The [layout](./docs/architecture/repo/layout.md) sets
 which folder holds what, and which package may import which.
 
-| Package                  | Folder                  | Holds                                              |
-| ------------------------ | ----------------------- | -------------------------------------------------- |
-| `@boxxy/cli`             | `apps/cli`              | the `boxxy` command line                           |
-| `@boxxy/server`          | `apps/server`           | the API on two listeners, and the runner tick      |
-| `@boxxy/dispatch`        | `modules/dispatch`      | claiming the next task, and settling each attempt  |
-| `@boxxy/rules`           | `modules/rules`         | the rules loader and the rules version             |
-| `@boxxy/closeout`        | `modules/closeout`      | the phase kinds and the `openItems` dedupe         |
-| `@boxxy/planning`        | `modules/planning`      | `buildFrame`, `decide` and the planning concepts   |
-| `@boxxy/train`           | `modules/train`         | `decideMerge`, the merge rule                      |
-| `@boxxy/store-sqlite`    | `adapters/store-sqlite` | the store on SQLite                                |
-| `@boxxy/model`           | `libs/model`            | the types the packages share, and the fact catalog |
-| `@boxxy/content-hash`    | `libs/content-hash`     | canonical JSON and the SHA-256 content hashes      |
-| `@boxxy/prompt-template` | `libs/prompt-template`  | the launch prompt's load check and Liquid render   |
+| Package                   | Folder                      | Holds                                                    |
+| ------------------------- | --------------------------- | -------------------------------------------------------- |
+| `@boxxy/cli`              | `apps/cli`                  | the `boxxy` command line                                 |
+| `@boxxy/server`           | `apps/server`               | the API on two listeners, and the runner tick            |
+| `@boxxy/dispatch`         | `modules/dispatch`          | claiming the next task, and settling each attempt        |
+| `@boxxy/rules`            | `modules/rules`             | the rules loader and the rules version                   |
+| `@boxxy/closeout`         | `modules/closeout`          | the phase kinds and the `openItems` dedupe               |
+| `@boxxy/planning`         | `modules/planning`          | `buildFrame`, `decide` and the planning concepts         |
+| `@boxxy/train`            | `modules/train`             | `decideMerge`, the merge rule                            |
+| `@boxxy/store-sqlite`     | `adapters/store-sqlite`     | the store on SQLite                                      |
+| `@boxxy/auth-oauth`       | `adapters/auth-oauth`       | the public door to the owner's MCP tools, with OAuth     |
+| `@boxxy/caller-proof-imp` | `adapters/caller-proof-imp` | the proof of which machine sent a call, from imp         |
+| `@boxxy/forge-github`     | `adapters/forge-github`     | pull requests, commits and checks on GitHub              |
+| `@boxxy/notifier-atc`     | `adapters/notifier-atc`     | the owner's hold notices, as atc messages                |
+| `@boxxy/review-noslop`    | `adapters/review-noslop`    | the review gate on noslop                                |
+| `@boxxy/verifier-wringer` | `adapters/verifier-wringer` | the verify gate on wringer                               |
+| `@boxxy/worker-atc`       | `adapters/worker-atc`       | the agent sessions, on atc                               |
+| `@boxxy/model`            | `libs/model`                | the types the packages share, and the fact catalog       |
+| `@boxxy/contract`         | `libs/contract`             | the API's oRPC contract, and who may call each procedure |
+| `@boxxy/content-hash`     | `libs/content-hash`         | canonical JSON and the SHA-256 content hashes            |
+| `@boxxy/prompt-template`  | `libs/prompt-template`      | the launch prompt's load check and Liquid render         |
+| `@boxxy/pepys`            | `packages/pepys`            | the pepys plug-in: boxxy's fact sink and reader          |
 
 Every package publishes to npm. The [releasing runbook](./docs/runbooks/releasing.md) covers a
 release.
 
-Run the local checks. CI runs the rest, with the type-aware lint, on every pull request:
+Run the local checks. CI runs them too on every pull request, with the audit, the dead-code check,
+the type-aware lint and the docs checks:
 
 ```bash
 bun install

@@ -33,9 +33,10 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
   review when that run judged no fix and `noslop findings` succeeds.
 - `accept(round, result)` posts the result with `sendResult` from `@noslop/cli/post`, then reads the
   findings still open with `check` from `@noslop/cli/check`.
-- `accept` reads a result that it can't post as `not-covered` and posts nothing. That covers a
-  result for an old head and a fixes-only run that judged no fix. When `noslop findings` failed in
-  that run, the reading's `reason` holds noslop's error, such as a missing `github.app`.
+- `accept` reads a result that it can't post as `not-covered` and posts nothing, such as a result
+  for an old head. A fixes-only run that judged no fix reaches `accept` only when `noslop findings`
+  failed, so the command ran no plain review. That result reads `not-covered` too, and the reading's
+  `reason` holds noslop's error, such as a missing `github.app`.
 - `accept` throws only when GitHub gives no answer, so the session sends the file again.
 
 ## Documentation

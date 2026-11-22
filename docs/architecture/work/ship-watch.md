@@ -79,9 +79,10 @@ pass reads again.
 
 When an item ships, the pass writes one `item_shipped` row, keyed by item and commit, and the
 `boxxy.item.shipped` fact in one store change. The row holds the rule, the ref (the deploy tag, or
-the release tag for `release`), the release tag a bump named for `release-then-deploy`, and when the
-watch saw the ship, which is not when it happened. A row that exists already for the item and commit
-is never written twice. A webhook never changes boxxy state: only the watch writes `item_shipped`.
+the release tag for `release`), the release tag a bump named for `release` with `then` (stored as
+the rule `release-then-deploy`), and when the watch saw the ship, which is not when it happened. A
+row that exists already for the item and commit is never written twice. A webhook never changes
+boxxy state: only the watch writes `item_shipped`.
 
 The watch reads GitHub through the forge adapter, never pepys. boxxy reads pepys only for reports,
 through a reader that never retries, and pepys records no deploy for a repo that deploys its own

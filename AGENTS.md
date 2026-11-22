@@ -18,8 +18,9 @@ The mistakes that cost most here:
   design doc for your task, and load the skills your work needs.
 - [Layout](#layout): follow the layout doc. Code under `modules/` and `libs/` does no I/O.
 - [Docs and decisions](#docs-and-decisions): a doc changes in the same PR as the code.
-- [Verify before you hand off](#verify-before-you-hand-off): check each feature your change touches
-  with the `verify` skill, and publish the verify report to the pull request.
+- [Verify before you hand off](#verify-before-you-hand-off): check each feature that
+  `bun verify report` marks changed, with the `verify` skill, and publish the verify report to the
+  pull request.
 - [Packages](#packages): one exact version per dependency, in the root catalog.
 - [Checks](#checks): run the local checks before you push. The type-aware lint runs in CI only.
 - [Commits and pull requests](#commits-and-pull-requests): Conventional Commits, one PR per
@@ -82,7 +83,9 @@ Three checks enforce the layout in CI:
 - oxlint's `no-restricted-globals` rule fails on any use of `Date`, `process` or `Bun` in
   `modules/` and `libs/`.
 
-When a check fails, move the code to the package the layout names. Never add an exception to a rule.
+When a check fails, move the code to the package the layout names. Never add an exception to a rule:
+the checks keep the domain logic free of I/O, and
+[decision 0016](docs/decisions/0016-layout.md) records why.
 
 ## Docs and decisions
 
@@ -99,8 +102,8 @@ When a check fails, move the code to the package the layout names. Never add an 
      architecture docs reference.
   2. Delete the design doc, and its line in the [design index](docs/design/boxxy/README.md).
 - Each fact has one doc that owns it. Link to that doc. Never copy the fact.
-- `docs/decisions/` holds the decision records. Add or change one only when your task asks for it.
-  Never delete one.
+- `docs/decisions/` holds the decision records. Each one records a choice the owner made, so add or
+  change one only when your task asks for it. Never delete one.
   - Copy the shape of the newest record. Give it the next free four-digit number. Date it with the
     day the owner made the choice, in `YYYY-MM-DD` form: the date the task gives, or today when it
     gives none.
@@ -156,7 +159,7 @@ what the feature does.
   ```
 
 - Leave the larger checks to CI, because the host may have little memory. CI runs the audit, the
-  knip dead-code check, the type-aware lint and the full test suite on every pull request.
+  knip dead-code check and the type-aware lint on every pull request, as well as `bun run test`.
 
 ## Commits and pull requests
 
@@ -164,7 +167,8 @@ what the feature does.
   pull request template.
 - Commit messages and PR titles follow [Conventional Commits](https://www.conventionalcommits.org/).
   The subject starts in lowercase, uses the imperative ("add X", never "added X"), and keeps the
-  whole first line to 72 characters or fewer.
+  whole first line to 72 characters or fewer. CI checks the PR title against these rules, because
+  a squash merge makes it the commit subject.
 - Add no attribution lines: no co-author trailers and no generator notes.
 
 ## Public repo

@@ -33,8 +33,8 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
   with the reason `no-notice-session`.
 - The client is one call, `sendMessage`. The app builds it from its atc connection.
 - The adapter sends the key it gets from the notice as the idempotency key, and keeps no state.
-- A send that atc refuses with a code that ran nothing returns `refused`. Every other failure
-  returns `uncertain`. The adapter never throws.
+- A send that atc refuses with a code that ran nothing returns `refused`. Apart from that and the
+  missing session, every failure returns `uncertain`. The adapter never throws.
   [Notice delivery](../../docs/architecture/work/notices.md) lists the codes and says what the
   server does with each outcome.
 

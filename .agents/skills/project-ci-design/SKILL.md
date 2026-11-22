@@ -22,8 +22,10 @@ None.
 
 ## The check list
 
-- Change the CI script list in the `BUN_CHECK_SCRIPTS` repo variable, which `gh variable list`
-  shows, and in the sentence of [the tech stack](../../../docs/architecture/repo/tech-stack.md) that
-  gives its value. Ask the owner to set the variable.
-- Leave `bench` out of the list. The claim benchmark fails its budget, as
-  [dispatch](../../../docs/design/boxxy/dispatch.md#the-built-claim-measured) records.
+- CI runs the root scripts that the `BUN_CHECK_SCRIPTS` repo variable lists, and `gh variable list`
+  shows its value. To change the list, rewrite the sentence of
+  [the tech stack](../../../docs/architecture/repo/tech-stack.md) that gives the value, and ask the
+  owner, in your PR description, to set the variable to match.
+- Leave `bench` out of the list. The claim benchmark misses its own latency target, so `rig bench`
+  fails, as [dispatch](../../../docs/design/boxxy/dispatch.md#the-built-claim-measured) records. The
+  test budget in Facts is a different limit, on the test suite's run time.

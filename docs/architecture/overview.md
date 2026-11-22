@@ -30,7 +30,7 @@ flowchart LR
 4. The agent sends a close-out when its work is done, and the runner settles the attempt. The store
    keeps no position for the item. Each time the server reads an item, it works out where the item
    stands from the item's settled attempts and the pipeline, so the next step follows from the edge
-   of the settled outcome.
+   of the settled outcome, and a rules change moves every waiting item with no migration.
 5. When a settle puts the item on hold, it also writes a notice, which the runner sends through atc
    to the session the owner picked for notices.
 
@@ -92,15 +92,16 @@ write lands and what refuses one.
 
 ## Rules
 
-The server loads the rules from a git checkout, and only from a commit in the history of the
-configured ref, such as `origin/main`, so every rule it runs has merged through review. A plain
-folder with no git loads with no check, so build that folder only from the reviewed rules branch.
-The rules version is a hash of that commit, the rules file, the recipes' prompt templates and the
-code of the planning concepts the rules file pins, such as its pool and lever kinds, and each claim
-records it. The owner's levers must act at once while a rules change waits for review, so the store
-keeps levers as rows ([decision 0003](../decisions/0003-rules-in-git-levers-as-facts.md)). The
-loader refuses a YAML value that holds itself through an alias, and any `__proto__` key, before the
-schema check. `scripts/write-concept-pins.ts` writes the concept pins into the committed
+The server loads the rules from a folder. When the folder is a git checkout, the server loads only a
+commit in the history of the configured ref, such as `origin/main`, so every rule it runs has merged
+through review. A plain folder with no git loads with no check, so build that folder only from the
+reviewed rules branch. The rules version is a hash of that commit, the rules file, the recipes'
+prompt templates and the code of the planning concepts the rules file pins, such as its pool and
+lever kinds, and each claim records it. The owner's levers must act at once while a rules change
+waits for review, so the store keeps levers as rows
+([decision 0003](../decisions/0003-rules-in-git-levers-as-facts.md)). The loader refuses a YAML
+value that holds itself through an alias, and any `__proto__` key, before the schema check.
+`scripts/write-concept-pins.ts` writes the concept pins into the committed
 `src/generated/concept-pins.ts`, and a test fails when that file is stale. Each hash uses canonical
 JSON by RFC 8785, which throws on `NaN` or `undefined`, and a tree hash sorts its files by the UTF-8
 bytes of their relative paths.

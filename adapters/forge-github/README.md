@@ -37,8 +37,8 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
   the token until 5 minutes before it expires, and shares one mint between the calls that wait.
 - A pull request carries GitHub's own `id`, which pepys builds its entity ID from, and the base
   branch it merges into.
-- A missing pull request reads as `not-found`. Any other failure throws, and the caller reads that
-  as "the forge did not answer".
+- A missing pull request reads as `not-found`, and `mergeAtHead` answers two refusals, as its line
+  below says. Any other failure throws, and the caller reads that as "the forge did not answer".
 - `readChecks(repo, head)` gives the state and the source of the newest run of each check name at
   `head`, from the check runs and the commit statuses.
 - `readRequiredChecks(repo, branch)` gives the union of the checks that the branch's rulesets
