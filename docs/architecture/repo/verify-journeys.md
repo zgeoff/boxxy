@@ -1,14 +1,15 @@
 # Verify journeys
 
 Before a change to boxxy merges, an agent uses each feature it touches against a running boxxy, the
-way the owner or an agent session would. A change that touches only files no journey runs, such as a
-Renovate or release-please pull request, is the exception, as [the CI check](#the-ci-check) says.
-Each of boxxy's nine features has a journey: a short script of `bun verify` lines that ends in a
-read with the value it expects. A grading agent runs the journey of each changed feature against a
-local boxxy, records a verdict, and publishes a report into the pull request's body. A CI check,
-`verify / gate`, fails a pull request that changes a feature's files with no fresh verdict for it,
-and boxxy's merge step waits for the gate when the base branch's ruleset or `merge.checks` requires
-it. Read this doc before you change the harness, the map from paths to features, or the gate.
+way the owner or an agent session would. A change that touches only ignored files, such as a
+release-please pull request, is an exception, and so is a Renovate pull request, as
+[the CI check](#the-ci-check) says. Each of boxxy's nine features has a journey: a short script of
+`bun verify` lines that ends in a read with the value it expects. A grading agent runs the journey
+of each changed feature against a local boxxy, records a verdict, and publishes a report into the
+pull request's body. A CI check, `verify / gate`, fails a pull request that changes a feature's
+files with no fresh verdict for it, and boxxy's merge step waits for the gate when the base branch's
+ruleset or `merge.checks` requires it. Read this doc before you change the harness, the map from
+paths to features, or the gate.
 
 The `verify` skill in `.agents/skills/verify/` holds each journey and its end state; this doc owns
 what each journey proves. `bun verify` is built on [wringer](https://github.com/zgeoff/wringer)
@@ -162,10 +163,11 @@ in `feature-paths.ts`:
    server's own start, config, timers and rules loader, which the harness swaps for the test
    composition. Their own tests cover them.
 
-A change to the CLI's or the server's `src/test-utils/`, the harness included, needs fresh verdicts
-for all nine features, because it changes what a journey proves. No ignore glob matches a source
-file a journey runs; the list matches prose by folder and name, never `**/*.md`, because the rules'
-prompts are markdown the server sends to each session.
+The tests in group 1 are test files; no ignore glob matches the CLI's or the server's
+`src/test-utils/`. A change there, the harness included, needs fresh verdicts for all nine features,
+because it changes what a journey proves. No ignore glob matches a source file a journey runs; the
+list matches prose by folder and name, never `**/*.md`, because the rules' prompts are markdown the
+server sends to each session.
 
 ## The CI check
 

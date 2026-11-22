@@ -4,9 +4,9 @@ boxxy is one Bun workspace, split so the domain never does I/O. Modules hold the
 that needs an outside system declares a port, an interface for that system, and an adapter
 implements the port for one system. Apps build the adapters and hand them to the modules. Libs hold
 the shared types, schemas and pure helpers, and do no I/O either. A deployed package, under
-`packages/`, is one that another repo's deployment installs. Lint and `turbo boundaries` enforce
-most of these rules. A reviewer checks the rest, which are in [Import pins](#import-pins). Read this
-doc before you add a package, a dependency or a file whose home isn't obvious.
+`packages/`, is one that another repo's deployment installs. Lint, `turbo boundaries` and
+`check:test-layout` enforce most of the rules below, and a reviewer checks every rule that names no
+check. Read this doc before you add a package, a dependency or a file whose home isn't obvious.
 
 [Decision 0016](../../decisions/0016-layout.md) records why the repo is split this way.
 [Tech stack](./tech-stack.md) covers the libraries and the repo's setup files. The
@@ -83,7 +83,7 @@ another adapter, and only an app depends on an adapter or a deployed package.
   other repo's deployment; a module would drag the domain in. When it needs an adapter's work, it
   takes a port, as a module does. An import-zones entry fails any import of a deployed package from
   a module or lib. A lib it depends on gets installed with it, so list that lib's test-only
-  libraries in its `devDependencies`.
+  libraries in the lib's own `devDependencies`.
 - **An app never depends on another app.** The CLI is the one exception, because its tests drive the
   real server, and they live beside the CLI code they drive, as the test layout requires. The CLI
   lists the server only as a dev dependency, may import only the server's test-helper exports, and

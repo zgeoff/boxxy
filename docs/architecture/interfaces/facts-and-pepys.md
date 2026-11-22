@@ -107,10 +107,10 @@ stream `facts.boxxy.runner`. These rules hold for both streams:
 - **An evidence fact has one of seven kinds.** `boxxy.evidence.recorded` has the kinds
   `pull_request`, `commit`, `test`, `ci-run`, `live-check`, `check` and `verdict`. A `check` or
   `verdict` fact must carry `head`, a commit SHA, and a fact of any other kind must not. The model's
-  `refineEvidenceHead` enforces that rule, and the wire schema applies the rule after it adds the
-  store version. An older fact, written before `check`, `verdict` and `head` existed, still parses:
-  it has one of the other five kinds and no `head`. The server writes a `check` or `verdict` fact
-  only after it read the result from GitHub at the pull request's head and the result passed
+  `refineEvidenceHead` enforces that rule, and the wire schema applies the rule after the sink adds
+  the store version. An older fact, written before `check`, `verdict` and `head` existed, still
+  parses: it has one of the other five kinds and no `head`. The server writes a `check` or `verdict`
+  fact only after it read the result from GitHub at the pull request's head and the result passed
   ([evidence](../work/attempts.md#evidence)). It writes `head` on those two kinds and leaves the key
   out of every other evidence fact. Ship the pepys release that accepts the new kinds first, as the
   rule for new fields above says.
@@ -181,8 +181,8 @@ a product that reports cost per turn.
 
 - **An item lands when a pull request it produced merges.** The landing time is the earliest such
   merge. An item that hasn't landed returns its cost so far.
-- **Every attempt counts**, whatever its outcome, including one claimed after the merge. An attempt
-  that failed with `no-capacity` ran no session, so it gets no line.
+- **Every attempt that ran a session counts**, whatever its outcome, including one claimed after the
+  merge. An attempt that failed with `no-capacity` ran no session, so it gets no line.
 - **Each telemetry row counts once.** Its session and proven origin must match the attempt's session
   and caller. When one session carried several attempts in turn, as a
   [kept session](../work/sessions.md#the-kept-session) does, each attempt owns the stretch from its
