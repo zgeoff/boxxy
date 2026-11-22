@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.3.4](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.3.3...@boxxy/dispatch@0.3.4) (2026-11-22)
+
+
+### Features
+
+* number each item with a short reference ([#279](https://github.com/zgeoff/boxxy/issues/279)) ([a02557f](https://github.com/zgeoff/boxxy/commit/a02557f9b2e9655843ebe874e725ee414a8ea2f9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/closeout bumped to 0.3.4
+    * @boxxy/content-hash bumped to 0.3.4
+    * @boxxy/model bumped to 0.3.4
+    * @boxxy/planning bumped to 0.3.4
+    * @boxxy/prompt-template bumped to 0.3.4
+  * devDependencies
+    * @boxxy/rules bumped to 0.3.4
+  * peerDependencies
+    * @boxxy/rules bumped to 0.3.4
+
 ## [0.3.3](https://github.com/zgeoff/boxxy/compare/@boxxy/dispatch@0.3.2...@boxxy/dispatch@0.3.3) (2026-11-20)
 
 ### Features

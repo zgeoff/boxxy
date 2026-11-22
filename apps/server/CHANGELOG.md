@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.3.4](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.3.3...@boxxy/server@0.3.4) (2026-11-22)
+
+
+### Features
+
+* number each item with a short reference ([#279](https://github.com/zgeoff/boxxy/issues/279)) ([a02557f](https://github.com/zgeoff/boxxy/commit/a02557f9b2e9655843ebe874e725ee414a8ea2f9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/auth-oauth bumped to 0.3.4
+    * @boxxy/caller-proof-imp bumped to 0.3.4
+    * @boxxy/closeout bumped to 0.3.4
+    * @boxxy/content-hash bumped to 0.3.4
+    * @boxxy/contract bumped to 0.3.4
+    * @boxxy/dispatch bumped to 0.3.4
+    * @boxxy/forge-github bumped to 0.3.4
+    * @boxxy/model bumped to 0.3.4
+    * @boxxy/notifier-atc bumped to 0.3.4
+    * @boxxy/pepys bumped to 0.3.4
+    * @boxxy/planning bumped to 0.3.4
+    * @boxxy/review-noslop bumped to 0.3.4
+    * @boxxy/rules bumped to 0.3.4
+    * @boxxy/store-sqlite bumped to 0.3.4
+    * @boxxy/verifier-wringer bumped to 0.3.4
+    * @boxxy/worker-atc bumped to 0.3.4
+
 ## [0.3.3](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.3.2...@boxxy/server@0.3.3) (2026-11-20)
 
 ### Features
