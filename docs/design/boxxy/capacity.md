@@ -34,11 +34,10 @@ A recipe declares its model set per phase: the main model, the subagent model, t
 review model. One attempt uses several models, so a recipe that named only one would hide part of
 its spend.
 
-The router picks a capacity source for each attempt whose recipe pins none, when the claim
-commits. Attempts are short, so
+When a claim commits, the router picks a capacity source for each attempt whose recipe pins
+none. Attempts are short, so
 no long session has to move between sources, and rotation is a choice made at each claim. A recipe
-names a source only as an optional pin, for work that must run on one source. With no pin, the
-router picks.
+names a source only as an optional pin, for work that must run on one source.
 
 - **Routing among accounts that serve the same model through the same provider doesn't change
   outcomes.** It never confounds an experiment, so the router is free to balance load across them.
@@ -113,8 +112,8 @@ The arm split, effect and stop date above are examples. The loader sets the mini
 champion's measured variance, and refuses the file if the stop date comes too soon.
 
 This experiment needs the router, the pay-per-token source adapter and the live-bucket experiment
-path. Build all three in slice 2 of
-[the first slice](../../decisions/0014-first-slice.md).
+path. Build all three in slice 2 (see
+[0014: the first slice](../../decisions/0014-first-slice.md)).
 
 ## To verify
 

@@ -99,7 +99,7 @@ pipelines:
 ```
 
 - `claimNext` enforces the gate: nobody can claim `design` until a sign-off fact exists for the exact
-  draft hash, or the owner's override skips the gate where its rule allows that. A changed draft needs a new sign-off.
+  draft hash, unless the gate's rule lets the owner's override skip it. A changed draft needs a new sign-off.
 - A rejection sends the item back to `contract`, with the reason as input.
 - A rule on the gate sets who may sign off, and whether the owner's override can skip it.
 - Time spent waiting at a gate counts as a cost of the pipeline (proposed).
@@ -169,8 +169,8 @@ session through a mod, the CLI, agents filing work, and later nixie.
   acts as the owner. A call through the public door acts as the owner too, with an OAuth token that the owner approved. A call with the worker token acts as a session, and boxxy takes the
   session from its proven caller. The actor never comes from a value the caller supplies, such as an environment
   variable.
-- **The owner's path is the only check on who sends an owner command.** A gate rule can still refuse the command itself. That path is the owner listener, or
-  the public door with a token the owner approved. Any caller on it can expedite,
+- **The owner's path is the only check on who sends an owner command.** That path is the owner listener, or
+  the public door with a token the owner approved. A gate rule can still refuse the command. Any caller on the path can expedite,
   file or rank, and boxxy never asks for a confirmation bound to the person
   ([API and auth](../../architecture/interfaces/api-and-auth.md#the-paths)).
 - An agent inside an attempt files work as that attempt, and the new item links `found-in` to it.

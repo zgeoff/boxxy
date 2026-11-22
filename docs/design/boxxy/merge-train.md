@@ -51,7 +51,7 @@ head. A stack enters the train, rebases, runs CI and merges as one unit.
  bisect; eject the failing unit; requeue the rest
 ```
 
-- **Rebase lazily, at the front.** A unit rebases and pushes only when it reaches the front of the train, which
+- **Rebase lazily, at the front.** boxxy rebases and pushes a unit only when it reaches the front of the train, which
   caps rebases at one per unit each time it reaches the front.
 - **Probe for conflicts at every base move.** Each time the base moves, boxxy trial-rebases every
   open unit with no push and no CI. A conflict starts an agent fix early, so the unit is ready by

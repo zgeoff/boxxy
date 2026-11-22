@@ -85,7 +85,7 @@ pools:
 
 ### Limits and the decision
 
-A pick takes one seat in each limit whose `counts` filter matches the pick's field values, and `decide` gives a pick only when each of those limits has a free seat. The store's snapshot gives each limit's `max` and the seats held now, and `decide` counts down the seats of its own picks, so one decision never starts more than a limit allows. A limit can hold more seats than its `max` after a session the owner revived wakes over the cap, a wake that planning doesn't decide ([lifecycle](../../architecture/work/attempts.md)), and it then gives no pick until the count is under `max` again.
+A pick takes one seat in each limit whose `counts` filter matches the pick's field values, and `decide` gives a pick only when each of those limits has a free seat. The store's snapshot gives each limit's `max` and the seats held now, and `decide` counts down the seats of its own picks, so one decision never starts more than a limit allows. A limit can hold more seats than its `max` when a session the owner revived wakes over the cap, a wake that planning doesn't decide ([lifecycle](../../architecture/work/attempts.md)). `decide` then gives no pick that takes a seat in that limit until its count is under `max` again.
 
 `decide` returns its picks in this order:
 
@@ -106,7 +106,7 @@ cost cap ([capacity](./capacity.md)).
 
 ## Ordering levers
 
-These levers give the owner and agents a say in the order. Each lever is a fact with its actor and
+The owner and agents change the order with these levers. Each lever is a fact with its actor and
 time ([rules](./rules.md#levers-as-facts)).
 
 - **Expedite** beats every sort key.
@@ -133,7 +133,7 @@ boxxy refuses cycles, estimates and a default priority.
 The owner files a held item to keep a draft that boxxy never starts. The owner edits it and adds notes, then releases it into its pipeline.
 
 - **Filing.** `item.file` with `held: { reason }` writes the item and an `item.held` lever in one store change, so no tick sees the item open. A held item needs the same fields as any other item.
-- **The state.** An item whose latest `item.held` or `item.release` lever is `item.held` has the derived state `held`, with the lever's reason. The state comes right after `archived` in the derived-state table, ahead of every other state, so a held item is never a candidate of the frame and runs no phase, triage included. Like `blocked`, `held` is a derived state outside the planning concepts: no concept of the rules registers it, so no rules file can drop it, and no waiver, expedite, pull or goal lifts it. `item.retry` refuses a held item with `ITEM_HELD`, because a retry moves the item's position and its release would then skip triage.
+- **The state.** An item whose latest `item.held` or `item.release` lever is `item.held` has the derived state `held`, with the lever's reason. The state comes right after `archived` in the derived-state table, ahead of every other state, so a held item is never a candidate of the frame and runs no phase, triage included. Like `blocked`, `held` is a derived state that no concept of the rules registers, so no rules file can drop it, and no waiver, expedite, pull or goal lifts it. `item.retry` refuses a held item with `ITEM_HELD`, because a retry moves the item's position and its release would then skip triage.
 - **Release.** `item.release` writes an `item.release` lever, and triage starts on the next tick. It refuses an item that is not held with `not-held`, a closed item included. Both levers write `boxxy.lever.recorded`.
 - **Reading.** `item.list` with the state `held` lists the held items only. `item.get` returns the item's revisions: one for each `boxxy.item.edited` fact in the outbox, with its time, its actor and the names of the fields it set. The outbox keeps every sent row ([facts and pepys](../../architecture/interfaces/facts-and-pepys.md#the-outbox)), so the revisions need no table of their own.
 - **Access.** Only the owner's path files, releases or lists held items ([API and auth](../../architecture/interfaces/api-and-auth.md#the-procedures)), and a session's reads of other items never return one.
@@ -171,7 +171,7 @@ is a view over replay, so it can never disagree with dispatch about order.
    Each cohort holds the last 30 days of done items with their cycle time (claim to merge, all
    attempts) and slot time (the sum of attempt durations).
 2. **Simulate `decide()` forward.** A Monte Carlo of 500 runs. Each run copies the current frame and
-   steps simulated time. Free seats ask the real `decide()`, with the same rules version and
+   steps simulated time. For each free seat, the run asks the real `decide()`, with the same rules version and
    plug-ins, for picks. Each pick draws a slot time from its cohort, then finishes and unblocks its
    dependants. New items arrive at each cohort's measured rate. A run ends when every item serving G
    is done. The answer is the p50 and p90 of the end dates.

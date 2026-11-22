@@ -174,9 +174,9 @@ carries the cause `capacity` or `other`.
 - **`capacity`** is `host_unavailable` with the problem `ram_budget_exceeded`. atc's imp provider
   puts impd's error code there in lower case, and impd answers `RAM_BUDGET_EXCEEDED` when no budget
   is left for another imp.
-- **`other`** is any other atc error code, apart from `no_such_session` on a spawn, a malformed
-  result, or a JSON-RPC error that refuses the request before it runs (parse error, invalid request,
-  method not found or invalid params), which the client codes as `protocol_error`.
+- **`other`** is a malformed result, any other atc error code except `no_such_session` on a spawn,
+  or a JSON-RPC error that refuses the request before it runs (parse error, invalid request, method
+  not found or invalid params), which the client codes as `protocol_error`.
 - **`unknown`** is a timeout, a dropped connection, an HTTP 5xx, any other JSON-RPC error,
   `outcome_unknown` or `idempotency_key_unknown`, because atc may have run the call.
 

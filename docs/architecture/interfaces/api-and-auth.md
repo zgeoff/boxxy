@@ -29,8 +29,8 @@ flowchart LR
 ```
 
 The contract lives in `@boxxy/contract`, and the server builds one oRPC router from it for every
-listener. The caller's path decides which procedures a listener lets it reach
-([the paths](#the-paths)). Set each listener's address in the server config.
+listener. Each caller reaches only the procedures its path allows ([the paths](#the-paths)). Set
+each listener's address in the server config.
 
 - **The owner listener** serves `/rpc` for the CLI, `/mcp` for the owner's agent, and `/healthz`. It
   runs a request with no token as the owner, so the owner's private network is its only gate.
@@ -48,7 +48,7 @@ POST with no CORS preflight, and DNS rebinding lets a page pass for the listener
 
 ## The procedures
 
-Each procedure is `<group>.<verb>`, and a procedure with an MCP tool names it `<group>_<verb>`. Each
+Each procedure is `<group>.<verb>`, and its MCP tool, if it has one, is `<group>_<verb>`. Each
 procedure sets its own tool name, so renaming a router key never renames a tool. An answer the
 caller acts on in its normal flow is one member of the procedure's output union, and each member has
 its own `kind`; a call that names something that doesn't exist throws a typed error. The server

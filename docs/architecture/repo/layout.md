@@ -5,8 +5,8 @@ that needs an outside system declares a port, an interface for that system, and 
 implements the port for one system. Apps build the adapters and hand them to the modules. Libs hold
 the shared types, schemas and pure helpers, and do no I/O either. A deployed package, under
 `packages/`, is one that another repo's deployment installs. Lint, `turbo boundaries` and
-`check:test-layout` enforce most of the rules below, and a reviewer checks every rule that names no
-check. Read this doc before you add a package, a dependency or a file whose home isn't obvious.
+`check:test-layout` enforce most of the rules below, and a reviewer checks each rule with no check
+beside it. Read this doc before you add a package, a dependency or a file whose home isn't obvious.
 
 [Decision 0016](../../decisions/0016-layout.md) records why the repo is split this way.
 [Tech stack](./tech-stack.md) covers the libraries and the repo's setup files. The

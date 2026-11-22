@@ -72,8 +72,8 @@ caller of the state code runs each wait and passes the answers in, so the state 
 kind. A step with `criteria` runs on the matching lines alone: the phase input and the launch
 prompt's `acceptance` hold only the lines with the tag, and the close-out check of its attempt
 checks only those lines. An item with an empty acceptance list has no tagged line, so a `criteria`
-gate on triage or design skips its step; the claim never reaches a later step of such an item, as
-[derived item state](#derived-item-state) says. The tags an acceptance line may carry are the rules
+gate on triage or design skips its step. The claim never reaches a later step of such an item
+([derived item state](#derived-item-state)). The tags an acceptance line may carry are the rules
 file's `criterionTags`. `item file`, `item edit` and a triage or design close-out that sets
 acceptance refuse a tag the list lacks, and a tag stays on its line in the item's state, its facts
 and `item show`.

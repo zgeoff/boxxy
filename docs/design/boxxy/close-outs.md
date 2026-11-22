@@ -1,7 +1,7 @@
 # Close-outs
 
-A close-out is the typed outcome of an attempt. Most close-outs come from the attempt's agent,
-which writes only what only it knows ([decision 0009](../../decisions/0009-close-outs-hold-what-only-the-agent-knows.md)).
+A close-out is the typed outcome of an attempt. The attempt's agent writes most close-outs,
+and writes only what only it knows ([decision 0009](../../decisions/0009-close-outs-hold-what-only-the-agent-knows.md)).
 boxxy derives everything else, such as commits, PRs, CI results, findings, tokens and time, from
 facts. The runner writes the merge close-out, and the server builds the review close-out from the
 review tool's result. Each phase kind brings its own close-out type. boxxy rejects a close-out that doesn't parse,
@@ -75,7 +75,7 @@ The parser cuts no list. A cut finding or open item would be work lost with no c
 | verify | a body that names its own `session`; the parser copies `session` from the attempt's input | `verified`, `failed`: succeeded, because the grader graded the work. `blocked`, `abandoned`: failed, with the outcome as the failure |
 | merge | a body with a field that `MergeCloseOut` lacks, or one that lacks a field | `merged`: succeeded. Asks to record the merge of the input's pull request. Any other outcome: failed, with the outcome as the failure |
 
-A blocked or abandoned design, build or verify fails, so it never reads as done work and no session is kept for it. Its failure is the outcome name. The engine reads some failure names, such as `no-capacity`, and the agent's free-text reason could match one, so the reason stays in the close-out. Every settle also asks to record each friction entry as a proposal. The settle returns the effects and the outcome, and the caller applies the effects. When the rules map the outcome to a hold, the caller withholds each effect that changes an item, except a wait of the held item on another item ([the pipeline](../../architecture/work/pipeline.md#phases-and-edges)).
+A blocked or abandoned design, build or verify fails, so it never reads as done work and no session is kept for it. Its failure is the outcome name. The engine reads some failure names, such as `no-capacity`, and the agent's free-text reason could match one, so the reason stays in the close-out. Every settle also asks to record each friction entry as a proposal. The settle returns the effects and the outcome, and the caller applies the effects. When the rules map the outcome to a hold, the caller withholds each effect that changes an item, except one that makes the held item wait on another item ([the pipeline](../../architecture/work/pipeline.md#phases-and-edges)).
 
 The review session sends the review tool's raw result. The server passes it to `ReviewGate.accept`, and builds the `ReviewCloseOut` from the reading: the round, its cause, the reading and `unrelatedLines` ([the review gate](./review-and-merge.md#the-review-gate)). The review parser then checks that built body, and the repeat check hashes the raw result.
 

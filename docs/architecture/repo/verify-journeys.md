@@ -163,11 +163,11 @@ in `feature-paths.ts`:
    server's own start, config, timers and rules loader, which the harness swaps for the test
    composition. Their own tests cover them.
 
-The tests in group 1 are test files; no ignore glob matches the CLI's or the server's
-`src/test-utils/`. A change there, the harness included, needs fresh verdicts for all nine features,
-because it changes what a journey proves. No ignore glob matches a source file a journey runs; the
-list matches prose by folder and name, never `**/*.md`, because the rules' prompts are markdown the
-server sends to each session.
+Group 1 ignores test files, but no ignore glob matches the CLI's or the server's `src/test-utils/`.
+A change there, the harness included, needs fresh verdicts for all nine features, because it changes
+what a journey proves. No ignore glob matches a source file a journey runs; the list matches prose
+by folder and name, never `**/*.md`, because the rules' prompts are markdown the server sends to
+each session.
 
 ## The CI check
 

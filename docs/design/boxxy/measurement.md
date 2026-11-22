@@ -20,8 +20,8 @@ nothing to the spawn request for telemetry.
 
 boxxy joins spend to an attempt by the agent's own session id. Claude Code puts a `session.id`
 attribute on every telemetry record, and atc records each session's agent session id as
-`agentSessionID`. Each of those sessions belongs to an attempt boxxy started, so the attempt row holds the item, phase, recipe
-and capacity source of each one. An attempt can collect more than one agent session, such as when
+`agentSessionID`. Each of those sessions belongs to an attempt that boxxy started, and the attempt row holds that attempt's item, phase, recipe
+and capacity source. An attempt can collect more than one agent session, such as when
 atc respawns its session. The runner records each agent session id of an attempt in the store's
 `attempt_sessions` table when atc reports it, and a spend query joins each record's `session.id` to
 those ids at read time. A record whose `session.id` matches no attempt belongs to no attempt.
@@ -45,9 +45,9 @@ atc records it. An investigation in atc will find out.
 `input_tokens + cache_read_tokens + cache_creation_tokens`. Never sum `input_tokens` alone in a spend
 query, because that undercounts.
 
-One attempt uses several models: the main session, subagents, an advisor and a review model. The
-session-id join ties each request to its attempt whatever model served it, wherever the agent's telemetry carries the session id, so spend splits by phase
-and model with no transcript read.
+One attempt uses several models: the main session, subagents, an advisor and a review model. Wherever an
+agent's telemetry carries the session id, the session-id join ties each request to its attempt, whatever model served it.
+Spend then splits by phase and model with no transcript read.
 
 ## Experiments
 
@@ -190,8 +190,8 @@ Each query runs over pepys facts, joined to attempts through the session ids the
 
 ## First experiment
 
-The first experiment is the model-swap eval in slice 2 of
-[the first slice](../../decisions/0014-first-slice.md) (see
+The first experiment is the model-swap eval that
+[the first-slice decision](../../decisions/0014-first-slice.md) plans for slice 2 (see
 [capacity](./capacity.md#the-model-swap-eval)). It runs on a first cut of the verdict: cost
 to land as the only metric, one pooled row with no strata, a fixed analysis date and the A/A floor.
 It has no shadow rules and no report beyond the verdict row. Guards and strata follow.

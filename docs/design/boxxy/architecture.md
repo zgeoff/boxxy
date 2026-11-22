@@ -77,7 +77,7 @@ atc's own agent config switches telemetry on per agent, and the spawn request ca
 settings. boxxy joins each request record to its attempt by the agent session id: the record's
 `session.id` matches an id that atc reports and boxxy records with the attempt. An attempt can
 collect more than one agent session, such as when atc respawns its session. Each of those
-sessions belongs to an attempt boxxy started, so the attempt row gives the item, phase, recipe and capacity source. Prompt and
+sessions belongs to an attempt that boxxy started, so boxxy reads the item, phase, recipe and capacity source from the attempt row. Prompt and
 response text stay redacted, which is the OTel default. The capture details are in
 [measurement](./measurement.md).
 
