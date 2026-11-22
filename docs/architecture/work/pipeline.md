@@ -71,11 +71,10 @@ The claim checks `criteria` first, then `skipWhen`, then `waits`, and any one tr
 of the state code runs each wait and passes the answers in, so the state code names no wait kind. A
 step with `criteria` runs on the matching lines alone: the phase input and the launch prompt's
 `acceptance` list only the lines with the tag, and so does the close-out check of its attempt. An
-item with an empty acceptance list, which reads as an idea and which no step takes, has no tagged
-line, so a `criteria` gate skips its step. The tags an acceptance line may carry are the rules
-file's `criterionTags`. `item file`, `item edit` and a triage or design close-out that sets
-acceptance refuse a tag the list lacks, and a tag stays on its line in the item's state, its facts
-and `item show`.
+item with an empty acceptance list has no tagged line, so a `criteria` gate skips its step. The tags
+an acceptance line may carry are the rules file's `criterionTags`. `item file`, `item edit` and a
+triage or design close-out that sets acceptance refuse a tag the list lacks, and a tag stays on its
+line in the item's state, its facts and `item show`.
 
 A step with `waits` may also set `waitNoticeHours: <hours>`, the time that an item may wait at the
 step before the owner gets one notice ([the overdue wait](./notices.md#the-notify-notice)). It
@@ -115,9 +114,9 @@ the item's position: a phase, an end or a hold.
 - **The engine adds three outcomes.** `lost` is the outcome of an attempt that failed without an
   outcome of its phase, such as one with no valid close-out. `lost` acts as `again`. One exception:
   the engine skips a `no-capacity` or `usage-limit` failure, because that work never ran.
-  `unsettleable` marks a close-out the phase code could not settle; it has no edge, so the item
-  holds. `skipped` marks a step a [gate](#step-gates-and-skips) skipped, and takes the step's `skip`
-  edge.
+  `unsettleable` marks a close-out the phase code could not settle. It is the engine's outcome, not
+  one of the phase kind's, so it has no edge and the item holds. `skipped` marks a step a
+  [gate](#step-gates-and-skips) skipped, and takes the step's `skip` edge.
 - **The engine adds three holds:** `attempts used up`, `rounds used up` and `outcome not in rules`.
   When a newer phase kind drops an outcome, an item whose stored outcome lost its edge holds with
   `outcome not in rules`. It never falls through to `next`, so no item skips a phase unchecked. The
@@ -128,12 +127,13 @@ the item's position: a phase, an end or a hold.
   round and the count of each `{ to }` edge.
 - **`boxxy item retry <item>` lifts a hold** and restarts both counts: the attempts in a row, and
   the runs of each `{ to }` edge. `--phase <phase>` also moves the item to that phase. After a
-  passed review, only `--phase build` or a sign-off send-back returns the item to build.
+  passed review, the item goes back to build only through `--phase build`, a sign-off send-back, or
+  an edge that the rules file sends to build, such as a failed verify's.
 
 A rules change never touches a live attempt: the attempt settles by the phase kind loaded when it
 settles. An item between attempts stands wherever the new rules put it. It can move to another
 phase, leave a hold because a `maxAttempts` or `max` went up, or take a hold because one went down.
-That last case sends no notice, because boxxy writes notices only at settle. Run
+That last case sends no hold notice, because boxxy writes a hold notice only at settle. Run
 `boxxy rules dry-run <file>` before a rules change merges: it prints each open item's position now
 and under the new rules, and writes nothing.
 

@@ -14,7 +14,7 @@
 The oRPC contract of the boxxy API, and the table of who may call each procedure.
 
 The server builds its router from the contract, and the CLI builds its typed client from it. The
-package does no I/O: it holds only the procedures and their zod schemas.
+package does no I/O: it holds only the procedures, their zod schemas and the access table.
 
 ## Install
 

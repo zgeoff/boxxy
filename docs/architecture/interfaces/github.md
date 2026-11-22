@@ -2,10 +2,11 @@
 
 boxxy uses GitHub to link each build to the pull request its agent opened, to notice when that pull
 request merges or closes, to merge it when the pipeline has a merge step, and to read what a review
-covers. Every one of those calls goes through one adapter, which signs in as the boxxy GitHub App.
-Two paths link a pull request: the agent's hook links it the moment the agent opens it, and a watch
-that the server runs on a timer links what the hook missed and records merges and closes. Read this
-doc before you change how boxxy follows pull requests or talks to GitHub.
+covers. Every one of those calls goes through one adapter, which signs in as the boxxy GitHub App,
+or sends no credential when a proxy adds one on the way out. Two paths link a pull request: the
+agent's hook links it the moment the agent opens it, and a watch that the server runs on a timer
+links what the hook missed and records merges and closes. Read this doc before you change how boxxy
+follows pull requests or talks to GitHub.
 
 [The CLI and the hooks](./cli-and-hooks.md#the-pull-request-hook) covers the hook's side of a link.
 [Facts and pepys](./facts-and-pepys.md) covers the facts a link and a merge send. The

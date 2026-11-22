@@ -78,10 +78,11 @@ needs it:
   ([the session's reads](#a-sessions-view-of-other-items)).
 - **The hooks** call `attempt.bindSession`, which binds a session to its attempt, and
   `attempt.recordPullRequest`, which links a pull request. Neither is an MCP tool.
-- **Some owner procedures have no tool,** so only a person at the CLI calls them. `outbox.retry`
-  acts on the whole outbox and writes no fact that would show who called it, so it stays where an
-  agent can't call it unseen. `rules.dryRun` takes a whole rules file as input. The six `auth`
-  procedures manage who may reach the public listener, so they stay on the private owner listener.
+- **Some owner procedures have no MCP tool,** so an agent that works through the MCP tools can't
+  call them, and the owner calls them with the CLI. `outbox.retry` acts on the whole outbox and
+  writes no fact that would show who called it, so it stays out of the tools an agent calls.
+  `rules.dryRun` takes a whole rules file as input. The six `auth` procedures manage who may reach
+  the public listener, so they stay on the private owner listener.
 
 One root middleware runs the access check for every call, on `/rpc` and both MCP endpoints, before
 any handler runs, and handlers never repeat it. It also logs each internal error with the procedure
@@ -103,7 +104,8 @@ gets the same `NOT_FOUND`, with the value as sent, as an ID that no item has.
 
 The ID stays the name inside boxxy. The [facts](./facts-and-pepys.md), the relations and the attempt
 rows name an item by its ID, and `item.list` pages with `after`, a cursor over the ID. The close-out
-answers of an agent, the relation targets and `duplicate.of`, take an ID only.
+answers of an agent, such as the targets of the relations it reports and `duplicate.of`, take an ID
+only.
 
 ## The owner's sign-off
 
@@ -153,9 +155,10 @@ proves which machine sent it. The session never holds the worker token.
 
 atc can also run a session on the machine where atc itself runs, outside an imp. That session has no
 broker in front of it, so it reaches the server on the owner's path: it can call every owner
-procedure, and no session or hook procedure, because it has no proven caller. boxxy accepts that
-this session has the owner's power, because atc's machine already sits on the owner's private
-network, and a deployment runs its worker sessions in imps, where the broker is the only way in.
+procedure, those with no MCP tool included when it runs the CLI, and no session or hook procedure,
+because it has no proven caller. boxxy accepts that this session has the owner's power, because
+atc's machine already sits on the owner's private network, and a deployment runs its worker sessions
+in imps, where the broker is the only way in.
 
 ## The public door
 

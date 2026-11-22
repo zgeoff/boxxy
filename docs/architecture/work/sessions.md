@@ -69,10 +69,11 @@ whichever comes first. It never forgets one whose latest attempt is still live.
 atc keeps a stopped session's record until boxxy forgets it, and on an imp target the forget also
 destroys the session's imp. Cleanup is the last session step of each tick. It forgets each kept
 session that is due, and the session of each settled attempt that isn't kept, on the first tick
-after the attempt settles, whatever its outcome. Only the kept session lets a later attempt carry on
-in the same session, so no other settled session waits. Cleanup never forgets the session of a live
-attempt, a sleeping one included, because the attempt still runs in it. A forget that atc doesn't
-confirm changes nothing, and cleanup tries again next tick.
+after the attempt settles, whatever its outcome. A stray's session is the one exception, as the next
+paragraph says. Only the kept session lets a later attempt carry on in the same session, so no other
+settled session waits. Cleanup never forgets the session of a live attempt, a sleeping one included,
+because the attempt still runs in it. A forget that atc doesn't confirm changes nothing, and cleanup
+tries again next tick.
 
 atc refuses to forget a live session, so a stray's session needs a confirmed stop first. A stray is
 an attempt that settled while its session may still run
@@ -207,8 +208,9 @@ lists each agent whose profile holds a credential:
 
 - An entry lists at least one phase. Its `repos`, when present, each name a repo in `spawn.repos`,
   and with none the agent may run in any repo.
-- An agent that `spawn.agents` doesn't list may run any phase in any repo. The operator keeps every
-  credential in a listed agent's profile, because boxxy can't read a broker profile.
+- An agent that `spawn.agents` doesn't list may run any phase in any repo, except a phase that sets
+  `requireScopedAgent`, as the next bullet says. The operator keeps every credential in a listed
+  agent's profile, because boxxy can't read a broker profile.
 - `spawn.phases.<phase>.requireScopedAgent` makes every recipe that can run the phase name an agent
   listed for it. [The pipeline](./pipeline.md#recipes-and-skills) lists what the rules loader
   refuses, and the rules repository's check loads a rules pull request with the same scope.

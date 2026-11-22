@@ -2,16 +2,16 @@
 
 When an item goes on hold, boxxy tells the owner with a notice: an atc message to one agent session
 the owner picked, the notice session. The settle that puts the item on hold writes the notice into
-the boxxy store, and the runner tries to send it on every tick until atc takes it. A runner that
-stays paused with work ready sends the owner a second kind of notice
+the boxxy store, and the runner tries to send it, with a growing wait between tries, until atc takes
+it. A runner that stays paused with work ready sends the owner a second kind of notice
 ([the paused-runner notice](#the-paused-runner-notice)). A third kind, the notify notice, tells the
 owner that a wait skipped a step that leaves a tagged line unproven, that an edge asked for a
-notice, or that an item has waited too long at a step ([the notify notice](#the-notify-notice)). It
-never gives up, so a notice written while the owner's machine is off waits in the store and arrives
-once atc can reach the notice session again. Each try carries an idempotency key, so a retry after a
-lost answer still reaches the owner once, apart from the two cases in
-[what the owner can rely on](#what-the-owner-can-rely-on). Read this doc before you change how holds
-reach the owner, or when notices stop arriving.
+notice, or that an item has waited too long at a step ([the notify notice](#the-notify-notice)). The
+runner never gives up on a notice of any kind, so a notice written while the owner's machine is off
+waits in the store and arrives once atc can reach the notice session again. Each try carries an
+idempotency key, so a retry after a lost answer still reaches the owner once, apart from the two
+cases in [what the owner can rely on](#what-the-owner-can-rely-on). Read this doc before you change
+how holds reach the owner, or when notices stop arriving.
 
 [The pipeline](./pipeline.md#when-an-item-needs-the-owner) covers which outcomes hold an item.
 [Attempts](./attempts.md#settle) covers the settle that writes the notice.
@@ -174,10 +174,10 @@ restart clears it until the next failed try.
 
 ## What the owner can rely on
 
-- **A notice is never lost.** It stays unsent until atc takes it, and the wait between tries never
-  passes the cap. A cap on tries would lose every notice written while the owner's machine sleeps. A
-  server restart loses nothing either, because the store holds each row's retry state and the
-  registered session.
+- **A notice is never lost while notices are on,** as [Turning notices on](#turning-notices-on)
+  says. It stays unsent until atc takes it, and the wait between tries never passes the cap. A cap
+  on tries would lose every notice written while the owner's machine sleeps. A server restart loses
+  nothing either, because the store holds each row's retry state and the registered session.
 - **boxxy never wakes the notice session.** A wake needs the `spawn` scope on the owner's machine,
   which the notice token lacks, and atc can't wake a machine that is off. atc answers `session_dead`
   while the session is stopped or asleep, and `daemon_unavailable` while the machine is off; both

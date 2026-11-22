@@ -56,12 +56,14 @@ time run that phase.
 
 ## Two writers, one attempt
 
-The runner and a close-out call can change the same attempt at the same moment. Every write to an
-attempt, its session rows or its seats therefore goes through one builder in the dispatch module,
-which runs the attempt machine as a pure function, and a repo test fails when any other code in that
-module writes them. The store refuses a change when the stored row differs from the row the builder
-read: its state, every column the machine's guards read, and the version counters on the lease and
-the seats. The seat counter goes up at each wake. The refused caller reads again on the next tick.
+The runner and a close-out call can change the same attempt at the same moment. Every write to a
+claimed attempt, its session rows or its seats therefore goes through one builder in the dispatch
+module, which runs the attempt machine as a pure function, and a repo test fails when any other code
+in that module writes them. The one other writer is the builder of a
+[skipped attempt](#skipped-attempts), which the same test names. The store refuses a change when the
+stored row differs from the row the builder read: its state, every column the machine's guards read,
+and the version counters on the lease and the seats. The seat counter goes up at each wake. The
+refused caller reads again on the next tick.
 
 The runner decides each action from a row it read before the session reading, so it adds a check of
 its own. Inside the store's write lock it writes nothing when the row has changed on a guard column,
@@ -127,10 +129,11 @@ when it has done nothing since a wake, or once it has been quiet for `afterQuiet
 atc counts only the agent's hook events as activity, such as the end of a turn, and never a tool
 call. A turn the agent starts for a scheduled wakeup or a finished background task therefore shows
 its activity when it ends. A scheduled wakeup can wait longer than the default `afterSilentMinutes`,
-so the example prompts tell the agent to wake more often than that. One case has no bound: an
-attended session that the owner keeps coming back to within each `afterUnattendedMinutes`. The atc
-worker never reports a usage limit, so the first row never fires with it; dispatch keeps the row for
-a worker kind that reports a reset time ([capacity](./sessions.md#capacity-and-the-usage-limit)).
+so the example prompts tell the agent to wake more often than that. An active attended session has
+no bound when the rules file leaves `afterUnattendedMinutes` unset, or when the owner keeps coming
+back within each `afterUnattendedMinutes`. The atc worker never reports a usage limit, so the first
+row never fires with it; dispatch keeps the row for a worker kind that reports a reset time
+([capacity](./sessions.md#capacity-and-the-usage-limit)).
 
 ## Sleep and wake
 
