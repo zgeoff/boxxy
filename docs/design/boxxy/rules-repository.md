@@ -2,7 +2,7 @@
 
 - **Status:** draft
 
-The deployed server loads its rules from a public git repository, the rules repository `github.com/zgeoff/boxxy-rules`, in place of the copy baked into its image. A merged pull request reaches the live rules within 2 minutes, with no image build and no deploy. A git-sync sidecar in the server's pod fetches `main` into the pod's volume, and the server loads the new commit on its next tick, as [rules](./rules.md#policy-in-git) says it loads any checkout.
+The deployed server loads its rules from a public git repository, the rules repository `github.com/zgeoff/boxxy-rules`, in place of the copy baked into its image. A merged pull request reaches the live rules within 2 minutes, with no image build and no deploy. A git-sync sidecar in the server's pod fetches `main` into the pod's volume, and the server loads the new commit on its next tick, as [rules](./rules.md#policy-in-git) says it loads any checkout. Read this doc before you build one of its [slices](#slices), and describe what you build in the architecture doc that owns it, as AGENTS.md says.
 
 ## Shape
 
@@ -51,7 +51,7 @@ const rulesSync: input.core.v1.Container = {
     '--period=30s',
     '--depth=1',
     '--max-failures=-1', // retry forever; the old checkout stays published
-    '--stale-worktree-timeout=10m', // a server read that spans a swap still finds the old worktree
+    '--stale-worktree-timeout=10m', // a read that resolved the link before a swap still finds the old worktree
     '--http-bind=:2020',
     '--http-metrics',
   ],
@@ -177,7 +177,7 @@ One ruleset on the default branch, with no bypass actor:
 
 ### The rules file's header
 
-Once the image holds no rules, `rules.yaml` opens with this comment:
+From slice 2, `rules.yaml` opens with this comment. Its sentence on how fast a merge goes live holds once slice 4 is live:
 
 ```yaml
 # The boxxy server's live rules. A pull request merged to main reaches the server within 2
@@ -199,7 +199,7 @@ Once the image holds no rules, `rules.yaml` opens with this comment:
 - The server container starts only after the sidecar's startup probe finds the `current` link. On a fresh volume with GitHub unreachable, the pod waits 5 minutes, then the kubelet restarts the sidecar.
 - A merged commit reaches `runner.status` within 30 s of fetch period plus one 5 s tick, plus the fetch time.
 - When a fetch fails or GitHub is unreachable, git-sync logs `error syncing repo, will retry`, keeps the `current` link, and retries every 30 s. The server goes on loading the same commit, so `runner.status` shows the old `rules.commit` and an unchanged `lastRejected`.
-- When the server's read of the checkout fails, the server logs `the rules checkout could not be read; the rules stay`, and `runner.status` changes nothing. A read that spans git-sync's link swap fails this way once, and the next tick reads the new commit.
+- When the server's read of the checkout fails, the server logs `the rules checkout could not be read; the rules stay`, and `runner.status` changes nothing. A read that resolves the link while git-sync swaps it fails this way once, and the next tick reads the new commit.
 - When the loader refuses a commit, the rules in force stay, and `runner.status` shows `lastRejected: { commit, rejections }` with the refused commit. The next commit that loads clears it.
 - A read that throws inside the tick, such as when `git cat-file` finds an object that git-sync pruned, is logged as `the runner tick failed`, and the next tick tries again.
 - Prometheus scrapes the sidecar's `/metrics` on port 2020. An alert fires when `git_sync_count_total` with `status="success"` or `status="noop"` has not grown for 15 minutes, and when the series is missing, as every rule in the cloud repo's [observability](https://github.com/zgeoff/cloud/blob/main/docs/architecture/workloads/observability.md) design does.

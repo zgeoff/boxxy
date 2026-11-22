@@ -4,7 +4,8 @@ The merge train lands each repo's approved pull requests one batch at a time, so
 send every other open pull request back to rebase. Stacks move as one unit, a unit rebases only at
 the front of the train, and the batch size follows the measured rate at which combined batches fail.
 The train comes after the built system the [overview](../../architecture/overview.md) describes; the `modules/train` package will hold
-it (see [the layout](../../architecture/repo/layout.md)).
+it (see [the layout](../../architecture/repo/layout.md)). Read this doc before you build any part of
+the train, and describe what you build in the architecture doc that owns it, as AGENTS.md says.
 
 The decisions behind this doc are
 [0011: merge train rules](../../decisions/0011-merge-train-rules.md) and
@@ -110,7 +111,8 @@ these rules).
   | all repos        | 207           | 4.2       | 20.2      |
 
 - **Modelled: eager rebases.** With stacks as units, rebasing every open unit on each merge fires
-  150 rebases; the per-PR model said 969. Lazy rebasing caps it at one per unit.
+  150 rebases; the per-PR model said 969. Lazy rebasing caps it at one per unit each time the unit
+  reaches the front.
 - **Modelled: the train in the busiest repo**, waits in minutes:
 
   | CI time                | Serial, p50 / p90 | Batch cap 4, p50 / p90 |
@@ -133,8 +135,8 @@ these rules).
 
 - **Modelled: a base move sends 40 pull requests to rebase.** Lazy rebasing uses 64 to 83 CI runs
   against eager rebasing's 182 to 229, but waits longer: p90 72 to 152 minutes against 43 to 103.
-  Holding the train for a conflicted unit is worst, at p90 310 minutes. The conflict probe and the
-  rule that a conflicted unit leaves the batch answer both.
+  Holding the train for a conflicted unit is worst, at p90 310 minutes. The rule that a conflicted
+  unit leaves the batch answers the hold, and the proposed conflict probe aims at the longer wait.
 - **Modelled: a flaky test that fails 30% of runs.** Bisecting with the adaptive cap and no rerun
   drives the cap to serial: the exposed wait reaches p90 451 minutes against 38, the day ends at
   14.5 hours instead of 7.9, and 7.9 innocent units are ejected. Rerunning only the failed tests,

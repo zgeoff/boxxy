@@ -23,7 +23,7 @@ This doc lists every point that the built system leaves open: what has no design
 The runner keeps three things in memory only. A restart forgets each one.
 
 - **The capacity backoff of a pool.** The next claim spawns again and finds out again.
-- **The usage-limit backoff of a pool**, which can last 24 hours. After a restart boxxy starts sessions against the limit until one fails again.
+- **The usage-limit backoff of a pool**, which can last 24 hours, once boxxy detects the usage limit (see [Not designed](#not-designed)). After a restart boxxy would start sessions against the limit until one fails again.
 - **The batch that the outbox sender holds after a retry answer.** The next turn builds a batch from the unsent rows, which can be longer. That is safe because every boxxy fact is on one stream, and pepys drops a copy by its fact ID.
 
 ## Not checked
