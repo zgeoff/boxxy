@@ -1,9 +1,11 @@
 # Capacity
 
-boxxy runs attempts on more than one kind of model capacity: subscription accounts with usage
-windows, and pay-per-token providers that bill money. This doc covers how boxxy reads each source,
-picks one per attempt, slows down before a source runs out, and compares sources on one unit. The
-whole design is proposed. It ships after the built system the [overview](../../architecture/overview.md) describes.
+This design lets boxxy run attempts on more than one kind of model capacity: subscription accounts
+with usage windows, and pay-per-token providers that bill money. It covers how boxxy reads each
+source, picks one per attempt, slows down before a source runs out, and compares sources on one
+unit. The whole design is proposed. It ships after the built system the
+[overview](../../architecture/overview.md) describes. Read this doc before you build any part of it,
+and describe what you build in the architecture doc that owns it, as AGENTS.md says.
 
 The decision behind this doc is
 [0008: capacity sources and a router](../../decisions/0008-capacity-sources-and-a-router.md). The
@@ -12,7 +14,8 @@ The decision behind this doc is
 
 ## Capacity sources
 
-Each capacity source declares a unit, a reset and a reader. Each reading is a fact, so `decide()`
+Each capacity source declares a unit, a reset and a reader, and the router picks only a source
+that has all three. Each reading is a fact, so `decide()`
 reads capacity the same way it reads everything else, and a replay sees the reading dispatch saw
 (see [dispatch](./dispatch.md)).
 
@@ -77,7 +80,8 @@ boxxy compares sources on money per landed change:
 - **A pay-per-token provider:** the cost the provider billed for the attempts on the change. boxxy
   takes this cost from the provider, never from the agent's own cost estimate.
 
-A cheaper change that gets reverted costs more in the end, so quality guards ride with the unit:
+A cheaper change that gets reverted costs more in the end, so these quality guards ride with the
+unit once the verdict reports guards:
 
 - a revert within 14 days;
 - review findings per PR;

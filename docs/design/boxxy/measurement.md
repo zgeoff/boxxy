@@ -1,9 +1,11 @@
 # Measurement
 
 boxxy measures what it costs to ship one change, split by phase, and tests changes to how it works
-with live experiments. Spend comes in through OpenTelemetry, every other input is a fact in pepys,
-and a pure `verdict()` turns the facts into a call that the owner approves or rejects. Metrics and
-cohort keys are plug-ins; assignment, the noise floor and the stop rules stay fixed in the core.
+with live experiments. Spend comes in through OpenTelemetry and lands in pepys as facts, beside
+every other input, and a pure `verdict()` turns the facts into a call that the owner approves or
+rejects. Metrics and cohort keys are plug-ins; assignment, the noise floor and the stop rules stay
+fixed in the core. Read this doc before you build a spend query, a metric or the experiment path,
+and describe what you build in the architecture doc that owns it, as AGENTS.md says.
 
 The decisions behind this doc are
 [0006: the measurement verdict with plug-in metrics](../../decisions/0006-measurement-verdict-with-plug-in-metrics.md)
@@ -160,7 +162,7 @@ ask.
 
 ## Queries
 
-Each query runs over pepys facts. These are proposed; boxxy builds only [cost to land](../../architecture/interfaces/facts-and-pepys.md#what-an-item-cost-to-land) and the stage times.
+Each query runs over pepys facts, joined to attempts through the session ids the store records. These are proposed; boxxy builds only [cost to land](../../architecture/interfaces/facts-and-pepys.md#what-an-item-cost-to-land) and the stage times.
 
 - **Spend:** by phase, recipe, model, capacity source, item kind, pool and outcome, and attended
   against unattended. Abandoned attempts count.
