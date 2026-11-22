@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.3.4](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.3.3...@boxxy/cli@0.3.4) (2026-11-22)
+
+### Features
+
+- number each item with a short reference ([#279](https://github.com/zgeoff/boxxy/issues/279))
+  ([a02557f](https://github.com/zgeoff/boxxy/commit/a02557f9b2e9655843ebe874e725ee414a8ea2f9))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/contract bumped to 0.3.4
+    - @boxxy/model bumped to 0.3.4
+  - devDependencies
+    - @boxxy/auth-oauth bumped to 0.3.4
+    - @boxxy/dispatch bumped to 0.3.4
+    - @boxxy/rules bumped to 0.3.4
+    - @boxxy/server bumped to 0.3.4
+    - @boxxy/store-sqlite bumped to 0.3.4
+
 ## [0.3.3](https://github.com/zgeoff/boxxy/compare/@boxxy/cli@0.3.2...@boxxy/cli@0.3.3) (2026-11-20)
 
 ### Features

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.4](https://github.com/zgeoff/boxxy/compare/@boxxy/train@0.3.3...@boxxy/train@0.3.4) (2026-11-22)
+
+### Miscellaneous Chores
+
+- **@boxxy/train:** Synchronize boxxy versions
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.3.4
+
 ## [0.3.3](https://github.com/zgeoff/boxxy/compare/@boxxy/train@0.3.2...@boxxy/train@0.3.3) (2026-11-20)
 
 ### Features
