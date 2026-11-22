@@ -6,7 +6,8 @@ A runner gets work by calling `claimNext`. The boxxy store runs the whole decisi
 deciding and claiming can't be missed, and two runners can never take the same item phase or a
 limit's last seat. The built claim holds the lock for 418 ms at p50 with 20,000 open items
 ([the built claim](#the-built-claim-measured)). At the measured claim rate that is about 1.5% of
-each minute.
+each minute. Read this doc before you change `claimNext`, leases, gate faults or reconcile, and
+describe what you build in the architecture doc that owns it, as AGENTS.md says.
 
 ## claimNext
 
@@ -51,8 +52,8 @@ the lock ([measurement](./measurement.md)).
   the store refuses a write whose generation is not the live one. A runner that lost its lease, for
   example after a pause, can't overwrite the attempt that replaced it.
 - **A runner renews its leases with a heartbeat** (from Beads, research). When the heartbeats stop, a
-  reaper moves the attempt to `reconciling` (proposed). It doesn't release the item-phase lease, because a
-  silent runner doesn't prove that the session stopped.
+  reaper moves the attempt to `reconciling` and keeps the item-phase lease, because a silent runner
+  doesn't prove that the session stopped (proposed).
 - **Guarded updates fail loudly.** A write that expects a holder or a state and finds another fails
   with the mismatch, rather than writing over it.
 
@@ -96,11 +97,12 @@ fact lands. Two runs agreed within a few milliseconds.
   claim doesn't read every fact, before the fact log grows.
 - **Limits of the stub.** Its frame has 4 plug-ins, not a full concept registry, and it ran one
   runner, so there was no real contention. A registry of ten plug-ins may cost 2 to 3 times more
-  `decide()` time (modelled), still well inside the budget.
+  `decide()` time (modelled), which would keep the stub inside the budget. The built claim reads
+  more and misses it, as the next section says.
 
 ## The built claim (measured)
 
-`bun run bench` runs the claim benchmark, `adapters/store-sqlite/bench/claim-next.bench.ts`, through `rig bench`. The benchmark seeds 5,000 open items on the SQLite store through the test dispatch harness, each at its pipeline's first phase. It raises every limit to the item count, so each claim finds a free seat, and rig times 20 `claimNext` calls after 5 to warm up. The budget is the store rule's lock limit, a p99 under 50 ms at 5,000 open items ([slice 1](../../architecture/work/store.md#one-change-at-a-time)). rig judges the median against it.
+`bun run bench` runs the claim benchmark, `adapters/store-sqlite/bench/claim-next.bench.ts`, through `rig bench`. The benchmark seeds 5,000 open items on the SQLite store through the test dispatch harness, each at its pipeline's first phase. It raises every limit to the item count, so each claim finds a free seat, and rig times 20 `claimNext` calls after 5 to warm up. The budget is the store rule's lock limit, a p99 under 50 ms at 5,000 open items ([slice 1](../../architecture/work/store.md#one-change-at-a-time)). rig checks only the median against that 50 ms, so a passing `rig bench` doesn't prove the p99.
 
 - **The built claim misses the budget (measured).** Three runs on Bun 1.4.3, on a WSL2 dev machine, gave medians of 103, 109 and 173 ms, so `rig bench` fails. CI does not run the benchmark until the claim gets cheaper, which is [not decided](./v1-open.md#not-decided).
 
@@ -152,7 +154,8 @@ to `claimNext`, and an owner pull ranks ahead of a judgement phase's pull.
 
 ## Unknown outcomes
 
-A crash, a stopped heartbeat, or an atc `outcome_unknown` leaves an attempt in `reconciling`. The
+A crash or an atc `outcome_unknown` leaves an attempt in `reconciling`, and so does a stopped
+heartbeat once the proposed reaper is built. The
 worker kind's `reconcile` settles it from the attempt's own facts and from atc's session list.
 
 - Reconcile never treats a missing idempotency key as proof that a spawn never ran. atc deletes

@@ -4,7 +4,8 @@ boxxy has seven parts: the boxxy store, the planning core with `decide()`, the r
 workers, pepys, the rules repo and the telemetry path. The boxxy store is the only place that writes
 claims. pepys holds every fact and builds every read table. The planning core is pure: it reads a
 frame of facts and returns picks, and it owns no I/O. This doc gives each part's job, how the parts
-reach each other, and the principles every other design doc follows.
+reach each other, and the principles every other design doc follows. Read it before you build a
+part, then read the part's owning doc in the table below.
 
 ## Parts
 

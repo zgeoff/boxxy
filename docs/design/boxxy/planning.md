@@ -5,7 +5,8 @@ defer or expedite, is a concept: a module that registers plug-ins
 ([decision 0004](../../decisions/0004-planning-concepts-are-plug-ins.md)). `buildFrame()` runs the
 plug-ins over the facts and builds one frame. `decide()` reads the frame and the pools and returns
 picks, and never names a concept. A new sort key, such as cheapest measured work first, is one file
-and one plug-in reference in the rules.
+and one plug-in reference in the rules. Read this doc before you add a concept or change how boxxy
+orders work, and describe what you build in the architecture doc that owns it, as AGENTS.md says.
 
 ## Concepts
 
@@ -15,9 +16,9 @@ the pool filter fields it defines in `filterFields`, and the plug-ins that act o
 | Plug-in kind | What it does | Example |
 | --- | --- | --- |
 | signal | gives a sort key that a pool can name | rank, age |
-| gate | holds an item off the frontier, with a reason | defer, blocked, held |
+| gate | holds an item off the frontier, with a reason | defer |
 | pool gate | holds a whole pool, with a reason | pacing ([capacity](./capacity.md#the-pacing-gate)) |
-| waiver | lifts one gate's hold for one item | expedite lifts defer |
+| waiver | lifts a gate's hold for one item | expedite lifts defer |
 | admission | widens which pools may take an item | `--any-pool` |
 | view | a pure function over the frame | explain, forecast, roadmap |
 
@@ -98,7 +99,7 @@ The filter field `designMode` of the pool concept gives `agent` for an item that
 ### The judgement pool
 
 A ready item that no pool or admission takes for a set time is stranded. boxxy gives it a
-`plan.judge` phase in a judgement pool with one slot. The judgement close-out must end the strand
+`plan.judge` phase in a judgement pool, under a limit of one seat. The judgement close-out must end the strand
 with an override (pin, admit or lift) or a defer. A second strand on the same item goes to the owner.
 The judgement pool also takes other cases that no rule covers, such as an attempt that passed its
 cost cap ([capacity](./capacity.md)).
@@ -111,10 +112,11 @@ time ([rules](./rules.md#levers-as-facts)).
 - **Expedite** beats every sort key.
   - It takes items, an ordered list, or a goal or project (all its open items, in the order given).
   - It reaches through blockers: an expedited blocked item pulls its blockers forward first.
-  - It takes the next free slot in any pool whose filter matches, or with `--any-pool` the next free
-    build slot anywhere. It never stops running work.
+  - It takes the next free seat for a pool whose filter matches, or with `--any-pool` the next free
+    seat for a build in any pool. It never stops running work.
   - It lifts defer, quiet hours and budget holds on the pulled work and its blockers. A gate declared
-    unliftable, such as `blocked`, `held` or `attended`, still holds.
+    unliftable, such as `attended`, still holds, and so do the `blocked` and `held` states, which no
+    gate makes.
   - It carries a reason and an optional expiry. Only a caller on the owner's path can expedite
     ([API and auth](../../architecture/interfaces/api-and-auth.md#the-paths)). An owner pull
     ranks ahead of a judgement phase's pull.
@@ -145,7 +147,7 @@ The owner files a held item to keep a draft that boxxy never starts. The owner e
 - **A goal** (`core.goal`) has an optional target date. Projects and items link `serves` to goals. A
   roadmap is the goal tree over time. A goal that drifts from its date can open an ask.
 
-Whether goal and project are one kind or two is open.
+Whether goal and project stay two kinds or merge into one is open.
 
 ## Explain
 
@@ -173,8 +175,8 @@ is a view over replay, not a second scheduler, so it can never disagree with dis
    plug-ins, for picks. Each pick draws a slot time from its cohort, then finishes and unblocks its
    dependants. New items arrive at each cohort's measured rate. A run ends when every item serving G
    is done. The answer is the p50 and p90 of the end dates.
-3. **What moves the date.** The view reruns the forecast with one change at a time: one more slot in
-   each pool, an expedite of G, each open blocker removed, each competing goal deferred. It returns
+3. **What moves the date.** The view reruns the forecast with one change at a time: one more seat in
+   each limit, an expedite of G, each open blocker removed, each competing goal deferred. It returns
    the shifts, largest first.
 4. **Confidence.** The range is the confidence. A cohort with fewer than 10 done items borrows the
    next wider cohort (drop size, then repo), and the forecast shows the borrowing. An item with no

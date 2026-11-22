@@ -3,9 +3,11 @@
 boxxy takes two kinds of input, and stores them in two places
 ([decision 0003](../../decisions/0003-rules-in-git-levers-as-facts.md)). Policy, such as pools,
 pipelines, gates, experiments and plug-in versions, lives in a git config repo, and boxxy loads it
-from a merged commit as one [rules version](#the-rules-version). Levers, such as expedite, rank and
+as one [rules version](#the-rules-version), from a merged commit when the folder is a git checkout. Levers, such as expedite, rank and
 defer, are facts written through the command API, and act at once. A policy change is a PR that CI replays against past weeks before anyone
-merges it. Every decision records the rules version in force.
+merges it. Every decision records the rules version in force. Read this doc before you change how
+boxxy loads rules or levers, and describe what you build in the architecture doc that owns it, as
+AGENTS.md says.
 
 ## Policy in git
 
@@ -28,8 +30,9 @@ merges it. Every decision records the rules version in force.
   reviewed rules branch.
 - **A change is a PR.** It is diffable and reviewed, and CI replays it (see
   [replay CI](#replay-ci)).
-- **A rules PR touches dispatch for the whole fleet,** so it takes the full review gate. A new rule
-  set then runs as a challenger in shadow before promotion ([measurement](./measurement.md)).
+- **A rules PR touches dispatch for the whole fleet,** so it takes the full review gate. In the
+  full design, a new rule set also runs as a challenger in shadow before promotion
+  ([measurement](./measurement.md)).
 - **The loader rejects a plug-in reference it can't check** (proposed): an unknown plug-in name,
   or parameters that fail the plug-in's schema. The experiment loader adds its own checks
   ([measurement](./measurement.md)).
@@ -76,7 +79,7 @@ and the registry lists the kinds and the plug-ins of each kind:
 | capacity source | [capacity](./capacity.md) |
 | batch-size rule | [merge train](./merge-train.md) |
 
-- **A rules version pins plug-in code** through its concept pins
+- **A rules version pins plug-in code** through its concept pins and phase kinds
   ([the rules version](#the-rules-version)), so a replay runs the code that decided. A replay that
   can't find a pinned version marks its explanation suspect.
 - **A propagation line is rules data** that `buildFrame` runs, so the registry has no propagation

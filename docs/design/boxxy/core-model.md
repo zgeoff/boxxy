@@ -1,10 +1,11 @@
 # Core model
 
 boxxy's core has five nouns: items, links, phases, attempts and asks. An item is a typed piece of
-work. Its kind declares a pipeline of phases as data. Each phase runs as one attempt through a
+work. Its kind declares a pipeline of phases as data. Each run of a phase is one attempt through a
 worker, and the attempt ends with a typed close-out. Nobody sets an item's state: boxxy derives it
-from links, attempts, asks and outside facts. Every entry point reaches this model through one
-command API.
+from links, attempts, asks and outside facts, a close included. Every entry point reaches this model
+through one command API. Read this doc before you build or change any of the five nouns, and when
+your work builds a part, describe it in its architecture doc, as AGENTS.md says.
 
 ## Items
 
@@ -34,7 +35,8 @@ fields, such as `trigger`, `area` and `size`.
 An item's state is one of `held`, `idea`, `ready`, `running`, `blocked`, `waiting`, `done` or `archived`.
 boxxy computes it from facts each time, and no command sets it. A [held item](./planning.md#held-items) is `held`, with its reason, until the owner releases it.
 
-- `item.close` with a reason archives an idea. Nothing is deleted, and archived items stay
+- `item.close` records a close fact with a reason, and boxxy derives `archived` from it. Nothing
+  is deleted, and archived items stay
   queryable.
 - A `core.decision` item freezes when it is done. To change course, file a new decision that
   `supersedes` the old one.
