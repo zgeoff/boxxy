@@ -17,14 +17,24 @@ function setupTest() {
 
 test('it reads an evidence fact of an old kind stored with no head', () => {
   const ctx = setupTest();
+  const fact = ctx.build({ kind: 'test' });
 
-  expect(ctx.schema.safeParse(ctx.build({ kind: 'test' })).success).toBe(true);
+  expect<unknown>(ctx.schema.safeParse(fact).data).toStrictEqual(fact);
 });
 
 test.each(['check', 'verdict'])('it reads a %s evidence fact with a head', (kind) => {
   const ctx = setupTest();
+  const fact = ctx.build({ kind, head: ctx.head });
 
-  expect(ctx.schema.safeParse(ctx.build({ kind, head: ctx.head })).success).toBe(true);
+  expect<unknown>(ctx.schema.safeParse(fact).data).toStrictEqual(fact);
+});
+
+test('it refuses a check evidence fact whose head is not a commit SHA', () => {
+  const ctx = setupTest();
+
+  expect(
+    ctx.schema.safeParse(ctx.build({ kind: 'check', head: 'not-a-sha' })).error?.issues,
+  ).toPartiallyContain({ path: ['head'] });
 });
 
 test.each(['check', 'verdict'])('it refuses a %s evidence fact with no head', (kind) => {
