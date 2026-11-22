@@ -40,7 +40,7 @@ in the outbox.
   the outbox's per-fact limit: the API bounds every string and list it reads, the close-out parser
   rejects an oversized close-out, and the owner listener refuses to file or edit an item whose fact
   would be too large, with `FACT_TOO_LARGE`. The sender parks any fact that still slips over the
-  limit, so it never reaches pepys.
+  limit, as it parks any fact that pepys refuses ([sending to pepys](#sending-to-pepys)).
 - **The outbox never drops a row.** The store reads its own version as the highest sequence number
   in the outbox, and `item.get` reads an item's revisions from its `edited` facts there, so deleting
   sent rows would break both.
@@ -112,7 +112,8 @@ stream `facts.boxxy.runner`. These rules hold for both streams:
   one of the other five kinds and no `head`. The server writes a `check` or `verdict` fact only
   after it read the result from GitHub at the pull request's head and the result passed
   ([evidence](../work/attempts.md#evidence)). It writes `head` on those two kinds and leaves the key
-  out of every other fact. pepys accepts the new kinds first, as the rule for new fields above says.
+  out of every other evidence fact. pepys accepts the new kinds first, as the rule for new fields
+  above says.
 - **Some outcomes write no fact of their own.** A settle for `stalled`, `skill-missing` or a
   capacity refusal shows only on the `settled` fact. A capacity refusal carries atc's code, cause
   and message in the fact's `refusal` field; a fact written before the field reads as no refusal.
@@ -206,7 +207,8 @@ review, and the time the item's attempts slept. A stage that hasn't happened is 
   settled `unsettleable` starts no merge stage, because boxxy can't tell whether it passed. Release
   starts at the merge, and deploy at the release. With two pull requests, each stage takes the
   earliest time.
-- **The rework count is the number of reviews that asked for changes.** Don't derive it from the
+- **The rework count is the number of reviews that asked for changes.** It is a different measure
+  from the rework flag on a cost line, which follows the round. Don't derive the count from the
   item's highest round, which also rises on other backward edges and on retries.
 - **The unrelated line count** sums each review's count of changed lines outside the files of the
   earlier review's findings

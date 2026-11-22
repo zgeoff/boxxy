@@ -1,14 +1,14 @@
 # Verify journeys
 
 Before a change to boxxy merges, an agent uses each feature it touches against a running boxxy, the
-way the owner or an agent session would. A Renovate pull request is the exception, as
-[the CI check](#the-ci-check) says. Each of boxxy's nine features has a journey: a short script of
-`bun verify` lines that ends in a read with the value it expects. A grading agent runs the journey
-of each changed feature against a local boxxy, records a verdict, and publishes a report into the
-pull request's body. A CI check, `verify / gate`, fails a pull request that changes a feature's
-files with no fresh verdict for it, and boxxy's merge step waits for the gate when the base branch's
-ruleset or `merge.checks` requires it. Read this doc before you change the harness, the map from
-paths to features, or the gate.
+way the owner or an agent session would. A change that touches only files no journey runs, such as a
+Renovate or release-please pull request, is the exception, as [the CI check](#the-ci-check) says.
+Each of boxxy's nine features has a journey: a short script of `bun verify` lines that ends in a
+read with the value it expects. A grading agent runs the journey of each changed feature against a
+local boxxy, records a verdict, and publishes a report into the pull request's body. A CI check,
+`verify / gate`, fails a pull request that changes a feature's files with no fresh verdict for it,
+and boxxy's merge step waits for the gate when the base branch's ruleset or `merge.checks` requires
+it. Read this doc before you change the harness, the map from paths to features, or the gate.
 
 The `verify` skill in `.agents/skills/verify/` holds each journey and its end state; this doc owns
 what each journey proves. `bun verify` is built on [wringer](https://github.com/zgeoff/wringer)
@@ -127,10 +127,10 @@ code, never the adapters the fakes replace.
   held, so no other journey's tick claims it.
 
 The registry's other target, `prod`, attaches to the deployed public listener for a smoke check
-after a deploy: a grader runs the `owner-mcp` reads there. wringer refuses every write on it, and
-its client holds only the read scope, so the listener refuses a write that slips past wringer. A
-`prod` verdict never goes into a pull request. The public repo holds no host name, so the grader
-reads the listener's origin and the client's secret from 1Password.
+after a deploy: a grader runs the `owner-mcp` reads there. wringer refuses every `bun verify` write
+on it, and its client holds only the read scope, so the listener refuses a write that slips past
+wringer. A `prod` verdict never goes into a pull request. The public repo holds no host name, so the
+grader reads the listener's origin and the client's secret from 1Password.
 
 ## The path-to-feature map
 
@@ -220,9 +220,9 @@ against the deployed system, through the repo's own verify CLI. A repo gives its
 
 - a prod target in its verify registry, with `access: 'read-only'` and `evidence: 'local'`, which
   the agent checks with `bun verify doctor --target prod` before any line;
-- a guard in each of its own QA scripts that writes to prod, which confines the write to a QA area
-  and refuses outside it. A line that needs a write outside the guards closes out `blocked`, with
-  the write it needs;
+- a guard in each of its own QA scripts that writes to prod, outside the verify CLI, which confines
+  the write to a QA area and refuses outside it. A line that needs a write outside the guards closes
+  out `blocked`, with the write it needs;
 - its prod credentials in its own vault, which only the broker profile of its scoped agent reads
   ([who holds a credential](../work/sessions.md#who-holds-a-credential)).
 

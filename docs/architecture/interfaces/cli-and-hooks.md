@@ -4,9 +4,11 @@
 a terminal. An agent runs its `attempt` commands inside a session to read its task and send its
 close-out. A hook plug-in in the agent image runs two more commands for the agent: one installs the
 attempt's skills and binds the session when it starts, and one links each pull request the agent
-opens. The server makes every decision; a command reads its flags, calls the procedure it names and
-prints the answer. The `attempt` commands look up the session's attempt first. Read this doc before
-you add a command, change a hook, or change what a session needs on its machine.
+opens. The server makes every decision about the work. An owner or `attempt` command reads its
+flags, calls the procedure it names and prints the answer, and the `attempt` commands look up the
+session's attempt first. The two hook commands do more on the session's machine, as their sections
+say. Read this doc before you add a command, change a hook, or change what a session needs on its
+machine.
 
 [API and auth](./api-and-auth.md) covers the listeners the CLI reaches and who may call each
 procedure. [Attempts](../work/attempts.md) covers the attempt a session's commands act on.
@@ -85,8 +87,8 @@ of `item list` except `--repo` and `--held`. A session that runs `item list` or 
 
 Right after a session starts, the server may not have its attempt yet: the runner records the
 session's caller only once atc answers the spawn, and the agent can be quicker. An `attempt` command
-then exits 2 with a message asking the agent to try again; the CLI itself never retries. The hooks
-wait for the attempt on their own.
+then exits 2 with a message asking the agent to try again, and never retries itself. The hooks wait
+for the attempt on their own.
 
 ## The session-start hook
 

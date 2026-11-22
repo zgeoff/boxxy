@@ -4,8 +4,9 @@ boxxy is one Bun workspace, split so the domain never does I/O. Modules hold the
 that needs an outside system declares a port, an interface for that system, and an adapter
 implements the port for one system. Apps build the adapters and hand them to the modules. Libs hold
 the shared types, schemas and pure helpers, and do no I/O either. A deployed package, under
-`packages/`, is one that another repo's deployment installs. Lint enforces these rules. Read this
-doc before you add a package, a dependency or a file whose home isn't obvious.
+`packages/`, is one that another repo's deployment installs. Lint and `turbo boundaries` enforce
+most of these rules, and a reviewer checks the few they can't see, as [Import pins](#import-pins)
+says. Read this doc before you add a package, a dependency or a file whose home isn't obvious.
 
 [Decision 0016](../../decisions/0016-layout.md) records why the repo is split this way.
 [Tech stack](./tech-stack.md) covers the libraries and the repo's setup files. The
@@ -24,7 +25,7 @@ boxxy/
 │   ├── dispatch/          the claim, the lease and the attempt machine
 │   ├── closeout/          the phase kinds: each phase's input, close-out parser and settle rule
 │   └── train/             the merge rule: what a merge job does on each read of its pull request
-├── adapters/              one package per outside system, named <port>-<system>
+├── adapters/              one package per port on an outside system, named <port>-<system>
 │   ├── store-sqlite/      the store and its migrations
 │   ├── auth-oauth/        the public listener's OAuth server and its auth database
 │   ├── worker-atc/        starts and reads attempt sessions through atc
@@ -94,9 +95,10 @@ another adapter, and only an app depends on an adapter or a deployed package.
 
 ## Import pins
 
-Each outside system has one adapter or deployed package that talks to it, and the
-`zgeoff/import-zones` rule in `.oxlintrc.json` pins that system's client library there. A library
-the domain needs for one job is pinned to the one package whose job needs it:
+Each outside system has one adapter or deployed package that talks to it, apart from the exceptions
+listed below, and the `zgeoff/import-zones` rule in `.oxlintrc.json` pins that system's client
+library there. A library the domain needs for one job is pinned to the one package whose job needs
+it:
 
 - the YAML parser to the rules module, which every rules file passes through;
 - xstate to dispatch, which runs only the attempt machine;
