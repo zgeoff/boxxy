@@ -73,7 +73,11 @@ The owner's item commands have a few rules the usage lines don't show:
 
 The `attempt` commands run inside a session and take no session argument, because the server finds
 the session from the [proven caller](./api-and-auth.md#the-proven-caller). `attempt evidence` and
-`attempt close-out` first call `attempt.current` for the attempt ID. `attempt list-items` and
+`attempt close-out` first call `attempt.current` for the attempt ID. `attempt evidence --kind check`
+and `--kind verdict` take a name in `--ref` and no `--observed`: the CLI exits 2 on one that has it.
+Each refusal of a `check` or `verdict` exits 1 and prints one line that says what to do, such as to
+wait for the check, and `retry` exits 2. `attempt close-out` exits 2 on `retry` and prints each
+`stale-evidence` problem as a line, like any other problem. `attempt list-items` and
 `attempt show-item <item>` read other items of the session's own repo; `list-items` takes the flags
 of `item list` except `--repo` and `--held`. A session that runs `item list` or `item show` gets
 `FORBIDDEN`.
@@ -104,7 +108,7 @@ before the hook ends, and without the reload the agent's first prompt would run 
 also puts a guide in `additionalContext`, because a recipe's prompt can leave out how to close out,
 and a session that ends without a valid close-out fails. The guide gives the phase, the outcomes its
 close-out can send, where the agent finds its task and input, the session commands, and the evidence
-kinds for a screenshot, a measurement and a long log.
+kinds for a screenshot, a measurement and a long log, and for a CI check and a `bun verify` feature.
 
 When a skill is missing, the server answers `skill-missing` and moves the attempt to `closing`, the
 runner settles it as failed with `skill-missing`, and the hook exits 1 naming the missing skills.

@@ -101,7 +101,10 @@ code, never the adapters the fakes replace.
 - `claim-settle`: the claim, the start on the fake worker, the
   [session-start hook](../interfaces/cli-and-hooks.md#the-session-start-hook) binding the session,
   the close-out parse and the settle work together, and a session reads another item of its repo
-  through the worker listener.
+  through the worker listener. A later build records the
+  [checked evidence](../work/attempts.md#evidence) of a `check` and a `verdict` against the
+  harness's forge, after the server refuses a check that has no run, and closes out `built` citing
+  both.
 - `report-cost`: a merged item's [facts](../interfaces/facts-and-pepys.md) reach pepys through the
   outbox, and the cost and stage-time reports come back through the server and the CLI.
 - `plan-ordering`: a deferred item gets no attempt while the other item takes the claim, and gets

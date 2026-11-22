@@ -280,6 +280,15 @@ kept session, the claim wakes it with this prompt, so the agent gets just the ne
 Otherwise a fresh session starts with it, so the rework template must carry the whole task, for
 example with `{{ ticket }}`.
 
+## The build close-out
+
+A `built` close-out cites evidence for every line of the item's acceptance list, and the cited IDs
+join the list when the attempt settles. The server checks nothing about a `test`, `ci-run` or
+`live-check` citation. A `check` or `verdict` citation is checked evidence: the server read the
+result from GitHub at the pull request's head when the agent recorded it, and refuses the close-out
+with `stale-evidence` when the head has moved since, or the pull request is closed or merged
+([evidence](./attempts.md#evidence)). The merge step never reads checked evidence again.
+
 ## The review
 
 The [review gate design](../../design/boxxy/review-and-merge.md#the-review-gate) owns the review. A

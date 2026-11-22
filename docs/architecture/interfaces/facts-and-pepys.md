@@ -109,9 +109,10 @@ stream `facts.boxxy.runner`. These rules hold for the work facts:
   `verdict` fact must carry `head`, a commit SHA, and a fact of any other kind must not. The model's
   `refineEvidenceHead` enforces that rule, and the wire schema applies it after it adds the store
   version. An older fact, written before `check`, `verdict` and `head` existed, still parses: it has
-  one of the other five kinds and no `head`. The server writes no `check` or `verdict` fact, because
-  the `attempt.evidence` input rejects both kinds. pepys accepts them first, as the rule for new
-  fields above says.
+  one of the other five kinds and no `head`. The server writes a `check` or `verdict` fact only
+  after it read the result from GitHub at the pull request's head and the result passed
+  ([evidence](../work/attempts.md#evidence)). It writes `head` on those two kinds and leaves the key
+  out of every other fact. pepys accepts the new kinds first, as the rule for new fields above says.
 - **Some outcomes write no fact of their own.** A settle for `stalled`, `skill-missing` or a
   capacity refusal shows only on the `settled` fact. A capacity refusal carries atc's code, cause
   and message in the fact's `refusal` field; a fact written before the field reads as no refusal.

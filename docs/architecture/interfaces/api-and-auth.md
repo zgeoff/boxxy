@@ -65,10 +65,15 @@ needs it:
 - **A session** gets five tools on its own endpoint, `/mcp/session`, so its tool list holds nothing
   that changes another item. `attempt.current` gives the session its attempt ID, phase, close-out
   schema, outcome names, skills and the item's notes. `attempt.evidence` records evidence such as a
-  test run or a commit. When a session sends evidence again with the same kind and ref, the server
-  writes nothing and returns the first evidence ID. `attempt.closeOut` sends the close-out,
-  including any new work the session found, which settle drops when it duplicates an existing item.
-  `attempt.listItems` and `attempt.getItem` read other items of the session's repo
+  test run, a CI check or a `bun verify` feature. Its `kind` is `test`, `ci-run`, `live-check`,
+  `check` or `verdict`, and `observed` goes with the first three only: an input that sends it with a
+  `check` or `verdict` fails validation. When a session sends evidence again with the same kind and
+  ref, and the same head for a checked kind, the server writes nothing and returns the first
+  evidence ID. The server reads a checked kind from GitHub before it records it, and the answer can
+  be a refusal or `retry` ([evidence](../work/attempts.md#evidence)). `attempt.closeOut` sends the
+  close-out, including any new work the session found, which settle drops when it duplicates an
+  existing item. It answers `retry` when a build close-out's head read fails. `attempt.listItems`
+  and `attempt.getItem` read other items of the session's repo
   ([the session's reads](#a-sessions-view-of-other-items)).
 - **The hooks** call `attempt.bindSession`, which binds a session to its attempt, and
   `attempt.recordPullRequest`, which links a pull request. Neither is an MCP tool.
