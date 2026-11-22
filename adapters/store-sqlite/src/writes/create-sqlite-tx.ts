@@ -25,6 +25,8 @@ export function createSQLiteTx(db: Kysely<StoreDatabase>): StoreTx {
 
   return {
     readSnapshot: inTurn(reader.readSnapshot),
+    readItemIdByRef: inTurn(reader.readItemIdByRef),
+    readItemRef: inTurn(reader.readItemRef),
     readItem: inTurn(reader.readItem),
     readItemDetail: inTurn(reader.readItemDetail),
     listItems: inTurn(reader.listItems),

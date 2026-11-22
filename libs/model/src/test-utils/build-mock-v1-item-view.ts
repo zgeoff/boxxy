@@ -7,6 +7,7 @@ import type { ItemView } from '../types.ts';
 export function buildMockV1ItemView(overrides: Partial<ItemView> = {}): ItemView {
   return {
     id: brandSchemas.itemId.parse(faker.string.uuid({ version: 7 })),
+    ref: brandSchemas.itemRef.parse(`i-${faker.number.int({ min: 1, max: 1_000_000 })}`),
     kind: brandSchemas.itemKindName.parse('core.issue'),
     repo: brandSchemas.repoName.parse(`${faker.word.noun()}/${faker.word.noun()}`),
     title: faker.lorem.sentence(),

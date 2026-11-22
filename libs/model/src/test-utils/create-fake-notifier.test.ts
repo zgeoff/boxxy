@@ -7,6 +7,7 @@ function setupTest() {
     notifier: createFakeNotifier(),
     buildNotice: () => ({
       item: brandSchemas.itemId.parse('0190a6f4-0000-7000-8000-0000000000a1'),
+      itemRef: brandSchemas.itemRef.parse('i-1'),
       reason: brandSchemas.rulesHoldReason.parse('blocked'),
       at: brandSchemas.instant.parse(1000),
       key: 'boxxy-notice:1:0',

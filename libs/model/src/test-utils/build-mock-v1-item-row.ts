@@ -6,6 +6,7 @@ import type { ItemRow } from '../types.ts';
 export function buildMockV1ItemRow(overrides: Partial<ItemRow> = {}): ItemRow {
   return {
     id: brandSchemas.itemId.parse(faker.string.uuid({ version: 7 })),
+    ref: brandSchemas.itemRef.parse(`i-${faker.number.int({ min: 1, max: 1_000_000 })}`),
     kind: brandSchemas.itemKindName.parse('core.issue'),
     repo: brandSchemas.repoName.parse(`${faker.string.alpha(8)}/${faker.string.alpha(8)}`),
     title: faker.lorem.sentence(),

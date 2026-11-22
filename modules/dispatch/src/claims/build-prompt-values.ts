@@ -43,6 +43,7 @@ export function buildPromptValues(parts: PromptValueParts): PromptValues {
     outcome: item.outcome,
     body: item.body,
     repo: item.repo,
+    item_ref: item.ref,
     attempt_id: parts.attempt,
     acceptance,
     design,

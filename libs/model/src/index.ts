@@ -1,5 +1,5 @@
 export type { ContentHash, JsonValue } from '@boxxy/content-hash';
-export { brandSchemas } from './rows/brand-schemas.ts';
+export { brandSchemas, itemRefPattern } from './rows/brand-schemas.ts';
 export { buildAppliedChange, type ChangeAssignments } from './dispatch/build-applied-change.ts';
 export { advance } from './pipeline/advance.ts';
 export { attemptRowSchema } from './rows/attempt-row-schema.ts';
@@ -138,6 +138,7 @@ export type {
   Instant,
   ItemFields,
   ItemId,
+  ItemRef,
   ItemKindName,
   ItemRow,
   ItemState,
@@ -355,6 +356,7 @@ export type {
   PullRequestReading,
   ReviewGate,
   RoundCause,
+  InsertRow,
   RowWrite,
   RunnerFault,
   SessionFault,

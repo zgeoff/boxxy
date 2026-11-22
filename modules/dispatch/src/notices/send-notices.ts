@@ -1,4 +1,11 @@
-import type { Instant, NoticeOutcome, NoticeRow, NoticeTryUpdate } from '@boxxy/model';
+import type {
+  Instant,
+  ItemId,
+  ItemRef,
+  NoticeOutcome,
+  NoticeRow,
+  NoticeTryUpdate,
+} from '@boxxy/model';
 import { brandSchemas } from '@boxxy/model';
 import { match } from 'ts-pattern';
 import { noticeLimits } from './constants.ts';
@@ -43,11 +50,14 @@ async function tell(input: SendNoticesInput, row: NoticeRow): Promise<NoticeOutc
   }
 }
 
-function sendRow(input: SendNoticesInput, row: NoticeRow): Promise<NoticeOutcome> {
+async function sendRow(input: SendNoticesInput, row: NoticeRow): Promise<NoticeOutcome> {
+  const itemRef = row.kind === 'runner-paused' ? null : await readNoticeItemRef(input, row.item);
+
   return match(row)
     .with({ kind: 'hold' }, (hold) =>
       input.notifier.tellHold({
         item: hold.item,
+        itemRef,
         reason: hold.reason,
         at: hold.at,
         key: buildNoticeKey(hold),
@@ -59,6 +69,7 @@ function sendRow(input: SendNoticesInput, row: NoticeRow): Promise<NoticeOutcome
     .with({ kind: 'notify' }, (notify) =>
       input.notifier.tellNotify({
         item: notify.item,
+        itemRef,
         phase: notify.phase,
         reason: notify.reason,
         at: notify.at,
@@ -66,6 +77,10 @@ function sendRow(input: SendNoticesInput, row: NoticeRow): Promise<NoticeOutcome
       }),
     )
     .exhaustive();
+}
+
+function readNoticeItemRef(input: SendNoticesInput, item: ItemId): Promise<ItemRef | null> {
+  return input.store.read((tx) => tx.readItemRef(item));
 }
 
 function buildNoticeKey(row: NoticeRow): string {

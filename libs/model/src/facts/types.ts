@@ -95,8 +95,9 @@ interface OfAttempt {
 // The fact catalog of the stream `facts.boxxy.work`. A payload holds no `storeVersion`: the sink
 // adds it to the wire form. Instants in a payload are epoch milliseconds.
 export interface WorkFacts {
-  // the kept session is state between two attempts, and no fact carries it
-  'boxxy.item.filed': Omit<ItemRow, 'keptSession'>;
+  // the kept session is state between two attempts, and the short reference is the store's own
+  // numbering: no fact carries either
+  'boxxy.item.filed': Omit<ItemRow, 'keptSession' | 'ref'>;
   'boxxy.item.noted': { readonly seq: number; readonly text: string };
   'boxxy.item.edited': {
     readonly title?: string;

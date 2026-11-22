@@ -1,6 +1,7 @@
 import { buildCriteria } from '@boxxy/closeout';
 import type {
   AnyNewFact,
+  InsertRow,
   ItemId,
   ItemRow,
   LinkEnd,
@@ -24,7 +25,7 @@ export const effectHandlers: EffectHandlers = {
       return { kind: 'skip', effect, reason: `the rules have no kind ${kind}` };
     }
 
-    const row: ItemRow = {
+    const row: InsertRow<'items'> = {
       id: brandSchemas.itemId.parse(ctx.newId()),
       kind,
       repo: ctx.item.repo,

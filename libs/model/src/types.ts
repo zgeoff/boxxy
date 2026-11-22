@@ -13,6 +13,9 @@ export type Minutes = number;
 
 export type ItemId = BrandOf<'itemId'>;
 
+// The short reference of an item, such as `i-12`.
+export type ItemRef = BrandOf<'itemRef'>;
+
 export type AttemptId = BrandOf<'attemptId'>;
 
 export type DecisionId = BrandOf<'decisionId'>;
@@ -130,6 +133,9 @@ export interface ItemFields {
 
 export interface ItemRow {
   readonly id: ItemId;
+
+  // the store numbers an item when it files it, and never gives a number twice
+  readonly ref: ItemRef;
   readonly kind: ItemKindName;
   readonly repo: RepoName;
   readonly title: string;

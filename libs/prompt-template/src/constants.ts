@@ -12,6 +12,7 @@ export const promptPlaceholders = [
   'notes',
   'security',
   'repo',
+  'item_ref',
   'attempt_id',
   'input',
 ] as const;

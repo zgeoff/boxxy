@@ -9,6 +9,7 @@ import { itemFieldsSchema } from './item-fields-schema.ts';
 // A plain object, so that the fact schema of `boxxy.item.filed` can omit `keptSession`.
 export const itemRowSchema = z.object({
   id: brandSchemas.itemId,
+  ref: brandSchemas.itemRef,
   kind: brandSchemas.itemKindName,
   repo: brandSchemas.repoName,
   title: z.string().min(1),

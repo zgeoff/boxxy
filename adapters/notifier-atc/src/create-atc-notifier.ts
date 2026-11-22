@@ -76,9 +76,13 @@ function findErrorCode(error: unknown): string | null {
 
 function formatHoldMessage(notice: HoldNotice): string {
   return [
-    `boxxy put ${notice.item} on hold: ${notice.reason}.`,
-    `Add a note with \`boxxy item note ${notice.item}\`, then run \`boxxy item retry ${notice.item}\`.`,
+    `boxxy put ${formatItem(notice)} on hold: ${notice.reason}.`,
+    `Add a note with \`boxxy item note ${formatItem(notice)}\`, then run \`boxxy item retry ${formatItem(notice)}\`.`,
   ].join('\n');
+}
+
+function formatItem(notice: HoldNotice | NotifyNotice): string {
+  return notice.itemRef ?? notice.item;
 }
 
 function formatPausedMessage(notice: PausedNotice): string {
@@ -97,13 +101,13 @@ function formatNotifyMessage(notice: NotifyNotice): string {
 
   if (overdue !== null) {
     return [
-      `${notice.item} has waited more than ${overdue.hours} hours at the ${notice.phase} step for ${overdue.kind}, and still waits.`,
-      `Read the item with \`boxxy item show ${notice.item}\`.`,
+      `${formatItem(notice)} has waited more than ${overdue.hours} hours at the ${notice.phase} step for ${overdue.kind}, and still waits.`,
+      `Read the item with \`boxxy item show ${formatItem(notice)}\`.`,
     ].join('\n');
   }
 
   return [
-    `boxxy settled the ${notice.phase} step of ${notice.item}: ${notice.reason}.`,
-    `Read the item with \`boxxy item show ${notice.item}\`.`,
+    `boxxy settled the ${notice.phase} step of ${formatItem(notice)}: ${notice.reason}.`,
+    `Read the item with \`boxxy item show ${formatItem(notice)}\`.`,
   ].join('\n');
 }

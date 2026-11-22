@@ -135,6 +135,18 @@ function writeSQLiteRow(
 
       return result.numAffectedRows === 0n ? ({ kind: 'lease-held' } as const) : null;
     })
+    .with({ op: 'insert', table: 'items' }, async (insert) => {
+      const columns = toStoreColumns(insert.table, insert.row);
+
+      // The write lock is held for the whole transaction, so the highest number read here stays
+      // the highest until the row is in. The number of a closed item is never given again.
+      await sql`INSERT INTO items
+        (${sql.join([...columns.map(([column]) => sql.ref(column)), sql.ref('ref')])})
+        VALUES (${sql.join(columns.map(([, value]) => value))},
+          (SELECT coalesce(max(ref), 0) + 1 FROM items))`.execute(db);
+
+      return null;
+    })
     .with({ op: 'insert' }, async (insert) => {
       await buildInsert(insert.table, toStoreColumns(insert.table, insert.row)).execute(db);
 

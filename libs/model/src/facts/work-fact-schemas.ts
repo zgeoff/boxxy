@@ -68,7 +68,7 @@ const skippedEffectSchema = z.object({ effect: effectKindSchema, reason: z.strin
 export const workFactSchemas = {
   // A `filed` fact stored before the body existed has none, and reads as an empty body.
   'boxxy.item.filed': itemRowSchema
-    .omit({ keptSession: true })
+    .omit({ keptSession: true, ref: true })
     .extend({ body: z.string().default('') }),
   'boxxy.item.noted': z.object({ seq: roundSchema, text: z.string().min(1) }),
   'boxxy.item.edited': z.object({

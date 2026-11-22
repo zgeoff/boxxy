@@ -1,5 +1,5 @@
 import { formatCanonicalJson } from '@boxxy/content-hash';
-import { toJSONValue } from '@boxxy/model';
+import { itemRefPattern, toJSONValue } from '@boxxy/model';
 import type { TableName } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { tableCodecs } from './table-codecs.ts';
@@ -13,12 +13,23 @@ export function toStoreColumns(table: TableName, fields: object): [string, Store
 
   const known = new Set<string>(codec.fields);
   const json = new Set<string>(codec.json);
+  const refs = new Set<string>(codec.refs);
 
   return Object.entries(fields).map(([field, value]: [string, unknown]) => {
     invariant(known.has(field), `${table} has no field ${field}`);
 
+    if (refs.has(field)) {
+      return [toColumnName(field), toRefNumber(value)];
+    }
+
     return [toColumnName(field), toStoreValue(value, json.has(field))];
   });
+}
+
+function toRefNumber(value: unknown): number {
+  invariant(typeof value === 'string' && itemRefPattern.test(value), 'a reference is `i-<n>`');
+
+  return Number(value.slice(2));
 }
 
 function toStoreValue(value: unknown, isJSON: boolean): StoreValue {

@@ -1,6 +1,6 @@
 import type { ItemId, StoreReader } from '@boxxy/model';
-import { brandSchemas } from '@boxxy/model';
 import type { ServerDeps } from '../types.ts';
+import { resolveItemID } from './resolve-item-id.ts';
 
 export type ItemIdsAnswer =
   | { readonly kind: 'found'; readonly items: ItemId[] }
@@ -18,13 +18,13 @@ export async function readItemIds(
   const rules = deps.rulesState().rules;
 
   for (const entry of raw) {
-    const parsed = brandSchemas.itemId.safeParse(entry);
+    const id = await resolveItemID(tx, entry);
 
-    if (!parsed.success || (await tx.readItem(parsed.data, deps.clock.now(), rules)) === null) {
+    if (id === null || (await tx.readItem(id, deps.clock.now(), rules)) === null) {
       return { kind: 'not-found', item: entry };
     }
 
-    items.push(parsed.data);
+    items.push(id);
   }
 
   return { kind: 'found', items };

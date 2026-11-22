@@ -9,6 +9,7 @@ function setupTest() {
 
   const notice: HoldNotice = {
     item: brandSchemas.itemId.parse('01900000-0000-7000-8000-000000000007'),
+    itemRef: brandSchemas.itemRef.parse('i-7'),
     reason: 'attempts used up',
     at: brandSchemas.instant.parse(1_800_000_000_000),
     key: 'boxxy-notice:12:3',
@@ -56,8 +57,8 @@ test('it sends one message to the session with the item, the reason, the next st
       {
         session: 'daemon.1.s1',
         text: [
-          'boxxy put 01900000-0000-7000-8000-000000000007 on hold: attempts used up.',
-          'Add a note with `boxxy item note 01900000-0000-7000-8000-000000000007`, then run `boxxy item retry 01900000-0000-7000-8000-000000000007`.',
+          'boxxy put i-7 on hold: attempts used up.',
+          'Add a note with `boxxy item note i-7`, then run `boxxy item retry i-7`.',
         ].join('\n'),
         idempotencyKey: 'boxxy-notice:12:3',
       },
@@ -217,6 +218,7 @@ test('#tellNotify sends one message that names the phase, the reason, the item a
 
   const outcome = await notifier.tellNotify({
     item: ctx.notice.item,
+    itemRef: ctx.notice.itemRef,
     phase: brandSchemas.phaseName.parse('live'),
     reason: 'wait-skip:shipped',
     at: ctx.notice.at,
@@ -229,8 +231,8 @@ test('#tellNotify sends one message that names the phase, the reason, the item a
       {
         session: 'daemon.1.s1',
         text: [
-          'boxxy settled the live step of 01900000-0000-7000-8000-000000000007: wait-skip:shipped.',
-          'Read the item with `boxxy item show 01900000-0000-7000-8000-000000000007`.',
+          'boxxy settled the live step of i-7: wait-skip:shipped.',
+          'Read the item with `boxxy item show i-7`.',
         ].join('\n'),
         idempotencyKey: 'boxxy-notice:15:0',
       },
@@ -244,6 +246,7 @@ test('#tellNotify tells the owner that an item waited over its hours at a step a
 
   await notifier.tellNotify({
     item: ctx.notice.item,
+    itemRef: ctx.notice.itemRef,
     phase: brandSchemas.phaseName.parse('live'),
     reason: 'wait-overdue:shipped:6',
     at: ctx.notice.at,
@@ -252,8 +255,8 @@ test('#tellNotify tells the owner that an item waited over its hours at a step a
 
   expect(ctx.sent.map((request) => request.text)).toStrictEqual([
     [
-      '01900000-0000-7000-8000-000000000007 has waited more than 6 hours at the live step for shipped, and still waits.',
-      'Read the item with `boxxy item show 01900000-0000-7000-8000-000000000007`.',
+      'i-7 has waited more than 6 hours at the live step for shipped, and still waits.',
+      'Read the item with `boxxy item show i-7`.',
     ].join('\n'),
   ]);
 });

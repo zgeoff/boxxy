@@ -16,6 +16,7 @@ export interface StoreDatabase {
     closed_at: number | null;
     close_reason: string | null;
     kept_session: string | null;
+    ref: number;
   };
   relations: {
     source: string;
