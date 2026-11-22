@@ -139,9 +139,10 @@ Ship the change in two PRs, in this order:
 ## Decisions
 
 - **The agent names the check, and the server reads it.** An agent can't record a pass that the server hasn't seen.
-- **The server checks at build close-out.** The builder already waits for CI before it closes out, and a stale or red result goes back to the session that can fix it. Merge covers a push after the close-out, with its own required checks and the verify gate.
+- **The server checks at build close-out.** The builder waits for CI before it closes out, and the server sends a stale or red result back to the session that can fix it.
 - **The free-text kinds stay.** A repo with no CI check or verify setup for a line still records `test`, `ci-run` or `live-check`, and the server leaves them unchecked.
 - **noslop gets no evidence kind.** noslop runs in the review phase, after the build closes out, so a build can't cite it. The review phase already checks noslop's result against the head.
+- **Merge never re-reads checked evidence.** The required checks and the verify gate run at the merged head, so they cover a push after the close-out. To guard an acceptance line's check through merge, make that check required.
 
 ## Builder decides
 
@@ -156,7 +157,3 @@ Ship the change in two PRs, in this order:
 - Checks on free-text evidence.
 - A check after release, which stays in the live phase.
 - The build prompt in the rules repo, which moves to `check` and `verdict` once this is built.
-
-## Open questions
-
-- **Should merge re-check each criterion's checked evidence at the merged head?** The owner settles it. Until then, merge reads only its required checks and the verify gate.
