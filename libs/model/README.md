@@ -43,9 +43,9 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 - `liveLevers`, which drops the levers a later undo lever cancels and those past their expiry.
 - `signalKey`, which builds a signal's key from its name and the content hash of its parameters.
 - `defineSignal`, `defineGate` and `defineAdmission`, which each return a plug-in with its parameter
-  type hidden, in the same way.
+  type hidden, as `definePhase` does.
 
 ## Documentation
 
-The [boxxy design docs](../../docs/design/boxxy/README.md) describe each type, and the
-[interface sketches](../../docs/design/boxxy/sketches/README.md) give its shape.
+Read what each type is for in the [boxxy design docs](../../docs/design/boxxy/README.md), and its
+shape in the [interface sketches](../../docs/design/boxxy/sketches/README.md).

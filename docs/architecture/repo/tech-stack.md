@@ -3,13 +3,12 @@
 boxxy runs on Bun and TypeScript, serves its API with oRPC on Elysia, and keeps its store in SQLite
 through Kysely. The same agents, shared skills and checks build every zgeoff repo, such as atc and
 pepys, so boxxy uses the toolchain those repos share, and a fix to a shared file reaches all of
-them. This doc gives the reason for each choice and says what each repo setup file is for. Read it
-before you add a dependency or change the repo's tooling.
+them. Before you add a dependency or change the repo's tooling, read the reason for each choice
+below and what each repo setup file is for.
 
-[Decision 0015](../../decisions/0015-stack.md) records the choices and the alternatives they beat.
-[Layout](./layout.md) covers the import pins that keep each library in one package.
-[How boxxy ships](./release.md) covers publishing. The [overview](../overview.md#terms) defines the
-shared terms.
+The choices and the alternatives they beat are in [Decision 0015](../../decisions/0015-stack.md).
+The import pins that keep each library in one package are in [Layout](./layout.md), publishing is in
+[How boxxy ships](./release.md), and the shared terms are in the [overview](../overview.md#terms).
 
 ## Main choices
 
@@ -30,8 +29,9 @@ shared terms.
 
 ## Packages
 
-The root `workspaces.catalog` is the one list of external versions, each pinned exactly. A package
-writes `"catalog:"` for an external dependency and `"workspace:*"` for another `@boxxy/*` package.
+The root `workspaces.catalog` is the one list of external versions, each pinned exactly. In a
+package's `package.json`, write `"catalog:"` for an external dependency and `"workspace:*"` for
+another `@boxxy/*` package.
 
 | Area                  | Packages                                                                          | Why                                                                                                                                 |
 | --------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -57,10 +57,10 @@ writes `"catalog:"` for an external dependency and `"workspace:*"` for another `
 | Git hooks and commits | `lefthook`, gitleaks, `@commitlint/cli`, `@zgeoff/commitlint-config`              | fix staged files, scan for secrets, and enforce Conventional Commits, which release-please reads                                    |
 | Repo checks           | `@zgeoff/chex`, `@zgeoff/diet`, `knip`, `@zgeoff/skill-gate`                      | the test layout and docs checks; dead code; the skills an agent loads before an edit                                                |
 
-A function returns an expected failure as one variant of a union type, so boxxy needs no result
-library. The server writes its logs as JSON lines to stderr, with no log library. boxxy has no
-OpenTelemetry SDK either: each agent exports its own telemetry, atc stamps every agent it starts
-with its session ID, and pepys joins that telemetry to attempts by the session ID
+Return an expected failure as one variant of a union type, so boxxy needs no result library. The
+server writes its logs as JSON lines to stderr, with no log library. boxxy has no OpenTelemetry SDK
+either: each agent exports its own telemetry, atc stamps every agent it starts with its session ID,
+and pepys joins that telemetry to attempts by the session ID
 ([the join keys](../interfaces/facts-and-pepys.md#the-join-keys)).
 
 ## Repo setup files
@@ -93,11 +93,11 @@ with its session ID, and pepys joins that telemetry to attempts by the session I
   under the memory cap of `@zgeoff/diet`.
 
 CI runs the shared checks in the `pr / checks` job of `pr.yml`, which repo-sync delivers. The
-`BUN_CHECK_SCRIPTS` repo variable, set in GitHub, lists the root scripts it runs:
+`BUN_CHECK_SCRIPTS` repo variable, set in GitHub, lists the root scripts the job runs:
 `audit deadcode format:check lint:full typecheck boundaries check:test-layout prose test`. The job
 also runs each docs check that `check:docs` lists, as a separate step. The type-aware lint and the
-dead-code check run only in CI, so an agent on a host with little memory never runs them; an agent
-runs `typecheck`, `lint` and `test` locally.
+dead-code check run only in CI, which keeps them off an agent's host, where memory may be short.
+Locally, run `typecheck`, `lint` and `test`.
 
 ### What repo-sync delivers
 
@@ -109,21 +109,20 @@ lists in `include`:
 - the shared skills, and `scripts/run-knip.sh` for the dead-code check;
 - the PR template, the issue templates, `.editorconfig` and `socket.yml`.
 
-`repo-sync.yml` lists `memory-cap` in `skip`, because diet replaces that entry, and the chex
-baseline comes from the `@zgeoff/chex` package. repo-sync overwrites a synced file on the next sync,
-so change it in zgeoff/tools. Its
-[downstream repo setup runbook](https://github.com/zgeoff/tools/blob/main/docs/runbooks/downstream-repo-setup.md)
-gives the one-time steps for a new repo.
+`repo-sync.yml` lists `memory-cap` in `skip`, because diet replaces that entry. The chex baseline
+comes from the `@zgeoff/chex` package. repo-sync overwrites a synced file on the next sync, so
+change it in zgeoff/tools. To set up a new repo, follow the one-time steps in the zgeoff/tools
+[downstream repo setup runbook](https://github.com/zgeoff/tools/blob/main/docs/runbooks/downstream-repo-setup.md).
 
-boxxy keeps two skill-gate files that repo-sync must leave alone. The hook
+boxxy keeps two skill-gate files that repo-sync must leave alone. The first is the hook
 `.claude/hooks/skill-gate/skill-gate.ts`, which `.claude/settings.json` runs before each edit and
-around each shell command, has no entry in the zgeoff/tools manifest, and repo-sync deletes such a
-file unless the repo lists it in `skip`
-([retired files](https://github.com/zgeoff/tools/blob/main/docs/architecture/repo-sync.md#retired-files));
-boxxy's `skip` lists `hook-skill-gate`. The `@zgeoff/skill-gate` README gives the steps to replace
-the hook with `@zgeoff/agent-hooks`. `.claude/skill-gate.json` maps boxxy's own file globs to
-skills, and the `skill-gate-rules` entry of zgeoff/tools lists boxxy in its `except`, so repo-sync
-never overwrites it.
+around each shell command. The hook has no entry in the zgeoff/tools manifest, and repo-sync deletes
+such a file unless the repo lists it in `skip`
+([retired files](https://github.com/zgeoff/tools/blob/main/docs/architecture/repo-sync.md#retired-files)),
+so boxxy's `skip` lists `hook-skill-gate`. To replace the hook with `@zgeoff/agent-hooks`, follow
+the steps in the `@zgeoff/skill-gate` README. The second file, `.claude/skill-gate.json`, maps
+boxxy's own file globs to skills. repo-sync never overwrites it, because the `skill-gate-rules`
+entry of zgeoff/tools lists boxxy in its `except`.
 
 ## TypeScript and package manifests
 
@@ -134,9 +133,9 @@ the declarations of `src`, without the tests, into `dist`.
 
 Every package's `package.json` is written for publishing. Its `exports` point `types` at `dist` and
 `default` at the TypeScript source. A workspace checkout has no `dist` until a build runs, so the
-typechecker falls through to `default` and a sibling package typechecks against the source; a
+typechecker falls through to `default` and a sibling package typechecks against the source. A
 published package carries the built `dist`, so a consumer reads the declarations. Only Bun can run a
-published package, because Node refuses to strip types from a file under `node_modules`, and
-`engines.node` names the Node whose bundled npm publishes it. Each package also ships its own
-README, license and the changelog release-please writes, and sets `description`, `homepage` and
-`bugs`.
+published package, because Node refuses to strip types from a file under `node_modules`.
+`engines.node` is the Node version whose bundled npm publishes the package. Each package also ships
+its own README, license and the changelog release-please writes, and sets `description`, `homepage`
+and `bugs`.

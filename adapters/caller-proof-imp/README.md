@@ -26,15 +26,15 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Features
 
-- `impIdentityCallerProof({ issuers, audience, clock })` returns a `CallerProof`. The app passes the
-  trust documents as parsed JSON, the audience that the broker signs for, and the clock.
+- `impIdentityCallerProof({ issuers, audience, clock })` returns a `CallerProof`. Pass it the trust
+  documents as parsed JSON, the audience that the broker signs for, and the clock.
 - The proof reads the `imp-identity` header and verifies it with `@impz/client/identity`. It gives
   the token's issuer, and the machine ID as the subject.
-- A missing, expired or forged token, a wrong audience or an unknown issuer proves no caller. With
-  no trust document, the proof proves no request.
-- A bad trust document throws when the app builds the proof, so the server does not start.
+- The proof proves no caller when the token is missing, expired or forged, signed for another
+  audience, or from an unknown issuer. With no trust document, it proves no request.
+- `impIdentityCallerProof` throws on a bad trust document, so the server does not start.
 
 ## Documentation
 
-[The proven caller](../../docs/architecture/interfaces/api-and-auth.md#the-proven-caller) describes
+Read [The proven caller](../../docs/architecture/interfaces/api-and-auth.md#the-proven-caller) for
 how the server uses the proof, and why the adapter makes no session check of its own.

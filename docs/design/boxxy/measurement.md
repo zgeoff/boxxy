@@ -9,8 +9,8 @@ and describe what you build in the architecture doc that owns it, as AGENTS.md s
 
 The decisions behind this doc are
 [0006: the measurement verdict with plug-in metrics](../../decisions/0006-measurement-verdict-with-plug-in-metrics.md)
-and [0007: spend capture through OTel](../../decisions/0007-spend-capture-through-otel.md). The
-`modules/measurement` package holds the code; [the layout](../../architecture/repo/layout.md) gives its place.
+and [0007: spend capture through OTel](../../decisions/0007-spend-capture-through-otel.md). The code
+lives in the `modules/measurement` package; find its place in [the layout](../../architecture/repo/layout.md).
 
 ## Spend capture
 
@@ -25,10 +25,10 @@ and capacity source of each one. An attempt can collect more than one agent sess
 atc respawns its session. The runner records each agent session id of an attempt in the store's
 `attempt_sessions` table when atc reports it, and a spend query joins each record's `session.id` to
 those ids at read time. A record whose `session.id` matches no attempt belongs to no attempt.
-[The join keys](../../architecture/interfaces/facts-and-pepys.md#the-join-keys) describe the join.
+For the join, see [the join keys](../../architecture/interfaces/facts-and-pepys.md#the-join-keys).
 
-Codex is an open question: whether Codex telemetry carries a session id that boxxy can join on, and
-whether atc records it. An investigation in atc answers it.
+Nobody knows yet whether Codex telemetry carries a session id that boxxy can join on, or whether
+atc records it. An investigation in atc will find out.
 
 - Claude Code sends logs and metrics over OTLP; its `claude_code.api_request` event gives the model,
   cost, input, output, cache read and cache write tokens, and the duration of each request. Codex
@@ -42,8 +42,8 @@ whether atc records it. An investigation in atc answers it.
 - Prompts and responses stay redacted, which is OTel's default in both agents.
 
 **Total input counts the cache.** `input_tokens` excludes cached tokens, so total input is
-`input_tokens + cache_read_tokens + cache_creation_tokens`. A spend query that sums `input_tokens`
-alone undercounts.
+`input_tokens + cache_read_tokens + cache_creation_tokens`. Never sum `input_tokens` alone in a spend
+query, because that undercounts.
 
 One attempt uses several models: the main session, subagents, an advisor and a review model. The
 session-id join ties each request to its attempt whatever model served it, so spend splits by phase
@@ -69,7 +69,7 @@ sample: { effect: 0.15, power: 0.8 } # the loader derives the minimum per arm an
 stop: 2026-12-01
 ```
 
-There are two experiment types:
+Set `type` to one of these:
 
 - **Live buckets, for recipes.** When a claim commits, `hash(item id, experiment id) mod 100` picks
   the item's arm. The claim's own transaction writes an exposure fact that records the arm, and the
@@ -94,16 +94,16 @@ experiment id.
 
 ## Plug-ins
 
-Metrics and cohort keys are plug-ins. Adding one is one file plus its name in an experiment's
-`metrics` or `cohort` list.
+Metrics and cohort keys are plug-ins. To add one, write one file and put its name in an
+experiment's `metrics` or `cohort` list.
 
 [`07-measurement.ts`](./sketches/07-measurement.ts) holds the shapes. A `CohortKey` gives an item a
 cell from its pre-exposure facts. A `Metric` gives an item an `Observation`: done with a value,
 pending, or censored with a lower bound. A metric's `kind` (cost, time or rate) picks its estimator
 ([fixed in the core](#fixed-in-the-core)). Only time metrics are censored.
 
-A cohort key reads only facts recorded before exposure, such as the size set at triage. It never
-reads the arm's own output, such as the lines its diff changed, because the arm could move the item
+In a cohort key, read only facts recorded before exposure, such as the size set at triage. Never
+read the arm's own output, such as the lines its diff changed, because the arm could move the item
 into another cell.
 
 ## Fixed in the core
@@ -113,9 +113,8 @@ Every experiment uses the same versions of these parts, and no experiment can sw
 - **Assignment and the exposure fact.**
 - **One estimator per metric kind:** cost, time and rate. An estimator becomes a plug-in only when a
   metric needs one the core lacks.
-- **The noise floor.** The core takes several pairs of champion slices, each as wide as the
-  challenger's arm, and sets the floor to the largest gap between any pair. The floor is then
-  measured at the challenger's sample size. This is an A/A test.
+- **The noise floor, from an A/A test.** The core takes several pairs of champion slices, each as
+  wide as the challenger's arm, and sets the floor to the largest gap between any pair.
 - **The stop rules**, below.
 - **The two experiment types.**
 
@@ -133,14 +132,17 @@ const v = verdict('design-phase-v1', { at: '2026-12-01' });
 `verdict()` is a pure function of the experiment and an analysis date. boxxy keeps no verdict as
 state: each call recomputes it from facts, and writes `verdict.json` and a report as output.
 
+A row clears only when its interval excludes 0 and the effect is larger than the noise floor.
+
 - `no-call`: the call is due, and no row clears.
 - `challenger` or `champion`: a row clears, and the status gives the arm that won.
 
-- A row clears only when its interval excludes 0 and the effect is larger than the noise floor.
+The verdict keeps these rules:
+
 - **Stop rules.** The verdict makes no call, and gives the reason, in three cases:
   - `too-few`: an arm is below its minimum sample. The row shows no effect.
   - `pending`: more than 5% of an arm is still pending at the analysis date.
-  - `early`: the analysis date is before the declared stop date. Verdicts can be read at any time,
+  - `early`: the analysis date is before the declared stop date. You can read a verdict at any time,
     but a call waits for the stop date, because daily reads inflate false wins.
 - **No selection on outcome.** Every exposed item stays in its arm's denominator, finished or not.
   The verdict prints the pending and abandoned counts beside n, and counts the full spend of an
@@ -148,8 +150,8 @@ state: each call recomputes it from facts, and writes `verdict.json` and a repor
 - **Time metrics use Kaplan-Meier.** Time to merge and survival treat unfinished and unmatured items
   as censored, never dropped or averaged early.
 - **Cost is read at an analysis date.** Censoring fits time metrics only, because an unfinished
-  item's cost is only a lower bound. The analysis date is set after the stop date, late enough that
-  few exposed items are still unfinished.
+  item's cost is only a lower bound. Set the analysis date after the stop date, late enough that few
+  exposed items are still unfinished.
 - **Shadow verdicts** report pick agreement plus paired proxies on the same snapshots, such as the
   age of the picked item and idle slot-minutes. A shadow verdict claims no outcome metric, because
   the challenger's picks never ran.
@@ -162,7 +164,7 @@ ask.
 
 ## Queries
 
-Each query runs over pepys facts, joined to attempts through the session ids the store records. These are proposed; boxxy builds only [cost to land](../../architecture/interfaces/facts-and-pepys.md#what-an-item-cost-to-land) and the stage times.
+Each query runs over pepys facts, joined to attempts through the session ids the store records. The queries below are proposals; boxxy builds only [cost to land](../../architecture/interfaces/facts-and-pepys.md#what-an-item-cost-to-land) and the stage times.
 
 - **Spend:** by phase, recipe, model, capacity source, item kind, pool and outcome, and attended
   against unattended. Abandoned attempts count.
@@ -188,8 +190,8 @@ Each query runs over pepys facts, joined to attempts through the session ids the
 
 ## First experiment
 
-The first experiment is the model-swap eval in slice 2, which
-[capacity](./capacity.md#the-model-swap-eval) describes. It runs on a first cut of the verdict: cost
+The first experiment is the model-swap eval in slice 2 (see
+[capacity](./capacity.md#the-model-swap-eval)). It runs on a first cut of the verdict: cost
 to land as the only metric, one pooled row with no strata, a fixed analysis date and the A/A floor.
 It has no shadow rules and no report beyond the verdict row. Guards and strata follow.
 

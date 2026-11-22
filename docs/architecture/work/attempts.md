@@ -189,8 +189,7 @@ such as one that cites an unknown criterion, still costs one read. An agent's ow
 count and a friction entry with no target do not fail the schema. `blocked` and `abandoned`
 close-outs, a body that cites no checked evidence, and a resend of a recorded close-out never wait
 on GitHub. A failed read answers `retry` and settles nothing, and the CLI exits as for an evidence
-`retry`. A close-out that cites no `check` or `verdict` reads no head, so the context the parser
-gets holds a head only when the close-out cites checked evidence.
+`retry`. The parser's context holds the head only when the close-out cites checked evidence.
 
 The build phase kind gives each cited `check` or `verdict` whose recorded head differs from the head
 one `stale-evidence` problem: the criterion, the evidence ID, the head it was recorded at, and the
@@ -251,9 +250,9 @@ new row. The store keeps a checked row's ref qualified by its head, because its 
 attempt, the kind and the ref, and it gives the ref back bare. A refused call or a `retry` writes no
 row and no fact. A call reads GitHub outside the store lock, and checks the session again inside the
 lock before it writes. A `check` makes one pull request read and one checks read. A `verdict` makes
-the same two reads, and the verifier then reads the checks a second time, with the pull request's
-body, through its own port, so a check run that changes between the two reads can differ between the
-gate state that decides the refusal and the state the verifier reported.
+the same two reads, and the verifier then reads the checks a second time through its own port, with
+the pull request's body. A check run that changes between those reads can therefore differ between
+the gate state that decides the refusal and the state the verifier reported.
 
 Merge never reads checked evidence again: the required checks and the verify gate run at the merged
 head, so they cover a push after the close-out. To guard an acceptance line's check through merge,
@@ -311,10 +310,9 @@ which no edge matches. The item holds, and `boxxy item retry <item> --phase <pha
 
 A failure the runner sets wins over any close-out the attempt holds, and such a settle applies no
 effects, so it files none of the close-out's open items. An attempt fails with `closeout-missing`
-when it settles with no close-out and none of the failures below. The same failure also marks a
-close-out with the outcome `blocked` or `abandoned` from a
-[design or build close-out](../../design/boxxy/close-outs.md#the-v1-phase-kinds). The runner sets
-every other failure:
+when it settles with no close-out and none of the failures below. An attempt whose
+[design or build close-out](../../design/boxxy/close-outs.md#the-v1-phase-kinds) has the outcome
+`blocked` or `abandoned` fails with `closeout-missing` too. The runner sets every other failure:
 
 | Failure         | Cause                                                                                                                                                     | Counts against `maxAttempts` |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |

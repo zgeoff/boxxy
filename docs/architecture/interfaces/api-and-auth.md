@@ -29,7 +29,7 @@ flowchart LR
 ```
 
 The contract lives in `@boxxy/contract`, and the server builds one oRPC router from it, so every
-listener serves the same procedures. The server config sets each listener's address.
+listener serves the same procedures. Set each listener's address in the server config.
 
 - **The owner listener** serves `/rpc` for the CLI, `/mcp` for the owner's agent, and `/healthz`. It
   runs a request with no token as the owner, so the owner's private network is its only gate.
@@ -51,12 +51,12 @@ Each procedure is `<group>.<verb>`, and its MCP tool is `<group>_<verb>`. Each p
 own tool name, so renaming a router key never renames a tool. An answer the caller acts on in its
 normal flow is one member of the procedure's output union, and each member has its own `kind`; a
 call that names something that doesn't exist throws a typed error. The server accepts the previous
-CLI version, because the CLI ships in the agent image, which can lag a server deploy, so a release
-never removes or renames anything the previous CLI sends or reads.
+CLI version, because the CLI ships in the agent image, which can lag a server deploy. Never remove
+or rename anything the previous CLI sends or reads.
 
 The contract's access table gives each procedure its caller (`owner`, `session` or `hook`), the
 actor its [fact](./facts-and-pepys.md) records, the MCP endpoint that lists it, its CLI usage line,
-and the scope the public listener requires. Each procedure belongs to the narrowest caller whose job
+and the scope the public listener requires. Give each procedure to the narrowest caller whose job
 needs it:
 
 - **The owner's agent** files and steers work, so the owner's `/mcp` lists every procedure that
@@ -147,11 +147,11 @@ power. On the worker path, the middleware refuses every owner procedure with `FO
 session can't close an item, retry one or pause the runner, even though the broker forwards a
 request to any URL path.
 
-A session runs in an imp, a cloud machine that reaches only the public internet. It calls a made-up
-host name that the broker answers on, which it reads from `BOXXY_URL`. The broker adds two tokens to
-each request to that name and forwards it to the worker listener: the worker token, a secret only
-the broker and the server hold, proves the request came through the broker, and an identity token
-proves which machine sent it. The session never holds the worker token.
+A session runs in an imp, a cloud machine that reaches only the public internet. It reads a made-up
+host name from `BOXXY_URL` and calls it, and the broker answers on that name. The broker adds two
+tokens to each request to that name and forwards it to the worker listener: the worker token, a
+secret only the broker and the server hold, proves the request came through the broker, and an
+identity token proves which machine sent it. The session never holds the worker token.
 
 atc can also run a session on the machine where atc itself runs, outside an imp. That session has no
 broker in front of it, so it reaches the server on the owner's path: it can call every owner
@@ -169,19 +169,19 @@ The public listener lets the owner's assistant reach the owner's tools from off 
 `/mcp`, never `/rpc` or `/healthz`. The `auth` procedures have no tool, so an OAuth token never
 reaches them.
 
-The `publicDoor` config section sets the listener, which listens on loopback by default and speaks
+Set the listener in the `publicDoor` config section. It listens on loopback by default and speaks
 plain HTTP. On any other address the owner puts a TLS-terminating proxy, such as Cloudflare, in
 front, and the server refuses to start unless `publicURL` is `https`. `publicURL` is the OAuth
 issuer, and `<publicURL>/mcp` is the one resource every token is bound to.
 
-- **Clients are added by hand.** The owner adds each client with `boxxy auth clients add`. A client
-  signs in with PKCE S256 and no client secret, and the listener has no dynamic client registration.
+- **The owner adds each client by hand,** with `boxxy auth clients add`. A client signs in with PKCE
+  S256 and no client secret, and the listener has no dynamic client registration.
 - **Every authorization needs the owner.** It takes a fresh passkey sign-in, then a consent page
   listing the scopes asked for, with only `read` ticked to start. The owner enrolls a passkey with
   `boxxy auth enroll`, which prints a one-time link with an expiry.
 - **An agent with no person present signs in as a service client.** It sends `service:<name>` and
   its secret to `/oauth2/token` with the `client_credentials` grant, and gets an access token with
-  no refresh token. The `serviceTokensFile` lists each service client with its scopes and the sha256
+  no refresh token. The `serviceTokensFile` holds each service client with its scopes and the sha256
   digests of its secrets, so reading the file gives no usable credential. The server rereads it on
   SIGHUP and keeps the old clients when the new file is invalid, so the owner can add or revoke a
   client without a restart.
@@ -241,8 +241,8 @@ session can't forge one. The proof gives the token's issuer, and the machine ID 
 same ID atc reports for the session's host.
 
 The proof accepts a token only from an issuer listed in a trust document: a JSON file with one imp
-issuer and the public keys that verify its tokens. The `trustedIssuers` config section lists the
-folders that hold the trust documents, and the audience, the host name sessions call. The server
+issuer and the public keys that verify its tokens. In the `trustedIssuers` config section, set the
+folders that hold the trust documents, and the audience: the host name sessions call. The server
 refuses to start when it can't read a valid document or the folders hold none, so an empty mount
 never starts a server that silently refuses every session. With no `trustedIssuers` section at all,
 the server proves no request, and refuses every session and hook call.

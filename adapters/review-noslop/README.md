@@ -11,8 +11,8 @@
   </p>
 </div>
 
-boxxy's `ReviewGate` port on noslop: the command a review session runs, and the server's check and
-post of its result.
+boxxy's `ReviewGate` port on noslop. It gives the command a review session runs, and on the server
+it posts that session's result and checks it.
 
 ## Install
 
@@ -29,17 +29,18 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 - `createNoslopReviewGate({ appEnv })` returns a `ReviewGate`. `appEnv` holds the noslop App's keys,
   which only the server has.
 - `buildCommand(round)` gives a command that writes `noslop-review.json` in the pull request's
-  checkout. A first round runs a full review. A later round runs `--fixes-only`, and runs a plain
-  review when that run judged no fix and `noslop findings` succeeds.
+  checkout. In the first round the command runs a full review. In a later round it runs
+  `--fixes-only`, then a plain review when that run judged no fix and `noslop findings` succeeds.
 - `accept(round, result)` posts the result with `sendResult` from `@noslop/cli/post`, then reads the
   findings still open with `check` from `@noslop/cli/check`.
-- `accept` reads a result that it can't post as `not-covered` and posts nothing, such as a result
-  for an old head. A fixes-only run that judged no fix reaches `accept` only when `noslop findings`
-  failed, so the command ran no plain review. That result reads `not-covered` too, and the reading's
-  `reason` holds noslop's error, such as a missing `github.app`.
-- `accept` throws only when GitHub gives no answer, so the session sends the file again.
+- When `accept` can't post a result, such as one for an old head, it reads the result as
+  `not-covered` and posts nothing.
+- A fixes-only run that judged no fix reaches `accept` only when `noslop findings` failed, so the
+  command ran no plain review. That result reads `not-covered` too, and the reading's `reason` holds
+  noslop's error, such as a missing `github.app`.
+- `accept` throws only when GitHub gives no answer. On a throw, the session sends the file again.
 
 ## Documentation
 
-[The review gate](../../docs/design/boxxy/review-and-merge.md#the-review-gate) describes each
-reading and when the core sends a pull request back.
+Read [The review gate](../../docs/design/boxxy/review-and-merge.md#the-review-gate) for each reading
+and for when the core sends a pull request back.

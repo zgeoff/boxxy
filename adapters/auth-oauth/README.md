@@ -11,7 +11,7 @@
   </p>
 </div>
 
-boxxy's public door: it lets the owner's assistant reach the owner's MCP tools from anywhere, with a
+boxxy's public door lets the owner's assistant reach the owner's MCP tools from anywhere, with a
 grant that the owner approved with a passkey. The OAuth server is
 [`@zgeoff/mcp-auth`](https://www.npmjs.com/package/@zgeoff/mcp-auth); this package opens it on
 boxxy's auth database, with boxxy's scopes and table names.
@@ -46,6 +46,6 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-[The public door](../../docs/architecture/interfaces/api-and-auth.md#the-public-door) describes the
+Read [the public door](../../docs/architecture/interfaces/api-and-auth.md#the-public-door) for the
 endpoints, the scopes and the token lifetimes, and
-[0018](../../docs/decisions/0018-public-owner-mcp.md) records the decision.
+[decision 0018](../../docs/decisions/0018-public-owner-mcp.md) for the decision behind it.

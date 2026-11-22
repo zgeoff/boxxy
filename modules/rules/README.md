@@ -15,7 +15,7 @@ boxxy's rules loader. `loadRules` checks a rules checkout's `rules.yaml` against
 the phase kinds boxxy compiles in, builds the plug-in registry, and gives the loaded rules a
 version. [`example/`](./example/) holds the v1 rules file and its prompts.
 
-The package does no I/O: the caller reads the checkout and passes in its commit hash and its files'
+The package does no I/O: read the checkout yourself, and pass in its commit hash and its files'
 bytes.
 
 ## Install
@@ -37,5 +37,5 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-The [rules design](../../docs/design/boxxy/rules.md) says why rules live in git, and `@boxxy/model`
-holds the shape of the loaded rules.
+Read the [rules design](../../docs/design/boxxy/rules.md) for why rules live in git, and
+`@boxxy/model` for the shape of the loaded rules.

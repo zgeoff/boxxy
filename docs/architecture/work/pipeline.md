@@ -32,11 +32,11 @@ flowchart LR
   review -->|failed| review
 ```
 
-The diagram is the example rules file in `modules/rules/example/`. Each step of a pipeline gives a
-phase, the attempts it allows in a row (`maxAttempts`), a time limit (`timeoutMinutes`), and an edge
-for every outcome. The phase kind, the server code behind a phase, lists the outcomes, parses the
-close-out and says what runs the attempt: an agent session, or a merge job that the runner drives
-itself.
+The diagram shows the example rules file in `modules/rules/example/`. Each step of a pipeline gives
+a phase, the attempts it allows in a row (`maxAttempts`), a time limit (`timeoutMinutes`), and an
+edge for every outcome. The phase kind, the server code behind a phase, defines the outcomes, parses
+the close-out and sets what runs the attempt: an agent session, or a merge job that the runner
+drives itself.
 
 An edge is one of these:
 
@@ -57,24 +57,24 @@ writes its hold notice only. `next` and `again` take no `notify`.
 ## Step gates and skips
 
 A step may gate its attempt. The claim checks the gates before it starts the step, and the first
-gate that says skip settles the step as skipped, with no session, pool, seat or lease.
+gate that returns skip settles the step as skipped, with no session, pool, seat or lease.
 
-| Step field                          | The step is skipped when                                                         | Reason recorded            |
-| ----------------------------------- | -------------------------------------------------------------------------------- | -------------------------- |
-| `criteria: { tagged: t }`           | no acceptance line of the item carries the tag `t`                               | `no-criteria-tagged:<tag>` |
-| `skipWhen: [{ checkPassed: name }]` | the latest run of the check `name` at the head of the item's pull request passed | `check-passed:<name>`      |
-| `waits: [kind]`                     | a [wait kind](./ship-watch.md#the-shipped-wait) the server registers says `skip` | `wait-skip:<kind>`         |
+| Step field                          | The step is skipped when                                                            | Reason recorded            |
+| ----------------------------------- | ----------------------------------------------------------------------------------- | -------------------------- |
+| `criteria: { tagged: t }`           | no acceptance line of the item carries the tag `t`                                  | `no-criteria-tagged:<tag>` |
+| `skipWhen: [{ checkPassed: name }]` | the latest run of the check `name` at the head of the item's pull request passed    | `check-passed:<name>`      |
+| `waits: [kind]`                     | a [wait kind](./ship-watch.md#the-shipped-wait) the server registers returns `skip` | `wait-skip:<kind>`         |
 
 The claim checks `criteria` first, then `skipWhen`, then `waits`, and any one true condition of
-`skipWhen` skips. A wait that says `waiting` leaves the item where it is, and the item's state is
-`waiting` with the reason `wait:<kind>`. A wait that says `holds` leaves the step to run. The caller
-of the state code runs each wait and passes the answers in, so the state code names no wait kind. A
-step with `criteria` runs on the matching lines alone: the phase input and the launch prompt's
-`acceptance` list only the lines with the tag, and so does the close-out check of its attempt. An
-item with an empty acceptance list has no tagged line, so a `criteria` gate skips its step. The tags
-an acceptance line may carry are the rules file's `criterionTags`. `item file`, `item edit` and a
-triage or design close-out that sets acceptance refuse a tag the list lacks, and a tag stays on its
-line in the item's state, its facts and `item show`.
+`skipWhen` skips. A wait that returns `waiting` leaves the item where it is, and the item's state is
+`waiting` with the reason `wait:<kind>`. A wait that returns `holds` leaves the step to run. The
+caller of the state code runs each wait and passes the answers in, so the state code names no wait
+kind. A step with `criteria` runs on the matching lines alone: the phase input and the launch
+prompt's `acceptance` hold only the lines with the tag, and the close-out check of its attempt
+checks only those lines. An item with an empty acceptance list has no tagged line, so a `criteria`
+gate skips its step. The tags an acceptance line may carry are the rules file's `criterionTags`.
+`item file`, `item edit` and a triage or design close-out that sets acceptance refuse a tag the list
+lacks, and a tag stays on its line in the item's state, its facts and `item show`.
 
 A step with `waits` may also set `waitNoticeHours: <hours>`, the time that an item may wait at the
 step before the owner gets one notice ([the overdue wait](./notices.md#the-notify-notice)). It
@@ -85,9 +85,9 @@ A skip comes after a retry lever filed at its own instant, and a retry lever sta
 claim's time moves nothing, so a skip always moves the item on. A step with a gate has a `skip`
 edge: `next`, `{ end }` or `{ hold }`, never `again` or `{ to }`. A skipped attempt follows that
 edge, counts toward no `maxAttempts` and no `max`, and a tag added after the step skipped doesn't
-bring it back: `boxxy item retry <item> --phase <phase>` does. A claim that finds the runner paused,
-or an item whose repo is missing from `spawn.repos`, records no skip. With no GitHub forge
-configured a `checkPassed` condition never skips, and a forge error reads as not passed.
+bring it back: `boxxy item retry <item> --phase <phase>` does. A claim records no skip when it finds
+the runner paused, or the item's repo missing from `spawn.repos`. With no GitHub forge configured a
+`checkPassed` condition never skips, and a forge error reads as not passed.
 
 The loader refuses a gate or a wait with no `skip` edge, a condition or a wait kind it doesn't know,
 a wait whose `after` outcome no earlier step's phase kind has, a `criteria.tagged` tag that
@@ -97,10 +97,10 @@ file's `repos` section sets how each repo ships, which the [ship watch](./ship-w
 
 The loader refuses a step that leaves out an outcome of its phase kind, or adds one the kind lacks,
 so every outcome has an edge. A phase kind may also list a conditional outcome, one that its step
-maps only when the rules file asks for it;
-[the merge kind's sign-off outcomes](#owner-sign-off-at-merge) are the case. It also refuses a step
-with no time limit, and a phase kind this server can't run: a merge step needs a server with a
-`github` section in its config.
+maps only when the rules file turns it on;
+[the merge kind's sign-off outcomes](#owner-sign-off-at-merge) are the case. The loader also refuses
+a step with no time limit, and a phase kind this server can't run: a merge step needs a server with
+a `github` section in its config.
 
 ## How boxxy decides where an item stands
 
@@ -112,10 +112,10 @@ the item's position: a phase, an end or a hold.
   `boxxy item retry --phase`, and each retry that lifts a `rounds used up` hold. A review of
   reworked code has the build's round, and the reports count any attempt above round 1 as rework.
 - **The engine adds three outcomes.** `lost` is the outcome of an attempt that failed without an
-  outcome of its phase, such as one with no valid close-out. `lost` acts as `again`. One exception:
-  the engine skips a `no-capacity` or `usage-limit` failure, because that work never ran.
-  `unsettleable` marks a close-out the phase code could not settle. It is the engine's outcome, not
-  one of the phase kind's, so it has no edge and the item holds. `skipped` marks a step a
+  outcome of its phase, such as one with no valid close-out. `lost` acts as `again`, except that the
+  engine skips a `no-capacity` or `usage-limit` failure, because that work never ran. `unsettleable`
+  marks a close-out the phase code could not settle. It is the engine's outcome, not one of the
+  phase kind's, so it has no edge and the item holds. `skipped` marks a step a
   [gate](#step-gates-and-skips) skipped, and takes the step's `skip` edge.
 - **The engine adds three holds:** `attempts used up`, `rounds used up` and `outcome not in rules`.
   When a newer phase kind drops an outcome, an item whose stored outcome lost its edge holds with
@@ -219,8 +219,8 @@ repo's `<phase>/attended`, the repo's `<phase>`, the kind's `<phase>/attended`, 
 
 ## The live phase kind
 
-The `live` phase kind checks a shipped item's acceptance lines against the deployed system. A rules
-file puts it after a `shipped` wait, with a `criteria` gate that picks the lines to check. Its
+The `live` phase kind checks a shipped item's acceptance lines against the deployed system. Put it
+after a `shipped` wait in the rules file, with a `criteria` gate that picks the lines to check. Its
 outcomes are `confirmed`, `broken`, `blocked` and `abandoned`.
 
 The claim gives the session the item's merged pull request, its merge commit, the
@@ -263,8 +263,8 @@ A session reads its whole task from its launch prompt. The claim renders it from
 | `ticket`              | the whole item, `# <title>` then each non-empty section under its own heading; leaves out `security`                    |
 | `attempt_id`, `input` | the attempt's ID, and its input as JSON                                                                                 |
 
-Every placeholder but `ticket` gives its content only, with no heading. A template author needs four
-rules:
+Every placeholder but `ticket` gives its content only, with no heading. Follow these rules when you
+write a template:
 
 - **An empty section is the empty string,** which `{% if name %}` reads as false. Put each section's
   heading inside its `if`, and open the tag with `{%-` so an empty section leaves no blank line.
@@ -292,9 +292,9 @@ evidence again.
 
 ## The review
 
-The [review gate design](../../design/boxxy/review-and-merge.md#the-review-gate) owns the review. A
-review session runs one command that the review gate, boxxy's adapter for the noslop review tool,
-builds, and sends the tool's raw result as its close-out. The server checks that the result covers
+The [review gate design](../../design/boxxy/review-and-merge.md#the-review-gate) owns the review.
+The review gate, boxxy's adapter for the noslop review tool, builds one command. A review session
+runs it and sends the tool's raw result as its close-out. The server checks that the result covers
 the pull request's head commit, then posts it to the pull request. A failed call, or a result for
 another commit, settles `failed`.
 
@@ -364,7 +364,7 @@ The merge rule checks these in order, and the first that decides ends the attemp
 
 1. The pull request merged or closed: `merged` or `closed`.
 2. A send-back verdict at the current head: `changes-requested`.
-3. The review doesn't cover the current head: `stale`, back to review. The owner so never reads a
+3. The review doesn't cover the current head: `stale`, back to review, so the owner never reads a
    head that no review covers.
 4. A conflict or a red check: `repair`.
 5. A pending check or an unknown mergeable state: the job waits.
@@ -374,9 +374,10 @@ The merge rule checks these in order, and the first that decides ends the attemp
 8. The job merges at the current head.
 
 An item waits for a sign-off when it stands at the sign-off hold and its latest merge attempt
-finished `needs-signoff`. The close-out of every merge attempt that matched a rule, or read a cut
-list, holds `signoff`: the rules that matched, up to 50 matched paths and whether the list was cut.
-A `changes-requested` close-out holds `sentBack`: the head the owner read and the findings.
+finished `needs-signoff`. The close-out of every merge attempt that matched a rule, or read a
+`truncated` list, holds `signoff`: the rules that matched, up to 50 matched paths and whether the
+list was `truncated`. A `changes-requested` close-out holds `sentBack`: the head the owner read and
+the findings.
 
 The owner lists the waiting items with `signoff.list`, oldest first by when each reached the hold,
 and answers one with `item.signoff` at the head the list gave
@@ -392,8 +393,8 @@ round, and sends the item to the merge step, which asks the owner again. When ne
 `item retry` moves it on to a merge with no sign-off.
 
 When a `changes-requested` merge attempt is the latest attempt that sent the build back, the next
-build's `findings` prints the owner's text whole, with the head the owner read. A review's findings
-reach a build as counts only, because the owner's text lives nowhere else.
+build's `findings` prints the owner's text whole, with the head the owner read, because the owner's
+text lives nowhere else. A review's findings reach a build as counts only.
 
 ## What an item records
 
@@ -414,7 +415,7 @@ no fact links to an outside tracker.
 
 ## Derived item state
 
-An item's state is derived on every read, from its position, attempts, acceptance list, pull
+boxxy derives an item's state on every read, from its position, attempts, acceptance list, pull
 requests and relations. The first row that matches wins:
 
 | State      | When                                                                                                                       |
@@ -426,7 +427,7 @@ requests and relations. The first row that matches wins:
 | `done`     | its position is an end, and a pull request linked to a succeeded build has merged                                          |
 | `waiting`  | its position is an end and nothing merged: `pull request open`, `no pull request linked` or `pull request closed unmerged` |
 | `idea`     | its phase needs an acceptance list and it has none                                                                         |
-| `waiting`  | its step has a [wait](./ship-watch.md#the-shipped-wait) that says waiting, with the reason `wait:<kind>`                   |
+| `waiting`  | its step has a [wait](./ship-watch.md#the-shipped-wait) that returns waiting, with the reason `wait:<kind>`                |
 | `blocked`  | an item that `blocks` it is neither done nor archived                                                                      |
 | `ready`    | anything else                                                                                                              |
 
@@ -436,8 +437,8 @@ may replace it, and the claim never starts an `idea` item until the owner adds o
 `boxxy item retry --phase design`. The `blocked` state means another item is in the way; a `blocked`
 outcome is different, and makes the item `waiting`.
 
-At an end, the state reads whether the pull request merged, never a merge phase's outcome, so a
-merge by hand and a merge by boxxy both make the item `done`. A
+At an end, boxxy derives the state from whether the pull request merged, never from a merge phase's
+outcome, so a merge by hand and a merge by boxxy both make the item `done`. A
 [pull request link](../interfaces/github.md#linking-a-pull-request) comes from the agent's hook or
 the server's watch. An item on hold stays `waiting` even when its pull request merges. When the pull
 request closed unmerged, the owner runs `boxxy item retry <item> --phase build` or closes the item.

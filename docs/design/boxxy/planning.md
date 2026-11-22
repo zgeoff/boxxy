@@ -4,8 +4,8 @@ Planning decides which ready item starts next, and which sleeping attempt wakes.
 defer or expedite, is a concept: a module that registers plug-ins
 ([decision 0004](../../decisions/0004-planning-concepts-are-plug-ins.md)). `buildFrame()` runs the
 plug-ins over the facts and builds one frame. `decide()` reads the frame and the pools and returns
-picks, and never names a concept. A new sort key, such as cheapest measured work first, is one file
-and one plug-in reference in the rules. Read this doc before you add a concept or change how boxxy
+picks, and never names a concept. To add a sort key, such as cheapest measured work first, write one
+file and add one plug-in reference to the rules. Read this doc before you add a concept or change how boxxy
 orders work, and describe what you build in the architecture doc that owns it, as AGENTS.md says.
 
 ## Concepts
@@ -22,8 +22,8 @@ the pool filter fields it defines in `filterFields`, and the plug-ins that act o
 | admission | widens which pools may take an item | `--any-pool` |
 | view | a pure function over the frame | explain, forecast, roadmap |
 
-A signal, a gate or a pool gate can declare a schema for its parameters. The rules name a plug-in
-by a plug-in reference: a bare name, or a one-key map from the name to its parameters, such as
+A signal, a gate or a pool gate can declare a schema for its parameters. A plug-in reference in the
+rules is a bare name, or a one-key map from the name to its parameters, such as
 `{ kind-order: { order: [chore, bug] } }`. The loader checks the parameters against the schema. A pool filter field, such
 as `repo`, gives the value that a pool's `takes` matches.
 
@@ -35,7 +35,7 @@ arrives, and later concepts are additions to the same registry.
 ### Propagation
 
 `buildFrame()` runs each propagation line in the rules over every open item, ready or not. A line
-names a signal, a link type and a direction, such as rank down `serves` or expedite back over
+holds a signal, a link type and a direction, such as rank down `serves` or expedite back over
 `blocks`. `buildFrame()` carries the signal's value across those links, and the signal's `combine` keeps one value where two meet. A
 propagation line is rules data, so the registry has no propagation kind.
 
@@ -164,7 +164,7 @@ mechanism to show what a new rules version would have done.
 ## Forecast (proposed)
 
 A forecast gives the date goal G lands as a range from measured work, never from estimates. It
-is a view over replay, not a second scheduler, so it can never disagree with dispatch about order.
+is a view over replay, so it can never disagree with dispatch about order.
 
 1. **Like-work cohorts.** Each open item gets a cohort key: kind, repo and size band. The size band
    comes from the triage close-out's typed `size`, or from lines changed at merge for done items.

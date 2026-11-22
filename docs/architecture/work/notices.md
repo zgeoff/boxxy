@@ -51,7 +51,7 @@ shows nothing, so ready work can sit for a night with no sign of why
 
 The tick checks for it before it sends notices, and writes it as a notice row of the kind
 `runner-paused`, with the detail fixed at that moment. The runner's row records when the notice was
-queued, in the same change, so a later tick queues no second one. A resume clears the mark, and the
+queued, in the same change, so a later tick queues no second one. A resume clears that time, and the
 next pause starts a new count. A notice that atc has not taken follows the same retries as a hold
 notice, and a resume after it is queued does not recall it.
 
@@ -63,14 +63,14 @@ pause stored before the runner recorded its start time has no length, so it gets
 A hold or notify message names the item by its
 [short reference](../interfaces/api-and-auth.md#naming-an-item), such as `i-12`, in its text and in
 the `boxxy item` commands it suggests. The sender reads the reference from the store when it sends.
-A hold or notify notice whose item the store lacks is refused with `item-not-found` before the
-notifier is called, and it waits like any other refused notice.
+When the store lacks the item of a hold or notify notice, the sender refuses the notice with
+`item-not-found` before it calls the notifier, and the notice waits like any other refused notice.
 
 ## The notify notice
 
 A `notify` notice names the item, the phase and a reason, and the message tells the owner that boxxy
-settled that step for that reason. Three things write one, and the notice follows the same retries,
-key and session as a hold notice:
+settled that step for that reason. These write one, and the notice follows the same retries, key and
+session as a hold notice:
 
 - **A skip by a [wait](./ship-watch.md#the-shipped-wait)** that leaves a tagged acceptance line with
   no later check. The claim writes the row in the same change as the skipped attempt, with the skip
@@ -78,11 +78,11 @@ key and session as a hold notice:
 - **An edge with `notify: true`** ([edges](./pipeline.md#phases-and-edges)). The settle writes the
   row after the attempt settles, with the reason `the step closed out <outcome>`, and the item holds
   nothing. A `{ hold }` edge writes its hold notice only.
-- **An overdue wait.** An item whose state is `waiting` on a wait kind of its step, for longer than
-  the step's `waitNoticeHours`, or the `waitNoticeHours` timeout of the dispatch module when the
-  step sets none. The message says the item has waited more than that many hours at the step for
-  that wait kind, and still waits. The reason is `wait-overdue:<kind>:<hours>`, and the item stays
-  where it is.
+- **An overdue wait.** The tick writes one for an item whose state has been `waiting` on a wait kind
+  of its step for longer than the step's `waitNoticeHours`, or than the `waitNoticeHours` timeout of
+  the dispatch module when the step sets none. The message says the item has waited more than that
+  many hours at the step for that wait kind, and still waits. The reason is
+  `wait-overdue:<kind>:<hours>`, and the item stays where it is.
 
 An overdue wait writes at most one notice for each stay of an item at a step. The stay starts when
 the item's position became the step: the last settled attempt or retry that set it, or the filing of
@@ -97,8 +97,8 @@ An item with no known stay start gets none.
 The deployment sets `BOXXY_ATC_NOTICE_TOKEN` to an atc service token that holds only the `message`
 scope, and the notifier calls the gateway with a client of its own that carries only that token. The
 deployment also adds that token to the `principals` config of the atc daemon on the owner's machine.
-Without the variable, the server uses a notifier that answers `sent` to every try, so it marks every
-notice sent and delivers none.
+Without the variable, the server uses a notifier that answers `sent` to every try, so the server
+marks every notice sent and the owner gets none.
 
 The server starts and stops worker sessions with a separate token that holds the `spawn` and `kill`
 scopes ([the atc worker](./sessions.md#the-atc-worker)). Only the notice token is granted on the
@@ -114,10 +114,9 @@ the variable, never its value.
 
 atc addresses a session only by its gateway ID, `<daemon>.<incarnation>.<id>`, and answers
 `no_such_session` to anything else, a session's name included. A rename keeps the ID, but a new
-session, or a replaced daemon, gives a new one. The ID therefore changes with each new notice
-session, so the notice session registers itself: it runs `boxxy notices register <gateway-id>`, or
-calls the MCP tool `notices_register`, and the store keeps the one registered ID.
-`boxxy notices show` prints it.
+session, or a replaced daemon, gives a new one. The notice session therefore registers itself: it
+runs `boxxy notices register <gateway-id>`, or calls the MCP tool `notices_register`, and the store
+keeps the one registered ID. `boxxy notices show` prints it.
 
 - **Only the owner registers.** The owner listener accepts both procedures, and the public
   listener's `/mcp` accepts them with the `write` scope for register and `read` for show.
@@ -153,10 +152,10 @@ reach the log. After each try the server updates the row:
 3. **`uncertain`, or `refused` after an uncertain try,** repeats the same key next time. The server
    can't tell whether the first send arrived, so it lets atc answer: when atc delivered and recorded
    it, the repeat comes back `sent` with that send's result, and the owner gets one message.
-4. **After a run of uncertain tries under one key,** the key is bumped anyway. Only a key whose
-   every repeat stays uncertain gets here: either the first send never reached the daemon, and the
-   new key delivers the notice once, or the daemon delivered it but couldn't record it, and the new
-   key delivers it a second time. The server can't tell these apart, and a second copy costs the
+4. **After a run of uncertain tries under one key,** the server bumps the key anyway. Only a key
+   whose every repeat stays uncertain gets here: either the first send never reached the daemon, and
+   the new key delivers the notice once, or the daemon delivered it but couldn't record it, and the
+   new key delivers it a second time. The server can't tell these apart, and a second copy costs the
    owner less than a notice that never arrives.
 
 The wait between tries doubles from a short first wait up to a cap. It follows the count of all
@@ -184,10 +183,10 @@ restart clears it until the next failed try.
   are `refused`, and the notice waits.
 - **A registration never changes a key.** A notice whose last try at the old session was uncertain
   repeats its key at the new session. If atc answers with the first send's result, the notice stays
-  with the old session, like any notice sent before the registration; if it stays uncertain, the key
-  is eventually bumped and the notice goes to the new session.
+  with the old session, like any notice sent before the registration; if it stays uncertain, the
+  server eventually bumps the key and the notice goes to the new session.
 - **A side session under the notice session blocks every notice.** atc lets a token reach a session
-  only when it and all its sub-sessions run on machines the grant covers, so it answers
+  only when it and all its sub-sessions run on machines the grant covers, so atc answers
   `no_such_session` while a sub-session runs elsewhere. boxxy can't stop the owner's agent from
   starting such a sub-session, so the owner's agent must start each side session as a top-level
   session.

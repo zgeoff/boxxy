@@ -3,13 +3,13 @@
 boxxy ships as `@boxxy/*` packages on npm, every one at the same version, plus a compiled CLI on
 GitHub. A deployment in another repo never builds from this repo: it installs the packages at one
 version, downloads the CLI from the CLI's GitHub release, and builds its images from those. CI
-publishes each version from a release tag with npm provenance, so a maintainer's only step in a
-normal release is merging the release pull request. Read this doc before you change the release
+publishes each version from a release tag with npm provenance. In a normal release, a maintainer's
+only step is to merge the release pull request. Read this doc before you change the release
 workflows or a package's manifest, or when you upgrade a deployment.
 
-The [releasing runbook](../../runbooks/releasing.md) gives the maintainer's steps.
-[Tech stack](./tech-stack.md) covers the repo's tooling. The [overview](../overview.md#terms)
-defines the shared terms.
+For the maintainer's steps, read the [releasing runbook](../../runbooks/releasing.md). For the
+repo's tooling, read [Tech stack](./tech-stack.md), and for the shared terms, the
+[overview](../overview.md#terms).
 
 ## How a release publishes
 
@@ -134,7 +134,7 @@ them, including packages with no change. Each package still gets its own tag,
 
 The config's plugins run `node-workspace` first, then `linked-versions`, the order release-please
 needs to link versions in a workspace. `linked-versions` must merge the packages' changes into the
-one release pull request, because it needs every package at once to give them one version, so
+one release pull request, because it needs every package at once to give them one version. So
 `node-workspace` runs with `"merge": false` and only updates the `@boxxy/*` dependency ranges.
 
 To add a package, add its entry under `packages` and its component name to the `linked-versions`
@@ -152,8 +152,8 @@ deadline and commands):
 
 1. A maintainer with two-factor authentication on the `@boxxy` npm org publishes version `0.0.1`
    from their own machine. The placeholder holds only a `package.json` with the name, license and
-   `repository`, a README marking it as a placeholder, and the license file, built outside the
-   repo's package folders so it can reserve a name before the code is on `main`.
+   `repository`, a README marking it as a placeholder, and the license file. The maintainer builds
+   it outside the repo's package folders, so it can reserve a name before the code is on `main`.
 2. When the release pull request that releases the package is ready to merge, the maintainer adds a
    trusted publisher that lists this repo and `main.yml`.
 3. The release publishes the first real version from CI, with provenance. It is above `0.0.1`,
@@ -162,11 +162,11 @@ deadline and commands):
 ## What a deployment pins
 
 A deployment pins every `@boxxy/*` line of its `package.json` to one exact version, and its lockfile
-to match, and its agent image pins that version's CLI assets by checksum. To upgrade, it reads the
-`latest` version of `@boxxy/server` on npm and moves every `@boxxy/*` line there in one change; one
-read is enough, because every package of a release shares the version.
+to match, and its agent image pins that version's CLI assets by checksum. To upgrade the deployment,
+read the `latest` version of `@boxxy/server` on npm and move every `@boxxy/*` line to it in one
+change. One read is enough, because every package of a release shares the version.
 
 The deployment also pins `@pepys/kit` inside the peer range of `@boxxy/pepys`. boxxy moves to a new
 pepys minor version in one release, which moves the catalog's `@pepys/*` lines, the peer ranges of
 `@boxxy/pepys` and its generated glue together; `bun run glue` in `packages/pepys` rewrites the
-glue. The deployment then moves its `@boxxy/*` and `@pepys/kit` pins together, to that release.
+glue. Then move the deployment's `@boxxy/*` and `@pepys/kit` pins together, to that release.

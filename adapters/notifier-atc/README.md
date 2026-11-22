@@ -11,8 +11,8 @@
   </p>
 </div>
 
-boxxy's `Notifier` port on atc: a hold notice arrives as one atc message in one session, which the
-caller names by its atc gateway ID on each notice.
+`@boxxy/notifier-atc` implements boxxy's `Notifier` port on atc. It sends each hold notice as one
+atc message to one session, which the caller names by its atc gateway ID on each notice.
 
 ## Install
 
@@ -26,19 +26,19 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Features
 
-- `createAtcNotifier({ client, readSession })` returns a `Notifier`. The message names the item and
-  the reason, and says the owner next runs `boxxy item note` and `boxxy item retry`.
+- `createAtcNotifier({ client, readSession })` returns a `Notifier`. Each message holds the item,
+  the reason, and the two commands the owner runs next: `boxxy item note` and `boxxy item retry`.
 - The adapter calls `readSession` for the session's gateway ID on each notice, so a change of
   session takes effect on the next notice. With no session, it sends nothing and returns `refused`
   with the reason `no-notice-session`.
 - The client is one call, `sendMessage`. The app builds it from its atc connection.
 - The adapter sends the key it gets from the notice as the idempotency key, and keeps no state.
-- A send that atc refuses with a code that ran nothing returns `refused`. Apart from that and the
-  missing session, every failure returns `uncertain`. The adapter never throws.
-  [Notice delivery](../../docs/architecture/work/notices.md) lists the codes and says what the
-  server does with each outcome.
+- When atc refuses a send with a code that means nothing ran, the adapter returns `refused`. On
+  every other failure, apart from the missing session, it returns `uncertain`. The adapter never
+  throws. For the codes, and what the server does with each outcome, see
+  [Notice delivery](../../docs/architecture/work/notices.md).
 
 ## Documentation
 
-[Notices in v1](../../docs/architecture/work/pipeline.md#when-an-item-needs-the-owner) describes
-when a notice is written and sent.
+For when a notice is written and sent, see
+[Notices in v1](../../docs/architecture/work/pipeline.md#when-an-item-needs-the-owner).

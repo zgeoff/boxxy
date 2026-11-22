@@ -3,9 +3,9 @@
 boxxy has seven parts: the boxxy store, the planning core with `decide()`, the runners, the
 workers, pepys, the rules repo and the telemetry path. The boxxy store is the only place that writes
 claims. pepys holds every fact and builds every read table. The planning core is pure: it reads a
-frame of facts and returns picks, and it owns no I/O. This doc gives each part's job, how the parts
-reach each other, and the principles every other design doc follows. Read it before you build a
-part, then read the part's owning doc in the table below.
+frame of facts and returns picks, and it owns no I/O. Read this doc for each part's job, how the
+parts reach each other and the principles that every other design doc follows. Read it before you
+build a part, then read the part's owning doc in the table below.
 
 ## Parts
 
@@ -34,7 +34,7 @@ part, then read the part's owning doc in the table below.
 | planning core | `buildFrame()` runs the planning plug-ins over the facts; `decide()` reads the frame and the pools and returns picks. | [planning](./planning.md) |
 | runner | Calls `claimNext`, resolves the recipe, starts the attempt through a worker kind, and settles its outcome. | [dispatch](./dispatch.md) |
 | workers | A worker kind starts an attempt and reconciles it after a crash. atc runs agent sessions; a job runs a merge with no session ([review, verify and merge](./review-and-merge.md#job-attempts)); `script` runs deterministic steps. | [core model](./core-model.md#workers) |
-| pepys | The fact log and every read table. A new view is a new query or consumer in pepys, not a table in the boxxy store. | [measurement](./measurement.md) |
+| pepys | The fact log and every read table. Add a new view as a query or consumer in pepys, not as a table in the boxxy store. | [measurement](./measurement.md) |
 | rules repo | Policy in git. The rules version hashes the commit, the files the loader read and the concept pins. | [rules](./rules.md#the-rules-version) |
 | telemetry | Agent CLIs send OpenTelemetry logs and metrics. Each request record joins to its attempt. | [measurement](./measurement.md) |
 
@@ -78,8 +78,8 @@ settings. boxxy joins each request record to its attempt by the agent session id
 `session.id` matches an id that atc reports and boxxy records with the attempt. An attempt can
 collect more than one agent session, such as when atc respawns its session. boxxy spawns each
 session, so the attempt row gives the item, phase, recipe and capacity source. Prompt and
-response text stay redacted, which is the OTel default. [Measurement](./measurement.md) owns the
-capture details.
+response text stay redacted, which is the OTel default. The capture details are in
+[measurement](./measurement.md).
 
 ## Principles
 
@@ -87,7 +87,7 @@ capture details.
    specific need goes into data, a rules line or a plug-in, never a special case in core code
    ([decision 0005](../../decisions/0005-the-core-stays-generic.md)). The measure (proposed) is core
    churn: the share of new needs that changed core code, plus boxxy's own upkeep in items and
-   attempts per week. When a rule needs conditionals or loops, it becomes a typed plug-in, so the
+   attempts per week. When a rule needs conditionals or loops, write it as a typed plug-in, so the
    rules files never grow into a programming language.
 2. **No permanent agent role sessions.** Triage, design, build, review, release and QA are phases of
    an item. Each phase runs as one attempt and then stops
@@ -111,7 +111,7 @@ capture details.
 
 A fixed rule can be wrong. These guards stop a wrong rule from blocking work:
 
-- No matching rule never leaves work stuck. It escalates to a judgement phase, then to the owner.
+- When no rule matches, the work escalates to a judgement phase, then to the owner.
 - `core.task` is a free-form item kind with a minimal pipeline, for work that fits no other kind.
 - The owner can start any agent on any item outside its pipeline. That manual attempt is still
   recorded and measured.
@@ -133,5 +133,5 @@ A fixed rule can be wrong. These guards stop a wrong rule from blocking work:
   rules run challengers in shadow; recipes run them in live buckets
   ([measurement](./measurement.md)).
 
-[Layout](../../architecture/repo/layout.md) maps these parts to packages, and pins each outside system to one adapter
-package.
+For the package that holds each part, and the one adapter package for each outside system, see
+[layout](../../architecture/repo/layout.md).

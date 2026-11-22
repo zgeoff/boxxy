@@ -35,7 +35,7 @@ The cloud repo's Pulumi program writes this section into the server's configurat
 
 ### The pod
 
-The server's StatefulSet gains one native sidecar: an init container with `restartPolicy: Always`. It is written in the cloud repo's Pulumi style, which `buildBoxxySpec` follows.
+The server's StatefulSet gains one native sidecar: an init container with `restartPolicy: Always`. Write it in the cloud repo's Pulumi style, as `buildBoxxySpec` does.
 
 ```ts
 // cloud repo, buildBoxxySpec: the sidecar, the pod's one entry in `initContainers`
@@ -157,7 +157,7 @@ The repository's `.gitignore` lists `node_modules/`, so the install leaves `git 
 
 ### The ruleset
 
-One ruleset on the default branch, with no bypass actor:
+Create one ruleset on the default branch, with no bypass actor:
 
 ```json
 {
@@ -197,11 +197,11 @@ From slice 2, `rules.yaml` opens with this comment. Its sentence on how fast a m
 - The sidecar writes below `rules/` on the volume through the pod's `fsGroup`, 65532, which Kubernetes adds to the groups of every container in the pod.
 - The sync root lives on the server's `data` volume under `rules/`, so a pod restart while GitHub is unreachable starts on the last synced commit. The backup job copies only `*.db`, so the checkout stays out of the backups.
 - The server container starts only after the sidecar's startup probe finds the `current` link. On a fresh volume with GitHub unreachable, the pod waits 5 minutes, then the kubelet restarts the sidecar.
-- A merged commit reaches `runner.status` within 30 s of fetch period plus one 5 s tick, plus the fetch time.
+- A merged commit reaches `runner.status` within one 30 s fetch period plus one 5 s tick, plus the fetch time.
 - When a fetch fails or GitHub is unreachable, git-sync logs `error syncing repo, will retry`, keeps the `current` link, and retries every 30 s. The server goes on loading the same commit, so `runner.status` shows the old `rules.commit` and an unchanged `lastRejected`.
 - When the server's read of the checkout fails, the server logs `the rules checkout could not be read; the rules stay`, and `runner.status` changes nothing. A read that resolves the link while git-sync swaps it fails this way once, and the next tick reads the new commit.
 - When the loader refuses a commit, the rules in force stay, and `runner.status` shows `lastRejected: { commit, rejections }` with the refused commit. The next commit that loads clears it.
-- A read that throws inside the tick, such as when `git cat-file` finds an object that git-sync pruned, is logged as `the runner tick failed`, and the next tick tries again.
+- When a read throws inside the tick, such as when `git cat-file` finds an object that git-sync pruned, the server logs `the runner tick failed`, and the next tick tries again.
 - Prometheus scrapes the sidecar's `/metrics` on port 2020. An alert fires when `git_sync_count_total` with `status="success"` or `status="noop"` has not grown for 15 minutes, and when the series is missing, as every rule in the cloud repo's [observability](https://github.com/zgeoff/cloud/blob/main/docs/architecture/workloads/observability.md) design does.
 - The rules check runs the checker, the workflow and the pin from the pull request's own tree. A pull request that edits `.github/` can make the check pass on a file the loader refuses. The server's loader is the backstop: it refuses that file, and the rules in force stay.
 - The ruleset makes every change to `main` a merged pull request that passed `rules-check`. It requires no approval and never checks that a review ran, so it does not enforce the review gate that [rules](./rules.md#policy-in-git) requires of a rules pull request.
@@ -279,5 +279,5 @@ From slice 2, `rules.yaml` opens with this comment. Its sentence on how fast a m
 - **Check:**
   1. Read `boxxy runner status`, and note `rules.version` and `rules.commit`.
   2. Merge a pull request that adds a comment line to one prompt. Expect within 2 minutes: a new `rules.commit` equal to the merge commit, a new `rules.version`, `lastRejected: null`, and no new image tag in the deploy's stack config.
-  3. The owner sets the ruleset's enforcement to `disabled`, merges a pull request that sets `maxAttempts: two`, and sets the enforcement back to `active`. Expect within 2 minutes: `rules.version` and `rules.commit` unchanged from step 2, and `lastRejected.commit` equal to the merge commit.
+  3. Ask the owner to set the ruleset's enforcement to `disabled`, merge a pull request that sets `maxAttempts: two`, and set the enforcement back to `active`. Expect within 2 minutes: `rules.version` and `rules.commit` unchanged from step 2, and `lastRejected.commit` equal to the merge commit.
   4. Revert the commit in a pull request. Expect `lastRejected: null` and a new `rules.version`.

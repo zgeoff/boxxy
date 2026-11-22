@@ -37,10 +37,10 @@ journeys again.
 `bun verify publish` writes the report into the pull request body: a table of each feature, whether
 the change touches it, and its verdict, plus a hidden data comment with one entry per verdict.
 wringer calls that entry a claim, which has nothing to do with boxxy's claim of work. Git ignores
-`.wringer/`, and the verify registry, `verify-registry.ts`, which defines the targets and features
-`bun verify` knows, sets an upload hook for the `local` target. `publish` uploads that target's
-evidence files to the file host that `CLOUD_FILES_URL` names, with the token in `CLOUD_FILES_TOKEN`,
-and links them from the pull request. The `prod` target keeps its evidence on the grader's machine.
+`.wringer/`. The verify registry, `verify-registry.ts`, defines the targets and features
+`bun verify` knows, and sets an upload hook for the `local` target. `publish` uploads that target's
+evidence files to the file host at `CLOUD_FILES_URL`, with the token in `CLOUD_FILES_TOKEN`, and
+links them from the pull request. The `prod` target keeps its evidence on the grader's machine.
 
 ## The harness
 
@@ -65,7 +65,7 @@ stand-in for the imp broker that routes each call to the right listener and adds
 `control`, for steps only the harness can take, such as moving the clock or running one tick;
 `skills`, the skills repo; and `mcp`, the public listener. The verify CLI, its registry, the path
 map and the harness live with the CLI's test helpers in `apps/cli/src/test-utils/verify/`, because
-they reuse those helpers and the test layout lets only a test or a test helper import them; the
+they reuse those helpers, and the test layout lets only a test or a test helper import them. The
 CLI's published package leaves them out.
 
 The harness keeps these rules:
@@ -113,7 +113,7 @@ code, never the adapters the fakes replace.
   while one item is deferred the runner can claim only the other.
 - `runner-pause`: the pause stops the claim, `status` reports it, and the resume restarts it.
 - `hold-notice`: a settle that holds the item stores a [notice](../work/notices.md), and the tick
-  sends it to the session `notices register` stored.
+  sends it to the session that `notices register` stored.
 - `hold-recovery`: `item retry --phase` lifts a hold, and the next attempt runs in that phase.
 - `owner-signoff`: an item whose pull request edits a path that a
   [sign-off rule](../work/pipeline.md#owner-sign-off-at-merge) matches holds at the sign-off hold,
@@ -145,11 +145,11 @@ single files would repeat that long list per feature and miss each new file.
   `report-cost`.
 
 The gate fails a pull request that changes a feature's paths with no verdict at the current
-fingerprint, or that changes a path no feature maps and no ignore glob matches, so every tracked
-path, a new package's included, is in a feature or ignored. wringer treats a path an ignore glob
-matches as unchanged, in the changed paths and in the fingerprint, even when a feature's glob also
-matches it. The ignore list has four groups, each with its reason in a comment in
-`feature-paths.ts`:
+fingerprint. It also fails one that changes a path no feature maps and no ignore glob matches, so
+map every tracked path, including a new package's, to a feature, or ignore it. wringer treats a path
+an ignore glob matches as unchanged, in the changed paths and in the fingerprint, even when a
+feature's glob also matches it. The ignore list has four groups, each with its reason in a comment
+in `feature-paths.ts`:
 
 1. Prose, tests and benches, which have no runtime effect.
 2. Build, lint and repo wiring that Bun never reads when it runs the source, such as `.claude/**`,
@@ -172,10 +172,10 @@ prompts are markdown the server sends to each session.
 `verify / gate`, in `.github/workflows/verify.yml`, runs when a pull request opens, reopens, gets a
 push or has its body edited, since the grader publishes after the push. It has its own workflow
 because the shared checks have no `edited` trigger, and a body edit there would rerun every static
-check. The job never starts boxxy or runs a journey. It runs two steps: `bun run verify:lint` fails
-when the registry, the map and the skill disagree, such as a glob that matches no file or a journey
-line that won't parse; then `bun run ci:verify-gate` runs the gate on the body against the base
-branch and prints one `::error::` per failing feature and per unmapped path.
+check. The job never starts boxxy or runs a journey. First, `bun run verify:lint` fails when the
+registry, the map and the skill disagree, such as a glob that matches no file or a journey line that
+won't parse; then `bun run ci:verify-gate` runs the gate on the body against the base branch and
+prints one `::error::` per failing feature and per unmapped path.
 
 - **It reports on every pull request,** with no `if:` or path filter, because the merge step waits
   for each required check, and one that never reports ends the merge attempt with the outcome
@@ -196,14 +196,14 @@ rules put it there; the
 that opens a pull request outside boxxy follows `AGENTS.md`.
 
 The grader closes out `verified` or `failed` when it graded the change, so the attempt succeeds
-either way and the item goes on to merge or back to build; `blocked` and `abandoned` mean it graded
+either way and the item goes on to merge or back to build. `blocked` and `abandoned` mean it graded
 nothing, so the attempt fails. A grader that ran in the builder's
 [kept session](../work/sessions.md#the-kept-session) leaves that session on the item after either
 graded outcome, so the next build wakes it. The grader never changes the code, so the merge reads
 the head the review passed. When a rework pushes a new head, the next grader reruns only the
 journeys of features the rework touched; the others keep their verdicts.
 
-A rules file that skips the verify step when `verify / gate` already passes
+A rules file that skips the verify step once `verify / gate` passes
 ([step gates and skips](../work/pipeline.md#step-gates-and-skips)) leaves every verdict to the
 verify phase, so its prompts split the work:
 
@@ -216,13 +216,13 @@ verify phase, so its prompts split the work:
 ## A prod target for live checks
 
 A [live step](../work/pipeline.md#the-live-phase-kind) checks an item's tagged acceptance lines
-against the deployed system, through the repo's own verify CLI. A repo gives its live agent:
+against the deployed system, through the repo's own verify CLI. Give the repo's live agent:
 
 - a prod target in its verify registry, with `access: 'read-only'` and `evidence: 'local'`, which
   the agent checks with `bun verify doctor --target prod` before any line;
-- a guard in each of its own QA scripts that writes to prod, outside the verify CLI, which confines
-  the write to a QA area and refuses outside it. A line that needs a write outside the guards closes
-  out `blocked`, with the write it needs;
+- a guard in each of the repo's QA scripts that writes to prod outside the verify CLI. The guard
+  confines each write to a QA area and refuses any other. When a line needs a write outside the
+  guards, the agent closes out `blocked` and names the write;
 - its prod credentials in its own vault, which only the broker profile of its scoped agent reads
   ([who holds a credential](../work/sessions.md#who-holds-a-credential)).
 
@@ -235,7 +235,7 @@ which reads the gate's check run at the pull request's head and the body's data 
   per entry;
 - `verified` with no features when the gate's check run succeeded and the body holds no report, as
   after a skipped verify step, which publishes none;
-- `incomplete` when the check run failed, or the body has a data comment that doesn't parse.
+- `incomplete` when the check run failed, or the body has a data comment that doesn't parse;
 - `not-covered` when the head has no gate check run that finished as passed or failed: none yet, one
   still running, or one cancelled or skipped.
 

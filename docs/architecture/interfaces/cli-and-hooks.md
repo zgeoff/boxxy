@@ -37,11 +37,16 @@ access table holds each command's usage line, so `boxxy --help` and `boxxy <grou
 them, and `boxxy --version` prints the CLI's version.
 
 A command prints the server's answer as JSON on stdout, including a `refused`, `rejected` or `fault`
-answer. A few print less: `attempt evidence` prints the evidence ID, or one line that says what to
-do in place of a `check` or `verdict` refusal, `attempt close-out` prints the ID of the fact it
-recorded and one stderr line per problem the parser found, `auth enroll` prints the one-time link,
-and `auth clients add` prints the client ID. A typed error prints `error: <code>: <message>` on
-stderr. A script branches on the exit code:
+answer. These commands print less:
+
+- `attempt evidence` prints the evidence ID, or, in place of a `check` or `verdict` refusal, one
+  line on what to do.
+- `attempt close-out` prints the ID of the fact it recorded, and one stderr line per problem the
+  parser found.
+- `auth enroll` prints the one-time link.
+- `auth clients add` prints the client ID.
+
+A typed error prints `error: <code>: <message>` on stderr. In a script, branch on the exit code:
 
 | Exit | When                                                                                                       |
 | ---- | ---------------------------------------------------------------------------------------------------------- |
@@ -55,20 +60,19 @@ The owner's item commands have a few rules the usage lines don't show:
 
 - **The body** comes from `--body <text>` or `--body-file <path>`, where `-` reads stdin. Giving
   both exits 2, and `item edit` with neither keeps the body.
-- **Held items:** `item file --held "<reason>"` files the item
-  [held](../work/pipeline.md#derived-item-state), and `item release <item>` releases it.
+- **To hold an item,** file it with `item file --held "<reason>"`
+  ([held](../work/pipeline.md#derived-item-state)), and release it with `item release <item>`.
   `item list --held` is the same as `--state held`, so it exits 2 beside another `--state`.
-- **The security mark:** `item file --security` sets it, `item edit --security` and `--no-security`
-  set and clear it, both together exit 2, and neither keeps it.
+- **The security mark:** `item file --security` sets it. On `item edit`, `--security` sets it and
+  `--no-security` clears it; giving both exits 2, and giving neither keeps it.
 - **Acceptance edits replace the whole list.** Each `item edit --acceptance` value is one criterion,
-  and together they replace the whole list, so a criterion missing from every value is dropped. A
-  value of `[c-3] new text` keeps criterion `c-3` and its evidence with new text, an unknown ID is
-  refused, and a value without an ID adds a criterion. Leading `#tag` words after the ID, such as
-  `[c-3] #prod new text`, tag the criterion. A tag the rules file's `criterionTags` doesn't list is
-  refused, and a value with no `#tag` word keeps the tags the criterion has.
-  `item file --acceptance` takes the same `#tag` words.
-- **The sign-off:** `item signoff <item> --head <head> --verdict approve|send-back` takes the
-  findings of a send-back from `--findings <text>` or `--findings-file <path>`, where `-` reads
+  and a criterion missing from every value is dropped. A value of `[c-3] new text` keeps criterion
+  `c-3` and its evidence with new text, an unknown ID is refused, and a value without an ID adds a
+  criterion. Leading `#tag` words after the ID, such as `[c-3] #prod new text`, tag the criterion. A
+  tag the rules file's `criterionTags` doesn't list is refused, and a value with no `#tag` word
+  keeps the tags the criterion has. `item file --acceptance` takes the same `#tag` words.
+- **The sign-off command,** `item signoff <item> --head <head> --verdict approve|send-back`, takes
+  the findings of a send-back from `--findings <text>` or `--findings-file <path>`, where `-` reads
   stdin. Giving both exits 2. `signoff list` prints the items that wait, with the head to pass.
 - **`item show`** prints the item with its body and one revision per edit, each with its time and
   the fields it set.
@@ -78,8 +82,8 @@ The `attempt` commands run inside a session and take no session argument, becaus
 the session from the [proven caller](./api-and-auth.md#the-proven-caller). `attempt evidence` and
 `attempt close-out` first call `attempt.current` for the attempt ID. `attempt evidence --kind check`
 and `--kind verdict` take a name in `--ref` and no `--observed`: the CLI exits 2 on one that has it.
-Each refusal of a `check` or `verdict` exits 1 and prints one line that says what to do, such as to
-wait for the check, and `retry` exits 2. `attempt close-out` exits 2 on `retry` and prints each
+Each refusal of a `check` or `verdict` exits 1 and prints one line on what to do, such as wait for
+the check, and `retry` exits 2. `attempt close-out` exits 2 on `retry` and prints each
 `stale-evidence` problem as a line, like any other problem. `attempt list-items` and
 `attempt show-item <item>` read other items of the session's own repo; `list-items` takes the flags
 of `item list` except `--repo` and `--held`. A session that runs `item list` or `item show` gets
@@ -87,8 +91,8 @@ of `item list` except `--repo` and `--held`. A session that runs `item list` or 
 
 Right after a session starts, the server may not have its attempt yet: the runner records the
 session's caller only once atc answers the spawn, and the agent can be quicker. An `attempt` command
-then exits 2 with a message asking the agent to try again, and never retries itself. The hooks wait
-for the attempt on their own.
+then exits 2 and tells the agent to try again; it never retries itself. The hooks wait for the
+attempt on their own.
 
 ## The session-start hook
 
@@ -155,14 +159,19 @@ made stays when a later step fails, and `git status` never shows an empty folder
 
 A skill counts as installed only when its folder in the workspace holds a `SKILL.md`. The copy
 replaces any earlier untracked copy, so a [kept session](../work/sessions.md#the-kept-session) that
-resumes under a new pin gets the new files. The hook reports a skill missing when its name or the
-pin is malformed, the fetch fails, the copy fails, the copied or committed folder has no `SKILL.md`,
-or the path is unsafe: `.agents` or `.agents/skills` is a file or a symbolic link, the hook can't
-make either folder, or `.agents/skills` resolves outside the workspace. It also reports a skill
-missing, and copies nothing, when git fails in the workspace's repository or the hook can't write
-`info/exclude`, or when either file is a symbolic link. A failed fetch makes every listed skill
-missing, because the hook can't tell a skill the repository lacks from one it couldn't read. The
-copy deletes the skill's folder first, and a link on the path would aim that delete outside the
+resumes under a new pin gets the new files. The hook reports a skill missing when:
+
+- its name or the pin is malformed;
+- the fetch fails, which makes every listed skill missing, because the hook can't tell a skill the
+  repository lacks from one it couldn't read;
+- the copy fails;
+- the copied or committed folder has no `SKILL.md`;
+- the path is unsafe: `.agents` or `.agents/skills` is a file or a symbolic link, the hook can't
+  make either folder, or `.agents/skills` resolves outside the workspace;
+- git fails in the workspace's repository, the hook can't write `info/exclude`, or `info/exclude` or
+  its lock file is a symbolic link. The hook then copies nothing.
+
+The copy deletes the skill's folder first, and a link on the path would aim that delete outside the
 workspace, so the hook checks the path just before each copy, after git has run, and touches nothing
 for a skill whose path fails.
 

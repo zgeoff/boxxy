@@ -11,9 +11,10 @@
   </p>
 </div>
 
-boxxy's phase kinds: triage, design, build, review, verify, merge and live. Each one gives the input
-of an attempt, checks the close-out sent at the end of it, and settles the attempt from that
-close-out. The merge phase kind runs on a job worker, and its drive decides each read of the job.
+The package holds boxxy's phase kinds: triage, design, build, review, verify, merge and live. Each
+one gives the input of an attempt, checks the close-out sent at the end of it, and settles the
+attempt from that close-out. The merge phase kind runs on a job worker, and its drive decides each
+read of the job.
 
 The package does no I/O: the caller passes in the item, its attempts, the attempt's evidence rows
 and what a close-out may name.
@@ -44,5 +45,5 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-The [close-outs design](../../docs/design/boxxy/close-outs.md#the-v1-phase-kinds) says what each
-phase kind checks and settles, and `@boxxy/model` holds the shapes.
+Read the [close-outs design](../../docs/design/boxxy/close-outs.md#the-v1-phase-kinds) for what each
+phase kind checks and settles. The shapes live in `@boxxy/model`.

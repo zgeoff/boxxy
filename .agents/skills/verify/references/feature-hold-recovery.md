@@ -4,9 +4,9 @@ Run this journey to check that the owner's retry lifts a hold, and that the next
 phase the owner chose. The owner runs `boxxy item retry <item> --phase <phase>`, and
 `action retry-item --phase` runs it on the current item.
 
-A `blocked` build makes the hold, and it links the pull request that the `passed` review after the
-retry needs. `action open-pull-request` opens the pull request first, and `--pull-request opened` on
-the build's `action run-session` links it.
+A build that closes out `blocked` makes the hold, and links the pull request that a `passed` review
+after the retry needs. `action open-pull-request` opens the pull request first, and
+`--pull-request opened` on the build's `action run-session` links it.
 
 ## Journey
 

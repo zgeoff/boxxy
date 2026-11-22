@@ -1,12 +1,12 @@
 # Working in boxxy
 
 boxxy decides which task a fleet of coding agents works on next, and measures what each task costs.
-Your job here is one change, from one task. Build what the task and its design doc specify, and
-keep the docs true: describe what you built in the architecture docs, and rewrite each sentence that
+Make one change, from one task. Build what the task and its design doc specify, and keep the
+docs true: describe what you built in the architecture docs, and rewrite each sentence that
 your change makes false. Hand back an open pull request with green CI: watch its checks after each
 push, and fix each failure. Don't merge it: the repo owner merges every pull request.
 
-The mistakes that cost most here:
+These mistakes cost the most here:
 
 - code in a package that the [layout](docs/architecture/repo/layout.md) doesn't allow;
 - a behaviour change with no change to the doc that describes the behaviour;
@@ -17,7 +17,7 @@ The mistakes that cost most here:
 - [Before you start](#before-you-start): read the architecture docs your change touches and the
   design doc for your task, and load the skills your work needs.
 - [Layout](#layout): follow the layout doc. Code under `modules/` and `libs/` does no I/O.
-- [Docs and decisions](#docs-and-decisions): a doc changes in the same PR as the code.
+- [Docs and decisions](#docs-and-decisions): change a doc in the same PR as the code.
 - [Verify before you hand off](#verify-before-you-hand-off): check each feature that
   `bun verify report` marks changed, with the `verify` skill, and publish the verify report to the
   pull request.
@@ -34,8 +34,8 @@ The mistakes that cost most here:
 - When your task builds a design, read the design doc it names, and each doc that doc links. When
   the task names none, find the doc by its subject in the
   [design index](docs/design/boxxy/README.md). When the index has none, build from the task alone,
-  and say so in the PR description. The [core model](docs/design/boxxy/core-model.md) defines the
-  terms of the designs.
+  and say so in the PR description. Look up each design term in the
+  [core model](docs/design/boxxy/core-model.md).
 - When the task names a pull request or an issue it depends on, check with `gh` that the pull
   request has merged, or that the issue is closed as completed. When it isn't, stop: open no pull
   request, and name that work in your reply.
@@ -53,7 +53,7 @@ The mistakes that cost most here:
 - A sync job copies the shared skills in `.agents/skills/` from
   [zgeoff/skills](https://github.com/zgeoff/skills) and overwrites local changes. Never edit them
   here. When a skill is wrong, say so in your PR description.
-- The repo owns `verify`, `project-testing` and `project-ci-design`, and you may edit them. The
+- You may edit `verify`, `project-testing` and `project-ci-design`: the repo owns them. The
   `project-` skills hold this repo's commands and the shared rules they replace.
 - After you change the `verify` skill, a feature file or its registry, run `bun verify lint`. When
   it fails with check `template`, or when the `@wringer/gunshi` version in the root catalog changes,
@@ -61,8 +61,8 @@ The mistakes that cost most here:
 
 ## Layout
 
-[The layout doc](docs/architecture/repo/layout.md) sets the rules for packages, folders and imports.
-Read it before you add a package, a file or an import. The workspace has five kinds of package:
+Follow [the layout doc](docs/architecture/repo/layout.md) for packages, folders and imports, and
+read it before you add a package, a file or an import. The workspace has these kinds of package:
 
 - `apps/`: the CLI and the server. They build the adapters and pass them in.
 - `modules/`: the domain logic. A module reads no files, starts no processes, makes no network
@@ -73,7 +73,7 @@ Read it before you add a package, a file or an import. The workspace has five ki
 - `packages/`: deployed packages, which another repo's deployment installs, such as `@boxxy/pepys`.
   A deployed package imports libs only, and only an app imports a deployed package.
 
-Three checks enforce the layout in CI:
+These checks enforce the layout in CI:
 
 - `turbo boundaries` fails on an import that the package's `turbo.json` tag doesn't allow.
 - The `zgeoff/import-zones` lint rule lets only the packages that the layout doc names import each
@@ -92,9 +92,9 @@ the checks keep the domain logic free of I/O, and
 - **Change a doc in the same PR as the code that changes what it says.** When your change makes a
   sentence in an architecture doc or a design doc false, rewrite that sentence in that PR.
 - `docs/architecture/` describes the built system, in the present tense. When you build part of a
-  design, describe what you built in the architecture doc that owns that part of the system. The
-  [overview](docs/architecture/overview.md) links each one. Replace the built section of the design
-  doc with a link to that architecture doc, so each fact keeps one owner.
+  design, describe what you built in the architecture doc that owns that part of the system. Find
+  that doc through the [overview](docs/architecture/overview.md). Replace the built section of the
+  design doc with a link to that architecture doc, so each fact keeps one owner.
 - `docs/design/` holds a design until its work is built. A design is built when no section of it
   describes code that the repo lacks. In the PR that builds its last unbuilt part:
   1. Move each fact that still holds into the architecture doc that owns the fact's part of the
@@ -114,15 +114,16 @@ the checks keep the domain logic free of I/O, and
 `bun verify` starts boxxy locally and drives each feature, such as filing an item, through its
 journey: the commands a user would run. When a feature's journey passes, `bun verify done` records
 a verdict for it. CI fails a pull request that changes a feature with no verdict in its
-description. [Verify journeys](docs/architecture/repo/verify-journeys.md) owns what each journey
-proves.
+description. Read [Verify journeys](docs/architecture/repo/verify-journeys.md) for what each
+journey proves.
 
 After your last code change:
 
 1. Load the `verify` skill, and follow its "Check a change" steps for each feature that
    `bun verify report` marks `changed: true`. Each step gives the output to expect.
-2. Push the branch and open the pull request before you publish. The `verify` skill gives the command. It writes the
-   report into the open pull request's description, and fails when none is open.
+2. Push the branch and open the pull request, then publish with the command in the `verify` skill.
+   The command writes the report into the open pull request's description, and fails when none is
+   open.
 
 An edit to a feature's files after `done` makes its verdict stale: run its journey and `done` again,
 then `publish`. When a journey fails, fix the code. Change the journey only when you mean to change
@@ -130,14 +131,14 @@ what the feature does.
 
 ## Packages
 
-- Pin every external version once, exactly, in the root `workspaces.catalog`. A package writes
+- Pin every external version once, exactly, in the root `workspaces.catalog`. In a package, write
   `"catalog:"` for an external dependency and `"workspace:*"` for another `@boxxy/*` package.
 - Install with the Bun version in `packageManager`. Another version rewrites unrelated lines of
   `bun.lock`.
 - When you add a first-party package, such as one from `@zgeoff/`, `@impz/` or `@pepys/`, add its
   full name to `minimumReleaseAgeExcludes` in `bunfig.toml`. Renovate bumps these packages as soon
-  as they publish, and without the entry `bun install` refuses the bump. A scope pattern such as
-  `@zgeoff/*` lets nothing through.
+  as they publish, and without the entry `bun install` refuses the bump. Write the full name: a
+  scope pattern such as `@zgeoff/*` lets nothing through.
 - Never ignore an audit finding to get past CI's dependency audit.
 
 ## Checks
@@ -148,8 +149,9 @@ what the feature does.
   `bench/`, the CLI's tests against the real server among them.
 - `bun run check:docs` runs the docs checks. `bun run bench` runs the benchmarks through
   `rig bench`. CI does not run the benchmarks.
-- `bun run lint:full` adds the type-aware pass and the type check. oxlint runs both through `tsrs-lint`, which `tsrs` ships, in fast mode (`TSRS_FAST=1`). It runs in CI only, so never run
-  it locally.
+- `bun run lint:full` adds the type-aware pass and the type check. oxlint runs both through
+  `tsrs-lint`, which `tsrs` ships, in fast mode (`TSRS_FAST=1`). `bun run lint:full` runs in CI
+  only, so never run it locally.
 - lefthook runs the light checks before a commit and a push: lint on the files your branch changes,
   the format check, the type check, the tests beside the changed files, and `turbo boundaries`. To
   run the pre-push jobs before you push:
@@ -163,12 +165,13 @@ what the feature does.
 
 ## Commits and pull requests
 
-- Every change reaches `main` through a pull request from its own branch. Open it with the repo's
+- Bring each change to `main` through a pull request from its own branch. Open it with the repo's
   pull request template.
-- Commit messages and PR titles follow [Conventional Commits](https://www.conventionalcommits.org/).
-  The subject starts in lowercase, uses the imperative ("add X", never "added X"), and keeps the
-  whole first line to 72 characters or fewer. CI checks the PR title against these rules, because
-  a squash merge makes it the commit subject.
+- Write each commit message and PR title as a
+  [Conventional Commit](https://www.conventionalcommits.org/). Start the subject in lowercase, use
+  the imperative ("add X", never "added X"), and keep the whole first line to 72 characters or
+  fewer. CI checks the PR title against these rules, because a squash merge makes it the commit
+  subject.
 - Add no attribution lines: no co-author trailers and no generator notes.
 
 ## Public repo

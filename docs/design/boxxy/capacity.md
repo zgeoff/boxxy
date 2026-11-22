@@ -1,6 +1,6 @@
 # Capacity
 
-This design lets boxxy run attempts on more than one kind of model capacity: subscription accounts
+With this design, boxxy runs attempts on more than one kind of model capacity: subscription accounts
 with usage windows, and pay-per-token providers that bill money. It covers how boxxy reads each
 source, picks one per attempt, slows down before a source runs out, and compares sources on one
 unit. The whole design is proposed. It ships after the built system the
@@ -53,14 +53,14 @@ agent session id, so each request maps to its source (see
 
 The pacing gate is a pool gate: a plug-in that holds a whole pool, never a single item (see
 [planning](./planning.md#concepts)). It holds lower-priority pools off the frontier when a source's
-burn forecast runs out before the source's next reset. Its parameters in the rules name the pools it
-protects.
+burn forecast shows the source running out before its next reset. Set the pools it protects in its
+parameters in the rules.
 
 - **The forecast is per source.** It takes the queued work, times each phase's measured model mix,
   and compares the demand with what is left on each source.
 - **A reserve stays free for the owner's own sessions.** The gate holds dispatch before the source
   reaches the reserve, so the owner never finds a source spent by the fleet.
-- **Expedite lifts it for one item.** Expedite is the gate's waiver, so an owner pull runs even
+- **Expedite lifts the gate for one item.** Expedite is the gate's waiver, so an owner pull runs even
   while the gate holds its pool.
 - **A failed gate holds.** If the pacing plug-in throws, the gate holds the pool with the fault as
   its reason, as every gate does.
@@ -76,12 +76,13 @@ attempt need different caps.
 
 boxxy compares sources on money per landed change:
 
-- **A subscription:** its fee for the period, spread over the changes it landed in that period.
-- **A pay-per-token provider:** the cost the provider billed for the attempts on the change. boxxy
-  takes this cost from the provider, never from the agent's own cost estimate.
+- For a subscription, boxxy spreads its fee for the period over the changes it landed in that
+  period.
+- For a pay-per-token provider, boxxy uses the cost the provider billed for the attempts on the
+  change, never the agent's own cost estimate.
 
-A cheaper change that gets reverted costs more in the end, so these quality guards ride with the
-unit once the verdict reports guards:
+A cheaper change that gets reverted costs more in the end, so once the verdict reports guards, boxxy
+reports these quality guards beside the unit:
 
 - a revert within 14 days;
 - review findings per PR;
@@ -110,12 +111,12 @@ stop: 2027-01-15
 The arm split, effect and stop date above are examples. The loader sets the minimum sample from the
 champion's measured variance, and refuses the file if the stop date comes too soon.
 
-Slice 2 builds what this experiment needs: the router, the pay-per-token source adapter and the
-live-bucket experiment path.
+This experiment needs the router, the pay-per-token source adapter and the live-bucket experiment
+path. Build all three in slice 2.
 
 ## To verify
 
-Each of these needs a measurement before boxxy relies on it:
+Measure each of these before boxxy relies on it:
 
 1. **How the pay-per-token provider reports billed cost per request.** The money unit rests on it.
 2. **What Claude Code's OTel `cost_usd` shows for another vendor's model behind a proxy.** It is

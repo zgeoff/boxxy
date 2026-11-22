@@ -13,13 +13,13 @@
 
 boxxy's dispatch module, which claims the next task for an agent and settles each attempt.
 
-The package claims the next item, boxxy's word for a task, for a free seat, binds the agent's
+boxxy calls a task an item. The package claims the next item for a free seat, binds the agent's
 session to its attempt, and settles the attempt when the agent closes it out. It also sends the
 owner's notices through the notifier port. It does no I/O: the caller passes in the store, the other
-ports and the time. The [work pipeline](../../docs/architecture/work/pipeline.md) and
-[attempts](../../docs/architecture/work/attempts.md) docs describe the flow. Its `./test-utils/*`
-entry holds `createMemoryClaimStore`, the memory fake of the `ClaimStore` port, and
-`claimStoreContract`, the cases that every `ClaimStore` passes.
+ports and the time. For the flow, read the [work pipeline](../../docs/architecture/work/pipeline.md)
+and [attempts](../../docs/architecture/work/attempts.md) docs. The package's `./test-utils/*` entry
+holds `createMemoryClaimStore`, the memory fake of the `ClaimStore` port, and `claimStoreContract`,
+the cases that every `ClaimStore` must pass.
 
 ## Install
 

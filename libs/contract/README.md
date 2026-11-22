@@ -35,5 +35,5 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-[API and auth in v1](../../docs/architecture/interfaces/api-and-auth.md) describes the three doors,
-the procedures and the scope of the worker token.
+Read [API and auth in v1](../../docs/architecture/interfaces/api-and-auth.md) for the three
+listeners, the procedures and the scope of the worker token.

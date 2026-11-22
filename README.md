@@ -27,8 +27,8 @@ compare models, prompts and rules on the same kind of task.
 
 ## Workspace
 
-boxxy is one [Bun](https://bun.sh) workspace. The [layout](./docs/architecture/repo/layout.md) sets
-which folder holds what, and which package may import which.
+boxxy is one [Bun](https://bun.sh) workspace. See the [layout](./docs/architecture/repo/layout.md)
+for which folder holds what, and which package may import which.
 
 | Package                   | Folder                      | Holds                                                    |
 | ------------------------- | --------------------------- | -------------------------------------------------------- |
@@ -53,11 +53,11 @@ which folder holds what, and which package may import which.
 | `@boxxy/prompt-template`  | `libs/prompt-template`      | the launch prompt's load check and Liquid render         |
 | `@boxxy/pepys`            | `packages/pepys`            | the pepys plug-in: boxxy's fact sink and reader          |
 
-Every package publishes to npm. The [releasing runbook](./docs/runbooks/releasing.md) covers a
-release.
+Every package publishes to npm. To cut a release, follow the
+[releasing runbook](./docs/runbooks/releasing.md).
 
-Run the local checks. CI runs them too on every pull request, with the audit, the dead-code check,
-the type-aware lint and the docs checks:
+CI runs these checks on every pull request, along with the audit, the dead-code check, the
+type-aware lint and the docs checks. Run them locally:
 
 ```bash
 bun install
@@ -68,9 +68,9 @@ bun run typecheck && bun run lint && bun run test
 
 - `docs/architecture/`: how the built system works. Start at the
   [overview](./docs/architecture/overview.md).
-- `docs/design/boxxy/`: the designs for work not yet built. The
-  [index](./docs/design/boxxy/README.md) lists them, and the
-  [core model](./docs/design/boxxy/core-model.md) defines the terms.
+- `docs/design/boxxy/`: the designs for work not yet built. Start at the
+  [index](./docs/design/boxxy/README.md), and look up a term in the
+  [core model](./docs/design/boxxy/core-model.md).
 - `docs/decisions/`: the decision records, numbered in the order they were made.
 - `docs/runbooks/`: the maintainer steps the tooling doesn't do, such as a package's first publish.
 
