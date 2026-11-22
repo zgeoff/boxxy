@@ -47,7 +47,8 @@ Each field below sits under `data`.
 ## On prod
 
 When your task asks you to check a deploy, run these steps on `prod`, the deployed server. You
-attach to it with no `up`. It refuses every command that changes state.
+attach to it with no `up`. It refuses every command that changes its state; `done` writes only to
+your local run.
 
 - When a step fails, give its `data` or `error` in your reply. Skip step 5, and still run step 6.
 - Run this journey and `done` on `local` again before you publish with

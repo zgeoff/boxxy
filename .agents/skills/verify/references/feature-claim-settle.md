@@ -7,10 +7,10 @@ duplicate, with `boxxy attempt list-items` and `boxxy attempt show-item`.
 
 The journey then takes the item to a build that records evidence the server reads from GitHub. The
 build asks for a check that has no run and gets a refusal, then records the check `pr / checks` and
-the verdict `file-item`, and closes out `built` citing both. `action open-pull-request` opens the
-pull request, `action seed-checks` gives its head a passed check and a passed verify gate with a
-report that lists `file-item`, and `--pull-request opened` on the build's `action run-session` links
-it.
+the verdict `file-item`, and closes out `built` citing both, which `--close-out built-checked` asks
+for. `action open-pull-request` opens the pull request, `action seed-checks` gives its head a passed
+check and a passed verify gate with a report that lists `file-item`, and `--pull-request opened` on
+the build's `action run-session` links it.
 
 The owner reaches the feature with `boxxy item file` alone: boxxy does the rest on its runner ticks.
 `action file-closed-item` files a closed item, which exists only for the session to find. The
