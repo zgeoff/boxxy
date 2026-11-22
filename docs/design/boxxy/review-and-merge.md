@@ -1,8 +1,12 @@
 # Review, verify and merge
 
-After a build, boxxy reviews the pull request, has an agent grade the work on the real app, and merges the pull request through GitHub when every required check is green at its head. An agent comes back only for work that needs one: findings to answer, a conflict, a red check or a failed feature. The item holds for the owner in seven cases:
+After a build, boxxy reviews the pull request, has an agent grade the work on the real app, and merges the pull request through GitHub when every required check is green at its head. An agent comes back only for work that needs one: findings to answer, a conflict, a red check or a failed feature. Read this doc before you change the review, verify or merge step, and describe what you build in the architecture doc that owns it, as AGENTS.md says.
+
+The item holds for the owner in these cases:
 
 - a loop has used all its send-backs;
+- a step has used all its attempts, such as a merge whose forge stays down;
+- a sign-off rule matched and the owner has not approved the head;
 - a review or a verify failed twice in a row;
 - the verify agent asks a question;
 - the pull request closed with no merge;
@@ -51,8 +55,8 @@ The sketches in [`sketches/next/review-and-merge/`](./sketches/next/review-and-m
 - **Only the server posts the review.** The server checks the result against the pull request's head, posts it as the noslop App, and reads the open findings. The App's keys stay in the server's pod.
 - **The merge runs on a job worker.** The runner reads a merge attempt on each tick, as it reads every live attempt. A webhook never starts a merge.
 - **An agent never decides a merge.** `decideMerge` in `modules/train` is pure, and the runner calls it on each read of a merge attempt.
-- **boxxy reads required checks from its rules and the branch.** It takes the union of `merge.checks` in the rules file and the base branch's required status checks. The loader accepts an empty `merge.checks`, and a rules file may leave the key out. No check name is shared by every repo, so the rules list only the checks they add to what the branch requires. On a branch that requires no check, with an empty `merge.checks`, a merge waits only for the review that passed at the head.
-- **Each repo's own `main` ruleset says what a merge needs.** boxxy adds no gate of its own: a merge needs a review that passed at the head and every required check green there. boxxy's own repo requires `pr / checks` and `verify / gate` in its ruleset, so its merges wait for both. A repo with no verify setup merges on its other required checks.
+- **boxxy reads required checks from its rules and the branch.** It takes the union of `merge.checks` in the rules file and the base branch's required status checks. The loader accepts an empty `merge.checks`, and a rules file may leave the key out. No check name is shared by every repo, so the rules list only the checks they add to what the branch requires. On a branch that requires no check, with an empty `merge.checks`, a merge waits for no check.
+- **Each repo's own `main` ruleset says what a merge needs.** boxxy adds no gate of its own apart from the owner's sign-off: a merge needs a review that passed at the head, every required check green there, and an approval at that head when a sign-off rule matched. boxxy's own repo requires `pr / checks` and `verify / gate` in its ruleset, so its merges wait for both. A repo with no verify setup merges on its other required checks.
 - **The squash merge makes the pull request's title the commit subject.** The merge call sends the title as `commit_title` and leaves the message to GitHub's default.
 - **boxxy decides "reviewed at this head" from its own review close-out.** boxxy never reads noslop's GitHub check, because that check passes at a head that no review has read.
 - **The owner picks who grades, with a recipe field.** The verify phase always runs as its own agent attempt. A verify recipe with `session: builder` wakes the build's kept session, so the builder grades its own work. `session: fresh` starts a new session.
@@ -170,7 +174,7 @@ A merge attempt uses the attempt states `starting`, `running`, `closing`, `succe
 
 ## Facts and pepys
 
-The fact catalog of 30 types holds three for these steps: `boxxy.attempt.job_started`, `boxxy.merge.requested` and `boxxy.merge.answered` ([`02-types.ts`](./sketches/next/review-and-merge/02-types.ts), the last section). The item is the entity of each one. Everything else that pepys reads about these steps reaches it in `boxxy.attempt.closed_out`:
+The fact catalog of 30 types holds three for these steps: `boxxy.attempt.job_started`, `boxxy.merge.requested` and `boxxy.merge.answered` ([`02-types.ts`](./sketches/next/review-and-merge/02-types.ts), the last section). The item is the entity of each one. Apart from the facts that every attempt and pull request writes, such as `boxxy.attempt.timed_out` and `boxxy.pull_request.merged`, the rest that pepys reads about these steps reaches it in `boxxy.attempt.closed_out`:
 
 - each review's head, open counts, token cost and `unrelatedLines`;
 - each verify close-out, with its grader;

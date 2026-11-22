@@ -30,7 +30,8 @@ Each file has three parts, in this order:
 2. The types.
 3. One example plug-in of each plug-in kind the file defines.
 
-The files have no implementations.
+Apart from the call site, the example plug-ins and the `define…` helpers, the files implement no
+interface: each port, store and engine stays a type.
 
 A file groups its interfaces by topic. Its header names the package that holds each part.
 Every type that two or more packages share lives in `@boxxy/model`, whichever file declares it.
