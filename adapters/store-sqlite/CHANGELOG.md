@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.5](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.3.4...@boxxy/store-sqlite@0.3.5) (2026-11-22)
+
+### Miscellaneous Chores
+
+- **@boxxy/store-sqlite:** Synchronize boxxy versions
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.3.5
+    - @boxxy/model bumped to 0.3.5
+  - devDependencies
+    - @boxxy/dispatch bumped to 0.3.5
+  - peerDependencies
+    - @boxxy/dispatch bumped to 0.3.5
+
 ## [0.3.4](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.3.3...@boxxy/store-sqlite@0.3.4) (2026-11-22)
 
 ### Features

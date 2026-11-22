@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.5](https://github.com/zgeoff/boxxy/compare/@boxxy/prompt-template@0.3.4...@boxxy/prompt-template@0.3.5) (2026-11-22)
+
+### Miscellaneous Chores
+
+- **@boxxy/prompt-template:** Synchronize boxxy versions
+
 ## [0.3.4](https://github.com/zgeoff/boxxy/compare/@boxxy/prompt-template@0.3.3...@boxxy/prompt-template@0.3.4) (2026-11-22)
 
 ### Features
