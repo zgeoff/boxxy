@@ -28,9 +28,9 @@ export function toStoreColumns(table: TableName, fields: object): [string, Store
   });
 }
 
-// The table's unique key is the attempt, the kind and the ref, so a checked row holds its head in
-// the stored ref too: the same check at a new head is a new row. The row's `ref` stays the bare
-// name, which `parseStoreRow` restores from the head column.
+// A checked row is stored with `ref` as `<name>@<head>`, because the table's UNIQUE(attempt, kind,
+// ref) cannot change without a table rebuild, and the same check at a new head is a new row. Only
+// `parseStoreRow` strips the head again: raw SQL on the table sees the qualified ref.
 const headSeparator = '@';
 
 function qualifyEvidenceRef(fields: object): object {

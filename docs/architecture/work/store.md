@@ -51,6 +51,15 @@ A read returns the number as `i-<n>` in the row's `ref`, and a row with no numbe
 fact carries `ref`: it is the store's own numbering, and the item ID names the item in every fact.
 [Naming an item](../interfaces/api-and-auth.md#naming-an-item) covers how a caller uses it.
 
+## Evidence refs
+
+The `evidence` table's unique key is the attempt, the kind and the ref. A `check` or `verdict` row
+also holds the head the server read, and the same check at a new head is a new row. A rebuild of the
+table is not allowed, and an extra index cannot loosen the table's own constraint. So the store
+writes a checked row's `ref` as `<name>@<head>`, and `parseStoreRow` strips the head on every read.
+A reader of the SQLite file that bypasses the store, such as a SQL console, sees the qualified ref.
+Every other evidence kind stores its bare ref.
+
 ## Claims
 
 A claim that `applyChange` refuses leaves no decision row. `claimNext` writes the planning decision

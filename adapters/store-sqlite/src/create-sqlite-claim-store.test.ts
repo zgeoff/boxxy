@@ -3,8 +3,13 @@ import { Database } from 'bun:sqlite';
 import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { buildMockClaimChange } from '@boxxy/dispatch/test-utils/build-mock-claim-change';
+import { buildMockFileItemChange } from '@boxxy/dispatch/test-utils/build-mock-file-item-change';
 import { claimStoreContract } from '@boxxy/dispatch/test-utils/claim-store-contract';
 import { brandSchemas } from '@boxxy/model';
+import { buildMockEvidenceRow } from '@boxxy/model/test-utils/build-mock-evidence-row';
+import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
+import { buildMockV1ItemRow } from '@boxxy/model/test-utils/build-mock-v1-item-row';
 import { createSQLiteClaimStore } from './create-sqlite-claim-store.ts';
 import { createTestClaimStore } from './test-utils/create-test-claim-store.ts';
 
@@ -44,6 +49,16 @@ async function setupTest() {
         sqlite.close();
       };
     },
+    readStoredEvidenceRefs: () => {
+      const sqlite = new Database(path, { readonly: true });
+
+      onTestFinished(() => sqlite.close());
+
+      return sqlite
+        .query("SELECT ref FROM evidence WHERE kind = 'check'")
+        .values()
+        .map(([ref]) => String(ref));
+    },
     createForeignItemsTable: () => {
       const sqlite = new Database(path, { create: true });
 
@@ -58,6 +73,47 @@ test.each(claimStoreContract)('it keeps the ClaimStore contract: %s', async (_ti
   const outcome = await check(ctx.store);
 
   expect(outcome.received).toStrictEqual(outcome.expected);
+});
+
+test('it stores a checked row under a ref qualified by its head and reads it back bare', async () => {
+  const ctx = await setupTest();
+  const store = await ctx.createStore();
+
+  const item = buildMockV1ItemRow();
+  const attempt = buildMockV1AttemptRow({ item: item.id, state: 'starting' });
+  const head = brandSchemas.commitSha.parse('1'.repeat(40));
+
+  await store.exclusive(async (transaction) => {
+    await transaction.applyChange(buildMockFileItemChange(item));
+    await transaction.applyChange(buildMockClaimChange(attempt));
+
+    await transaction.applyChange({
+      at: brandSchemas.instant.parse(5000),
+      writes: [
+        {
+          op: 'insert',
+          table: 'evidence',
+          row: buildMockEvidenceRow({
+            attempt: attempt.id,
+            kind: 'check',
+            ref: 'pr / checks',
+            head,
+          }),
+        },
+      ],
+      facts: [],
+    });
+  });
+
+  const rows = await store.read((transaction) => transaction.listEvidence(attempt.id));
+
+  expect({
+    read: rows.map((row) => [row.ref, row.head]),
+    stored: ctx.readStoredEvidenceRefs(),
+  }).toStrictEqual({
+    read: [['pr / checks', head]],
+    stored: [`pr / checks@${head}`],
+  });
 });
 
 test('it closes the file when the migrations fail', async () => {
