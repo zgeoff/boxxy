@@ -24,3 +24,13 @@ test('it names each command the way the access table writes its usage', () => {
 
   expect(matches).not.toContain(false);
 });
+
+test('it names each option of a command in the usage that the access table writes', () => {
+  const missing = allCommands.flatMap((command) =>
+    Object.keys(command.options)
+      .filter((option) => !access[command.procedure].cli.includes(`--${option}`))
+      .map((option) => `${command.path.join(' ')} --${option}`),
+  );
+
+  expect(missing).toStrictEqual([]);
+});

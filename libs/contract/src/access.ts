@@ -50,7 +50,7 @@ export const access = {
   'item.get': buildOwnerRead('boxxy item show <item>'),
   'signoff.list': buildOwnerRead('boxxy signoff list'),
   'item.list': buildOwnerRead(
-    'boxxy item list [--state | --held] [--repo] [--phase] [--text] [--label]',
+    'boxxy item list [--state | --held] [--repo] [--phase] [--text] [--label] [--limit] [--after]',
   ),
   'runner.status': buildOwnerRead('boxxy status'),
   'report.cost': buildOwnerRead('boxxy cost <item>'),
@@ -84,7 +84,7 @@ export const access = {
     caller: 'session',
     actor: 'none',
     tool: 'session',
-    cli: 'boxxy attempt list-items [--state] [--phase] [--text] [--label]',
+    cli: 'boxxy attempt list-items [--state] [--phase] [--text] [--label] [--limit] [--after]',
     scope: 'none',
   },
   'attempt.getItem': {
