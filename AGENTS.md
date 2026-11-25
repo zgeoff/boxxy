@@ -18,9 +18,8 @@ These mistakes cost the most here:
   design doc for your task, and load the skills your work needs.
 - [Layout](#layout): follow the layout doc. Code under `modules/` and `libs/` does no I/O.
 - [Docs and decisions](#docs-and-decisions): change a doc in the same PR as the code.
-- [Verify before you hand off](#verify-before-you-hand-off): check each feature that
-  `bun verify report` marks changed, with the `verify` skill, and publish the verify report to the
-  pull request.
+- [Verify before you hand off](#verify-before-you-hand-off): check each feature your change touches
+  with the `verify` skill, and publish the verify report to the pull request.
 - [Packages](#packages): one exact version per dependency, in the root catalog.
 - [Checks](#checks): run the local checks before you push. The type-aware lint runs in CI only.
 - [Commits and pull requests](#commits-and-pull-requests): Conventional Commits, one PR per
@@ -34,8 +33,8 @@ These mistakes cost the most here:
 - When your task builds a design, read the design doc it names, and each doc that doc links. When
   the task names none, find the doc by its subject in the
   [design index](docs/design/boxxy/README.md). When the index has none, build from the task alone,
-  and say so in the PR description. Look up each design term in the
-  [core model](docs/design/boxxy/core-model.md).
+  and say so in the PR description. The [core model](docs/design/boxxy/core-model.md) defines the
+  terms of the designs.
 - When the task names a pull request or an issue it depends on, check with `gh` that the pull
   request has merged, or that the issue is closed as completed. When it isn't, stop: open no pull
   request, and name that work in your reply.

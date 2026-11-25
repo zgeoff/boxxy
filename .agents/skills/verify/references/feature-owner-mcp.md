@@ -46,8 +46,9 @@ Each field below sits under `data`.
 
 ## On prod
 
-To check a deploy, run these steps on `prod`, the deployed server. You attach to it with no `up`. It
-refuses every command that changes its state; `done` writes only to your local run.
+When your task asks you to check a deploy, run these steps on `prod`, the deployed server. You
+attach to it with no `up`. It refuses every command that changes its state; `done` writes only to
+your local run.
 
 - When a step fails, `doctor` included, give its `data` or `error` in your reply. Skip step 5, and
   still run step 6. You can't fix the deployed server from your worktree.

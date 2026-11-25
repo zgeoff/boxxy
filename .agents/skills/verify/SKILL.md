@@ -150,7 +150,7 @@ that command alone. A command with neither runs on the registry's first target, 
 | `prod`  | attach | the steps in [On prod](references/feature-owner-mcp.md#on-prod) | read-only  |
 
 Each `up` starts boxxy offline on an empty store, with an in-process pepys and fakes for the clock,
-the worker, GitHub and notices. Use `prod` only to smoke-check a deploy.
+the worker, GitHub and notices.
 
 <!-- /repo -->
 
