@@ -22,8 +22,8 @@ None.
 
 ## The check list
 
-- CI runs each root script named in the `BUN_CHECK_SCRIPTS` repo variable. Change the CI script list
-  in the `BUN_CHECK_SCRIPTS` repo variable, which `gh variable list` shows, and in the sentence of
+- CI runs each root script named in the `BUN_CHECK_SCRIPTS` repo variable. Change the list in that
+  variable, which `gh variable list` shows, and in the sentence of
   [the tech stack](../../../docs/architecture/repo/tech-stack.md) that gives its value. Ask the
   owner to set the variable.
 - Leave `bench` out of the list. The claim benchmark misses its own latency target, so `rig bench`
