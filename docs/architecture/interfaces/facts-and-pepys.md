@@ -7,10 +7,10 @@ item state all live in the boxxy store, so the runner works the same when pepys 
 not configured. Read this doc before you add a fact type, change how facts are sent, or change what
 a report measures.
 
-[Attempts](../work/attempts.md) covers the attempt lifecycle whose steps the facts record. The
-[review and merge design](../../design/boxxy/review-and-merge.md#facts-and-pepys) covers the review
-and merge facts. [Decision 0013](../../decisions/0013-one-write-path-per-fact.md) records why each
-fact has one write path. The [overview](../overview.md#terms) defines the shared terms.
+Read [Attempts](../work/attempts.md) for the attempt lifecycle whose steps the facts record, and the
+[review and merge design](../../design/boxxy/review-and-merge.md#facts-and-pepys) for the review and
+merge facts. [Decision 0013](../../decisions/0013-one-write-path-per-fact.md) records why each fact
+has one write path. The [overview](../overview.md#terms) defines the shared terms.
 
 ## How a fact reaches pepys
 
@@ -26,7 +26,7 @@ flowchart LR
 The store writes a change and its facts to the outbox in one transaction. The sender, a loop in the
 server, sends the unsent facts to pepys in store order. boxxy's plug-in inside pepys rebuilds each
 item's rows from its facts, and the two reports read those rows. The facts carry everything pepys
-needs, so pepys can rebuild every item from the facts alone.
+needs to rebuild every item.
 
 ## The outbox
 
@@ -40,7 +40,7 @@ in the outbox.
   the outbox's per-fact limit: the API bounds every string and list it reads, the close-out parser
   rejects an oversized close-out, and the owner listener refuses to file or edit an item whose fact
   would be too large, with `FACT_TOO_LARGE`. The sender parks any fact that still slips over the
-  limit, so it never reaches pepys.
+  limit, as it parks any fact that pepys refuses ([sending to pepys](#sending-to-pepys)).
 - **The outbox never drops a row.** The store reads its own version as the highest sequence number
   in the outbox, and `item.get` reads an item's revisions from its `edited` facts there, so deleting
   sent rows would break both.
@@ -49,8 +49,8 @@ in the outbox.
 
 The sender runs apart from the runner's tick, because a send can wait on pepys for a long time and
 the tick can't wait. It sends the longest run of unsent facts that fits one append to the pepys log,
-and keeps one batch in flight, so pepys receives facts in store order. A parked fact is the
-exception: `boxxy outbox retry` sends it after the facts stored since.
+and keeps one batch in flight, so pepys receives facts in store order. `boxxy outbox retry` sends a
+parked fact after the facts stored since, so only a parked fact arrives out of order.
 
 | pepys answers                                                | The sender                                                                    |
 | ------------------------------------------------------------ | ----------------------------------------------------------------------------- |
@@ -62,23 +62,23 @@ exception: `boxxy outbox retry` sends it after the facts stored since.
 
 A 400, 413 or 422 on a batch means one bad fact, and splitting the batch finds it. Any other
 refusal, a 401 included, means pepys itself is wrong, and no split fixes that. When the sender parks
-25 single facts in a row with nothing stored between them, it stops parking and goes `blocked` too,
-because that run points to a server and a deployed `@boxxy/pepys` on different versions, which more
-parking would hide.
+25 single facts in a row with nothing stored between them, it stops parking and goes `blocked` too.
+Such a run points to a server and a deployed `@boxxy/pepys` on different versions, and more parking
+would hide that.
 
 `boxxy outbox retry` clears every park and wakes the sender. `runner.status` shows the sender's
 state, the unsent and parked counts, the age of the oldest unsent fact and the last error; the
-sender sends no alert. A server with no pepys section in its config runs no sender, so the whole
-history goes out once the owner adds one.
+sender sends no alert. A server with no pepys section in its config runs no sender. Once the owner
+adds one, the sender sends the whole history.
 
 ## What every fact carries
 
 The stream `facts.boxxy.work` carries every fact type except the runner's two, which go to the
-stream `facts.boxxy.runner`. These rules hold for both streams:
+stream `facts.boxxy.runner`. Each rule below names the facts it covers:
 
 - **Every work fact is about an item.** Its pepys entity is `boxxy:item:<id>`; an attempt fact
-  carries the attempt in its payload, and a relation fact names its source item. pepys groups facts
-  by entity, so one read gives the plug-in every fact of one item, in any arrival order.
+  carries the attempt in its payload, and a relation fact carries its source item. pepys groups
+  facts by entity, so one read gives the plug-in every fact of one item, in any arrival order.
 - **The runner's facts name the runner.** `boxxy.runner.paused` and `boxxy.runner.resumed` have the
   entity `boxxy:runner:<runner id>`, because a pause is about no item. They are a second fact family
   of the same source, and no consumer reads them: pepys keeps them in its fact log. A pepys
@@ -103,19 +103,20 @@ stream `facts.boxxy.runner`. These rules hold for both streams:
   field, set by the `signoff.approve` and `signoff.send-back` levers, and holds the findings of a
   send-back in `reason`. A fact written before the field has no `head`, and the pepys boundary
   ignores a field it does not read. boxxy writes `head` only to a pepys whose boundary reads it, so
-  the pepys release that reads it ships first.
+  ship that pepys release first.
 - **An evidence fact has one of seven kinds.** `boxxy.evidence.recorded` has the kinds
   `pull_request`, `commit`, `test`, `ci-run`, `live-check`, `check` and `verdict`. A `check` or
   `verdict` fact must carry `head`, a commit SHA, and a fact of any other kind must not. The model's
-  `refineEvidenceHead` enforces that rule, and the wire schema applies it after it adds the store
-  version. An older fact, written before `check`, `verdict` and `head` existed, still parses: it has
-  one of the other five kinds and no `head`. The server writes a `check` or `verdict` fact only
-  after it read the result from GitHub at the pull request's head and the result passed
+  `refineEvidenceHead` enforces that rule, and the wire schema applies the rule after the sink adds
+  the store version. An older fact, written before `check`, `verdict` and `head` existed, still
+  parses: it has one of the other five kinds and no `head`. The server writes a `check` or `verdict`
+  fact only after it read the result from GitHub at the pull request's head and the result passed
   ([evidence](../work/attempts.md#evidence)). It writes `head` on those two kinds and leaves the key
-  out of every other fact. pepys accepts the new kinds first, as the rule for new fields above says.
-- **Some outcomes write no fact of their own.** A settle for `stalled`, `skill-missing` or a
-  capacity refusal shows only on the `settled` fact. A capacity refusal carries atc's code, cause
-  and message in the fact's `refusal` field; a fact written before the field reads as no refusal.
+  out of every other evidence fact. Ship the pepys release that accepts the new kinds first, as the
+  rule for new fields above says.
+- **Some outcomes have no fact of their own.** A settle for `stalled`, `skill-missing` or a capacity
+  refusal shows only on the `settled` fact. A capacity refusal carries atc's code, cause and message
+  in the fact's `refusal` field; a fact written before the field reads as no refusal.
 - **`boxxy.attempt.skipped` records a [skipped attempt](../work/attempts.md#skipped-attempts)**: the
   attempt, item, phase, round and reason. The fold passes it over, so a skipped attempt has no
   `boxxy_attempt` row and counts in no stage time.
@@ -161,9 +162,9 @@ sides build the same entity ID from the same value.
 - **`ran_in` joins on the session ID in telemetry.** atc stamps every agent it starts with the
   resource attribute `atc.session.id`, and the telemetry plug-in keys each row by that ID, or by the
   agent's own session ID when a record has none. The consumer therefore links an attempt to both
-  IDs. boxxy holds the long atc ID that a client on another machine gets, while telemetry carries
-  only the session's own ID, its last dot-separated part, so the consumer keeps that part. The join
-  assumes each agent copies `OTEL_RESOURCE_ATTRIBUTES` onto every record it exports.
+  IDs. boxxy holds the long atc ID that a client on another machine gets. Telemetry carries only the
+  session's own ID, the last dot-separated part of the atc ID, so the consumer keeps that part. The
+  join assumes each agent copies `OTEL_RESOURCE_ATTRIBUTES` onto every record it exports.
 
 The pepys deployment hands the plug-in the GitHub and telemetry tables the reports read, and the
 GitHub plug-in's delivery data: when a pull request merged, was released and was deployed. The
@@ -180,8 +181,8 @@ a product that reports cost per turn.
 
 - **An item lands when a pull request it produced merges.** The landing time is the earliest such
   merge. An item that hasn't landed returns its cost so far.
-- **Every attempt counts**, whatever its outcome, including one claimed after the merge. An attempt
-  that failed with `no-capacity` ran no session, so it gets no line.
+- **Every attempt that ran a session counts**, whatever its outcome, including one claimed after the
+  merge. An attempt that failed with `no-capacity` ran no session, so it gets no line.
 - **Each telemetry row counts once.** Its session and proven origin must match the attempt's session
   and caller. When one session carried several attempts in turn, as a
   [kept session](../work/sessions.md#the-kept-session) does, each attempt owns the stretch from its
@@ -206,7 +207,8 @@ review, and the time the item's attempts slept. A stage that hasn't happened is 
   settled `unsettleable` starts no merge stage, because boxxy can't tell whether it passed. Release
   starts at the merge, and deploy at the release. With two pull requests, each stage takes the
   earliest time.
-- **The rework count is the number of reviews that asked for changes.** Don't derive it from the
+- **The rework count is the number of reviews that asked for changes.** It is a different measure
+  from the rework flag on a cost line, which follows the round. Don't derive the count from the
   item's highest round, which also rises on other backward edges and on retries.
 - **The unrelated line count** sums each review's count of changed lines outside the files of the
   earlier review's findings
@@ -217,8 +219,8 @@ review, and the time the item's attempts slept. A stage that hasn't happened is 
   against a review.
 - **A `no-capacity` failure counts nowhere; a `usage-limit` one counts.**
 
-The query matches three outcome names: `built`, `passed` and `changes-requested`. Rename one in a
-phase kind and you must change the query too.
+The query matches three outcome names: `built`, `passed` and `changes-requested`. When you rename
+one in a phase kind, change the query too.
 
 ## What boxxy reads back
 

@@ -1,24 +1,24 @@
 # boxxy interface sketches
 
 Build each boxxy interface to the shape in these TypeScript files: each port, registry, plug-in kind
-and command. The design docs one folder up describe what each interface does, and the
-[core model](../core-model.md) defines the terms these files use.
+and command. For what each interface does, read the design docs one folder up. For the terms these
+files use, read the [core model](../core-model.md).
 
 ## Shape and behaviour
 
-- A sketch is right about a shape: the names, fields and types.
-- A design doc is right about behaviour: what happens, in what order, and when it fails.
+- Take each shape from the sketch: the names, fields and types.
+- Take each behaviour from the design doc: what happens, in what order, and when it fails.
 - When a doc's behaviour needs a shape the sketch lacks, change the sketch in the same pull request
   as your code, and say why in the pull request description.
 
 ## Slices
 
-The team builds boxxy in slices. A slice is one working version of boxxy, and the [architecture docs](../../../architecture/overview.md) describe the built ones.
+The team builds boxxy in slices. A slice is one working version of boxxy. For the slices built so far, read the [architecture docs](../../../architecture/overview.md).
 
-- A comment above each interface names the slice in which it gets built, and the doc section that
-  describes its behaviour.
-- An interface for slice 1 has only the fields slice 1 uses. Each field that a later slice adds is
-  in a type with the same name plus `Later`, such as `ConceptLater`. That type extends the slice 1
+- A comment above each interface holds the slice that builds it, and the doc section on its
+  behaviour.
+- Give a slice 1 interface only the fields slice 1 uses. Put each field that a later slice adds in
+  a type with the same name plus `Later`, such as `ConceptLater`. That type extends the slice 1
   type, so it has every slice 1 field too.
 
 ## Inside a file
@@ -30,9 +30,10 @@ Each file has three parts, in this order:
 2. The types.
 3. One example plug-in of each plug-in kind the file defines.
 
-The files have no implementations.
+Implement nothing in these files except the call site, the example plug-ins and the `define…`
+helpers. Keep each port, store and engine a type.
 
-A file groups its interfaces by topic. Its header names the package that holds each part.
+A file groups its interfaces by topic. Look in its header for the package that holds, or will hold, each topic's code.
 Every type that two or more packages share lives in `@boxxy/model`, whichever file declares it.
 
 A plug-in kind that takes parameters is generic over them, such as `Gate<P>`. Its `params` field is

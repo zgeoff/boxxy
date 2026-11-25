@@ -36,4 +36,4 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-[Rules](../../docs/architecture/overview.md#rules) says which hashes boxxy records.
+Read [Rules](../../docs/architecture/overview.md#rules) for the hashes boxxy records.

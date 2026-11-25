@@ -1,14 +1,15 @@
 # Core model
 
 boxxy's core has five nouns: items, links, phases, attempts and asks. An item is a typed piece of
-work. Its kind declares a pipeline of phases as data. Each phase runs as one attempt through a
+work. Its kind declares a pipeline of phases as data. Each run of a phase is one attempt through a
 worker, and the attempt ends with a typed close-out. Nobody sets an item's state: boxxy derives it
-from links, attempts, asks and outside facts. Every entry point reaches this model through one
-command API.
+from links, attempts, asks and outside facts, a close included. Every entry point reaches this model
+through one command API. Read this doc before you build or change any of the five nouns, and when
+your work builds a part, describe it in its architecture doc, as AGENTS.md says.
 
 ## Items
 
-An item is a typed node. Its kind comes from the item kind registry, and the core names only the
+An item is a typed node. Its kind comes from the item kind registry, and the core defines only the
 `core.*` kinds:
 
 | Kind | Holds |
@@ -25,21 +26,22 @@ most 40,000 characters, by convention under `## Context`, `## Scope`, `## Permis
 `## Notes for the agent`. The owner writes it, triage may rewrite it, and the
 [launch prompt](../../architecture/work/pipeline.md#the-launch-prompt) passes it to the agent. boxxy does not parse it.
 
-[Planning](./planning.md) adds `core.project` and `core.goal`. A new kind is a registry entry with
-its pipeline and typed fields, not new core code. Free tags are refused: a kind declares typed
-fields, such as `trigger`, `area` and `size`.
+[Planning](./planning.md) adds `core.project` and `core.goal`. Add a new kind as a registry entry with
+its pipeline and typed fields, without changing core code. boxxy refuses free tags: declare typed
+fields on the kind instead, such as `trigger`, `area` and `size`.
 
 ### Derived states
 
 An item's state is one of `held`, `idea`, `ready`, `running`, `blocked`, `waiting`, `done` or `archived`.
 boxxy computes it from facts each time, and no command sets it. A [held item](./planning.md#held-items) is `held`, with its reason, until the owner releases it.
 
-- `item.close` with a reason archives an idea. Nothing is deleted, and archived items stay
+- `item.close` records a close fact with a reason, and boxxy derives `archived` from it. Nothing
+  is deleted, and archived items stay
   queryable.
 - A `core.decision` item freezes when it is done. To change course, file a new decision that
   `supersedes` the old one.
 - A late outcome, such as a revert five days after merge, attaches to the attempt as a new fact.
-  Whether it reopens the item is a rule.
+  Whether it reopens the item depends on a rule.
 
 ## Links
 
@@ -56,14 +58,14 @@ Links are typed, and the link types are a registry like the item kinds.
 | `relies-on` | the source rests on a decision |
 | `serves` | the source contributes to a project or goal ([planning](./planning.md)) |
 
-Readiness reads only the blocking link types, such as `blocks`. The other types never hold an item.
-`relies-on` makes two questions into queries: why something is built the way it is, and what rested
-on a decision that has since been superseded.
+Of the link types, only the blocking ones, such as `blocks`, can keep an item from being `ready`. With
+`relies-on`, you can query why something is built the way it is, and what rested on a decision that
+has since been superseded.
 
 ## Phases
 
 A phase defines what one attempt is for, what input it needs, which worker kind runs it, and what its
-outcome does to the item. Phases come in four shapes:
+outcome does to the item. A phase takes one of these shapes:
 
 1. **Pipeline phases** are the steps of a kind's pipeline, such as triage, then design only when
    triage asks for it, then build, review, release and QA.
@@ -76,15 +78,15 @@ outcome does to the item. Phases come in four shapes:
 
 ### Pipelines as data
 
-A kind declares its pipeline in the rules repo: the phases in order, with `when`, `repeatUntil` and
-`maxAttempts` per step. A new shape of work is a new pipeline, not new dispatcher code. A pipeline
-can apply per kind, per project or per item (`item.edit pipeline=<name>`), so a new pipeline can be
-tried on a few items and measured against items without it.
+Declare a kind's pipeline in the rules repo: the phases in order, with `when`, `repeatUntil` and
+`maxAttempts` per step. For a new shape of work, add a pipeline, without changing dispatcher code.
+Apply a pipeline per kind, per project or per item (`item.edit pipeline=<name>`), so you can try a
+new pipeline on a few items and measure them against items without it.
 
 ### Gates and sign-offs
 
-A sign-off is a gate phase: an ask whose answer is the phase's outcome. This pipeline signs off an
-interface before anyone designs against it:
+A sign-off is a gate phase: an ask whose answer is the phase's outcome. In this pipeline, an
+interface is signed off before anyone designs against it:
 
 ```yaml
 pipelines:
@@ -97,7 +99,7 @@ pipelines:
 ```
 
 - `claimNext` enforces the gate: nobody can claim `design` until a sign-off fact exists for the exact
-  draft hash. A changed draft needs a new sign-off.
+  draft hash, unless the gate's rule lets the owner's override skip it. A changed draft needs a new sign-off.
 - A rejection sends the item back to `contract`, with the reason as input.
 - A rule on the gate sets who may sign off, and whether the owner's override can skip it.
 - Time spent waiting at a gate counts as a cost of the pipeline (proposed).
@@ -121,7 +123,7 @@ An attempt records:
 - **Its commits and PRs.** boxxy links them from evidence, never by guess
   ([close-outs](./close-outs.md#linking-attempts-to-commits-and-prs)).
 
-The attempt's record never changes. Late outcomes, such as a revert, a follow-up fix, an escaped
+Once the attempt settles, its record never changes. Late outcomes, such as a revert, a follow-up fix, an escaped
 defect or a review reply, attach as new facts. A crash or an unknown spawn result puts the attempt in
 `reconciling`, which [dispatch](./dispatch.md#unknown-outcomes) settles.
 
@@ -138,8 +140,8 @@ When one lands, a rule picks one response:
 | cancel | boxxy stops the attempt, because the item was dropped or superseded |
 | ignore | the attempt finishes, and its outcome is marked as built on a stale basis |
 
-boxxy never stops an attempt silently. Each response is a fact, so the cost of mid-flight changes is
-a query, and review can see work that was built against a superseded decision.
+boxxy never stops an attempt silently. Each response is recorded as a fact, so you can query what
+mid-flight changes cost, and review can see work that was built against a superseded decision.
 
 ## Workers
 
@@ -164,10 +166,11 @@ session through a mod, the CLI, agents filing work, and later nixie.
 
 - **The actor comes from the listener a call arrives on**
   ([API and auth](../../architecture/interfaces/api-and-auth.md#the-paths)). A call on the owner listener with no token
-  acts as the owner. A call through the public door acts as the owner too, with an OAuth token that the owner approved. A call with the worker token acts as a session, and its proven caller names
-  the session. The actor never comes from a value the caller supplies, such as an environment
+  acts as the owner. A call through the public door acts as the owner too, with an OAuth token that the owner approved. A call with the worker token acts as a session, and boxxy takes the
+  session from its proven caller. The actor never comes from a value the caller supplies, such as an environment
   variable.
-- **The owner's path is the only check on an owner command.** Any caller on that path can expedite,
+- **The owner's path is the only check on who sends an owner command.** That path is the owner listener, or
+  the public door with a token the owner approved. A gate rule can still refuse the command. Any caller on the path can expedite,
   file or rank, and boxxy never asks for a confirmation bound to the person
   ([API and auth](../../architecture/interfaces/api-and-auth.md#the-paths)).
 - An agent inside an attempt files work as that attempt, and the new item links `found-in` to it.

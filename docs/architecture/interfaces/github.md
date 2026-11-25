@@ -2,10 +2,11 @@
 
 boxxy uses GitHub to link each build to the pull request its agent opened, to notice when that pull
 request merges or closes, to merge it when the pipeline has a merge step, and to read what a review
-covers. Every one of those calls goes through one adapter, which signs in as the boxxy GitHub App.
-Two paths link a pull request: the agent's hook links it the moment the agent opens it, and a watch
-that the server runs on a timer links what the hook missed and records merges and closes. Read this
-doc before you change how boxxy follows pull requests or talks to GitHub.
+covers. Every one of those calls goes through one adapter, which signs in as the boxxy GitHub App,
+or sends no credential when a proxy adds one on the way out. Two paths link a pull request: the
+agent's hook links it the moment the agent opens it, and a watch that the server runs on a timer
+links what the hook missed and records merges and closes. Read this doc before you change how boxxy
+follows pull requests or talks to GitHub.
 
 [The CLI and the hooks](./cli-and-hooks.md#the-pull-request-hook) covers the hook's side of a link.
 [Facts and pepys](./facts-and-pepys.md) covers the facts a link and a merge send. The
@@ -33,8 +34,8 @@ must hold the [proven caller](./api-and-auth.md#the-proven-caller), as for a
 [close-out](../work/attempts.md#close-outs-and-their-limits). It then reads the pull request from
 GitHub. A newer attempt can take over the session while GitHub answers, so the server checks the
 session again inside the store's write lock before it writes, and that second check refuses the old
-attempt's link. It compares the URL's repo with the item's repo ignoring case, as GitHub does, and
-stores the item's spelling, so every row and fact of a repo has one key.
+attempt's link. The server compares the URL's repo with the item's repo ignoring case, as GitHub
+does, and stores the item's spelling, so every row and fact of a repo has one key.
 
 Only a first `linked` answer writes anything:
 
@@ -65,16 +66,16 @@ then follows each open pull request:
 1. **Link what the hook missed.** For each succeeded build with no pull request row, the pass lists
    the open pull requests of its repo and links the first one holding a commit whose
    `Boxxy-Attempt: <attempt_id>` trailer holds that build's ID. It skips a build whose item already
-   has an open pull request, and a build that ended longer ago than a fixed link window, so a build
-   that never opened a pull request stops costing GitHub calls.
+   has an open pull request. It also skips a build that ended longer ago than a fixed link window,
+   so a build that never opened a pull request stops costing GitHub calls.
 2. **Follow each open pull request.** For each commit whose trailer holds the ID of an attempt of
    the row's item, it writes an evidence row for that attempt and a `boxxy.commit.linked` fact, once
    per commit. When the pull request has merged or closed, it moves the row and writes
    `boxxy.pull_request.merged` or `boxxy.pull_request.closed`.
 
-boxxy never writes the trailer itself. An agent adds it only when its recipe's prompt asks for it
-with `{{ attempt_id }}` ([the launch prompt](../work/pipeline.md#the-launch-prompt)), and the
-example build prompt doesn't, so without it only the hook can link a build's pull request.
+boxxy never writes the trailer itself. An agent adds it only when its recipe's prompt includes
+`{{ attempt_id }}` ([the launch prompt](../work/pipeline.md#the-launch-prompt)). The example build
+prompt doesn't, so for a build without the trailer, only the hook can link its pull request.
 
 A merge job's settle records the merge too. The settle and the watch each update the row only while
 it is open, so whichever comes first moves it, and each merge gets one `boxxy.pull_request.merged`
@@ -83,10 +84,10 @@ fact.
 ## The GitHub adapter
 
 `@boxxy/forge-github` is boxxy's adapter for GitHub's REST API. The hook and the watch read pull
-requests through it, the merge job reads checks and merges, the merge job also reads the verify
-gate's check and report through the
-[verifier](../repo/verify-journeys.md#what-the-merge-step-reads), and a review's close-out reads the
-files changed since the previous review ([the review](../work/pipeline.md#the-review)).
+requests through it. The merge job reads checks and merges through it, and reads the verify gate's
+check and report through the [verifier](../repo/verify-journeys.md#what-the-merge-step-reads). A
+review's close-out reads the files changed since the previous review
+([the review](../work/pipeline.md#the-review)).
 
 The server calls GitHub at the config's `github.baseUrl`, as the boxxy GitHub App when it has the
 App's keys: `BOXXY_GITHUB_APP_CLIENT_ID`, `BOXXY_GITHUB_APP_PRIVATE_KEY` and
@@ -102,9 +103,10 @@ way out. The server takes no personal token in place of the App, because a fine-
 `Checks` permission and GitHub refuses its read of a private repo's check runs. Without a `github`
 section, the server builds no adapter: hook links answer `retry`, the watch never runs, and no merge
 job exists, so the loader refuses a rules file with a merge step. The server builds the verifier
-beside the adapter, so a `check` or `verdict` call answers `no-forge` too.
+with the adapter, so it builds no verifier either, and a `check` or `verdict` call answers
+`no-forge`.
 
-- **A throw means GitHub didn't answer,** and the caller tries again later. Three results come back
+- **A throw means GitHub didn't answer,** and the caller tries again later. These results come back
   as values instead: a pull request GitHub doesn't find is `not-found`; a merge whose head moved is
   `head-moved`, because the merge request carries the head whose checks the job read and GitHub
   merges only that head; and a merge GitHub refuses, such as for a conflict, is `not-mergeable` with
@@ -132,12 +134,12 @@ through the same adapter as the hook and the merge job
 ([the mapping to an answer](../work/attempts.md#evidence)). A `verdict` also asks the verifier,
 which reads the pull request's description for the verify report, and the verify gate's check run at
 the head. A build's `built` close-out that cites checked evidence reads the pull request again for
-its head ([the close-out](../work/attempts.md#close-outs-and-their-limits)). A GitHub call that
-throws answers `retry`, and the call writes nothing.
+its head ([the close-out](../work/attempts.md#close-outs-and-their-limits)). When a GitHub call
+throws, the call that made it answers `retry` and writes nothing.
 
 ### The ship reads of the adapter
 
-The [ship watch](../work/ship-watch.md#the-watch) reads five more things through the adapter:
+The [ship watch](../work/ship-watch.md#the-watch) also reads these through the adapter:
 
 - `readRepo` answers `readable`, or `not-found` for a repo that is missing or that the App cannot
   read.
@@ -151,8 +153,8 @@ The [ship watch](../work/ship-watch.md#the-watch) reads five more things through
   oldest merge first. It reads closed pull requests by last update and stops at the first page that
   ends before the time, within a page cap.
 
-The App needs `Contents: read` on every repo that a `ships` rule names, the deploy repo of a `then`
-included.
+The App needs at least `Contents: read` on every repo that a `ships` rule names, the deploy repo of
+a `then` included.
 
 The owner installs the boxxy App on each repo boxxy works on, with these repository permissions:
 

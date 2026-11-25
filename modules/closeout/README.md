@@ -11,9 +11,11 @@
   </p>
 </div>
 
-boxxy's phase kinds: triage, design, build, review, verify, merge and live. Each one gives the input
-of an attempt, checks the close-out sent at the end of it, and settles the attempt from that
-close-out. The merge phase kind runs on a job worker, and its drive decides each read of the job.
+The package holds six of boxxy's phase kinds: triage, design, build, verify, merge and live. It also
+holds the builder of the review phase kind, which the server builds from its review gate. Each one
+gives the input of an attempt, checks the close-out sent at the end of it, and settles the attempt
+from that close-out. The merge phase kind runs on a job worker, and its drive decides each read of
+the job.
 
 The package does no I/O: the caller passes in the item, its attempts, the attempt's evidence rows
 and what a close-out may name.
@@ -30,12 +32,12 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Features
 
-- `triage`, `design`, `build`, `verify` and `merge`, and `phaseKinds`, which lists them for the
-  rules loader. Each parser returns the stored close-out, or every problem with it in one pass.
-  `merge` drives each read with `decideMerge` from `@boxxy/train`, and a `merged` settle asks for
-  the `record-merge` effect.
+- `triage`, `design`, `build`, `verify`, `merge` and `live`, and `phaseKinds`, which lists these six
+  for the rules loader. Each parser returns the stored close-out, or every problem with it in one
+  pass. `merge` drives each read with `decideMerge` from `@boxxy/train`, and a `merged` settle asks
+  for the `record-merge` effect.
 - `createReviewPhase`, which builds the review phase kind on the review gate's `buildCommand`. The
-  server adds it to `phaseKinds`.
+  server adds it to the six from `phaseKinds`.
 - `countUnrelatedLines`, the changed lines of a later review in files that had no open finding.
 - `closeOutLimits`, the byte limit of a close-out, and `measureJsonBytes`, which measures a value as
   stored.
@@ -44,5 +46,5 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-The [close-outs design](../../docs/design/boxxy/close-outs.md#the-v1-phase-kinds) says what each
-phase kind checks and settles, and `@boxxy/model` holds the shapes.
+Read the [close-outs design](../../docs/design/boxxy/close-outs.md#the-v1-phase-kinds) for what each
+phase kind checks and settles. The shapes live in `@boxxy/model`.

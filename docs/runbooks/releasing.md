@@ -1,7 +1,8 @@
 # Releasing
 
-Use this runbook to set up releases once, to publish a package that is new to npm, to merge a
-release pull request, and to recover a release that failed. CI does the rest of a release.
+A maintainer does four parts of a release by hand: the one-time setup, the first publish of a
+package that is new to npm, the merge of each release pull request, and the recovery of a release
+that failed. CI does the rest.
 
 CI releases every `@boxxy/*` package to npm at one shared version, as
 [How boxxy ships](../architecture/repo/release.md) describes:
@@ -25,11 +26,11 @@ repo root, such as `libs/model`.
 npm sets up trusted publishing only for a package that exists on the registry. So publish each
 package by hand first, then turn CI releases on.
 
-**CAUTION:** Finish every step below within 2 days of step 1, when you add the first trusted
-publisher. npm expires a trusted publisher that no publish uses in its first 2 days.
+**CAUTION:** Finish steps 6 and 7 within 2 days of adding the first trusted publisher in step 6. npm
+expires a trusted publisher that no publish uses in its first 2 days.
 
-1. Do [Publish a new package](#publish-a-new-package) for every package, with each package's trusted
-   publisher. Expect each package's npm access page to list a trusted publisher.
+1. Do steps 1 to 4 of [Publish a new package](#publish-a-new-package) for every package. Expect
+   `npm view @boxxy/<folder> version` to print the placeholder version for each package.
 2. Take the client ID and the private key of the release GitHub App, which the release jobs of the
    other zgeoff repos use. GitHub runs CI on a pull request that this App opens, and on none that
    the default workflow token opens. Set the client ID as the `RELEASE_APP_ID` repo variable, and
@@ -47,22 +48,24 @@ publisher. npm expires a trusted publisher that no publish uses in its first 2 d
 
 5. Merge a `feat` or `fix` commit to `main`. Expect the release job to open a release pull request
    that sets every package to one version, `<version>`.
-6. Merge that pull request, as [Merge a release pull request](#merge-a-release-pull-request)
+6. Do step 5 of [Publish a new package](#publish-a-new-package) for every package. Expect each
+   package's npm access page to list a trusted publisher.
+7. Merge the release pull request, as [Merge a release pull request](#merge-a-release-pull-request)
    describes. Expect `npm view @boxxy/<folder>@<version> version` to print `<version>` for each
    package, which CI published through each trusted publisher.
 
 ## Publish a new package
 
-A new name goes out once from a maintainer's machine as a placeholder, version `0.0.1`, with no
-code. CI publishes every real version, starting with the next release.
+Publish a new name once from your own machine, as a placeholder at version `0.0.1` with no code. CI
+publishes every real version, starting with the next release.
 [How boxxy ships](../architecture/repo/release.md#the-first-publish-of-a-new-name) says why. The
 `npm-first-publish` script of the
 [npm-publish skill](https://github.com/zgeoff/skills/tree/main/skills/npm-publish) does the checks
 and the publish.
 
-1. Add the package to `release-please-config.json`: an entry under `packages`, at its `<path>`, with
-   `@boxxy/<folder>` as its `component` and `0.1.0` as its `initial-version`, and `@boxxy/<folder>`
-   in the `components` of the `linked-versions` group. Expect
+1. Add the package to `release-please-config.json`. Give it an entry under `packages` at its
+   `<path>`, with `@boxxy/<folder>` as its `component` and `0.1.0` as its `initial-version`. Add
+   `@boxxy/<folder>` to the `components` of the `linked-versions` group. Expect
    `bun test release-please-config.test.ts` to pass.
 2. Make a placeholder folder outside the repo's package folders, such as
    `/tmp/boxxy-placeholders/<folder>`. Give it a `package.json` with the name `@boxxy/<folder>`, the

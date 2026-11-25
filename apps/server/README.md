@@ -11,12 +11,12 @@
   </p>
 </div>
 
-The boxxy server: the API on its owner, worker and public listeners, and the runner tick that claims
-tasks, reads sessions and sends the facts to pepys.
+The boxxy server runs the API on its owner, worker and public listeners, the runner tick that claims
+tasks and reads sessions, and the outbox sender that sends the facts to pepys.
 
 `startServer({ env, log })` reads the configuration at `BOXXY_CONFIG`, the trust documents and the
 tokens, then starts the listeners, the tick, the pull request watch and the outbox sender. Its
-`refused` answer names each missing variable, never a secret value.
+`refused` answer holds the name of each missing variable and no secret value.
 
 ## Install
 
@@ -28,7 +28,7 @@ bun add @boxxy/server
 
 ## Usage
 
-Set the configuration path and the tokens, then start the server from the package folder:
+Start the server in `apps/server` or `node_modules/@boxxy/server`, with the config and tokens set:
 
 ```bash
 BOXXY_CONFIG=/etc/boxxy/boxxy.json \
@@ -40,7 +40,7 @@ bun run start
 - `<worker_token>` is the token the broker sends on every request to the worker listener.
 - `<atc_token>` is the atc gateway's service token, which the server sends as the bearer.
 
-The `atc` section of the configuration names the gateway:
+Point the server at the atc gateway in the `atc` section of the configuration:
 
 | Field            | Value                                                              |
 | ---------------- | ------------------------------------------------------------------ |
@@ -48,10 +48,10 @@ The `atc` section of the configuration names the gateway:
 | `host`           | optional: the gateway's public host name, sent as `Host`           |
 | `trustedFolders` | by worker target, the folders the agent trusts there               |
 
-A git checkout in `rules.folder` loads only a commit that `rules.ref` holds, `origin/main` by
-default. A plain folder loads with no check, so build it only from the reviewed rules branch
-([rules](../../docs/design/boxxy/rules.md#policy-in-git)). `spawn.repos` gives each repo a folder on
-the target, or a git source `{ url, ref, credentialRef? }` that atc clones
+When `rules.folder` is a git checkout, the server loads only a commit that `rules.ref` holds,
+`origin/main` by default. A plain folder loads with no check, so build it only from the reviewed
+rules branch ([rules](../../docs/design/boxxy/rules.md#policy-in-git)). In `spawn.repos`, give each
+repo a folder on the target, or a git source `{ url, ref, credentialRef? }` that atc clones
 ([the atc worker](../../docs/architecture/work/sessions.md#the-atc-worker)). With a `pepys` section,
 also set `BOXXY_PEPYS_SIGNING_SECRET`. With a `github` section, set the `BOXXY_GITHUB_APP_*` keys
 unless a broker adds the credential. [Hold notices](../../docs/architecture/work/notices.md) and
@@ -59,12 +59,12 @@ unless a broker adds the credential. [Hold notices](../../docs/architecture/work
 
 ## Features
 
-- `startServer`, which wires the store, the atc worker, pepys, the listeners and the merge job.
+- `startServer`, which builds the store and every adapter, then starts the parts above.
 - `serveApi`, the owner and worker listeners as Elysia apps, for a caller with its own deps.
 - `serverConfigSchema`, the configuration file's schema.
 - `./test-utils/create-test-server`, the API on in-memory fakes, for tests.
 
 ## Documentation
 
-[The API and its auth](../../docs/architecture/interfaces/api-and-auth.md) sets out the listeners,
-the public door and its `publicDoor` config, the tokens and who may call each procedure.
+For the listeners, the public door and its `publicDoor` config, the tokens and who may call each
+procedure, read [The API and its auth](../../docs/architecture/interfaces/api-and-auth.md).

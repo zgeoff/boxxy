@@ -11,8 +11,8 @@
   </p>
 </div>
 
-The `boxxy` command: one command for each procedure of the boxxy API, the close-out command that an
-agent runs inside a session, and the two hooks that bind a session and link its pull request.
+The `boxxy` command has one command for each procedure of the boxxy API, the close-out command that
+an agent runs inside a session, and the two hooks that bind a session and link its pull request.
 
 ## Install
 
@@ -24,9 +24,9 @@ bun add @boxxy/cli
 
 The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
-An image with no Bun downloads `boxxy-linux-x64`, `boxxy-hook-plugin.tar.gz` and `SHA256SUMS` from
-the GitHub release `@boxxy/cli@<version>`, as
-[the CLI release assets](../../docs/architecture/repo/release.md#the-cli-release-assets) describes.
+In an image with no Bun, download `boxxy-linux-x64`, `boxxy-hook-plugin.tar.gz` and `SHA256SUMS`
+from the GitHub release `@boxxy/cli@<version>`, as
+[the CLI release assets](../../docs/architecture/repo/release.md#the-cli-release-assets) says.
 
 ## Usage
 
@@ -56,5 +56,5 @@ of the fact they recorded.
 
 ## Documentation
 
-[The CLI and the hooks](../../docs/architecture/interfaces/cli-and-hooks.md) lists the environment,
-the exit codes and what each hook does.
+For the environment, the exit codes and what each hook does, see
+[The CLI and the hooks](../../docs/architecture/interfaces/cli-and-hooks.md).

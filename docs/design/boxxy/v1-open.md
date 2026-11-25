@@ -1,6 +1,6 @@
 # Open for the builder
 
-This doc lists every point that the built system leaves open: what has no design, what is not decided, what nobody checked, what the design assumes, and what must land in another repo first. When a change settles a point, remove its row in the same commit, and update the [architecture doc](../../architecture/overview.md) that the point touches.
+Every point that the built system leaves open is here: what has no design, what is not decided, what nobody checked, what the design assumes, and what must land in another repo first. When a change settles a point, remove its row or bullet in the same commit, and update the [architecture doc](../../architecture/overview.md) that the point touches.
 
 ## Not designed
 
@@ -16,19 +16,19 @@ This doc lists every point that the built system leaves open: what has no design
 - How to name a concept file. A concept file exports under the bare name, such as `pool`, as a phase file does (`review`). The other choice is a name with a suffix, such as `pool-concept.ts`, which breaks the pin script's `concepts/<name>.ts` path.
 - Whether to replace `@tsconfig/strictest` with `@zgeoff/tsconfig` once that config is proven in another repo.
 - What a build from a git source checks out. The design names no branch or commit per item, so every spawn clones the configured ref. A rework round on the kept session keeps the build's work. A fresh spawn after a failed wake starts again from the ref, and reaches the first build's work only through what that build pushed.
-- Whether to make the claim cheaper before the store holds thousands of open items. The built claim holds the lock for 418 ms at p50 with 20,000 open items, and for 2.4 s when every item has a lever ([dispatch](./dispatch.md#the-built-claim-measured)). The expedite signal reads every lever once per item, so its cost grows with the square of the item count. At 5,000 open items the claim's median is 103 to 173 ms, over the store rule's limit of 50 ms, so `rig bench` fails its budget, and CI does not run the claim benchmark until this point is settled.
+- Whether to make the claim cheaper before the store holds thousands of open items. The built claim holds the lock for 418 ms at p50 with 20,000 open items, and for 2.4 s when every item has a lever ([dispatch](./dispatch.md#the-built-claim-measured)). The expedite signal reads every lever once per item, so its cost grows with the square of the item count. At 5,000 open items the claim's median is 103 to 173 ms, over the store rule's limit of 50 ms, so `rig bench` fails its budget. CI does not run the claim benchmark until this point is settled.
 
 ## Lost on a restart
 
-The runner keeps three things in memory only. A restart forgets each one.
+The runner keeps these in memory only, and a restart forgets them.
 
 - **The capacity backoff of a pool.** The next claim spawns again and finds out again.
-- **The usage-limit backoff of a pool**, which can last 24 hours. After a restart boxxy starts sessions against the limit until one fails again.
+- **The usage-limit backoff of a pool**, which can last 24 hours, once boxxy detects the usage limit (see [Not checked](#not-checked)). After a restart boxxy would start sessions against the limit until one fails again.
 - **The batch that the outbox sender holds after a retry answer.** The next turn builds a batch from the unsent rows, which can be longer. That is safe because every boxxy fact is on one stream, and pepys drops a copy by its fact ID.
 
 ## Not checked
 
-Each row names the test that settles it, where one is known.
+The second column holds the test that settles each point, where one is known.
 
 ### The lifecycle
 
@@ -39,10 +39,10 @@ Each row names the test that settles it, where one is known.
 | Whether the owner's typing in an attached session moves any atc time: `lastActivityAt` or `session.lastAttachedAt` of `atc_session_get`. | The same attach. |
 | That a turn the agent starts by itself, for a scheduled wakeup or a finished background task, writes a hook event to atc, so its activity resets the stall clock. atc's feed shows the `Stop` event at each turn's end; whether Claude Code also fires `UserPromptSubmit` at its start is not checked. | Watch one agent-mode attempt that waits on a scheduled wakeup. |
 | That the worker adapter speaks to the real atc gateway at 7.14.0: the `Host` header, the service token and its scopes `read`, `spawn`, `message` and `kill`, the protocol version the client and the gateway agree on, each tool's structured result against the adapter's schemas, and the refusal shape `{ code, problem? }`, with `host_unavailable` and `ram_budget_exceeded` for a host with no memory for another machine. The tests run against an in-process stand-in on atc's MCP server library, with the tool names and result shapes of atc's source. | The live proof: one spawn, read, stop and forget through the gateway. |
-| The usage limit is not detected through atc in v1: no agent harness reports that a session hit the account's limit, so atc has nothing to pass on, and the worker adapter's `usageLimitResetsAt` is always null. A session at the limit then ends as a stall, and the pool backoff never starts. It closes when atc reports the limit and its reset time on the session. | Run one session to the limit, then read it. |
+| boxxy does not detect the usage limit through atc in v1: no agent harness reports that a session hit the account's limit, so atc has nothing to pass on, and the worker adapter's `usageLimitResetsAt` is always null. A session at the limit then ends as a stall, and the pool backoff never starts. It closes when atc reports the limit and its reset time on the session. | Run one session to the limit, then read it. |
 | Whether a rework prompt sent with `atc_message_send` lets the agent push. Claude Code shows a relayed message as one a plug-in sent, and its auto-mode classifier reads only the owner's prompts. | The forced rework round of the live proof. |
 | That an attempt's spawn name stays the session's name until the session appears in `atc_sessions_list`. The agent's own `/rename` replaces it. | Spawn, drop the answer, then list. |
-| That each folder in the worker adapter's trusted folders exists and is trusted in a fresh machine of its target. The list is the deployment's statement, and a spawn in a configured folder sends the folder alone, with no workspace source and no `trustClonedWorkspace`. | Spawn once in each listed folder on a new machine. |
+| That each folder in the worker adapter's trusted folders exists and is trusted in a fresh machine of its target. The deployment declares the list, and a spawn in a configured folder sends the folder alone, with no workspace source and no `trustClonedWorkspace`. | Spawn once in each listed folder on a new machine. |
 | That atc's daemon clones a private git source with the token in the environment variable that its `credentialRef` names, and trusts the clone on an imp target, so the first turn runs. | Spawn once from a private git source on a new imp. |
 | What `lifecycle.harness` reads between a daemon restart and the fleet restore. If it reads `exited`, the runner settles a running attempt. | Restart the daemon with one session running, then read it before the restore. |
 
@@ -51,9 +51,9 @@ Each row names the test that settles it, where one is known.
 | Point | The test |
 | --- | --- |
 | That the CLI's HTTP client works through the broker: `HTTPS_PROXY`, the broker's CA, HTTP/1.1. | One CLI call from an imp. |
-| That Claude Code can be given the session MCP endpoint in a session that atc starts. The CLI is the path a prompt names. | Start one session with the endpoint set. |
+| That Claude Code can be given the session MCP endpoint in a session that atc starts. A prompt points the agent at the CLI. | Start one session with the endpoint set. |
 | That `git fetch` of one commit by ID works from an imp through the broker's proxy and CA, and that the skills repository is public or the broker adds a credential for it. The session-start hook runs this fetch ([the CLI and the hooks](../../architecture/interfaces/cli-and-hooks.md#installing-skills)). | Run the hook once in an imp. |
-| That the agent's first turn waits for the SessionStart hook, so the fetched skills are in place before the agent lists them, and that the Bash `tool_response` of a PostToolUse payload holds the output as `stdout`. The hooks read both from the Claude Code docs. | Run one session with the plug-in and print the payload. |
+| That the agent's first turn waits for the SessionStart hook, so the fetched skills are in place before the agent lists them, and that the Bash `tool_response` of a PostToolUse payload holds the output as `stdout`. The hooks rely on both as the Claude Code docs describe them. | Run one session with the plug-in and print the payload. |
 | The form of the audience in the broker's identity token: the bare made-up host, or an origin with its scheme. The verifier compares it with the configured audience as an exact string. | Decode one token that the broker adds to a call from an imp. |
 
 ### The outbox

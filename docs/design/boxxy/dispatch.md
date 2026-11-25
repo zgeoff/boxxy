@@ -5,8 +5,9 @@ A runner gets work by calling `claimNext`. The boxxy store runs the whole decisi
 `decide()`, and takes the item-phase lease and a seat in each limit that counts the attempt together. A pull that lands between
 deciding and claiming can't be missed, and two runners can never take the same item phase or a
 limit's last seat. The built claim holds the lock for 418 ms at p50 with 20,000 open items
-([the built claim](#the-built-claim-measured)). At the measured claim rate that is about 1.5% of
-each minute.
+([the built claim](#the-built-claim-measured)). At the measured claim rate that is about 1.4% of
+each minute. Read this doc before you change `claimNext`, leases, gate faults or reconcile, and
+describe what you build in the architecture doc that owns it, as AGENTS.md says.
 
 ## claimNext
 
@@ -45,16 +46,16 @@ the lock ([measurement](./measurement.md)).
 ## Leases and generations
 
 - **Each claim holds the item-phase lease and its seats:** one seat in every limit whose filter the
-  attempt matches ([the pipeline](../../architecture/work/pipeline.md#limits-and-pools)). A limit's seats are rows, so a seat count is
-  atomic. Two runners can't each see the last free seat and claim different items.
+  attempt matches ([the pipeline](../../architecture/work/pipeline.md#limits-and-pools)). Each seat is a row, and the store counts a
+  limit's seats under the write lock. Two runners can't each see the last free seat and claim different items.
 - **Each lease has a generation number.** Every write made under a lease carries its generation, and
   the store refuses a write whose generation is not the live one. A runner that lost its lease, for
   example after a pause, can't overwrite the attempt that replaced it.
 - **A runner renews its leases with a heartbeat** (from Beads, research). When the heartbeats stop, a
-  reaper moves the attempt to `reconciling` (proposed). It doesn't release the item-phase lease, because a
-  silent runner doesn't prove that the session stopped.
+  reaper moves the attempt to `reconciling` and keeps the item-phase lease, because a silent runner
+  doesn't prove that the session stopped (proposed).
 - **Guarded updates fail loudly.** A write that expects a holder or a state and finds another fails
-  with the mismatch, rather than writing over it.
+  with the mismatch and writes nothing.
 
 ## The observation boundary
 
@@ -64,8 +65,8 @@ time. A CI fact can arrive after a dispatch with a source time before it, and pe
 only within one stream, so a replay by source time would see facts the dispatcher never saw.
 
 The decision's snapshot hash covers the snapshot and the pools in capacity or usage-limit backoff.
-The store never holds the backoff: it lives in the runner's memory alone, and `decide()` gives no pick in a pool
-that it holds, so a replay needs it to give the same pick.
+The backoff lives only in the runner's memory, never in the store. `decide()` gives no pick in a pool
+in backoff, so a replay needs the backoff to give the same pick.
 
 ## The benchmark (measured)
 
@@ -92,19 +93,20 @@ fact lands. Two runs agreed within a few milliseconds.
 - **The lock has headroom (modelled from the measured numbers).** At 20,000 open items and 60 claims
   a minute, 30 times the measured peak, the lock is held about 1.4 seconds a minute, or 2%.
 - **The snapshot read costs more than `decide()` (measured).** At 20,000 items, about 60% of lock
-  time is reading rows. Proposed: keep the latest planning fact per item in its own table, so a
-  claim doesn't read every fact, before the fact log grows.
-- **Limits of the stub.** Its frame has 4 plug-ins, not a full concept registry, and it ran one
+  time is reading rows. Before the fact log grows, keep the latest planning fact per item in its own
+  table, so a claim doesn't read every fact (proposed).
+- **The stub is simpler than the real claim.** Its frame has 4 plug-ins, not a full concept registry, and it ran one
   runner, so there was no real contention. A registry of ten plug-ins may cost 2 to 3 times more
-  `decide()` time (modelled), still well inside the budget.
+  `decide()` time (modelled), which would keep the stub inside the budget. The built claim reads
+  more and misses it, as the next section says.
 
 ## The built claim (measured)
 
-`bun run bench` runs the claim benchmark, `adapters/store-sqlite/bench/claim-next.bench.ts`, through `rig bench`. The benchmark seeds 5,000 open items on the SQLite store through the test dispatch harness, each at its pipeline's first phase. It raises every limit to the item count, so each claim finds a free seat, and rig times 20 `claimNext` calls after 5 to warm up. The budget is the store rule's lock limit, a p99 under 50 ms at 5,000 open items ([slice 1](../../architecture/work/store.md#one-change-at-a-time)). rig judges the median against it.
+`bun run bench` runs the claim benchmark, `adapters/store-sqlite/bench/claim-next.bench.ts`, through `rig bench`. The benchmark seeds 5,000 open items on the SQLite store through the test dispatch harness, each at its pipeline's first phase. It raises every limit to the item count, so each claim finds a free seat, and rig times 20 `claimNext` calls after 5 to warm up. The budget is the store rule's lock limit, a p99 under 50 ms at 5,000 open items ([slice 1](../../architecture/work/store.md#one-change-at-a-time)). rig checks only the median against that 50 ms, so a passing `rig bench` doesn't prove the p99.
 
-- **The built claim misses the budget (measured).** Three runs on Bun 1.4.3, on a WSL2 dev machine, gave medians of 103, 109 and 173 ms, so `rig bench` fails. CI does not run the benchmark until the claim gets cheaper, which is [not decided](./v1-open.md#not-decided).
+- **The built claim misses the budget (measured).** Three runs on Bun 1.4.3, on a WSL2 dev machine, gave medians of 103, 109 and 173 ms, so `rig bench` fails. CI doesn't run the benchmark until the claim gets cheaper, and [whether to make it cheaper](./v1-open.md#not-decided) is not decided.
 
-The figures below came from 50 claims per size, with the claimed item closed and settled between claims so a seat is free. A lever puts an item at a later phase through `item.retry`. They ran on Bun 1.4.3, on a WSL2 dev machine:
+The figures below came from 50 claims per row, with the claimed item closed and settled between claims so a seat is free. A lever puts an item at a later phase through `item.retry`. They ran on Bun 1.4.3, on a WSL2 dev machine:
 
 | Open items | Levers | Lock p50 (ms) | Lock p99 (ms) |
 | --- | --- | --- | --- |
@@ -114,10 +116,10 @@ The figures below came from 50 claims per size, with the claimed item closed and
 
 - **The stub's figures don't hold for the built claim (measured).** The stub read fewer rows and ran
   4 plug-ins.
-- **Three steps take the time (measured, one item per lever).** At 20,000 items the snapshot read
+- **Three steps take the time (measured, one lever per item).** At 20,000 items the snapshot read
   took about 280 ms, the snapshot hash about 280 ms, and `buildFrame` about 2,000 ms. `decide()`
   took 25 ms.
-- **The expedite signal grows with the square of the item count.** It filters and sorts every
+- **The expedite signal's cost grows with the square of the item count.** It filters and sorts every
   lever once per item. With few levers the frame is cheap, and the snapshot read and the hash are
   most of the lock.
 - **The lock still has headroom at the measured claim rate (modelled).** At 2 claims a minute and
@@ -145,15 +147,15 @@ item, which the [judgement pool](./planning.md#the-judgement-pool) picks up.
 
 ## The judgement pool
 
-No matched rule never leaves work stuck. A ready item that no pool takes for a set time goes to the
-one-slot judgement pool as a `plan.judge` phase, and a second strand goes to the owner.
-[Planning](./planning.md#the-judgement-pool) owns the rule. The judgement pool is an ordinary pool
+Work never stays stuck because no rule matched it. A ready item that no pool takes for a set time goes to the
+one-slot judgement pool as a `plan.judge` phase, and a second strand on the same item goes to the owner.
+The full rule is in [planning](./planning.md#the-judgement-pool). The judgement pool is an ordinary pool
 to `claimNext`, and an owner pull ranks ahead of a judgement phase's pull.
 
 ## Unknown outcomes
 
-A crash, a stopped heartbeat, or an atc `outcome_unknown` leaves an attempt in `reconciling`. The
-worker kind's `reconcile` settles it from the attempt's own facts and from atc's session list.
+A crash or an atc `outcome_unknown` leaves an attempt in `reconciling`, and so does a stopped
+heartbeat once the proposed reaper is built. The worker kind's `reconcile` settles it from the attempt's own facts and from atc's session list.
 
 - Reconcile never treats a missing idempotency key as proof that a spawn never ran. atc deletes
   completed keys after 24 hours, so "key unknown" proves nothing.

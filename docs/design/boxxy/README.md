@@ -1,15 +1,21 @@
 # boxxy design
 
-boxxy dispatches an agent fleet's work and measures it. It holds work items, runs each phase of an
-item as one attempt through a worker, decides what runs next with a pure `decide()` over plug-in
-planning concepts, and records everything as facts in pepys. It measures recipes and rules with live
-experiments, so every part of the system can be compared and improved. Packages publish as
-`@boxxy/<package>`.
+In the full design, boxxy dispatches an agent fleet's work and measures it. It holds work items,
+runs each phase of an item as one attempt through a worker, decides what runs next with a pure
+`decide()` over plug-in planning concepts, and records everything as facts in pepys. It measures
+recipes and rules with live experiments, so every part of the system can be compared and improved.
+Packages publish as `@boxxy/<package>`. Some of this is built; read the
+[architecture overview](../../architecture/overview.md) for what exists now.
+
+Read this index when you build part of a design. When you build a part, describe it in the
+architecture doc that owns it and replace the built section of the design doc with a link to that architecture doc. Delete a design doc,
+and its line below, in the PR that builds its last part. Follow the steps in
+[AGENTS.md](../../../AGENTS.md).
 
 ## Design docs
 
-These docs hold the designs whose work is not fully built. The built system is in
-[docs/architecture](../../architecture/overview.md).
+Each design doc below covers work that is not fully built. Keep
+[Open for the builder](./v1-open.md) until every row in it is settled.
 
 - [Architecture](./architecture.md): the parts and how they reach each other, the principles, and
   the generic core.

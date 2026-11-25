@@ -16,7 +16,7 @@ that run boxxy's attempts.
 
 `createAtcWorker({ client, trustedFolders })` takes an atc client and the folders the agent trusts
 on each worker target. `createAtcMcpClient({ url, host, token, fetch, timeoutMs })` builds the
-client on the atc gateway's MCP endpoint. It is the only package that imports
+client on the atc gateway's MCP endpoint. This is the only package that imports
 `@modelcontextprotocol/client`.
 
 ## Install
@@ -41,5 +41,5 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-[The atc worker](../../docs/architecture/work/sessions.md#the-atc-worker) in the attempt lifecycle
-maps each port method to its atc call, and each atc answer to the port's outcome.
+For the atc call behind each port method, and the port outcome for each atc answer, read
+[The atc worker](../../docs/architecture/work/sessions.md#the-atc-worker) in the attempt lifecycle.

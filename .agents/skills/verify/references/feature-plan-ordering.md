@@ -5,9 +5,9 @@ undefers it. It runs the expedite too. While one item is deferred, the runner ca
 other, so the journey never proves that an expedite moves an item ahead of an older one.
 
 The owner moves an item to the front with `boxxy expedite`, and holds an item back with
-`boxxy defer` until `boxxy undefer`. `action plan-lever` runs the command that `--lever` names, on
-the open item with `--title`. `action file-item-beside` files the second item and keeps the first
-open beside it.
+`boxxy defer` until `boxxy undefer`. `action plan-lever` runs the command you pass in `--lever` on
+the open item whose title you pass in `--title`. `action file-item-beside` files the second item and
+keeps the first open beside it.
 
 ## Journey
 

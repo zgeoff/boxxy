@@ -11,21 +11,21 @@
   </p>
 </div>
 
-boxxy's merge rule, `decideMerge`, which decides what the boxxy server does next with a pull request
-that is ready to merge. The server reads the pull request and calls `decideMerge` with what it read.
-`decideMerge` returns one of three answers, and the server acts on it:
+`decideMerge` is boxxy's merge rule. At the merge step of an item's pipeline, the boxxy server reads
+the item's pull request, calls `decideMerge` with what it read, and acts on one of three answers:
 
 - finish the merge attempt with an outcome, such as `merged` when the pull request has merged, or
   `repair` when a required check failed;
 - wait, and read the pull request again later;
 - merge the pull request at the head commit the server read.
 
-The server merges only when boxxy's review passed, every required check of the base branch passed,
-all at that head commit. The package does no I/O: the server passes in what it read, the merge
-rules, the time, and the last merge it asked for, so that `decideMerge` does not ask again too soon.
+The server merges only when boxxy's review and every required check of the base branch passed at
+that head commit. The package does no I/O. The server passes in what it read, the merge rules, the
+time, and the last merge it asked for, and `decideMerge` uses that last merge to avoid asking again
+too soon.
 
 The package is named for the merge train, a later rule that would merge several pull requests at
-once. Its [design](../../docs/design/boxxy/merge-train.md) is not built.
+once. The merge train's [design](../../docs/design/boxxy/merge-train.md) is not built.
 
 ## Install
 
@@ -39,5 +39,5 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-[The merge step](../../docs/design/boxxy/review-and-merge.md#the-merge-step) holds the table of
-cases that `decideMerge` checks in order, each outcome, and what the server reads and how often.
+For the table of cases that `decideMerge` checks in order, each outcome, and what the server reads
+and how often, see [The merge step](../../docs/design/boxxy/review-and-merge.md#the-merge-step).

@@ -1,18 +1,21 @@
 # Capacity
 
-boxxy runs attempts on more than one kind of model capacity: subscription accounts with usage
-windows, and pay-per-token providers that bill money. This doc covers how boxxy reads each source,
-picks one per attempt, slows down before a source runs out, and compares sources on one unit. The
-whole design is proposed. It ships after the built system the [overview](../../architecture/overview.md) describes.
+With this design, boxxy runs attempts on more than one kind of model capacity: subscription accounts
+with usage windows, and pay-per-token providers that bill money. It covers how boxxy reads each
+source, picks one per attempt, slows down before a source runs out, and compares sources on one
+unit. The whole design is proposed. It ships after the built system the
+[overview](../../architecture/overview.md) describes. Read this doc before you build any part of it,
+and describe what you build in the architecture doc that owns it, as AGENTS.md says.
 
 The decision behind this doc is
 [0008: capacity sources and a router](../../decisions/0008-capacity-sources-and-a-router.md). The
-`modules/capacity` package holds the code, and each source has an adapter named `capacity-<system>`
+`modules/capacity` package will hold the code, and each source will have an adapter named `capacity-<system>`
 (see [the layout](../../architecture/repo/layout.md)).
 
 ## Capacity sources
 
-Each capacity source declares a unit, a reset and a reader. Each reading is a fact, so `decide()`
+Each capacity source declares a unit, a reset and a reader, and the router picks only a source
+that has all three. Each reading is a fact, so `decide()`
 reads capacity the same way it reads everything else, and a replay sees the reading dispatch saw
 (see [dispatch](./dispatch.md)).
 
@@ -31,10 +34,10 @@ A recipe declares its model set per phase: the main model, the subagent model, t
 review model. One attempt uses several models, so a recipe that named only one would hide part of
 its spend.
 
-The router picks a capacity source for each attempt when the claim commits. Attempts are short, so
+When a claim commits, the router picks a capacity source for each attempt whose recipe pins
+none. Attempts are short, so
 no long session has to move between sources, and rotation is a choice made at each claim. A recipe
-names a source only as an optional pin, for work that must run on one source. With no pin, the
-router picks.
+names a source only as an optional pin, for work that must run on one source.
 
 - **Routing among accounts that serve the same model through the same provider doesn't change
   outcomes.** It never confounds an experiment, so the router is free to balance load across them.
@@ -50,14 +53,14 @@ agent session id, so each request maps to its source (see
 
 The pacing gate is a pool gate: a plug-in that holds a whole pool, never a single item (see
 [planning](./planning.md#concepts)). It holds lower-priority pools off the frontier when a source's
-burn forecast runs out before the source's next reset. Its parameters in the rules name the pools it
-protects.
+burn forecast shows the source running out before its next reset. Set the pools it protects in its
+parameters in the rules.
 
 - **The forecast is per source.** It takes the queued work, times each phase's measured model mix,
   and compares the demand with what is left on each source.
 - **A reserve stays free for the owner's own sessions.** The gate holds dispatch before the source
   reaches the reserve, so the owner never finds a source spent by the fleet.
-- **Expedite lifts it for one item.** Expedite is the gate's waiver, so an owner pull runs even
+- **Expedite lifts the gate for one item.** Expedite is the gate's waiver, so an owner pull runs even
   while the gate holds its pool.
 - **A failed gate holds.** If the pacing plug-in throws, the gate holds the pool with the fault as
   its reason, as every gate does.
@@ -73,11 +76,13 @@ attempt need different caps.
 
 boxxy compares sources on money per landed change:
 
-- **A subscription:** its fee for the period, spread over the changes it landed in that period.
-- **A pay-per-token provider:** the cost the provider billed for the attempts on the change. boxxy
-  takes this cost from the provider, never from the agent's own cost estimate.
+- For a subscription, boxxy spreads its fee for the period over the changes it landed in that
+  period.
+- For a pay-per-token provider, boxxy uses the cost the provider billed for the attempts on the
+  change, never the agent's own cost estimate.
 
-A cheaper change that gets reverted costs more in the end, so quality guards ride with the unit:
+A cheaper change that gets reverted costs more in the end, so once the verdict reports guards, boxxy
+reports these quality guards beside the unit:
 
 - a revert within 14 days;
 - review findings per PR;
@@ -106,12 +111,13 @@ stop: 2027-01-15
 The arm split, effect and stop date above are examples. The loader sets the minimum sample from the
 champion's measured variance, and refuses the file if the stop date comes too soon.
 
-Slice 2 builds what this experiment needs: the router, the pay-per-token source adapter and the
-live-bucket experiment path.
+This experiment needs the router, the pay-per-token source adapter and the live-bucket experiment
+path. Build all three in slice 2 (see
+[0014: the first slice](../../decisions/0014-first-slice.md)).
 
 ## To verify
 
-Each of these needs a measurement before boxxy relies on it:
+Measure each of these before boxxy relies on it:
 
 1. **How the pay-per-token provider reports billed cost per request.** The money unit rests on it.
 2. **What Claude Code's OTel `cost_usd` shows for another vendor's model behind a proxy.** It is

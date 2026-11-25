@@ -3,9 +3,10 @@
 Planning decides which ready item starts next, and which sleeping attempt wakes. Every planning idea, such as rank,
 defer or expedite, is a concept: a module that registers plug-ins
 ([decision 0004](../../decisions/0004-planning-concepts-are-plug-ins.md)). `buildFrame()` runs the
-plug-ins over the facts and builds one frame. `decide()` reads the frame and the pools and returns
-picks, and never names a concept. A new sort key, such as cheapest measured work first, is one file
-and one plug-in reference in the rules.
+plug-ins over the facts and builds one frame. `decide()` reads the frame, with the pools as data in it, and returns
+picks, and never names a concept. To add a sort key, such as cheapest measured work first, write one
+file and add one plug-in reference to the rules. Read this doc before you add a concept or change how boxxy
+orders work, and describe what you build in the architecture doc that owns it, as AGENTS.md says.
 
 ## Concepts
 
@@ -15,14 +16,14 @@ the pool filter fields it defines in `filterFields`, and the plug-ins that act o
 | Plug-in kind | What it does | Example |
 | --- | --- | --- |
 | signal | gives a sort key that a pool can name | rank, age |
-| gate | holds an item off the frontier, with a reason | defer, blocked, held |
+| gate | holds an item off the frontier, with a reason | defer |
 | pool gate | holds a whole pool, with a reason | pacing ([capacity](./capacity.md#the-pacing-gate)) |
-| waiver | lifts one gate's hold for one item | expedite lifts defer |
+| waiver | lifts a gate's hold for one item | expedite lifts defer |
 | admission | widens which pools may take an item | `--any-pool` |
 | view | a pure function over the frame | explain, forecast, roadmap |
 
-A signal, a gate or a pool gate can declare a schema for its parameters. The rules name a plug-in
-by a plug-in reference: a bare name, or a one-key map from the name to its parameters, such as
+A signal, a gate or a pool gate can declare a schema for its parameters. A plug-in reference in the
+rules is a bare name, or a one-key map from the name to its parameters, such as
 `{ kind-order: { order: [chore, bug] } }`. The loader checks the parameters against the schema. A pool filter field, such
 as `repo`, gives the value that a pool's `takes` matches.
 
@@ -34,7 +35,7 @@ arrives, and later concepts are additions to the same registry.
 ### Propagation
 
 `buildFrame()` runs each propagation line in the rules over every open item, ready or not. A line
-names a signal, a link type and a direction, such as rank down `serves` or expedite back over
+holds a signal, a link type and a direction, such as rank down `serves` or expedite back over
 `blocks`. `buildFrame()` carries the signal's value across those links, and the signal's `combine` keeps one value where two meet. A
 propagation line is rules data, so the registry has no propagation kind.
 
@@ -84,7 +85,7 @@ pools:
 
 ### Limits and the decision
 
-A pick takes one seat in each limit whose `counts` filter matches the pick's field values, and `decide` gives a pick only when each of those limits has a free seat. The store's snapshot gives each limit's `max` and the seats held now, and `decide` counts down the seats of its own picks, so one decision never starts more than a limit allows. A limit can hold more seats than its `max` after a wake over the cap ([lifecycle](../../architecture/work/attempts.md)), and it then gives no pick until the count is under `max` again.
+A pick takes one seat in each limit whose `counts` filter matches the pick's field values, and `decide` gives a pick only when each of those limits has a free seat. The store's snapshot gives each limit's `max` and the seats held now, and `decide` counts down the seats of its own picks, so one decision never starts more than a limit allows. A limit can hold more seats than its `max` when a session the owner revived wakes over the cap, a wake that planning doesn't decide ([lifecycle](../../architecture/work/attempts.md)). `decide` then gives no pick that takes a seat in that limit until its count is under `max` again.
 
 `decide` returns its picks in this order:
 
@@ -98,23 +99,24 @@ The filter field `designMode` of the pool concept gives `agent` for an item that
 ### The judgement pool
 
 A ready item that no pool or admission takes for a set time is stranded. boxxy gives it a
-`plan.judge` phase in a judgement pool with one slot. The judgement close-out must end the strand
+`plan.judge` phase in a judgement pool, under a limit of one seat. The judgement close-out must end the strand
 with an override (pin, admit or lift) or a defer. A second strand on the same item goes to the owner.
 The judgement pool also takes other cases that no rule covers, such as an attempt that passed its
 cost cap ([capacity](./capacity.md)).
 
 ## Ordering levers
 
-These concepts give the owner and agents a lever on order. Each lever is a fact with its actor and
+The owner and agents change the order with these levers. Each lever is a fact with its actor and
 time ([rules](./rules.md#levers-as-facts)).
 
 - **Expedite** beats every sort key.
   - It takes items, an ordered list, or a goal or project (all its open items, in the order given).
   - It reaches through blockers: an expedited blocked item pulls its blockers forward first.
-  - It takes the next free slot in any pool whose filter matches, or with `--any-pool` the next free
-    build slot anywhere. It never stops running work.
+  - It takes the next free seat for the first pool whose filter matches, or with `--any-pool` the next free
+    seat for a build in any pool. It never stops running work.
   - It lifts defer, quiet hours and budget holds on the pulled work and its blockers. A gate declared
-    unliftable, such as `blocked`, `held` or `attended`, still holds.
+    unliftable, such as `attended`, still holds, and so do the `blocked` and `held` states, which no
+    gate makes.
   - It carries a reason and an optional expiry. Only a caller on the owner's path can expedite
     ([API and auth](../../architecture/interfaces/api-and-auth.md#the-paths)). An owner pull
     ranks ahead of a judgement phase's pull.
@@ -131,7 +133,7 @@ boxxy refuses cycles, estimates and a default priority.
 The owner files a held item to keep a draft that boxxy never starts. The owner edits it and adds notes, then releases it into its pipeline.
 
 - **Filing.** `item.file` with `held: { reason }` writes the item and an `item.held` lever in one store change, so no tick sees the item open. A held item needs the same fields as any other item.
-- **The gate.** An item whose latest `item.held` or `item.release` lever is `item.held` has the derived state `held`, with the lever's reason. The state comes right after `archived` in the derived-state table, ahead of every other state, so a held item is never a candidate of the frame and runs no phase, triage included. Like `blocked`, the gate is part of the derived state and no concept of the rules registers it, so no rules file can drop it, and no waiver, expedite, pull or goal lifts it. `item.retry` refuses a held item with `ITEM_HELD`, because a retry moves the item's position and its release would then skip triage.
+- **The state.** An item whose latest `item.held` or `item.release` lever is `item.held` has the derived state `held`, with the lever's reason. The state comes right after `archived` in the derived-state table, ahead of every other state, so a held item is never a candidate of the frame and runs no phase, triage included. Like `blocked`, `held` is a derived state that no concept of the rules registers, so no rules file can drop it, and no waiver, expedite, pull or goal lifts it. `item.retry` refuses a held item with `ITEM_HELD`, because a retry moves the item's position and its release would then skip triage.
 - **Release.** `item.release` writes an `item.release` lever, and triage starts on the next tick. It refuses an item that is not held with `not-held`, a closed item included. Both levers write `boxxy.lever.recorded`.
 - **Reading.** `item.list` with the state `held` lists the held items only. `item.get` returns the item's revisions: one for each `boxxy.item.edited` fact in the outbox, with its time, its actor and the names of the fields it set. The outbox keeps every sent row ([facts and pepys](../../architecture/interfaces/facts-and-pepys.md#the-outbox)), so the revisions need no table of their own.
 - **Access.** Only the owner's path files, releases or lists held items ([API and auth](../../architecture/interfaces/api-and-auth.md#the-procedures)), and a session's reads of other items never return one.
@@ -145,11 +147,11 @@ The owner files a held item to keep a draft that boxxy never starts. The owner e
 - **A goal** (`core.goal`) has an optional target date. Projects and items link `serves` to goals. A
   roadmap is the goal tree over time. A goal that drifts from its date can open an ask.
 
-Whether goal and project are one kind or two is open.
+Whether goal and project stay two kinds or merge into one is open.
 
 ## Explain
 
-`explain` answers questions such as "why was the nixie slot idle on Tuesday at 14:00". It rebuilds
+`explain` answers questions such as "why was the nixie pool idle on Tuesday at 14:00". It rebuilds
 the frame at that time from facts up to the recorded observation boundary
 ([dispatch](./dispatch.md#the-observation-boundary)), reruns `decide()` with the recorded rules
 version, and returns each candidate with the reason it was not picked. Reasons cost nothing until
@@ -162,19 +164,19 @@ mechanism to show what a new rules version would have done.
 ## Forecast (proposed)
 
 A forecast gives the date goal G lands as a range from measured work, never from estimates. It
-is a view over replay, not a second scheduler, so it can never disagree with dispatch about order.
+is a view over replay, so it can never disagree with dispatch about order.
 
 1. **Like-work cohorts.** Each open item gets a cohort key: kind, repo and size band. The size band
    comes from the triage close-out's typed `size`, or from lines changed at merge for done items.
    Each cohort holds the last 30 days of done items with their cycle time (claim to merge, all
    attempts) and slot time (the sum of attempt durations).
 2. **Simulate `decide()` forward.** A Monte Carlo of 500 runs. Each run copies the current frame and
-   steps simulated time. Free slots ask the real `decide()`, with the same rules version and
+   steps simulated time. For each free seat, the run asks the real `decide()`, with the same rules version and
    plug-ins, for picks. Each pick draws a slot time from its cohort, then finishes and unblocks its
    dependants. New items arrive at each cohort's measured rate. A run ends when every item serving G
    is done. The answer is the p50 and p90 of the end dates.
-3. **What moves the date.** The view reruns the forecast with one change at a time: one more slot in
-   each pool, an expedite of G, each open blocker removed, each competing goal deferred. It returns
+3. **What moves the date.** The view reruns the forecast with one change at a time: one more seat in
+   each limit, an expedite of G, each open blocker removed, each competing goal deferred. It returns
    the shifts, largest first.
 4. **Confidence.** The range is the confidence. A cohort with fewer than 10 done items borrows the
    next wider cohort (drop size, then repo), and the forecast shows the borrowing. An item with no

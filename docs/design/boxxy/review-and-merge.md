@@ -1,9 +1,14 @@
 # Review, verify and merge
 
-After a build, boxxy reviews the pull request, has an agent grade the work on the real app, and merges the pull request through GitHub when every required check is green at its head. An agent comes back only for work that needs one: findings to answer, a conflict, a red check or a failed feature. The item holds for the owner in seven cases:
+After a build, boxxy reviews the pull request, has an agent grade the work on the real app, and merges the pull request through GitHub when every required check is green at its head. An agent comes back only for work that needs one: findings to answer, a conflict, a red check or a failed feature. Read this doc before you change the review, verify or merge step, and describe what you build in the architecture doc that owns it, as AGENTS.md says.
+
+The item holds for the owner in these cases:
 
 - a loop has used all its send-backs;
-- a review or a verify failed twice in a row;
+- a step has used all its attempts, such as a merge whose forge stays down;
+- a sign-off rule matched, or the changed paths were cut short, and the owner has not approved the
+  head;
+- a review failed twice in a row, or a verify ended `abandoned` twice in a row;
 - the verify agent asks a question;
 - the pull request closed with no merge;
 - a required check stayed pending past the merge's time limit;
@@ -25,7 +30,7 @@ flowchart LR
 
 ## Terms
 
-This doc uses the terms of the [core model](./core-model.md) and [the pipeline](../../architecture/work/pipeline.md): item, phase, attempt, recipe, close-out, settle, edge, hold and round. These terms are its own, or have one meaning here:
+This doc uses the terms of the [core model](./core-model.md) and [the pipeline](../../architecture/work/pipeline.md): item, phase, attempt, recipe, close-out, settle, edge, hold and round. These terms are this doc's own, or have one meaning here:
 
 - **Send-back:** a backward edge, such as `changes-requested: { to: build, max: 3 }`. Its `max` is the number of send-backs the edge allows. The next use of that edge holds the item with `rounds used up`. Each edge counts its own uses since the item's latest `boxxy item retry`.
 - **Review number:** 1 plus the item's `changes-requested` reviews since its latest retry. It differs from the item's round, which rises on every send-back.
@@ -51,8 +56,8 @@ The sketches in [`sketches/next/review-and-merge/`](./sketches/next/review-and-m
 - **Only the server posts the review.** The server checks the result against the pull request's head, posts it as the noslop App, and reads the open findings. The App's keys stay in the server's pod.
 - **The merge runs on a job worker.** The runner reads a merge attempt on each tick, as it reads every live attempt. A webhook never starts a merge.
 - **An agent never decides a merge.** `decideMerge` in `modules/train` is pure, and the runner calls it on each read of a merge attempt.
-- **boxxy reads required checks from its rules and the branch.** It takes the union of `merge.checks` in the rules file and the base branch's required status checks. The loader accepts an empty `merge.checks`, and a rules file may leave the key out. No check name is shared by every repo, so the rules list only the checks they add to what the branch requires. On a branch that requires no check, with an empty `merge.checks`, a merge waits only for the review that passed at the head.
-- **Each repo's own `main` ruleset says what a merge needs.** boxxy adds no gate of its own: a merge needs a review that passed at the head and every required check green there. boxxy's own repo requires `pr / checks` and `verify / gate` in its ruleset, so its merges wait for both. A repo with no verify setup merges on its other required checks.
+- **boxxy reads required checks from its rules and the branch.** It takes the union of `merge.checks` in the rules file and the base branch's required status checks. The loader accepts an empty `merge.checks`, and a rules file may leave the key out. No check name is shared by every repo, so the rules list only the checks they add to what the branch requires. On a branch that requires no check, with an empty `merge.checks`, a merge waits for no check.
+- **Each repo's own `main` ruleset sets most of what a merge needs.** boxxy adds the checks in `merge.checks`, its own review record and the owner's sign-off: a merge needs a review that passed at the head, every required check green there, and an approval at that head when a sign-off rule matched. boxxy's own repo requires `pr / checks` and `verify / gate` in its ruleset, so its merges wait for both. A repo with no verify setup merges on its other required checks.
 - **The squash merge makes the pull request's title the commit subject.** The merge call sends the title as `commit_title` and leaves the message to GitHub's default.
 - **boxxy decides "reviewed at this head" from its own review close-out.** boxxy never reads noslop's GitHub check, because that check passes at a head that no review has read.
 - **The owner picks who grades, with a recipe field.** The verify phase always runs as its own agent attempt. A verify recipe with `session: builder` wakes the build's kept session, so the builder grades its own work. `session: fresh` starts a new session.
@@ -82,7 +87,7 @@ Rules of the review:
 - **Four reviews, then a hold.** The edge is `changes-requested: { to: build, max: 3, resume: true }`, so the fourth `changes-requested` holds the item with `rounds used up`.
 - **The first review is full, and every later review runs `--fixes-only`.** A later review checks the builder's answers to the open findings and raises no new finding. The command runs `noslop findings` right after the `--fixes-only` run. When no `fixed` answer got a verdict, the `--fixes-only` run read nothing at the head. That happens when the builder answered every finding `not-a-defect`, when a repair added no answer, and when noslop could read no earlier review. The command then acts on the `noslop findings` result:
   - When `noslop findings` succeeds, the command runs a plain review, which reads what changed since the last review, so the review covers the head.
-  - When `noslop findings` fails, the command runs no plain review, because a plain review that read no earlier review covers the whole pull request again. `accept` reads the result as `not-covered`, with noslop's error in the reading's `reason`, and the review settles `failed`. When noslop's error names `github.app`, the reason tells the owner to set that setting. A `findings` failure from another cause, such as a network error, also settles the review `failed`.
+  - When `noslop findings` fails, the command runs no plain review, because a plain review that read no earlier review covers the whole pull request again. `accept` reads the result as `not-covered`, with noslop's error in the reading's `reason`, and the review settles `failed`. When noslop's error names `github.app`, the reason tells the owner to set `github.app`. A `findings` failure from another cause, such as a network error, also settles the review `failed`.
 - **boxxy counts the change that a later review skips.** Each review after the first records `unrelatedLines` in its close-out: the changed lines between the earlier review's head and this head, in files that had no open finding at the earlier review. The server reads the changed files from GitHub's compare, and the pure `countUnrelatedLines` counts them. pepys's stage-time query sums the field over the item's reviews, so it shows how much unrelated change reaches a `--fixes-only` review.
 - **The review session gets the read-only clone token.** It is the token that the atc daemon clones with, with `Contents: read` and `Pull requests: read`, and noslop reads it as `GH_TOKEN`. atc withholds the daemon's variables from sessions, so the review recipe reaches the token through a broker profile. The recipe names a review agent: an atc agent whose broker profile holds the token, so its sessions hold a placeholder in `GH_TOKEN` and the broker adds the token on the way out. Build and design sessions never get it, because the server lists the review agent in `spawn.agents` and sets `requireScopedAgent` on the review phase. [The pipeline](../../architecture/work/pipeline.md#recipes-and-skills) lists what the rules loader then refuses, among them a review recipe with `session: builder`, since a review with no kept build session starts fresh on the review agent, and the item keeps that session for the next build.
 - **boxxy trusts the review session as it trusts any session.** Only the review attempt's own session can close it out. noslop's check before a post matches the result's head and config to the pull request, and never checks that the review's calls ran.
@@ -101,7 +106,7 @@ The `verify` phase runs an agent session that drives the real app with the repo'
 | `blocked`, with a question | hold, and the question reaches the owner |
 | `abandoned` | runs once more; a second `abandoned` in a row holds the item with `attempts used up` |
 
-The verdict reaches the merge in three steps, and only the last one decides the merge:
+The verdict reaches the merge in three steps. A repo that requires `verify / gate` holds the merge on step 2, and step 3 only records the reading:
 
 1. The verify agent runs the journeys, writes wringer's report into the pull request body with `bun verify publish`, and then closes out `verified`, which moves the item on to merge.
 2. The CI check `verify / gate` reads that report and fails a change whose features lack a fresh verdict. The gate computes wringer's fingerprint of the change, which needs a checkout, and the server has none.
@@ -139,7 +144,7 @@ The merge phase runs on the job worker `merge.forge`. The server builds that wor
 | the review passed at this head and every required check green | merge request | read again |
 
 - **The time limit is 240 minutes per merge attempt, from its claim.** A send-back ends the attempt, so the next merge attempt starts its own 240 minutes. The send-back caps bound the total. When the forge gives no answer past the limit, the attempt times out, as [Job attempts](#job-attempts) says, so with `maxAttempts: 2` a forge that stays down holds the item with `attempts used up` after two attempts.
-- **A read that no later read can change ends the attempt `blocked`.** When the item has no pull request, the forge answers not-found for the link, or the pull request has no commit, the job reads that as an unreadable merge, and `decideMerge` finishes `blocked` with the reason. The close-out holds no head and no verify reading. A forge call that throws is different: the read throws, and the next tick reads again.
+- **A read that no later read can change ends the attempt `blocked`.** When the item has no pull request, the forge answers not-found for the link, or the pull request has no commit, the job reads that as an unreadable merge, and `decideMerge` finishes `blocked` with the reason. The close-out holds no head and no verify reading. When a forge call throws, the read throws too, and the next tick reads again.
 - **Only `success` is green.** A check counts as green only when its latest run at the head concluded `success`. A skipped, neutral or cancelled run never counts.
 
 ### Races and repeats
@@ -162,7 +167,7 @@ The GitHub adapter calls GitHub as the boxxy App, whose [permissions](../../arch
 A merge attempt uses the attempt states `starting`, `running`, `closing`, `succeeded` and `failed`, and the one module that writes attempt state. Section A of [`03-flow.ts`](./sketches/next/review-and-merge/03-flow.ts) holds the changes of state.
 
 - **The runner routes each attempt by its worker.** The claim stores the phase kind's worker on the attempt row. On each tick the runner looks the name up in the server's `WorkerRegistry`: a session worker's attempt goes through the reconcile table, and a job's attempt goes through `runJobReading` in `modules/dispatch/src/jobs/`. The claim of a job attempt starts nothing.
-- **A job reads, then moves.** Its first read moves it from `starting` to running and writes `boxxy.attempt.job_started`. A read that throws moves nothing, so a job throws only when the outside system gave no answer. Past the step's time limit, counted from the claim, a read that throws moves the attempt to `closing` with `timed-out` and writes `boxxy.attempt.timed_out`, from `starting` or running. The move is a compare-and-set on `readAt` and `actedAt`, as the `act` mark is, so another runner's read that moved the row meanwhile wins. The attempt settles in the same tick as `timed-out`, with the engine outcome `lost`, as a session attempt's time limit does. `lost` acts as `again`, so the step runs a new attempt, and the item holds with `attempts used up` after `maxAttempts` in a row. The rules need no key for it. A read that can never succeed returns a reading that the drive finishes on, such as the merge's unreadable merge. A `wait` sets `readAt` and `waitReason`, an `act` sets `actedAt`, `actedHead` and `readAt`, and the job reads again only `jobReadSeconds` (30) after `readAt`. The `act` mark is a compare-and-set on `readAt` and `actedAt` of the row the drive decided on: when another runner's read or mark changed either one, the mark fails and the runner sends no call, so two runners that read one job at once send one call. The drive gets `actRetryMinutes` (5) in its context, for the wait before it sends an unanswered action again.
+- **A job reads, then moves.** Its first read moves it from `starting` to running and writes `boxxy.attempt.job_started`. A read that throws moves nothing, so throw from a job only when the outside system gave no answer. Past the step's time limit, counted from the claim, a read that throws moves the attempt to `closing` with `timed-out` and writes `boxxy.attempt.timed_out`, from `starting` or running. The move is a compare-and-set on `readAt` and `actedAt`, as the `act` mark is, so another runner's read that moved the row meanwhile wins. The attempt settles in the same tick as `timed-out`, with the engine outcome `lost`, as a session attempt's time limit does. `lost` acts as `again`, so the step runs a new attempt, and the item holds with `attempts used up` after `maxAttempts` in a row. The rules need no key for it. A read that can never succeed returns a reading that the drive finishes on, such as the merge's unreadable merge. A `wait` sets `readAt` and `waitReason`, an `act` sets `actedAt`, `actedHead` and `readAt`, and the job reads again only `jobReadSeconds` (30) after `readAt`. The `act` mark is a compare-and-set on `readAt` and `actedAt` of the row the drive decided on: when another runner's read or mark changed either one, the mark fails and the runner sends no call, so two runners that read one job at once send one call. The drive gets `actRetryMinutes` (5) in its context, for the wait before it sends an unanswered action again.
 - **A finished job settles in the same tick.** The drive's close-out goes through the phase kind's parser. When the parser refuses it, the attempt settles `closeout-unsettleable`, and the runner logs the problems.
 - **A merge holds a `jobs` seat.** The `workers` limit, at 7, counts the phases that run agent sessions, review included. The `jobs` limit, at 20, counts merges, so a merge that waits on CI never holds a session's seat.
 - **The runner writes the merge close-out.** Its actor is `boxxy:runner:<runner_id>`, and it goes through the phase kind's parser and the `closed_out` fact, as an agent's close-out does.
@@ -170,7 +175,7 @@ A merge attempt uses the attempt states `starting`, `running`, `closing`, `succe
 
 ## Facts and pepys
 
-The fact catalog of 30 types holds three for these steps: `boxxy.attempt.job_started`, `boxxy.merge.requested` and `boxxy.merge.answered` ([`02-types.ts`](./sketches/next/review-and-merge/02-types.ts), the last section). The item is the entity of each one. Everything else that pepys reads about these steps reaches it in `boxxy.attempt.closed_out`:
+The fact catalog of 30 types holds three for these steps: `boxxy.attempt.job_started`, `boxxy.merge.requested` and `boxxy.merge.answered` ([`02-types.ts`](./sketches/next/review-and-merge/02-types.ts), the last section). The item is the entity of each one. Apart from the facts that every attempt and pull request writes, such as `boxxy.attempt.timed_out` and `boxxy.pull_request.merged`, the rest that pepys reads about these steps reaches it in `boxxy.attempt.closed_out`:
 
 - each review's head, open counts, token cost and `unrelatedLines`;
 - each verify close-out, with its grader;
@@ -188,7 +193,7 @@ pepys compares the two graders by recipe. The owner gives one item kind the `ses
 - The read-only clone token in the review session, as `GH_TOKEN`, which noslop reads to fetch the pull request. It is the token the atc daemon clones with, with `Contents: read` and `Pull requests: read`. atc withholds the daemon's variables from sessions, so the review recipe names a review agent, an atc agent whose broker profile holds the token, and the server lists it in `spawn.agents`. Build and design sessions never get it: [the review gate](#the-review-gate) holds the rule that keeps it to review sessions.
 - The App's keys in the server pod alone, and never in a worker session.
 - The App, installed on every repo that the server starts workers for.
-- The check: a live boxxy review round leaves a `noslop` check run, posted by the App, at the pull request's head.
+- To check the setup, run a live boxxy review round and look for a `noslop` check run, posted by the App, at the pull request's head.
 
 ## What the owner sees
 
@@ -205,10 +210,10 @@ Section 5 of [`01-usage.ts`](./sketches/next/review-and-merge/01-usage.ts) shows
 | Each loop holds after its last send-back, with a notice. | An `advance` test over the rules lines in section 1 of `01-usage.ts`, one row per backward edge. |
 | A refused merge of a clean, green head holds the item, and a request with no answer is sent again. | `decideMerge` test rows with `acted` set: `not-mergeable` gives `refused`, no answer after 5 minutes gives a new request, and past the time limit gives `stalled`. |
 | Each review after the first records the changed lines outside the files that had findings. | `countUnrelatedLines` test rows, a close-out procedure test with a fake forge compare, and a pepys query test that reads `unrelatedLines`. |
-| Only a review session gets the read-only clone token. | A recipe test: the review recipe names the token's path, and the build and design recipes name none. |
+| Only a review session gets the read-only clone token. | Rules loader tests in `collect-scope-rejections`: the loader refuses a review recipe on an unscoped agent, and a recipe outside the agent's scope. |
 | A review never passes a head that it did not read. | Review adapter tests: the later-review command runs a plain review after a `--fixes-only` run that judged no fix, and none when `noslop findings` fails; `accept` reads such a run as `not-covered` and posts nothing, with noslop's error as the reason when `findings` failed; and a result for an old head reads `not-covered`. |
 | A server restart during a review never holds the item or starts a second review. | A CLI test that stops the server after `accept` posts and before the close-out is stored: the session's second close-out settles the same attempt. A second test repeats a stored close-out, and `accept` does not run. |
-| A passed review needs noslop's check to pass. | A review adapter test: `check` answers `failure` with no open finding, and the reading is blocked `unreadable`. |
+| A passed review needs noslop's check to pass. | A review adapter test: `check` answers `failure` with no open finding, and the reading is blocked `unreadable`, and the review settles `failed`. |
 | A review that GitHub refuses the App fails with the reason, and a rate limit sends again. | Review adapter tests: a 404 on the post and a 403 on `check` read `not-covered` with the status in `reason`, and a 429 throws. |
 | A repo whose noslop config names no App still gets a first review, and a later review there fails with a reason that asks for `github.app`. | Review adapter tests: on a review that is not `--fixes-only`, `findings` exited 1 with no list, `check` finds nothing open, and the reading is `passed`; on a `--fixes-only` run that judged no fix, a failed `findings` gives a `not-covered` reading whose reason holds noslop's error. |
 | A review close-out from any other session is refused. | The close-out procedure's caller test, as for every attempt. |

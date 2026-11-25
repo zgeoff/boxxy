@@ -149,8 +149,8 @@ that command alone. A command with neither runs on the registry's first target, 
 | `local` | launch | `bun verify use --target local`, then `bun verify up`           | read-write |
 | `prod`  | attach | the steps in [On prod](references/feature-owner-mcp.md#on-prod) | read-only  |
 
-Each `up` starts the harness: the boxxy server and CLI on an empty SQLite store, with no network,
-and fakes for the clock, the worker, GitHub and the hold-notice sender.
+Each `up` starts boxxy offline on an empty store, with an in-process pepys and fakes for the clock,
+the worker, GitHub and notices.
 
 <!-- /repo -->
 

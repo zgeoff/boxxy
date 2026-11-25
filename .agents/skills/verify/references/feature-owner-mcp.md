@@ -33,8 +33,8 @@ bun verify mcp call item_list --args '{"state":"held","text":"queue depth"}'
 
 Each field below sits under `data`.
 
-- `mcp tools` gives `server: "boxxy"` and the owner's tools, `item_file` among them. Each tool that
-  the [access table](../../../../libs/contract/src/access.ts) puts in the `read` scope has
+- `mcp tools` gives `server: "boxxy"` and the owner's tools, `item_file` among them. Each tool in
+  the `read` scope of the [access table](../../../../libs/contract/src/access.ts) has
   `inReadTools: true`, and every other tool has `false`.
 - `mcp call item_file` gives `isError: false`, and the new item's ID in `structuredContent.item`.
 - `mcp call item_get` gives `isError: false`, and an item object in `structuredContent.item` with
@@ -47,9 +47,11 @@ Each field below sits under `data`.
 ## On prod
 
 When your task asks you to check a deploy, run these steps on `prod`, the deployed server. You
-attach to it with no `up`. It refuses every command that changes state.
+attach to it with no `up`. It refuses every command that changes its state; `done` writes only to
+your local run.
 
-- When a step fails, give its `data` or `error` in your reply. Skip step 5, and still run step 6.
+- When a step fails, `doctor` included, give its `data` or `error` in your reply. Skip step 5, and
+  still run step 6. You can't fix the deployed server from your worktree.
 - Run this journey and `done` on `local` again before you publish with
   [Check a change](../SKILL.md#check-a-change). `done` on `prod` replaces the feature's `local`
   verdict in this worktree, and `publish` would write that `prod` verdict into the PR with none of
@@ -75,7 +77,7 @@ attach to it with no `up`. It refuses every command that changes state.
 3. Run `bun verify doctor`. Expect: `data.passed: true`. On `prod`, the doctor reports the `boxxy`
    check as `skipped`. That check tests the local harness. The other checks test the door:
    - `mcp-door` reads the door's OAuth metadata at `/.well-known/oauth-protected-resource/mcp`. When
-     it fails, the deployed server runs with no public door, or at another URL.
+     it fails, the deployed server has no public door, or serves it at another URL.
    - `mcp-sign-in` signs the client in and lists the tools. When it fails, the deployed server's
      service-token file lacks the client's digest, or the secret is wrong.
 

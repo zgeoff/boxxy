@@ -3,9 +3,11 @@
 boxxy takes two kinds of input, and stores them in two places
 ([decision 0003](../../decisions/0003-rules-in-git-levers-as-facts.md)). Policy, such as pools,
 pipelines, gates, experiments and plug-in versions, lives in a git config repo, and boxxy loads it
-from a merged commit as one [rules version](#the-rules-version). Levers, such as expedite, rank and
+as one [rules version](#the-rules-version), from a merged commit when the folder is a git checkout. Levers, such as expedite, rank and
 defer, are facts written through the command API, and act at once. A policy change is a PR that CI replays against past weeks before anyone
-merges it. Every decision records the rules version in force.
+merges it. Every decision records the rules version in force. Read this doc before you change how
+boxxy loads rules or levers, and describe what you build in the architecture doc that owns it, as
+AGENTS.md says.
 
 ## Policy in git
 
@@ -20,23 +22,24 @@ merges it. Every decision records the rules version in force.
 
 - **boxxy loads rules from a git checkout only at a merged commit,** and reloads them live. The
   server reads the files of HEAD's commit from git, never from the working tree, and only when the
-  server's rules ref, `origin/main` unless the config names another, holds that commit. A commit
-  off that ref, a missing ref, uncommitted changes or a symlink in the commit fail the load, and a
-  failed reload keeps the rules in force.
+  server's rules ref, `origin/main` unless the config sets another, holds that commit. A commit
+  off that ref, a missing ref, uncommitted changes or a symlink in the commit fail the load. When a reload
+  fails, the rules in force stay.
 - **A rules folder with no `.git` loads with no check.** boxxy reads every file that is not hidden,
-  and records the commit as `folder`. A deploy that uses a plain folder must build it only from the
-  reviewed rules branch.
+  and records the commit as `folder`. When you deploy from a plain folder, build it only from
+  the reviewed rules branch.
 - **A change is a PR.** It is diffable and reviewed, and CI replays it (see
   [replay CI](#replay-ci)).
-- **A rules PR touches dispatch for the whole fleet,** so it takes the full review gate. A new rule
-  set then runs as a challenger in shadow before promotion ([measurement](./measurement.md)).
+- **A rules PR touches dispatch for the whole fleet,** so it takes the full review gate. In the
+  full design, a new rule set also runs as a challenger in shadow before promotion
+  ([measurement](./measurement.md)).
 - **The loader rejects a plug-in reference it can't check** (proposed): an unknown plug-in name,
   or parameters that fail the plug-in's schema. The experiment loader adds its own checks
   ([measurement](./measurement.md)).
 
 ## The rules version
 
-boxxy hashes four inputs into one rules version:
+boxxy hashes these inputs into one rules version:
 
 - the config repo's commit hash;
 - the bytes of every file the loader read;
@@ -58,8 +61,8 @@ A lever is an owner or agent command that changes ordering now, with no PR:
 - pool holds;
 - overrides from a judgement phase, such as pin, admit and lift.
 
-Each lever is a fact with its actor, time and reason, so `explain` shows it and its cost is a query.
-[Planning](./planning.md) defines what each lever does. A lever never edits policy.
+Each lever is a fact with its actor, time and reason, so `explain` shows it and a query can find its cost.
+See [planning](./planning.md) for what each lever does. A lever never edits policy.
 
 ## The plug-in kinds registry
 
@@ -76,14 +79,14 @@ and the registry lists the kinds and the plug-ins of each kind:
 | capacity source | [capacity](./capacity.md) |
 | batch-size rule | [merge train](./merge-train.md) |
 
-- **A rules version pins plug-in code** through its concept pins
+- **A rules version pins plug-in code** through its concept pins and phase kinds
   ([the rules version](#the-rules-version)), so a replay runs the code that decided. A replay that
   can't find a pinned version marks its explanation suspect.
 - **A propagation line is rules data** that `buildFrame` runs, so the registry has no propagation
   kind ([planning](./planning.md#propagation)).
 - **Plug-ins are compiled in.** The first slice loads no plug-in code at run time. The registry's
-  interface is the same either way, so loading plug-ins later is an addition.
-- **A rule that needs conditionals or loops becomes a typed plug-in.** The rules files hold names,
+  interface is the same either way, so run-time loading can come later without changing it.
+- **Write a rule that needs conditionals or loops as a typed plug-in.** The rules files hold names,
   parameters and orderings, never logic
   ([decision 0005](../../decisions/0005-the-core-stays-generic.md)).
 
@@ -106,6 +109,6 @@ same mechanism as `explain` ([planning](./planning.md#explain)):
 3. Compare its picks with the recorded picks.
 
 The same replay, run with the recorded rules version, is boxxy's determinism test: every recorded
-decision must come out the same. One case must stay in that test: dispatch, then deliver a CI fact
+decision must come out the same. Keep this case in that test: dispatch, then deliver a CI fact
 whose source time is earlier than the dispatch, then replay. The candidates and the snapshot hash
 must match.

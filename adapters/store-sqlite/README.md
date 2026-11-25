@@ -39,5 +39,5 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-The [v1 tables migration](./src/migrations/v1-tables-migration.ts) creates each table, and the
-`ClaimStore` port in `@boxxy/model` gives the port, the seat take and the seat sync.
+To see each table, read the [v1 tables migration](./src/migrations/v1-tables-migration.ts). To see
+the `ClaimStore` port, the seat take and the seat sync, read `@boxxy/model`.

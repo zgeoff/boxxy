@@ -14,7 +14,7 @@
 The pepys plug-in of boxxy, with the fact sink that sends boxxy's facts to pepys and the reader that
 asks pepys for boxxy's two reports.
 
-A pepys deployment lists the plug-in, and the boxxy server builds the sink and the reader. The
+List the plug-in in your pepys deployment. The boxxy server builds the sink and the reader. The
 plug-in folds boxxy's facts into the `boxxy_work` tables and answers two queries: what an item cost
 to land, and how long it spent in each step.
 
@@ -27,8 +27,8 @@ Install the package and the pepys kit it plugs into from
 bun add @boxxy/pepys @pepys/kit zod
 ```
 
-`@pepys/kit` and `zod` are peer dependencies: the deployment's own copy is the one the plug-in uses.
-The package runs on [Bun](https://bun.sh) 1.3 or newer.
+`@pepys/kit` and `zod` are peer dependencies, so the plug-in uses the deployment's own copy. The
+package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Features
 
@@ -40,5 +40,5 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Documentation
 
-[Facts and pepys in v1](../../docs/architecture/interfaces/facts-and-pepys.md) describes the outbox,
-the fact catalog, the `boxxy_work` package and the two queries.
+For the outbox, the fact catalog, the `boxxy_work` package and the two queries, read
+[Facts and pepys in v1](../../docs/architecture/interfaces/facts-and-pepys.md).

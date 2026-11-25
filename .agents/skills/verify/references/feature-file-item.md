@@ -3,8 +3,9 @@
 Run this journey to check that boxxy stores the title of an item the owner files. The owner files an
 item with `boxxy item file`, and reads it with `boxxy item show`. `action file-item` runs
 `boxxy item file` and makes the new item current. `bun verify boxxy item` runs `boxxy item show` on
-the current item, and compares its title with `--title`. With `--by-ref`, it then runs
-`boxxy item show` on the short reference of that item, such as `i-1`, and compares the ID it shows.
+the current item, and checks that its title matches `--title`. With `--by-ref`, it then runs
+`boxxy item show` on the short reference of that item, such as `i-1`, and checks that the reference
+shows the same item ID.
 
 ## Journey
 

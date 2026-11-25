@@ -35,16 +35,17 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
   ([v1 facts](../../docs/architecture/interfaces/facts-and-pepys.md)).
 - The four close-outs of the v1 phases, each with its schema, and `closeOutSchema` for any of them.
 - The output schemas of the two pepys reports, `costToLandSchema` and `stageTimeSchema`.
-- `definePhase`, which registers a phase kind with its close-out type hidden.
+- `definePhase`, which returns a phase kind with its close-out type hidden, so the rules loader can
+  hold every phase kind in one list. It keeps no registry of its own.
 - `buildItemViews`, which derives each item's position and state from its rows and the rules, with
   `findPosition` and `deriveItemState`.
 - `pickSeatTake` and `collectSeatSync`, which give a store's seat take and seat sync.
 - `liveLevers`, which drops the levers a later undo lever cancels and those past their expiry.
 - `signalKey`, which builds a signal's key from its name and the content hash of its parameters.
-- `defineSignal`, `defineGate` and `defineAdmission`, which register a plug-in with its parameter
-  type hidden.
+- `defineSignal`, `defineGate` and `defineAdmission`, which each return a plug-in with its parameter
+  type hidden, as `definePhase` does.
 
 ## Documentation
 
-The [boxxy design docs](../../docs/design/boxxy/README.md) describe each type, and the
-[interface sketches](../../docs/design/boxxy/sketches/README.md) give its shape.
+Read what each type is for in the [boxxy design docs](../../docs/design/boxxy/README.md), and its
+shape in the [interface sketches](../../docs/design/boxxy/sketches/README.md).

@@ -11,9 +11,10 @@
   </p>
 </div>
 
-boxxy's `Forge` port on GitHub: over the REST API it reads a pull request, its commits, its body,
-its mergeable state and the checks at a head, the open pull requests of a repo, the compare of two
-heads and the checks a branch requires, and it merges a pull request at a head.
+`@boxxy/forge-github` implements boxxy's `Forge` port over GitHub's REST API. It reads a pull
+request with its commits, its body, its mergeable state and the checks at a head. It also reads the
+open pull requests of a repo, the compare of two heads and the checks a branch requires, and it
+merges a pull request at a head.
 
 ## Install
 
@@ -27,31 +28,32 @@ The package runs on [Bun](https://bun.sh) 1.3 or newer.
 
 ## Features
 
-- `createGithubForge({ fetch, baseUrl, readToken? })` returns a `Forge`. The app passes the `fetch`
+- `createGithubForge({ fetch, baseUrl, readToken? })` returns a `Forge`. Pass it your app's `fetch`
   and the REST root, such as `https://api.github.com`.
 - `readToken` is optional, because a deployment's broker can add the credential on the way out. The
-  adapter reads it before each call, sends the token as a bearer token, and never logs it or puts it
-  in an error.
+  adapter calls `readToken` before each request, sends the token as a bearer token, and never logs
+  it or puts it in an error.
 - `createGithubAppAuth({ keys, baseUrl, fetch, nowMs })` mints a GitHub App's installation token
   through `@octokit/auth-app`, with the App's client ID as the JWT's `iss`. Its `readToken` holds
   the token until 5 minutes before it expires, and shares one mint between the calls that wait.
 - A pull request carries GitHub's own `id`, which pepys builds its entity ID from, and the base
   branch it merges into.
-- A missing pull request reads as `not-found`. Any other failure throws, and the caller reads that
-  as "the forge did not answer".
+- A missing pull request reads as `not-found`, and `mergeAtHead` returns `head-moved` or
+  `not-mergeable` for its two refusals. Any other failure throws, and the caller reads that as "the
+  forge did not answer".
 - `readChecks(repo, head)` gives the state and the source of the newest run of each check name at
   `head`, from the check runs and the commit statuses.
 - `readRequiredChecks(repo, branch)` gives the union of the checks that the branch's rulesets
   require and the checks that its classic protection enforces.
 - `mergeAtHead(ref, head, method)` sends one merge call with `sha: head`, so GitHub merges only
-  while the head is still `head`. It answers `head-moved` to a 409 and `not-mergeable` to a 405.
+  while the head is still `head`. It returns `head-moved` on a 409 and `not-mergeable` on a 405.
 - `src/test-utils/github-handlers.ts` holds the MSW handlers that answer the GitHub REST API in
   tests, from `@msw/data` collections that a test seeds, and `build-github-seeders.ts` seeds them
   for the forge contract. The repo's test preload runs `src/test-utils/mock-network.ts`, which
-  starts the one mock network of each test process and resets the collections after each test. A
-  request that no handler matches fails the test.
+  starts one mock network per test process and resets the collections after each test. Give each
+  request a test makes a handler: a request that no handler matches fails the test.
 
 ## Documentation
 
-[The pull request watch](../../docs/architecture/interfaces/github.md#the-pull-request-watch)
-describes the calls and the GitHub permissions they need.
+For the calls and the GitHub permissions they need, read
+[The pull request watch](../../docs/architecture/interfaces/github.md#the-pull-request-watch).

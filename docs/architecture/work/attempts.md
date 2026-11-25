@@ -45,23 +45,26 @@ the rows and facts each one writes.
 - **`wake-refused`** means atc had no room for the wake. The attempt sleeps again and keeps its wake
   request ([capacity](./sessions.md#capacity-and-the-usage-limit)).
 - **`closing`** means boxxy has decided the attempt is over but its session may still run. The
-  attempt settles once the session has stopped. When a runner event moved it to `closing`, it
-  settles with the failure that event names (`usage-limited` gives `usage-limit`), even when it
-  holds a close-out. Otherwise it settles by its close-out.
+  attempt settles once the session has stopped. When a runner event or `item.close` moved it to
+  `closing`, it settles with the failure that event names (`usage-limited` gives `usage-limit`),
+  even when it holds a close-out. Otherwise it settles by its close-out.
 
 An attempt takes its seats at the claim, gives them back when it sleeps, takes them again at the
-wake before the session resumes, and gives them back at the settle; `closing` keeps them. From claim
-to settle it also holds the lease on its item and phase, a store row that lets only one attempt at a
-time run that phase.
+wake, and gives them back at the settle; `closing` keeps them. At the wake it takes its seats before
+the session resumes. For a session the owner revived, it takes them over its limits when no seat
+comes free in time. From claim to settle it also holds the lease on its item and phase, a store row
+that lets only one attempt at a time run that phase.
 
 ## Two writers, one attempt
 
-The runner and a close-out call can change the same attempt at the same moment. Every write to an
-attempt, its session rows or its seats therefore goes through one builder in the dispatch module,
-which runs the attempt machine as a pure function, and a repo test fails when any other code in that
-module writes them. The store refuses a change when the stored row differs from the row the builder
-read: its state, every column the machine's guards read, and the version counters on the lease and
-the seats. The seat counter goes up at each wake. The refused caller reads again on the next tick.
+The runner and a close-out call can change the same attempt at the same moment. Every write to a
+claimed attempt, its session rows or its seats therefore goes through one builder in the dispatch
+module, which runs the attempt machine as a pure function, and a repo test fails when any other code
+in that module writes them. The one other writer is the builder of a
+[skipped attempt](#skipped-attempts), which the same test names. The store refuses a change when the
+stored row differs from the row the builder read: its state, every column the machine's guards read,
+and the version counters on the lease and the seats. The seat counter goes up at each wake. The
+refused caller reads again on the next tick.
 
 The runner decides each action from a row it read before the session reading, so it adds a check of
 its own. Inside the store's write lock it writes nothing when the row has changed on a guard column,
@@ -127,10 +130,11 @@ when it has done nothing since a wake, or once it has been quiet for `afterQuiet
 atc counts only the agent's hook events as activity, such as the end of a turn, and never a tool
 call. A turn the agent starts for a scheduled wakeup or a finished background task therefore shows
 its activity when it ends. A scheduled wakeup can wait longer than the default `afterSilentMinutes`,
-so the example prompts tell the agent to wake more often than that. One case has no bound: an
-attended session that the owner keeps coming back to within each `afterUnattendedMinutes`. The atc
-worker never reports a usage limit, so the first row never fires with it; dispatch keeps the row for
-a worker kind that reports a reset time ([capacity](./sessions.md#capacity-and-the-usage-limit)).
+so the example prompts tell the agent to wake more often than that. An active attended session has
+no bound when the rules file leaves `afterUnattendedMinutes` unset, or when the owner keeps coming
+back within each `afterUnattendedMinutes`. The atc worker never reports a usage limit, so the first
+row never fires with it; dispatch keeps the row for a worker kind that reports a reset time
+([capacity](./sessions.md#capacity-and-the-usage-limit)).
 
 ## Sleep and wake
 
@@ -186,8 +190,7 @@ such as one that cites an unknown criterion, still costs one read. An agent's ow
 count and a friction entry with no target do not fail the schema. `blocked` and `abandoned`
 close-outs, a body that cites no checked evidence, and a resend of a recorded close-out never wait
 on GitHub. A failed read answers `retry` and settles nothing, and the CLI exits as for an evidence
-`retry`. A close-out that cites no `check` or `verdict` reads no head, so the context the parser
-gets holds a head only when the close-out cites checked evidence.
+`retry`. The parser's context holds the head only when the close-out cites checked evidence.
 
 The build phase kind gives each cited `check` or `verdict` whose recorded head differs from the head
 one `stale-evidence` problem: the criterion, the evidence ID, the head it was recorded at, and the
@@ -248,9 +251,9 @@ new row. The store keeps a checked row's ref qualified by its head, because its 
 attempt, the kind and the ref, and it gives the ref back bare. A refused call or a `retry` writes no
 row and no fact. A call reads GitHub outside the store lock, and checks the session again inside the
 lock before it writes. A `check` makes one pull request read and one checks read. A `verdict` makes
-the same two reads, and the verifier then reads the checks a second time, with the pull request's
-body, through its own port, so a check run that changes between the two reads can differ between the
-gate state that decides the refusal and the state the verifier reported.
+the same two reads, and the verifier then reads the checks a second time through its own port, with
+the pull request's body. A check run that changes between those reads can therefore differ between
+the gate state that decides the refusal and the state the verifier reported.
 
 Merge never reads checked evidence again: the required checks and the verify gate run at the merged
 head, so they cover a push after the close-out. To guard an acceptance line's check through merge,
@@ -265,7 +268,8 @@ the stop, so the agent can tell the owner its close-out went in. Closing the ite
 `item.close` ends the item's live attempts in the same store change. A sleeping attempt settles at
 once as failed with `item-closed`, and boxxy doesn't wake it. Every other live attempt moves to
 `closing`, including one whose spawn is still in flight: boxxy sends no second spawn, and stops the
-session when it appears.
+session when it appears. Until then the attempt has no session to read as absent, and it settles as
+the next paragraph says.
 
 atc refuses a stop while something else keeps the session's host awake. So that an attempt never
 waits in `closing` forever, it settles anyway after a fixed give-up time, as any closing attempt
@@ -308,10 +312,10 @@ which no edge matches. The item holds, and `boxxy item retry <item> --phase <pha
 
 A failure the runner sets wins over any close-out the attempt holds, and such a settle applies no
 effects, so it files none of the close-out's open items. An attempt fails with `closeout-missing`
-when it settles with no close-out and none of the failures below. The same failure also marks a
-close-out with the outcome `blocked` or `abandoned` from a
-[design or build close-out](../../design/boxxy/close-outs.md#the-v1-phase-kinds). The runner sets
-every other failure:
+when it settles with no close-out and none of the failures below. An attempt whose
+[design or build close-out](../../design/boxxy/close-outs.md#the-v1-phase-kinds) has the outcome
+`blocked` or `abandoned` fails with `closeout-missing` too. Settle sets `closeout-missing` and, as
+the paragraph above says, `closeout-unsettleable`. The runner sets every other failure:
 
 | Failure         | Cause                                                                                                                                                     | Counts against `maxAttempts` |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |

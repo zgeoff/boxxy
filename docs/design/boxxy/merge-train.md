@@ -4,7 +4,8 @@ The merge train lands each repo's approved pull requests one batch at a time, so
 send every other open pull request back to rebase. Stacks move as one unit, a unit rebases only at
 the front of the train, and the batch size follows the measured rate at which combined batches fail.
 The train comes after the built system the [overview](../../architecture/overview.md) describes; the `modules/train` package will hold
-it (see [the layout](../../architecture/repo/layout.md)).
+it (see [the layout](../../architecture/repo/layout.md)). Read this doc before you build any part of
+the train, and describe what you build in the architecture doc that owns it, as AGENTS.md says.
 
 The decisions behind this doc are
 [0011: merge train rules](../../decisions/0011-merge-train-rules.md) and
@@ -50,22 +51,22 @@ head. A stack enters the train, rebases, runs CI and merges as one unit.
  bisect; eject the failing unit; requeue the rest
 ```
 
-- **Rebase lazily, at the front.** A unit rebases only when it reaches the front of the train, which
+- **Rebase lazily, at the front.** boxxy rebases and pushes a unit only when it reaches the front of the train, which
   caps rebases at one per unit each time it reaches the front.
 - **Probe for conflicts at every base move.** Each time the base moves, boxxy trial-rebases every
   open unit with no push and no CI. A conflict starts an agent fix early, so the unit is ready by
-  the time it reaches the front. The probe aims at eager rebasing's wait for lazy rebasing's CI cost
-  (proposed; not yet modelled).
+  the time it reaches the front. The probe aims to give the short wait of eager rebasing at the CI
+  cost of lazy rebasing (proposed; not yet modelled).
 - **A conflicted unit leaves the batch.** It requeues after its fix. The train never waits for it.
 - **Rerun failed tests before bisecting.** On a red run, boxxy reruns only the failed tests on the
-  same head. A test that fails and then passes is quarantined for the train, and a ticket opens to
-  fix it.
+  same head. When a test fails and then passes, boxxy quarantines it for the train and opens a
+  ticket to fix it.
 - **At most 3 agent fix attempts per unit.** After the third, the unit escalates to the owner.
   Innocent ejections and bisects in which every part passes count as flake alarms: signs that a
   flaky test failed the batch.
 - **Every rebase at the front writes a conflict fact:** the result (clean, retry, agent or failed),
-  the files and the cost. A query shows conflict cost per week. Files that always collide, such as
-  changelogs, lockfiles and migration numbers, get fixed in tooling.
+  the files and the cost. A query shows conflict cost per week. Fix files that always collide, such
+  as changelogs, lockfiles and migration numbers, in tooling.
 
 A pull request that falls behind its base, conflicts or fails CI outside the train goes to a
 triggered phase: a script attempt first, and an agent attempt only when the script can't handle the
@@ -110,7 +111,8 @@ these rules).
   | all repos        | 207           | 4.2       | 20.2      |
 
 - **Modelled: eager rebases.** With stacks as units, rebasing every open unit on each merge fires
-  150 rebases; the per-PR model said 969. Lazy rebasing caps it at one per unit.
+  150 rebases; the per-PR model gave 969. Lazy rebasing caps it at one per unit each time the unit
+  reaches the front.
 - **Modelled: the train in the busiest repo**, waits in minutes:
 
   | CI time                | Serial, p50 / p90 | Batch cap 4, p50 / p90 |
@@ -133,8 +135,9 @@ these rules).
 
 - **Modelled: a base move sends 40 pull requests to rebase.** Lazy rebasing uses 64 to 83 CI runs
   against eager rebasing's 182 to 229, but waits longer: p90 72 to 152 minutes against 43 to 103.
-  Holding the train for a conflicted unit is worst, at p90 310 minutes. The conflict probe and the
-  rule that a conflicted unit leaves the batch answer both.
+  Holding the train for a conflicted unit is worst, at p90 310 minutes. Taking a conflicted unit
+  out of the batch avoids the hold, and the proposed conflict probe targets the longer wait of lazy
+  rebasing.
 - **Modelled: a flaky test that fails 30% of runs.** Bisecting with the adaptive cap and no rerun
   drives the cap to serial: the exposed wait reaches p90 451 minutes against 38, the day ends at
   14.5 hours instead of 7.9, and 7.9 innocent units are ejected. Rerunning only the failed tests,

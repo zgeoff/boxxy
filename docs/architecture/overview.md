@@ -2,11 +2,11 @@
 
 boxxy decides which piece of work a fleet of coding agents takes next, runs each step of that work
 in an agent session, and records every change it makes. One server process holds the work in a
-SQLite store. A loop inside it, the runner, claims work, starts agent sessions through atc, the
-session manager, watches each live session, and records how each attempt ended. pepys, a separate
-event store, keeps a record of every change and answers two reports: what an item cost, and how long
-it spent in each stage. This page shows the whole system and links the doc that owns each part;
-[Terms](#terms) at the end defines the words every architecture doc uses.
+SQLite store. A loop inside it, called the runner, claims work and starts agent sessions through
+atc, the session manager. The runner then watches each live session and records how each attempt
+ended. pepys, a separate event store, keeps a record of every change and builds two reports: what an
+item cost, and how long it spent in each stage. Below is the whole system, with a link to the doc on
+each part. The words every architecture doc uses are defined in [Terms](#terms) at the end.
 
 ## The path of an item
 
@@ -28,22 +28,23 @@ flowchart LR
 3. The runner starts an agent session for the attempt through atc, and reads that session's state on
    every later tick.
 4. The agent sends a close-out when its work is done, and the runner settles the attempt. The store
-   keeps no position for the item. Each time the server reads an item, it works out where the item
-   stands from the item's settled attempts and the pipeline, so the next step follows from the edge
-   of the settled outcome.
+   keeps no position for the item: each time the server reads an item, it works out where the item
+   stands from the item's settled attempts and the pipeline, and the next step is where the edge of
+   the settled outcome leads. A rules change therefore moves every waiting item with no migration.
 5. When a settle puts the item on hold, it also writes a notice, which the runner sends through atc
    to the session the owner picked for notices.
 
-[The pipeline](./work/pipeline.md) covers phases, edges, holds, limits, pools, recipes and the
-launch prompt. [Planning](./work/planning.md) covers how the claim picks an item.
-[Attempts](./work/attempts.md) covers one attempt from claim to settle.
-[Agent sessions](./work/sessions.md) covers keeping, cleaning up and starting sessions.
-[Notices](./work/notices.md) covers how a hold reaches the owner. The
-[ship watch](./work/ship-watch.md) covers the steps that wait for a merge to ship.
+Phases, edges, holds, limits, pools, recipes and the launch prompt are in
+[the pipeline](./work/pipeline.md). How the claim picks an item is in
+[planning](./work/planning.md). One attempt from claim to settle is in
+[attempts](./work/attempts.md). Keeping, cleaning up and starting sessions are in
+[agent sessions](./work/sessions.md). How a hold reaches the owner is in
+[notices](./work/notices.md). The steps that wait for a merge to ship are in the
+[ship watch](./work/ship-watch.md).
 
 When a pipeline has a merge step, the runner merges the pull request itself, as a job with no agent
 session: it reads the pull request's checks and merges at the head commit once every required check
-is green. That needs a `github` section in the server config, and without one the rules loader
+is green. Merging needs a `github` section in the server config: without one, the rules loader
 refuses a pipeline with a merge step ([GitHub](./interfaces/github.md)).
 
 ## Processes and how they reach each other
@@ -66,10 +67,10 @@ flowchart LR
 The server runs as one process with up to three listeners: the owner listener on the owner's private
 network, for the CLI and the owner's MCP tools; the worker listener, which agent sessions reach only
 through the imp broker; and the public listener, behind OAuth, for the owner's assistant off the
-private network, opened only when the config has a `publicDoor` section.
-[API and auth](./interfaces/api-and-auth.md) covers who may call what on each.
-[The CLI and the hooks](./interfaces/cli-and-hooks.md) covers the `boxxy` command and the hooks in
-each session, and [GitHub](./interfaces/github.md) how boxxy links and merges pull requests.
+private network, opened only when the config has a `publicDoor` section. Who may call what on each
+listener is in [API and auth](./interfaces/api-and-auth.md). The `boxxy` command and the hooks in
+each session are in [the CLI and the hooks](./interfaces/cli-and-hooks.md), and how boxxy links and
+merges pull requests is in [GitHub](./interfaces/github.md).
 
 The runner reaches atc through the atc gateway's MCP tools, and GitHub as a GitHub App. Each outside
 system has one adapter package. The server builds the adapters and hands them to the domain packages
@@ -87,27 +88,28 @@ Every change writes its facts to the outbox in the same transaction, so every st
 its facts waiting to go. The outbox sender, a second loop in the server, sends them to pepys in
 order. pepys keeps the whole history, and boxxy's plug-in inside pepys builds the tables the two
 reports read. boxxy never needs pepys to decide anything
-([facts and pepys](./interfaces/facts-and-pepys.md)). [The store](./work/store.md) covers how a
-write lands and what refuses one.
+([facts and pepys](./interfaces/facts-and-pepys.md)). How a write lands, and what refuses one, is in
+[the store](./work/store.md).
 
 ## Rules
 
-The server loads the rules from a git checkout, and only from a commit in the history of the
-configured ref, such as `origin/main`, so every rule it runs has merged through review. A plain
-folder with no git loads with no check, so build that folder only from the reviewed rules branch.
-The rules version is a hash of that commit, the rules file, the recipes' prompt templates and the
-code of the planning concepts the rules file pins, such as its pool and lever kinds, and each claim
-records it. The owner's levers must act at once while a rules change waits for review, so the store
-keeps levers as rows ([decision 0003](../decisions/0003-rules-in-git-levers-as-facts.md)). The
-loader refuses a YAML value that holds itself through an alias, and any `__proto__` key, before the
-schema check. `scripts/write-concept-pins.ts` writes the concept pins into the committed
+The server loads the rules from a folder. When the folder is a git checkout, the server loads only a
+commit in the history of the configured ref, such as `origin/main`, so every rule it runs has merged
+through review. A plain folder with no git loads with no check, so build that folder only from the
+reviewed rules branch. The rules version is a hash of that commit, the rules file, the recipes'
+prompt templates and the code of the planning concepts the rules file pins, such as its pool and
+lever kinds. Each claim records the rules version. The owner's levers must act at once while a rules
+change waits for review, so the store keeps levers as rows
+([decision 0003](../decisions/0003-rules-in-git-levers-as-facts.md)). The loader refuses a YAML
+value that holds itself through an alias, and any `__proto__` key, before the schema check.
+`scripts/write-concept-pins.ts` writes the concept pins into the committed
 `src/generated/concept-pins.ts`, and a test fails when that file is stale. Each hash uses canonical
 JSON by RFC 8785, which throws on `NaN` or `undefined`, and a tree hash sorts its files by the UTF-8
 bytes of their relative paths.
 
-[The pipeline](./work/pipeline.md) covers the parts of the rules file the server runs, and the
-[rules](../design/boxxy/rules.md) and [planning](../design/boxxy/planning.md) designs cover the
-parts not yet built.
+The parts of the rules file the server runs are in [the pipeline](./work/pipeline.md). The parts not
+yet built are in the [rules](../design/boxxy/rules.md) and [planning](../design/boxxy/planning.md)
+designs.
 
 ## The repo
 
