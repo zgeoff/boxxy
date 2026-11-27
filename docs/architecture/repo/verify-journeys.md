@@ -143,7 +143,8 @@ the core list.
 - Run all nine journeys after you change any of these: the `dispatch`, `rules`, `planning` and
   `closeout` modules, `adapters/store-sqlite` and `adapters/auth-oauth`, with each workspace package
   they depend on; `libs`; the pepys reader, which `doctor` reads a stage time through; and the CLI's
-  and the server's entry points, item commands and handlers, access check and `src/test-utils/`.
+  and the server's entry points, item commands and handlers, access check and `src/test-utils/`. The
+  server's own start files are ignored, in group 4 below.
 - Run the seven journeys that run a tick, all but `file-item` and `owner-mcp`, after you change the
   server's tick or `adapters/verifier-wringer`. The test server builds the real verifier, and the
   server reads the verify gate through it in the tick's merge job and when a session records a
