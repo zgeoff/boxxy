@@ -12,11 +12,9 @@ minimumReleaseAge = 604800
 # behind it. Renovate bumps first-party packages (@zgeoff, @impz, @pepys)
 # as soon as they publish, so each one boxxy installs needs a
 # permanent entry here by its full name, or bun install refuses the bump.
-# @noslop/cli 0.4.30 (published 2026-11-17) ages past the gate ~2026-11-24 — remove then (audit-fix)
 minimumReleaseAgeExcludes = [
   "@impz/client",
   "@impz/testing",
-  "@noslop/cli",
   "@pepys/api",
   "@pepys/cli",
   "@pepys/contract",
