@@ -159,9 +159,9 @@ the core list.
 loads. Name a feature's files one by one, so a new file stays unmapped until you pick its features.
 
 Some of a feature's files load at every `up` or `doctor`, such as a CLI command, or a handler whose
-tools `doctor` lists. Map such a file to its own feature: a change that breaks the load fails `up`
-or `doctor`, so that feature's grader sees it. Keep these tests green, because they guard the other
-ways a change could reach a feature:
+tools `doctor` lists. Map such a file to the one feature whose journey runs it: a change that breaks
+the load fails `up` or `doctor`, so that feature's grader sees it. Keep these tests green, because
+they guard the other ways a change could reach a feature:
 
 - the test beside `feature-paths.ts` that builds the verify CLI, and checks that every workspace
   file the CLI loads is in the core list;
@@ -175,7 +175,8 @@ wringer treats a path an ignore glob matches as unchanged, in the changed paths 
 fingerprint, even when a feature's glob also matches it. The ignore list in `feature-paths.ts` holds
 these groups, each with its reason in a comment:
 
-1. Prose, tests and benches, which have no runtime effect.
+1. Prose, test files (`*.test.ts`) and benches, which have no runtime effect. The `src/test-utils/`
+   folders are core.
 2. Build, lint and repo wiring that Bun never reads when it runs the source, such as `.claude/**`,
    `.github/**` and `scripts/**`.
 3. The files Renovate and release-please change: each `package.json`, `bun.lock`, the Bun pin and
@@ -196,10 +197,11 @@ file a journey runs out of the ignore list. Match prose there by folder and name
 `verify / gate`, in `.github/workflows/verify.yml`, runs when a pull request opens, reopens, gets a
 push or has its body edited, since the grader publishes after the push. It has its own workflow
 because the shared checks have no `edited` trigger, and a body edit there would rerun every static
-check. The job never starts boxxy or runs a journey. It runs two steps: `bun run verify:lint` fails
-when the registry, the map and the skill disagree, such as a glob that matches no file or a journey
-line that won't parse; then `bun run ci:verify-gate` runs the gate on the body against the base
-branch and prints one `::error::` per failing feature and per unmapped path.
+check. The job never starts boxxy or runs a journey. It runs two steps: `bun run verify:lint`, which
+runs `bun verify lint`, fails when the registry, the map and the skill disagree, such as a glob that
+matches no file or a journey line that won't parse; then `bun run ci:verify-gate` runs the gate on
+the body against the base branch and prints one `::error::` per failing feature and per unmapped
+path.
 
 - **It reports on every pull request,** with no `if:` or path filter, because the merge step waits
   for each required check, and one that never reports ends the merge attempt with the outcome

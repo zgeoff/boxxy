@@ -177,10 +177,9 @@ for its commands.
 
 <!-- repo: registry -->
 
-Map paths in `feature-paths.ts`, beside the
-[registry](../../../apps/cli/src/test-utils/verify/verify-registry.ts), and core paths in
-`core-paths.ts`. [Verify journeys](../../../docs/architecture/repo/verify-journeys.md) says what
-each journey proves.
+The [registry](../../../apps/cli/src/test-utils/verify/verify-registry.ts) reads its globs from
+`feature-paths.ts` and `core-paths.ts`: add each glob there.
+[Verify journeys](../../../docs/architecture/repo/verify-journeys.md) says what each journey proves.
 
 <!-- /repo -->
 
