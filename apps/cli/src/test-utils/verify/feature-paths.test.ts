@@ -56,10 +56,13 @@ test.each([
   ]);
 });
 
-test('it flags only the features that tick for a change to the tick', async () => {
+test.each([
+  'apps/server/src/tick/run-tick.ts',
+  'adapters/verifier-wringer/src/create-wringer-verifier.ts',
+])('it flags only the features that tick for a change to %s', async (path) => {
   const ctx = await setupTest();
 
-  expect(ctx.collectFlagged('apps/server/src/tick/run-tick.ts')).toStrictEqual([
+  expect(ctx.collectFlagged(path)).toStrictEqual([
     'claim-settle',
     'report-cost',
     'plan-ordering',
@@ -141,6 +144,7 @@ test('it ignores no source file that a journey runs', () => {
     'modules/planning/src/decide.ts',
     'packages/pepys/src/create-pepys-reader.ts',
     'adapters/auth-oauth/src/http/create-public-door.ts',
+    'adapters/verifier-wringer/src/create-wringer-verifier.ts',
   ];
 
   expect(collectUnmappedPaths(sources, {}, ignoredPaths)).toStrictEqual(sources);

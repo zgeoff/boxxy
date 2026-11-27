@@ -8,8 +8,12 @@ import { readWorkspacePackages } from './read-workspace-packages.ts';
 // fails that journey. Name a feature's files one by one, so a new file stays unmapped.
 const coreGlobs = await readCoreGlobs(join(import.meta.dir, '..', '..', '..', '..', '..'));
 
-// the tick that claims, settles, watches and merges
-const tick = ['apps/server/src/tick/run-tick.ts'];
+// the tick that claims, settles, watches and merges, and the verifier that the test server builds:
+// the tick's merge job reads the verify gate through it, and so does a session's verdict evidence
+const tick = [
+  'apps/server/src/tick/run-tick.ts',
+  'adapters/verifier-wringer/src/{create-wringer-verifier,index,types}.ts',
+];
 
 // a session's start hook, its close-out and its reads, as the harness runs them
 const session = [
@@ -82,6 +86,9 @@ export const ignoredPaths = [
   '**/*.test.ts',
   '**/bench/**',
 
+  // the verifier's report builders, which only its own tests call
+  'adapters/verifier-wringer/src/test-utils/**',
+
   // 2. Build, lint and repo wiring, which Bun never reads when it runs the source.
   '**/tsconfig*.json',
   '**/turbo.json',
@@ -127,7 +134,6 @@ export const ignoredPaths = [
   'adapters/notifier-atc/**',
   'adapters/forge-github/**',
   'adapters/review-noslop/**',
-  'adapters/verifier-wringer/**',
   'apps/server/src/{main,start-server,no-caller-proof,create-capacity-backoff}.ts',
   'apps/server/src/config/**',
   'apps/server/src/rules/{create-rules-holder,read-rules-checkout}.ts',

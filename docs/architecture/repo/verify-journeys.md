@@ -145,7 +145,8 @@ it to the core list.
   they depend on; `libs`; the pepys reader, which `doctor` reads a stage time through; and the CLI's
   and the server's entry points, item commands and handlers, access check and `src/test-utils/`.
 - Run the journeys of the seven features that tick, all but `file-item` and `owner-mcp`, after you
-  change the server's tick.
+  change the server's tick or `adapters/verifier-wringer`. The test server builds the real verifier,
+  and the tick's merge job and a session's verdict evidence read the verify gate through it.
 - Run the journeys of the six features that run a session, those seven without `runner-pause`, after
   you change the CLI's hooks and attempt commands or the server's attempt handlers.
 - Run only a feature's own journey after you change its commands and handlers, for `plan-ordering`,
@@ -180,9 +181,9 @@ matches it. The ignore list has four groups, each with its reason in a comment i
    the release-please files. Mapping them would make every update bot's pull request wait for a
    verdict no grader writes; the CLI's tests in CI, which run the journeys' flow against the real
    server, cover a dependency change.
-4. Code no journey runs: the adapters the fakes replace, the review and verifier adapters, and the
-   server's own start, config, timers and rules loader, which the harness swaps for the test
-   composition. Their own tests cover them.
+4. Code no journey runs: the adapters the fakes replace, the review adapter, and the server's own
+   start, config, timers and rules loader, which the harness swaps for the test composition. Their
+   own tests cover them.
 
 A change to the CLI's or the server's `src/test-utils/`, the harness included, needs fresh verdicts
 for all nine features, because it changes what a journey proves. No ignore glob matches a source
