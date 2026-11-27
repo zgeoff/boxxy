@@ -30,10 +30,9 @@ flowchart LR
 When a journey passes, the grader runs `bun verify done`, and wringer records a verdict in
 `.wringer/` on the grader's machine, holding the feature and the fingerprint of the code the journey
 ran on. The fingerprint is a git patch id of the branch's change against its merge base, limited to
-that feature's paths, so editing a feature's paths makes its verdict stale. After you change the
-modules, the libs, the store or the shared parts of the CLI and the server, run all nine journeys
-again. After you change one command or handler, run only the journeys that run it
-([the map](#the-path-to-feature-map)).
+that feature's paths, so editing a feature's paths makes its verdict stale. After you change a core
+path, run all nine journeys again. After you change one command or handler, run only the journeys
+that run it ([the map](#the-path-to-feature-map)).
 
 `bun verify publish` writes the report into the pull request body: a table of each feature, whether
 the change touches it, and its verdict, plus a hidden data comment with one entry per verdict.
@@ -164,7 +163,7 @@ the load fails `up` or `doctor`, so that feature's grader sees it. Keep these te
 they guard the other ways a change could reach a feature:
 
 - the test beside `feature-paths.ts` that builds the verify CLI, and checks that every workspace
-  file the CLI loads is in the core list;
+  file the verify CLI itself loads is in the core list;
 - the CLI test that refuses a command whose words start another command's words. The CLI runs the
   first command in its list that matches, so one feature's command could take over another's.
 
