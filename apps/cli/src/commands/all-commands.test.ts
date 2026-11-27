@@ -14,6 +14,18 @@ test('it gives every command its own words', () => {
   expect(new Set(words).size).toBe(words.length);
 });
 
+test('it gives no command words that start another command, so the order of the list picks none', () => {
+  const paths = allCommands.map((command) => command.path);
+
+  const shadowing = paths.filter((path) =>
+    paths.some(
+      (other) => other.length > path.length && path.every((word, index) => other[index] === word),
+    ),
+  );
+
+  expect(shadowing).toStrictEqual([]);
+});
+
 test('it names each command the way the access table writes its usage', () => {
   const usages = allCommands.map((command) => ({
     words: `boxxy ${command.path.join(' ')}`,

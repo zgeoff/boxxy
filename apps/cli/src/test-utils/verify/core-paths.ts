@@ -1,5 +1,5 @@
-// What every verify feature holds, so a change to any of it flags them all. When you can't tell
-// whether a path reaches a feature, add it here: a missed feature costs more than a journey.
+// Every verify feature holds these paths, so a change to any of them flags all nine. When you can't
+// tell whether a path reaches a feature, add it here: a missed feature costs more than a journey.
 export const corePaths = {
   // Package folders that every journey runs, each with the workspace packages it depends on, such
   // as `modules/train`, whose merge rule `modules/closeout` loads.
