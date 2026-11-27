@@ -149,8 +149,8 @@ that command alone. A command with neither runs on the registry's first target, 
 | `local` | launch | `bun verify use --target local`, then `bun verify up`           | read-write |
 | `prod`  | attach | the steps in [On prod](references/feature-owner-mcp.md#on-prod) | read-only  |
 
-Each `up` starts the harness: the boxxy server and CLI on an empty SQLite store, with no network,
-and fakes for the clock, the worker, GitHub and the hold-notice sender.
+Each `up` starts the harness: boxxy's server and CLI on an empty SQLite store, with no network, and
+fakes for the clock, the worker, GitHub and the hold-notice sender.
 
 <!-- /repo -->
 
@@ -169,7 +169,7 @@ for its commands.
 
 - An `action` takes one step as the owner or as the harness. Later journey lines act on the item
   that `file-item` or `land-item` filed last, and the harness closes the item filed before it.
-- `bun verify boxxy <name>` takes the values to expect as flags.
+- `bun verify boxxy <name>` takes the expected values as flags.
 
 <!-- /repo -->
 
@@ -177,9 +177,10 @@ for its commands.
 
 <!-- repo: registry -->
 
-The registry is [`verify-registry.ts`](../../../apps/cli/src/test-utils/verify/verify-registry.ts),
-with each feature's `paths` in `feature-paths.ts` beside it.
-[Verify journeys](../../../docs/architecture/repo/verify-journeys.md) owns what each journey proves.
+List each feature's files in `feature-paths.ts`, beside the
+[registry](../../../apps/cli/src/test-utils/verify/verify-registry.ts), and the rest in
+`core-paths.ts`. [Verify journeys](../../../docs/architecture/repo/verify-journeys.md) owns what
+each journey proves.
 
 <!-- /repo -->
 

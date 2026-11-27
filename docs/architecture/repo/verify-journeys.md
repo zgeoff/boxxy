@@ -30,9 +30,10 @@ flowchart LR
 When a journey passes, the grader runs `bun verify done`, and wringer records a verdict in
 `.wringer/` on the grader's machine: the feature, and the fingerprint of the code the journey ran
 on. The fingerprint is a git patch id of the branch's change against its merge base, limited to that
-feature's paths, so editing a feature's paths makes its verdict stale. Most of boxxy's code is in
-all nine features' paths ([the map](#the-path-to-feature-map)), so most changes need all nine
-journeys again.
+feature's paths, so editing a feature's paths makes its verdict stale. A change to the modules, the
+libs, the store or the shared parts of the CLI and the server needs all nine journeys again, and a
+change to one command or handler needs only the journeys that run it
+([the map](#the-path-to-feature-map)).
 
 `bun verify publish` writes the report into the pull request body: a table of each feature, whether
 the change touches it, and its verdict, plus a hidden data comment with one entry per verdict.
@@ -134,15 +135,26 @@ reads the listener's origin and the client's secret from 1Password.
 
 ## The path-to-feature map
 
-`feature-paths.ts`, beside the registry, maps whole package folders to features. Every journey files
-an item through the CLI and the server, so every journey runs code in most packages, and a map of
-single files would repeat that long list per feature and miss each new file.
+`feature-paths.ts`, beside the registry, gives each feature the core paths and the files that only
+its journey runs. `core-paths.ts` lists the core paths, each with its reason: the files every
+journey runs, and the files no journey runs. When you can't tell which features a path reaches, add
+it to the core list.
 
-- **All nine features:** `apps/cli`, `apps/server`, `libs`, `adapters/store-sqlite`, and the
-  `rules`, `dispatch`, `closeout` and `train` modules.
-- **Every feature but `file-item` and `owner-mcp`:** `modules/planning`.
-- **One feature each:** `adapters/auth-oauth` for `owner-mcp`, and `packages/pepys` for
-  `report-cost`.
+- **All nine features:** the `dispatch`, `rules`, `planning` and `closeout` modules,
+  `adapters/store-sqlite` and `adapters/auth-oauth`, each with the workspace packages it depends on,
+  which `feature-paths.ts` reads from each `package.json` as it loads; `libs`; the pepys reader,
+  which `doctor` reads a stage time through; and the CLI's and the server's entry points, item
+  commands and handlers, access check and `src/test-utils/`.
+- **The seven features that tick, all but `file-item` and `owner-mcp`:** the server's tick.
+- **The six features that run a session, the seven but `runner-pause`:** the CLI's hooks and attempt
+  commands, and the server's attempt handlers.
+- **One feature each:** the commands and handlers of `plan-ordering`, `runner-pause`, `hold-notice`,
+  `owner-signoff` and `report-cost`, and the pepys fact sink for `report-cost`.
+
+A feature's file that every `up` loads, such as a command the CLI registers, loads in that feature's
+journey too, so a change that breaks the load fails that journey. `feature-paths.ts` names a
+feature's files one by one, so a new file is unmapped until its author picks its features. A test
+beside it builds the verify CLI, and checks that every workspace file the CLI loads flags all nine.
 
 The gate fails a pull request that changes a feature's paths with no verdict at the current
 fingerprint, or that changes a path no feature maps and no ignore glob matches, so every tracked
