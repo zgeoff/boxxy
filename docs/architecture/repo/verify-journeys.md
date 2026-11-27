@@ -30,9 +30,9 @@ flowchart LR
 When a journey passes, the grader runs `bun verify done`, and wringer records a verdict in
 `.wringer/` on the grader's machine: the feature, and the fingerprint of the code the journey ran
 on. The fingerprint is a git patch id of the branch's change against its merge base, limited to that
-feature's paths, so editing a feature's paths makes its verdict stale. A change to the modules, the
-libs, the store or the shared parts of the CLI and the server needs all nine journeys again, and a
-change to one command or handler needs only the journeys that run it
+feature's paths, so editing a feature's paths makes its verdict stale. After you change the modules,
+the libs, the store or the shared parts of the CLI and the server, run all nine journeys again.
+After you change one command or handler, run only the journeys that run it
 ([the map](#the-path-to-feature-map)).
 
 `bun verify publish` writes the report into the pull request body: a table of each feature, whether
@@ -140,29 +140,31 @@ its journey runs. List the core paths in `core-paths.ts`, each with its reason: 
 journey runs, and the files no journey runs. When you can't tell which features a path reaches, add
 it to the core list.
 
-- A change to any of these flags all nine features: the `dispatch`, `rules`, `planning` and
+- Run all nine journeys after you change any of these: the `dispatch`, `rules`, `planning` and
   `closeout` modules, `adapters/store-sqlite` and `adapters/auth-oauth`, with each workspace package
   they depend on; `libs`; the pepys reader, which `doctor` reads a stage time through; and the CLI's
   and the server's entry points, item commands and handlers, access check and `src/test-utils/`.
-- A change to the server's tick flags the seven features that tick: all but `file-item` and
-  `owner-mcp`.
-- A change to the CLI's hooks and attempt commands, or to the server's attempt handlers, flags the
-  six features that run a session: those seven, without `runner-pause`.
-- A change to the commands and handlers of `plan-ordering`, `runner-pause`, `hold-notice`,
-  `owner-signoff` or `report-cost` flags only that feature, and a change to the pepys fact sink
-  flags only `report-cost`.
+- Run the journeys of the seven features that tick, all but `file-item` and `owner-mcp`, after you
+  change the server's tick.
+- Run the journeys of the six features that run a session, those seven without `runner-pause`, after
+  you change the CLI's hooks and attempt commands or the server's attempt handlers.
+- Run only a feature's own journey after you change its commands and handlers, for `plan-ordering`,
+  `runner-pause`, `hold-notice`, `owner-signoff` and `report-cost`. Run only `report-cost` after you
+  change the pepys fact sink.
 
 `feature-paths.ts` reads each workspace package's dependencies from its `package.json` when it
 loads. Name a feature's files one by one, so a new file stays unmapped until you pick its features.
 
 Some of a feature's files load at every `up` or `doctor`, such as a CLI command or a handler whose
 tools `doctor` lists. A change that breaks that load also fails the feature's own `up` or `doctor`,
-so the grader of that feature sees it. Two tests guard the rest:
+so the grader of that feature sees it. Keep these tests green, because they guard the other ways a
+change could reach a feature:
 
-- a test beside `feature-paths.ts` builds the verify CLI, and fails when a workspace file the CLI
-  loads flags fewer than all nine features;
-- a CLI test fails when one command's words start another's, because the CLI runs the first command
-  in its list that matches, so one feature's command could take over another's.
+- the test beside `feature-paths.ts` that builds the verify CLI, and checks that every workspace
+  file the CLI loads is in the core list;
+- the CLI test that refuses a command whose words start another command's words, because the CLI
+  runs the first command in its list that matches, so one feature's command could take over
+  another's.
 
 The gate fails a pull request that changes a feature's paths with no verdict at the current
 fingerprint, or that changes a path no feature maps and no ignore glob matches, so every tracked
