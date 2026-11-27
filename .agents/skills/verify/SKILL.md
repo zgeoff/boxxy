@@ -169,7 +169,7 @@ for its commands.
 
 - An `action` takes one step as the owner or as the harness. Later journey lines act on the item
   that `file-item` or `land-item` filed last, and the harness closes the item filed before it.
-- `bun verify boxxy <name>` takes the expected values as flags.
+- Pass the expected values to `bun verify boxxy <name>` as flags.
 
 <!-- /repo -->
 
@@ -177,9 +177,9 @@ for its commands.
 
 <!-- repo: registry -->
 
-List each feature's files in `feature-paths.ts`, beside the
-[registry](../../../apps/cli/src/test-utils/verify/verify-registry.ts), and the rest in
-`core-paths.ts`. [Verify journeys](../../../docs/architecture/repo/verify-journeys.md) owns what
+Map paths in `feature-paths.ts`, beside the
+[registry](../../../apps/cli/src/test-utils/verify/verify-registry.ts), and core paths in
+`core-paths.ts`. [Verify journeys](../../../docs/architecture/repo/verify-journeys.md) says what
 each journey proves.
 
 <!-- /repo -->
