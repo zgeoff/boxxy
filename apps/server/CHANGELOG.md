@@ -2,33 +2,35 @@
 
 ## [0.3.8](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.3.7...@boxxy/server@0.3.8) (2026-11-28)
 
-
 ### Features
 
-* **api:** return attempt summaries and add attempt get for the full row ([#315](https://github.com/zgeoff/boxxy/issues/315)) ([dc30b65](https://github.com/zgeoff/boxxy/commit/dc30b65de0920b37706bcd756a06c71fd1af08df))
-* **dispatch:** delete the attempt of a spawn refused for capacity ([#317](https://github.com/zgeoff/boxxy/issues/317)) ([0363488](https://github.com/zgeoff/boxxy/commit/036348894af5a545706aa711044a642a74936526))
-
+- **api:** return attempt summaries and add attempt get for the full row
+  ([#315](https://github.com/zgeoff/boxxy/issues/315))
+  ([dc30b65](https://github.com/zgeoff/boxxy/commit/dc30b65de0920b37706bcd756a06c71fd1af08df))
+- **dispatch:** delete the attempt of a spawn refused for capacity
+  ([#317](https://github.com/zgeoff/boxxy/issues/317))
+  ([0363488](https://github.com/zgeoff/boxxy/commit/036348894af5a545706aa711044a642a74936526))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/auth-oauth bumped to 0.3.8
-    * @boxxy/caller-proof-imp bumped to 0.3.8
-    * @boxxy/closeout bumped to 0.3.8
-    * @boxxy/content-hash bumped to 0.3.8
-    * @boxxy/contract bumped to 0.3.8
-    * @boxxy/dispatch bumped to 0.3.8
-    * @boxxy/forge-github bumped to 0.3.8
-    * @boxxy/model bumped to 0.3.8
-    * @boxxy/notifier-atc bumped to 0.3.8
-    * @boxxy/pepys bumped to 0.3.8
-    * @boxxy/planning bumped to 0.3.8
-    * @boxxy/review-noslop bumped to 0.3.8
-    * @boxxy/rules bumped to 0.3.8
-    * @boxxy/store-sqlite bumped to 0.3.8
-    * @boxxy/verifier-wringer bumped to 0.3.8
-    * @boxxy/worker-atc bumped to 0.3.8
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/auth-oauth bumped to 0.3.8
+    - @boxxy/caller-proof-imp bumped to 0.3.8
+    - @boxxy/closeout bumped to 0.3.8
+    - @boxxy/content-hash bumped to 0.3.8
+    - @boxxy/contract bumped to 0.3.8
+    - @boxxy/dispatch bumped to 0.3.8
+    - @boxxy/forge-github bumped to 0.3.8
+    - @boxxy/model bumped to 0.3.8
+    - @boxxy/notifier-atc bumped to 0.3.8
+    - @boxxy/pepys bumped to 0.3.8
+    - @boxxy/planning bumped to 0.3.8
+    - @boxxy/review-noslop bumped to 0.3.8
+    - @boxxy/rules bumped to 0.3.8
+    - @boxxy/store-sqlite bumped to 0.3.8
+    - @boxxy/verifier-wringer bumped to 0.3.8
+    - @boxxy/worker-atc bumped to 0.3.8
 
 ## [0.3.7](https://github.com/zgeoff/boxxy/compare/@boxxy/server@0.3.6...@boxxy/server@0.3.7) (2026-11-28)
 
