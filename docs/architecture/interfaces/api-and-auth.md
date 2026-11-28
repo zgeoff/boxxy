@@ -54,6 +54,13 @@ call that names something that doesn't exist throws a typed error. The server ac
 CLI version, because the CLI ships in the agent image, which can lag a server deploy, so a release
 never removes or renames anything the previous CLI sends or reads.
 
+Each tool lists the four MCP annotations, `readOnlyHint`, `destructiveHint`, `idempotentHint` and
+`openWorldHint`, because a client that finds none treats the tool as a write that deletes and
+reaches outside boxxy, and asks before every call. A procedure takes its tool from one of five
+builders in `libs/contract/src/tools/`, one per kind of tool, and a contract test fails for a tool
+without all four. A tool is destructive only when it removes or irreversibly closes something, and
+open-world only when it reads GitHub.
+
 The contract's access table gives each procedure its caller (`owner`, `session` or `hook`), the
 actor its [fact](./facts-and-pepys.md) records, the MCP endpoint that lists it, its CLI usage line,
 and the scope the public listener requires. Each procedure belongs to the narrowest caller whose job

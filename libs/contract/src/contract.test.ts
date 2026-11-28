@@ -6,7 +6,14 @@ import { access } from './access.ts';
 import { contract } from './contract.ts';
 
 function setupTest() {
-  const toolMetaSchema = z.object({ name: z.string() });
+  const hintsSchema = z.object({
+    readOnlyHint: z.boolean(),
+    destructiveHint: z.boolean(),
+    idempotentHint: z.boolean(),
+    openWorldHint: z.boolean(),
+  });
+
+  const toolMetaSchema = z.object({ name: z.string(), annotations: hintsSchema.optional() });
   const metaSchema = z.object({ '~mcp/tool': toolMetaSchema.optional() }).loose();
 
   const definitionSchema = z.object({
@@ -22,6 +29,7 @@ function setupTest() {
     readonly inputs: readonly z.ZodType[];
     readonly outputs: readonly z.ZodType[];
     readonly tool: string | undefined;
+    readonly annotations: z.infer<typeof hintsSchema> | undefined;
   }
 
   const collectProcedures = (node: unknown, path: readonly string[]): Procedure[] => {
@@ -36,6 +44,7 @@ function setupTest() {
           inputs: definition.inputSchemas,
           outputs: definition.outputSchemas,
           tool: definition.meta['~mcp/tool']?.name,
+          annotations: definition.meta['~mcp/tool']?.annotations,
         },
       ];
     }
@@ -287,4 +296,37 @@ test('it leaves the body out of a row of item.list and keeps it in item.get', ()
     JSON.stringify(outputOf('item.list')).includes('"body"'),
     JSON.stringify(outputOf('item.get')).includes('"body"'),
   ]).toStrictEqual([false, true]);
+});
+
+test('it gives every tool all four annotation hints', () => {
+  const ctx = setupTest();
+  const tools = ctx.procedures.filter((procedure) => procedure.tool !== undefined);
+
+  expect(
+    tools.filter((tool) => tool.annotations === undefined).map((tool) => tool.name),
+  ).toStrictEqual([]);
+});
+
+test('it marks a tool read-only exactly when its access row has the read scope', () => {
+  const ctx = setupTest();
+
+  const mismatched = ctx.procedures.filter(
+    (procedure) =>
+      procedure.annotations !== undefined &&
+      ctx.rows.get(procedure.name)?.tool === 'owner' &&
+      procedure.annotations.readOnlyHint !== (ctx.rows.get(procedure.name)?.scope === 'read'),
+  );
+
+  expect(mismatched.map((procedure) => procedure.name)).toStrictEqual([]);
+});
+
+test('it never marks a read-only tool destructive', () => {
+  const ctx = setupTest();
+
+  const invalid = ctx.procedures.filter(
+    (procedure) =>
+      procedure.annotations?.readOnlyHint === true && procedure.annotations.destructiveHint,
+  );
+
+  expect(invalid.map((procedure) => procedure.name)).toStrictEqual([]);
 });

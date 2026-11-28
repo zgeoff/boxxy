@@ -1,7 +1,7 @@
 import { signoffFindingsMaxChars } from '@boxxy/model';
-import { oc } from '@orpc/contract';
-import { mcp } from '@orpc/mcp';
 import { z } from 'zod';
+import { readTool } from '../tools/read-tool.ts';
+import { writeTool } from '../tools/write-tool.ts';
 
 const id = z.string().min(1).max(64);
 const count = z.number().int();
@@ -46,14 +46,10 @@ const signoffListOutput = z.object({ items: z.array(waitingItem) });
 // Checks and writes in one store change. Writes `boxxy.lever.recorded` with a `signoff.approve`
 // or `signoff.send-back` lever, which sends the item from the sign-off hold to the merge step.
 export const itemSignoffContract = {
-  signoff: oc
-    .meta(
-      mcp.tool({
-        name: 'item_signoff',
-        description:
-          'Answers an item that waits for the owner at merge: approve the head commit that signoff_list gave, or send the item back to the build agent with findings.',
-      }),
-    )
+  signoff: writeTool(
+    'item_signoff',
+    'Answers an item that waits for the owner at merge: approve the head commit that signoff_list gave, or send the item back to the build agent with findings.',
+  )
     .errors(itemSignoffErrors)
     .input(itemSignoffInput)
     .output(z.object({ lever: count })),
@@ -61,14 +57,10 @@ export const itemSignoffContract = {
 
 // Oldest first by when the item reached the sign-off hold. Writes nothing.
 export const signoffContract = {
-  list: oc
-    .meta(
-      mcp.tool({
-        name: 'signoff_list',
-        description:
-          'Lists the items that wait for the owner to sign off a pull request at merge, each with the head commit to answer, the rules that matched and the changed paths that matched.',
-      }),
-    )
+  list: readTool(
+    'signoff_list',
+    'Lists the items that wait for the owner to sign off a pull request at merge, each with the head commit to answer, the rules that matched and the changed paths that matched.',
+  )
     .input(z.object({}))
     .output(signoffListOutput),
 };
