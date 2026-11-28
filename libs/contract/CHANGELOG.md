@@ -2,17 +2,16 @@
 
 ## [0.3.7](https://github.com/zgeoff/boxxy/compare/@boxxy/contract@0.3.6...@boxxy/contract@0.3.7) (2026-11-28)
 
-
 ### Bug Fixes
 
-* **mcp:** declare what each tool does ([#314](https://github.com/zgeoff/boxxy/issues/314)) ([22c30b1](https://github.com/zgeoff/boxxy/commit/22c30b1040f576fb7bc0781d3553e43ba8eab635))
-
+- **mcp:** declare what each tool does ([#314](https://github.com/zgeoff/boxxy/issues/314))
+  ([22c30b1](https://github.com/zgeoff/boxxy/commit/22c30b1040f576fb7bc0781d3553e43ba8eab635))
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.3.7
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.3.7
 
 ## [0.3.6](https://github.com/zgeoff/boxxy/compare/@boxxy/contract@0.3.5...@boxxy/contract@0.3.6) (2026-11-22)
 

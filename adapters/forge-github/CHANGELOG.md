@@ -2,21 +2,19 @@
 
 ## [0.3.7](https://github.com/zgeoff/boxxy/compare/@boxxy/forge-github@0.3.6...@boxxy/forge-github@0.3.7) (2026-11-28)
 
-
 ### Miscellaneous Chores
 
-* **@boxxy/forge-github:** Synchronize boxxy versions
-
+- **@boxxy/forge-github:** Synchronize boxxy versions
 
 ### Dependencies
 
-* The following workspace dependencies were updated
-  * dependencies
-    * @boxxy/model bumped to 0.3.7
-  * devDependencies
-    * @boxxy/dispatch bumped to 0.3.7
-  * peerDependencies
-    * @boxxy/dispatch bumped to 0.3.7
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/model bumped to 0.3.7
+  - devDependencies
+    - @boxxy/dispatch bumped to 0.3.7
+  - peerDependencies
+    - @boxxy/dispatch bumped to 0.3.7
 
 ## [0.3.6](https://github.com/zgeoff/boxxy/compare/@boxxy/forge-github@0.3.5...@boxxy/forge-github@0.3.6) (2026-11-22)
 
