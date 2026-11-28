@@ -56,10 +56,12 @@ never removes or renames anything the previous CLI sends or reads.
 
 Each tool lists the four MCP annotations, `readOnlyHint`, `destructiveHint`, `idempotentHint` and
 `openWorldHint`, because a client that finds none treats the tool as a write that deletes and
-reaches outside boxxy, and asks before every call. A procedure takes its tool from one of five
+reaches outside boxxy, and asks before every call. A procedure takes its tool from one of seven
 builders in `libs/contract/src/tools/`, one per kind of tool, and a contract test fails for a tool
 without all four. A tool is destructive only when it removes or irreversibly closes something, and
-open-world only when it reads GitHub.
+open-world only when it reaches a system outside boxxy: GitHub, or pepys for the two reports. A tool
+is idempotent only when a repeat with the same input changes nothing, so a call that appends a fact
+each time is not.
 
 The contract's access table gives each procedure its caller (`owner`, `session` or `hook`), the
 actor its [fact](./facts-and-pepys.md) records, the MCP endpoint that lists it, its CLI usage line,

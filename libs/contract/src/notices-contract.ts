@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { idempotentWriteTool } from './tools/idempotent-write-tool.ts';
-import { readTool } from './tools/read-tool.ts';
+import { makeReadTool } from './tools/make-read-tool.ts';
+import { makeWriteTool } from './tools/make-write-tool.ts';
 
 // atc addresses a session only by its gateway ID, `<daemon>.<incarnation>.<id>`. The server checks
 // the shape and never asks atc for the session: the notice token has no read scope.
@@ -19,14 +19,14 @@ const sessionOutput = z.object({
 
 // Both act on the one notice session row and write no fact.
 export const noticesContract = {
-  register: idempotentWriteTool(
+  register: makeWriteTool(
     'notices_register',
     'Sets the session that gets each hold notice, by its atc gateway ID. A notice that waits goes to this session on its next try.',
   )
     .input(registerInput)
     .output(sessionOutput),
 
-  show: readTool(
+  show: makeReadTool(
     'notices_show',
     'Returns the session that gets each hold notice and when it was set. The session is null when none is registered.',
   )

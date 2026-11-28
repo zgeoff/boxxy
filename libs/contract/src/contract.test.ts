@@ -13,7 +13,7 @@ function setupTest() {
     openWorldHint: z.boolean(),
   });
 
-  const toolMetaSchema = z.object({ name: z.string(), annotations: hintsSchema.optional() });
+  const toolMetaSchema = z.object({ name: z.string(), annotations: z.unknown() });
   const metaSchema = z.object({ '~mcp/tool': toolMetaSchema.optional() }).loose();
 
   const definitionSchema = z.object({
@@ -30,6 +30,7 @@ function setupTest() {
     readonly outputs: readonly z.ZodType[];
     readonly tool: string | undefined;
     readonly annotations: z.infer<typeof hintsSchema> | undefined;
+    readonly hasAllHints: boolean;
   }
 
   const collectProcedures = (node: unknown, path: readonly string[]): Procedure[] => {
@@ -37,6 +38,7 @@ function setupTest() {
 
     if (procedure.success) {
       const definition = procedure.data['~orpc'];
+      const hints = hintsSchema.strict().safeParse(definition.meta['~mcp/tool']?.annotations);
 
       return [
         {
@@ -44,7 +46,8 @@ function setupTest() {
           inputs: definition.inputSchemas,
           outputs: definition.outputSchemas,
           tool: definition.meta['~mcp/tool']?.name,
-          annotations: definition.meta['~mcp/tool']?.annotations,
+          annotations: hints.data,
+          hasAllHints: hints.success,
         },
       ];
     }

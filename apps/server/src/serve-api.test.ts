@@ -524,6 +524,10 @@ test.each([
     { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
   ],
   [
+    'report_cost',
+    { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+  ],
+  [
     'item_note',
     { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   ],

@@ -26,11 +26,13 @@ import { criterionDraftInput, criterionInput } from './items/criterion-input.ts'
 import { itemSignoffContract, signoffContract } from './items/signoff-contract.ts';
 import { noticesContract } from './notices-contract.ts';
 import { outboxStatusSchema } from './outbox-status-schema.ts';
-import { destructiveWriteTool } from './tools/destructive-write-tool.ts';
-import { forgeWriteTool } from './tools/forge-write-tool.ts';
-import { idempotentWriteTool } from './tools/idempotent-write-tool.ts';
-import { readTool } from './tools/read-tool.ts';
-import { writeTool } from './tools/write-tool.ts';
+import { makeDestructiveWriteTool } from './tools/make-destructive-write-tool.ts';
+import { makeIdempotentWriteTool } from './tools/make-idempotent-write-tool.ts';
+import { makeOutsideDestructiveWriteTool } from './tools/make-outside-destructive-write-tool.ts';
+import { makeOutsideReadTool } from './tools/make-outside-read-tool.ts';
+import { makeOutsideWriteTool } from './tools/make-outside-write-tool.ts';
+import { makeReadTool } from './tools/make-read-tool.ts';
+import { makeWriteTool } from './tools/make-write-tool.ts';
 
 // The wire rules are in section B of the API sketch: no transform in an input, times as ISO 8601,
 // a maximum on every string and list, and a release that removes or renames nothing.
@@ -336,7 +338,7 @@ export const contract = {
   item: {
     // Writes `boxxy.item.filed`, and one `boxxy.relation.added` per `blockedBy`. With `held`, the
     // same change writes the `item.held` lever and its `boxxy.lever.recorded`.
-    file: writeTool(
+    file: makeWriteTool(
       'item_file',
       'Files a new item of work. boxxy runs it through triage, design, build and review. Returns the item ID and its short reference.',
     )
@@ -352,7 +354,7 @@ export const contract = {
       .output(itemFiledOutput),
 
     // Writes `boxxy.item.edited`. The edit does not change a field that is absent.
-    edit: idempotentWriteTool(
+    edit: makeWriteTool(
       'item_edit',
       'Replaces the given fields of an item. A field that is left out does not change.',
     )
@@ -363,7 +365,7 @@ export const contract = {
     // Writes `boxxy.item.closed` and ends the item's live attempt in the same change. It is also
     // the owner's confirm of a triage `declined` or `duplicate`. With `of`, the same change adds
     // the relation `duplicate-of` from this item to `of`.
-    close: destructiveWriteTool(
+    close: makeDestructiveWriteTool(
       'item_close',
       'Closes an item so that boxxy starts no more work on it, and ends the attempt that runs or sleeps on it.',
     )
@@ -373,7 +375,7 @@ export const contract = {
 
     // Writes `boxxy.lever.recorded`. With no `phase`, on an item that triage holds as `declined`,
     // `duplicate` or `needs-owner`, it sends the item back to triage.
-    retry: writeTool(
+    retry: makeWriteTool(
       'item_retry',
       'Lifts a hold on an item and resets its attempt counts. With phase, also sends the item back to that phase.',
     )
@@ -389,7 +391,7 @@ export const contract = {
 
     // The owner knows the item, so this door takes the item only. Writes
     // `boxxy.attempt.wake_requested`.
-    wake: writeTool(
+    wake: makeIdempotentWriteTool(
       'item_wake',
       'Asks boxxy to wake the sleeping session of an item. The session resumes when a seat is free. Returns the atc session to attach.',
     )
@@ -399,7 +401,7 @@ export const contract = {
 
     // Writes `boxxy.lever.recorded` with an `item.release` lever. A `refused` answer is normal
     // flow: the item is not held.
-    release: idempotentWriteTool(
+    release: makeIdempotentWriteTool(
       'item_release',
       'Releases a held item, so boxxy starts its pipeline, from triage, on the next tick.',
     )
@@ -408,7 +410,7 @@ export const contract = {
       .output(itemReleaseOutput),
 
     // Notes are append-only. Writes `boxxy.item.noted` with the full text.
-    note: writeTool(
+    note: makeWriteTool(
       'item_note',
       'Appends a note to an item. A note cannot be changed or removed. The next attempt of the item reads every note.',
     )
@@ -416,7 +418,7 @@ export const contract = {
       .input(itemNoteInput)
       .output(itemNoteOutput),
 
-    get: readTool(
+    get: makeReadTool(
       'item_get',
       'Returns one item with its position in the pipeline, its labels, notes, attempts, relations, evidence and pull requests.',
     )
@@ -425,7 +427,10 @@ export const contract = {
       .output(itemDetail),
 
     // 50 items per call at most, so one answer stays small for a model. `next` is the cursor.
-    list: readTool('item_list', 'Lists items with their derived state and position, newest first.')
+    list: makeReadTool(
+      'item_list',
+      'Lists items with their derived state and position, newest first.',
+    )
       .input(itemListInput)
       .output(itemListOutput),
   },
@@ -434,7 +439,7 @@ export const contract = {
 
   relation: {
     // Writes `boxxy.relation.added`. A `refused` answer is normal flow, so it is in the output.
-    add: idempotentWriteTool(
+    add: makeIdempotentWriteTool(
       'relation_add',
       'Adds a relation from one item to another, such as "blocks". Refuses a relation that closes a cycle.',
     )
@@ -443,7 +448,7 @@ export const contract = {
       .output(relationAddOutput),
 
     // Writes `boxxy.relation.removed`.
-    remove: destructiveWriteTool('relation_remove', 'Removes a relation between two items.')
+    remove: makeDestructiveWriteTool('relation_remove', 'Removes a relation between two items.')
       .errors(notFound)
       .input(relationRemoveInput)
       .output(z.object({ removed: z.boolean() })),
@@ -452,7 +457,7 @@ export const contract = {
   attempt: {
     // No input: it answers with the latest attempt of the proven caller's session, which is how
     // every session learns its attempt ID, and `closeOut` names the close-out that attempt takes.
-    current: readTool(
+    current: makeReadTool(
       'attempt_current',
       'Returns the attempt that this session carries: its item, its phase, its input, and the schema of the close-out it must send.',
     )
@@ -462,7 +467,7 @@ export const contract = {
     // One procedure takes the close-out of every phase. The phase comes from the attempt row, and
     // that phase kind's parser reports every problem at once, so `closeOut` is `unknown` on the
     // wire. Writes `boxxy.attempt.closed_out`, and the attempt moves to `closing`.
-    closeOut: forgeWriteTool(
+    closeOut: makeOutsideDestructiveWriteTool(
       'attempt_close_out',
       'Sends the close-out of the attempt that this session carries. The first valid close-out is final. A rejected answer lists every problem; fix them and send again.',
     )
@@ -470,7 +475,7 @@ export const contract = {
       .output(closeOutAnswerSchema),
 
     // Writes `boxxy.evidence.recorded`. The fact ID is what a build close-out cites per criterion.
-    evidence: forgeWriteTool(
+    evidence: makeOutsideWriteTool(
       'attempt_evidence',
       'Records one piece of evidence for the attempt of this session: a test, a CI run, a live check, a CI check by name or a verify feature by name. The server reads a check or a verdict from GitHub at the pull request head, and records it only when it passed. Returns the evidence ID to cite in the close-out.',
     )
@@ -489,7 +494,7 @@ export const contract = {
 
   // Each lever writes one `boxxy.lever.recorded` per item.
   plan: {
-    defer: idempotentWriteTool(
+    defer: makeWriteTool(
       'plan_defer',
       'Holds an item back from dispatch until a time, or until plan_undefer.',
     )
@@ -497,12 +502,12 @@ export const contract = {
       .input(deferInput)
       .output(leverOutput),
 
-    undefer: idempotentWriteTool('plan_undefer', 'Ends the deferral of an item.')
+    undefer: makeWriteTool('plan_undefer', 'Ends the deferral of an item.')
       .errors(notFound)
       .input(itemInput)
       .output(leverOutput),
 
-    expedite: idempotentWriteTool(
+    expedite: makeWriteTool(
       'plan_expedite',
       'Puts items at the front of their pools, in the order given. It stops no running attempt.',
     )
@@ -510,14 +515,14 @@ export const contract = {
       .input(expediteInput)
       .output(z.object({ levers: z.array(count) })),
 
-    unexpedite: idempotentWriteTool('plan_unexpedite', 'Ends the expedite of an item.')
+    unexpedite: makeWriteTool('plan_unexpedite', 'Ends the expedite of an item.')
       .errors(notFound)
       .input(itemInput)
       .output(leverOutput),
   },
 
   runner: {
-    status: readTool(
+    status: makeReadTool(
       'runner_status',
       'Returns what boxxy does now: each limit and its seats, each live or sleeping attempt with its atc session, stray sessions, the paused flag with who paused the runner, when and why, the rules version, and how far the fact outbox is behind.',
     )
@@ -525,13 +530,13 @@ export const contract = {
       .output(runnerStatusOutput),
 
     // These two write the runner row and one fact each, unless the runner is already in that state.
-    pause: idempotentWriteTool(
+    pause: makeIdempotentWriteTool(
       'runner_pause',
       'Stops boxxy from claiming new work. Running attempts go on.',
     )
       .input(z.object({ reason: reason.optional() }))
       .output(z.object({ paused: z.literal(true) })),
-    resume: idempotentWriteTool('runner_resume', 'Lets boxxy claim new work again.')
+    resume: makeIdempotentWriteTool('runner_resume', 'Lets boxxy claim new work again.')
       .input(emptyInput)
       .output(z.object({ paused: z.literal(false) })),
   },
@@ -554,7 +559,7 @@ export const contract = {
 
   // Both read pepys, and only these two do. `item` is boxxy's own item ID.
   report: {
-    cost: readTool(
+    cost: makeOutsideReadTool(
       'report_cost',
       'Returns what one item cost: one line per phase, product and model, with rework apart, and totals. The numbers come from pepys and can be behind; `behind` says by how many facts. A cost of null is not known.',
     )
@@ -562,7 +567,7 @@ export const contract = {
       .input(itemInput)
       .output(reportCostOutput),
 
-    stageTimes: readTool(
+    stageTimes: makeOutsideReadTool(
       'report_stage_times',
       'Returns how long one item took in each of seven steps: triage, design, build, review, merge, release, deploy. Also the rework count and time, the wait for review, and the time its sessions slept. A step that has not happened is null.',
     )

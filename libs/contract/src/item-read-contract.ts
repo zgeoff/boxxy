@@ -6,7 +6,7 @@ import {
   sessionItemViewSchema,
 } from '@boxxy/model';
 import { z } from 'zod';
-import { readTool } from './tools/read-tool.ts';
+import { makeReadTool } from './tools/make-read-tool.ts';
 
 const id = z.string().min(1).max(64);
 const notFound = { NOT_FOUND: { message: 'no such item', data: z.object({ item: id }) } };
@@ -56,14 +56,14 @@ const getItemOutput = z.discriminatedUnion('kind', [
 // that of the session's own item, and a held item or one of another repo answers NOT_FOUND;
 // docs/architecture/interfaces/api-and-auth.md holds the whole rule.
 export const itemReadContract = {
-  listItems: readTool(
+  listItems: makeReadTool(
     'attempt_list_items',
     'Lists the items of the repo of this session, newest first, with their derived state and position. Held items are left out. Use it to find an item that asks for the same work or overlaps it.',
   )
     .input(listItemsInput)
     .output(listItemsOutput),
 
-  getItem: readTool(
+  getItem: makeReadTool(
     'attempt_get_item',
     'Returns one item of the repo of this session with its body, position, notes, relations and pull requests.',
   )
