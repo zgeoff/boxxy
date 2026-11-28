@@ -1,8 +1,7 @@
 import { z } from 'zod';
 
-// The latest attempt that atc refused for capacity, and how many such attempts there are since a
-// session last started. `code`, `problem` and `message` are null for an attempt stored before
-// boxxy kept atc's answer.
+// The latest spawn that atc refused for capacity, and how many such refusals there are since a
+// session last started. `code`, `problem` and `message` are null when atc gave no answer.
 export const capacityRefusalsSchema = z.object({
   latest: z
     .object({

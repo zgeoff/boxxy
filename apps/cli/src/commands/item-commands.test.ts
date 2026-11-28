@@ -780,7 +780,7 @@ test('it merges a reviewed pull request at its head through the server tick, and
   });
 });
 
-test('#item show and #status show why atc refused a spawn for capacity', async () => {
+test('#status shows why atc refused a spawn for capacity, and #item show lists no attempt for it', async () => {
   const setup = await setupTest();
 
   const ctx = setup.held;
@@ -805,7 +805,7 @@ test('#item show and #status show why atc refused a spawn for capacity', async (
     readJSONOutput(shown, ctx.refusedShownSchema).attempts,
     readJSONOutput(status, ctx.capacityStatusSchema).capacityRefusals,
   ]).toStrictEqual([
-    [{ failure: 'no-capacity', refusal }],
+    [],
     {
       latest: {
         at: new Date(ctx.server.dispatch.clock.now()).toISOString(),

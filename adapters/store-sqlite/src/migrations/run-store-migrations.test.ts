@@ -7,6 +7,7 @@ import { buildSQLiteDialect } from '@zgeoff/kysely-bun-sqlite';
 import { Kysely } from 'kysely';
 import { z } from 'zod';
 import type { StoreDatabase } from '../types.ts';
+import { capacityRefusalsMigration } from './capacity-refusals-migration.ts';
 import { createTablesMigration } from './create-tables-migration.ts';
 import { evidenceHeadMigration } from './evidence-head-migration.ts';
 import { itemBodyMigration } from './item-body-migration.ts';
@@ -56,6 +57,7 @@ async function setupTest() {
     migrateLeverHead: () => leverHeadMigration.up(db),
     migrateItemRef: () => itemRefMigration.up(db),
     migrateEvidenceHead: () => evidenceHeadMigration.up(db),
+    migrateCapacityRefusals: () => capacityRefusalsMigration.up(db),
     writeRaw: (statement: string, ...values: (number | string)[]) => {
       sqlite.query(statement).run(...values);
     },
@@ -90,6 +92,7 @@ test('it creates every table of the store schema in an empty file', async () => 
   expect(tables).toStrictEqual([
     'attempt_sessions',
     'attempts',
+    'capacity_refusals',
     'decisions',
     'evidence',
     'item_shipped',
@@ -592,4 +595,78 @@ test('it refuses a second evidence row with the same attempt, kind and ref', asy
   expect(() => {
     ctx.writeRaw(insert, 'fact-b', 'pr / checks@abc123', 'abc123');
   }).toThrow(/UNIQUE/u);
+});
+
+test('it moves each no-capacity attempt into the capacity refusals and leaves the other attempts', async () => {
+  const ctx = await setupTest();
+
+  await ctx.createTables();
+  await ctx.renameRelations();
+  await ctx.migrateV1Tables();
+  await ctx.migrateNoticeKeys();
+  await ctx.migrateItemBody();
+  await ctx.migrateJobAttempts();
+  await ctx.migrateRefusal();
+  await ctx.migrateSkippedAttempts();
+
+  const insertAttempt =
+    "INSERT INTO attempts (id, item, phase, number, runner, recipe_hash, rules_version, pool, lease_gen, spawn_request, spawn_request_hash, state, failure, claimed_at, ended_at, fields, mode, round, hold_gen, refusal) VALUES (?, 'item-a', 'build', ?, 'runner-1', 'hash-a', 'rules-a', 'build', ?, '{}', 'hash-b', 'failed', ?, ?, ?, '{}', 'agent', 1, 1, ?)";
+
+  const refusal = '{"code":"host_unavailable","problem":null,"message":"no room"}';
+
+  ctx.writeRaw(insertAttempt, 'attempt-a', 1, 1, 'no-capacity', 1000, 1100, refusal);
+  ctx.writeRaw(insertAttempt, 'attempt-b', 2, 2, 'stalled', 2000, 2100, refusal);
+  ctx.writeRaw(insertAttempt, 'attempt-c', 3, 3, 'no-capacity', 3000, 3100, refusal);
+
+  for (const [attempt, gen] of [
+    ['attempt-a', 1],
+    ['attempt-b', 2],
+    ['attempt-c', 3],
+  ] as const) {
+    ctx.writeRaw(
+      "INSERT INTO leases (item, phase, attempt, gen, taken_at, released_at) VALUES ('item-a', 'build', ?, ?, 1, 2)",
+      attempt,
+      gen,
+    );
+
+    ctx.writeRaw(
+      'INSERT INTO limit_seats ("limit", attempt, hold_gen, over_cap, taken_at, released_at) VALUES (\'build\', ?, 1, 0, 1, 2)',
+      attempt,
+    );
+  }
+
+  await ctx.migrateCapacityRefusals();
+
+  expect({
+    refusals: ctx.readRaw(
+      'SELECT id, attempt, item, phase, pool, at, refusal FROM capacity_refusals ORDER BY at',
+    ),
+    attempts: ctx.readRaw('SELECT id FROM attempts'),
+    leases: ctx.readRaw('SELECT attempt FROM leases'),
+    seats: ctx.readRaw('SELECT attempt FROM limit_seats'),
+  }).toStrictEqual({
+    refusals: [
+      {
+        id: 'attempt-a',
+        attempt: 'attempt-a',
+        item: 'item-a',
+        phase: 'build',
+        pool: 'build',
+        at: 1100,
+        refusal,
+      },
+      {
+        id: 'attempt-c',
+        attempt: 'attempt-c',
+        item: 'item-a',
+        phase: 'build',
+        pool: 'build',
+        at: 3100,
+        refusal,
+      },
+    ],
+    attempts: [{ id: 'attempt-b' }],
+    leases: [{ attempt: 'attempt-b' }],
+    seats: [{ attempt: 'attempt-b' }],
+  });
 });

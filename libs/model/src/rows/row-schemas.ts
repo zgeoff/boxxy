@@ -2,6 +2,7 @@ import type { z } from 'zod';
 import type { TableName, Tables } from '../ports/types.ts';
 import { attemptRowSchema } from './attempt-row-schema.ts';
 import { attemptSessionRowSchema } from './attempt-session-row-schema.ts';
+import { capacityRefusalRowSchema } from './capacity-refusal-row-schema.ts';
 import { decisionRowSchema } from './decision-row-schema.ts';
 import { evidenceRowSchema } from './evidence-row-schema.ts';
 import { itemRowSchema } from './item-row-schema.ts';
@@ -31,4 +32,5 @@ export const rowSchemas: { readonly [T in TableName]: z.ZodType<Tables[T]> } = {
   notices: noticeRowSchema,
   item_shipped: itemShippedRowSchema,
   wait_notices: waitNoticeMarkRowSchema,
+  capacity_refusals: capacityRefusalRowSchema,
 };

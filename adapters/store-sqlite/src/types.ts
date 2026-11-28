@@ -192,6 +192,15 @@ export interface StoreDatabase {
     since: number;
     noticed_at: number;
   };
+  capacity_refusals: {
+    id: string;
+    attempt: string;
+    item: string;
+    phase: string;
+    pool: string;
+    at: number;
+    refusal: string | null;
+  };
   notice_session: {
     id: number;
     gateway_id: string;

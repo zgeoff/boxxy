@@ -16,6 +16,7 @@ export const brandSchemas = {
   itemRef: itemRefSchema.brand<'ItemRef'>(),
   attemptId: uuidV7Schema.brand<'AttemptId'>(),
   decisionId: uuidV7Schema.brand<'DecisionId'>(),
+  capacityRefusalId: uuidV7Schema.brand<'CapacityRefusalId'>(),
   factId: uuidV7Schema.brand<'FactId'>(),
   runnerId: z
     .string()

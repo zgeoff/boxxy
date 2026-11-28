@@ -42,7 +42,7 @@ function isResumeClaim(input: KeptSessionInput): boolean {
   );
 }
 
-// the two failures that move no item
+// the failure that moves no item
 function isCounted(attempt: AttemptRow): boolean {
-  return attempt.failure !== 'no-capacity' && attempt.failure !== 'usage-limit';
+  return attempt.failure !== 'usage-limit';
 }

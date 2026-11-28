@@ -14,6 +14,7 @@ import { buildAttemptChange } from '../attempts/build-attempt-change.ts';
 import { isSameGuard } from '../attempts/is-same-guard.ts';
 import type { MoveResult } from '../attempts/types.ts';
 import { buildKeepWrites } from '../sessions/build-keep-writes.ts';
+import { buildCapacityRefusalWrites } from './build-capacity-refusal-writes.ts';
 import { buildSettlePlans } from './build-settle-plans.ts';
 import { pickSettlement } from './pick-settlement.ts';
 import type { SettleAttemptInput } from './types.ts';
@@ -111,6 +112,14 @@ export function settleAttempt(input: SettleAttemptInput): Promise<MoveResult> {
       ...built.change,
       writes: [
         ...built.change.writes,
+        ...(input.forced === 'no-capacity'
+          ? buildCapacityRefusalWrites({
+              attempt,
+              id: brandSchemas.capacityRefusalId.parse(input.newId()),
+              refusal: input.refusal ?? null,
+              now: input.now,
+            })
+          : []),
         ...(settlement.state === 'succeeded' && input.sessionStopped
           ? buildKeepWrites({ attempt, item, rules: input.rules, now: input.now })
           : []),

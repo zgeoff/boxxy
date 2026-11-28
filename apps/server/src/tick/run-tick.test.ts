@@ -274,15 +274,15 @@ test('it logs a spawn that the worker refused, with its attempt, item and reason
 
   await runTick(ctx.buildDeps());
 
-  const [refused] = await ctx.dispatch.store.read((tx) => tx.listItemAttempts(item));
+  const refusals = await ctx.dispatch.readCapacityRefusals();
 
-  invariant(refused !== undefined, 'the tick claimed the seeded item');
+  invariant(refusals.latest !== null, 'the tick claimed the seeded item');
 
   expect([ctx.logged, ctx.loggedFields]).toStrictEqual([
     ['the worker refused a spawn'],
     [
       {
-        attempt: refused.id,
+        attempt: refusals.latest.attempt,
         item,
         cause: 'capacity',
         reason: 'host_unavailable: no free slot',

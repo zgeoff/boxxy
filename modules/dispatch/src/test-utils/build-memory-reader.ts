@@ -143,45 +143,25 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
         ),
       ),
     readCapacityRefusals: () => {
-      const attempts = getTables().attempts;
+      const tables = getTables();
 
-      // Rows keep the order they were claimed in, so a position breaks a tie between a spawn and a
-      // refusal of the same tick.
-      const started = attempts
-        .flatMap((attempt, position) =>
-          attempt.atcSession !== null && attempt.startedAt !== null
-            ? [{ at: attempt.startedAt, position }]
-            : [],
-        )
-        .toSorted((first, second) => second.at - first.at || second.position - first.position)
-        .at(0);
+      const startedAt = Math.max(
+        0,
+        ...tables.attempts.flatMap((attempt) =>
+          attempt.atcSession !== null && attempt.startedAt !== null ? [attempt.startedAt] : [],
+        ),
+      );
 
-      const isAfterSpawn = (attempt: AttemptRow): boolean => {
-        const endedAt = attempt.endedAt ?? 0;
-
-        return (
-          started === undefined ||
-          endedAt > started.at ||
-          (endedAt === started.at && attempts.indexOf(attempt) > started.position)
-        );
-      };
-
-      const refused = sortAttempts(
-        attempts.filter((attempt) => attempt.failure === 'no-capacity'),
-      ).toSorted((first, second) => (second.endedAt ?? 0) - (first.endedAt ?? 0));
-
-      const [latest] = refused;
+      const [latest] = tables.capacity_refusals.toSorted(
+        (first, second) => second.at - first.at || compareText(second.id, first.id),
+      );
 
       return Promise.resolve({
         latest:
           latest === undefined
             ? null
-            : {
-                attempt: latest.id,
-                at: latest.endedAt ?? latest.claimedAt,
-                refusal: latest.refusal,
-              },
-        count: refused.filter((attempt) => isAfterSpawn(attempt)).length,
+            : { attempt: latest.attempt, at: latest.at, refusal: latest.refusal },
+        count: tables.capacity_refusals.filter((refusal) => refusal.at >= startedAt).length,
       });
     },
     listSucceededAttemptsWithoutPullRequest: () => {

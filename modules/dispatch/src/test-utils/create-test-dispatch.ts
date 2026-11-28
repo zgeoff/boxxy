@@ -6,6 +6,7 @@ import type {
   AttemptRow,
   CallerIdentity,
   CapacityBackoff,
+  CapacityRefusals,
   FactType,
   ItemId,
   LoadedRules,
@@ -61,7 +62,8 @@ export interface ReworkInput {
 export interface Rework {
   readonly first: AttemptRow;
 
-  // the second build as its claim wrote it, and after its start
+  // the second build as its claim wrote it, and after its start; the claimed row when the
+  // worker's refusal for capacity deleted the attempt
   readonly claimed: AttemptRow;
   readonly second: AttemptRow;
 
@@ -111,6 +113,8 @@ export interface TestDispatch {
   // the change of `item.close`: the item's close and the ends of its live attempts
   readonly closeItem: (item: ItemId, reason: string) => Promise<ApplyResult>;
   readonly readAttempt: (id: AttemptId) => Promise<AttemptRow>;
+  readonly listAttempts: (item: ItemId) => Promise<AttemptRow[]>;
+  readonly readCapacityRefusals: () => Promise<CapacityRefusals>;
 
   // in name order
   readonly heldSeats: (attempt: AttemptId) => Promise<string[]>;
@@ -293,6 +297,8 @@ export async function createTestDispatch(options: TestDispatchOptions = {}): Pro
 
       return row;
     },
+    listAttempts: (item) => store.read((tx) => tx.listItemAttempts(item)),
+    readCapacityRefusals: () => store.read((tx) => tx.readCapacityRefusals()),
     heldSeats: async (attempt) => {
       const seats = await store.read((tx) => tx.listLimitSeats());
 
@@ -515,9 +521,10 @@ async function claimResumed(
 
     invariant(started?.kind === 'start', 'the rework claims');
 
-    const attempt = await dispatch.readAttempt(started.attempt.id);
+    // the worker's refusal for capacity deletes the attempt, so `second` is then the claimed row
+    const attempt = await dispatch.store.read((tx) => tx.readAttempt(started.attempt.id));
 
-    return { claimed: started.attempt, second: attempt };
+    return { claimed: started.attempt, second: attempt ?? started.attempt };
   }
 
   const now = dispatch.clock.now();

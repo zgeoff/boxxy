@@ -12,7 +12,7 @@ import { writeStartedSession } from './write-started-session.ts';
 const secondMs = 1000;
 
 // Starts the claim's session outside the store lock, and records the worker's answer. A refusal
-// for capacity settles `no-capacity` and holds the pool back. Returns the refusal, the fault of an
+// for capacity deletes the attempt, records the refusal and holds the pool back. Returns the refusal, the fault of an
 // agent session that another attempt holds, or null.
 export async function startClaim(input: StartClaimInput): Promise<RunnerFault | null> {
   const attempt = input.claim.attempt;

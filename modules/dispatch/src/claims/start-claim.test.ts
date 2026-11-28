@@ -8,24 +8,46 @@ import { startClaim } from './start-claim.ts';
 async function setupTest() {
   const dispatch = await createTestDispatch();
 
+  const claimStarted = async () => {
+    const claim = await claimNextPick({
+      store: dispatch.store,
+      runner: dispatch.runner,
+      rules: dispatch.rules(),
+      now: dispatch.clock.now(),
+      newId: dispatch.newId,
+      backoff: dispatch.backoff,
+      spawn: dispatch.spawn,
+    });
+
+    invariant(claim?.kind === 'start', 'the claim starts the seeded item');
+
+    return claim;
+  };
+
   return {
     ...dispatch,
     claimBuild: async () => {
       await dispatch.seedItem({ phase: brandSchemas.phaseName.parse('build') });
 
-      const claim = await claimNextPick({
+      return claimStarted();
+    },
+    claimStarted,
+    refuse: async (claim: Parameters<typeof startClaim>[0]['claim']) => {
+      dispatch.worker.failNext('start', {
+        kind: 'refused',
+        cause: 'capacity',
+        reason: 'no free slot',
+      });
+
+      await startClaim({
         store: dispatch.store,
-        runner: dispatch.runner,
+        worker: dispatch.worker,
         rules: dispatch.rules(),
+        claim,
         now: dispatch.clock.now(),
         newId: dispatch.newId,
         backoff: dispatch.backoff,
-        spawn: dispatch.spawn,
       });
-
-      invariant(claim?.kind === 'start', 'the claim starts the seeded item');
-
-      return claim;
     },
     start: (claim: Parameters<typeof startClaim>[0]['claim']) =>
       startClaim({
@@ -88,32 +110,7 @@ test('it hands an unanswered spawn to the reconcile table', async () => {
   expect([after.state, after.atcSession]).toStrictEqual(['reconciling', null]);
 });
 
-test('it settles a spawn refused for capacity as no-capacity, and holds the pool back for 60 seconds', async () => {
-  const ctx = await setupTest();
-  const claim = await ctx.claimBuild();
-
-  ctx.worker.failNext('start', { kind: 'refused', cause: 'capacity', reason: 'no free slot' });
-
-  await ctx.start(claim);
-
-  const after = await ctx.readAttempt(claim.attempt.id);
-
-  const inside = brandSchemas.instant.parse(ctx.clock.now() + 59_999);
-  const atEnd = brandSchemas.instant.parse(ctx.clock.now() + 60_000);
-
-  expect([after.state, after.failure, after.outcome]).toStrictEqual([
-    'failed',
-    'no-capacity',
-    'lost',
-  ]);
-
-  expect([ctx.backoff.listHeld(inside), ctx.backoff.listHeld(atEnd)]).toStrictEqual([
-    claim.attempt.pool === null ? [] : [claim.attempt.pool],
-    [],
-  ]);
-});
-
-test("it stores atc's refusal on the no-capacity attempt and in its settled fact", async () => {
+test('it deletes the attempt of a spawn refused for capacity, and records the refusal and the settled fact', async () => {
   const ctx = await setupTest();
   const claim = await ctx.claimBuild();
 
@@ -132,17 +129,80 @@ test("it stores atc's refusal on the no-capacity attempt and in its settled fact
 
   await ctx.start(claim);
 
-  const after = await ctx.readAttempt(claim.attempt.id);
+  const attempts = await ctx.listAttempts(claim.attempt.item);
+  const refusals = await ctx.readCapacityRefusals();
   const settled = await ctx.listFacts('boxxy.attempt.settled');
 
-  expect(after.refusal).toStrictEqual(refusal);
+  expect([attempts, refusals]).toStrictEqual([
+    [],
+    {
+      latest: { attempt: claim.attempt.id, at: ctx.clock.now(), refusal },
+      count: 1,
+    },
+  ]);
 
   expect(settled).toStrictEqual([
-    expect.objectContaining({ payload: expect.objectContaining({ refusal }) }),
+    expect.objectContaining({
+      payload: expect.objectContaining({
+        attempt: claim.attempt.id,
+        failure: 'no-capacity',
+        refusal,
+      }),
+    }),
   ]);
 });
 
-test('it stores no refusal on a spawn refused for another cause', async () => {
+test('it holds the pool of a spawn refused for capacity back for 60 seconds', async () => {
+  const ctx = await setupTest();
+  const claim = await ctx.claimBuild();
+
+  ctx.worker.failNext('start', { kind: 'refused', cause: 'capacity', reason: 'no free slot' });
+
+  await ctx.start(claim);
+
+  const inside = brandSchemas.instant.parse(ctx.clock.now() + 59_999);
+  const atEnd = brandSchemas.instant.parse(ctx.clock.now() + 60_000);
+
+  expect([ctx.backoff.listHeld(inside), ctx.backoff.listHeld(atEnd)]).toStrictEqual([
+    claim.attempt.pool === null ? [] : [claim.attempt.pool],
+    [],
+  ]);
+});
+
+test('it gives an item one attempt, numbered 1, after refusals for capacity and a spawn that starts', async () => {
+  const ctx = await setupTest();
+  const first = await ctx.claimBuild();
+
+  await ctx.refuse(first);
+
+  ctx.clock.advance(61_000);
+
+  const second = await ctx.claimStarted();
+
+  await ctx.refuse(second);
+
+  ctx.clock.advance(61_000);
+
+  const third = await ctx.claimStarted();
+
+  await ctx.refuse(third);
+
+  ctx.clock.advance(61_000);
+
+  const fourth = await ctx.claimStarted();
+
+  await ctx.start(fourth);
+
+  const attempts = await ctx.listAttempts(first.attempt.item);
+  const refusals = await ctx.readCapacityRefusals();
+
+  expect([attempts.map((row) => [row.number, row.state]), refusals.count]).toStrictEqual([
+    [[1, 'running']],
+    0,
+  ]);
+});
+
+test('it keeps the attempt of a spawn refused for another cause, with no refusal stored', async () => {
   const ctx = await setupTest();
   const claim = await ctx.claimBuild();
 
@@ -156,8 +216,9 @@ test('it stores no refusal on a spawn refused for another cause', async () => {
   await ctx.start(claim);
 
   const after = await ctx.readAttempt(claim.attempt.id);
+  const refusals = await ctx.readCapacityRefusals();
 
-  expect(after.refusal).toBeNull();
+  expect([after.state, after.refusal, refusals.count]).toStrictEqual(['failed', null, 0]);
 });
 
 test('it settles a spawn refused for another cause as spawn-refused, with no backoff', async () => {

@@ -92,7 +92,7 @@ export function trackPosition(input: FindPositionInput): PositionSince {
 
     const settled = event.settled;
 
-    if (settled.failure === 'no-capacity' || settled.failure === 'usage-limit') {
+    if (settled.failure === 'usage-limit') {
       continue;
     }
 
