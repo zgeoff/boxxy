@@ -148,16 +148,11 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
 
       const [started] = tables.attempts
         .filter((attempt) => attempt.atcSession !== null && attempt.startedAt !== null)
-        .toSorted(
-          (first, second) =>
-            (second.startedAt ?? 0) - (first.startedAt ?? 0) || compareText(second.id, first.id),
-        );
+        .toSorted((first, second) => (second.startedAt ?? 0) - (first.startedAt ?? 0));
 
-      // within one tick, a refusal counts when its attempt was claimed after the spawn's
+      // a refusal of the same tick as the spawn still counts
       const isAfterSpawn = (refusal: CapacityRefusalRow): boolean =>
-        started === undefined ||
-        refusal.at > (started.startedAt ?? 0) ||
-        (refusal.at === started.startedAt && compareText(refusal.attempt, started.id) > 0);
+        started === undefined || refusal.at >= (started.startedAt ?? 0);
 
       const [latest] = tables.capacity_refusals.toSorted(
         (first, second) => second.at - first.at || compareText(second.id, first.id),

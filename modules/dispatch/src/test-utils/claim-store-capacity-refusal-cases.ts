@@ -63,22 +63,12 @@ export const claimStoreCapacityRefusalCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
-    '#readCapacityRefusals counts a refusal claimed after the last started session in the same tick',
+    '#readCapacityRefusals counts a refusal of the same tick as the last started session',
     async (store) => {
       const tick = brandSchemas.instant.parse(5000);
-
-      const before = buildMockCapacityRefusalRow({
-        at: tick,
-        attempt: brandSchemas.attemptId.parse('01900000-0000-7000-8000-00000000000a'),
-      });
-
-      const after = buildMockCapacityRefusalRow({
-        at: tick,
-        attempt: brandSchemas.attemptId.parse('01900000-0000-7000-8000-00000000000c'),
-      });
+      const refused = buildMockCapacityRefusalRow({ at: tick });
 
       const started = buildMockV1AttemptRow({
-        id: brandSchemas.attemptId.parse('01900000-0000-7000-8000-00000000000b'),
         state: 'running',
         atcSession: brandSchemas.atcSessionId.parse('s2'),
         startedAt: tick,
@@ -89,9 +79,8 @@ export const claimStoreCapacityRefusalCases: readonly ClaimStoreCase[] = [
           buildMockFileItemChange(buildMockV1ItemRow({ id: started.item })),
         );
 
+        await transaction.applyChange(buildMockCapacityRefusalChange(refused));
         await transaction.applyChange(buildMockClaimChange(started));
-        await transaction.applyChange(buildMockCapacityRefusalChange(before));
-        await transaction.applyChange(buildMockCapacityRefusalChange(after));
       });
 
       const read = await store.read((transaction) => transaction.readCapacityRefusals());
@@ -132,13 +121,19 @@ export const claimStoreCapacityRefusalCases: readonly ClaimStoreCase[] = [
   [
     '#applyChange on remove-attempt deletes the bound sessions of the attempt',
     async (store) => {
-      await seedRemovedAttempt(store);
+      const seeded = await seedRemovedAttempt(store);
 
-      const read = await store.read((transaction) =>
-        transaction.findAttemptByAgentSession(removedAgentSession),
+      // binding the same session to the same attempt again applies only when the first is gone
+      const bind = buildMockBindChange({
+        attempt: seeded.attempt,
+        agentSession: removedAgentSession,
+      });
+
+      const result = await store.exclusive((transaction) =>
+        transaction.applyChange({ at: bind.at, writes: bind.writes, facts: [] }),
       );
 
-      return { received: read, expected: null };
+      return { received: result, expected: { kind: 'applied' } };
     },
   ],
   [

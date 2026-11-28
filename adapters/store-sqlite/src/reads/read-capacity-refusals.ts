@@ -3,16 +3,15 @@ import type { Kysely } from 'kysely';
 import { parseStoreRow } from '../codecs/parse-store-row.ts';
 import type { StoreDatabase } from '../types.ts';
 
-// An attempt that has a session counts as a spawn that worked. Attempt IDs rise in the order of the
-// claims, so within one tick a refusal counts when its attempt was claimed after the spawn's.
+// An attempt that has a session counts as a spawn that worked. A refusal counts when it came at or
+// after the start of the latest such attempt, so a refusal of the same tick still counts.
 export async function readCapacityRefusals(db: Kysely<StoreDatabase>): Promise<CapacityRefusals> {
   const started = await db
     .selectFrom('attempts')
-    .select(['id', 'started_at'])
+    .select('started_at')
     .where('atc_session', 'is not', null)
     .where('started_at', 'is not', null)
     .orderBy('started_at', 'desc')
-    .orderBy('id', 'desc')
     .limit(1)
     .executeTakeFirst();
 
@@ -32,12 +31,7 @@ export async function readCapacityRefusals(db: Kysely<StoreDatabase>): Promise<C
         return builder.val(true);
       }
 
-      const startedAt = started.started_at ?? 0;
-
-      return builder.or([
-        builder('at', '>', startedAt),
-        builder.and([builder('at', '=', startedAt), builder('attempt', '>', started.id)]),
-      ]);
+      return builder('at', '>=', started.started_at ?? 0);
     })
     .executeTakeFirstOrThrow();
 
