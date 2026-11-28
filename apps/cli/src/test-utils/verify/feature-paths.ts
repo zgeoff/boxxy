@@ -1,37 +1,76 @@
-// Globs are root-relative, as `git ls-files` prints them, and match with Bun.Glob. A package is in
-// a feature when the feature's journey runs code in it. The harness runs the fakes in a package's
-// src/test-utils/, so a package's whole folder maps, its test-utils included.
+import { join } from 'node:path';
+import { collectReachedFolders } from './collect-reached-folders.ts';
+import { corePaths } from './core-paths.ts';
+import { readWorkspacePackages } from './read-workspace-packages.ts';
 
-// Every journey files an item through the CLI and the server, and reads it back.
-const everyJourney = [
-  'apps/cli/**',
-  'apps/server/**',
-  'libs/**',
-  'adapters/store-sqlite/**',
+// Globs are root-relative, as `git ls-files` prints them, and match with Bun.Glob. A feature's file
+// that every `up` loads, such as a CLI command, loads in its own journey too, so a load failure
+// fails that journey. Name a feature's files one by one, so a new file stays unmapped.
+const coreGlobs = await readCoreGlobs(join(import.meta.dir, '..', '..', '..', '..', '..'));
 
-  // the example rules and their prompts, which the harness loads
-  'modules/rules/**',
-  'modules/dispatch/**',
+// the tick that claims, settles, watches and merges, and the verifier that the test server builds:
+// the tick's merge job reads the verify gate through it, and so does a session's verdict evidence
+const tick = [
+  'apps/server/src/tick/run-tick.ts',
+  'adapters/verifier-wringer/src/{create-wringer-verifier,index,types}.ts',
+];
 
-  // the phase kinds, which the server loads with the rules, and the merge rule of one of them
-  'modules/closeout/**',
-  'modules/train/**',
-] as const;
+// a session's start hook, its close-out and its reads, as the harness runs them
+const session = [
+  ...tick,
+  'apps/cli/src/commands/{attempt-commands,describe-checked-refusal,describe-close-out-problem,hook-commands}.ts',
+  'apps/cli/src/hooks/{build-skill-exclude,format-session-guide,install-skills,parse-hook-payload,pick-pull-request-url,run-post-tool-use-hook,run-session-start-hook,wait-for-attempt}.ts',
+  'apps/server/src/handlers/attempt-handlers.ts',
+];
 
 export const featurePaths = {
-  'file-item': [...everyJourney],
-  'claim-settle': [...everyJourney, 'modules/planning/**'],
-  'report-cost': [...everyJourney, 'modules/planning/**', 'packages/pepys/**'],
-  'plan-ordering': [...everyJourney, 'modules/planning/**'],
-  'runner-pause': [...everyJourney, 'modules/planning/**'],
-  'hold-notice': [...everyJourney, 'modules/planning/**'],
-  'hold-recovery': [...everyJourney, 'modules/planning/**'],
+  'file-item': [...coreGlobs],
+  'claim-settle': [...coreGlobs, ...session],
+  'report-cost': [
+    ...coreGlobs,
+    ...session,
+    'apps/cli/src/commands/report-commands.ts',
+    'apps/server/src/handlers/report-handlers.ts',
 
-  'owner-signoff': [...everyJourney, 'modules/planning/**'],
+    // the sink that sends facts to pepys, which only this journey drains
+    'packages/pepys/src/create-pepys-fact-sink.ts',
+    'packages/pepys/src/sink/{is-outgoing-fact,pick-sink-answer,to-wire-fact}.ts',
+  ],
+  'plan-ordering': [
+    ...coreGlobs,
+    ...session,
+    'apps/cli/src/commands/plan-commands.ts',
+    'apps/server/src/handlers/plan-handlers.ts',
+  ],
+  'runner-pause': [...coreGlobs, ...tick, 'apps/cli/src/commands/runner-commands.ts'],
+  'hold-notice': [
+    ...coreGlobs,
+    ...session,
+    'apps/cli/src/commands/notices-commands.ts',
+    'apps/server/src/handlers/notices-handlers.ts',
+  ],
+  'hold-recovery': [...coreGlobs, ...session],
 
-  // the public door, its OAuth server and the service-token file, which the harness serves
-  'owner-mcp': [...everyJourney, 'adapters/auth-oauth/**'],
+  'owner-signoff': [
+    ...coreGlobs,
+    ...session,
+    'apps/cli/src/commands/signoff-commands.ts',
+    'apps/server/src/handlers/signoff-handlers.ts',
+  ],
+
+  // the public door, its OAuth server and the item handlers are all core
+  'owner-mcp': [...coreGlobs],
 } as const satisfies Record<string, readonly string[]>;
+
+// The core globs, with a glob for each package folder that the core packages reach, from each
+// `package.json` as this file loads.
+async function readCoreGlobs(rootDir: string): Promise<string[]> {
+  const packages = await readWorkspacePackages(rootDir);
+
+  const folders = collectReachedFolders(corePaths.packages, packages);
+
+  return [...folders.map((folder) => `${folder}/**`), ...corePaths.globs];
+}
 
 // A path that one of these globs matches counts as no change, even where a feature's globs match
 // it too.
@@ -46,6 +85,9 @@ export const ignoredPaths = [
   '**/LICENSE',
   '**/*.test.ts',
   '**/bench/**',
+
+  // the verifier's report builders, which only its own tests call
+  'adapters/verifier-wringer/src/test-utils/**',
 
   // 2. Build, lint and repo wiring, which Bun never reads when it runs the source.
   '**/tsconfig*.json',
@@ -92,7 +134,6 @@ export const ignoredPaths = [
   'adapters/notifier-atc/**',
   'adapters/forge-github/**',
   'adapters/review-noslop/**',
-  'adapters/verifier-wringer/**',
   'apps/server/src/{main,start-server,no-caller-proof,create-capacity-backoff}.ts',
   'apps/server/src/config/**',
   'apps/server/src/rules/{create-rules-holder,read-rules-checkout}.ts',

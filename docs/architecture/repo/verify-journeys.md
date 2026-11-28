@@ -28,19 +28,19 @@ flowchart LR
 ```
 
 When a journey passes, the grader runs `bun verify done`, and wringer records a verdict in
-`.wringer/` on the grader's machine: the feature, and the fingerprint of the code the journey ran
-on. The fingerprint is a git patch id of the branch's change against its merge base, limited to that
-feature's paths, so editing a feature's paths makes its verdict stale. Most of boxxy's code is in
-all nine features' paths ([the map](#the-path-to-feature-map)), so most changes need all nine
-journeys again.
+`.wringer/` on the grader's machine, holding the feature and the fingerprint of the code the journey
+ran on. The fingerprint is a git patch id of the branch's change against its merge base, limited to
+that feature's paths, so editing a feature's paths makes its verdict stale. After you change a core
+path, run all nine journeys again. After you change one command or handler, run only the journeys
+that run it ([the map](#the-path-to-feature-map)).
 
 `bun verify publish` writes the report into the pull request body: a table of each feature, whether
 the change touches it, and its verdict, plus a hidden data comment with one entry per verdict.
 wringer calls that entry a claim, which has nothing to do with boxxy's claim of work. Git ignores
-`.wringer/`, and the verify registry, `verify-registry.ts`, which defines the targets and features
-`bun verify` knows, sets an upload hook for the `local` target. `publish` uploads that target's
-evidence files to the file host that `CLOUD_FILES_URL` names, with the token in `CLOUD_FILES_TOKEN`,
-and links them from the pull request. The `prod` target keeps its evidence on the grader's machine.
+`.wringer/`. The verify registry, `verify-registry.ts`, defines the targets and features that
+`bun verify` knows, and sets an upload hook for the `local` target. `publish` uploads that target's
+evidence files to the file host at `CLOUD_FILES_URL`, with the token in `CLOUD_FILES_TOKEN`, and
+links them from the pull request. The `prod` target keeps its evidence on the grader's machine.
 
 ## The harness
 
@@ -134,48 +134,74 @@ reads the listener's origin and the client's secret from 1Password.
 
 ## The path-to-feature map
 
-`feature-paths.ts`, beside the registry, maps whole package folders to features. Every journey files
-an item through the CLI and the server, so every journey runs code in most packages, and a map of
-single files would repeat that long list per feature and miss each new file.
+In `feature-paths.ts`, beside the registry, give each feature the core paths and the files that only
+its journey runs. List the core paths in `core-paths.ts`, each with its reason. The core paths are
+the files every journey runs, and the files that every `up` loads but no journey runs, such as the
+hook plugin and the relation commands. When you can't tell which features a path reaches, add it to
+the core list.
 
-- **All nine features:** `apps/cli`, `apps/server`, `libs`, `adapters/store-sqlite`, and the
-  `rules`, `dispatch`, `closeout` and `train` modules.
-- **Every feature but `file-item` and `owner-mcp`:** `modules/planning`.
-- **One feature each:** `adapters/auth-oauth` for `owner-mcp`, and `packages/pepys` for
-  `report-cost`.
+- Run all nine journeys after you change any of these: the `dispatch`, `rules`, `planning` and
+  `closeout` modules, `adapters/store-sqlite` and `adapters/auth-oauth`, with each workspace package
+  they depend on; `libs`; the pepys reader, which `doctor` reads a stage time through; and the CLI's
+  and the server's entry points, item commands and handlers, access check and `src/test-utils/`. The
+  server's own start files are ignored, in group 4 below.
+- Run the seven journeys that run a tick, all but `file-item` and `owner-mcp`, after you change the
+  server's tick or `adapters/verifier-wringer`. The test server builds the real verifier, and the
+  server reads the verify gate through it in the tick's merge job and when a session records a
+  verdict.
+- Run the six journeys that run a session, those seven without `runner-pause`, after you change the
+  CLI's hooks and attempt commands or the server's attempt handlers.
+- Run only a feature's own journey after you change its commands and handlers, for `plan-ordering`,
+  `runner-pause`, `hold-notice`, `owner-signoff` and `report-cost`. Run only `report-cost` after you
+  change the pepys fact sink.
+
+`feature-paths.ts` reads each workspace package's dependencies from its `package.json` when it
+loads. Name a feature's files one by one, so a new file stays unmapped until you pick its features.
+
+Some of a feature's files load at every `up` or `doctor`, such as a CLI command, or a handler whose
+tools `doctor` lists. Map such a file to the one feature whose journey runs it: a change that breaks
+the load fails `up` or `doctor`, so that feature's grader sees it. Keep these tests green, because
+they guard the other ways a change could reach a feature:
+
+- the test beside `feature-paths.ts` that builds the verify CLI, and checks that every workspace
+  file the verify CLI itself loads is in the core list;
+- the CLI test that refuses a command whose words start another command's words. The CLI runs the
+  first command in its list that matches, so one feature's command could take over another's.
 
 The gate fails a pull request that changes a feature's paths with no verdict at the current
-fingerprint, or that changes a path no feature maps and no ignore glob matches, so every tracked
-path, a new package's included, is in a feature or ignored. wringer treats a path an ignore glob
-matches as unchanged, in the changed paths and in the fingerprint, even when a feature's glob also
-matches it. The ignore list has four groups, each with its reason in a comment in
-`feature-paths.ts`:
+fingerprint. It also fails one that changes a path no feature maps and no ignore glob matches, so
+put every tracked path, including each path of a new package, in a feature or the ignore list.
+wringer treats a path an ignore glob matches as unchanged, in the changed paths and in the
+fingerprint, even when a feature's glob also matches it. The ignore list in `feature-paths.ts` holds
+these groups, each with its reason in a comment:
 
-1. Prose, tests and benches, which have no runtime effect.
+1. Prose, test files (`*.test.ts`) and benches, which have no runtime effect. The `src/test-utils/`
+   folders are core.
 2. Build, lint and repo wiring that Bun never reads when it runs the source, such as `.claude/**`,
    `.github/**` and `scripts/**`.
 3. The files Renovate and release-please change: each `package.json`, `bun.lock`, the Bun pin and
    the release-please files. Mapping them would make every update bot's pull request wait for a
    verdict no grader writes; the CLI's tests in CI, which run the journeys' flow against the real
    server, cover a dependency change.
-4. Code no journey runs: the adapters the fakes replace, the review and verifier adapters, and the
+4. Code the harness never loads: the adapters the fakes replace, the review adapter, and the
    server's own start, config, timers and rules loader, which the harness swaps for the test
    composition. Their own tests cover them.
 
-A change to the CLI's or the server's `src/test-utils/`, the harness included, needs fresh verdicts
-for all nine features, because it changes what a journey proves. No ignore glob matches a source
-file a journey runs; the list matches prose by folder and name, never `**/*.md`, because the rules'
-prompts are markdown the server sends to each session.
+After you change the CLI's or the server's `src/test-utils/`, the harness included, record fresh
+verdicts for all nine features, because the change alters what a journey proves. Keep every source
+file a journey runs out of the ignore list. Match prose there by folder and name, never with
+`**/*.md`, because the rules' prompts are markdown the server sends to each session.
 
 ## The CI check
 
 `verify / gate`, in `.github/workflows/verify.yml`, runs when a pull request opens, reopens, gets a
 push or has its body edited, since the grader publishes after the push. It has its own workflow
 because the shared checks have no `edited` trigger, and a body edit there would rerun every static
-check. The job never starts boxxy or runs a journey. It runs two steps: `bun run verify:lint` fails
-when the registry, the map and the skill disagree, such as a glob that matches no file or a journey
-line that won't parse; then `bun run ci:verify-gate` runs the gate on the body against the base
-branch and prints one `::error::` per failing feature and per unmapped path.
+check. The job never starts boxxy or runs a journey. It runs two steps: `bun run verify:lint`, which
+runs `bun verify lint`, fails when the registry, the map and the skill disagree, such as a glob that
+matches no file or a journey line that won't parse; then `bun run ci:verify-gate` runs the gate on
+the body against the base branch and prints one `::error::` per failing feature and per unmapped
+path.
 
 - **It reports on every pull request,** with no `if:` or path filter, because the merge step waits
   for each required check, and one that never reports ends the merge attempt with the outcome
