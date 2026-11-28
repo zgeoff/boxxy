@@ -58,7 +58,7 @@
       "@zgeoff/rig": "0.3.2",
       "@zgeoff/skill-gate": "0.2.36",
       "@zgeoff/std": "0.4.5",
-      "@zgeoff/testing": "0.4.2",
+      "@zgeoff/testing": "0.4.3",
       "elysia": "2.0.0-rc.4",
       "exact-mirror": "1.2.7",
       "knip": "6.44.2",
