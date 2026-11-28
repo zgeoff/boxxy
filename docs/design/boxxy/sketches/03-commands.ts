@@ -135,7 +135,8 @@ export type Procedures = {
 
 export type RunnerStatus = {
   readonly pools: readonly { readonly name: PoolName; readonly slots: number; readonly held: number }[];
-  readonly running: readonly AttemptSummary[];
+  readonly attempts: readonly { readonly attempt: AttemptSummary; readonly title: string; readonly waitingSince: Instant | null }[]; // the live attempts, each as a summary
+  readonly strays: readonly AttemptSummary[]; // attempts that stopped without an outcome
   readonly paused: boolean;
   readonly outbox: {
     readonly unsent: number;
