@@ -6,7 +6,7 @@ const instantOrNullSchema = brandSchemas.instant.nullable();
 
 // An attempt without its launch prompt, its input, its close-out body and its field values: the
 // short scalars that show an item's history. The schema refuses any other key, so a summary that
-// carries one fails to parse. Callers read the full row from `attempt.get`.
+// carries one fails to parse. `outcome` is the name the close-out chose, null without a close-out. Callers read the full row from `attempt.get`.
 export const attemptSummarySchema = z.strictObject({
   id: brandSchemas.attemptId,
   item: brandSchemas.itemId,
@@ -32,9 +32,7 @@ export const attemptSummarySchema = z.strictObject({
   claimedAt: brandSchemas.instant,
   startedAt: instantOrNullSchema,
   endedAt: instantOrNullSchema,
-  outcome: z
-    .union([brandSchemas.outcomeName, z.enum(['lost', 'unsettleable', 'skipped'])])
-    .nullable(),
+  outcome: brandSchemas.outcomeName.nullable(),
 });
 
 export type AttemptSummary = z.infer<typeof attemptSummarySchema>;

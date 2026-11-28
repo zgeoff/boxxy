@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import type { BuildCloseOut } from '../closeouts/types.ts';
 import { buildMockV1AttemptRow } from '../test-utils/build-mock-v1-attempt-row.ts';
 import { attemptSummarySchema } from './attempt-summary-schema.ts';
 import { brandSchemas } from './brand-schemas.ts';
@@ -51,7 +52,7 @@ test('it keeps the scalars that show the history of an item', () => {
     claimedAt,
     startedAt,
     endedAt,
-    outcome: row.outcome,
+    outcome: null,
   });
 });
 
@@ -59,4 +60,28 @@ test('it builds a summary that the summary schema accepts', () => {
   const summary = toAttemptSummary(buildMockV1AttemptRow());
 
   expect(attemptSummarySchema.safeParse(summary).data).toStrictEqual(summary);
+});
+
+test('it gives no outcome for a skipped attempt, which has no close-out', () => {
+  const row = buildMockV1AttemptRow({
+    state: 'succeeded',
+    outcome: 'skipped',
+    closeOut: null,
+  });
+
+  expect(toAttemptSummary(row).outcome).toBeNull();
+});
+
+test('it gives the outcome name of a close-out that is not settled yet', () => {
+  const closeOut: BuildCloseOut = {
+    result: { kind: 'built' },
+    criteria: [],
+    openItems: [],
+    friction: [],
+    frictionDropped: 0,
+  };
+
+  const row = buildMockV1AttemptRow({ state: 'closing', outcome: null, closeOut });
+
+  expect(toAttemptSummary(row).outcome).toBe(brandSchemas.outcomeName.parse('built'));
 });

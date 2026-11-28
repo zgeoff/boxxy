@@ -16,6 +16,7 @@ import type {
   AtcSessionId,
   AttemptId,
   AttemptRow,
+  AttemptSummary,
   ContentHash,
   CriterionId,
   DecisionId,
@@ -26,6 +27,7 @@ import type {
   ItemId,
   ItemState,
   ItemView,
+  JsonValue,
   ItemWithLevers,
   LeverKind,
   LinkRow,
@@ -63,8 +65,8 @@ export type Client = { readonly [K in keyof Procedures]: (input: Procedures[K]["
 
 // ── The procedures ─────────────────────────────────────────────────────────────────────────────
 
-/** An item with its live levers and everything else `boxxy item show` prints. */
-export type ItemDetail = ItemDetailRows;
+/** An item with its live levers and everything else `boxxy item show` prints. Each attempt is a summary: the full row, with its launch prompt and input, comes from `attempt.get`. */
+export type ItemDetail = Omit<ItemDetailRows, "attempts"> & { readonly attempts: readonly AttemptSummary[] };
 
 /** The session an `attempt.*` or hook call comes from. Slice 1 reads `ATC_SESSION_ID`; later the kernel-bound sender. */
 export type FromSession = { readonly session: AtcSessionId };
@@ -96,7 +98,8 @@ export type Procedures = {
   "runner.status": { input: Record<string, never>; output: RunnerStatus };
   "runner.pause": { input: { runner?: RunnerId }; output: { paused: true } };
   "runner.resume": { input: { runner?: RunnerId }; output: { paused: false } };
-  "attempt.current": { input: FromSession; output: { attempt: AttemptRow; item: ItemView } | { refused: "no-live-attempt" } };
+  "attempt.current": { input: FromSession; output: { attempt: AttemptSummary; input: JsonValue; item: ItemView } | { refused: "no-live-attempt" } };
+  "attempt.get": { input: { attempt: AttemptId }; output: AttemptRow }; // the owner's read scope; NOT_FOUND for an unknown ID
   "attempt.evidence": {
     input: FromSession & { kind: "test" | "ci-run" | "live-check"; ref: string; observed?: string };
     output: { factId: FactId } | { refused: "no-live-attempt" };
@@ -132,7 +135,7 @@ export type Procedures = {
 
 export type RunnerStatus = {
   readonly pools: readonly { readonly name: PoolName; readonly slots: number; readonly held: number }[];
-  readonly running: readonly AttemptRow[];
+  readonly running: readonly AttemptSummary[];
   readonly paused: boolean;
   readonly outbox: {
     readonly unsent: number;

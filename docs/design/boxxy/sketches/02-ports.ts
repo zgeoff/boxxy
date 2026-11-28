@@ -150,7 +150,7 @@ export interface StoreReader {
   readRunner(id: RunnerId): Promise<RunnerRow | null>; // null before the first heartbeat: not paused
 }
 
-/** The rows `item.get` returns beside the item. */
+/** The rows `item.get` reads beside the item. The handler turns each attempt into an `AttemptSummary` before it answers. */
 export type ItemDetailRows = {
   readonly item: ItemWithLevers;
   readonly attempts: readonly AttemptRow[];

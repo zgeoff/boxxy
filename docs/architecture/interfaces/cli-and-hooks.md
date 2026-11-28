@@ -5,8 +5,9 @@ a terminal. An agent runs its `attempt` commands inside a session to read its ta
 close-out. A hook plug-in in the agent image runs two more commands for the agent: one installs the
 attempt's skills and binds the session when it starts, and one links each pull request the agent
 opens. The server makes every decision; a command reads its flags, calls the procedure it names and
-prints the answer. The `attempt` commands look up the session's attempt first. Read this doc before
-you add a command, change a hook, or change what a session needs on its machine.
+prints the answer. The `attempt` commands that run in a session look up the session's attempt first.
+Read this doc before you add a command, change a hook, or change what a session needs on its
+machine.
 
 [API and auth](./api-and-auth.md) covers the listeners the CLI reaches and who may call each
 procedure. [Attempts](../work/attempts.md) covers the attempt a session's commands act on.
@@ -75,16 +76,16 @@ The owner's item commands have a few rules the usage lines don't show:
   as a summary.
 - **`plan defer --until`** takes an ISO 8601 time with an offset, which the server checks.
 
-The `attempt` commands run inside a session and take no session argument, because the server finds
-the session from the [proven caller](./api-and-auth.md#the-proven-caller). `attempt evidence` and
-`attempt close-out` first call `attempt.current` for the attempt ID. `attempt evidence --kind check`
-and `--kind verdict` take a name in `--ref` and no `--observed`: the CLI exits 2 on one that has it.
-Each refusal of a `check` or `verdict` exits 1 and prints one line that says what to do, such as to
-wait for the check, and `retry` exits 2. `attempt close-out` exits 2 on `retry` and prints each
-`stale-evidence` problem as a line, like any other problem. `attempt list-items` and
-`attempt show-item <item>` read other items of the session's own repo; `list-items` takes the flags
-of `item list` except `--repo` and `--held`. A session that runs `item list` or `item show` gets
-`FORBIDDEN`.
+The `attempt` commands, except `attempt get`, run inside a session and take no session argument,
+because the server finds the session from the [proven caller](./api-and-auth.md#the-proven-caller).
+`attempt evidence` and `attempt close-out` first call `attempt.current` for the attempt ID.
+`attempt evidence --kind check` and `--kind verdict` take a name in `--ref` and no `--observed`: the
+CLI exits 2 on one that has it. Each refusal of a `check` or `verdict` exits 1 and prints one line
+that says what to do, such as to wait for the check, and `retry` exits 2. `attempt close-out` exits
+2 on `retry` and prints each `stale-evidence` problem as a line, like any other problem.
+`attempt list-items` and `attempt show-item <item>` read other items of the session's own repo;
+`list-items` takes the flags of `item list` except `--repo` and `--held`. A session that runs
+`item list` or `item show` gets `FORBIDDEN`.
 
 Right after a session starts, the server may not have its attempt yet: the runner records the
 session's caller only once atc answers the spawn, and the agent can be quicker. An `attempt` command
