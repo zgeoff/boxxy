@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.8](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.3.7...@boxxy/model@0.3.8) (2026-11-28)
+
+### Features
+
+- **api:** return attempt summaries and add attempt get for the full row
+  ([#315](https://github.com/zgeoff/boxxy/issues/315))
+  ([dc30b65](https://github.com/zgeoff/boxxy/commit/dc30b65de0920b37706bcd756a06c71fd1af08df))
+- **dispatch:** delete the attempt of a spawn refused for capacity
+  ([#317](https://github.com/zgeoff/boxxy/issues/317))
+  ([0363488](https://github.com/zgeoff/boxxy/commit/036348894af5a545706aa711044a642a74936526))
+
+### Dependencies
+
+- The following workspace dependencies were updated
+  - dependencies
+    - @boxxy/content-hash bumped to 0.3.8
+
 ## [0.3.7](https://github.com/zgeoff/boxxy/compare/@boxxy/model@0.3.6...@boxxy/model@0.3.7) (2026-11-28)
 
 ### Miscellaneous Chores
