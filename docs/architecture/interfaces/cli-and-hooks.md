@@ -70,10 +70,11 @@ The owner's item commands have a few rules the usage lines don't show:
   findings of a send-back from `--findings <text>` or `--findings-file <path>`, where `-` reads
   stdin. Giving both exits 2. `signoff list` prints the items that wait, with the head to pass.
 - **`item show`** prints the item with its body and one revision per edit, each with its time and
-  the fields it set. It prints each attempt as a summary, without its launch prompt or input.
-  `attempt get <attempt>` prints one attempt in full, with its launch prompt, input and close-out,
-  and exits 1 with `NOT_FOUND` for an unknown ID. `status` prints each live attempt and each stray
-  as a summary.
+  the fields it set. It prints each attempt as a summary, without its launch prompt or input, and
+  `status` does the same for each live attempt and each stray.
+- **`attempt get <attempt>`** is an owner command. To read one attempt in full, with its launch
+  prompt, input and close-out, run it with the attempt ID. It exits 1 with `NOT_FOUND` for an
+  unknown ID.
 - **`plan defer --until`** takes an ISO 8601 time with an offset, which the server checks.
 
 The `attempt` commands, except `attempt get`, run inside a session and take no session argument,
@@ -84,8 +85,8 @@ CLI exits 2 on one that has it. Each refusal of a `check` or `verdict` exits 1 a
 that says what to do, such as to wait for the check, and `retry` exits 2. `attempt close-out` exits
 2 on `retry` and prints each `stale-evidence` problem as a line, like any other problem.
 `attempt list-items` and `attempt show-item <item>` read other items of the session's own repo;
-`list-items` takes the flags of `item list` except `--repo` and `--held`. A session that runs
-`item list` or `item show` gets `FORBIDDEN`.
+`list-items` takes the flags of `item list` except `--repo` and `--held`. A session in an imp that
+runs `item list` or `item show` gets `FORBIDDEN`.
 
 Right after a session starts, the server may not have its attempt yet: the runner records the
 session's caller only once atc answers the spawn, and the agent can be quicker. An `attempt` command
