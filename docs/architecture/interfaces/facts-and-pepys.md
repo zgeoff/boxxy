@@ -116,6 +116,8 @@ stream `facts.boxxy.runner`. These rules hold for both streams:
 - **Some outcomes write no fact of their own.** A settle for `stalled`, `skill-missing` or a
   capacity refusal shows only on the `settled` fact. A capacity refusal carries atc's code, cause
   and message in the fact's `refusal` field; a fact written before the field reads as no refusal.
+  The attempt of a capacity refusal is deleted from the store in the change that writes the fact, so
+  pepys holds the only record of it as an attempt.
 - **`boxxy.attempt.skipped` records a [skipped attempt](../work/attempts.md#skipped-attempts)**: the
   attempt, item, phase, round and reason. The fold passes it over, so a skipped attempt has no
   `boxxy_attempt` row and counts in no stage time.

@@ -316,7 +316,6 @@ every other failure:
 | Failure         | Cause                                                                                                                                                     | Counts against `maxAttempts` |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
 | `spawn-refused` | atc refused the spawn for a cause other than capacity                                                                                                     | yes                          |
-| `no-capacity`   | the worker target has no free machine; the attempt stores [atc's refusal](#the-refusal-of-a-no-capacity-attempt)                                          | no                           |
 | `spawn-lost`    | no session appeared in time after the claim                                                                                                               | yes                          |
 | `session-lost`  | the session is absent                                                                                                                                     | yes                          |
 | `resume-lost`   | the session didn't run in time after the wake                                                                                                             | yes                          |
@@ -326,16 +325,25 @@ every other failure:
 | `item-closed`   | the owner closed the item                                                                                                                                 | yes, on a closed item        |
 | `usage-limit`   | the reading carried a reset time for the account's usage limit                                                                                            | no                           |
 
-### The refusal of a no-capacity attempt
+### A spawn refused for capacity
 
-An attempt that settles as `no-capacity` stores what atc answered: its error code, the cause it
-names under that code (`ram_budget_exceeded`, for example), and its message, cut to 500 characters.
-The attempt row holds them in its `refusal` column and the `settled` fact in its `refusal` field.
-Both are null for every other failure, and for an attempt that settled before boxxy stored the
-refusal. `item_get` shows the column in each attempt summary of the item. To read the whole attempt,
-see [the procedures](../interfaces/api-and-auth.md#the-procedures).
+A spawn that atc refuses for capacity keeps no attempt. The claim has to write the attempt before
+the spawn, because atc uses the attempt ID as its idempotency key, so the refusal deletes it. In one
+store change, dispatch inserts a row in the `capacity_refusals` table
+([the store](./store.md#capacity-refusals)), deletes the attempt with the lease, seats, bound
+sessions and decisions that belong only to it, and writes the `settled` fact. The fact carries the
+failure `no-capacity`, the outcome `lost` and atc's refusal, as it did when the attempt stayed, so
+pepys sees no change. The refusal row holds what atc answered: its error code, the cause it names
+under that code (`ram_budget_exceeded`, for example), and its message, cut to 500 characters. All
+three are null when atc gave no answer. The attempt's `refusal` column is null on every stored
+attempt, and `item_get` shows no capacity refusal. The refusal changes nothing about scheduling or
+retries, and the item stays ready.
 
-`runner.status` shows `capacityRefusals`: the time and refusal of the latest `no-capacity` attempt,
-and `sinceLastSpawn`, the count of `no-capacity` attempts that ended after the latest attempt that
-started a session. A burst of refusals therefore reads as one growing count with its cause beside
-it. The refusal changes nothing about scheduling or retries.
+The claim numbers an attempt one above the highest number among the item's attempts in that phase. A
+deleted attempt leaves no gap behind the latest one, so the next claim takes the number that the
+refused attempt had. Nothing reads an attempt number as unique over time: pepys keys an attempt by
+its ID, and only the store's unique key on the item, phase and number needs the number free.
+
+`runner.status` shows `capacityRefusals`: the time and refusal of the latest row, and
+`sinceLastSpawn`, the count of rows at or after the start of the latest attempt that started a
+session. A burst of refusals therefore reads as one growing count with its cause beside it.

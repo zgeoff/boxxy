@@ -114,10 +114,10 @@ the item's position: a phase, an end or a hold.
   reworked code has the build's round, and the reports count any attempt above round 1 as rework.
 - **The engine adds three outcomes.** `lost` is the outcome of an attempt that failed without an
   outcome of its phase, such as one with no valid close-out. `lost` acts as `again`. One exception:
-  the engine skips a `no-capacity` or `usage-limit` failure, because that work never ran.
-  `unsettleable` marks a close-out the phase code could not settle; it has no edge, so the item
-  holds. `skipped` marks a step a [gate](#step-gates-and-skips) skipped, and takes the step's `skip`
-  edge.
+  the engine skips a `usage-limit` failure, because that work never ran. A spawn refused for
+  capacity leaves no attempt for the engine to read. `unsettleable` marks a close-out the phase code
+  could not settle; it has no edge, so the item holds. `skipped` marks a step a
+  [gate](#step-gates-and-skips) skipped, and takes the step's `skip` edge.
 - **The engine adds three holds:** `attempts used up`, `rounds used up` and `outcome not in rules`.
   When a newer phase kind drops an outcome, an item whose stored outcome lost its edge holds with
   `outcome not in rules`. It never falls through to `next`, so no item skips a phase unchecked. The
