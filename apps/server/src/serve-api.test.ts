@@ -31,7 +31,12 @@ async function setupTest() {
       return z
         .array(
           z
-            .object({ name: z.string(), inputSchema: z.unknown(), outputSchema: z.unknown() })
+            .object({
+              name: z.string(),
+              inputSchema: z.unknown(),
+              outputSchema: z.unknown(),
+              annotations: z.unknown(),
+            })
             .loose(),
         )
         .parse(answer.result?.['tools']);
@@ -507,4 +512,40 @@ test('it gives the item view of item_get, a schema typed as a core type, an obje
   const view = objectSchema.parse(detail.properties['item']);
 
   expect(Object.keys(view.properties)).toIncludeAllMembers(['id', 'title', 'derived', 'position']);
+});
+
+test.each([
+  [
+    'item_list',
+    { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  ],
+  [
+    'item_close',
+    { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+  ],
+  [
+    'report_cost',
+    { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+  ],
+  [
+    'item_note',
+    { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  ],
+])('it lists the annotations of %s on /mcp', async (name, annotations) => {
+  const ctx = await setupTest();
+  const tools = await ctx.listTools('owner', '/mcp');
+
+  expect(tools.find((tool) => tool.name === name)?.annotations).toStrictEqual(annotations);
+});
+
+test('it lists the annotations of attempt_evidence on /mcp/session as reaching outside boxxy', async () => {
+  const ctx = await setupTest();
+  const tools = await ctx.listTools('worker', '/mcp/session');
+
+  expect(tools.find((tool) => tool.name === 'attempt_evidence')?.annotations).toStrictEqual({
+    readOnlyHint: false,
+    destructiveHint: false,
+    idempotentHint: false,
+    openWorldHint: true,
+  });
 });

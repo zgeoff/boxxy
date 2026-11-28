@@ -5,9 +5,8 @@ import {
   sessionItemListViewSchema,
   sessionItemViewSchema,
 } from '@boxxy/model';
-import { oc } from '@orpc/contract';
-import { mcp } from '@orpc/mcp';
 import { z } from 'zod';
+import { makeReadTool } from './tools/make-read-tool.ts';
 
 const id = z.string().min(1).max(64);
 const notFound = { NOT_FOUND: { message: 'no such item', data: z.object({ item: id }) } };
@@ -57,25 +56,17 @@ const getItemOutput = z.discriminatedUnion('kind', [
 // that of the session's own item, and a held item or one of another repo answers NOT_FOUND;
 // docs/architecture/interfaces/api-and-auth.md holds the whole rule.
 export const itemReadContract = {
-  listItems: oc
-    .meta(
-      mcp.tool({
-        name: 'attempt_list_items',
-        description:
-          'Lists the items of the repo of this session, newest first, with their derived state and position. Held items are left out. Use it to find an item that asks for the same work or overlaps it.',
-      }),
-    )
+  listItems: makeReadTool(
+    'attempt_list_items',
+    'Lists the items of the repo of this session, newest first, with their derived state and position. Held items are left out. Use it to find an item that asks for the same work or overlaps it.',
+  )
     .input(listItemsInput)
     .output(listItemsOutput),
 
-  getItem: oc
-    .meta(
-      mcp.tool({
-        name: 'attempt_get_item',
-        description:
-          'Returns one item of the repo of this session with its body, position, notes, relations and pull requests.',
-      }),
-    )
+  getItem: makeReadTool(
+    'attempt_get_item',
+    'Returns one item of the repo of this session with its body, position, notes, relations and pull requests.',
+  )
     .errors(notFound)
     .input(z.object({ item: id.describe('The item ID, such as i-12.') }))
     .output(getItemOutput),
