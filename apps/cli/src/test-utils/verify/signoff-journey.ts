@@ -6,12 +6,9 @@ import { itemShowSchema } from './harness/types.ts';
 import { postControl } from './post-control.ts';
 import { runBoxxy } from './run-boxxy.ts';
 
-const promptAttemptSchema = z.object({
-  phase: z.string(),
-  spawnRequest: z.object({ prompt: z.string() }),
-});
-
-const promptShowSchema = z.object({ attempts: z.array(promptAttemptSchema) });
+const promptAttemptSchema = z.object({ spawnRequest: z.object({ prompt: z.string() }) });
+const listedAttemptSchema = z.object({ id: z.string(), phase: z.string() });
+const attemptListSchema = z.object({ attempts: z.array(listedAttemptSchema) });
 
 const waitingItemSchema = z.object({
   item: z.string(),
@@ -110,31 +107,38 @@ export const signoffJourney = {
   prompt: defineVerify.defineCommand({
     path: ['boxxy', 'prompt'],
     summary:
-      "Check that the launch prompt of the current item's latest --phase attempt holds --text, from `boxxy item show`",
+      "Check that the launch prompt of the current item's latest --phase attempt holds --text, from `boxxy item show` and `boxxy attempt get`",
     effect: 'read',
     args: z.strictObject({ phase: z.string(), text: z.string() }),
-    data: promptShowSchema,
+    data: promptAttemptSchema,
     run: async (args, ctx) => {
       const shown = await runBoxxy(ctx, {
         argv: ['item', 'show', '@current'],
-        schema: promptShowSchema,
+        schema: attemptListSchema,
       });
 
       const latest = shown.attempts.findLast((attempt) => attempt.phase === args.phase);
 
+      expectEqual(`the item has a ${args.phase} attempt`, latest !== undefined, true);
+
+      const full = await runBoxxy(ctx, {
+        argv: ['attempt', 'get', latest?.id ?? ''],
+        schema: promptAttemptSchema,
+      });
+
       expectEqual(
         `the prompt of the latest ${args.phase} attempt holds the text`,
-        latest?.spawnRequest.prompt.includes(args.text),
+        full.spawnRequest.prompt.includes(args.text),
         true,
       );
 
-      return shown;
+      return full;
     },
   }),
   merges: defineVerify.defineCommand({
     path: ['boxxy', 'merges'],
     summary:
-      "Check the outcomes of the current item's merge attempts, oldest first, as a comma-separated list, from `boxxy item show`",
+      "Check the outcomes of the current item's merge attempts, oldest first, as a comma-separated list, from `boxxy item show` and `boxxy attempt get`",
     effect: 'read',
     args: z.strictObject({ outcomes: z.string() }),
     data: itemShowSchema,
