@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.8](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.3.7...@boxxy/store-sqlite@0.3.8) (2026-11-28)
+
+
+### Features
+
+* **dispatch:** delete the attempt of a spawn refused for capacity ([#317](https://github.com/zgeoff/boxxy/issues/317)) ([0363488](https://github.com/zgeoff/boxxy/commit/036348894af5a545706aa711044a642a74936526))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @boxxy/content-hash bumped to 0.3.8
+    * @boxxy/model bumped to 0.3.8
+  * devDependencies
+    * @boxxy/dispatch bumped to 0.3.8
+  * peerDependencies
+    * @boxxy/dispatch bumped to 0.3.8
+
 ## [0.3.7](https://github.com/zgeoff/boxxy/compare/@boxxy/store-sqlite@0.3.6...@boxxy/store-sqlite@0.3.7) (2026-11-28)
 
 ### Miscellaneous Chores
