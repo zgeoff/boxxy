@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { closeOutAttempt, settleAttempt } from '@boxxy/dispatch';
 import { buildMockLeverChange } from '@boxxy/dispatch/test-utils/build-mock-lever-change';
 import { seedSignoffWait } from '@boxxy/dispatch/test-utils/seed-signoff-wait';
-import { brandSchemas } from '@boxxy/model';
+import { attemptSummarySchema, brandSchemas } from '@boxxy/model';
 import type { ItemId } from '@boxxy/model';
 import invariant from 'tiny-invariant';
 import { z } from 'zod';
@@ -890,4 +890,41 @@ test('#file with blockedBy takes a short reference', async () => {
     'blocked',
     [expect.objectContaining({ source: blocker, target: filed.item })],
   ]);
+});
+
+test('#get lists each attempt as a summary without its launch prompt or input', async () => {
+  const ctx = await setupTest();
+  const first = await ctx.dispatch.seedBuild();
+
+  await ctx.dispatch.seedReworkAfter(first);
+
+  const rows = await ctx.deps.store.read((tx) => tx.listItemAttempts(first.item));
+  const answer = await ctx.callOwner('item.get', { item: first.item });
+
+  const shape = z.object({ json: z.object({ attempts: z.array(attemptSummarySchema) }) });
+  const shown = shape.parse(answer.body).json.attempts;
+
+  expect(JSON.stringify(first.spawnRequest).length).toBeGreaterThan(500);
+
+  expect(
+    shown.map((attempt) => [
+      attempt.phase,
+      attempt.number,
+      attempt.state,
+      attempt.failure,
+      attempt.claimedAt,
+      attempt.startedAt,
+      attempt.endedAt,
+    ]),
+  ).toStrictEqual(
+    rows.map((row) => [
+      row.phase,
+      row.number,
+      row.state,
+      row.failure,
+      row.claimedAt,
+      row.startedAt,
+      row.endedAt,
+    ]),
+  );
 });

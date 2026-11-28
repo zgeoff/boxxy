@@ -71,6 +71,13 @@ needs it:
 - **The owner's agent** files and steers work, so the owner's `/mcp` lists every procedure that
   changes an item, every read, the runner's pause and resume, and the notice procedures. Only the
   owner can file, release or list held items, because a held item is the owner's draft.
+- **`item.get`, `runner.status` and `attempt.current` return each attempt as a summary:** its ID,
+  item, phase, number, round, mode, state, failure, refusal, pool, runner, atc session, claim, start
+  and end times, and outcome name. A summary leaves out the launch prompt, the input, the close-out
+  body, the field values and the caller, which can run to many kilobytes for each attempt.
+  `attempt.current` still returns the attempt's `input` beside its summary. To read one attempt in
+  full, call `attempt.get` with its attempt ID: it returns the launch prompt, input and close-out,
+  takes the owner's `read` scope as `item.get` does, and answers `NOT_FOUND` for an unknown ID.
 - **The owner's sign-off** has two procedures, both owner-only ([below](#the-owners-sign-off)).
 - **A session** gets five tools on its own endpoint, `/mcp/session`, so its tool list holds nothing
   that changes another item. `attempt.current` gives the session its attempt ID, phase, close-out
@@ -87,10 +94,10 @@ needs it:
   ([the session's reads](#a-sessions-view-of-other-items)).
 - **The hooks** call `attempt.bindSession`, which binds a session to its attempt, and
   `attempt.recordPullRequest`, which links a pull request. Neither is an MCP tool.
-- **Some owner procedures have no tool,** so only a person at the CLI calls them. `outbox.retry`
-  acts on the whole outbox and writes no fact that would show who called it, so it stays where an
-  agent can't call it unseen. `rules.dryRun` takes a whole rules file as input. The six `auth`
-  procedures manage who may reach the public listener, so they stay on the private owner listener.
+- **Some owner procedures have no tool,** so no agent calls them through MCP. `outbox.retry` acts on
+  the whole outbox and writes no fact that would show who called it, so it has no tool for an agent
+  to call unseen. `rules.dryRun` takes a whole rules file as input. The six `auth` procedures manage
+  who may reach the public listener, so they stay on the private owner listener.
 
 One root middleware runs the access check for every call, on `/rpc` and both MCP endpoints, before
 any handler runs, and handlers never repeat it. It also logs each internal error with the procedure

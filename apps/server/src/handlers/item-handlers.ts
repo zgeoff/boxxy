@@ -15,7 +15,7 @@ import type {
   RelationRow,
   StoreReader,
 } from '@boxxy/model';
-import { brandSchemas, heldLeverKind, releaseLeverKind } from '@boxxy/model';
+import { brandSchemas, heldLeverKind, releaseLeverKind, toAttemptSummary } from '@boxxy/model';
 import { ORPCError } from '@orpc/server';
 import type { ServerDeps } from '../types.ts';
 import { api } from './api.ts';
@@ -381,7 +381,7 @@ export const itemHandlers = {
     return {
       item: toItemView(detail.item),
       notes: [...detail.notes],
-      attempts: [...detail.attempts],
+      attempts: detail.attempts.map(toAttemptSummary),
       relations: [...detail.relations],
       evidence: [...detail.evidence],
       pullRequests: [...detail.pullRequests],

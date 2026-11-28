@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadVerifyJobRules } from '@boxxy/dispatch/test-utils/load-verify-job-rules';
-import { brandSchemas, toJSONValue } from '@boxxy/model';
+import { attemptSummarySchema, brandSchemas, toJSONValue } from '@boxxy/model';
 import type { AttemptRow, CheckState, CommitSha, ItemId } from '@boxxy/model';
 import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
 import { createSQLiteClaimStore } from '@boxxy/store-sqlite';
@@ -265,6 +265,41 @@ test('#attempt current prints the attempt of the calling session and the close-o
     ctx.attempt.id,
     'design',
   ]);
+});
+
+test('#attempt current prints the attempt as a summary and keeps the input', async () => {
+  const ctx = await setupTest();
+  const result = await ctx.run(['attempt', 'current']);
+
+  const shape = z.object({ attempt: attemptSummarySchema, input: z.unknown() });
+  const current = readJSONOutput(result, shape);
+
+  expect([current.attempt.id, current.input]).toStrictEqual([ctx.attempt.id, ctx.attempt.input]);
+});
+
+test('#attempt get prints one attempt in full, with its launch prompt and input', async () => {
+  const ctx = await setupTest();
+  const result = await ctx.run(['attempt', 'get', ctx.attempt.id]);
+
+  const full = readJSONOutput(
+    result,
+    z.object({ id: z.string(), spawnRequest: z.unknown(), input: z.unknown() }),
+  );
+
+  expect([result.exitCode, full]).toStrictEqual([
+    0,
+    { id: ctx.attempt.id, spawnRequest: ctx.attempt.spawnRequest, input: ctx.attempt.input },
+  ]);
+});
+
+test('#attempt get exits 1 and names the attempt that does not exist', async () => {
+  const ctx = await setupTest();
+  const result = await ctx.run(['attempt', 'get', 'no-such-attempt']);
+
+  expect({ exitCode: result.exitCode, stderr: result.stderr }).toStrictEqual({
+    exitCode: 1,
+    stderr: 'error: NOT_FOUND: no such attempt {"attempt":"no-such-attempt"}\n',
+  });
 });
 
 test('#attempt current exits 2 and says to try again when no session holds the caller', async () => {

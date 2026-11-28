@@ -168,9 +168,18 @@ export const itemCommands: readonly Command[] = [
     path: ['item', 'show'],
     procedure: 'item.get',
     summary:
-      'Shows one item with its body, position, notes, attempts, relations and pull requests.',
+      'Shows one item with its body, position, notes, attempts without their prompts, relations and pull requests.',
     options: {},
     run: makeAnswerRun((call) => call.client.item.get({ item: call.args.positional(0, 'item') })),
+  },
+  {
+    path: ['attempt', 'get'],
+    procedure: 'attempt.get',
+    summary: 'Shows one attempt in full, with its launch prompt, input and close-out.',
+    options: {},
+    run: makeAnswerRun((call) =>
+      call.client.attempt.get({ attempt: call.args.positional(0, 'attempt') }),
+    ),
   },
   {
     path: ['item', 'list'],

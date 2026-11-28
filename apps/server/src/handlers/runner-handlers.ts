@@ -1,6 +1,6 @@
 import { findWaitingSince, noticeLimits, timeouts } from '@boxxy/dispatch';
 import type { AnyNewFact, AttemptRow, Instant, RowWrite, RunnerRow } from '@boxxy/model';
-import { brandSchemas } from '@boxxy/model';
+import { brandSchemas, toAttemptSummary } from '@boxxy/model';
 import type { ServerDeps } from '../types.ts';
 import { api } from './api.ts';
 import { buildRunnerFact } from './build-runner-fact.ts';
@@ -50,10 +50,11 @@ export const runnerHandlers = {
           : null,
       limits: read.limits,
       attempts: read.attempts.map((entry) => ({
-        ...entry,
+        attempt: toAttemptSummary(entry.attempt),
+        title: entry.title,
         waitingSince: findAttemptWaitingSince(deps, entry.attempt),
       })),
-      strays: read.strays,
+      strays: read.strays.map(toAttemptSummary),
       capacityRefusals: {
         latest:
           read.capacity.latest === null

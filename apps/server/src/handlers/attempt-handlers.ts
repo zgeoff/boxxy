@@ -7,7 +7,7 @@ import {
 } from '@boxxy/dispatch';
 import type { CallRef, EvidenceDraft } from '@boxxy/dispatch';
 import type { AttemptRow, ItemView, LoadedRules, RepoName } from '@boxxy/model';
-import { brandSchemas, findRecipeName } from '@boxxy/model';
+import { brandSchemas, findRecipeName, toAttemptSummary } from '@boxxy/model';
 import { verifyGateCheck } from '../constants.ts';
 import type { ProvenCall, ServerDeps } from '../types.ts';
 import { api } from './api.ts';
@@ -20,6 +20,22 @@ const noAttempt = { kind: 'refused', reason: 'no-attempt' } as const;
 // The procedures of a session and its hooks. Each takes its session and caller from the root
 // middleware's proven call, never from the request; the request names only the attempt.
 export const attemptHandlers = {
+  // The owner's read of one attempt in full. It takes no session: the attempt comes from the
+  // request, and the owner's scope guards it.
+  get: api.attempt.get.handler(async (options) => {
+    const notFound = options.errors.NOT_FOUND;
+    const attemptID = brandSchemas.attemptId.safeParse(options.input.attempt);
+
+    const attempt = attemptID.success
+      ? await options.context.deps.store.read((tx) => tx.readAttempt(attemptID.data))
+      : null;
+
+    if (attempt === null) {
+      throw notFound({ data: { attempt: options.input.attempt } });
+    }
+
+    return attempt;
+  }),
   current: api.attempt.current.handler(async (options) => {
     const attempt = await readSessionAttempt(options.context.deps, options.context.call);
 
@@ -271,7 +287,7 @@ async function readCurrent(deps: ServerDeps, attempt: AttemptRow) {
 
   return {
     kind: 'attempt' as const,
-    attempt,
+    attempt: toAttemptSummary(attempt),
     item,
     input: toWireJSON(attempt.input),
     closeOut: {

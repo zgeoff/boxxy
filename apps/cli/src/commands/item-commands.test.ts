@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { loadJobRules } from '@boxxy/dispatch/test-utils/load-job-rules';
 import { seedSignoffWait } from '@boxxy/dispatch/test-utils/seed-signoff-wait';
-import { brandSchemas } from '@boxxy/model';
+import { attemptSummarySchema, brandSchemas } from '@boxxy/model';
 import { buildMockGateReading } from '@boxxy/model/test-utils/build-mock-gate-reading';
 import { renderReportComment } from '@wringer/core';
 import invariant from 'tiny-invariant';
@@ -41,8 +41,9 @@ async function setupTest() {
     relations: z.array(relation),
   });
 
-  const shownAttempt = z.object({ spawnRequest: z.object({ prompt: z.string() }) });
-  const shownAttemptsSchema = z.object({ attempts: z.array(shownAttempt) });
+  const attemptRef = z.object({ id: z.string() });
+  const shownAttemptsSchema = z.object({ attempts: z.array(attemptRef) });
+  const fullAttemptSchema = z.object({ spawnRequest: z.object({ prompt: z.string() }) });
   const listedItem = z.object({ labels });
   const listedSchema = z.object({ items: z.array(listedItem), next: z.string().nullable() });
 
@@ -151,7 +152,15 @@ async function setupTest() {
         },
         argv,
       ),
-    items: { ...cli, fileItem, filedSchema, shownSchema, shownAttemptsSchema, listedSchema },
+    items: {
+      ...cli,
+      fileItem,
+      filedSchema,
+      shownSchema,
+      shownAttemptsSchema,
+      fullAttemptSchema,
+      listedSchema,
+    },
     held: {
       ...heldCLI,
       fileItem: fileHeldItem,
@@ -464,9 +473,11 @@ test.each([
 
     const shown = await ctx.run(['item', 'show', blocked.item]);
 
-    const attempts = readJSONOutput(shown, ctx.shownAttemptsSchema).attempts;
+    const latest = readJSONOutput(shown, ctx.shownAttemptsSchema).attempts.at(-1);
 
-    expect(attempts.at(-1)?.spawnRequest.prompt).toContain(
+    const full = await ctx.run(['attempt', 'get', latest?.id ?? '']);
+
+    expect(readJSONOutput(full, ctx.fullAttemptSchema).spawnRequest.prompt).toContain(
       [
         '## Where the last attempt stopped',
         'Light or dark by default? The toggle is settled.',
@@ -524,6 +535,22 @@ test('#item wake answers not-sleeping for an item with no sleeping attempt', asy
   const result = await ctx.run(['item', 'wake', filed.item]);
 
   expect(readJSONOutput(result, z.json())).toStrictEqual({ kind: 'not-sleeping' });
+});
+
+test('#item show lists each attempt as a summary without its launch prompt or input', async () => {
+  const setup = await setupTest();
+
+  const ctx = setup.items;
+
+  const attempt = await ctx.server.seedStartedAttempt(brandSchemas.phaseName.parse('build'));
+  const shown = await ctx.run(['item', 'show', attempt.item]);
+
+  const shape = z.object({ attempts: z.array(attemptSummarySchema) });
+  const attempts = readJSONOutput(shown, shape).attempts;
+
+  expect(
+    attempts.map((listed) => [listed.id, listed.phase, listed.number, listed.state]),
+  ).toStrictEqual([[attempt.id, attempt.phase, attempt.number, attempt.state]]);
 });
 
 test('#item show exits 1 and names the item that does not exist', async () => {
