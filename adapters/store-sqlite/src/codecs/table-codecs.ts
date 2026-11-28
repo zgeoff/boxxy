@@ -190,4 +190,9 @@ export const tableCodecs: { readonly [T in TableName]: TableCodec<Tables[T]> } =
     json: [],
     flags: [],
   },
+  capacity_refusals: {
+    fields: ['id', 'attempt', 'item', 'phase', 'pool', 'at', 'refusal'],
+    json: ['refusal'],
+    flags: [],
+  },
 };

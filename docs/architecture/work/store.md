@@ -60,6 +60,19 @@ writes a checked row's `ref` as `<name>@<head>`, and `parseStoreRow` strips the 
 A tool that opens the SQLite file directly, such as a SQL console on a backup, sees the qualified
 ref. Every other evidence kind stores its bare ref.
 
+## Capacity refusals
+
+The `capacity_refusals` table holds one row for each spawn that atc refused for capacity: its own
+ID, the ID of the attempt the spawn was for, the item, the phase, the pool, the time, and atc's
+refusal as JSON. The attempt row is gone, so the attempt ID names no stored row. The row is written
+in the change that deletes the attempt ([the refusal](./attempts.md#a-spawn-refused-for-capacity)),
+and nothing else reads the table but `runner.status`. `runner.status` counts the refusals since the
+latest attempt that started a session: a refusal at or after that attempt's start counts, so a
+refusal of the same tick counts too. Migration `0016-capacity-refusals` created it, moved each
+attempt stored with the failure `no-capacity` into it under the attempt's ID, and deleted those
+attempts with their seats, sessions and decisions. Their released leases stay, so a lease generation
+is never reused.
+
 ## Claims
 
 A claim that `applyChange` refuses leaves no decision row. `claimNext` writes the planning decision

@@ -116,6 +116,18 @@ function applyMemoryWrite(tables: MemoryTables, write: RowWrite, at: Instant): A
 
       return null;
     })
+    .with({ op: 'remove-attempt' }, (removal) => {
+      tables.limit_seats = tables.limit_seats.filter((row) => row.attempt !== removal.attempt);
+
+      tables.attempt_sessions = tables.attempt_sessions.filter(
+        (row) => row.attempt !== removal.attempt,
+      );
+
+      tables.decisions = tables.decisions.filter((row) => row.attempt !== removal.attempt);
+      tables.attempts = tables.attempts.filter((row) => row.id !== removal.attempt);
+
+      return null;
+    })
     .with({ op: 'insert', table: 'leases' }, (insert) => {
       const isHeld = tables.leases.some(
         (row) =>
@@ -234,6 +246,7 @@ const uniqueKeys: Readonly<Record<TableName, readonly UniqueKey[]>> = {
   notices: [{ fields: ['id'] }],
   item_shipped: [{ fields: ['itemId', 'commit'] }],
   wait_notices: [{ fields: ['itemId', 'since'] }],
+  capacity_refusals: [{ fields: ['id'] }],
 };
 
 function assertMemoryUnique(table: TableName, rows: readonly object[], row: object): void {

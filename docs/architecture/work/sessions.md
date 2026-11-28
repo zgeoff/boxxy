@@ -55,8 +55,8 @@ The runner spawns a fresh session instead when the item has no kept session, or 
 wake for a cause other than capacity; the `started` fact records that fallback. Either way, the new
 session's start clears the kept session from the item. Two cases leave it in place:
 
-- **atc refuses the wake for capacity.** The attempt settles `no-capacity` and the next claim tries
-  the wake again, because a fresh spawn would meet the same lack of room.
+- **atc refuses the wake for capacity.** The attempt is deleted as a spawn refused for capacity is,
+  and the next claim tries the wake again, because a fresh spawn would meet the same lack of room.
 - **The wake gets no answer.** The attempt moves to `reconciling`, and a respawn from there wakes
   the kept session again, because a lost reply can leave the woken session running and a fresh spawn
   would run beside it.
@@ -91,9 +91,9 @@ with the cause `capacity`. The same request would meet the same lack of room on 
 the runner holds back the pool that the attempt came from for a fixed backoff, during which the
 claim starts no item from that pool and wakes none of its sleeping attempts.
 
-- **A spawn refused for capacity fails the attempt** as `no-capacity`, which doesn't count against
-  `maxAttempts`, and the item stays ready. Waking a kept session counts as a spawn here. The attempt
-  stores atc's answer ([the refusal](./attempts.md#the-refusal-of-a-no-capacity-attempt)).
+- **A spawn refused for capacity deletes the attempt,** so it counts against no `maxAttempts`, and
+  the item stays ready. Waking a kept session counts as a spawn here. The runner stores atc's answer
+  in a capacity refusal row ([the refusal](./attempts.md#a-spawn-refused-for-capacity)).
 - **A wake of a sleeping attempt refused for capacity fails nothing.** The attempt sleeps again and
   keeps its wake request.
 - **The backoff lives in the runner's memory,** one end time per pool. A restart drops it, and the

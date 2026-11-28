@@ -161,20 +161,24 @@ test('it hands an unanswered wake to the reconcile table and keeps the kept sess
   expect(received).toStrictEqual(['reconciling', 1]);
 });
 
-test('it settles a wake refused for capacity as no-capacity and holds the pool back', async () => {
+test('it deletes the attempt of a wake refused for capacity, records the refusal and holds the pool back', async () => {
   const ctx = await setupTest();
 
   ctx.worker.failNext('resumeKept', { kind: 'refused', cause: 'capacity', reason: 'no slot' });
 
   const rework = await ctx.seedRework({ startByWorker: true });
+  const attempts = await ctx.listAttempts(rework.first.item);
+  const refusals = await ctx.readCapacityRefusals();
+
+  expect(attempts.map((attempt) => attempt.id)).not.toContain(rework.claimed.id);
 
   const received: unknown = [
-    rework.second.state,
-    rework.second.failure,
+    refusals.latest?.attempt,
+    refusals.count,
     ctx.backoff.listHeld(ctx.clock.now()),
   ];
 
-  expect(received).toStrictEqual(['failed', 'no-capacity', [rework.second.pool]]);
+  expect(received).toStrictEqual([rework.claimed.id, 1, [rework.claimed.pool]]);
 });
 
 test('it wakes the build session for a builder verify, which then runs on it', async () => {

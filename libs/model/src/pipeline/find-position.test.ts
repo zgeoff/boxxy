@@ -145,22 +145,21 @@ test('it does not count a design attempt that moved on toward the attempts of th
   expect(position).toStrictEqual({ kind: 'phase', phase: 'build', round: 1 });
 });
 
-test.each(['no-capacity', 'usage-limit'])(
-  'it ignores an attempt that failed with %s',
-  (failure) => {
-    const position: unknown = findPosition({
-      pipeline: buildMockPipeline(),
-      attempts: [
-        buildMockSettled({ phase: 'design', outcome: 'lost', endedAt: 1000, failure }),
-        buildMockSettled({ phase: 'design', outcome: 'lost', endedAt: 2000, failure }),
-        buildMockSettled({ phase: 'design', outcome: 'lost', endedAt: 3000, failure }),
-      ],
-      retries: [],
-    });
+test('it ignores an attempt that failed with usage-limit', () => {
+  const failure = 'usage-limit';
 
-    expect(position).toStrictEqual({ kind: 'phase', phase: 'triage', round: 1 });
-  },
-);
+  const position: unknown = findPosition({
+    pipeline: buildMockPipeline(),
+    attempts: [
+      buildMockSettled({ phase: 'design', outcome: 'lost', endedAt: 1000, failure }),
+      buildMockSettled({ phase: 'design', outcome: 'lost', endedAt: 2000, failure }),
+      buildMockSettled({ phase: 'design', outcome: 'lost', endedAt: 3000, failure }),
+    ],
+    retries: [],
+  });
+
+  expect(position).toStrictEqual({ kind: 'phase', phase: 'triage', round: 1 });
+});
 
 test('it treats a lost attempt as an again edge', () => {
   const position: unknown = findPosition({

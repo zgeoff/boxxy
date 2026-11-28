@@ -54,7 +54,7 @@ export const build = definePhase({
 
   // A blocked or abandoned build did not reach its goal, so its attempt fails and keeps no
   // session. The failure is the outcome name: the agent's reason is free text, and the engine
-  // reads some failure names, such as `no-capacity`. The reason stays in the close-out.
+  // reads some failure names, such as `usage-limit`. The reason stays in the close-out.
   settle: (input) => ({
     ...match(input.closeOut.result)
       .with({ kind: 'built' }, () => ({ state: 'succeeded' as const, failure: null }))

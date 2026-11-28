@@ -187,6 +187,7 @@ export type {
   ShipRule,
   ItemShipped,
   WaitNoticeMark,
+  CapacityRefusalId,
   SkipReason,
   SnapshotHash,
   SourceName,
@@ -369,7 +370,6 @@ export type {
   SeverityCounts,
   SpawnRequest,
   StartOutcome,
-  CapacityRefusals,
   StopOutcome,
   StoreChange,
   StoreReader,
@@ -384,6 +384,7 @@ export type {
   WorkerShape,
 } from './ports/types.ts';
 
+export type { CapacityRefusalRow, CapacityRefusals } from './ports/capacity-refusals.ts';
 export type { CheckedEvidenceRefusal } from './evidence/types.ts';
 export type { CostToLand, StageTime } from './reports/types.ts';
 export type { OutboxStatus } from './reports/outbox-status.ts';

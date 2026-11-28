@@ -34,7 +34,7 @@ export interface Settled {
   readonly outcome: string;
   readonly endedAt: Instant;
 
-  // An attempt that failed with `no-capacity` or `usage-limit` neither moves the item nor
+  // An attempt that failed with `usage-limit` neither moves the item nor
   // counts. Optional, so that a test's settled attempt may leave it out.
   readonly failure?: string | null;
 

@@ -4,6 +4,7 @@ import { lockWaitLimitMs } from '../constants.ts';
 import type { StoreDatabase } from '../types.ts';
 import { withTransaction } from '../with-transaction.ts';
 import { takeWriteLock } from '../writes/take-write-lock.ts';
+import { capacityRefusalsMigration } from './capacity-refusals-migration.ts';
 import { createTablesMigration } from './create-tables-migration.ts';
 import { evidenceHeadMigration } from './evidence-head-migration.ts';
 import { itemBodyMigration } from './item-body-migration.ts';
@@ -49,6 +50,7 @@ const migrations = {
   '0013-lever-head': leverHeadMigration,
   '0014-item-ref': itemRefMigration,
   '0015-evidence-head': evidenceHeadMigration,
+  '0016-capacity-refusals': capacityRefusalsMigration,
 };
 
 async function runMigrator(db: Kysely<StoreDatabase>): Promise<void> {

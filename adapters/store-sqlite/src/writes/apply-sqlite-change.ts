@@ -126,6 +126,15 @@ function writeSQLiteRow(
 
       return null;
     })
+    .with({ op: 'remove-attempt' }, async (removal) => {
+      for (const table of ['limit_seats', 'attempt_sessions', 'decisions'] as const) {
+        await db.deleteFrom(table).where('attempt', '=', removal.attempt).execute();
+      }
+
+      await db.deleteFrom('attempts').where('id', '=', removal.attempt).execute();
+
+      return null;
+    })
     .with({ op: 'insert', table: 'leases' }, async (insert) => {
       const columns = toStoreColumns(insert.table, insert.row);
 

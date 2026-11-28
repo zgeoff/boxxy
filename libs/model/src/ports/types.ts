@@ -46,6 +46,7 @@ import type {
   WaitNoticeMark,
   WorkerKindName,
 } from '../types.ts';
+import type { CapacityRefusalRow, CapacityRefusals } from './capacity-refusals.ts';
 import type { MergeAnswer, MergeMethod } from './forge.ts';
 
 export type {
@@ -273,6 +274,7 @@ export interface Tables {
   notices: NoticeRow;
   item_shipped: ItemShipped;
   wait_notices: WaitNoticeMark;
+  capacity_refusals: CapacityRefusalRow;
 }
 
 export type TableName = keyof Tables;
@@ -298,7 +300,12 @@ export type RowWrite =
   | { readonly op: 'take-seats'; readonly take: SeatTake }
 
   // the attempt's held seats of that hold generation; none held is no refusal
-  | { readonly op: 'release-seats'; readonly release: SeatRelease };
+  | { readonly op: 'release-seats'; readonly release: SeatRelease }
+
+  // Deletes the attempt with every row that belongs only to it: its seats, bound sessions and
+  // decisions. Its lease stays, released, so the next lease of the item and phase takes a new
+  // generation. A stored attempt that is not there is no refusal.
+  | { readonly op: 'remove-attempt'; readonly attempt: AttemptId };
 
 // The worker port: one adapter per kind of worker host, such as atc.
 export interface WorkerKind {
@@ -317,18 +324,6 @@ export interface WorkerKind {
 
   // wakes a kept session and sends the request's prompt as a message, in place of a spawn
   resumeKept: (kept: KeptSession, request: SpawnRequest) => Promise<StartOutcome>;
-}
-
-// The attempts that settled as `no-capacity`, counted back to the latest attempt that started a
-// session.
-export interface CapacityRefusals {
-  // null when no attempt settled as `no-capacity`; `refusal` is null for one stored without it
-  readonly latest: {
-    readonly attempt: AttemptId;
-    readonly at: Instant;
-    readonly refusal: RefusalDetail | null;
-  } | null;
-  readonly count: number;
 }
 
 export type StartOutcome =
@@ -515,8 +510,8 @@ export interface SessionFault {
   readonly holder: AttemptId;
 }
 
-// A spawn or a wake that the worker refused. A refused spawn settles the attempt as `no-capacity`
-// or `spawn-refused`; a refused wake sleeps the attempt again for capacity, and otherwise leaves it
+// A spawn or a wake that the worker refused. A spawn refused for capacity deletes the attempt, and
+// one refused for another cause settles it as `spawn-refused`; a refused wake sleeps the attempt again for capacity, and otherwise leaves it
 // `waking` for the next reading. The runner logs the worker's reason, which no fact carries.
 export interface WorkerRefusal {
   readonly kind: 'fault';

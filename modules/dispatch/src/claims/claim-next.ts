@@ -46,6 +46,7 @@ import { buildRecipeHash } from './build-recipe-hash.ts';
 import { buildSnapshotHash } from './build-snapshot-hash.ts';
 import { filterTaggedCriteria } from './filter-tagged-criteria.ts';
 import { pickKeptSession } from './pick-kept-session.ts';
+import { pickNextNumber } from './pick-next-number.ts';
 import { pickPromptPath } from './pick-prompt-path.ts';
 import { readGateSkip } from './read-gate-skip.ts';
 import type { ClaimInput, SpawnSettings } from './types.ts';
@@ -202,7 +203,7 @@ async function writeSkip(tx: StoreTx, input: ClaimInput, parts: SkipParts): Prom
     item: item.id,
     phase: parts.phase,
     round: item.position.round,
-    number: 1 + parts.detail.attempts.filter((row) => row.phase === parts.phase).length,
+    number: pickNextNumber(parts.detail.attempts, parts.phase),
     reason: parts.reason,
     notice: isUnprovenLine(parts.step, item, parts.reason),
     recipeHash: buildRecipeHash(material, input.rules),
@@ -388,7 +389,7 @@ function buildClaimedEvent(parts: ClaimedParts): {
       kind: 'claimed',
       attempt: parts.attempt,
       pick: parts.pick,
-      number: 1 + parts.detail.attempts.filter((row) => row.phase === parts.pick.phase).length,
+      number: pickNextNumber(parts.detail.attempts, parts.pick.phase),
       runner: parts.runner,
       leaseGen: parts.leaseGen,
       recipe: {

@@ -20,6 +20,8 @@ export type AttemptId = BrandOf<'attemptId'>;
 
 export type DecisionId = BrandOf<'decisionId'>;
 
+export type CapacityRefusalId = BrandOf<'capacityRefusalId'>;
+
 // A bare UUID version 7. The outbox row's fact ID, an evidence ID that a close-out cites, and
 // each ID in `settled.criteria[].evidence` all have this one brand.
 export type FactId = BrandOf<'factId'>;
@@ -346,8 +348,8 @@ export interface AttemptRow {
   // what the phase code returned, for an attempt settled as `closeout-unsettleable`
   readonly returnedOutcome: string | null;
 
-  // atc's answer to a spawn that settled the attempt as `no-capacity`; null for every other
-  // attempt and for one settled before boxxy stored it
+  // always null: a spawn refused for capacity keeps no attempt, and the refusal is stored in its
+  // own row
   readonly refusal: RefusalDetail | null;
   readonly strayedAt: Instant | null;
   readonly sessionStoppedAt: Instant | null;
