@@ -11,6 +11,7 @@ test.each([
   ],
   ['a seat take', "return { op: 'take-seats', take };\n"],
   ['a seat release', "return { op: 'release-seats', release };\n"],
+  ['an attempt removal', "return { op: 'remove-attempt', attempt };\n"],
 ])('it lists a file outside the builder with %s', (_label, text) => {
   const files = new Map([
     ['attempts/build-attempt-change.ts', "const write = { table: 'attempts' };\n"],

@@ -642,7 +642,7 @@ test('it moves each no-capacity attempt into the capacity refusals and leaves th
       'SELECT id, attempt, item, phase, pool, at, refusal FROM capacity_refusals ORDER BY at',
     ),
     attempts: ctx.readRaw('SELECT id FROM attempts'),
-    leases: ctx.readRaw('SELECT attempt FROM leases'),
+    leases: ctx.readRaw('SELECT gen FROM leases ORDER BY gen'),
     seats: ctx.readRaw('SELECT attempt FROM limit_seats'),
   }).toStrictEqual({
     refusals: [
@@ -666,7 +666,7 @@ test('it moves each no-capacity attempt into the capacity refusals and leaves th
       },
     ],
     attempts: [{ id: 'attempt-b' }],
-    leases: [{ attempt: 'attempt-b' }],
+    leases: [{ gen: 1 }, { gen: 2 }, { gen: 3 }],
     seats: [{ attempt: 'attempt-b' }],
   });
 });

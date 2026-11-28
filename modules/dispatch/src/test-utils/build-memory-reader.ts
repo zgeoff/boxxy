@@ -3,6 +3,7 @@ import { buildItemRevision, buildItemViews } from '@boxxy/model';
 import type {
   AtcSessionId,
   AttemptRow,
+  CapacityRefusalRow,
   EvidenceRow,
   Instant,
   ItemDetailRows,
@@ -145,12 +146,18 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
     readCapacityRefusals: () => {
       const tables = getTables();
 
-      const startedAt = Math.max(
-        0,
-        ...tables.attempts.flatMap((attempt) =>
-          attempt.atcSession !== null && attempt.startedAt !== null ? [attempt.startedAt] : [],
-        ),
-      );
+      const [started] = tables.attempts
+        .filter((attempt) => attempt.atcSession !== null && attempt.startedAt !== null)
+        .toSorted(
+          (first, second) =>
+            (second.startedAt ?? 0) - (first.startedAt ?? 0) || compareText(second.id, first.id),
+        );
+
+      // within one tick, a refusal counts when its attempt was claimed after the spawn's
+      const isAfterSpawn = (refusal: CapacityRefusalRow): boolean =>
+        started === undefined ||
+        refusal.at > (started.startedAt ?? 0) ||
+        (refusal.at === started.startedAt && compareText(refusal.attempt, started.id) > 0);
 
       const [latest] = tables.capacity_refusals.toSorted(
         (first, second) => second.at - first.at || compareText(second.id, first.id),
@@ -161,7 +168,7 @@ export function buildMemoryReader(getLiveTables: () => MemoryTables): StoreReade
           latest === undefined
             ? null
             : { attempt: latest.attempt, at: latest.at, refusal: latest.refusal },
-        count: tables.capacity_refusals.filter((refusal) => refusal.at >= startedAt).length,
+        count: tables.capacity_refusals.filter((refusal) => isAfterSpawn(refusal)).length,
       });
     },
     listSucceededAttemptsWithoutPullRequest: () => {

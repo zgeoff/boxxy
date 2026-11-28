@@ -1,6 +1,7 @@
 import type {
   ActorRef,
   AnyNewFact,
+  AttemptId,
   AttemptRow,
   AttemptSessionRow,
   AttemptState,
@@ -58,7 +59,8 @@ type AttemptWrite =
     }
   | { readonly op: 'insert'; readonly table: 'decisions'; readonly row: DecisionRow }
   | { readonly op: 'take-seats'; readonly take: SeatTake }
-  | { readonly op: 'release-seats'; readonly release: SeatRelease };
+  | { readonly op: 'release-seats'; readonly release: SeatRelease }
+  | { readonly op: 'remove-attempt'; readonly attempt: AttemptId };
 
 interface AttemptStoreChange {
   readonly at: Instant;
@@ -387,6 +389,11 @@ function buildMoveChange(
       writes: [
         ...(event.kind === 'session-seen' ? [] : [update]),
         ...collectEffectWrites(moveEffects, parts, base.now),
+
+        // a spawn that atc refused for capacity keeps no attempt: the settled fact is the record
+        ...(event.kind === 'settled' && event.failure === 'no-capacity'
+          ? [{ op: 'remove-attempt' as const, attempt: attempt.id }]
+          : []),
       ],
       facts: collectEffectFacts(factIDs, parts, base),
     },

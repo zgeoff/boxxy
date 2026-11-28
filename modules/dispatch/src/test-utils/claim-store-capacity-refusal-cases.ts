@@ -1,11 +1,15 @@
 import { brandSchemas } from '@boxxy/model';
+import type { AttemptRow, ClaimStore, DecisionRow } from '@boxxy/model';
 import { buildMockCapacityRefusalRow } from '@boxxy/model/test-utils/build-mock-capacity-refusal-row';
 import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import { buildMockV1ItemRow } from '@boxxy/model/test-utils/build-mock-v1-item-row';
+import { buildMockBindChange } from './build-mock-bind-change.ts';
 import { buildMockCapacityRefusalChange } from './build-mock-capacity-refusal-change.ts';
 import { buildMockClaimChange } from './build-mock-claim-change.ts';
 import { buildMockFileItemChange } from './build-mock-file-item-change.ts';
 import type { ClaimStoreCase } from './types.ts';
+
+const removedAgentSession = brandSchemas.agentSessionId.parse('agent-removed');
 
 export const claimStoreCapacityRefusalCases: readonly ClaimStoreCase[] = [
   [
@@ -59,12 +63,22 @@ export const claimStoreCapacityRefusalCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
-    '#readCapacityRefusals counts a refusal that shares its tick with the last started session',
+    '#readCapacityRefusals counts a refusal claimed after the last started session in the same tick',
     async (store) => {
       const tick = brandSchemas.instant.parse(5000);
-      const refused = buildMockCapacityRefusalRow({ at: tick });
+
+      const before = buildMockCapacityRefusalRow({
+        at: tick,
+        attempt: brandSchemas.attemptId.parse('01900000-0000-7000-8000-00000000000a'),
+      });
+
+      const after = buildMockCapacityRefusalRow({
+        at: tick,
+        attempt: brandSchemas.attemptId.parse('01900000-0000-7000-8000-00000000000c'),
+      });
 
       const started = buildMockV1AttemptRow({
+        id: brandSchemas.attemptId.parse('01900000-0000-7000-8000-00000000000b'),
         state: 'running',
         atcSession: brandSchemas.atcSessionId.parse('s2'),
         startedAt: tick,
@@ -76,7 +90,8 @@ export const claimStoreCapacityRefusalCases: readonly ClaimStoreCase[] = [
         );
 
         await transaction.applyChange(buildMockClaimChange(started));
-        await transaction.applyChange(buildMockCapacityRefusalChange(refused));
+        await transaction.applyChange(buildMockCapacityRefusalChange(before));
+        await transaction.applyChange(buildMockCapacityRefusalChange(after));
       });
 
       const read = await store.read((transaction) => transaction.readCapacityRefusals());
@@ -93,30 +108,164 @@ export const claimStoreCapacityRefusalCases: readonly ClaimStoreCase[] = [
     },
   ],
   [
-    '#applyChange deletes an attempt with its lease, seats, bound sessions and decisions on remove-attempt',
+    '#applyChange on remove-attempt deletes the attempt',
     async (store) => {
-      const attempt = buildMockV1AttemptRow({ state: 'failed', atcSession: null });
-      const kept = buildMockV1AttemptRow({ item: attempt.item, number: 2 });
+      const seeded = await seedRemovedAttempt(store);
 
-      await store.exclusive(async (transaction) => {
-        await transaction.applyChange(
-          buildMockFileItemChange(buildMockV1ItemRow({ id: attempt.item })),
-        );
+      const read = await store.read((transaction) =>
+        transaction.listItemAttempts(seeded.attempt.item),
+      );
 
-        await transaction.applyChange(buildMockClaimChange(attempt));
+      return { received: read.map((row) => row.id), expected: [seeded.kept.id] };
+    },
+  ],
+  [
+    '#applyChange on remove-attempt deletes the seats of the attempt',
+    async (store) => {
+      await seedRemovedAttempt(store);
 
-        await transaction.applyChange({
-          at: attempt.claimedAt,
-          writes: [{ op: 'remove-attempt', attempt: attempt.id }],
+      const read = await store.read((transaction) => transaction.listLimitSeats());
+
+      return { received: read, expected: [] };
+    },
+  ],
+  [
+    '#applyChange on remove-attempt deletes the bound sessions of the attempt',
+    async (store) => {
+      await seedRemovedAttempt(store);
+
+      const read = await store.read((transaction) =>
+        transaction.findAttemptByAgentSession(removedAgentSession),
+      );
+
+      return { received: read, expected: null };
+    },
+  ],
+  [
+    '#applyChange on remove-attempt deletes the decisions of the attempt',
+    async (store) => {
+      const seeded = await seedRemovedAttempt(store);
+
+      const result = await store.exclusive((transaction) =>
+        transaction.applyChange({
+          at: seeded.attempt.claimedAt,
+          writes: [{ op: 'insert', table: 'decisions', row: buildRemovedDecision(seeded.attempt) }],
           facts: [],
-        });
+        }),
+      );
 
-        await transaction.applyChange(buildMockClaimChange(kept));
-      });
+      return { received: result, expected: { kind: 'applied' } };
+    },
+  ],
+  [
+    '#applyChange on remove-attempt keeps the lease generation, so the next lease takes a new one',
+    async (store) => {
+      const seeded = await seedRemovedAttempt(store);
 
-      const read = await store.read((transaction) => transaction.listItemAttempts(attempt.item));
+      const read = await store.read((transaction) =>
+        transaction.readLastLeaseGen(seeded.attempt.item, seeded.attempt.phase),
+      );
 
-      return { received: read.map((row) => row.id), expected: [kept.id] };
+      return { received: read, expected: seeded.attempt.leaseGen };
+    },
+  ],
+  [
+    '#applyChange returns stale-generation for a write under the lease of a removed attempt',
+    async (store) => {
+      const seeded = await seedRemovedAttempt(store);
+
+      const result = await store.exclusive((transaction) =>
+        transaction.applyChange({
+          at: seeded.attempt.claimedAt,
+          under: {
+            item: seeded.attempt.item,
+            phase: seeded.attempt.phase,
+            gen: seeded.attempt.leaseGen,
+          },
+          writes: [],
+          facts: [],
+        }),
+      );
+
+      return { received: result, expected: { kind: 'stale-generation' } };
     },
   ],
 ];
+
+// An attempt with a held seat, a bound session, a decision and a lease, which the same change as
+// the lease release then removes. A second attempt of the item stays.
+async function seedRemovedAttempt(
+  store: ClaimStore,
+): Promise<{ readonly attempt: AttemptRow; readonly kept: AttemptRow }> {
+  const workers = brandSchemas.limitName.parse('workers');
+
+  const attempt = buildMockV1AttemptRow({
+    state: 'failed',
+    atcSession: brandSchemas.atcSessionId.parse('atc-removed'),
+  });
+
+  const kept = buildMockV1AttemptRow({
+    item: attempt.item,
+    phase: brandSchemas.phaseName.parse('verify'),
+    leaseGen: 1,
+  });
+
+  await store.exclusive(async (transaction) => {
+    await transaction.syncLimits(
+      [{ name: workers, max: 2, counts: {} }],
+      brandSchemas.instant.parse(500),
+    );
+
+    await transaction.applyChange(
+      buildMockFileItemChange(buildMockV1ItemRow({ id: attempt.item })),
+    );
+
+    await transaction.applyChange(buildMockClaimChange(attempt, [workers]));
+
+    await transaction.applyChange(
+      buildMockBindChange({ attempt, agentSession: removedAgentSession }),
+    );
+
+    await transaction.applyChange({
+      at: attempt.claimedAt,
+      writes: [{ op: 'insert', table: 'decisions', row: buildRemovedDecision(attempt) }],
+      facts: [],
+    });
+
+    await transaction.applyChange({
+      at: attempt.claimedAt,
+      writes: [
+        {
+          op: 'update',
+          table: 'leases',
+          key: { item: attempt.item, phase: attempt.phase, gen: attempt.leaseGen },
+          expect: { attempt: attempt.id, releasedAt: null },
+          set: { releasedAt: attempt.claimedAt },
+        },
+        { op: 'remove-attempt', attempt: attempt.id },
+      ],
+      facts: [],
+    });
+
+    await transaction.applyChange(buildMockClaimChange(kept));
+  });
+
+  return { attempt, kept };
+}
+
+function buildRemovedDecision(attempt: AttemptRow): DecisionRow {
+  return {
+    id: brandSchemas.decisionId.parse('01900000-0000-7000-8000-000000000001'),
+    attempt: attempt.id,
+    item: attempt.item,
+    kind: 'start',
+    pool: brandSchemas.poolName.parse('build'),
+    rulesVersion: attempt.rulesVersion,
+    snapshotHash: brandSchemas.snapshotHash.parse('c'.repeat(64)),
+    storeVersion: 1,
+    pepysOffsets: {},
+    faults: [],
+    limits: [],
+    at: attempt.claimedAt,
+  };
+}

@@ -117,7 +117,6 @@ function applyMemoryWrite(tables: MemoryTables, write: RowWrite, at: Instant): A
       return null;
     })
     .with({ op: 'remove-attempt' }, (removal) => {
-      tables.leases = tables.leases.filter((row) => row.attempt !== removal.attempt);
       tables.limit_seats = tables.limit_seats.filter((row) => row.attempt !== removal.attempt);
 
       tables.attempt_sessions = tables.attempt_sessions.filter(

@@ -26,6 +26,11 @@ export function settleAttempt(input: SettleAttemptInput): Promise<MoveResult> {
   return input.store.exclusive(async (tx) => {
     const attempt = await tx.readAttempt(input.attempt);
 
+    // a refusal for capacity deletes its attempt, so a second refusal of the same claim finds none
+    if (attempt === null && input.forced === 'no-capacity') {
+      return { kind: 'refused', reason: 'attempt-removed' };
+    }
+
     invariant(attempt !== null, `the settle names a stored attempt: ${input.attempt}`);
 
     if (input.seen !== undefined && !isSameGuard(input.seen, attempt)) {

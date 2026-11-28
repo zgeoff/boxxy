@@ -127,7 +127,7 @@ function writeSQLiteRow(
       return null;
     })
     .with({ op: 'remove-attempt' }, async (removal) => {
-      for (const table of ['leases', 'limit_seats', 'attempt_sessions', 'decisions'] as const) {
+      for (const table of ['limit_seats', 'attempt_sessions', 'decisions'] as const) {
         await db.deleteFrom(table).where('attempt', '=', removal.attempt).execute();
       }
 

@@ -302,8 +302,9 @@ export type RowWrite =
   // the attempt's held seats of that hold generation; none held is no refusal
   | { readonly op: 'release-seats'; readonly release: SeatRelease }
 
-  // deletes the attempt with every row that belongs only to it: its leases, seats, bound sessions
-  // and decisions. A stored attempt that is not there is no refusal.
+  // Deletes the attempt with every row that belongs only to it: its seats, bound sessions and
+  // decisions. Its lease stays, released, so the next lease of the item and phase takes a new
+  // generation. A stored attempt that is not there is no refusal.
   | { readonly op: 'remove-attempt'; readonly attempt: AttemptId };
 
 // The worker port: one adapter per kind of worker host, such as atc.

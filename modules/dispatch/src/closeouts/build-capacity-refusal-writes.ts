@@ -8,8 +8,7 @@ interface CapacityRefusalInput {
   readonly now: Instant;
 }
 
-// The writes that follow a spawn refused for capacity: the refusal is recorded, and the attempt
-// that the spawn was for goes, with the rows that belong only to it.
+// The writes that record a spawn refused for capacity. The attempt builder removes the attempt.
 export function buildCapacityRefusalWrites(input: CapacityRefusalInput): RowWrite[] {
   invariant(input.attempt.pool !== null, 'a spawned attempt was picked into a pool');
 
@@ -27,6 +26,5 @@ export function buildCapacityRefusalWrites(input: CapacityRefusalInput): RowWrit
         refusal: input.refusal,
       },
     },
-    { op: 'remove-attempt', attempt: input.attempt.id },
   ];
 }

@@ -330,14 +330,17 @@ every other failure:
 A spawn that atc refuses for capacity keeps no attempt. The claim has to write the attempt before
 the spawn, because atc uses the attempt ID as its idempotency key, so the refusal deletes it. In one
 store change, dispatch inserts a row in the `capacity_refusals` table
-([the store](./store.md#capacity-refusals)), deletes the attempt with the lease, seats, bound
-sessions and decisions that belong only to it, and writes the `settled` fact. The fact carries the
-failure `no-capacity`, the outcome `lost` and atc's refusal, as it did when the attempt stayed, so
-pepys sees no change. The refusal row holds what atc answered: its error code, the cause it names
-under that code (`ram_budget_exceeded`, for example), and its message, cut to 500 characters. All
-three are null when atc gave no answer. The attempt's `refusal` column is null on every stored
-attempt, and `item_get` shows no capacity refusal. The refusal changes nothing about scheduling or
-retries, and the item stays ready.
+([the store](./store.md#capacity-refusals)), releases the lease, deletes the attempt with the seats,
+bound sessions and decisions that belong only to it, and writes the `settled` fact. The attempt
+builder writes the deletion, as it writes every other change to an attempt. The released lease
+stays, so the item's next lease takes a new generation and a write under the refused attempt's lease
+is stale. A second refusal of the same claim finds no attempt and is refused with no write. The fact
+carries the failure `no-capacity`, the outcome `lost` and atc's refusal, as it did when the attempt
+stayed, so pepys sees no change. The refusal row holds what atc answered: its error code, the cause
+it names under that code (`ram_budget_exceeded`, for example), and its message, cut to 500
+characters. All three are null when atc gave no answer. The attempt's `refusal` column is null on
+every stored attempt, and `item_get` shows no capacity refusal. The refusal changes nothing about
+scheduling or retries, and the item stays ready.
 
 The claim numbers an attempt one above the highest number among the item's attempts in that phase. A
 deleted attempt leaves no gap behind the latest one, so the next claim takes the number that the

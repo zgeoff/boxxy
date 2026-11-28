@@ -2,9 +2,8 @@ import { sql } from 'kysely';
 import type { Kysely } from 'kysely';
 import type { Migration } from 'kysely/migration';
 
-// A spawn that atc refused for capacity leaves one row here, and no attempt. Each attempt stored
-// as `no-capacity` becomes a row that keeps its attempt's ID, and the attempt goes with every row
-// that belongs only to it. pepys already holds their facts.
+// Each attempt stored as `no-capacity` becomes a row that keeps its attempt's ID, and goes with its
+// seats, sessions and decisions. Its released lease stays, so a lease generation is never reused.
 const refused = sql`SELECT id FROM attempts WHERE failure = 'no-capacity'`;
 
 const statements = [
@@ -21,7 +20,6 @@ const statements = [
   sql`INSERT INTO capacity_refusals (id, attempt, item, phase, pool, at, refusal)
     SELECT id, id, item, phase, coalesce(pool, 'unknown'), coalesce(ended_at, claimed_at), refusal
     FROM attempts WHERE failure = 'no-capacity'`,
-  sql`DELETE FROM leases WHERE attempt IN (${refused})`,
   sql`DELETE FROM limit_seats WHERE attempt IN (${refused})`,
   sql`DELETE FROM attempt_sessions WHERE attempt IN (${refused})`,
   sql`DELETE FROM decisions WHERE attempt IN (${refused})`,

@@ -1357,3 +1357,14 @@ test('it files an open item with its acceptance lines and their tags', async () 
     },
   ]);
 });
+
+test('it refuses a second settle for capacity once the first removed the attempt', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.claimAt('triage');
+
+  await ctx.settle(attempt, 'no-capacity');
+
+  const result = await ctx.settle(attempt, 'no-capacity');
+
+  expect(result).toStrictEqual({ kind: 'refused', reason: 'attempt-removed' });
+});
