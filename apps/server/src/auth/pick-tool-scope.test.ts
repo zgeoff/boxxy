@@ -9,6 +9,7 @@ test.each(listOwnerTools())('it gives the owner tool %s a scope', (tool) => {
 test.each([
   ['item_list', 'read'],
   ['item_get', 'read'],
+  ['attempt_get', 'read'],
   ['runner_status', 'read'],
   ['report_cost', 'read'],
   ['report_stage_times', 'read'],

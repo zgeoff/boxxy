@@ -1,5 +1,5 @@
 import {
-  attemptRowSchema,
+  attemptSummarySchema,
   closeOutAnswerSchema,
   costToLandSchema,
   evidenceRowSchema,
@@ -17,6 +17,7 @@ import {
 } from '@boxxy/model';
 import { oc } from '@orpc/contract';
 import { z } from 'zod';
+import { attemptGetContract } from './attempts/attempt-get-contract.ts';
 import { authContract } from './auth-contract.ts';
 import { capacityRefusalsSchema } from './capacity-refusals-schema.ts';
 import { attemptEvidenceOutput } from './evidence/attempt-evidence-output.ts';
@@ -85,7 +86,7 @@ const pepysErrors = {
 const itemDetail = z.object({
   item: itemViewSchema,
   notes: z.array(noteRowSchema),
-  attempts: z.array(attemptRowSchema),
+  attempts: z.array(attemptSummarySchema),
   relations: z.array(relationRowSchema),
   evidence: z.array(evidenceRowSchema),
   pullRequests: z.array(pullRequestRowSchema),
@@ -216,7 +217,7 @@ const attemptCloseOutShape = z.object({
 const attemptCurrentOutput = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('attempt'),
-    attempt: attemptRowSchema,
+    attempt: attemptSummarySchema,
     item: itemViewSchema,
     input: z.json(),
     closeOut: attemptCloseOutShape,
@@ -264,7 +265,7 @@ const expediteInput = z.object({
 });
 
 const runnerAttempt = z.object({
-  attempt: attemptRowSchema,
+  attempt: attemptSummarySchema,
   title: z.string(),
   waitingSince: instantOrNull,
 });
@@ -293,7 +294,7 @@ const runnerStatusOutput = z.object({
   pause: runnerPause.nullable(),
   limits: z.array(limitFillSchema),
   attempts: z.array(runnerAttempt),
-  strays: z.array(attemptRowSchema),
+  strays: z.array(attemptSummarySchema),
   capacityRefusals: capacityRefusalsSchema,
 
   // hold notices that the notifier has not sent; `lastError` is the reason of the most recent
@@ -455,6 +456,8 @@ export const contract = {
   },
 
   attempt: {
+    ...attemptGetContract,
+
     // No input: it answers with the latest attempt of the proven caller's session, which is how
     // every session learns its attempt ID, and `closeOut` names the close-out that attempt takes.
     current: makeReadTool(

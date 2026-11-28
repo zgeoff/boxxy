@@ -2,6 +2,7 @@ import { expect, onTestFinished, test } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { attemptSummarySchema, brandSchemas } from '@boxxy/model';
 import { buildExampleLoadInput } from '@boxxy/rules/test-utils/build-example-load-input';
 import { z } from 'zod';
 import { createTestCLI } from '../test-utils/create-test-cli.ts';
@@ -40,6 +41,19 @@ test('#status prints the runner state', async () => {
     exitCode: 0,
     status: { paused: false, pause: null, outbox: { sink: 'none' } },
   });
+});
+
+test('#status lists each live attempt as a summary without its launch prompt or input', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.server.seedStartedAttempt(brandSchemas.phaseName.parse('build'));
+  const result = await ctx.run(['status']);
+
+  const shape = z.object({ attempts: z.array(z.object({ attempt: attemptSummarySchema })) });
+  const live = readJSONOutput(result, shape).attempts;
+
+  expect(live.map((entry) => [entry.attempt.id, entry.attempt.phase])).toStrictEqual([
+    [attempt.id, attempt.phase],
+  ]);
 });
 
 test('#runner pause pauses the runner and #runner resume resumes it', async () => {

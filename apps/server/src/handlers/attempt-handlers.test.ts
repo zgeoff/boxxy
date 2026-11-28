@@ -1,7 +1,7 @@
 import { expect, expectTypeOf, test } from 'bun:test';
 import type { BoxxyClient } from '@boxxy/contract';
 import type { BindAnswer } from '@boxxy/dispatch';
-import { brandSchemas } from '@boxxy/model';
+import { attemptSummarySchema, brandSchemas } from '@boxxy/model';
 import { z } from 'zod';
 import { buildRPCRequest } from '../test-utils/build-rpc-request.ts';
 import { createTestServer } from '../test-utils/create-test-server.ts';
@@ -574,3 +574,59 @@ test('it answers a bind with exactly the kinds that the bind of dispatch gives',
 
   expectTypeOf<WireBind['kind']>().toEqualTypeOf<BindAnswer['kind']>();
 });
+
+test('#current answers the attempt as a summary and keeps the input beside it', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.seedStartedAttempt(brandSchemas.phaseName.parse('build'));
+
+  ctx.callerProof.setCaller(attempt.caller);
+
+  const answer = await ctx.callSession('attempt.current', {});
+
+  const shape = z.object({ json: z.object({ attempt: attemptSummarySchema, input: z.unknown() }) });
+  const current = shape.parse(answer.body).json;
+
+  expect([current.attempt.phase, current.attempt.state, current.input]).toStrictEqual([
+    attempt.phase,
+    attempt.state,
+    attempt.input,
+  ]);
+});
+
+test('#get returns the attempt in full, with its launch prompt and input', async () => {
+  const ctx = await setupTest();
+  const attempt = await ctx.seedStartedAttempt(brandSchemas.phaseName.parse('build'));
+
+  const response = await ctx.owner(
+    buildRPCRequest({ procedure: 'attempt.get', input: { attempt: attempt.id } }),
+  );
+
+  const body: unknown = await response.json();
+
+  const answer = z.object({ json: z.record(z.string(), z.unknown()) }).parse(body);
+
+  expect(answer.json).toStrictEqual(
+    expect.objectContaining({
+      id: attempt.id,
+      spawnRequest: attempt.spawnRequest,
+      input: attempt.input,
+    }),
+  );
+});
+
+test.each([['0192f0c5-1a2b-7c3d-8e4f-5a6b7c8d9e0f'], ['no-such-attempt']])(
+  '#get answers NOT_FOUND for the unknown attempt %s',
+  async (unknown) => {
+    const ctx = await setupTest();
+
+    const response = await ctx.owner(
+      buildRPCRequest({ procedure: 'attempt.get', input: { attempt: unknown } }),
+    );
+
+    const body: unknown = await response.json();
+
+    const answer = z.object({ json: z.object({ code: z.string() }) }).parse(body);
+
+    expect(answer.json.code).toBe('NOT_FOUND');
+  },
+);

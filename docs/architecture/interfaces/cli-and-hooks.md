@@ -69,7 +69,10 @@ The owner's item commands have a few rules the usage lines don't show:
   findings of a send-back from `--findings <text>` or `--findings-file <path>`, where `-` reads
   stdin. Giving both exits 2. `signoff list` prints the items that wait, with the head to pass.
 - **`item show`** prints the item with its body and one revision per edit, each with its time and
-  the fields it set.
+  the fields it set. It prints each attempt as a summary, without its launch prompt or input.
+  `attempt get <attempt>` prints one attempt in full, with its launch prompt, input and close-out,
+  and exits 1 with `NOT_FOUND` for an unknown ID. `status` prints each live attempt and each stray
+  as a summary.
 - **`plan defer --until`** takes an ISO 8601 time with an offset, which the server checks.
 
 The `attempt` commands run inside a session and take no session argument, because the server finds

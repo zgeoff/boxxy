@@ -21,7 +21,7 @@ export interface Access {
 
 export const access = {
   // The owner's agent files and steers work for the owner: every command on an item, every read,
-  // the runner's two switches, the notice session and the sign-off at merge, 24 tools. `rules.dryRun` is a read that is
+  // the runner's two switches, the notice session and the sign-off at merge, 25 tools. `rules.dryRun` is a read that is
   // CLI only. Only this path files a held item, releases one or lists the held items.
   'item.file': buildOwnerWrite(
     'boxxy item file --repo --title --outcome [--body | --body-file] [--acceptance]… [--kind] [--design-mode] [--blocked-by]… [--label]… [--security] [--held <reason>]',
@@ -48,6 +48,7 @@ export const access = {
   'plan.expedite': buildOwnerWrite('boxxy expedite <item>… --reason [--expires]'),
   'plan.unexpedite': buildOwnerWrite('boxxy unexpedite <item>'),
   'item.get': buildOwnerRead('boxxy item show <item>'),
+  'attempt.get': buildOwnerRead('boxxy attempt get <attempt>'),
   'signoff.list': buildOwnerRead('boxxy signoff list'),
   'item.list': buildOwnerRead(
     'boxxy item list [--state | --held] [--repo] [--phase] [--text] [--label]',

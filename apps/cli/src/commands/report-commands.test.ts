@@ -650,12 +650,11 @@ test('it shows an item whose review a v1 server stored, with the review read as 
     },
   });
 
-  const shown = await ctx.run(['item', 'show', review.item]);
+  const shown = await ctx.run(['attempt', 'get', review.id]);
 
-  const attemptSchema = z.object({ id: z.string(), closeOut: z.unknown() });
-  const detail = readJSONOutput(shown, z.object({ attempts: z.array(attemptSchema) }));
+  const detail = readJSONOutput(shown, z.object({ closeOut: z.unknown() }));
 
-  expect(detail.attempts.find((attempt) => attempt.id === review.id)?.closeOut).toStrictEqual({
+  expect(detail.closeOut).toStrictEqual({
     round: null,
     cause: null,
     reading: {

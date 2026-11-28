@@ -71,6 +71,14 @@ needs it:
 - **The owner's agent** files and steers work, so the owner's `/mcp` lists every procedure that
   changes an item, every read, the runner's pause and resume, and the notice procedures. Only the
   owner can file, release or list held items, because a held item is the owner's draft.
+- **Attempts in answers are summaries.** `item.get`, `runner.status` and `attempt.current` return
+  each attempt as a summary: its ID, item, phase, number, round, mode, state, failure, refusal,
+  pool, runner, atc session, claim, start and end times, and outcome name. A summary leaves out the
+  launch prompt, the input, the close-out body, the field values and the caller, which can run to
+  many kilobytes for each attempt. `attempt.get` takes an attempt ID and returns that one attempt in
+  full, with its launch prompt, input and close-out. It takes the `read` scope, as `item.get` does,
+  and answers `NOT_FOUND` for an unknown ID. `attempt.current` still returns the attempt's `input`
+  beside its summary.
 - **The owner's sign-off** has two procedures, both owner-only ([below](#the-owners-sign-off)).
 - **A session** gets five tools on its own endpoint, `/mcp/session`, so its tool list holds nothing
   that changes another item. `attempt.current` gives the session its attempt ID, phase, close-out

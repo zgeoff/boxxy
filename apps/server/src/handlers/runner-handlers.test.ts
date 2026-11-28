@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import type { ItemId } from '@boxxy/model';
-import { brandSchemas } from '@boxxy/model';
+import { attemptSummarySchema, brandSchemas } from '@boxxy/model';
+import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
 import { z } from 'zod';
 import { buildRPCRequest } from '../test-utils/build-rpc-request.ts';
 import { createTestServer } from '../test-utils/create-test-server.ts';
@@ -356,4 +357,41 @@ test('it sends a notice for a second pause after a resume', async () => {
     null,
     'a second pause',
   ]);
+});
+
+test('#status lists a live attempt and a stray as summaries without their launch prompts', async () => {
+  const ctx = await setupTest();
+  const live = await ctx.seedStartedAttempt(brandSchemas.phaseName.parse('build'));
+
+  const at = ctx.dispatch.clock.now();
+
+  const stray = buildMockV1AttemptRow({
+    item: live.item,
+    number: live.number + 1,
+    state: 'failed',
+    failure: 'session-lost',
+    spawnRequest: { prompt: 'x'.repeat(1000) },
+    input: { acceptance: ['y'.repeat(1000)] },
+    claimedAt: at,
+    endedAt: at,
+    strayedAt: at,
+  });
+
+  await ctx.deps.store.exclusive((tx) =>
+    tx.applyChange({ at, writes: [{ op: 'insert', table: 'attempts', row: stray }], facts: [] }),
+  );
+
+  const shape = z.object({
+    attempts: z.array(z.object({ attempt: attemptSummarySchema })),
+    strays: z.array(attemptSummarySchema),
+  });
+
+  const answer = await ctx.call('runner.status', {});
+
+  const status = shape.parse(answer);
+
+  expect([
+    status.attempts.map((entry) => [entry.attempt.id, entry.attempt.state]),
+    status.strays.map((entry) => [entry.id, entry.state, entry.failure]),
+  ]).toStrictEqual([[[live.id, live.state]], [[stray.id, 'failed', 'session-lost']]]);
 });

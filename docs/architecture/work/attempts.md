@@ -332,7 +332,8 @@ An attempt that settles as `no-capacity` stores what atc answered: its error cod
 names under that code (`ram_budget_exceeded`, for example), and its message, cut to 500 characters.
 The attempt row holds them in its `refusal` column and the `settled` fact in its `refusal` field.
 Both are null for every other failure, and for an attempt that settled before boxxy stored the
-refusal. `item_get` shows the column in each attempt of the item.
+refusal. `item_get` shows the column in each attempt summary of the item, and `attempt_get` reads
+the whole attempt.
 
 `runner.status` shows `capacityRefusals`: the time and refusal of the latest `no-capacity` attempt,
 and `sinceLastSpawn`, the count of `no-capacity` attempts that ended after the latest attempt that
