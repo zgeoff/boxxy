@@ -13,7 +13,7 @@ function setupTest() {
     openWorldHint: z.boolean(),
   });
 
-  const toolMetaSchema = z.object({ name: z.string(), annotations: z.unknown() });
+  const toolMetaSchema = z.object({ name: z.string(), annotations: z.unknown().optional() });
   const metaSchema = z.object({ '~mcp/tool': toolMetaSchema.optional() }).loose();
 
   const definitionSchema = z.object({
