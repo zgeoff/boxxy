@@ -59,7 +59,8 @@ time run that phase.
 The runner and a close-out call can change the same attempt at the same moment. Every write to an
 attempt, its session rows or its seats therefore goes through one builder in the dispatch module,
 which runs the attempt machine as a pure function, and a repo test fails when any other code in that
-module writes them. The store refuses a change when the stored row differs from the row the builder
+module writes them. The one exception is the [skipped attempt](#skipped-attempts), which a second
+builder writes. The store refuses a change when the stored row differs from the row the builder
 read: its state, every column the machine's guards read, and the version counters on the lease and
 the seats. The seat counter goes up at each wake. The refused caller reads again on the next tick.
 
@@ -293,7 +294,7 @@ seat and lease release, every effect's rows and facts, and the `settled` fact. T
 returns the outcome's effects, such as a new item, a relation or closing the item. Settle plans each
 effect in order, and skips with a reason a relation named twice, a second close, and a second new
 item with the same title. Without those skips, the second insert would break a unique key, the store
-would refuse the whole settle, and the attempt would sit in `closing` forever.
+would throw and roll back the whole settle, and the attempt would sit in `closing` forever.
 
 When the item is about to hold, settle withholds each effect that changes the item itself: the
 close, a relation, and a new kind, field, acceptance list or body. It still files new items, records
@@ -308,10 +309,10 @@ which no edge matches. The item holds, and `boxxy item retry <item> --phase <pha
 
 A failure the runner sets wins over any close-out the attempt holds, and such a settle applies no
 effects, so it files none of the close-out's open items. An attempt fails with `closeout-missing`
-when it settles with no close-out and none of the failures below. The same failure also marks a
-close-out with the outcome `blocked` or `abandoned` from a
-[design or build close-out](../../design/boxxy/close-outs.md#the-v1-phase-kinds). The runner sets
-every other failure:
+when it settles with no close-out and none of the failures below. A design, build or verify
+close-out with the outcome `blocked` or `abandoned` fails with the outcome name
+([the phase kinds](../../design/boxxy/close-outs.md#the-v1-phase-kinds)). The runner sets every
+other failure:
 
 | Failure         | Cause                                                                                                                                                     | Counts against `maxAttempts` |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
@@ -327,9 +328,9 @@ every other failure:
 
 ### A spawn refused for capacity
 
-A spawn that atc refuses for capacity keeps no attempt. The claim has to write the attempt before
-the spawn, because atc uses the attempt ID as its idempotency key, so the refusal deletes it. In one
-store change, dispatch inserts a row in the `capacity_refusals` table
+A spawn that atc refuses for capacity keeps no attempt. The claim writes the attempt before the
+spawn, because atc uses the attempt ID as its idempotency key, and the refusal then deletes it. In
+one store change, dispatch inserts a row in the `capacity_refusals` table
 ([the store](./store.md#capacity-refusals)), releases the lease, deletes the attempt with the seats,
 bound sessions and decisions that belong only to it, and writes the `settled` fact. The attempt
 builder writes the deletion, as it writes every other change to an attempt. The released lease

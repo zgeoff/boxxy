@@ -1,5 +1,7 @@
 # Close-outs
 
+Read this when you add or change the close-out type or parser of a phase kind.
+
 A close-out is the typed outcome an agent writes when its attempt ends. The agent writes only what
 only it knows ([decision 0009](../../decisions/0009-close-outs-hold-what-only-the-agent-knows.md)).
 boxxy derives everything else, such as commits, PRs, CI results, findings, tokens and time, from
@@ -50,7 +52,7 @@ constraints apply to the kinds the design names:
 | triage | carries a typed `size`, which cohort keys and the [forecast](./planning.md#forecast-proposed) read |
 | contract | files a draft `core.decision` for the [sign-off gate](./core-model.md#gates-and-sign-offs) |
 | `plan.judge` | ends the strand with an override (pin, admit or lift) or a defer ([planning](./planning.md#the-judgement-pool)) |
-| review | the session sends the review tool's raw result, and the server reads it through the `ReviewGate` port into the close-out ([review, verify and merge](./review-and-merge.md#the-review-gate)); in v1 the review session sends the verdict and the findings as text ([the pipeline](../../architecture/work/pipeline.md#the-review)) |
+| review | the session sends the review tool's raw result, and the server reads it through the `ReviewGate` port into the close-out ([review, verify and merge](./review-and-merge.md#the-review-gate), [the pipeline](../../architecture/work/pipeline.md#the-review)) |
 
 ## The v1 phase kinds
 
