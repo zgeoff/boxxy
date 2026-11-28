@@ -1,7 +1,8 @@
 import { expect, test } from 'bun:test';
+import { closeOutAttempt } from '@boxxy/dispatch';
 import type { ItemId } from '@boxxy/model';
 import { attemptSummarySchema, brandSchemas } from '@boxxy/model';
-import { buildMockV1AttemptRow } from '@boxxy/model/test-utils/build-mock-v1-attempt-row';
+import invariant from 'tiny-invariant';
 import { z } from 'zod';
 import { buildRPCRequest } from '../test-utils/build-rpc-request.ts';
 import { createTestServer } from '../test-utils/create-test-server.ts';
@@ -363,23 +364,33 @@ test('#status lists a live attempt and a stray as summaries without their launch
   const ctx = await setupTest();
   const live = await ctx.seedStartedAttempt(brandSchemas.phaseName.parse('build'));
 
-  const at = ctx.dispatch.clock.now();
-
-  const stray = buildMockV1AttemptRow({
-    item: live.item,
-    number: live.number + 1,
-    state: 'failed',
-    failure: 'session-lost',
-    spawnRequest: { prompt: 'x'.repeat(1000) },
-    input: { acceptance: ['y'.repeat(1000)] },
-    claimedAt: at,
-    endedAt: at,
-    strayedAt: at,
+  await ctx.dispatch.seedItem({
+    phase: brandSchemas.phaseName.parse('design'),
+    designMode: 'attended',
   });
 
-  await ctx.deps.store.exclusive((tx) =>
-    tx.applyChange({ at, writes: [{ op: 'insert', table: 'attempts', row: stray }], facts: [] }),
-  );
+  const claim = await ctx.dispatch.claim();
+
+  invariant(claim !== null, 'the claim picks the seeded item');
+
+  const stray = await ctx.dispatch.readAttempt(claim.attempt.id);
+
+  await closeOutAttempt({
+    store: ctx.dispatch.store,
+    call: ctx.dispatch.buildCallRef(stray),
+    body: {
+      result: { kind: 'designed', design: { summary: 'Follow the theme.', location: null } },
+      friction: [],
+    },
+    rules: ctx.dispatch.rules(),
+    now: ctx.dispatch.clock.now(),
+    newId: ctx.dispatch.newId,
+  });
+
+  ctx.dispatch.worker.failAlways('stop', { kind: 'unknown', reason: 'host_leased' });
+  ctx.dispatch.clock.advance(10 * 60_000 + 1);
+
+  await ctx.tick();
 
   const shape = z.object({
     attempts: z.array(z.object({ attempt: attemptSummarySchema })),
@@ -390,8 +401,13 @@ test('#status lists a live attempt and a stray as summaries without their launch
 
   const status = shape.parse(answer);
 
+  const stored = await ctx.dispatch.readAttempt(stray.id);
+
+  const launchRequest = JSON.stringify(stored.spawnRequest);
+
   expect([
     status.attempts.map((entry) => [entry.attempt.id, entry.attempt.state]),
     status.strays.map((entry) => [entry.id, entry.state, entry.failure]),
-  ]).toStrictEqual([[[live.id, live.state]], [[stray.id, 'failed', 'session-lost']]]);
+    [launchRequest.length > 200, JSON.stringify(answer).includes(launchRequest)],
+  ]).toStrictEqual([[[live.id, live.state]], [[stray.id, 'succeeded', null]], [true, false]]);
 });
